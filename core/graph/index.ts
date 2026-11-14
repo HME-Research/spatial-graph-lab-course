@@ -1,4 +1,5 @@
 export * from './adjacency';
+export * from './apply';
 export * from './commands';
 export * from './constants';
 export * from './errors';

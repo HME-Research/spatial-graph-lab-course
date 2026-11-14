@@ -1,6 +1,7 @@
-import { useState, type ChangeEvent } from 'react';
+import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import exampleDesign from '../../student/designs/two-storey-example.json';
 import {
+  applyGraphCommand,
   formatIssuePath,
   isVerticalKind,
   parseDesignJson,
@@ -9,6 +10,9 @@ import {
   type GraphIssue,
   type Result,
 } from '../graph';
+import type { GraphCommandHandler } from '../viewer/contracts';
+import { NO_SELECTION, reconcileSelection, type Selection } from '../viewer/selection';
+import { Workspace } from './Workspace';
 
 const EXAMPLE_LABEL = 'student/designs/two-storey-example.json';
 
@@ -39,8 +43,37 @@ const loadExample = (prev: State): State => applyResult(prev, validateDocument(e
 const fmtGrid = (g: readonly number[]) => `[${g.join(', ')}]`;
 
 export function App() {
-  const [state, setState] = useState<State>(() => loadExample({ current: null, failure: null }));
+  const [state, setStateRaw] = useState<State>(() => loadExample({ current: null, failure: null }));
+  const [rawSelection, setSelection] = useState<Selection>(NO_SELECTION);
+  // Mirror of the latest state so command handlers can validate synchronously against it.
+  const stateRef = useRef(state);
+  const setState = useCallback((update: (prev: State) => State) => {
+    const next = update(stateRef.current);
+    stateRef.current = next;
+    setStateRaw(next);
+    return next;
+  }, []);
+
   const { current, failure } = state;
+  const selection = current ? reconcileSelection(rawSelection, current.doc) : NO_SELECTION;
+
+  /** Loading a document replaces it wholesale; the selection is cleared only when it succeeds. */
+  const load = (update: (prev: State) => State) => {
+    const before = stateRef.current.current;
+    if (setState(update).current !== before) setSelection(NO_SELECTION);
+  };
+
+  const onCommand = useCallback<GraphCommandHandler>(
+    (command) => {
+      const doc = stateRef.current.current?.doc;
+      if (!doc) return { ok: false, issues: [{ path: [], code: 'not-found', message: 'no design is loaded' }] };
+      const result = applyGraphCommand(doc, command);
+      if (!result.ok) return { ok: false, issues: result.issues };
+      setState((prev) => ({ ...prev, current: prev.current && { ...prev.current, doc: result.value } }));
+      return { ok: true };
+    },
+    [setState],
+  );
 
   async function onFile(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
@@ -48,7 +81,7 @@ export function App() {
     input.value = '';
     if (!file) return;
     const text = await file.text();
-    setState((prev) => applyResult(prev, parseDesignJson(text), file.name));
+    load((prev) => applyResult(prev, parseDesignJson(text), file.name));
   }
 
   return (
@@ -56,7 +89,7 @@ export function App() {
       <header className="toolbar">
         <h1>Spatial Graph Lab</h1>
         <div className="actions">
-          <button type="button" onClick={() => setState(loadExample)}>
+          <button type="button" onClick={() => load(loadExample)}>
             Load example
           </button>
           <label className="file-button">
@@ -86,7 +119,16 @@ export function App() {
           </section>
         )}
 
-        {current && <DesignSummary loaded={current} />}
+        {current && (
+          <Workspace doc={current.doc} selection={selection} onSelect={setSelection} onCommand={onCommand} />
+        )}
+
+        {current && (
+          <details className="document-data">
+            <summary>Document data</summary>
+            <DesignSummary loaded={current} />
+          </details>
+        )}
       </main>
     </div>
   );

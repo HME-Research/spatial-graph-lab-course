@@ -98,6 +98,33 @@ export function setDiagramPosition(
   return validateDocument(next, options);
 }
 
+/** Change a node's programme type. Grid cell, edges and diagram position are unchanged. */
+export function setNodeType(
+  doc: DesignDocument,
+  nodeId: string,
+  typeId: string,
+  options?: ValidationOptions,
+): Result<DesignDocument> {
+  if (!hasNode(doc, nodeId)) return notFound('node', nodeId);
+  const next = { ...doc, nodes: doc.nodes.map((n) => (n.id === nodeId ? { ...n, typeId } : n)) };
+  return validateDocument(next, options);
+}
+
+/** Replace a node's whole attribute record (values must be JSON primitives). */
+export function setNodeAttributes(
+  doc: DesignDocument,
+  nodeId: string,
+  attributes: Attributes,
+  options?: ValidationOptions,
+): Result<DesignDocument> {
+  if (!hasNode(doc, nodeId)) return notFound('node', nodeId);
+  const next = {
+    ...doc,
+    nodes: doc.nodes.map((n) => (n.id === nodeId ? { ...n, attributes: { ...attributes } } : n)),
+  };
+  return validateDocument(next, options);
+}
+
 /** Add an explicit typed relationship between two face-adjacent nodes. */
 export function addEdge(doc: DesignDocument, edge: NewEdge, options?: ValidationOptions): Result<DesignDocument> {
   const next = {
