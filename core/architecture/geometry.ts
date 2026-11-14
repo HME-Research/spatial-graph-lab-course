@@ -1,4 +1,4 @@
-import type { GridCoord } from '../spatial';
+import type { GridCoord } from '@app/document';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '../viewer/coordinates';
 import { selectEdge, selectNode, type Selection } from '../viewer/selection';
 import {

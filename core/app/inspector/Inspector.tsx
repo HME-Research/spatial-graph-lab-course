@@ -8,7 +8,7 @@ import {
   type GraphEdge,
   type GraphIssue,
   type GraphNode,
-} from '../../spatial';
+} from '@app/document';
 import { typeColor } from '../../viewer/appearance';
 import type { GraphCommandHandler, InspectorProps, SelectionHandler } from '../../viewer/contracts';
 import {

@@ -1,4 +1,4 @@
-import type { AttributeValue, Attributes, GridCoord } from '../../spatial';
+import type { AttributeValue, Attributes, GridCoord } from '@app/document';
 
 /**
  * Pure form helpers for the inspector. Drafts are plain strings so inputs stay controlled;

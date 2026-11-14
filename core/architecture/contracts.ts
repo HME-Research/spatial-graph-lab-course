@@ -1,4 +1,4 @@
-import type { DesignDocument, EdgeKind, GridCoord } from '../spatial';
+import type { DesignDocument, EdgeKind, GridCoord } from '@app/document';
 
 /**
  * Architectural face-resolution contract (workstream C). Pure data in GRID space; no React or

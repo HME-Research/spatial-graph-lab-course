@@ -6,7 +6,7 @@ import {
 import type { GridCoord } from './schema';
 
 /** Order-independent key for a pair of node IDs (generic; re-exported for existing callers). */
-export { unorderedPairKey } from '../graph';
+export { unorderedPairKey } from '@core/graph';
 
 /** Stable string key for a grid cell, e.g. "1,0,2". */
 export const gridKey = (g: GridCoord): string => `${g[0]},${g[1]},${g[2]}`;

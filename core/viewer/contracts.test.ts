@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { removeEdge, removeNode } from '../spatial';
-import { expectOk, threeRooms } from '../spatial/test-fixtures';
+import { removeEdge, removeNode } from '@app/document';
+import { expectOk, threeRooms } from '@app/document/test-fixtures';
 import { FALLBACK_TYPE_PALETTE, typeColor } from './appearance';
 import { DEFAULT_CELL_SIZE, spatialToThree } from './coordinates';
 import {

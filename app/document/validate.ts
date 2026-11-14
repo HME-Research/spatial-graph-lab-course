@@ -1,5 +1,5 @@
 import type { core as zcore } from 'zod';
-import { validateGraph, type StructuralIssueCode } from '../graph';
+import { validateGraph, type StructuralIssueCode } from '@core/graph';
 import { edgeGeometryRequirement, gridKey, isEdgeGeometryValid } from './adjacency';
 import { DEFAULT_LIMITS, SCHEMA_VERSION, type GraphLimits } from './constants';
 import { fail, issue, ok, type GraphIssue, type IssueCode, type Result } from './errors';

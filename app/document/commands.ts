@@ -5,7 +5,7 @@ import {
   updateEdge as graphUpdateEdge,
   updateNode as graphUpdateNode,
   type GraphResult,
-} from '../graph';
+} from '@core/graph';
 import type { EdgeKind } from './constants';
 import { fail, issue, type Result } from './errors';
 import { designGraph } from './graph';

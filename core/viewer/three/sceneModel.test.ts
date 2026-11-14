@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { DesignDocument, GraphEdge, GraphNode } from '../../spatial';
-import { threeRooms } from '../../spatial/test-fixtures';
+import type { DesignDocument, GraphEdge, GraphNode } from '@app/document';
+import { threeRooms } from '@app/document/test-fixtures';
 import { DEFAULT_CELL_SIZE, spatialToThree } from '../coordinates';
 import { NO_SELECTION, selectEdge, selectNode } from '../selection';
 import {

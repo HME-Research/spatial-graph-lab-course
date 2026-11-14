@@ -1,4 +1,4 @@
-import type { AttributeValue, GraphEdge, GraphNode } from '../../spatial';
+import type { AttributeValue, GraphEdge, GraphNode } from '@app/document';
 import { typeColor } from '../appearance';
 import { accessGroups } from './sceneModel';
 

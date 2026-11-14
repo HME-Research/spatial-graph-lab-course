@@ -1,4 +1,4 @@
-import type { Graph, GraphPolicy } from '../graph';
+import type { Graph, GraphPolicy } from '@core/graph';
 import type { DesignDocument, GraphEdge, GraphNode } from './schema';
 
 /**

@@ -1,7 +1,7 @@
-import { fail as coreFail, ok as coreOk, type Issue, type IssuePath, type Result as CoreResult } from '../graph';
+import { fail as coreFail, ok as coreOk, type Issue, type IssuePath, type Result as CoreResult } from '@core/graph';
 
-export { formatIssuePath } from '../graph';
-export type { IssuePath } from '../graph';
+export { formatIssuePath } from '@core/graph';
+export type { IssuePath } from '@core/graph';
 
 /** Machine-readable category of a validation or command failure. */
 export type IssueCode =

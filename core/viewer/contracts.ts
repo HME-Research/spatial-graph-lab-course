@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import type { DesignDocument, GraphCommand, GraphIssue } from '../spatial';
+import type { DesignDocument, GraphCommand, GraphIssue } from '@app/document';
 import type { Selection, SelectionHandler } from './selection';
 
 export type { SelectionHandler } from './selection';

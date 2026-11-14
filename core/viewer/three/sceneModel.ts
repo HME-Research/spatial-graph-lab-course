@@ -1,4 +1,4 @@
-import { isVerticalKind, type EdgeKind, type GraphEdge, type GraphNode, type GridCoord } from '../../spatial';
+import { isVerticalKind, type EdgeKind, type GraphEdge, type GraphNode, type GridCoord } from '@app/document';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '../coordinates';
 import type { Selection } from '../selection';
 

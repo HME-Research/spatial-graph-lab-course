@@ -10,7 +10,7 @@ import {
   type DesignDocument,
   type GraphIssue,
   type Result,
-} from '../spatial';
+} from '@app/document';
 import type { GraphCommandHandler } from '../viewer/contracts';
 import { NO_SELECTION, reconcileSelection, type Selection } from '../viewer/selection';
 import { Workspace } from './Workspace';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyGraphCommand } from '../../spatial';
-import { expectOk, threeRooms } from '../../spatial/test-fixtures';
+import { applyGraphCommand } from '@app/document';
+import { expectOk, threeRooms } from '@app/document/test-fixtures';
 import {
   attributeKindOf,
   attributesToRows,

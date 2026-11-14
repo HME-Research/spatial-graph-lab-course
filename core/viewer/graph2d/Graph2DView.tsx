@@ -15,7 +15,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
-import { EDGE_KINDS, type EdgeKind, type GraphCommand, type GraphIssue } from '../../spatial';
+import { EDGE_KINDS, type EdgeKind, type GraphCommand, type GraphIssue } from '@app/document';
 import type { ViewProps } from '../contracts';
 import { NO_SELECTION, selectEdge, selectNode } from '../selection';
 import {
