@@ -8,13 +8,15 @@ export type RoomNodeData = {
   readonly node: GraphNode;
   /** True when a selected edge ends at this node. */
   readonly emphasised: boolean;
+  /** True when the active project's definition of this node's type is invalid. */
+  readonly brokenType?: boolean;
 };
 
 export type RoomFlowNode = Node<RoomNodeData, 'room'>;
 
 /** One spatial-graph node: its ID, function (typeId) and spatial cell. One handle for connecting. */
 export const RoomNode = memo(function RoomNode({ data, selected }: NodeProps<RoomFlowNode>) {
-  const { node, emphasised } = data;
+  const { node, emphasised, brokenType } = data;
   const color = typeColor(node.typeId);
   const ring = selected ? SELECTION_COLOR : emphasised ? SELECTION_COLOR : undefined;
   return (
@@ -24,10 +26,10 @@ export const RoomNode = memo(function RoomNode({ data, selected }: NodeProps<Roo
         borderColor: ring ?? color,
         boxShadow: selected ? `0 0 0 3px ${SELECTION_COLOR}` : emphasised ? `0 0 0 1px ${SELECTION_COLOR}` : undefined,
       }}
-      title={`${node.id} · ${node.typeId} · cell ${formatGrid(node.grid)}`}
+      title={`${node.id} · ${node.typeId}${brokenType ? ' (invalid type definition)' : ''} · cell ${formatGrid(node.grid)}`}
     >
       <div className="sgl-room-type" style={{ background: color }}>
-        {node.typeId}
+        {brokenType ? `⚠ ${node.typeId}` : node.typeId}
       </div>
       <div className="sgl-room-id">{node.id}</div>
       <div className="sgl-room-cell">

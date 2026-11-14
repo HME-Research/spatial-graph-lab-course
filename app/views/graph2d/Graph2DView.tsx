@@ -28,6 +28,7 @@ import {
   suggestDiagramPosition,
   suggestFreeCell,
 } from './diagram';
+import { brokenTypeIds } from '../project';
 import './graph2d.css';
 import { IssueList } from './IssueList';
 import { RelationEdge, type RelationFlowEdge } from './RelationEdge';
@@ -55,7 +56,7 @@ export function Graph2DView(props: ViewProps) {
   );
 }
 
-function Graph2DEditor({ doc, selection, onSelect, onCommand }: ViewProps) {
+function Graph2DEditor({ doc, selection, onSelect, onCommand, project }: ViewProps) {
   const [overlay, setOverlay] = useState<Readonly<Record<string, NodeOverlay>>>({});
   const [pending, setPending] = useState<{ source: string; target: string } | null>(null);
   const [issues, setIssues] = useState<readonly GraphIssue[]>([]);
@@ -71,6 +72,7 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand }: ViewProps) {
   );
 
   const positions = useMemo(() => resolveDiagramPositions(doc), [doc]);
+  const broken = useMemo(() => new Set(brokenTypeIds(project?.project ?? null, doc)), [project, doc]);
 
   const emphasised = useMemo(() => {
     if (selection.kind !== 'edge') return new Set<string>();
@@ -87,12 +89,12 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand }: ViewProps) {
           id: node.id,
           type: 'room',
           position: o?.drag ?? { x: p[0], y: p[1] },
-          data: { node, emphasised: emphasised.has(node.id) },
+          data: { node, emphasised: emphasised.has(node.id), brokenType: broken.has(node.typeId) },
           selected: selection.kind === 'node' && selection.id === node.id,
           ...(o?.measured ? { measured: o.measured } : {}),
         };
       }),
-    [doc, positions, overlay, selection, emphasised],
+    [doc, positions, overlay, selection, emphasised, broken],
   );
 
   const edges = useMemo<RelationFlowEdge[]>(

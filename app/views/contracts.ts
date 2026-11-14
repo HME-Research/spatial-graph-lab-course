@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import type { DesignDocument, GraphCommand, GraphIssue } from '@app/document';
 import type { Selection, SelectionHandler } from '@core/viewer/selection';
+import type { ProjectViewContext } from './project';
 
 export type { SelectionHandler } from '@core/viewer/selection';
 
@@ -26,6 +27,11 @@ export interface ViewProps {
   readonly selection: Selection;
   readonly onSelect: SelectionHandler;
   readonly onCommand: GraphCommandHandler;
+  /**
+   * Active-project information (node types, conformance, façades). Optional and read-only:
+   * without it a view behaves exactly as before projects existed.
+   */
+  readonly project?: ProjectViewContext;
 }
 
 export type ViewComponent = ComponentType<ViewProps>;

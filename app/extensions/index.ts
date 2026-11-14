@@ -13,3 +13,5 @@ export * from './discover';
 export * from './run';
 export * from './transform';
 export { PROJECT_GLOBS } from './projectGlobs';
+/** Student API types the application shell needs (only app/extensions may import `@student-api`). */
+export type { AnalysisResult, AttributeSpec, AttributeSpecs, SpatialOperation } from '@student-api';

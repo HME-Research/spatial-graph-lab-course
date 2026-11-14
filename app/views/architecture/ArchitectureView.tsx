@@ -11,6 +11,7 @@ import {
 } from '@app/building';
 import { SELECTION_COLOR, typeColor } from '@core/viewer/appearance';
 import type { ViewProps } from '../contracts';
+import { brokenTypeIds, projectFacadeProvider } from '../project';
 import { DEFAULT_CELL_SIZE, type WorldPoint } from '@core/viewer/coordinates';
 import { NO_SELECTION, type Selection } from '@core/viewer/selection';
 
@@ -60,9 +61,14 @@ function framing(bounds: Bounds): { position: WorldPoint; target: WorldPoint } {
   return { position: [cx + d * 0.7, cy + d * 0.6, cz + d * 0.7], target: bounds.centre };
 }
 
-export function ArchitectureView({ doc, selection, onSelect }: ViewProps) {
-  // Geometry depends on the document only.
-  const elements = useMemo(() => buildArchitecture(resolveFaces(doc)), [doc]);
+/** Façades without a project: exactly the example façades (stable reference for memoisation). */
+const NO_PROJECT_FACADE = projectFacadeProvider(null);
+
+export function ArchitectureView({ doc, selection, onSelect, project }: ViewProps) {
+  // Geometry depends on the document and the project's façades only.
+  const facade = project?.facade ?? NO_PROJECT_FACADE;
+  const elements = useMemo(() => buildArchitecture(resolveFaces(doc), { facade }), [doc, facade]);
+  const broken = useMemo(() => brokenTypeIds(project?.project ?? null, doc), [project, doc]);
   const bounds = useMemo(() => elementBounds(elements), [elements]);
   const [showRoofs, setShowRoofs] = useState(false); // open-top by default
   const [frameRequest, setFrameRequest] = useState(0);
@@ -109,6 +115,7 @@ export function ArchitectureView({ doc, selection, onSelect }: ViewProps) {
       </Canvas>
       <Overlay
         empty={elements.length === 0}
+        brokenTypes={broken}
         showRoofs={showRoofs}
         onToggleRoofs={setShowRoofs}
         onFrame={() => setFrameRequest((n) => n + 1)}
@@ -245,11 +252,14 @@ const LEGEND: readonly (readonly [label: string, color: string])[] = [
 
 function Overlay({
   empty,
+  brokenTypes,
   showRoofs,
   onToggleRoofs,
   onFrame,
 }: {
   readonly empty: boolean;
+  /** Node types of this design whose project definition is broken. */
+  readonly brokenTypes: readonly string[];
   readonly showRoofs: boolean;
   readonly onToggleRoofs: (v: boolean) => void;
   readonly onFrame: () => void;
@@ -284,6 +294,12 @@ function Overlay({
           </div>
         ))}
       </details>
+      {brokenTypes.length > 0 && (
+        <div role="status" style={{ ...panel, top: 8, right: 8, maxWidth: 240, background: '#fff1f0', borderColor: '#e0a3a0', pointerEvents: 'none' }}>
+          <strong>Invalid type definition:</strong> {brokenTypes.join(', ')}. These rooms are shown with closed exterior walls
+          until the definition is fixed.
+        </div>
+      )}
       {empty && (
         <div style={{ ...panel, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
           No occupied cells to interpret yet.
