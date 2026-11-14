@@ -24,6 +24,7 @@ function resolveRelative(file: string, specifier: string): string {
 /** Reason the import is forbidden, or null if allowed. */
 function violation(file: string, specifier: string): string | null {
   if (specifier.startsWith('@app/') || specifier === '@app') return 'imports the application';
+  if (specifier.startsWith('@student-api')) return 'imports the Student API';
   if (specifier.startsWith('.')) {
     // Anything outside core/ (app/, student/, projects/, root files) is forbidden.
     const target = resolveRelative(file, specifier);
@@ -41,6 +42,8 @@ describe('core dependency boundary', () => {
   it('flags application, student and escaping imports (self-check)', () => {
     expect(violation('./viewer/x.ts', '@app/document')).not.toBeNull();
     expect(violation('./viewer/x.ts', '../../app/document')).not.toBeNull();
+    expect(violation('./graph/x.ts', '@student-api')).not.toBeNull();
+    expect(violation('./graph/x.ts', '../../projects/p/types/a')).not.toBeNull();
     expect(violation('./viewer/three/x.ts', '../../../student/designs/a.json')).not.toBeNull();
     expect(violation('./viewer/three/x.ts', '../coordinates')).toBeNull();
     expect(violation('./viewer/x.ts', '@core/spatial')).toBeNull();

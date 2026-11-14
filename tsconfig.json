@@ -23,8 +23,9 @@
 
     "paths": {
       "@core/*": ["./core/*"],
-      "@app/*": ["./app/*"]
+      "@app/*": ["./app/*"],
+      "@student-api": ["./student-api/index.ts"]
     }
   },
-  "include": ["core", "app", "vite.config.ts"]
+  "include": ["core", "app", "student-api", "projects", "vite.config.ts"]
 }

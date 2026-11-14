@@ -8,6 +8,6 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
   test: {
     environment: 'node',
-    include: ['core/**/*.test.ts', 'app/**/*.test.ts'],
+    include: ['core/**/*.test.ts', 'app/**/*.test.ts', 'student-api/**/*.test.ts'],
   },
 });
