@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { VIEW_MODE_LABELS, VIEW_MODES, type ViewMode, type ViewProps } from '@app/views/contracts';
 import { VIEW_COMPONENTS } from '@app/views/registry';
 import { Inspector } from './inspector/Inspector';
@@ -6,8 +6,9 @@ import { Inspector } from './inspector/Inspector';
 /**
  * Viewport host: one or two panels, each with its own mode selector, sharing the same
  * document, selection and command handler. Each panel instance keeps its own camera/UI state.
+ * `side` is rendered below the inspector (the algorithm panel).
  */
-export function Workspace(props: ViewProps) {
+export function Workspace({ side, ...props }: ViewProps & { readonly side?: ReactNode }) {
   const [split, setSplit] = useState(true);
   return (
     <section className="workspace">
@@ -19,7 +20,10 @@ export function Workspace(props: ViewProps) {
       <div className={split ? 'workspace-grid split' : 'workspace-grid'}>
         <ViewPanel {...props} initialMode="graph2d" />
         {split && <ViewPanel {...props} initialMode="architecture" />}
-        <Inspector {...props} />
+        <div className="side-column">
+          <Inspector {...props} />
+          {side}
+        </div>
       </div>
     </section>
   );
