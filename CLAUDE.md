@@ -3,8 +3,8 @@
 Project: browser-based graph-to-architecture teaching tool for *Graph, Rules & Space*. Read `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` before code changes.
 
 ## Source ownership
-- `core/` is owner-maintained. **For student tasks, never edit, delete, rename, or regenerate files in `core/`, the root build configuration, `.claude/`, `.github/` or `docs/`.** Students work only under `student/` and may edit their own branch.
-- The owner can explicitly authorise core development by invoking the local-only owner workflow. Written instructions are not an access-control boundary; do not claim otherwise.
+- `core/` (reusable graph, spatial and viewer infrastructure) and `app/` (application document, building rules, views, state and UI) are both owner-maintained. **For student tasks, never edit, delete, rename, or regenerate files in `core/`, `app/`, the root build configuration (`package.json`, `package-lock.json`, `tsconfig.json`, `vite.config.ts`, `index.html`), `.claude/`, `.github/` or `docs/`.** Students work only under `student/` and may edit their own branch.
+- The owner can explicitly authorise `core/` or `app/` development by invoking the local-only owner workflow. Written instructions, CODEOWNERS, import aliases and boundary tests are not an access-control boundary; do not claim otherwise.
 - Do not silently alter schema version, edge semantics, coordinate conventions, entry points or extension contracts.
 
 ## Invariants
@@ -17,7 +17,7 @@ Project: browser-based graph-to-architecture teaching tool for *Graph, Rules & S
 - Validate imported designs and algorithm outputs before replacing current application state.
 
 ## Implementation style
-TypeScript strict mode; pure graph and architectural resolver functions; keep Three.js and React in viewer and app modules. Avoid adding dependencies without explaining the purpose and obtaining owner approval. No backend in v1. Do not automatically rewrite or prettify unrelated files.
+TypeScript strict mode; pure graph and architectural resolver functions; keep Three.js and React in viewer and app modules. `core/` must never import from `app/`, `student/` or `projects/`; `app/document` and `app/building` stay free of React/Three.js (checked by `core/**/boundary.test.ts` and `app/boundary.test.ts`). Use the `@core/*` / `@app/*` aliases across modules and relative imports within a module. Avoid adding dependencies without explaining the purpose and obtaining owner approval. No backend in v1. Do not automatically rewrite or prettify unrelated files.
 
 ## Verification and reporting
 Before edits: inspect current branch and git status, identify files and expected behaviour. After edits: run available typecheck/tests/build, inspect diff, report results accurately. If commands do not exist yet, explain that they cannot be run. Never claim functionality is verified without executing tests.

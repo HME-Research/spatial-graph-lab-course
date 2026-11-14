@@ -16,6 +16,16 @@
 - v1 JSON document format, IDs, grid coordinates, edge kinds and their face-adjacency rules, issue codes/messages, commands and viewer contracts are unchanged; golden tests in `core/spatial/compat.test.ts` pin them.
 - Moving `core/spatial`, `core/architecture`, `core/viewer` and `core/app` under `app/`, and creating `student-api/` and `projects/`, are later stages.
 
+## Architecture refactor — Stage 2 (14 November 2026)
+- Modules were classified by what they do and depend on, not moved wholesale. `core/` keeps reusable capabilities; `app/` holds the application. Both are owner-maintained and protected from student edits by the shared instructions and CODEOWNERS (advisory; neither is access control).
+- The v1 design document (schema, edge kinds, validation, commands, serialisation, `designGraph`) moved from `core/spatial` to `app/document`; the golden compatibility test and snapshot moved with it unchanged (`app/document/compat.test.ts`).
+- `core/spatial` now contains only reusable, dependency-free integer-grid maths (`GridCoord`, `gridKey`, face adjacency, `FACE_DIRECTIONS`, `neighbourCell`). Grid maths does not depend on the graph core. The document schema reuses `GridCoord` with a compile-time equality guard.
+- `core/architecture` moved to `app/building`. Views, view contracts and registry moved to `app/views`; shell and inspector to `app/`.
+- `core/viewer` keeps generic camera/orbit canvas, `fitCameraToBounds`, click-vs-drag, picking, selection (now structural, document-free) and the coordinate mapping. Storey levels, occupied-cell bounds, the ground-grid computation and the empty-document camera fallback are grid/document-specific and live in `app/views/three` — deliberately not generalised as universal viewer functionality.
+- Dependencies are not a strict linear chain: `core/graph`, `core/spatial` and `core/viewer` are mutually independent where possible; core never imports `app/`, `student/` or `projects/`; app modules may import core. Enforced by automated import-boundary tests.
+- `@core/*` / `@app/*` aliases are defined once in `tsconfig.json` and read by Vite/Vitest via `resolve.tsconfigPaths` (no new dependency). They are a convenience, not access control.
+- The unused `PlaceholderView` was deleted. Not part of Stage 2: `student-api/`, `projects/`, new graph algorithms, a generic `IssueList`, UI redesign, spatial solver, new architectural rules.
+
 ## Deferred / not yet verified
 - Full parametric face design tools, custom face code, GLB asset loading, stair markers, algorithm generation, multi-floor architectural slab joining, public hosting, class assignments, class-scale permission workflow.
 - Exact component parameters, site grid performance thresholds, geometry detail, architectural materials and deployment provider.

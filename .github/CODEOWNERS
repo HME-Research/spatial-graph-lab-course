@@ -1,8 +1,13 @@
 # Advisory until supported GitHub branch protection + required code owner reviews are configured.
 # Replace REPLACE_WITH_GITHUB_USERNAME before relying on this file.
 /core/ @REPLACE_WITH_GITHUB_USERNAME
+/app/ @REPLACE_WITH_GITHUB_USERNAME
 /.github/ @REPLACE_WITH_GITHUB_USERNAME
 /.claude/ @REPLACE_WITH_GITHUB_USERNAME
 /docs/ @REPLACE_WITH_GITHUB_USERNAME
 /CLAUDE.md @REPLACE_WITH_GITHUB_USERNAME
 /package.json @REPLACE_WITH_GITHUB_USERNAME
+/package-lock.json @REPLACE_WITH_GITHUB_USERNAME
+/tsconfig.json @REPLACE_WITH_GITHUB_USERNAME
+/vite.config.ts @REPLACE_WITH_GITHUB_USERNAME
+/index.html @REPLACE_WITH_GITHUB_USERNAME

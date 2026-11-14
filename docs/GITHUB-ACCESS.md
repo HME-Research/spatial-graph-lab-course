@@ -14,10 +14,10 @@ GitHub docs state protected branches are available on GitHub Free for **public**
 - **If public source is acceptable:** public repo on Free supports branch protection; students can use forks and PRs, but the code is public. Do not publish owner planning materials.
 
 ## Code ownership
-Once supported and enforced, make the owner a required reviewer for `core/`, `.claude/`, `.github/`, root config, `docs/` and CLAUDE.md. A CODEOWNERS file alone is advisory unless branch rules require code-owner review.
+Once supported and enforced, make the owner a required reviewer for `core/`, `app/`, `.claude/`, `.github/`, root config, `docs/` and CLAUDE.md. A CODEOWNERS file alone is advisory unless branch rules require code-owner review.
 
 ## CI
-CI can flag student modifications to core, run tests and builds; with private Free and no branch-protection enforcement, CI cannot physically stop a collaborator's push to main. Do not rely on CI alone to protect your work.
+CI can flag student modifications to `core/` or `app/`, run tests and builds; with private Free and no branch-protection enforcement, CI cannot physically stop a collaborator's push to main. Do not rely on CI alone to protect your work.
 
 ## Operational rule
 Git push, merge, remote/permission changes and deployment require explicit human approval. Claude skills must check branch and diff and refuse student-mode commits on main. This is a workflow safeguard, not an access-control guarantee.

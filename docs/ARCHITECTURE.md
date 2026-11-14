@@ -5,13 +5,20 @@
 Student algorithms (future) transform a **copy** of the DesignDocument, validate the proposed output and apply it as one undoable transaction. Never have each viewer keep its own graph copy.
 
 ## Modules
+`core/` holds reusable capabilities; `app/` holds this application. Both are owner-maintained. Imports across modules use the `@core/*` and `@app/*` aliases (defined once in `tsconfig.json`, read by Vite and Vitest); imports within a module stay relative. Aliases and boundary tests are architectural checks, not access control.
+
+### Reusable core (`core/`) — never imports `app/`, `student/` or `projects/` (`core/boundary.test.ts`)
 - `core/graph`: **generic** graph core — nodes/edges with stable IDs and arbitrary payloads, directed or undirected, configurable self-loop/parallel-edge policy, pure immutable operations, queries and structural validation. Imports nothing outside `core/graph` (no spatial, architecture, app, viewer, student code or packages); enforced by `core/graph/boundary.test.ts`.
-- `core/spatial`: the v1 spatial design document built on `core/graph` — Zod schema, grid coordinates, edge kinds and face-adjacency rules, document validation, graph commands and JSON serialization. `designGraph(doc)` is the zero-copy adapter to the generic core (policy: undirected, no self-loops, no parallel edges). Application-specific; planned to move under `app/` in a later stage.
-- `core/architecture`: pure face-condition resolution separate from geometry construction. Geometry built once per shared face. No React imports in resolver.
-- `core/viewer`: four render modes, selection highlights; Graph2D uses React Flow, 3D uses React Three Fiber/Three.js.
-- `core/app`: shared document state, editing commands, undo/redo, selection, view split/layout and load/save UI.
-- `core/extensions`: load and validate student node type definitions; algorithm loading later.
-- `student/`: data/extension files that the owner can let beginners change without touching core.
+- `core/spatial`: reusable integer-grid mathematics — `GridCoord` (z up), `gridKey`, horizontal/vertical face adjacency, the six cardinal `FACE_DIRECTIONS` and `neighbourCell`. Independent of any graph model or document; imports nothing outside `core/spatial` (`core/spatial/boundary.test.ts`).
+- `core/viewer`: reusable viewing infrastructure with no document dependency — `coordinates.ts` (the one grid → Three.js mapping), `selection.ts` (single selection, reconciliation, highlight emphasis), `appearance.ts` (fallback type palette, selection colour). `core/viewer/three/`: `SceneCanvas` (R3F canvas, perspective camera, orbit controls, camera rig, `SceneLabel`), `viewport.ts` (`Bounds`, `CameraFit`, `GroundGrid`, `fitCameraToBounds`), `interaction.ts` (click-vs-drag), `picking.ts` (pointer handlers), `ViewControls` (overlay containers).
+
+### Application (`app/`) — layered `document` → `building` → `views` → shell (`app/boundary.test.ts`)
+- `app/document`: the v1 spatial design document built on `core/graph` and `core/spatial` — Zod schema, edge kinds and their face-adjacency rules, document validation, graph commands and JSON serialization. `designGraph(doc)` is the zero-copy adapter to the generic core (policy: undirected, no self-loops, no parallel edges). Pure: no React/Three.js; uses only `core/graph` and `core/spatial`.
+- `app/building`: pure face-condition resolution separate from geometry construction; geometry built once per shared face; provisional façade specs. No React/Three.js; may use `app/document` and the pure `core/viewer` coordinates and selection helpers.
+- `app/views`: the four views (Graph 2D with React Flow; Graph 3D, Voxels and Architecture with React Three Fiber/Three.js), the view contract (`ViewProps`, view modes) and registry. `app/views/three/` holds grid/document-specific 3D scene logic shared by Graph 3D and Voxels: node/edge items, storey levels, cell bounds, camera framing, ground grid, colour-by, edge styles and their controls/legend.
+- `app/` shell: shared document state, editing commands, selection, view split/layout, load/save UI (`App`, `Workspace`, `main`) and the inspector (`app/inspector`).
+- Student type/algorithm loading (future): a documented `student-api/` and `projects/` are later stages.
+- `student/`: data/extension files that the owner can let beginners change without touching `core/` or `app/`.
 
 ## Spatial graph model — JSON document v1
 ```json

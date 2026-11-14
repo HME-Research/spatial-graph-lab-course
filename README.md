@@ -7,7 +7,8 @@ A browser-only application, implemented in phases by the owner. **Current status
 One sparse 3D architectural graph, visualised simultaneously as an abstract 2D graph, a 3D spatial graph, semitransparent voxels and generated architecture. The initial implementation is browser-only, with a 2D graph editor, independent split-view panels and architectural boundaries derived from graph relationships.
 
 ## Directory ownership
-- `core/`: application infrastructure, graph validation, face resolver, geometry and viewers; maintained by the owner.
+- `core/`: reusable infrastructure (generic graph, grid maths, 3D viewport/selection helpers); maintained by the owner.
+- `app/`: the application itself (v1 design document, building rules and geometry, views, state, inspector); maintained by the owner and protected from student edits in the same way as `core/`.
 - `student/`: safe extension points for designs, node types, algorithms and assets (enabled progressively).
 - `.claude/`: shared AI project instructions, skills and settings.
 - `_planning/`, `CLAUDE.local.md`, `.claude/skills/owner-*`: **local-only files**, ignored by Git. Keep them on the owner's machine. They must not be committed.
@@ -42,7 +43,7 @@ See `docs/ARCHITECTURE.md` for the full contract. In brief:
 - Unknown keys are rejected so typos surface as errors.
 
 ## Development
-Read `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`. The owner uses the ignored `_planning/implementation-plan.md` and local Claude skill `/owner-implement-phase`. Implement only one phase, test it, inspect changes, then commit. Source lives under `core/` (`core/graph` is the generic, dependency-free graph core; `core/spatial` is the v1 spatial document built on it; `core/app` is the React shell).
+Read `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`. The owner uses the ignored `_planning/implementation-plan.md` and local Claude skill `/owner-implement-phase`. Implement only one phase, test it, inspect changes, then commit. Reusable code lives under `core/` (`core/graph` generic graph, `core/spatial` grid maths, `core/viewer` viewport/selection infrastructure); the application lives under `app/` (`app/document` v1 design document, `app/building` architectural rules and geometry, `app/views` the four views, plus the shell and inspector). See `docs/ARCHITECTURE.md` for the module rules; `@core/*` and `@app/*` import aliases are defined in `tsconfig.json`.
 
 ## GitHub Free / private repository warning
 On GitHub Free, private repositories do **not** have enforced protected-branch controls. Do **not** invite student collaborators with write permissions under the assumption that `main` is protected. See `docs/GITHUB-ACCESS.md` for options before class. Claude instructions and local hooks do not enforce GitHub permissions.
