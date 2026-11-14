@@ -16,8 +16,9 @@ Each workstream **replaces the body of its placeholder file**, keeping the expor
 
 ```
 App (owns DesignDocument + Selection)
- ├─ Workspace → ViewPanel ×1–2 (each picks a ViewMode) → VIEW_COMPONENTS[mode](ViewProps)
- └─ Inspector(ViewProps)
+ └─ Workspace (layout: single/split, panel modes, panel memories, sidebar tab)
+     ├─ ViewPanel ×1–2 (header picks a ViewMode) → VIEW_COMPONENTS[mode](ViewProps)
+     └─ Sidebar tabs: Inspector(ViewProps) | AlgorithmPanel
 Views ──onSelect(Selection)──▶ App
 Views ──onCommand(GraphCommand)──▶ App: applyGraphCommand(doc, cmd) → validated doc or issues
 ```
@@ -49,7 +50,9 @@ type ViewMode = 'graph2d' | 'graph3d' | 'voxels' | 'architecture';
 
 `project` is optional: without it every view behaves exactly as before projects existed. Views only read it: the Architecture view builds geometry with `project.facade` (a broken type definition gets a closed façade plus an on-canvas notice), Graph 2D marks nodes of a broken type with ⚠, and the inspector uses it for type labels, typed attribute controls and conformance checks.
 
-View sizing: the view is rendered inside `.view-body` (`position: relative`, min-height 440 px). Fill it (`width/height: 100%`). Each panel is its own component instance, so view-local UI state (camera, colour-by choice, zoom) lives inside the view and survives document/selection changes.
+View sizing: the view is rendered inside `.view-body` (`position: relative`, min-height 200 px; the application fills the browser viewport, so the body's size follows the window and the layout, never the inspector's or algorithm panel's content). Fill it (`width/height: 100%` or `position: absolute; inset: 0`) and expect it to be resized at any time. Each panel is its own component instance, so view-local UI state (camera, colour-by choice, zoom) lives inside the view and survives document/selection changes.
+
+Panel memory (`app/views/panelMemory.ts`): a view instance is unmounted when its panel is closed (single view) or switched to another mode; no hidden renderer is kept alive. To come back where the user left it, a view may store small view-local values in its hosting panel with `useRemembered<T>(key)` — the 3D views keep their camera pose (`camera:<mode>`), Graph 2D its viewport (`viewport:graph2d`). It is synchronous storage, never React state, and optional: outside a panel it returns `undefined` and the view starts fresh.
 
 ## 3. Graph commands — `app/document/apply.ts`
 
@@ -119,7 +122,8 @@ spatialToThree(grid: readonly [number, number, number], cell = DEFAULT_CELL_SIZE
 ## B. 3D graph and voxels — implement `Graph3DView` and `VoxelView`
 
 - `app/views/graph3d/Graph3DView.tsx` exports `Graph3DView(props: ViewProps)`. `app/views/voxels/VoxelView.tsx` exports `VoxelView(props: ViewProps)`.
-- Each view renders its **own** R3F `<Canvas>` with its own camera and orbit controls, so two 3D panels have independent cameras. Do not lift camera state into the app.
+- Each view renders its **own** R3F `<Canvas>` (the shared `core/viewer/three/SceneCanvas`) with its own camera and orbit controls, so two 3D panels have independent cameras. Do not lift camera state into the app (the panel memory above only restores a pose when a view is remounted).
+- Camera framing: a view passes a `Framing` (world bounds + minimum radius); `SceneCanvas` fits it with `fitCameraToBounds` for the canvas's **aspect ratio**, respecting both the vertical and the horizontal field of view. While the camera is still in that automatically fitted state a resize refits it; once the user orbits, pans or zooms it is never moved again except by the view's **Fit view** button (a new `fitRequest`). The canvas element exposes the state as `data-camera="fitted" | "user"`.
 - Positions come only from `spatialToThree(node.grid)`. Graph 3D: a node marker at each cell centre, and edge lines between the endpoints' centres (edges are relationships, not stairs or corridors). Voxels: semi-transparent boxes of size `[horizontal, vertical, horizontal]`.
 - Voxel colour-by is view-local UI: `typeId` (default, `typeColor`) or a chosen attribute key, with a legend and a visible fallback for missing values.
 - Picking reports node IDs (and edge IDs in Graph 3D) via `onSelect`, following §4.
@@ -144,7 +148,7 @@ type FacadeProvider = (typeId: string) => FacadeSpec;
 - Implement `export const resolveFaces: FaceResolver` (suggested file `app/building/resolve.ts`). It is pure, with no React or Three.js, and works in grid space.
 - Rules: no neighbour → `exterior`. Occupied neighbour without an edge → `solid`. With an edge → the edge's kind. Each shared face is emitted **once**, owned by the node whose ID sorts first (`a < b`). Output is sorted by `ownerNodeId`, then `FACE_DIRECTIONS` order, and does not depend on array order (acceptance C, D, E, J).
 - Geometry: a separate pure step from `ResolvedFace[]` to plain box descriptors in world space built with `spatialToThree`. A face centre is `cell + offset/2` in grid space. Use simple boxes and slab segments (no CSG). Exterior walls use `FacadeProvider(ownerTypeId)`. The view is open-top initially. Atrium and vertical-access faces are openings or symbolic markers, never staircases.
-- `app/views/architecture/ArchitectureView.tsx` exports `ArchitectureView(props: ViewProps)`: its own `<Canvas>` and camera, as in B. Picking: faces with an `edgeId` select that edge; other faces select `ownerNodeId`.
+- `app/views/architecture/ArchitectureView.tsx` exports `ArchitectureView(props: ViewProps)`: its own `SceneCanvas` and camera, as in B (with its own lighting, tone mapping and on-demand rendering). Picking: faces with an `edgeId` select that edge; other faces select `ownerNodeId`.
 - Dependencies: same as B. C should deliver the resolver and geometry with tests first (no dependencies needed). If the view is built before B merges, use **exactly** B's versions so the lockfile can be regenerated cleanly at merge.
 
 ## Merge notes
