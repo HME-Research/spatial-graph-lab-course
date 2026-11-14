@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Attributes, GraphNode } from '../../graph';
-import { validateDocument } from '../../graph';
-import { expectOk, threeRooms } from '../../graph/test-fixtures';
+import type { Attributes, GraphNode } from '../../spatial';
+import { validateDocument } from '../../spatial';
+import { expectOk, threeRooms } from '../../spatial/test-fixtures';
 import example from '../../../student/designs/two-storey-example.json';
 import { typeColor } from '../appearance';
 import {

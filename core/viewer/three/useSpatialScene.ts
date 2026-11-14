@@ -1,6 +1,6 @@
 import type { ThreeEvent } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { DesignDocument } from '../../graph';
+import type { DesignDocument } from '../../spatial';
 import type { SelectionHandler } from '../contracts';
 import { selectEdge, selectNode, type Selection } from '../selection';
 import {

@@ -11,7 +11,7 @@ import {
   type GraphEdge,
   type GraphNode,
   type GridCoord,
-} from '../../graph';
+} from '../../spatial';
 
 /**
  * Pure helpers for the Graph 2D editor and inspector. No React, no React Flow, no mutation.

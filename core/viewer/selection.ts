@@ -1,4 +1,4 @@
-import type { DesignDocument } from '../graph';
+import type { DesignDocument } from '../spatial';
 
 /**
  * Shared selection, owned by the app and identical in every view.

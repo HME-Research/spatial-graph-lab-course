@@ -5,12 +5,11 @@ import {
 } from './constants';
 import type { GridCoord } from './schema';
 
+/** Order-independent key for a pair of node IDs (generic; re-exported for existing callers). */
+export { unorderedPairKey } from '../graph';
+
 /** Stable string key for a grid cell, e.g. "1,0,2". */
 export const gridKey = (g: GridCoord): string => `${g[0]},${g[1]},${g[2]}`;
-
-/** Order-independent key for a pair of node IDs. */
-export const unorderedPairKey = (a: string, b: string): string =>
-  a < b ? `${a}\u0000${b}` : `${b}\u0000${a}`;
 
 /** Same storey (z), exactly one step in x or y. */
 export function isHorizontalFaceAdjacent(a: GridCoord, b: GridCoord): boolean {

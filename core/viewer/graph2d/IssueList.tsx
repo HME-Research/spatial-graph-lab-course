@@ -1,4 +1,4 @@
-import { formatIssuePath, type GraphIssue } from '../../graph';
+import { formatIssuePath, type GraphIssue } from '../../spatial';
 
 /** Readable list of rejected-command issues. The document was not changed when these are shown. */
 export function IssueList({

@@ -1,4 +1,4 @@
-import type { AttributeValue, Attributes, GridCoord } from '../../graph';
+import type { AttributeValue, Attributes, GridCoord } from '../../spatial';
 
 /**
  * Pure form helpers for the inspector. Drafts are plain strings so inputs stay controlled;

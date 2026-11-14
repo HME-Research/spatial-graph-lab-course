@@ -1,6 +1,6 @@
 import { BaseEdge, useInternalNode, type Edge, type EdgeProps, type InternalNode } from '@xyflow/react';
 import { memo } from 'react';
-import type { EdgeKind } from '../../graph';
+import type { EdgeKind } from '../../spatial';
 import { SELECTION_COLOR } from '../appearance';
 import { EDGE_STYLES, NODE_HEIGHT, NODE_WIDTH, rectBorderPoint, type Rect } from './diagram';
 

@@ -42,7 +42,7 @@ See `docs/ARCHITECTURE.md` for the full contract. In brief:
 - Unknown keys are rejected so typos surface as errors.
 
 ## Development
-Read `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`. The owner uses the ignored `_planning/implementation-plan.md` and local Claude skill `/owner-implement-phase`. Implement only one phase, test it, inspect changes, then commit. Source lives under `core/` (`core/graph` is pure and framework-free; `core/app` is the React shell).
+Read `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`. The owner uses the ignored `_planning/implementation-plan.md` and local Claude skill `/owner-implement-phase`. Implement only one phase, test it, inspect changes, then commit. Source lives under `core/` (`core/graph` is the generic, dependency-free graph core; `core/spatial` is the v1 spatial document built on it; `core/app` is the React shell).
 
 ## GitHub Free / private repository warning
 On GitHub Free, private repositories do **not** have enforced protected-branch controls. Do **not** invite student collaborators with write permissions under the assumption that `main` is protected. See `docs/GITHUB-ACCESS.md` for options before class. Claude instructions and local hooks do not enforce GitHub permissions.

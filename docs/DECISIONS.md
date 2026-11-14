@@ -10,6 +10,12 @@
 - Horizontal adjacency: no edge=solid wall; `door`=door opening; `open`=no separating wall. Vertical edges conceptually supported as `atrium` or `vertical-access`, with first full geometry implementation deferred.
 - Owner-only local plan and development instructions must be gitignored; no core code required in this specification package.
 
+## Architecture refactor — Stage 1 (14 November 2026)
+- Target layout: `core/` generic reusable capabilities; `app/` application behaviour, building generation and UI composition; `student-api/` stable student extension interface; `projects/` independent projects (`types/`, `designs/`, `algorithms/`). No `src/`, `lib/`, `domains/` or `apps/`.
+- Stage 1 extracts a generic graph core into `core/graph` (no spatial, architectural, UI or JSON-format assumptions; directed/undirected; self-loop and parallel-edge policy per graph). The former graph module moves unchanged in behaviour to `core/spatial` and uses the core through `designGraph(doc)`.
+- v1 JSON document format, IDs, grid coordinates, edge kinds and their face-adjacency rules, issue codes/messages, commands and viewer contracts are unchanged; golden tests in `core/spatial/compat.test.ts` pin them.
+- Moving `core/spatial`, `core/architecture`, `core/viewer` and `core/app` under `app/`, and creating `student-api/` and `projects/`, are later stages.
+
 ## Deferred / not yet verified
 - Full parametric face design tools, custom face code, GLB asset loading, stair markers, algorithm generation, multi-floor architectural slab joining, public hosting, class assignments, class-scale permission workflow.
 - Exact component parameters, site grid performance thresholds, geometry detail, architectural materials and deployment provider.

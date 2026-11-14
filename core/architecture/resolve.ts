@@ -1,4 +1,4 @@
-import { gridKey, unorderedPairKey, type DesignDocument, type GraphEdge, type GraphNode, type GridCoord } from '../graph';
+import { gridKey, unorderedPairKey, type DesignDocument, type GraphEdge, type GraphNode, type GridCoord } from '../spatial';
 import {
   FACE_DIRECTION_OFFSETS,
   FACE_DIRECTIONS,

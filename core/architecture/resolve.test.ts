@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import exampleJson from '../../student/designs/two-storey-example.json';
-import { addEdge, changeEdgeKind, removeNode, validateDocument, type DesignDocument, type EdgeKind } from '../graph';
-import { expectOk, threeRooms } from '../graph/test-fixtures';
+import { addEdge, changeEdgeKind, removeNode, validateDocument, type DesignDocument, type EdgeKind } from '../spatial';
+import { expectOk, threeRooms } from '../spatial/test-fixtures';
 import { FACE_DIRECTIONS, type ResolvedFace } from './contracts';
 import { buildCellIndex, neighbourSlots, resolveFaces } from './resolve';
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EDGE_KINDS, isVerticalKind } from '../../graph';
+import { EDGE_KINDS, isVerticalKind } from '../../spatial';
 import { SELECTION_COLOR } from '../appearance';
 import { dashIntervals, EDGE_LEGEND_ORDER, EDGE_STYLES, HORIZONTAL_EDGE_COLOR, VERTICAL_EDGE_COLOR } from './edgeStyle';
 import { CLICK_TOLERANCE_PX, isBackgroundClick, isDeliberateObjectClick } from './interaction';

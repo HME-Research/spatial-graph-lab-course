@@ -1,6 +1,6 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { memo } from 'react';
-import type { GraphNode } from '../../graph';
+import type { GraphNode } from '../../spatial';
 import { SELECTION_COLOR, typeColor } from '../appearance';
 import { formatGrid } from './diagram';
 

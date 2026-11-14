@@ -8,7 +8,7 @@ Shared interfaces that let three worktrees build their views in parallel:
 | **B** 3D graph + voxels | Graph 3D view, voxel view | `core/viewer/graph3d/**`, `core/viewer/voxels/**`, optional shared R3F helpers in `core/viewer/three/**` |
 | **C** Architecture | Face resolver, geometry, architecture view | `core/architecture/**` (except `contracts.ts`), `core/viewer/architecture/**` |
 
-**Frozen during parallel work** (change only through the owner): `core/graph/**`, `core/viewer/contracts.ts`, `selection.ts`, `coordinates.ts`, `appearance.ts`, `registry.ts`, `PlaceholderView.tsx`, `core/architecture/contracts.ts`, `core/app/App.tsx`, `core/app/Workspace.tsx`, root config, `docs/`. The document schema (v1) is unchanged.
+**Frozen during parallel work** (change only through the owner): `core/graph/**`, `core/spatial/**`, `core/viewer/contracts.ts`, `selection.ts`, `coordinates.ts`, `appearance.ts`, `registry.ts`, `PlaceholderView.tsx`, `core/architecture/contracts.ts`, `core/app/App.tsx`, `core/app/Workspace.tsx`, root config, `docs/`. The document schema (v1) is unchanged.
 
 Each workstream **replaces the body of its placeholder file**, keeping the export name and props. Because the registry and host already import those names, no workstream needs to edit `App.tsx`, and every view can be seen in the running app (`npm run dev`) straight away.
 
@@ -43,7 +43,7 @@ type ViewMode = 'graph2d' | 'graph3d' | 'voxels' | 'architecture';
 
 View sizing: the view is rendered inside `.view-body` (`position: relative`, min-height 440 px). Fill it (`width/height: 100%`). Each panel is its own component instance, so view-local UI state (camera, colour-by choice, zoom) lives inside the view and survives document/selection changes.
 
-## 3. Graph commands — `core/graph/apply.ts`
+## 3. Graph commands — `core/spatial/apply.ts`
 
 ```ts
 type GraphCommand =
@@ -59,7 +59,7 @@ type GraphCommand =
 applyGraphCommand(doc, command, options?): Result<DesignDocument>
 ```
 
-These map one-to-one onto the Phase 1 pure commands in `core/graph/commands.ts`. `setNodeType` and `setNodeAttributes` were added for the inspector. No command creates edges implicitly.
+These map one-to-one onto the Phase 1 pure commands in `core/spatial/commands.ts` (which delegate topology changes to the generic `core/graph`). `setNodeType` and `setNodeAttributes` were added for the inspector. No command creates edges implicitly.
 
 ## 4. Selection — `core/viewer/selection.ts`
 

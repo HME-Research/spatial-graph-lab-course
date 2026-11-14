@@ -1,0 +1,1126 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`v1 spatial document compatibility (golden) > command add-edge bad geometry gives an unchanged result 1`] = `
+[
+  {
+    "code": "invalid-edge-geometry",
+    "message": ""door" edge "bc-x" requires horizontal face adjacency (same z, exactly one step in x or y); "b" [1, 0, 0] and "c" [0, 0, 1] are not",
+    "path": [
+      "edges",
+      2,
+      "kind",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command add-edge dangling gives an unchanged result 1`] = `
+[
+  {
+    "code": "dangling-edge",
+    "message": "edge "ax" references missing node "x"",
+    "path": [
+      "edges",
+      2,
+      "target",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command add-edge dup id gives an unchanged result 1`] = `
+[
+  {
+    "code": "duplicate-edge-id",
+    "message": "duplicate edge id "ab" (first used at edges[0])",
+    "path": [
+      "edges",
+      2,
+      "id",
+    ],
+  },
+  {
+    "code": "invalid-edge-geometry",
+    "message": ""atrium" edge "ab" requires vertical face adjacency (same x and y, exactly one step in z); "b" [1, 0, 0] and "c" [0, 0, 1] are not",
+    "path": [
+      "edges",
+      2,
+      "kind",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command add-edge parallel gives an unchanged result 1`] = `
+[
+  {
+    "code": "duplicate-relationship",
+    "message": "edge "ba" duplicates edge "ab": only one relationship is allowed between "b" and "a"",
+    "path": [
+      "edges",
+      2,
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command add-edge self gives an unchanged result 1`] = `
+[
+  {
+    "code": "self-edge",
+    "message": "edge "aa" connects node "a" to itself",
+    "path": [
+      "edges",
+      2,
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command add-node dup id + cell gives an unchanged result 1`] = `
+[
+  {
+    "code": "duplicate-node-id",
+    "message": "duplicate node id "a" (first used at nodes[0])",
+    "path": [
+      "nodes",
+      3,
+      "id",
+    ],
+  },
+  {
+    "code": "duplicate-grid-cell",
+    "message": "cell [1, 0, 0] is already occupied by node "b"",
+    "path": [
+      "nodes",
+      3,
+      "grid",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command add-node ok gives an unchanged result 1`] = `
+"{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Three rooms"
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "grid": [
+        0,
+        0,
+        0
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    },
+    {
+      "id": "b",
+      "grid": [
+        1,
+        0,
+        0
+      ],
+      "typeId": "studio",
+      "attributes": {}
+    },
+    {
+      "id": "c",
+      "grid": [
+        0,
+        0,
+        1
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    },
+    {
+      "id": "d",
+      "grid": [
+        1,
+        0,
+        1
+      ],
+      "typeId": "cafe",
+      "attributes": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "ab",
+      "source": "a",
+      "target": "b",
+      "kind": "door",
+      "attributes": {}
+    },
+    {
+      "id": "ac",
+      "source": "a",
+      "target": "c",
+      "kind": "atrium",
+      "attributes": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "a": [
+        20,
+        80
+      ],
+      "b": [
+        180,
+        80
+      ],
+      "c": [
+        100,
+        0
+      ],
+      "d": [
+        5,
+        6
+      ]
+    }
+  }
+}
+"
+`;
+
+exports[`v1 spatial document compatibility (golden) > command change-edge-kind bad gives an unchanged result 1`] = `
+[
+  {
+    "code": "invalid-edge-geometry",
+    "message": ""door" edge "ac" requires horizontal face adjacency (same z, exactly one step in x or y); "a" [0, 0, 0] and "c" [0, 0, 1] are not",
+    "path": [
+      "edges",
+      1,
+      "kind",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command change-edge-kind missing gives an unchanged result 1`] = `
+[
+  {
+    "code": "not-found",
+    "message": "edge "zz" does not exist",
+    "path": [
+      "edges",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command change-edge-kind ok gives an unchanged result 1`] = `
+"{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Three rooms"
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "grid": [
+        0,
+        0,
+        0
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    },
+    {
+      "id": "b",
+      "grid": [
+        1,
+        0,
+        0
+      ],
+      "typeId": "studio",
+      "attributes": {}
+    },
+    {
+      "id": "c",
+      "grid": [
+        0,
+        0,
+        1
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "ab",
+      "source": "a",
+      "target": "b",
+      "kind": "open",
+      "attributes": {}
+    },
+    {
+      "id": "ac",
+      "source": "a",
+      "target": "c",
+      "kind": "atrium",
+      "attributes": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "a": [
+        20,
+        80
+      ],
+      "b": [
+        180,
+        80
+      ],
+      "c": [
+        100,
+        0
+      ]
+    }
+  }
+}
+"
+`;
+
+exports[`v1 spatial document compatibility (golden) > command move-node collision gives an unchanged result 1`] = `
+[
+  {
+    "code": "duplicate-grid-cell",
+    "message": "cell [0, 0, 1] is already occupied by node "b"",
+    "path": [
+      "nodes",
+      2,
+      "grid",
+    ],
+  },
+  {
+    "code": "invalid-edge-geometry",
+    "message": ""door" edge "ab" requires horizontal face adjacency (same z, exactly one step in x or y); "a" [0, 0, 0] and "b" [0, 0, 1] are not",
+    "path": [
+      "edges",
+      0,
+      "kind",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command move-node missing gives an unchanged result 1`] = `
+[
+  {
+    "code": "not-found",
+    "message": "node "zz" does not exist",
+    "path": [
+      "nodes",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command move-node ok gives an unchanged result 1`] = `
+"{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Three rooms"
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "grid": [
+        0,
+        0,
+        0
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    },
+    {
+      "id": "b",
+      "grid": [
+        0,
+        -1,
+        0
+      ],
+      "typeId": "studio",
+      "attributes": {}
+    },
+    {
+      "id": "c",
+      "grid": [
+        0,
+        0,
+        1
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "ab",
+      "source": "a",
+      "target": "b",
+      "kind": "door",
+      "attributes": {}
+    },
+    {
+      "id": "ac",
+      "source": "a",
+      "target": "c",
+      "kind": "atrium",
+      "attributes": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "a": [
+        20,
+        80
+      ],
+      "b": [
+        180,
+        80
+      ],
+      "c": [
+        100,
+        0
+      ]
+    }
+  }
+}
+"
+`;
+
+exports[`v1 spatial document compatibility (golden) > command remove-edge gives an unchanged result 1`] = `
+"{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Three rooms"
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "grid": [
+        0,
+        0,
+        0
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    },
+    {
+      "id": "b",
+      "grid": [
+        1,
+        0,
+        0
+      ],
+      "typeId": "studio",
+      "attributes": {}
+    },
+    {
+      "id": "c",
+      "grid": [
+        0,
+        0,
+        1
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "ac",
+      "source": "a",
+      "target": "c",
+      "kind": "atrium",
+      "attributes": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "a": [
+        20,
+        80
+      ],
+      "b": [
+        180,
+        80
+      ],
+      "c": [
+        100,
+        0
+      ]
+    }
+  }
+}
+"
+`;
+
+exports[`v1 spatial document compatibility (golden) > command remove-edge missing gives an unchanged result 1`] = `
+[
+  {
+    "code": "not-found",
+    "message": "edge "zz" does not exist",
+    "path": [
+      "edges",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command remove-node a gives an unchanged result 1`] = `
+"{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Three rooms"
+  },
+  "nodes": [
+    {
+      "id": "b",
+      "grid": [
+        1,
+        0,
+        0
+      ],
+      "typeId": "studio",
+      "attributes": {}
+    },
+    {
+      "id": "c",
+      "grid": [
+        0,
+        0,
+        1
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    }
+  ],
+  "edges": [],
+  "diagram": {
+    "positions": {
+      "b": [
+        180,
+        80
+      ],
+      "c": [
+        100,
+        0
+      ]
+    }
+  }
+}
+"
+`;
+
+exports[`v1 spatial document compatibility (golden) > command remove-node missing gives an unchanged result 1`] = `
+[
+  {
+    "code": "not-found",
+    "message": "node "zz" does not exist",
+    "path": [
+      "nodes",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command set-diagram-position gives an unchanged result 1`] = `
+"{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Three rooms"
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "grid": [
+        0,
+        0,
+        0
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    },
+    {
+      "id": "b",
+      "grid": [
+        1,
+        0,
+        0
+      ],
+      "typeId": "studio",
+      "attributes": {}
+    },
+    {
+      "id": "c",
+      "grid": [
+        0,
+        0,
+        1
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "ab",
+      "source": "a",
+      "target": "b",
+      "kind": "door",
+      "attributes": {}
+    },
+    {
+      "id": "ac",
+      "source": "a",
+      "target": "c",
+      "kind": "atrium",
+      "attributes": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "a": [
+        20,
+        80
+      ],
+      "b": [
+        180,
+        80
+      ],
+      "c": [
+        1.5,
+        -2
+      ]
+    }
+  }
+}
+"
+`;
+
+exports[`v1 spatial document compatibility (golden) > command set-diagram-position missing gives an unchanged result 1`] = `
+[
+  {
+    "code": "not-found",
+    "message": "node "zz" does not exist",
+    "path": [
+      "nodes",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command set-node-attributes gives an unchanged result 1`] = `
+"{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Three rooms"
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "grid": [
+        0,
+        0,
+        0
+      ],
+      "typeId": "gallery",
+      "attributes": {
+        "area": 9,
+        "lit": true
+      }
+    },
+    {
+      "id": "b",
+      "grid": [
+        1,
+        0,
+        0
+      ],
+      "typeId": "studio",
+      "attributes": {}
+    },
+    {
+      "id": "c",
+      "grid": [
+        0,
+        0,
+        1
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "ab",
+      "source": "a",
+      "target": "b",
+      "kind": "door",
+      "attributes": {}
+    },
+    {
+      "id": "ac",
+      "source": "a",
+      "target": "c",
+      "kind": "atrium",
+      "attributes": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "a": [
+        20,
+        80
+      ],
+      "b": [
+        180,
+        80
+      ],
+      "c": [
+        100,
+        0
+      ]
+    }
+  }
+}
+"
+`;
+
+exports[`v1 spatial document compatibility (golden) > command set-node-type bad gives an unchanged result 1`] = `
+[
+  {
+    "code": "schema",
+    "message": "typeId must be lowercase letters, digits and "-", starting with a letter (e.g. "gallery")",
+    "path": [
+      "nodes",
+      0,
+      "typeId",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > command set-node-type gives an unchanged result 1`] = `
+"{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Three rooms"
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "grid": [
+        0,
+        0,
+        0
+      ],
+      "typeId": "library",
+      "attributes": {}
+    },
+    {
+      "id": "b",
+      "grid": [
+        1,
+        0,
+        0
+      ],
+      "typeId": "studio",
+      "attributes": {}
+    },
+    {
+      "id": "c",
+      "grid": [
+        0,
+        0,
+        1
+      ],
+      "typeId": "gallery",
+      "attributes": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "ab",
+      "source": "a",
+      "target": "b",
+      "kind": "door",
+      "attributes": {}
+    },
+    {
+      "id": "ac",
+      "source": "a",
+      "target": "c",
+      "kind": "atrium",
+      "attributes": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "a": [
+        20,
+        80
+      ],
+      "b": [
+        180,
+        80
+      ],
+      "c": [
+        100,
+        0
+      ]
+    }
+  }
+}
+"
+`;
+
+exports[`v1 spatial document compatibility (golden) > reports every invariant violation with unchanged codes, paths, messages and order 1`] = `
+[
+  {
+    "code": "too-many-nodes",
+    "message": "document has 6 nodes; the limit is 4",
+    "path": [
+      "nodes",
+    ],
+  },
+  {
+    "code": "duplicate-node-id",
+    "message": "duplicate node id "a" (first used at nodes[0])",
+    "path": [
+      "nodes",
+      3,
+      "id",
+    ],
+  },
+  {
+    "code": "duplicate-grid-cell",
+    "message": "cell [0, 0, 0] is already occupied by node "a"",
+    "path": [
+      "nodes",
+      4,
+      "grid",
+    ],
+  },
+  {
+    "code": "unknown-node-type",
+    "message": "unknown node type "nope"",
+    "path": [
+      "nodes",
+      4,
+      "typeId",
+    ],
+  },
+  {
+    "code": "coordinate-out-of-range",
+    "message": "coordinate 2000 exceeds the limit of ±1000",
+    "path": [
+      "nodes",
+      5,
+      "grid",
+      0,
+    ],
+  },
+  {
+    "code": "coordinate-out-of-range",
+    "message": "coordinate -2000 exceeds the limit of ±1000",
+    "path": [
+      "nodes",
+      5,
+      "grid",
+      2,
+    ],
+  },
+  {
+    "code": "duplicate-edge-id",
+    "message": "duplicate edge id "ab" (first used at edges[0])",
+    "path": [
+      "edges",
+      2,
+      "id",
+    ],
+  },
+  {
+    "code": "invalid-edge-geometry",
+    "message": ""open" edge "ab" requires horizontal face adjacency (same z, exactly one step in x or y); "b" [1, 0, 0] and "c" [0, 0, 1] are not",
+    "path": [
+      "edges",
+      2,
+      "kind",
+    ],
+  },
+  {
+    "code": "self-edge",
+    "message": "edge "self" connects node "b" to itself",
+    "path": [
+      "edges",
+      3,
+    ],
+  },
+  {
+    "code": "dangling-edge",
+    "message": "edge "ghost" references missing node "x"",
+    "path": [
+      "edges",
+      4,
+      "source",
+    ],
+  },
+  {
+    "code": "dangling-edge",
+    "message": "edge "ghost" references missing node "y"",
+    "path": [
+      "edges",
+      4,
+      "target",
+    ],
+  },
+  {
+    "code": "duplicate-relationship",
+    "message": "edge "ba" duplicates edge "ab": only one relationship is allowed between "b" and "a"",
+    "path": [
+      "edges",
+      5,
+    ],
+  },
+  {
+    "code": "dangling-edge",
+    "message": "edge "ghost2" references missing node "x"",
+    "path": [
+      "edges",
+      6,
+      "source",
+    ],
+  },
+  {
+    "code": "dangling-edge",
+    "message": "edge "ghost2" references missing node "y"",
+    "path": [
+      "edges",
+      6,
+      "target",
+    ],
+  },
+  {
+    "code": "duplicate-relationship",
+    "message": "edge "ghost2" duplicates edge "ghost": only one relationship is allowed between "x" and "y"",
+    "path": [
+      "edges",
+      6,
+    ],
+  },
+  {
+    "code": "unknown-node-position",
+    "message": "diagram position refers to missing node "zzz"",
+    "path": [
+      "diagram",
+      "positions",
+      "zzz",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > reports schema and version failures unchanged 1`] = `
+[
+  {
+    "code": "unsupported-schema-version",
+    "message": "unsupported schemaVersion 2; this application reads version 1",
+    "path": [
+      "schemaVersion",
+    ],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > reports schema and version failures unchanged 2`] = `
+[
+  {
+    "code": "schema",
+    "message": "Unrecognized key: "extra"",
+    "path": [],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > reports schema and version failures unchanged 3`] = `
+[
+  {
+    "code": "invalid-json",
+    "message": "file is not valid JSON: Expected property name or '}' in JSON at position 2 (line 1 column 3)",
+    "path": [],
+  },
+]
+`;
+
+exports[`v1 spatial document compatibility (golden) > round-trips the shipped example design to identical canonical text 1`] = `
+"{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Two-storey example",
+    "description": "Six cells over two storeys. The reading gallery and store touch but have no edge, so a solid wall will separate them."
+  },
+  "nodes": [
+    {
+      "id": "entry-gallery",
+      "grid": [
+        0,
+        0,
+        0
+      ],
+      "typeId": "gallery",
+      "attributes": {
+        "daylight": "high",
+        "public": true
+      }
+    },
+    {
+      "id": "studio-ground",
+      "grid": [
+        1,
+        0,
+        0
+      ],
+      "typeId": "studio",
+      "attributes": {
+        "occupancy": 8,
+        "public": false
+      }
+    },
+    {
+      "id": "reading-gallery",
+      "grid": [
+        0,
+        1,
+        0
+      ],
+      "typeId": "gallery",
+      "attributes": {
+        "daylight": "medium",
+        "public": true
+      }
+    },
+    {
+      "id": "store",
+      "grid": [
+        1,
+        1,
+        0
+      ],
+      "typeId": "storage",
+      "attributes": {
+        "daylight": null,
+        "public": false
+      }
+    },
+    {
+      "id": "studio-upper",
+      "grid": [
+        0,
+        0,
+        1
+      ],
+      "typeId": "studio",
+      "attributes": {
+        "occupancy": 6,
+        "public": false
+      }
+    },
+    {
+      "id": "gallery-upper",
+      "grid": [
+        1,
+        0,
+        1
+      ],
+      "typeId": "gallery",
+      "attributes": {
+        "daylight": "high",
+        "public": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entry-to-studio",
+      "source": "entry-gallery",
+      "target": "studio-ground",
+      "kind": "door",
+      "attributes": {}
+    },
+    {
+      "id": "entry-to-reading",
+      "source": "entry-gallery",
+      "target": "reading-gallery",
+      "kind": "open",
+      "attributes": {}
+    },
+    {
+      "id": "studio-to-store",
+      "source": "studio-ground",
+      "target": "store",
+      "kind": "door",
+      "attributes": {}
+    },
+    {
+      "id": "entry-up",
+      "source": "entry-gallery",
+      "target": "studio-upper",
+      "kind": "vertical-access",
+      "attributes": {}
+    },
+    {
+      "id": "studio-atrium",
+      "source": "studio-ground",
+      "target": "gallery-upper",
+      "kind": "atrium",
+      "attributes": {}
+    },
+    {
+      "id": "upper-door",
+      "source": "studio-upper",
+      "target": "gallery-upper",
+      "kind": "door",
+      "attributes": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "entry-gallery": [
+        0,
+        140
+      ],
+      "studio-ground": [
+        240,
+        140
+      ],
+      "reading-gallery": [
+        -120,
+        300
+      ],
+      "store": [
+        360,
+        300
+      ],
+      "studio-upper": [
+        60,
+        0
+      ],
+      "gallery-upper": [
+        300,
+        0
+      ]
+    }
+  }
+}
+"
+`;

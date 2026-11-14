@@ -1,4 +1,4 @@
-import { EDGE_KINDS, isVerticalKind, type EdgeKind } from '../../graph';
+import { EDGE_KINDS, isVerticalKind, type EdgeKind } from '../../spatial';
 
 /**
  * Visual encoding of edge kinds in the 3D views (pure).

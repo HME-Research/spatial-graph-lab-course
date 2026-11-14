@@ -2,7 +2,7 @@
  * The ONE mapping from spatial grid coordinates to Three.js world coordinates.
  * Pure: no Three.js import, so resolvers and tests can use it without WebGL.
  *
- * Grid convention (document, see core/graph/schema.ts): [x, y, z], integers, **z is up** (storey).
+ * Grid convention (document, see core/spatial/schema.ts): [x, y, z], integers, **z is up** (storey).
  * Three.js convention: **Y is up**, right-handed.
  *
  *   three.X =  grid.x            * cell.horizontal

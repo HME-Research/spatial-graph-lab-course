@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import type { DesignDocument, GraphCommand, GraphIssue } from '../graph';
+import type { DesignDocument, GraphCommand, GraphIssue } from '../spatial';
 import type { Selection } from './selection';
 
 /**

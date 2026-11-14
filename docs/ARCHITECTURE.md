@@ -5,7 +5,8 @@
 Student algorithms (future) transform a **copy** of the DesignDocument, validate the proposed output and apply it as one undoable transaction. Never have each viewer keep its own graph copy.
 
 ## Modules
-- `core/graph`: typed schema, IDs, adjacency predicates, graph commands, invariants and serialization.
+- `core/graph`: **generic** graph core — nodes/edges with stable IDs and arbitrary payloads, directed or undirected, configurable self-loop/parallel-edge policy, pure immutable operations, queries and structural validation. Imports nothing outside `core/graph` (no spatial, architecture, app, viewer, student code or packages); enforced by `core/graph/boundary.test.ts`.
+- `core/spatial`: the v1 spatial design document built on `core/graph` — Zod schema, grid coordinates, edge kinds and face-adjacency rules, document validation, graph commands and JSON serialization. `designGraph(doc)` is the zero-copy adapter to the generic core (policy: undirected, no self-loops, no parallel edges). Application-specific; planned to move under `app/` in a later stage.
 - `core/architecture`: pure face-condition resolution separate from geometry construction. Geometry built once per shared face. No React imports in resolver.
 - `core/viewer`: four render modes, selection highlights; Graph2D uses React Flow, 3D uses React Three Fiber/Three.js.
 - `core/app`: shared document state, editing commands, undo/redo, selection, view split/layout and load/save UI.

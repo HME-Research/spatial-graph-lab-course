@@ -1,4 +1,4 @@
-import type { AttributeValue, GraphEdge, GraphNode } from '../../graph';
+import type { AttributeValue, GraphEdge, GraphNode } from '../../spatial';
 import { typeColor } from '../appearance';
 import { accessGroups } from './sceneModel';
 

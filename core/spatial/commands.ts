@@ -1,12 +1,27 @@
+import {
+  hasNode as graphHasNode,
+  removeEdge as graphRemoveEdge,
+  removeNode as graphRemoveNode,
+  updateEdge as graphUpdateEdge,
+  updateNode as graphUpdateNode,
+  type GraphResult,
+} from '../graph';
 import type { EdgeKind } from './constants';
 import { fail, issue, type Result } from './errors';
-import type { Attributes, DesignDocument, DiagramPosition, GridCoord } from './schema';
+import { designGraph } from './graph';
+import type { Attributes, DesignDocument, DiagramPosition, GraphEdge, GraphNode, GridCoord } from './schema';
 import { validateDocument, type ValidationOptions } from './validate';
 
 /**
  * Pure graph commands. Each returns a new validated document or readable issues;
  * the input document is never mutated. No command creates edges implicitly:
  * spatial adjacency alone is never a relationship.
+ *
+ * Topology changes (removal with incident-edge cleanup, record updates) are delegated to the
+ * generic graph core; every candidate document is then validated in full by `validateDocument`,
+ * so issue codes and messages remain those of the v1 document. Additions are appended and
+ * validated in full (not pre-checked by the core) so that ALL problems, structural and spatial,
+ * are reported together, exactly as before.
  */
 
 export interface NewNode {
@@ -27,13 +42,25 @@ export interface NewEdge {
 const notFound = (what: 'node' | 'edge', id: string): Result<DesignDocument> =>
   fail([issue([what === 'node' ? 'nodes' : 'edges'], 'not-found', `${what} "${id}" does not exist`)]);
 
-const hasNode = (doc: DesignDocument, id: string) => doc.nodes.some((n) => n.id === id);
-const hasEdge = (doc: DesignDocument, id: string) => doc.edges.some((e) => e.id === id);
-
 function withoutKey<V>(record: Readonly<Record<string, V>>, key: string): Record<string, V> {
   const copy: Record<string, V> = {};
   for (const [k, v] of Object.entries(record)) if (k !== key) copy[k] = v;
   return copy;
+}
+
+/**
+ * Validate `doc` with its topology replaced by a generic-core result. For the operations used
+ * here the core can only fail with `not-found`, which is reported in the v1 wording.
+ */
+function withTopology(
+  doc: DesignDocument,
+  result: GraphResult<GraphNode, GraphEdge>,
+  missing: readonly ['node' | 'edge', string],
+  options: ValidationOptions | undefined,
+  diagram: DesignDocument['diagram'] = doc.diagram,
+): Result<DesignDocument> {
+  if (!result.ok) return notFound(missing[0], missing[1]);
+  return validateDocument({ ...doc, nodes: result.value.nodes, edges: result.value.edges, diagram }, options);
 }
 
 /** Add a node; optionally give it a diagram position. Does not add any edges. */
@@ -55,14 +82,9 @@ export function addNode(
 
 /** Remove a node, its incident edges and its diagram position. */
 export function removeNode(doc: DesignDocument, nodeId: string, options?: ValidationOptions): Result<DesignDocument> {
-  if (!hasNode(doc, nodeId)) return notFound('node', nodeId);
-  const next = {
-    ...doc,
-    nodes: doc.nodes.filter((n) => n.id !== nodeId),
-    edges: doc.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
-    diagram: { positions: withoutKey(doc.diagram.positions, nodeId) },
-  };
-  return validateDocument(next, options);
+  return withTopology(doc, graphRemoveNode(designGraph(doc), nodeId), ['node', nodeId], options, {
+    positions: withoutKey(doc.diagram.positions, nodeId),
+  });
 }
 
 /**
@@ -75,12 +97,8 @@ export function moveNode(
   grid: GridCoord,
   options?: ValidationOptions,
 ): Result<DesignDocument> {
-  if (!hasNode(doc, nodeId)) return notFound('node', nodeId);
-  const next = {
-    ...doc,
-    nodes: doc.nodes.map((n) => (n.id === nodeId ? { ...n, grid: [...grid] } : n)),
-  };
-  return validateDocument(next, options);
+  const result = graphUpdateNode(designGraph(doc), nodeId, (n): GraphNode => ({ ...n, grid: [...grid] }));
+  return withTopology(doc, result, ['node', nodeId], options);
 }
 
 /** Set a node's 2D diagram position. Never changes its spatial grid cell. */
@@ -90,7 +108,7 @@ export function setDiagramPosition(
   position: DiagramPosition,
   options?: ValidationOptions,
 ): Result<DesignDocument> {
-  if (!hasNode(doc, nodeId)) return notFound('node', nodeId);
+  if (!graphHasNode(designGraph(doc), nodeId)) return notFound('node', nodeId);
   const next = {
     ...doc,
     diagram: { positions: { ...doc.diagram.positions, [nodeId]: [...position] } },
@@ -105,9 +123,8 @@ export function setNodeType(
   typeId: string,
   options?: ValidationOptions,
 ): Result<DesignDocument> {
-  if (!hasNode(doc, nodeId)) return notFound('node', nodeId);
-  const next = { ...doc, nodes: doc.nodes.map((n) => (n.id === nodeId ? { ...n, typeId } : n)) };
-  return validateDocument(next, options);
+  const result = graphUpdateNode(designGraph(doc), nodeId, (n) => ({ ...n, typeId }));
+  return withTopology(doc, result, ['node', nodeId], options);
 }
 
 /** Replace a node's whole attribute record (values must be JSON primitives). */
@@ -117,12 +134,8 @@ export function setNodeAttributes(
   attributes: Attributes,
   options?: ValidationOptions,
 ): Result<DesignDocument> {
-  if (!hasNode(doc, nodeId)) return notFound('node', nodeId);
-  const next = {
-    ...doc,
-    nodes: doc.nodes.map((n) => (n.id === nodeId ? { ...n, attributes: { ...attributes } } : n)),
-  };
-  return validateDocument(next, options);
+  const result = graphUpdateNode(designGraph(doc), nodeId, (n) => ({ ...n, attributes: { ...attributes } }));
+  return withTopology(doc, result, ['node', nodeId], options);
 }
 
 /** Add an explicit typed relationship between two face-adjacent nodes. */
@@ -138,8 +151,7 @@ export function addEdge(doc: DesignDocument, edge: NewEdge, options?: Validation
 }
 
 export function removeEdge(doc: DesignDocument, edgeId: string, options?: ValidationOptions): Result<DesignDocument> {
-  if (!hasEdge(doc, edgeId)) return notFound('edge', edgeId);
-  return validateDocument({ ...doc, edges: doc.edges.filter((e) => e.id !== edgeId) }, options);
+  return withTopology(doc, graphRemoveEdge(designGraph(doc), edgeId), ['edge', edgeId], options);
 }
 
 /** Change an edge's kind; the new kind must suit the nodes' adjacency (horizontal vs vertical). */
@@ -149,7 +161,6 @@ export function changeEdgeKind(
   kind: EdgeKind,
   options?: ValidationOptions,
 ): Result<DesignDocument> {
-  if (!hasEdge(doc, edgeId)) return notFound('edge', edgeId);
-  const next = { ...doc, edges: doc.edges.map((e) => (e.id === edgeId ? { ...e, kind } : e)) };
-  return validateDocument(next, options);
+  const result = graphUpdateEdge(designGraph(doc), edgeId, (e) => ({ ...e, kind }));
+  return withTopology(doc, result, ['edge', edgeId], options);
 }

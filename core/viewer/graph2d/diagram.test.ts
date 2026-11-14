@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import exampleDesign from '../../../student/designs/two-storey-example.json';
-import { applyGraphCommand, idSchema, validateDocument, type DesignDocument } from '../../graph';
-import { expectOk, threeRooms, threeRoomsRaw } from '../../graph/test-fixtures';
+import { applyGraphCommand, idSchema, validateDocument, type DesignDocument } from '../../spatial';
+import { expectOk, threeRooms, threeRoomsRaw } from '../../spatial/test-fixtures';
 import {
   EDGE_STYLES,
   connectionOptions,
