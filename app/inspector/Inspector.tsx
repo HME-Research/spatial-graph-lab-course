@@ -55,18 +55,18 @@ export function Inspector({ doc, selection, onSelect, onCommand, project }: Insp
   const node = selection.kind === 'node' ? doc.nodes.find((n) => n.id === selection.id) : undefined;
   const edge = selection.kind === 'edge' ? doc.edges.find((e) => e.id === selection.id) : undefined;
   return (
-    <aside className="inspector sgl-inspector">
-      <h3>Inspector</h3>
+    <div className="inspector sgl-inspector">
       {node ? (
         <NodePanel key={`node:${node.id}`} doc={doc} node={node} project={project} onSelect={onSelect} onCommand={onCommand} />
       ) : edge ? (
         <EdgePanel key={`edge:${edge.id}`} doc={doc} edge={edge} onSelect={onSelect} onCommand={onCommand} />
       ) : (
-        <p className="meta">
-          Nothing selected. Click a node or an edge in a view to inspect and edit it.
-        </p>
+        <div className="sgl-panel">
+          <p className="meta">Nothing selected. Click a node or an edge in a view to inspect and edit it.</p>
+          <DesignSummary doc={doc} />
+        </div>
       )}
-    </aside>
+    </div>
   );
 }
 
@@ -191,6 +191,8 @@ function NodePanel({ doc, node, project, onSelect, onCommand }: PanelBase & { re
         </button>
         <p className="sgl-help">Also removes its {incident.length} edge(s) and its diagram position.</p>
       </section>
+
+      <StoredData record={node} diagramPosition={doc.diagram.positions[node.id] ?? null} />
     </div>
   );
 }
@@ -630,6 +632,47 @@ function EdgePanel({ doc, edge, onSelect, onCommand }: PanelBase & { readonly ed
         </button>
         <p className="sgl-help">The two cells stay; a solid wall will separate them.</p>
       </section>
+
+      <StoredData record={edge} />
     </div>
+  );
+}
+
+/** The selected item exactly as stored in the document (read-only). */
+function StoredData({
+  record,
+  diagramPosition,
+}: {
+  readonly record: GraphNode | GraphEdge;
+  /** Nodes only: their diagram position, or null when they have none. */
+  readonly diagramPosition?: readonly number[] | null;
+}) {
+  return (
+    <details className="sgl-section sgl-data">
+      <summary>Stored data</summary>
+      {diagramPosition !== undefined && (
+        <p className="sgl-help">
+          Diagram position (2D only, never moves the cell): {diagramPosition ? formatGrid(diagramPosition) : 'none'}
+        </p>
+      )}
+      <pre>{JSON.stringify(record, null, 2)}</pre>
+    </details>
+  );
+}
+
+/** Shown when nothing is selected: what the loaded design contains. */
+function DesignSummary({ doc }: { readonly doc: DesignDocument }) {
+  const storeys = [...new Set(doc.nodes.map((n) => n.grid[2]))].sort((a, b) => a - b);
+  const horizontal = doc.edges.filter((e) => orientationOf(e.kind) === 'horizontal').length;
+  return (
+    <section className="sgl-section">
+      <h4>Design</h4>
+      <p className="sgl-design-name">{doc.metadata.name}</p>
+      {doc.metadata.description && <p className="sgl-help">{doc.metadata.description}</p>}
+      <p className="sgl-help">
+        Schema v{doc.schemaVersion} · {doc.nodes.length} nodes · {doc.edges.length} edges ({horizontal} horizontal,{' '}
+        {doc.edges.length - horizontal} vertical) · storeys (z): {storeys.join(', ') || '—'}
+      </p>
+    </section>
   );
 }

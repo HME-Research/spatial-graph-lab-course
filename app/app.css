@@ -7,6 +7,8 @@
   --accent: #2c5d8f;
   --error-bg: #fdecec;
   --error-line: #d27373;
+  --sidebar-width: 320px;
+  --gap: 8px;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--fg);
   background: var(--bg);
@@ -16,30 +18,51 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   margin: 0;
   background: var(--bg);
 }
 
-.toolbar {
+/*
+ * Application frame: exactly the browser viewport. Header and project bar take their natural
+ * height; the workspace takes the rest. Nothing inside the workspace (inspector content, algorithm
+ * results) can change its size: the sidebar scrolls on its own.
+ */
+.app {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.toolbar {
+  flex: none;
+  display: flex;
   gap: 12px;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 4px 12px;
+  min-height: 40px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
 
 .toolbar h1 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1rem;
+  white-space: nowrap;
 }
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 button,
@@ -52,6 +75,12 @@ button,
   cursor: pointer;
 }
 
+.toolbar button,
+.toolbar .file-button {
+  padding: 3px 10px;
+  font-size: 0.9rem;
+}
+
 button:hover,
 .file-button:hover {
   border-color: var(--accent);
@@ -62,38 +91,22 @@ button:hover,
 }
 
 main {
-  padding: 16px 20px 40px;
-  max-width: 1600px;
-}
-
-section {
-  margin-bottom: 20px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .meta {
   color: var(--muted);
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--panel);
-  font-size: 0.92rem;
-}
-
-th,
-td {
-  text-align: left;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--line);
-}
-
-th {
-  font-weight: 600;
-}
-
 .issues {
-  padding: 12px 16px;
+  flex: none;
+  max-height: 30vh;
+  overflow: auto;
+  margin: var(--gap) var(--gap) 0;
+  padding: 8px 12px;
   background: var(--error-bg);
   border: 1px solid var(--error-line);
   border-radius: 8px;
@@ -108,54 +121,179 @@ th {
   color: var(--muted);
 }
 
-.workspace-bar {
-  margin-bottom: 8px;
-}
-
-.workspace-grid {
+/* Workspace: view panels on the left, sidebar on the right. */
+.workspace {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) var(--sidebar-width);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--gap);
+  padding: var(--gap);
 }
 
-.workspace-grid.split {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 280px;
+.workspace.sidebar-collapsed {
+  --sidebar-width: 36px;
 }
 
-@media (max-width: 900px) {
-  .workspace-grid,
-  .workspace-grid.split {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--gap);
+  min-width: 0;
+  min-height: 0;
 }
 
-.view-panel,
-.inspector {
+.panels.split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.view-panel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-height: 480px;
-  padding: 8px;
+  min-width: 260px;
+  min-height: 0;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
+  overflow: hidden;
 }
 
-.view-panel select {
-  align-self: flex-start;
+.panel-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.85rem;
+}
+
+.panel-header select {
   font: inherit;
+  padding: 2px 4px;
 }
 
-/* Views fill this box (position: relative; explicit height for canvases). */
+.panel-header-spacer {
+  flex: 1;
+}
+
+.segmented {
+  display: inline-flex;
+}
+
+.segmented button {
+  padding: 2px 10px;
+  font-size: inherit;
+  border-radius: 0;
+}
+
+.segmented button:first-child {
+  border-radius: 5px 0 0 5px;
+}
+
+.segmented button:last-child {
+  border-radius: 0 5px 5px 0;
+  margin-left: -1px;
+}
+
+.segmented button[aria-pressed='true'] {
+  background: #eef3f9;
+  border-color: var(--accent);
+  position: relative;
+  font-weight: 600;
+}
+
+/* Views fill this box (position: relative; absolutely positioned canvases). */
 .view-body {
   position: relative;
   flex: 1;
-  /* Use the available viewport height on laptops; never shorter than the contract minimum. */
-  min-height: max(440px, calc(100vh - 190px));
+  min-height: 200px;
 }
 
-.inspector h3 {
-  margin: 0;
+/* Sidebar: tab header + independently scrolling tab panels. */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line);
+}
+
+.sidebar-tabs {
+  flex: 1;
+  display: flex;
+}
+
+.sidebar-tab {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sidebar-tab.active {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
+}
+
+.sidebar-toggle {
+  flex: none;
+  width: 34px;
+  padding: 4px 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+}
+
+.sidebar-collapsed .sidebar-toggle {
+  flex: 1;
+}
+
+.sidebar-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+  align-items: center;
+}
+
+.sidebar-rail-tab {
+  writing-mode: vertical-rl;
+  padding: 10px 4px;
+  font-size: 0.8rem;
+  border: none;
+  background: none;
+  color: var(--muted);
+}
+
+.sidebar-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px;
+}
+
+.sidebar-body[hidden] {
+  display: none;
 }
 
 .inspector pre {
@@ -165,8 +303,35 @@ th {
   word-break: break-word;
 }
 
-.document-data summary {
-  cursor: pointer;
-  margin: 16px 0 8px;
-  font-weight: 600;
+/*
+ * Small or short windows: the fixed frame would squeeze the views, so the page scrolls instead
+ * and panels and sidebar stack.
+ */
+@media (max-width: 899px), (max-height: 559px) {
+  .app {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .workspace,
+  .workspace.sidebar-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panels.split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .view-panel {
+    min-width: 0;
+  }
+
+  .view-body {
+    min-height: 420px;
+  }
+
+  .sidebar-body {
+    max-height: 70vh;
+  }
 }

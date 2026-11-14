@@ -3,7 +3,6 @@ import exampleDesign from './document/examples/two-storey-example.json';
 import {
   applyGraphCommand,
   formatIssuePath,
-  isVerticalKind,
   parseDesignJson,
   serializeDesign,
   validateDocument,
@@ -65,8 +64,6 @@ function builtInExample(): { readonly doc: DesignDocument; readonly source: stri
   if (!result.ok) throw new Error(`the built-in example is invalid: ${result.issues.map((i) => i.message).join('; ')}`);
   return { doc: result.value, source: EXAMPLE_LABEL };
 }
-
-const fmtGrid = (g: readonly number[]) => `[${g.join(', ')}]`;
 
 /** File name for an exported design, derived from its metadata name. */
 const exportFileName = (doc: DesignDocument): string =>
@@ -250,7 +247,7 @@ export function App() {
             onSelect={setSelection}
             onCommand={onCommand}
             {...(projectContext && { project: projectContext })}
-            side={
+            algorithms={
               <AlgorithmPanel
                 key={`${project?.id ?? '-'}:${generation}`}
                 project={project}
@@ -261,92 +258,7 @@ export function App() {
             }
           />
         )}
-
-        {current && (
-          <details className="document-data">
-            <summary>Document data</summary>
-            <DesignSummary loaded={current} />
-          </details>
-        )}
       </main>
     </div>
-  );
-}
-
-function DesignSummary({ loaded }: { loaded: Loaded }) {
-  const { doc, source } = loaded;
-  const storeys = [...new Set(doc.nodes.map((n) => n.grid[2]))].sort((a, b) => a - b);
-  const nodes = [...doc.nodes].sort((a, b) => a.grid[2] - b.grid[2] || a.id.localeCompare(b.id));
-
-  return (
-    <>
-      <section className="summary">
-        <h2>{doc.metadata.name}</h2>
-        {doc.metadata.description && <p>{doc.metadata.description}</p>}
-        <p className="meta">
-          Loaded from <code>{source}</code> · schema v{doc.schemaVersion} · {doc.nodes.length} nodes ·{' '}
-          {doc.edges.length} edges · storeys (z): {storeys.join(', ') || '—'}
-        </p>
-      </section>
-
-      <section>
-        <h3>Nodes</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Type</th>
-              <th>Spatial cell [x, y, z]</th>
-              <th>Diagram position [x, y]</th>
-              <th>Attributes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {nodes.map((n) => {
-              const pos = doc.diagram.positions[n.id];
-              return (
-                <tr key={n.id}>
-                  <td><code>{n.id}</code></td>
-                  <td>{n.typeId}</td>
-                  <td>{fmtGrid(n.grid)}</td>
-                  <td>{pos ? fmtGrid(pos) : <em>none</em>}</td>
-                  <td>
-                    {Object.entries(n.attributes)
-                      .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-                      .join(', ') || '—'}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </section>
-
-      <section>
-        <h3>Edges (explicit relationships only)</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Source</th>
-              <th>Target</th>
-              <th>Kind</th>
-              <th>Direction</th>
-            </tr>
-          </thead>
-          <tbody>
-            {doc.edges.map((e) => (
-              <tr key={e.id}>
-                <td><code>{e.id}</code></td>
-                <td><code>{e.source}</code></td>
-                <td><code>{e.target}</code></td>
-                <td>{e.kind}</td>
-                <td>{isVerticalKind(e.kind) ? 'vertical' : 'horizontal'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-    </>
   );
 }

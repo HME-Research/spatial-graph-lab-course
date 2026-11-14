@@ -11,12 +11,14 @@ import {
   type NodeChange,
   type NodeTypes,
   type OnNodeDrag,
+  type Viewport,
   type XYPosition,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
 import { EDGE_KINDS, type EdgeKind, type GraphCommand, type GraphIssue } from '@app/document';
 import type { ViewProps } from '../contracts';
+import { useRemembered } from '../panelMemory';
 import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 import {
   EDGE_KIND_LABELS,
@@ -60,6 +62,9 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project }: ViewPro
   const [overlay, setOverlay] = useState<Readonly<Record<string, NodeOverlay>>>({});
   const [pending, setPending] = useState<{ source: string; target: string } | null>(null);
   const [issues, setIssues] = useState<readonly GraphIssue[]>([]);
+  // The diagram viewport (pan/zoom) is remembered by the hosting panel; without one, fit the diagram.
+  const viewportMemory = useRemembered<Viewport>('viewport:graph2d');
+  const [initialViewport] = useState(() => viewportMemory?.load());
 
   /** Send a command; show issues on rejection. Returns whether it was applied. */
   const run = useCallback(
@@ -216,7 +221,8 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project }: ViewPro
         selectionKeyCode={null}
         multiSelectionKeyCode={null}
         selectNodesOnDrag={false}
-        fitView
+        {...(initialViewport ? { defaultViewport: initialViewport } : { fitView: true })}
+        onMoveEnd={(_event, viewport) => viewportMemory?.save(viewport)}
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.2}
       >

@@ -177,3 +177,28 @@
 .sgl-typed > select {
   align-self: stretch;
 }
+
+/* Read-only stored record of the selected item, collapsed by default. */
+.sgl-data summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted, #66665f);
+}
+
+.sgl-data pre {
+  margin: 6px 0 0;
+  padding: 6px;
+  background: #f5f5f1;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sgl-design-name {
+  margin: 0;
+  font-weight: 600;
+}

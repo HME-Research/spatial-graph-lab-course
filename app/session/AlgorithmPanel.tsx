@@ -48,10 +48,9 @@ export function AlgorithmPanel({
 
   if (!project) {
     return (
-      <aside className="algorithms sgl-inspector">
-        <h3>Algorithms</h3>
+      <div className="algorithms sgl-inspector">
         <p className="meta">No active project. Algorithms come from <code>projects/&lt;id&gt;/algorithms/</code>.</p>
-      </aside>
+      </div>
     );
   }
 
@@ -71,8 +70,7 @@ export function AlgorithmPanel({
   };
 
   return (
-    <aside className="algorithms sgl-inspector">
-      <h3>Algorithms</h3>
+    <div className="algorithms sgl-inspector">
       {algorithms.length === 0 ? (
         <p className="meta">
           Project “{project.id}” has no algorithms. Add one in <code>projects/{project.id}/algorithms/</code>.
@@ -137,7 +135,7 @@ export function AlgorithmPanel({
 
       {notice && <p className={notice.tone === 'ok' ? 'algorithm-notice' : 'sgl-error'}>{notice.text}</p>}
       {run && <RunResult run={run} doc={doc} onApply={apply} onDiscard={() => setRun(null)} onSelect={onSelect} />}
-    </aside>
+    </div>
   );
 }
 

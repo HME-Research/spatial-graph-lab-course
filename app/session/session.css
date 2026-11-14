@@ -1,13 +1,15 @@
 /* Project bar and algorithm panel (application shell). */
 
+/* A compact strip under the header. Expanded diagnostics scroll inside it instead of growing without limit. */
 .project-bar {
-  margin-bottom: 12px;
-  padding: 8px 12px;
+  flex: none;
+  max-height: 35vh;
+  overflow: auto;
+  padding: 4px 12px;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-left-width: 4px;
-  border-radius: 8px;
-  font-size: 0.92rem;
+  border-bottom: 1px solid var(--line);
+  border-left: 4px solid transparent;
+  font-size: 0.88rem;
 }
 
 .project-bar.tone-ok {
@@ -105,26 +107,11 @@
   cursor: pointer;
 }
 
-/* Inspector above, algorithm panel below. */
-.side-column {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
-}
-
+/* Algorithm panel: the content of the sidebar's Algorithms tab. */
 .algorithms {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-
-.algorithms h3 {
-  margin: 0;
 }
 
 .algorithm-list {
