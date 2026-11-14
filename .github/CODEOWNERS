@@ -1,0 +1,8 @@
+# Advisory until supported GitHub branch protection + required code owner reviews are configured.
+# Replace REPLACE_WITH_GITHUB_USERNAME before relying on this file.
+/core/ @REPLACE_WITH_GITHUB_USERNAME
+/.github/ @REPLACE_WITH_GITHUB_USERNAME
+/.claude/ @REPLACE_WITH_GITHUB_USERNAME
+/docs/ @REPLACE_WITH_GITHUB_USERNAME
+/CLAUDE.md @REPLACE_WITH_GITHUB_USERNAME
+/package.json @REPLACE_WITH_GITHUB_USERNAME

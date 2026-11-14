@@ -1,0 +1,15 @@
+# Initially documentation-only; do not run npm checks until phase 1 creates package.json.
+name: repository-safety-notice
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain limitations
+        run: |
+          echo "This is a provisional workflow. No app tests exist yet."
+          echo "GitHub Free private repositories cannot enforce protected main."
+          echo "Update this workflow to include npm ci, typecheck, test and build after phase 1."

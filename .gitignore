@@ -1,0 +1,19 @@
+node_modules/
+dist/
+coverage/
+.vite/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# Strictly owner-local development materials
+_planning/
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/skills/owner-*/
+
+# IDE configuration and OS clutter
+.vscode/*
+!.vscode/extensions.json

@@ -1,0 +1,80 @@
+# Application architecture and contracts (implementation target)
+
+## Flow
+`DesignDocument (graph + view layout)` → validation → pure selectors/resolvers → Graph2D | Graph3D | Voxels3D | Architectural3D.
+Student algorithms (future) transform a **copy** of the DesignDocument, validate the proposed output and apply it as one undoable transaction. Never have each viewer keep its own graph copy.
+
+## Modules
+- `core/graph`: typed schema, IDs, adjacency predicates, graph commands, invariants and serialization.
+- `core/architecture`: pure face-condition resolution separate from geometry construction. Geometry built once per shared face. No React imports in resolver.
+- `core/viewer`: four render modes, selection highlights; Graph2D uses React Flow, 3D uses React Three Fiber/Three.js.
+- `core/app`: shared document state, editing commands, undo/redo, selection, view split/layout and load/save UI.
+- `core/extensions`: load and validate student node type definitions; algorithm loading later.
+- `student/`: data/extension files that the owner can let beginners change without touching core.
+
+## Spatial graph model — JSON document v1
+```json
+{
+  "schemaVersion": 1,
+  "metadata": {"name": "Three rooms"},
+  "nodes": [
+    {"id":"a","grid":[0,0,0],"typeId":"gallery","attributes":{}},
+    {"id":"b","grid":[1,0,0],"typeId":"studio","attributes":{}},
+    {"id":"c","grid":[0,0,1],"typeId":"gallery","attributes":{}}
+  ],
+  "edges": [
+    {"id":"ab","source":"a","target":"b","kind":"door","attributes":{}},
+    {"id":"ac","source":"a","target":"c","kind":"atrium","attributes":{}}
+  ],
+  "diagram": {"positions":{"a":[20,80],"b":[180,80],"c":[100,0]}}
+}
+```
+`id` is a stable identifier **not derived from coordinates**, so relocation does not change identity. `grid` coordinates are integer spatial addresses, distinct from diagram.positions in 2D pixel/diagram units. Attribute values should initially be JSON primitives (number, string, boolean, null) rather than arbitrary JavaScript objects. Node type definitions are resolved separately.
+
+## Graph rules
+1. Every node has a unique ID and a unique integer triplet `[x,y,z]`. No inactive nodes; deleting a node removes its incident edges and diagram position.
+2. Every edge references two different existing nodes; no duplicate architectural relationship for the same unordered pair. Edges are undirected in v1.
+3. Horizontal `door` / `open`: Manhattan distance exactly 1 in x/y and zero in z.
+4. Vertical `atrium` / `vertical-access`: same x/y, adjacent z. A vertical edge is conceptual: it may produce an opening or symbolic marker, not a validated staircase.
+5. Adjacent **without** an access edge: an internal partition, never a doorway.
+6. Non-face-adjacent graph relationships are deliberately unsupported in v1; add a different edge namespace/category if needed later.
+7. Self-edges, invalid node type IDs and geometry-invalid edges must be rejected with readable errors.
+8. Use explicit schema version and migration plan before breaking JSON format.
+
+## Architectural boundary resolution
+- Inspect the six cardinal neighbour slots for every node. A missing neighbour is `exterior` (exposed), including above/below if applicable.
+- For a horizontal boundary between two occupied cells: `door`→door-wall; `open`→opening/no partition; no edge→solid internal wall.
+- For an exposed horizontal face: choose façade configuration of the **occupying node's type** (gallery can glaze, storage can be closed); do not add exterior graph edges to empty cells.
+- For vertical contact: no edge→solid separation; atrium→slab opening; vertical-access→opening + generic symbolic circulation marker **only once implemented**.
+- Generate each pair's shared face once using deterministic ownership (compare stable node IDs), not one wall per node.
+- Exterior faces are authored once by their owning cell; perimeter entrance/door is a deferred separate feature.
+- For multi-floor cases, slab ownership and geometry must be verified separately; initial architectural phase may be single level.
+
+## Student node type definition — future extension contract
+In `student/types/`, define a record with `id`, `label`, `color`, and validated `facade` settings. Start with typed JSON declarations (e.g., glazingFraction or windowWidth), not arbitrary renderer code. If missing or invalid, display an error / known fallback and preserve original file on disk. Procedural style functions and GLB assets are **later phases**.
+
+## User interface v1
+- Clear main toolbar: open example, import/export, undo/redo, single/split.
+- Each viewport: dropdown `Graph 2D`, `Graph 3D`, `Voxels`, `Architecture`. In Graph 2D edit; in 3D select/highlight only.
+- Graph 2D uses readable arbitrary 2D diagram positions for **all levels**. Visual edge encoding distinguishes horizontal and vertical types with legend/icons. No floor filtering by default.
+- Right-side single inspector for selected node (type, physical grid coordinates, attributes) or selected edge (kind). Edits validate before applying.
+- Preserve graph positions when changing layout. For physical relocation use inspector with collision and edge-validity diagnostics, never diagram drag.
+- Split view defaults to Graph 2D + Architecture when architecture available; early phases default to Graph 2D + Voxels. Independent 3D camera controls; selection synchronised.
+- Voxel view: colour based on selected categorical/numeric attribute; type ID is default; handle absent attributes and legends. Semitransparent cubes.
+- Architecture view: procedural boxes/slabs with simple door/window openings, not complicated CSG. Show open-top initially to inspect interior; a later toggle can enable roof/slab/cutaway.
+- 3D picking must be linked to node IDs; no direct 3D graph topology editing in prototype.
+
+## Performance and validation
+Sparse nodes; don't instantiate an infinite grid. Configurable node count and coordinate range limits, with explanatory UI. Debounce/recompute derived geometry sensibly. Avoid redundant expensive scene re-creation on selection changes. Pure graph/face tests do not require WebGL.
+
+## Tests / acceptance examples
+A. Graph round-trip retains ID, physical/diagram coords, node types and typed edges.
+B. Dragging graph diagram node changes diagram only, not 3D cell.
+C. Two neighbouring occupied cells with no edge produce **one** shared solid wall.
+D. Adding door changes only that shared wall to a door-wall; changing to open removes it.
+E. Removing one neighbouring node converts the surviving cell boundary to a type-specific exterior façade.
+F. Two disconnected clusters remain separate; a physical touch without access is not a connected access component.
+G. Vertical relation A(0,0,0) to C(0,0,1) is valid; vertical relation to (1,0,1) is rejected for architectural edges.
+H. Selecting an ID highlights matching representation in both views; camera positions stay independently set.
+I. Invalid JSON does not replace the current valid document, and errors show where the data failed.
+J. Same document, same resolver yields same face output; no reliance on rendering order.
