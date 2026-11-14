@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Starter",
+    "description": "Three rooms on one storey. Only two are connected; the third shares walls with both."
+  },
+  "nodes": [
+    { "id": "room-a", "grid": [0, 0, 0], "typeId": "room", "attributes": { "quiet": false } },
+    { "id": "room-b", "grid": [1, 0, 0], "typeId": "room", "attributes": { "occupancy": 4 } },
+    { "id": "room-c", "grid": [0, 1, 0], "typeId": "room", "attributes": {} }
+  ],
+  "edges": [
+    { "id": "a-to-b", "source": "room-a", "target": "room-b", "kind": "door", "attributes": {} }
+  ],
+  "diagram": {
+    "positions": {
+      "room-a": [0, 0],
+      "room-b": [240, 0],
+      "room-c": [0, 160]
+    }
+  }
+}
