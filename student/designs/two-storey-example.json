@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "metadata": {
+    "name": "Two-storey example",
+    "description": "Six cells over two storeys. The reading gallery and store touch but have no edge, so a solid wall will separate them."
+  },
+  "nodes": [
+    { "id": "entry-gallery", "grid": [0, 0, 0], "typeId": "gallery", "attributes": { "daylight": "high", "public": true } },
+    { "id": "studio-ground", "grid": [1, 0, 0], "typeId": "studio", "attributes": { "occupancy": 8, "public": false } },
+    { "id": "reading-gallery", "grid": [0, 1, 0], "typeId": "gallery", "attributes": { "daylight": "medium", "public": true } },
+    { "id": "store", "grid": [1, 1, 0], "typeId": "storage", "attributes": { "daylight": null, "public": false } },
+    { "id": "studio-upper", "grid": [0, 0, 1], "typeId": "studio", "attributes": { "occupancy": 6, "public": false } },
+    { "id": "gallery-upper", "grid": [1, 0, 1], "typeId": "gallery", "attributes": { "daylight": "high", "public": true } }
+  ],
+  "edges": [
+    { "id": "entry-to-studio", "source": "entry-gallery", "target": "studio-ground", "kind": "door", "attributes": {} },
+    { "id": "entry-to-reading", "source": "entry-gallery", "target": "reading-gallery", "kind": "open", "attributes": {} },
+    { "id": "studio-to-store", "source": "studio-ground", "target": "store", "kind": "door", "attributes": {} },
+    { "id": "entry-up", "source": "entry-gallery", "target": "studio-upper", "kind": "vertical-access", "attributes": {} },
+    { "id": "studio-atrium", "source": "studio-ground", "target": "gallery-upper", "kind": "atrium", "attributes": {} },
+    { "id": "upper-door", "source": "studio-upper", "target": "gallery-upper", "kind": "door", "attributes": {} }
+  ],
+  "diagram": {
+    "positions": {
+      "entry-gallery": [0, 140],
+      "studio-ground": [240, 140],
+      "reading-gallery": [-120, 300],
+      "store": [360, 300],
+      "studio-upper": [60, 0],
+      "gallery-upper": [300, 0]
+    }
+  }
+}
