@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type ChangeEvent } from 'react';
-import exampleDesign from '../../student/designs/two-storey-example.json';
+import exampleDesign from '../student/designs/two-storey-example.json';
 import {
   applyGraphCommand,
   formatIssuePath,
