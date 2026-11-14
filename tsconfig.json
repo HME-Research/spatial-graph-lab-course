@@ -19,7 +19,12 @@
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+
+    "paths": {
+      "@core/*": ["./core/*"],
+      "@app/*": ["./app/*"]
+    }
   },
-  "include": ["core", "student", "vite.config.ts"]
+  "include": ["core", "app", "student", "vite.config.ts"]
 }

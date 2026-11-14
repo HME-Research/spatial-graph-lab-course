@@ -1,6 +1,8 @@
 import type { ComponentType } from 'react';
 import type { DesignDocument, GraphCommand, GraphIssue } from '../spatial';
-import type { Selection } from './selection';
+import type { Selection, SelectionHandler } from './selection';
+
+export type { SelectionHandler } from './selection';
 
 /**
  * Integration contract shared by every view (Graph 2D, Graph 3D, Voxels, Architecture) and the
@@ -17,9 +19,6 @@ export type CommandOutcome =
  * latest document. On failure the document is unchanged. Read-only views never call it.
  */
 export type GraphCommandHandler = (command: GraphCommand) => CommandOutcome;
-
-/** Replace the shared selection. Pass NO_SELECTION to clear. */
-export type SelectionHandler = (selection: Selection) => void;
 
 /** Props every view receives. The document is read-only input; views never mutate or copy it as state. */
 export interface ViewProps {
