@@ -8,7 +8,7 @@ import {
   isElementHighlighted,
   resolveFaces,
   type ArchitecturalElement,
-} from '../../architecture';
+} from '@app/building';
 import { SELECTION_COLOR, typeColor } from '../appearance';
 import type { ViewProps } from '../contracts';
 import { DEFAULT_CELL_SIZE, type WorldPoint } from '../coordinates';

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import exampleJson from '../../student/designs/two-storey-example.json';
 import { validateDocument, type DesignDocument, type EdgeKind } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
-import { DEFAULT_CELL_SIZE } from '../viewer/coordinates';
-import { NO_SELECTION, selectEdge, selectNode } from '../viewer/selection';
+import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
+import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 import { DEFAULT_FACADE, EXAMPLE_FACADES, clampWindowFraction, exampleFacadeProvider } from './facade';
 import {
   DEFAULT_SLAB_THICKNESS,
