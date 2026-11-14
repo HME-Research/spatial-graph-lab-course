@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DesignDocument } from '@app/document';
 import { selectionEmphasis, type Selection } from '@core/viewer/selection';
 import type { Hover } from '@core/viewer/three/picking';
-import { CAMERA_FOV } from '@core/viewer/three/SceneCanvas';
 import {
   attributeKeys,
   DEFAULT_COLOR_MODE,
@@ -10,7 +9,7 @@ import {
   resolveColoring,
   type ColorMode,
 } from './colorBy';
-import { accessGroups, buildEdgeItems, buildNodeItems, cellBounds, fitCamera, groundGrid, storeyLevels } from './sceneModel';
+import { accessGroups, buildEdgeItems, buildNodeItems, cellBounds, framingFor, groundGrid, storeyLevels } from './sceneModel';
 
 /**
  * Everything a 3D view derives from the read-only document, plus its view-local UI state
@@ -24,7 +23,7 @@ export function useSpatialScene(doc: DesignDocument, selection: Selection) {
   const levels = useMemo(() => storeyLevels(nodes), [nodes]);
   const bounds = useMemo(() => cellBounds(nodes), [nodes]);
   const grid = useMemo(() => groundGrid(nodes), [nodes]);
-  const fit = useMemo(() => fitCamera(bounds, CAMERA_FOV), [bounds]);
+  const framing = useMemo(() => framingFor(bounds), [bounds]);
   const keys = useMemo(() => attributeKeys(nodes), [nodes]);
   const groups = useMemo(() => accessGroups(nodes, edges), [nodes, edges]);
   const emphasis = useMemo(() => selectionEmphasis(selection, edges), [selection, edges]);
@@ -62,7 +61,7 @@ export function useSpatialScene(doc: DesignDocument, selection: Selection) {
     levels,
     bounds,
     grid,
-    fit,
+    framing,
     fitRequest,
     refit,
     attributeKeys: keys,

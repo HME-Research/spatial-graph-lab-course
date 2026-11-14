@@ -75,6 +75,24 @@
   padding: 2px 6px;
 }
 
+/* A panel that never blocks picking behind it; only its <summary> toggle is interactive. */
+.viewer3d-panel.viewer3d-passthrough {
+  pointer-events: none;
+  /* It cannot be scrolled, so never clip it. */
+  max-height: none;
+  overflow: visible;
+}
+
+.viewer3d-passthrough > summary {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.viewer3d-notice {
+  max-width: 240px;
+  color: #8a3b3b;
+}
+
 .viewer3d-legend ul {
   list-style: none;
   margin: 2px 0 6px;

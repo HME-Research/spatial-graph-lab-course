@@ -1,10 +1,10 @@
 import { isVerticalKind, type EdgeKind, type GraphEdge, type GraphNode, type GridCoord } from '@app/document';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '@core/viewer/coordinates';
-import { fitCameraToBounds, type Bounds, type CameraFit, type GroundGrid } from '@core/viewer/three/viewport';
+import type { Bounds, Framing, GroundGrid } from '@core/viewer/three/viewport';
 
 /**
- * Pure scene derivation shared by the Graph 3D and Voxel views (no React, no Three.js):
- * grid-cell items, storeys, cell bounds, camera framing and the ground grid for a design document.
+ * Pure scene derivation shared by the 3D views (no React, no Three.js): grid-cell items, storeys,
+ * cell bounds, what the camera frames and the ground grid for a design document.
  * Every world position comes from `spatialToThree(node.grid)`; diagram positions are never read.
  */
 
@@ -97,15 +97,18 @@ export function cellBounds(nodes: readonly GraphNode[], cell: CellSize = DEFAULT
 }
 
 /**
- * Camera placement for the occupied cells: frames `bounds`, or one ground-storey cell at the origin
- * for an empty document, and never closer than one cell width. Grid +x is right, grid +y recedes.
+ * What the camera frames: `bounds`, or one ground-storey cell at the origin for an empty document,
+ * never tighter than one cell width. The canvas turns this into a camera placement for its own
+ * aspect ratio (`fitCameraToBounds`).
  */
-export function fitCamera(bounds: Bounds | null, fovDeg: number, cell: CellSize = DEFAULT_CELL_SIZE): CameraFit {
-  const b: Bounds = bounds ?? {
-    min: [-cell.horizontal / 2, 0, -cell.horizontal / 2],
-    max: [cell.horizontal / 2, cell.vertical, cell.horizontal / 2],
+export function framingFor(bounds: Bounds | null, cell: CellSize = DEFAULT_CELL_SIZE): Framing {
+  return {
+    bounds: bounds ?? {
+      min: [-cell.horizontal / 2, 0, -cell.horizontal / 2],
+      max: [cell.horizontal / 2, cell.vertical, cell.horizontal / 2],
+    },
+    minRadius: cell.horizontal,
   };
-  return fitCameraToBounds(b, fovDeg, cell.horizontal);
 }
 
 /**

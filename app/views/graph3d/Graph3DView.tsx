@@ -10,6 +10,8 @@ import { LevelLabels } from '../three/LevelLabels';
 import type { EdgeItem, NodeItem } from '../three/sceneModel';
 import { pickHandlers, type Hover } from '@core/viewer/three/picking';
 import { useSpatialScene } from '../three/useSpatialScene';
+import { useRemembered } from '../panelMemory';
+import type { CameraState } from '@core/viewer/three/viewport';
 import { ControlBar, InfoPanel, NAVIGATION_HINT } from '@core/viewer/three/ViewControls';
 import { ColorBySelect, Legend, LevelSelect } from '../three/SpatialControls';
 
@@ -25,6 +27,7 @@ const LABEL_LIMIT = 150;
 
 export function Graph3DView({ doc, selection, onSelect }: ViewProps) {
   const s = useSpatialScene(doc, selection);
+  const camera = useRemembered<CameraState>('camera:graph3d');
   const [showLabels, setShowLabels] = useState(() => doc.nodes.length <= LABEL_LIMIT);
   const [showCells, setShowCells] = useState(true);
   const geo = useSharedGeometry();
@@ -34,7 +37,8 @@ export function Graph3DView({ doc, selection, onSelect }: ViewProps) {
   return (
     <SceneCanvas
       ariaLabel="Graph 3D view"
-      fit={s.fit}
+      framing={s.framing}
+      cameraMemory={camera}
       fitRequest={s.fitRequest}
       grid={s.grid}
       cursor={s.hovered ? 'pointer' : 'grab'}

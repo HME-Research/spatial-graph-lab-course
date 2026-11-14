@@ -1,6 +1,5 @@
-import { OrbitControls } from '@react-three/drei';
-import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber';
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type RefObject } from 'react';
+import type { ThreeEvent } from '@react-three/fiber';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BoxGeometry } from 'three';
 import {
   buildArchitecture,
@@ -12,17 +11,21 @@ import {
 import { SELECTION_COLOR, typeColor } from '@core/viewer/appearance';
 import type { ViewProps } from '../contracts';
 import { brokenTypeIds, projectFacadeProvider } from '../project';
-import { DEFAULT_CELL_SIZE, type WorldPoint } from '@core/viewer/coordinates';
+import { useRemembered } from '../panelMemory';
+import { framingFor } from '../three/sceneModel';
+import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
 import { NO_SELECTION, type Selection } from '@core/viewer/selection';
+import { isDeliberateObjectClick } from '@core/viewer/three/interaction';
+import { SceneCanvas } from '@core/viewer/three/SceneCanvas';
+import { ControlBar, InfoPanel, NAVIGATION_HINT } from '@core/viewer/three/ViewControls';
+import type { CameraState, GroundGrid } from '@core/viewer/three/viewport';
 
 /**
  * Architecture view (workstream C). Renders boxes produced by the pure resolver + geometry step
- * (core/architecture). Read-only: never calls onCommand. Selection only changes material colours;
- * scene geometry depends on `doc` alone, and the camera is never reset by doc/selection changes.
+ * (app/building) in the shared SceneCanvas (camera fitting, orbit controls, picking rules).
+ * Read-only: never calls onCommand. Selection only changes material colours; scene geometry
+ * depends on `doc` alone, and the camera is never reset by doc/selection changes.
  */
-
-/** Pointer travel (px) above which a press is an orbit/pan drag, not a click. */
-const CLICK_TOLERANCE_PX = 4;
 
 type Bounds = ReturnType<typeof elementBounds>;
 
@@ -54,15 +57,15 @@ function elementColor(e: ArchitecturalElement): string {
   }
 }
 
-function framing(bounds: Bounds): { position: WorldPoint; target: WorldPoint } {
-  if (!bounds) return { position: [12, 10, 12], target: [0, 1.5, 0] };
-  const d = bounds.radius * 1.8 + 6;
-  const [cx, cy, cz] = bounds.centre;
-  return { position: [cx + d * 0.7, cy + d * 0.6, cz + d * 0.7], target: bounds.centre };
-}
-
 /** Façades without a project: exactly the example façades (stable reference for memoisation). */
 const NO_PROJECT_FACADE = projectFacadeProvider(null);
+
+const LIGHTING = (
+  <>
+    <hemisphereLight args={['#ffffff', '#9a8f80', 1.1]} />
+    <directionalLight position={[20, 35, 15]} intensity={1.6} />
+  </>
+);
 
 export function ArchitectureView({ doc, selection, onSelect, project }: ViewProps) {
   // Geometry depends on the document and the project's façades only.
@@ -70,8 +73,12 @@ export function ArchitectureView({ doc, selection, onSelect, project }: ViewProp
   const elements = useMemo(() => buildArchitecture(resolveFaces(doc), { facade }), [doc, facade]);
   const broken = useMemo(() => brokenTypeIds(project?.project ?? null, doc), [project, doc]);
   const bounds = useMemo(() => elementBounds(elements), [elements]);
+  const framing = useMemo(() => framingFor(bounds), [bounds]);
+  const grid = useMemo(() => groundGridFor(bounds), [bounds]);
+  const camera = useRemembered<CameraState>('camera:architecture');
   const [showRoofs, setShowRoofs] = useState(false); // open-top by default
-  const [frameRequest, setFrameRequest] = useState(0);
+  const [fitRequest, setFitRequest] = useState(0);
+  const [hovered, setHovered] = useState(false);
   const visible = useMemo(() => (showRoofs ? elements : elements.filter((e) => e.part !== 'roof')), [elements, showRoofs]);
 
   // Stable pick callback so memoised meshes do not re-render when the app passes a new onSelect.
@@ -81,46 +88,32 @@ export function ArchitectureView({ doc, selection, onSelect, project }: ViewProp
   }, [onSelect]);
   const pick = useCallback((target: Selection) => onSelectRef.current(target), []);
 
-  const pressAt = useRef<{ x: number; y: number } | null>(null);
-  const wrapper = useRef<HTMLDivElement>(null);
-  const boundsRef = useRef(bounds);
-  useEffect(() => {
-    boundsRef.current = bounds;
-  }, [bounds]);
-  // Initial camera framing is computed once per view instance.
-  const [initial] = useState(() => framing(bounds));
-
   return (
-    <div
-      ref={wrapper}
-      style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 6, background: '#f4f3ef' }}
-      onPointerDown={(e) => {
-        pressAt.current = { x: e.clientX, y: e.clientY };
-      }}
+    <SceneCanvas
+      ariaLabel="Architecture view"
+      framing={framing}
+      fitRequest={fitRequest}
+      cameraMemory={camera}
+      grid={grid}
+      cursor={hovered ? 'pointer' : 'grab'}
+      onBackgroundClick={() => pick(NO_SELECTION)}
+      lighting={LIGHTING}
+      background="#f4f3ef"
+      flat={false}
+      frameloop="demand"
+      damping={false}
+      overlay={
+        <Overlay
+          empty={elements.length === 0}
+          brokenTypes={broken}
+          showRoofs={showRoofs}
+          onToggleRoofs={setShowRoofs}
+          onFit={() => setFitRequest((n) => n + 1)}
+        />
+      }
     >
-      <Canvas
-        frameloop="demand"
-        camera={{ position: [...initial.position], fov: 45, near: 0.1, far: 5000 }}
-        onPointerMissed={(e) => {
-          const p = pressAt.current;
-          if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > CLICK_TOLERANCE_PX) return; // orbit drag
-          pick(NO_SELECTION);
-        }}
-      >
-        <hemisphereLight args={['#ffffff', '#9a8f80', 1.1]} />
-        <directionalLight position={[20, 35, 15]} intensity={1.6} />
-        <Scene elements={visible} selection={selection} pick={pick} wrapper={wrapper} />
-        <GroundGrid bounds={bounds} />
-        <CameraRig frameRequest={frameRequest} boundsRef={boundsRef} initialTarget={initial.target} />
-      </Canvas>
-      <Overlay
-        empty={elements.length === 0}
-        brokenTypes={broken}
-        showRoofs={showRoofs}
-        onToggleRoofs={setShowRoofs}
-        onFrame={() => setFrameRequest((n) => n + 1)}
-      />
-    </div>
+      <Scene elements={visible} selection={selection} pick={pick} setHovered={setHovered} />
+    </SceneCanvas>
   );
 }
 
@@ -128,22 +121,16 @@ function Scene({
   elements,
   selection,
   pick,
-  wrapper,
+  setHovered,
 }: {
   readonly elements: readonly ArchitecturalElement[];
   readonly selection: Selection;
   readonly pick: (target: Selection) => void;
-  readonly wrapper: RefObject<HTMLDivElement | null>;
+  readonly setHovered: (hovered: boolean) => void;
 }) {
   // One shared unit box, scaled per element: no per-element geometry allocation.
   const unitBox = useMemo(() => new BoxGeometry(1, 1, 1), []);
   useEffect(() => () => unitBox.dispose(), [unitBox]);
-  const setCursor = useCallback(
-    (cursor: string) => {
-      if (wrapper.current) wrapper.current.style.cursor = cursor;
-    },
-    [wrapper],
-  );
   return (
     <group>
       {elements.map((e) => (
@@ -153,7 +140,7 @@ function Scene({
           geometry={unitBox}
           highlighted={isElementHighlighted(e, selection)}
           pick={pick}
-          setCursor={setCursor}
+          setHovered={setHovered}
         />
       ))}
     </group>
@@ -165,13 +152,13 @@ const ElementMesh = memo(function ElementMesh({
   geometry,
   highlighted,
   pick,
-  setCursor,
+  setHovered,
 }: {
   readonly element: ArchitecturalElement;
   readonly geometry: BoxGeometry;
   readonly highlighted: boolean;
   readonly pick: (target: Selection) => void;
-  readonly setCursor: (cursor: string) => void;
+  readonly setHovered: (hovered: boolean) => void;
 }) {
   const glass = element.part === 'glazing';
   const marker = element.part === 'circulation-marker';
@@ -182,14 +169,14 @@ const ElementMesh = memo(function ElementMesh({
       scale={[...element.size]}
       onClick={(e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
-        if (e.delta > CLICK_TOLERANCE_PX) return; // orbit/pan drag: keep the selection
-        pick(element.target);
+        // Orbit/pan drags and right-clicks keep the selection.
+        if (isDeliberateObjectClick(e.delta, e.nativeEvent)) pick(element.target);
       }}
       onPointerOver={(e: ThreeEvent<PointerEvent>) => {
         e.stopPropagation();
-        setCursor('pointer');
+        setHovered(true);
       }}
-      onPointerOut={() => setCursor('')}
+      onPointerOut={() => setHovered(false)}
     >
       <meshStandardMaterial
         color={highlighted ? SELECTION_COLOR : elementColor(element)}
@@ -204,40 +191,15 @@ const ElementMesh = memo(function ElementMesh({
   );
 });
 
-/** Reference grid just below the ground-storey floor, aligned to cell boundaries. Not pickable. */
-function GroundGrid({ bounds }: { readonly bounds: Bounds }) {
+/** Reference grid just below the ground-storey floor, aligned to cell boundaries, with a margin. */
+function groundGridFor(bounds: Bounds): GroundGrid {
   const W = DEFAULT_CELL_SIZE.horizontal;
   const span = bounds ? Math.max(bounds.max[0] - bounds.min[0], bounds.max[2] - bounds.min[2]) : 0;
   const cells = 2 * Math.ceil((span / W + 8) / 2); // even count, with a margin
   const snap = (v: number) => Math.round(v / W) * W + W / 2;
   const cx = bounds ? snap(bounds.centre[0]) : W / 2;
   const cz = bounds ? snap(bounds.centre[2]) : W / 2;
-  return <gridHelper args={[cells * W, cells, '#b5b0a6', '#d6d2c9']} position={[cx, -0.12, cz]} raycast={() => null} />;
-}
-
-/** Initial framing comes from the Canvas camera; re-frames only when the user asks ("Frame all"). */
-function CameraRig({
-  frameRequest,
-  boundsRef,
-  initialTarget,
-}: {
-  readonly frameRequest: number;
-  readonly boundsRef: RefObject<Bounds>;
-  readonly initialTarget: WorldPoint;
-}) {
-  const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
-  const camera = useThree((s) => s.camera);
-  const invalidate = useThree((s) => s.invalidate);
-  const [target] = useState<[number, number, number]>(() => [...initialTarget]);
-  useEffect(() => {
-    if (frameRequest === 0) return;
-    const f = framing(boundsRef.current);
-    camera.position.set(...f.position);
-    controls.current?.target.set(...f.target);
-    controls.current?.update();
-    invalidate();
-  }, [frameRequest, boundsRef, camera, invalidate]);
-  return <OrbitControls ref={controls} makeDefault target={target} enableDamping={false} />;
+  return { center: [cx, -0.12, cz], size: cells * W, divisions: cells };
 }
 
 const LEGEND: readonly (readonly [label: string, color: string])[] = [
@@ -255,55 +217,49 @@ function Overlay({
   brokenTypes,
   showRoofs,
   onToggleRoofs,
-  onFrame,
+  onFit,
 }: {
   readonly empty: boolean;
   /** Node types of this design whose project definition is broken. */
   readonly brokenTypes: readonly string[];
   readonly showRoofs: boolean;
   readonly onToggleRoofs: (v: boolean) => void;
-  readonly onFrame: () => void;
+  readonly onFit: () => void;
 }) {
-  const panel = {
-    position: 'absolute',
-    background: 'rgba(255,255,255,0.88)',
-    border: '1px solid #ddd',
-    borderRadius: 6,
-    padding: '6px 8px',
-    fontSize: 12,
-    lineHeight: 1.5,
-    color: '#333',
-  } as const;
   return (
     <>
-      <div style={{ ...panel, top: 8, left: 8, display: 'flex', gap: 10, alignItems: 'center' }}>
+      <ControlBar>
         <label>
           <input type="checkbox" checked={showRoofs} onChange={(e) => onToggleRoofs(e.currentTarget.checked)} /> Roofs
         </label>
-        <button type="button" onClick={onFrame} style={{ font: 'inherit' }}>
-          Frame all
+        <button type="button" onClick={onFit}>
+          Fit view
         </button>
-      </div>
-      {/* Collapsible and click-through, so it never blocks picking the building behind it. */}
-      <details open style={{ ...panel, bottom: 8, left: 8, pointerEvents: 'none' }}>
-        <summary style={{ fontWeight: 600, cursor: 'pointer', pointerEvents: 'auto' }}>Legend</summary>
-        {LEGEND.map(([label, color]) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 10, height: 10, background: color, border: '1px solid #999', display: 'inline-block' }} />
-            {label}
-          </div>
-        ))}
-      </details>
+      </ControlBar>
       {brokenTypes.length > 0 && (
-        <div role="status" style={{ ...panel, top: 8, right: 8, maxWidth: 240, background: '#fff1f0', borderColor: '#e0a3a0', pointerEvents: 'none' }}>
-          <strong>Invalid type definition:</strong> {brokenTypes.join(', ')}. These rooms are shown with closed exterior walls
-          until the definition is fixed.
-        </div>
+        <InfoPanel>
+          <div role="status" className="viewer3d-notice">
+            <strong>Invalid type definition:</strong> {brokenTypes.join(', ')}. These rooms are shown with closed exterior
+            walls until the definition is fixed.
+          </div>
+        </InfoPanel>
       )}
-      {empty && (
-        <div style={{ ...panel, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
-          No occupied cells to interpret yet.
-        </div>
+      {/* Collapsible and click-through, so it never blocks picking the building behind it. */}
+      <details open className="viewer3d-panel viewer3d-legend viewer3d-passthrough">
+        <summary className="viewer3d-legend-title">Legend</summary>
+        <ul>
+          {LEGEND.map(([label, color]) => (
+            <li key={label}>
+              <span className="viewer3d-swatch" style={{ background: color }} />
+              {label}
+            </li>
+          ))}
+        </ul>
+      </details>
+      {empty ? (
+        <div className="viewer3d-empty">No occupied cells to interpret yet.</div>
+      ) : (
+        <div className="viewer3d-hint">{NAVIGATION_HINT}</div>
       )}
     </>
   );

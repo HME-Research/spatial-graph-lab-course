@@ -8,6 +8,8 @@ import { SceneCanvas } from '@core/viewer/three/SceneCanvas';
 import { LevelLabels } from '../three/LevelLabels';
 import { pickHandlers, type Hover } from '@core/viewer/three/picking';
 import { useSpatialScene } from '../three/useSpatialScene';
+import { useRemembered } from '../panelMemory';
+import type { CameraState } from '@core/viewer/three/viewport';
 import { ControlBar, InfoPanel, NAVIGATION_HINT } from '@core/viewer/three/ViewControls';
 import { ColorBySelect, Legend, LevelSelect } from '../three/SpatialControls';
 
@@ -23,13 +25,15 @@ const BASE_OPACITY = 0.38;
 
 export function VoxelView({ doc, selection, onSelect }: ViewProps) {
   const s = useSpatialScene(doc, selection);
+  const camera = useRemembered<CameraState>('camera:voxels');
   const [opacity, setOpacity] = useState(BASE_OPACITY);
   const geo = useVoxelGeometry();
 
   return (
     <SceneCanvas
       ariaLabel="Voxel view"
-      fit={s.fit}
+      framing={s.framing}
+      cameraMemory={camera}
       fitRequest={s.fitRequest}
       grid={s.grid}
       cursor={s.hovered ? 'pointer' : 'grab'}

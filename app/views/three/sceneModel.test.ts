@@ -7,10 +7,11 @@ import {
   buildEdgeItems,
   buildNodeItems,
   cellBounds,
-  fitCamera,
+  framingFor,
   groundGrid,
   storeyLevels,
 } from './sceneModel';
+import { fitCameraToBounds } from '@core/viewer/three/viewport';
 
 const node = (id: string, grid: [number, number, number], typeId = 'room'): GraphNode => ({
   id,
@@ -85,29 +86,28 @@ describe('storeyLevels and bounds', () => {
   });
 });
 
-describe('fitCamera', () => {
-  it('targets the bounds centre and stays far enough to see the bounding sphere', () => {
+describe('framingFor', () => {
+  it('frames the occupied cell bounds, never tighter than one cell', () => {
     const bounds = cellBounds(threeRooms().nodes)!;
-    const fov = 45;
-    const fit = fitCamera(bounds, fov);
+    const framing = framingFor(bounds);
+    expect(framing.bounds).toBe(bounds);
+    expect(framing.minRadius).toBe(DEFAULT_CELL_SIZE.horizontal);
+    const fit = fitCameraToBounds(framing.bounds, 45, framing.minRadius, 1.6);
     expect(fit.target).toEqual([1.5, 3, 0]);
-    const d = Math.hypot(...fit.position.map((p, i) => p - fit.target[i]!));
-    const radius = Math.hypot(6, 6, 3) / 2;
-    expect(d * Math.sin(((fov / 2) * Math.PI) / 180)).toBeGreaterThanOrEqual(radius);
     expect(fit.position[1]).toBeGreaterThan(fit.target[1]); // looking down onto the building
-    expect(fit.near).toBeGreaterThan(0);
-    expect(fit.far).toBeGreaterThan(d + radius);
   });
 
   it('frames a sensible default for an empty document', () => {
-    const fit = fitCamera(null, 45);
+    const framing = framingFor(null);
+    const fit = fitCameraToBounds(framing.bounds, 45, framing.minRadius);
     expect(fit.target).toEqual([0, DEFAULT_CELL_SIZE.vertical / 2, 0]);
     expect(fit.position.every(Number.isFinite)).toBe(true);
   });
 
   it('frames widely separated groups together', () => {
     const nodes = [node('a', [0, 0, 0]), node('b', [40, -30, 3])];
-    const fit = fitCamera(cellBounds(nodes), 45);
+    const framing = framingFor(cellBounds(nodes));
+    const fit = fitCameraToBounds(framing.bounds, 45, framing.minRadius);
     const a = spatialToThree([0, 0, 0]);
     const b = spatialToThree([40, -30, 3]);
     expect(fit.target).toEqual([(a[0] + b[0]) / 2, (0 + 4 * 3) / 2, (a[2] + b[2]) / 2]);
