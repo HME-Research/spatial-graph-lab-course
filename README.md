@@ -30,11 +30,12 @@ npm ci              # install exact versions from package-lock.json
 npm run dev         # start the development server, then open the printed local URL
 npm run typecheck   # TypeScript strict type checking
 npm test -- --run   # run unit tests once (omit --run for watch mode)
+npm run check:project  # check every project in projects/ (add -- -t <project-id> for one)
 npm run build       # typecheck + production build into dist/
 npm run preview     # serve the production build locally
 ```
 
-The app loads the built-in example `app/document/examples/two-storey-example.json` at startup (loading the active project's default design is Stage 3B). **Open JSON…** loads another design file. It's validated first, and if it's invalid the errors are listed with their location and the current design is kept.
+The app loads the built-in example `app/document/examples/two-storey-example.json` at startup when no project provides a default design; normally the active project's default design is opened (see `docs/STUDENT-API.md`). **Open JSON…** loads another design file. It's validated first, and if it's invalid the errors are listed with their location and the current design is kept.
 
 ## Design file format (schema v1)
 See `docs/ARCHITECTURE.md` for the full contract. In brief:

@@ -2,7 +2,21 @@
 
 How to write your own node types, designs and algorithms for Spatial Graph Lab. Your code lives in **one project folder** and imports **only** `@student-api`.
 
-> Status (Stage 3A): projects are discovered, validated and executable, and fully tested. Showing the active project in the app — its default design, its façades, the algorithm controls and the transformation preview — arrives in Stage 3B. Until then, open a project design with **Open JSON…**.
+> Status (Stage 3B): the app activates your project, opens its default design, uses its node types in the inspector and its façades in the Architecture view, and runs its algorithms from the **Algorithms** panel. See [Workflow](#workflow) for the step-by-step version.
+
+## Workflow
+
+1. **Create a project.** Copy `projects/starter-template/` to `projects/my-project/` (lowercase letters, digits and `-`). In `project.ts`, change `name`. Don't edit `starter-template` or `example-gallery` themselves.
+2. **Define a node type.** Edit or add a file in `types/` (see [Node types](#2-node-types)). The `id` is the `typeId` your designs use.
+3. **Write an algorithm.** Add a file in `algorithms/`: `defineGraphAlgorithm` for an analysis that only reads the graph, or `defineSpatialAlgorithm` for a transformation that returns operations (see [Algorithms](#4-algorithms)).
+4. **Check it.** `npm run check:project -- -t my-project` loads your project exactly as the app does and fails with a readable message if a definition or design is invalid, or if an algorithm fails on your default design. `npm run typecheck` checks your TypeScript.
+5. **Run the app.** `npm run dev`, then open the printed URL with `?project=my-project` (for example `http://localhost:5173/?project=my-project`), or pick your project in the **Project** menu at the top. The bar shows your project's name; any problem in your files is listed there in red and stays visible until you fix it (the page reloads when you save a file).
+6. **Run an algorithm.** In the **Algorithms** panel (under the inspector), choose an algorithm, fill in any parameters (empty means "use the default") and press **Run**.
+   - An *analysis* shows its summary and a value per node; click a node to select it. It never changes the design.
+   - A *transformation* shows a **preview**: the rooms, connections and attribute values it would add or change. Nothing changes until you press **Apply**. **Discard** throws the preview away. If you edit the design after running, the preview can no longer be applied: run it again.
+   - Disabled algorithms (invalid definitions) are marked **disabled**; select one to see why.
+7. **Edit attributes.** Select a node: the inspector shows your type's label and one control per declared attribute. Values the type doesn't declare are listed under *Other attributes* and kept as they are.
+8. **Export.** **Export JSON** downloads the current design. To make it a project design, save it as `projects/my-project/designs/<name>.json`; set `defaultDesign: '<name>'` to open it at startup. The bar marks a design *modified* until it is exported, and the app asks before discarding unexported changes.
 
 ## 1. Your project folder
 
@@ -15,7 +29,7 @@ projects/
     algorithms/           ← optional: one algorithm per file
 ```
 
-Start by copying `projects/example-gallery/` to a new folder. Don't edit `example-gallery` itself: it's the reference project, and tests check that it stays the same.
+Start by copying `projects/starter-template/` (minimal) or `projects/example-gallery/` (the fuller reference) to a new folder. Don't edit either of them: tests check that they keep working.
 
 **Choosing the active project.** One project is active at a time:
 1. `?project=my-project` in the app URL;

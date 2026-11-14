@@ -33,6 +33,12 @@ interface ViewProps {
   readonly selection: Selection;
   readonly onSelect: (selection: Selection) => void;
   readonly onCommand: (command: GraphCommand) => CommandOutcome;
+  readonly project?: ProjectViewContext; // optional, read-only (Stage 3B)
+}
+interface ProjectViewContext {           // app/views/project.ts
+  readonly project: ActiveProject | null; // the active project registry (app/extensions)
+  readonly conformance: readonly ExtensionDiagnostic[];
+  readonly facade: FacadeProvider;        // project façades; example façades otherwise
 }
 type CommandOutcome = { ok: true } | { ok: false; issues: readonly GraphIssue[] };
 type InspectorProps = ViewProps;
@@ -40,6 +46,8 @@ type ViewMode = 'graph2d' | 'graph3d' | 'voxels' | 'architecture';
 ```
 
 `onCommand` is **synchronous**: the outcome reflects validation against the latest document. On `ok: false`, show the issues (use `formatIssuePath(issue.path)` + `issue.message`); the document is unchanged. 3D views are read-only and must not call `onCommand`.
+
+`project` is optional: without it every view behaves exactly as before projects existed. Views only read it: the Architecture view builds geometry with `project.facade` (a broken type definition gets a closed façade plus an on-canvas notice), Graph 2D marks nodes of a broken type with ⚠, and the inspector uses it for type labels, typed attribute controls and conformance checks.
 
 View sizing: the view is rendered inside `.view-body` (`position: relative`, min-height 440 px). Fill it (`width/height: 100%`). Each panel is its own component instance, so view-local UI state (camera, colour-by choice, zoom) lives inside the view and survives document/selection changes.
 
@@ -96,7 +104,7 @@ spatialToThree(grid: readonly [number, number, number], cell = DEFAULT_CELL_SIZE
 
 ## 6. Appearance — `core/viewer/appearance.ts`
 
-`typeColor(typeId)` gives the deterministic fallback colour per node type, used identically in 2D and 3D. Stage 3 project node types keep this colour (custom colours are deferred); `typeAppearance` in `app/extensions` adds project façades, wired into the views in Stage 3B. `SELECTION_COLOR` is the shared highlight colour.
+`typeColor(typeId)` gives the deterministic fallback colour per node type, used identically in 2D and 3D. Stage 3 project node types keep this colour (custom colours are deferred); `typeAppearance` in `app/extensions` adds project façades, which reach the views through `ViewProps.project.facade` (`projectFacadeProvider` in `app/views/project.ts`). `SELECTION_COLOR` is the shared highlight colour.
 
 ## A. Graph 2D editing — implement `Graph2DView` and `Inspector`
 
