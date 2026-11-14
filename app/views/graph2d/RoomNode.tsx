@@ -1,7 +1,7 @@
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import type { GraphNode } from '@app/document';
-import { SELECTION_COLOR, typeColor } from '../appearance';
+import { SELECTION_COLOR, typeColor } from '@core/viewer/appearance';
 import { formatGrid } from './diagram';
 
 export type RoomNodeData = {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { VIEW_MODE_LABELS, VIEW_MODES, type ViewMode, type ViewProps } from '../viewer/contracts';
-import { VIEW_COMPONENTS } from '../viewer/registry';
+import { VIEW_MODE_LABELS, VIEW_MODES, type ViewMode, type ViewProps } from '@app/views/contracts';
+import { VIEW_COMPONENTS } from '@app/views/registry';
 import { Inspector } from './inspector/Inspector';
 
 /**

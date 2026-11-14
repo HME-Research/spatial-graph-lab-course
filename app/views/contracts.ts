@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react';
 import type { DesignDocument, GraphCommand, GraphIssue } from '@app/document';
-import type { Selection, SelectionHandler } from './selection';
+import type { Selection, SelectionHandler } from '@core/viewer/selection';
 
-export type { SelectionHandler } from './selection';
+export type { SelectionHandler } from '@core/viewer/selection';
 
 /**
  * Integration contract shared by every view (Graph 2D, Graph 3D, Voxels, Architecture) and the

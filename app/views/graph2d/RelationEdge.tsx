@@ -1,7 +1,7 @@
 import { BaseEdge, useInternalNode, type Edge, type EdgeProps, type InternalNode } from '@xyflow/react';
 import { memo } from 'react';
 import type { EdgeKind } from '@app/document';
-import { SELECTION_COLOR } from '../appearance';
+import { SELECTION_COLOR } from '@core/viewer/appearance';
 import { EDGE_STYLES, NODE_HEIGHT, NODE_WIDTH, rectBorderPoint, type Rect } from './diagram';
 
 export type RelationEdgeData = { readonly kind: EdgeKind };

@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BoxGeometry, CylinderGeometry, EdgesGeometry, Quaternion, SphereGeometry, Vector3 } from 'three';
-import { SELECTION_COLOR } from '../appearance';
+import { SELECTION_COLOR } from '@core/viewer/appearance';
 import type { ViewProps } from '../contracts';
-import { DEFAULT_CELL_SIZE, spatialToThree } from '../coordinates';
-import { NO_SELECTION } from '../selection';
-import { dashIntervals, EDGE_STYLES } from '@app/views/three/edgeStyle';
-import { SceneCanvas, SceneLabel } from '../three/SceneCanvas';
-import { LevelLabels } from '@app/views/three/LevelLabels';
-import type { EdgeItem, NodeItem } from '@app/views/three/sceneModel';
-import { pickHandlers, type Hover } from '../three/picking';
-import { useSpatialScene } from '@app/views/three/useSpatialScene';
-import { ControlBar, InfoPanel, NAVIGATION_HINT } from '../three/ViewControls';
-import { ColorBySelect, Legend, LevelSelect } from '@app/views/three/SpatialControls';
+import { DEFAULT_CELL_SIZE, spatialToThree } from '@core/viewer/coordinates';
+import { NO_SELECTION } from '@core/viewer/selection';
+import { dashIntervals, EDGE_STYLES } from '../three/edgeStyle';
+import { SceneCanvas, SceneLabel } from '@core/viewer/three/SceneCanvas';
+import { LevelLabels } from '../three/LevelLabels';
+import type { EdgeItem, NodeItem } from '../three/sceneModel';
+import { pickHandlers, type Hover } from '@core/viewer/three/picking';
+import { useSpatialScene } from '../three/useSpatialScene';
+import { ControlBar, InfoPanel, NAVIGATION_HINT } from '@core/viewer/three/ViewControls';
+import { ColorBySelect, Legend, LevelSelect } from '../three/SpatialControls';
 
 /**
  * Graph 3D: node markers at their cell centres (spatialToThree) and typed edges between centres.

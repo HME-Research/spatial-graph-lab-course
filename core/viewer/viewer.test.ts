@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { removeEdge, removeNode } from '@app/document';
-import { expectOk, threeRooms } from '@app/document/test-fixtures';
 import { FALLBACK_TYPE_PALETTE, typeColor } from './appearance';
 import { DEFAULT_CELL_SIZE, spatialToThree } from './coordinates';
 import {
@@ -49,14 +47,15 @@ describe('selection', () => {
     expect(sameSelection(NO_SELECTION, { kind: 'none' })).toBe(true);
   });
 
-  it('reconcileSelection keeps valid selections by identity and drops removed ones', () => {
-    const doc = threeRooms();
+  it('reconcileSelection keeps valid selections by identity and drops missing ones', () => {
+    const items = { nodes: [{ id: 'a' }, { id: 'b' }], edges: [{ id: 'ab' }] };
     const sel = selectNode('a');
-    expect(reconcileSelection(sel, doc)).toBe(sel);
-    expect(reconcileSelection(sel, expectOk(removeNode(doc, 'a')))).toBe(NO_SELECTION);
+    expect(reconcileSelection(sel, items)).toBe(sel);
+    expect(reconcileSelection(sel, { ...items, nodes: [{ id: 'b' }] })).toBe(NO_SELECTION);
     const edge = selectEdge('ab');
-    expect(reconcileSelection(edge, doc)).toBe(edge);
-    expect(reconcileSelection(edge, expectOk(removeEdge(doc, 'ab')))).toBe(NO_SELECTION);
+    expect(reconcileSelection(edge, items)).toBe(edge);
+    expect(reconcileSelection(edge, { ...items, edges: [] })).toBe(NO_SELECTION);
+    expect(reconcileSelection(NO_SELECTION, items)).toBe(NO_SELECTION);
   });
 });
 

@@ -154,13 +154,6 @@ th {
   min-height: max(440px, calc(100vh - 190px));
 }
 
-.placeholder-view {
-  height: 100%;
-  padding: 16px;
-  border: 1px dashed var(--line);
-  border-radius: 6px;
-}
-
 .inspector h3 {
   margin: 0;
 }

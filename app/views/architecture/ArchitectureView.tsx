@@ -9,10 +9,10 @@ import {
   resolveFaces,
   type ArchitecturalElement,
 } from '@app/building';
-import { SELECTION_COLOR, typeColor } from '../appearance';
+import { SELECTION_COLOR, typeColor } from '@core/viewer/appearance';
 import type { ViewProps } from '../contracts';
-import { DEFAULT_CELL_SIZE, type WorldPoint } from '../coordinates';
-import { NO_SELECTION, type Selection } from '../selection';
+import { DEFAULT_CELL_SIZE, type WorldPoint } from '@core/viewer/coordinates';
+import { NO_SELECTION, type Selection } from '@core/viewer/selection';
 
 /**
  * Architecture view (workstream C). Renders boxes produced by the pure resolver + geometry step

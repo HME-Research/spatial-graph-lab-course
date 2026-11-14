@@ -9,8 +9,8 @@ import {
   type GraphIssue,
   type GraphNode,
 } from '@app/document';
-import { typeColor } from '../../viewer/appearance';
-import type { GraphCommandHandler, InspectorProps, SelectionHandler } from '../../viewer/contracts';
+import { typeColor } from '@core/viewer/appearance';
+import type { GraphCommandHandler, InspectorProps, SelectionHandler } from '@app/views/contracts';
 import {
   EDGE_KIND_LABELS,
   EDGE_STYLES,
@@ -18,9 +18,9 @@ import {
   neighbourConnections,
   nextFreeId,
   orientationOf,
-} from '../../viewer/graph2d/diagram';
-import { IssueList } from '../../viewer/graph2d/IssueList';
-import { selectEdge, selectNode } from '../../viewer/selection';
+} from '@app/views/graph2d/diagram';
+import { IssueList } from '@app/views/graph2d/IssueList';
+import { selectEdge, selectNode } from '@core/viewer/selection';
 import './inspector.css';
 import {
   ATTRIBUTE_KIND_LABELS,

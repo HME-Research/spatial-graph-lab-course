@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BoxGeometry, EdgesGeometry } from 'three';
-import { SELECTION_COLOR } from '../appearance';
+import { SELECTION_COLOR } from '@core/viewer/appearance';
 import type { ViewProps } from '../contracts';
-import { DEFAULT_CELL_SIZE, spatialToThree } from '../coordinates';
-import { NO_SELECTION } from '../selection';
-import { SceneCanvas } from '../three/SceneCanvas';
-import { LevelLabels } from '@app/views/three/LevelLabels';
-import { pickHandlers, type Hover } from '../three/picking';
-import { useSpatialScene } from '@app/views/three/useSpatialScene';
-import { ControlBar, InfoPanel, NAVIGATION_HINT } from '../three/ViewControls';
-import { ColorBySelect, Legend, LevelSelect } from '@app/views/three/SpatialControls';
+import { DEFAULT_CELL_SIZE, spatialToThree } from '@core/viewer/coordinates';
+import { NO_SELECTION } from '@core/viewer/selection';
+import { SceneCanvas } from '@core/viewer/three/SceneCanvas';
+import { LevelLabels } from '../three/LevelLabels';
+import { pickHandlers, type Hover } from '@core/viewer/three/picking';
+import { useSpatialScene } from '../three/useSpatialScene';
+import { ControlBar, InfoPanel, NAVIGATION_HINT } from '@core/viewer/three/ViewControls';
+import { ColorBySelect, Legend, LevelSelect } from '../three/SpatialControls';
 
 /**
  * Voxels: one semi-transparent box of size [horizontal, vertical, horizontal] per occupied cell,

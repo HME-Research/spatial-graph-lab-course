@@ -11,8 +11,8 @@ import {
   type GraphIssue,
   type Result,
 } from '@app/document';
-import type { GraphCommandHandler } from '../viewer/contracts';
-import { NO_SELECTION, reconcileSelection, type Selection } from '../viewer/selection';
+import type { GraphCommandHandler } from '@app/views/contracts';
+import { NO_SELECTION, reconcileSelection, type Selection } from '@core/viewer/selection';
 import { Workspace } from './Workspace';
 
 const EXAMPLE_LABEL = 'student/designs/two-storey-example.json';
