@@ -96,7 +96,7 @@ spatialToThree(grid: readonly [number, number, number], cell = DEFAULT_CELL_SIZE
 
 ## 6. Appearance — `core/viewer/appearance.ts`
 
-`typeColor(typeId)` gives the deterministic fallback colour per node type, used identically in 2D and 3D until the student type registry exists (Phase 6). `SELECTION_COLOR` is the shared highlight colour.
+`typeColor(typeId)` gives the deterministic fallback colour per node type, used identically in 2D and 3D. Stage 3 project node types keep this colour (custom colours are deferred); `typeAppearance` in `app/extensions` adds project façades, wired into the views in Stage 3B. `SELECTION_COLOR` is the shared highlight colour.
 
 ## A. Graph 2D editing — implement `Graph2DView` and `Inspector`
 

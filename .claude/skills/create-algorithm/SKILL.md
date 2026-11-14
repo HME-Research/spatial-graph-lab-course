@@ -1,10 +1,10 @@
 ---
 name: create-algorithm
-description: Research, specify and implement a simple graph modification algorithm as a student extension when that API becomes available.
+description: Research, specify and implement a simple graph analysis or spatial transformation algorithm in a student project (projects/<project-id>/algorithms) using the Student API.
 ---
-# Create algorithm (future stage)
-1. Check that the student algorithm API exists. If not, stop; do not invent or modify `core/` or `app/` APIs.
+# Create algorithm
+1. Read `docs/STUDENT-API.md` and the examples in `projects/example-gallery/algorithms/`. Use only `@student-api`; do not invent or modify `core/`, `app/` or `student-api/` APIs. Generic graph algorithms are analysis-only; spatial algorithms return `add-node`, `add-edge` or `set-node-attribute` operations.
 2. Begin with the student's natural-language design rule. Describe inputs, outputs, algorithm steps, constraints and at least three predicted tests before editing.
-3. Wait for confirmation to implement. Generate only an extension module and tests under the permitted `student/` locations.
+3. Wait for confirmation to implement. Generate only one algorithm module in the student's `projects/<project-id>/algorithms/` (`export default defineGraphAlgorithm(...)` or `defineSpatialAlgorithm(...)`).
 4. Preserve spatial adjacency, graph validity, node IDs and deterministic behaviour where possible. Prefer seeded random selection over unseeded randomness.
-5. Run validation and tests, compare results to predictions, and report uncertainty or limitations.
+5. Run typecheck, tests and build, compare results to predictions, and report uncertainty or limitations.

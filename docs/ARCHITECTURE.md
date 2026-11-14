@@ -2,23 +2,25 @@
 
 ## Flow
 `DesignDocument (graph + view layout)` → validation → pure selectors/resolvers → Graph2D | Graph3D | Voxels3D | Architectural3D.
-Student algorithms (future) transform a **copy** of the DesignDocument, validate the proposed output and apply it as one undoable transaction. Never have each viewer keep its own graph copy.
+Student algorithms (`projects/<id>/algorithms/`, Stage 3) receive a **copy** of the DesignDocument and return data: an analysis, or spatial operations that `app/extensions` validates and applies atomically to a private draft, producing a preview that the application may apply as one state replacement (UI wiring is Stage 3B). Never have each viewer keep its own graph copy.
 
 ## Modules
-`core/` holds reusable capabilities; `app/` holds this application. Both are owner-maintained. Imports across modules use the `@core/*` and `@app/*` aliases (defined once in `tsconfig.json`, read by Vite and Vitest); imports within a module stay relative. Aliases and boundary tests are architectural checks, not access control.
+`core/` holds reusable capabilities; `app/` holds this application; `student-api/` is the stable contract for student code; `projects/` holds independent student projects. `core/`, `app/` and `student-api/` are owner-maintained. Imports across modules use the `@core/*`, `@app/*` and `@student-api` aliases (defined once in `tsconfig.json`, read by Vite and Vitest); imports within a module stay relative. Aliases and boundary tests are architectural checks, not access control.
 
-### Reusable core (`core/`) — never imports `app/`, `student/` or `projects/` (`core/boundary.test.ts`)
+### Reusable core (`core/`) — never imports `app/`, `student-api/` or `projects/` (`core/boundary.test.ts`)
 - `core/graph`: **generic** graph core — nodes/edges with stable IDs and arbitrary payloads, directed or undirected, configurable self-loop/parallel-edge policy, pure immutable operations, queries and structural validation. Imports nothing outside `core/graph` (no spatial, architecture, app, viewer, student code or packages); enforced by `core/graph/boundary.test.ts`.
 - `core/spatial`: reusable integer-grid mathematics — `GridCoord` (z up), `gridKey`, horizontal/vertical face adjacency, the six cardinal `FACE_DIRECTIONS` and `neighbourCell`. Independent of any graph model or document; imports nothing outside `core/spatial` (`core/spatial/boundary.test.ts`).
 - `core/viewer`: reusable viewing infrastructure with no document dependency — `coordinates.ts` (the one grid → Three.js mapping), `selection.ts` (single selection, reconciliation, highlight emphasis), `appearance.ts` (fallback type palette, selection colour). `core/viewer/three/`: `SceneCanvas` (R3F canvas, perspective camera, orbit controls, camera rig, `SceneLabel`), `viewport.ts` (`Bounds`, `CameraFit`, `GroundGrid`, `fitCameraToBounds`), `interaction.ts` (click-vs-drag), `picking.ts` (pointer handlers), `ViewControls` (overlay containers).
 
-### Application (`app/`) — layered `document` → `building` → `views` → shell (`app/boundary.test.ts`)
-- `app/document`: the v1 spatial design document built on `core/graph` and `core/spatial` — Zod schema, edge kinds and their face-adjacency rules, document validation, graph commands and JSON serialization. `designGraph(doc)` is the zero-copy adapter to the generic core (policy: undirected, no self-loops, no parallel edges). Pure: no React/Three.js; uses only `core/graph` and `core/spatial`.
+### Application (`app/`) — layered `document` → `building` → `extensions` → `views` → shell (`app/boundary.test.ts`)
+- `app/document`: the v1 spatial design document built on `core/graph` and `core/spatial` — Zod schema, edge kinds and their face-adjacency rules, document validation, graph commands and JSON serialization. The canonical built-in example design is `app/document/examples/two-storey-example.json`. `designGraph(doc)` is the zero-copy adapter to the generic core (policy: undirected, no self-loops, no parallel edges). Pure: no React/Three.js; uses only `core/graph` and `core/spatial`.
 - `app/building`: pure face-condition resolution separate from geometry construction; geometry built once per shared face; provisional façade specs. No React/Three.js; may use `app/document` and the pure `core/viewer` coordinates and selection helpers.
+- `app/extensions`: the runtime behind the Student API — project discovery (`projectGlobs.ts` is the only file that refers to `projects/`), selection and activation, runtime (Zod) validation of project, node type and algorithm definitions, document conformance to project types (stable diagnostic identities), type appearance, and validated algorithm execution with atomic transformations. Pure: no React/Three.js; the only app module that imports `@student-api`. See `docs/STUDENT-API.md`.
 - `app/views`: the four views (Graph 2D with React Flow; Graph 3D, Voxels and Architecture with React Three Fiber/Three.js), the view contract (`ViewProps`, view modes) and registry. `app/views/three/` holds grid/document-specific 3D scene logic shared by Graph 3D and Voxels: node/edge items, storey levels, cell bounds, camera framing, ground grid, colour-by, edge styles and their controls/legend.
 - `app/` shell: shared document state, editing commands, selection, view split/layout, load/save UI (`App`, `Workspace`, `main`) and the inspector (`app/inspector`).
-- Student type/algorithm loading (future): a documented `student-api/` and `projects/` are later stages.
-- `student/`: data/extension files that the owner can let beginners change without touching `core/` or `app/`.
+### Student API (`student-api/`) and projects (`projects/`)
+- `student-api/`: compile-time contracts (typed attributes, project and node type definitions, algorithm contexts and results), identity `define…` helpers and a few pure graph/grid helpers. No validation; imports only `core/graph` and `core/spatial` (`student-api/boundary.test.ts`).
+- `projects/<id>/`: one project per folder with `project.ts` and optional `types/`, `designs/` (JSON) and `algorithms/`. Project code imports only `@student-api` and its own files (`app/extensions/projectBoundary.test.ts`). One project is active at a time. `projects/example-gallery/` is the owner's reference project.
 
 ## Spatial graph model — JSON document v1
 ```json
@@ -58,8 +60,8 @@ Student algorithms (future) transform a **copy** of the DesignDocument, validate
 - Exterior faces are authored once by their owning cell; perimeter entrance/door is a deferred separate feature.
 - For multi-floor cases, slab ownership and geometry must be verified separately; initial architectural phase may be single level.
 
-## Student node type definition — future extension contract
-In `student/types/`, define a record with `id`, `label`, `color`, and validated `facade` settings. Start with typed JSON declarations (e.g., glazingFraction or windowWidth), not arbitrary renderer code. If missing or invalid, display an error / known fallback and preserve original file on disk. Procedural style functions and GLB assets are **later phases**.
+## Student node type definition (Stage 3)
+In `projects/<id>/types/<file>.ts`, `export default defineNodeType({ id, label, facade?, attributes? })` — typed declarations, not renderer code. Definitions are validated at runtime on activation; an invalid or duplicated definition is disabled with a conspicuous error (no silent fallback), while a `typeId` with no definition keeps the existing fallback colour and façade. Custom colours, procedural style functions and GLB assets are **later phases**. Full contract: `docs/STUDENT-API.md`.
 
 ## User interface v1
 - Clear main toolbar: open example, import/export, undo/redo, single/split.

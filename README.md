@@ -9,7 +9,8 @@ One sparse 3D architectural graph, visualised simultaneously as an abstract 2D g
 ## Directory ownership
 - `core/`: reusable infrastructure (generic graph, grid maths, 3D viewport/selection helpers); maintained by the owner.
 - `app/`: the application itself (v1 design document, building rules and geometry, views, state, inspector); maintained by the owner and protected from student edits in the same way as `core/`.
-- `student/`: safe extension points for designs, node types, algorithms and assets (enabled progressively).
+- `student-api/`: the stable Student API that project code imports (`@student-api`); maintained by the owner.
+- `projects/<project-id>/`: student projects (`project.ts`, `types/`, `designs/`, `algorithms/`). `projects/example-gallery/` is the reference project; see `docs/STUDENT-API.md`.
 - `.claude/`: shared AI project instructions, skills and settings.
 - `_planning/`, `CLAUDE.local.md`, `.claude/skills/owner-*`: **local-only files**, ignored by Git. Keep them on the owner's machine. They must not be committed.
 
@@ -33,7 +34,7 @@ npm run build       # typecheck + production build into dist/
 npm run preview     # serve the production build locally
 ```
 
-The app loads `student/designs/two-storey-example.json` at startup. **Open JSON…** loads another design file. It's validated first, and if it's invalid the errors are listed with their location and the current design is kept.
+The app loads the built-in example `app/document/examples/two-storey-example.json` at startup (loading the active project's default design is Stage 3B). **Open JSON…** loads another design file. It's validated first, and if it's invalid the errors are listed with their location and the current design is kept.
 
 ## Design file format (schema v1)
 See `docs/ARCHITECTURE.md` for the full contract. In brief:
@@ -43,7 +44,7 @@ See `docs/ARCHITECTURE.md` for the full contract. In brief:
 - Unknown keys are rejected so typos surface as errors.
 
 ## Development
-Read `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`. The owner uses the ignored `_planning/implementation-plan.md` and local Claude skill `/owner-implement-phase`. Implement only one phase, test it, inspect changes, then commit. Reusable code lives under `core/` (`core/graph` generic graph, `core/spatial` grid maths, `core/viewer` viewport/selection infrastructure); the application lives under `app/` (`app/document` v1 design document, `app/building` architectural rules and geometry, `app/views` the four views, plus the shell and inspector). See `docs/ARCHITECTURE.md` for the module rules; `@core/*` and `@app/*` import aliases are defined in `tsconfig.json`.
+Read `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`. The owner uses the ignored `_planning/implementation-plan.md` and local Claude skill `/owner-implement-phase`. Implement only one phase, test it, inspect changes, then commit. Reusable code lives under `core/` (`core/graph` generic graph, `core/spatial` grid maths, `core/viewer` viewport/selection infrastructure); the application lives under `app/` (`app/document` v1 design document, `app/building` architectural rules and geometry, `app/views` the four views, plus the shell and inspector). See `docs/ARCHITECTURE.md` for the module rules; `@core/*`, `@app/*` and `@student-api` import aliases are defined in `tsconfig.json`.
 
 ## GitHub Free / private repository warning
 On GitHub Free, private repositories do **not** have enforced protected-branch controls. Do **not** invite student collaborators with write permissions under the assumption that `main` is protected. See `docs/GITHUB-ACCESS.md` for options before class. Claude instructions and local hooks do not enforce GitHub permissions.
