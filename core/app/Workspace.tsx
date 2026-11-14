@@ -18,7 +18,7 @@ export function Workspace(props: ViewProps) {
       </div>
       <div className={split ? 'workspace-grid split' : 'workspace-grid'}>
         <ViewPanel {...props} initialMode="graph2d" />
-        {split && <ViewPanel {...props} initialMode="voxels" />}
+        {split && <ViewPanel {...props} initialMode="architecture" />}
         <Inspector {...props} />
       </div>
     </section>

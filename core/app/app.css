@@ -150,7 +150,8 @@ th {
 .view-body {
   position: relative;
   flex: 1;
-  min-height: 440px;
+  /* Use the available viewport height on laptops; never shorter than the contract minimum. */
+  min-height: max(440px, calc(100vh - 190px));
 }
 
 .placeholder-view {

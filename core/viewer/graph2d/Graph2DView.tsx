@@ -208,6 +208,8 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand }: ViewProps) {
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         connectionMode={ConnectionMode.Loose}
+        // Dropping anywhere on a target node (not only on its small dot) completes the connection.
+        connectionRadius={70}
         deleteKeyCode={null}
         selectionKeyCode={null}
         multiSelectionKeyCode={null}
@@ -273,30 +275,33 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand }: ViewProps) {
           </Panel>
         )}
 
+        {/* Collapsible, and click-through when open, so it never blocks nodes underneath. */}
         <Panel position="bottom-right" className="sgl-legend" aria-label="Edge legend">
-          <strong>Edges</strong>
-          {EDGE_KINDS.map((kind) => {
-            const s = EDGE_STYLES[kind];
-            return (
-              <div key={kind} className="sgl-legend-row">
-                <svg width="36" height="10" aria-hidden="true">
-                  <line
-                    x1="2"
-                    y1="5"
-                    x2="34"
-                    y2="5"
-                    stroke={s.stroke}
-                    strokeWidth={s.strokeWidth}
-                    {...(s.strokeDasharray ? { strokeDasharray: s.strokeDasharray } : {})}
-                  />
-                </svg>
-                <span>
-                  {s.symbol} {kind} <span className="sgl-muted">({orientationOf(kind)})</span>
-                </span>
-              </div>
-            );
-          })}
-          <div className="sgl-muted">Solid = same storey · dashed = between storeys</div>
+          <details open>
+            <summary>Edges</summary>
+            {EDGE_KINDS.map((kind) => {
+              const s = EDGE_STYLES[kind];
+              return (
+                <div key={kind} className="sgl-legend-row">
+                  <svg width="36" height="10" aria-hidden="true">
+                    <line
+                      x1="2"
+                      y1="5"
+                      x2="34"
+                      y2="5"
+                      stroke={s.stroke}
+                      strokeWidth={s.strokeWidth}
+                      {...(s.strokeDasharray ? { strokeDasharray: s.strokeDasharray } : {})}
+                    />
+                  </svg>
+                  <span>
+                    {s.symbol} {kind} <span className="sgl-muted">({orientationOf(kind)})</span>
+                  </span>
+                </div>
+              );
+            })}
+            <div className="sgl-muted">Solid = same storey · dashed = between storeys</div>
+          </details>
         </Panel>
       </ReactFlow>
     </div>

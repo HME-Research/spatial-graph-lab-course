@@ -274,14 +274,16 @@ function Overlay({
           Frame all
         </button>
       </div>
-      <div style={{ ...panel, bottom: 8, left: 8, pointerEvents: 'none' }}>
+      {/* Collapsible and click-through, so it never blocks picking the building behind it. */}
+      <details open style={{ ...panel, bottom: 8, left: 8, pointerEvents: 'none' }}>
+        <summary style={{ fontWeight: 600, cursor: 'pointer', pointerEvents: 'auto' }}>Legend</summary>
         {LEGEND.map(([label, color]) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: 10, height: 10, background: color, border: '1px solid #999', display: 'inline-block' }} />
             {label}
           </div>
         ))}
-      </div>
+      </details>
       {empty && (
         <div style={{ ...panel, top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
           No occupied cells to interpret yet.

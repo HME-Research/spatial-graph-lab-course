@@ -113,9 +113,19 @@
 }
 
 .sgl-legend {
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.sgl-legend details {
   display: grid;
   gap: 2px;
-  font-size: 12px;
+}
+
+.sgl-legend summary {
+  font-weight: 600;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .sgl-legend-row {

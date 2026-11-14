@@ -5,6 +5,7 @@ import {
   formatIssuePath,
   isVerticalKind,
   parseDesignJson,
+  serializeDesign,
   validateDocument,
   type DesignDocument,
   type GraphIssue,
@@ -41,6 +42,20 @@ function applyResult(prev: State, result: Result<DesignDocument>, source: string
 const loadExample = (prev: State): State => applyResult(prev, validateDocument(exampleDesign), EXAMPLE_LABEL);
 
 const fmtGrid = (g: readonly number[]) => `[${g.join(', ')}]`;
+
+/** File name for an exported design, derived from its metadata name. */
+const exportFileName = (doc: DesignDocument): string =>
+  `${doc.metadata.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'design'}.json`;
+
+/** Download the current document as canonical JSON (the same text `parseDesignJson` accepts). */
+function downloadDesign(doc: DesignDocument): void {
+  const url = URL.createObjectURL(new Blob([serializeDesign(doc)], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = exportFileName(doc);
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
 
 export function App() {
   const [state, setStateRaw] = useState<State>(() => loadExample({ current: null, failure: null }));
@@ -96,6 +111,9 @@ export function App() {
             Open JSON…
             <input type="file" accept=".json,application/json" onChange={onFile} />
           </label>
+          <button type="button" disabled={!current} onClick={() => current && downloadDesign(current.doc)}>
+            Export JSON
+          </button>
         </div>
       </header>
 
