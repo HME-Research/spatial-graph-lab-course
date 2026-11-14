@@ -6,7 +6,10 @@ import { describe, expect, it } from 'vitest';
  * - `document/` (v1 design document): pure; may import core/graph and core/spatial only.
  * - `building/` (architectural rules and geometry): pure; may also import `document/` and the
  *   pure core/viewer helpers (coordinates, selection), never React, Three.js or React Flow.
- * - `views/` (application visualisations): may import document, building and any core module.
+ * - `extensions/` (project loading, definition validation, conformance, algorithm execution):
+ *   pure; may import document, building, pure core modules and `@student-api`. It is the only
+ *   app module that may import `@student-api` or glob `projects/` (`import.meta.glob`).
+ * - `views/` (application visualisations): may import document, building, extensions and any core module.
  * - shell (`App`, `Workspace`, `main`, `inspector/`): composes everything.
  *
  * Lower layers never import higher ones. No relative import leaves app/; the built-in example
@@ -15,18 +18,23 @@ import { describe, expect, it } from 'vitest';
 const sources = import.meta.glob<string>('./**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true });
 
 const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"]([^'"]+)['"]/g;
+/** `import.meta.glob(...)` calls: the first argument (a string or an array of strings). */
+const GLOB_CALL = /import\.meta\.glob\s*(?:<[^>]*>)?\s*\(\s*(\[[^\]]*\]|'[^']*'|"[^"]*")/g;
+const STRING = /['"]([^'"]+)['"]/g;
 
-type Layer = 'document' | 'building' | 'views' | 'shell';
-const RANK: Readonly<Record<Layer, number>> = { document: 0, building: 1, views: 2, shell: 3 };
+type Layer = 'document' | 'building' | 'extensions' | 'views' | 'shell';
+const RANK: Readonly<Record<Layer, number>> = { document: 0, building: 1, extensions: 2, views: 3, shell: 4 };
 
 const UI_PACKAGE = /^(react|react-dom|three)(\/|$)|^@react-three\/|^@xyflow\//;
 
 function layerOf(path: string): Layer {
-  if (path.startsWith('./document/') || path === './document') return 'document';
-  if (path.startsWith('./building/') || path === './building') return 'building';
-  if (path.startsWith('./views/') || path === './views') return 'views';
+  for (const layer of ['document', 'building', 'extensions', 'views'] as const) {
+    if (path.startsWith(`./${layer}/`) || path === `./${layer}`) return layer;
+  }
   return 'shell';
 }
+
+const isPure = (layer: Layer) => layer === 'document' || layer === 'building' || layer === 'extensions';
 
 /** Resolve a relative specifier against a glob key such as './views/three/x.ts'. */
 function resolveRelative(file: string, specifier: string): string {
@@ -41,12 +49,18 @@ function resolveRelative(file: string, specifier: string): string {
 /** Reason the import is forbidden, or null if allowed. */
 function violation(file: string, specifier: string): string | null {
   const from = layerOf(file);
-  const pure = from === 'document' || from === 'building';
+  const pure = isPure(from);
+
+  if (specifier === '@student-api' || specifier.startsWith('@student-api/')) {
+    return from === 'extensions' ? null : 'only app/extensions may import the Student API';
+  }
 
   if (specifier.startsWith('@core/')) {
     if (from === 'document' && !/^@core\/(graph|spatial)(\/|$)/.test(specifier)) return 'document may only use core/graph and core/spatial';
     if (from === 'building' && !/^@core\/(graph|spatial|viewer\/(coordinates|selection))$/.test(specifier))
       return 'building may only use pure core modules';
+    if (from === 'extensions' && !/^@core\/(graph|spatial|viewer\/(appearance|coordinates|selection))$/.test(specifier))
+      return 'extensions may only use pure core modules';
     return null;
   }
 
@@ -66,10 +80,25 @@ function violation(file: string, specifier: string): string | null {
   return RANK[to] > RANK[from] ? `${from} imports higher layer ${to} (${specifier})` : null;
 }
 
+/**
+ * Reason an `import.meta.glob` pattern is forbidden, or null. Globs are invisible to the
+ * specifier check, so they are checked separately: only app/extensions may glob `/projects/`,
+ * and every other glob must stay inside app/.
+ */
+function globViolation(file: string, pattern: string): string | null {
+  const p = pattern.startsWith('!') ? pattern.slice(1) : pattern;
+  if (p.startsWith('/projects/')) return layerOf(file) === 'extensions' ? null : 'only app/extensions may glob projects/';
+  if (!p.startsWith('.')) return `glob outside app/ (${pattern})`;
+  return resolveRelative(file, p).startsWith('./') ? null : `glob leaves app/ (${pattern})`;
+}
+
+const globPatterns = (text: string): string[] =>
+  [...text.matchAll(GLOB_CALL)].flatMap((m) => [...m[1]!.matchAll(STRING)].map((s) => s[1]!));
+
 describe('application layering', () => {
   it('finds source files in every layer', () => {
     const keys = Object.keys(sources);
-    for (const dir of ['./document/', './building/', './views/', './inspector/']) {
+    for (const dir of ['./document/', './building/', './extensions/', './views/', './inspector/']) {
       expect(keys.some((k) => k.startsWith(dir))).toBe(true);
     }
     expect(keys).toContain('./App.tsx');
@@ -83,9 +112,20 @@ describe('application layering', () => {
     expect(violation('./building/x.ts', 'three')).not.toBeNull();
     expect(violation('./building/x.ts', '@react-three/fiber')).not.toBeNull();
     expect(violation('./building/x.ts', '@core/viewer/three/SceneCanvas')).not.toBeNull();
+    expect(violation('./building/x.ts', '@app/extensions')).not.toBeNull();
     expect(violation('./views/x.ts', '@app/inspector/Inspector')).not.toBeNull();
     expect(violation('./views/graph2d/x.ts', '../../App')).not.toBeNull();
     expect(violation('./views/x.ts', '../../projects/a/b.ts')).not.toBeNull();
+    expect(violation('./views/x.ts', '@student-api')).not.toBeNull();
+    expect(violation('./document/x.ts', '@student-api')).not.toBeNull();
+    expect(violation('./extensions/x.ts', '@app/views/contracts')).not.toBeNull();
+    expect(violation('./extensions/x.ts', 'react')).not.toBeNull();
+    expect(violation('./extensions/x.ts', '@core/viewer/three/SceneCanvas')).not.toBeNull();
+    expect(violation('./extensions/x.ts', '../../projects/example-gallery/types/gallery')).not.toBeNull();
+    expect(violation('./extensions/x.ts', '@student-api')).toBeNull();
+    expect(violation('./extensions/x.ts', '@app/building')).toBeNull();
+    expect(violation('./extensions/x.ts', '@core/viewer/appearance')).toBeNull();
+    expect(violation('./views/x.ts', '@app/extensions')).toBeNull();
     expect(violation('./building/x.ts', '@app/document')).toBeNull();
     expect(violation('./building/x.ts', '@core/viewer/coordinates')).toBeNull();
     expect(violation('./document/x.test.ts', '../../student/designs/two-storey-example.json?raw')).not.toBeNull();
@@ -95,11 +135,32 @@ describe('application layering', () => {
     expect(violation('./inspector/x.tsx', '@app/views/graph2d/diagram')).toBeNull();
   });
 
+  it('flags globs into projects/ outside extensions and globs leaving app/ (self-check)', () => {
+    expect(globViolation('./App.tsx', '/projects/*/project.ts')).not.toBeNull();
+    expect(globViolation('./views/x.ts', '/projects/**/*.json')).not.toBeNull();
+    expect(globViolation('./views/x.ts', '../../projects/*/types/*.ts')).not.toBeNull();
+    expect(globViolation('./views/x.ts', '/core/**/*.ts')).not.toBeNull();
+    expect(globViolation('./extensions/projectGlobs.ts', '/projects/*/types/*.ts')).toBeNull();
+    expect(globViolation('./extensions/projectGlobs.ts', '!/projects/*/types/*.test.ts')).toBeNull();
+    expect(globViolation('./boundary.test.ts', './**/*.{ts,tsx}')).toBeNull();
+    const call = ['import', 'meta', 'glob'].join('.'); // built so this file's own scan does not see it
+    expect(globPatterns(`${call}<string>(['/a/*.ts', '!/a/*.test.ts'], {})`)).toEqual(['/a/*.ts', '!/a/*.test.ts']);
+    expect(globPatterns(`${call}('./x/*.json')`)).toEqual(['./x/*.json']);
+  });
+
+  it('globs projects/ only from app/extensions/projectGlobs.ts (outside tests)', () => {
+    const globbing = Object.entries(sources)
+      .filter(([file]) => !file.endsWith('.test.ts'))
+      .filter(([, text]) => globPatterns(text).some((p) => p.replace(/^!/, '').startsWith('/projects/')))
+      .map(([file]) => file);
+    expect(globbing).toEqual(['./extensions/projectGlobs.ts']);
+  });
+
   it.each(Object.entries(sources))('%s respects the application layering', (file, text) => {
-    const problems = [...text.matchAll(SPECIFIER)]
-      .map((m) => m[1]!)
-      .map((s) => [s, violation(file, s)] as const)
-      .filter(([, reason]) => reason !== null);
+    const problems = [
+      ...[...text.matchAll(SPECIFIER)].map((m) => m[1]!).map((s) => [s, violation(file, s)] as const),
+      ...globPatterns(text).map((p) => [`glob ${p}`, globViolation(file, p)] as const),
+    ].filter(([, reason]) => reason !== null);
     expect(problems, `forbidden imports in app/${file.slice(2)}`).toEqual([]);
   });
 });
