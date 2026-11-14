@@ -4,10 +4,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { PerspectiveCamera, type Vector3 } from 'three';
 import type { WorldPoint } from '../coordinates';
 import { isBackgroundClick } from './interaction';
-import type { Bounds, CameraFit, GroundGrid } from './sceneModel';
+import type { CameraFit, GroundGrid } from './viewport';
 import './viewer3d.css';
 
-/** Vertical field of view used by both 3D views (fitCamera depends on it). */
+/** Vertical field of view of the SceneCanvas camera (camera fitting depends on it). */
 export const CAMERA_FOV = 45;
 
 const BACKGROUND = '#f3f3ef';
@@ -118,33 +118,6 @@ function AfterFirstFrame({ children }: { readonly children: ReactNode }) {
     if (!ready) setReady(true);
   });
   return ready ? <>{children}</> : null;
-}
-
-/** "L0", "L1", … labels beside the scene, one per occupied storey. Not pickable. */
-export function LevelLabels({
-  levels,
-  bounds,
-  levelCentreY,
-  hidden,
-}: {
-  readonly levels: readonly number[];
-  readonly bounds: Bounds | null;
-  readonly levelCentreY: (level: number) => number;
-  readonly hidden?: (level: number) => boolean;
-}) {
-  if (!bounds || levels.length === 0) return null;
-  return (
-    <>
-      {levels.map((level) => {
-        const p: WorldPoint = [bounds.min[0] - 0.6, levelCentreY(level), bounds.max[2]];
-        return (
-          <Html key={level} position={[...p]} center zIndexRange={[5, 0]} pointerEvents="none">
-            <span className={hidden?.(level) ? 'viewer3d-level faded' : 'viewer3d-level'}>L{level}</span>
-          </Html>
-        );
-      })}
-    </>
-  );
 }
 
 /** Small text label anchored in 3D. Not pickable. */

@@ -4,16 +4,12 @@ import { SELECTION_COLOR } from '../appearance';
 import type { ViewProps } from '../contracts';
 import { DEFAULT_CELL_SIZE, spatialToThree } from '../coordinates';
 import { NO_SELECTION } from '../selection';
-import { LevelLabels, SceneCanvas } from '../three/SceneCanvas';
-import { pickHandlers, useSpatialScene, type Hover } from '../three/useSpatialScene';
-import {
-  ColorBySelect,
-  ControlBar,
-  InfoPanel,
-  Legend,
-  LevelSelect,
-  NAVIGATION_HINT,
-} from '../three/ViewControls';
+import { SceneCanvas } from '../three/SceneCanvas';
+import { LevelLabels } from '@app/views/three/LevelLabels';
+import { pickHandlers, type Hover } from '../three/picking';
+import { useSpatialScene } from '@app/views/three/useSpatialScene';
+import { ControlBar, InfoPanel, NAVIGATION_HINT } from '../three/ViewControls';
+import { ColorBySelect, Legend, LevelSelect } from '@app/views/three/SpatialControls';
 
 /**
  * Voxels: one semi-transparent box of size [horizontal, vertical, horizontal] per occupied cell,

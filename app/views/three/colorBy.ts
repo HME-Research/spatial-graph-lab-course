@@ -1,5 +1,5 @@
 import type { AttributeValue, GraphEdge, GraphNode } from '@app/document';
-import { typeColor } from '../appearance';
+import { typeColor } from '@core/viewer/appearance';
 import { accessGroups } from './sceneModel';
 
 /**

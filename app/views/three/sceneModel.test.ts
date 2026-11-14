@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DesignDocument, GraphEdge, GraphNode } from '@app/document';
 import { threeRooms } from '@app/document/test-fixtures';
-import { DEFAULT_CELL_SIZE, spatialToThree } from '../coordinates';
-import { NO_SELECTION, selectEdge, selectNode } from '../selection';
+import { DEFAULT_CELL_SIZE, spatialToThree } from '@core/viewer/coordinates';
 import {
   accessGroups,
   buildEdgeItems,
@@ -10,7 +9,6 @@ import {
   cellBounds,
   fitCamera,
   groundGrid,
-  selectionEmphasis,
   storeyLevels,
 } from './sceneModel';
 
@@ -154,28 +152,5 @@ describe('accessGroups', () => {
     expect([...reversed.groupOf].sort()).toEqual([...forward.groupOf].sort());
     expect(forward.groupOf.get('a')).toBe(0); // {a, q}
     expect(forward.groupOf.get('b')).toBe(1); // {b, m}
-  });
-});
-
-describe('selectionEmphasis', () => {
-  const doc = threeRooms();
-  it('highlights a selected node only', () => {
-    const e = selectionEmphasis(selectNode('a'), doc.edges);
-    expect([...e.primaryNodes]).toEqual(['a']);
-    expect(e.secondaryNodes.size + e.edges.size).toBe(0);
-  });
-
-  it('highlights a selected edge and softly its endpoints', () => {
-    const e = selectionEmphasis(selectEdge('ac'), doc.edges);
-    expect([...e.edges]).toEqual(['ac']);
-    expect([...e.secondaryNodes].sort()).toEqual(['a', 'c']);
-    expect(e.primaryNodes.size).toBe(0);
-  });
-
-  it('highlights nothing for no selection or an unknown edge', () => {
-    for (const sel of [NO_SELECTION, selectEdge('nope')]) {
-      const e = selectionEmphasis(sel, doc.edges);
-      expect(e.primaryNodes.size + e.secondaryNodes.size + e.edges.size).toBe(0);
-    }
   });
 });

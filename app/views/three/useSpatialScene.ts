@@ -1,8 +1,8 @@
-import type { ThreeEvent } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DesignDocument } from '@app/document';
-import type { SelectionHandler } from '../contracts';
-import { selectEdge, selectNode, type Selection } from '../selection';
+import { selectionEmphasis, type Selection } from '@core/viewer/selection';
+import type { Hover } from '@core/viewer/three/picking';
+import { CAMERA_FOV } from '@core/viewer/three/SceneCanvas';
 import {
   attributeKeys,
   DEFAULT_COLOR_MODE,
@@ -10,23 +10,7 @@ import {
   resolveColoring,
   type ColorMode,
 } from './colorBy';
-import { isDeliberateObjectClick } from './interaction';
-import { CAMERA_FOV } from './SceneCanvas';
-import {
-  accessGroups,
-  buildEdgeItems,
-  buildNodeItems,
-  cellBounds,
-  fitCamera,
-  groundGrid,
-  selectionEmphasis,
-  storeyLevels,
-} from './sceneModel';
-
-export interface Hover {
-  readonly kind: 'node' | 'edge';
-  readonly id: string;
-}
+import { accessGroups, buildEdgeItems, buildNodeItems, cellBounds, fitCamera, groundGrid, storeyLevels } from './sceneModel';
 
 /**
  * Everything a 3D view derives from the read-only document, plus its view-local UI state
@@ -92,25 +76,5 @@ export function useSpatialScene(doc: DesignDocument, selection: Selection) {
     isLevelHidden,
     hovered,
     setHovered,
-  };
-}
-
-/** Pointer handlers for a pickable node or edge, following the click-vs-drag rule. */
-export function pickHandlers(
-  kind: Hover['kind'],
-  id: string,
-  onSelect: SelectionHandler,
-  setHovered: (update: (prev: Hover | null) => Hover | null) => void,
-) {
-  return {
-    onClick: (e: ThreeEvent<MouseEvent>) => {
-      e.stopPropagation(); // only the front-most object is picked
-      if (isDeliberateObjectClick(e.delta, e.nativeEvent)) onSelect(kind === 'node' ? selectNode(id) : selectEdge(id));
-    },
-    onPointerOver: (e: ThreeEvent<PointerEvent>) => {
-      e.stopPropagation();
-      setHovered(() => ({ kind, id }));
-    },
-    onPointerOut: () => setHovered((prev) => (prev?.kind === kind && prev.id === id ? null : prev)),
   };
 }

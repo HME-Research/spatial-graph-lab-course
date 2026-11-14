@@ -3,7 +3,7 @@ import type { Attributes, GraphNode } from '@app/document';
 import { validateDocument } from '@app/document';
 import { expectOk, threeRooms } from '@app/document/test-fixtures';
 import example from '../../../student/designs/two-storey-example.json';
-import { typeColor } from '../appearance';
+import { typeColor } from '@core/viewer/appearance';
 import {
   attributeKeys,
   CATEGORY_PALETTE,

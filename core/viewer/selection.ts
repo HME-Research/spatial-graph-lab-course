@@ -31,6 +31,38 @@ export const isEdgeSelected = (selection: Selection, edgeId: string): boolean =>
 export const sameSelection = (a: Selection, b: Selection): boolean =>
   a.kind === b.kind && (a.kind === 'none' || a.id === (b as { id: string }).id);
 
+/** What a view should highlight for the shared selection. */
+export interface Emphasis {
+  /** Nodes to highlight strongly (the selected node). */
+  readonly primaryNodes: ReadonlySet<string>;
+  /** Nodes to highlight softly (endpoints of a selected edge). */
+  readonly secondaryNodes: ReadonlySet<string>;
+  readonly edges: ReadonlySet<string>;
+}
+
+const EMPTY: ReadonlySet<string> = new Set();
+
+/** What to highlight for the shared selection. Unknown IDs simply highlight nothing. */
+export function selectionEmphasis(
+  selection: Selection,
+  edges: readonly { readonly id: string; readonly source: string; readonly target: string }[],
+): Emphasis {
+  switch (selection.kind) {
+    case 'none':
+      return { primaryNodes: EMPTY, secondaryNodes: EMPTY, edges: EMPTY };
+    case 'node':
+      return { primaryNodes: new Set([selection.id]), secondaryNodes: EMPTY, edges: EMPTY };
+    case 'edge': {
+      const e = edges.find((x) => x.id === selection.id);
+      return {
+        primaryNodes: EMPTY,
+        secondaryNodes: e ? new Set([e.source, e.target]) : EMPTY,
+        edges: e ? new Set([e.id]) : EMPTY,
+      };
+    }
+  }
+}
+
 /**
  * Drop a selection whose node/edge no longer exists in `items`.
  * Returns the same object when still valid, so React memoisation is not disturbed.

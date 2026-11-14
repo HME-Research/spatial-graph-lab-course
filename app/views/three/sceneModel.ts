@@ -1,9 +1,10 @@
 import { isVerticalKind, type EdgeKind, type GraphEdge, type GraphNode, type GridCoord } from '@app/document';
-import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '../coordinates';
-import type { Selection } from '../selection';
+import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '@core/viewer/coordinates';
+import { fitCameraToBounds, type Bounds, type CameraFit, type GroundGrid } from '@core/viewer/three/viewport';
 
 /**
- * Pure scene derivation shared by the 3D views (no React, no Three.js).
+ * Pure scene derivation shared by the Graph 3D and Voxel views (no React, no Three.js):
+ * grid-cell items, storeys, cell bounds, camera framing and the ground grid for a design document.
  * Every world position comes from `spatialToThree(node.grid)`; diagram positions are never read.
  */
 
@@ -79,11 +80,6 @@ export function storeyLevels(nodes: readonly GraphNode[]): number[] {
   return [...new Set(nodes.map((n) => n.grid[2]))].sort((a, b) => a - b);
 }
 
-export interface Bounds {
-  readonly min: WorldPoint;
-  readonly max: WorldPoint;
-}
-
 /** World-space box enclosing every occupied cell (full cell extents), or null when empty. */
 export function cellBounds(nodes: readonly GraphNode[], cell: CellSize = DEFAULT_CELL_SIZE): Bounds | null {
   if (nodes.length === 0) return null;
@@ -100,49 +96,16 @@ export function cellBounds(nodes: readonly GraphNode[], cell: CellSize = DEFAULT
   return { min: min as unknown as WorldPoint, max: max as unknown as WorldPoint };
 }
 
-export interface CameraFit {
-  readonly target: WorldPoint;
-  readonly position: WorldPoint;
-  readonly near: number;
-  readonly far: number;
-}
-
-/** Viewing direction (from target towards camera): front-right, above. Grid +x is right, grid +y recedes. */
-const VIEW_DIRECTION: WorldPoint = (() => {
-  const v = [1, 0.85, 1.25];
-  const l = Math.hypot(v[0]!, v[1]!, v[2]!);
-  return [v[0]! / l, v[1]! / l, v[2]! / l] as const;
-})();
-
-/** Camera placement that frames `bounds` for a perspective camera with vertical field of view `fovDeg`. */
+/**
+ * Camera placement for the occupied cells: frames `bounds`, or one ground-storey cell at the origin
+ * for an empty document, and never closer than one cell width. Grid +x is right, grid +y recedes.
+ */
 export function fitCamera(bounds: Bounds | null, fovDeg: number, cell: CellSize = DEFAULT_CELL_SIZE): CameraFit {
-  const b = bounds ?? {
+  const b: Bounds = bounds ?? {
     min: [-cell.horizontal / 2, 0, -cell.horizontal / 2],
     max: [cell.horizontal / 2, cell.vertical, cell.horizontal / 2],
   };
-  const target: WorldPoint = [(b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, (b.min[2] + b.max[2]) / 2];
-  const radius = Math.max(
-    Math.hypot(b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]) / 2,
-    cell.horizontal,
-  );
-  // 1.25 margin keeps the scene inside narrow (split) panels too.
-  const distance = (radius / Math.sin(((fovDeg / 2) * Math.PI) / 180)) * 1.25;
-  return {
-    target,
-    position: [
-      target[0] + VIEW_DIRECTION[0] * distance,
-      target[1] + VIEW_DIRECTION[1] * distance,
-      target[2] + VIEW_DIRECTION[2] * distance,
-    ],
-    near: Math.max(0.05, distance / 200),
-    far: distance * 20 + radius * 4,
-  };
-}
-
-export interface GroundGrid {
-  readonly center: WorldPoint;
-  readonly size: number;
-  readonly divisions: number;
+  return fitCameraToBounds(b, fovDeg, cell.horizontal);
 }
 
 /**
@@ -209,32 +172,4 @@ export function accessGroups(nodes: readonly GraphNode[], edges: readonly GraphE
   const roots = [...new Set(nodes.map((n) => find(n.id)))].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   const index = new Map(roots.map((r, i) => [r, i] as const));
   return { groupOf: new Map(nodes.map((n) => [n.id, index.get(find(n.id))!] as const)), count: roots.length };
-}
-
-export interface Emphasis {
-  /** Nodes to highlight strongly (the selected node). */
-  readonly primaryNodes: ReadonlySet<string>;
-  /** Nodes to highlight softly (endpoints of a selected edge). */
-  readonly secondaryNodes: ReadonlySet<string>;
-  readonly edges: ReadonlySet<string>;
-}
-
-const EMPTY: ReadonlySet<string> = new Set();
-
-/** What to highlight for the shared selection. Unknown IDs simply highlight nothing. */
-export function selectionEmphasis(selection: Selection, edges: readonly GraphEdge[]): Emphasis {
-  switch (selection.kind) {
-    case 'none':
-      return { primaryNodes: EMPTY, secondaryNodes: EMPTY, edges: EMPTY };
-    case 'node':
-      return { primaryNodes: new Set([selection.id]), secondaryNodes: EMPTY, edges: EMPTY };
-    case 'edge': {
-      const e = edges.find((x) => x.id === selection.id);
-      return {
-        primaryNodes: EMPTY,
-        secondaryNodes: e ? new Set([e.source, e.target]) : EMPTY,
-        edges: e ? new Set([e.id]) : EMPTY,
-      };
-    }
-  }
 }
