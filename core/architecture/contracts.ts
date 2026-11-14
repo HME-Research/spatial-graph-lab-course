@@ -1,3 +1,4 @@
+import type { FaceDirection } from '@core/spatial';
 import type { DesignDocument, EdgeKind, GridCoord } from '@app/document';
 
 /**
@@ -6,18 +7,8 @@ import type { DesignDocument, EdgeKind, GridCoord } from '@app/document';
  * See docs/VIEWER-CONTRACTS.md §C.
  */
 
-/** The six cardinal neighbour slots of a cell, in grid axes (z is up). */
-export const FACE_DIRECTIONS = ['+x', '-x', '+y', '-y', '+z', '-z'] as const;
-export type FaceDirection = (typeof FACE_DIRECTIONS)[number];
-
-export const FACE_DIRECTION_OFFSETS: Readonly<Record<FaceDirection, GridCoord>> = {
-  '+x': [1, 0, 0],
-  '-x': [-1, 0, 0],
-  '+y': [0, 1, 0],
-  '-y': [0, -1, 0],
-  '+z': [0, 0, 1],
-  '-z': [0, 0, -1],
-};
+/** The six cardinal neighbour slots of a cell (z is up) are reusable grid maths in core/spatial. */
+export { FACE_DIRECTION_OFFSETS, FACE_DIRECTIONS, type FaceDirection } from '@core/spatial';
 
 /** x/y faces are walls; z faces are floor/ceiling slabs. */
 export type FaceOrientation = 'wall' | 'slab';

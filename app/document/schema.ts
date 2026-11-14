@@ -1,5 +1,8 @@
+import type { GridCoord } from '@core/spatial';
 import { z } from 'zod';
 import { EDGE_KINDS, SCHEMA_VERSION } from './constants';
+
+export type { GridCoord } from '@core/spatial';
 
 /**
  * Design document schema v1 (structure only; graph invariants live in validate.ts).
@@ -87,7 +90,11 @@ export const designDocumentSchema = z.strictObject({
   diagram: diagramSchema.default({ positions: {} }),
 });
 
-export type GridCoord = z.infer<typeof gridSchema>;
+/** Compile-time guard: the schema's grid tuple must stay identical to core/spatial's GridCoord. */
+type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+const gridCoordMatchesCore: Equals<z.infer<typeof gridSchema>, GridCoord> = true;
+void gridCoordMatchesCore;
+
 export type DiagramPosition = z.infer<typeof diagramPositionSchema>;
 export type AttributeValue = z.infer<typeof attributeValueSchema>;
 export type Attributes = z.infer<typeof attributesSchema>;

@@ -1,6 +1,6 @@
+import { neighbourCell } from '@core/spatial';
 import { gridKey, unorderedPairKey, type DesignDocument, type GraphEdge, type GraphNode, type GridCoord } from '@app/document';
 import {
-  FACE_DIRECTION_OFFSETS,
   FACE_DIRECTIONS,
   type FaceDirection,
   type FaceOrientation,
@@ -30,10 +30,8 @@ export function buildCellIndex(doc: DesignDocument): CellIndex {
 export const directionOrientation = (direction: FaceDirection): FaceOrientation =>
   direction === '+z' || direction === '-z' ? 'slab' : 'wall';
 
-export const neighbourCell = (cell: GridCoord, direction: FaceDirection): GridCoord => {
-  const o = FACE_DIRECTION_OFFSETS[direction];
-  return [cell[0] + o[0], cell[1] + o[1], cell[2] + o[2]];
-};
+/** Re-exported from core/spatial for existing callers. */
+export { neighbourCell } from '@core/spatial';
 
 /** One of the six cardinal neighbour slots of a cell; `node` is null for an unoccupied cell. */
 export interface NeighbourSlot {

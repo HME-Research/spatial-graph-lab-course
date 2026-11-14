@@ -3,26 +3,16 @@ import {
   VERTICAL_EDGE_KINDS,
   type EdgeKind,
 } from './constants';
-import type { GridCoord } from './schema';
+import { isHorizontalFaceAdjacent, isVerticalFaceAdjacent, type GridCoord } from '@core/spatial';
+
+/**
+ * v1 edge-kind geometry rules on top of the reusable grid mathematics in core/spatial.
+ * The generic helpers are re-exported so existing `@app/document` callers keep working.
+ */
 
 /** Order-independent key for a pair of node IDs (generic; re-exported for existing callers). */
 export { unorderedPairKey } from '@core/graph';
-
-/** Stable string key for a grid cell, e.g. "1,0,2". */
-export const gridKey = (g: GridCoord): string => `${g[0]},${g[1]},${g[2]}`;
-
-/** Same storey (z), exactly one step in x or y. */
-export function isHorizontalFaceAdjacent(a: GridCoord, b: GridCoord): boolean {
-  return a[2] === b[2] && Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) === 1;
-}
-
-/** Same x/y, exactly one storey apart in z. */
-export function isVerticalFaceAdjacent(a: GridCoord, b: GridCoord): boolean {
-  return a[0] === b[0] && a[1] === b[1] && Math.abs(a[2] - b[2]) === 1;
-}
-
-export const isFaceAdjacent = (a: GridCoord, b: GridCoord): boolean =>
-  isHorizontalFaceAdjacent(a, b) || isVerticalFaceAdjacent(a, b);
+export { gridKey, isFaceAdjacent, isHorizontalFaceAdjacent, isVerticalFaceAdjacent } from '@core/spatial';
 
 export const isHorizontalKind = (kind: EdgeKind): boolean =>
   (HORIZONTAL_EDGE_KINDS as readonly string[]).includes(kind);
