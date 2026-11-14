@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type ChangeEvent } from 'react';
-import exampleDesign from '../student/designs/two-storey-example.json';
+import exampleDesign from './document/examples/two-storey-example.json';
 import {
   applyGraphCommand,
   formatIssuePath,
@@ -15,7 +15,7 @@ import type { GraphCommandHandler } from '@app/views/contracts';
 import { NO_SELECTION, reconcileSelection, type Selection } from '@core/viewer/selection';
 import { Workspace } from './Workspace';
 
-const EXAMPLE_LABEL = 'student/designs/two-storey-example.json';
+const EXAMPLE_LABEL = 'app/document/examples/two-storey-example.json';
 
 interface Loaded {
   readonly doc: DesignDocument;

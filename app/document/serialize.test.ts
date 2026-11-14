@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import example from '../../student/designs/two-storey-example.json';
+import example from './examples/two-storey-example.json';
 import { isHorizontalFaceAdjacent } from './adjacency';
 import { parseDesignJson, serializeDesign } from './serialize';
 import { expectIssue, expectOk, threeRooms } from './test-fixtures';
@@ -38,7 +38,7 @@ describe('parseDesignJson (acceptance I, data level)', () => {
   });
 });
 
-describe('student/designs/two-storey-example.json', () => {
+describe('app/document/examples/two-storey-example.json', () => {
   const doc = expectOk(validateDocument(example, { knownTypeIds: ['gallery', 'studio', 'storage'] }));
 
   it('validates and spans two storeys', () => {

@@ -9,8 +9,8 @@ import { describe, expect, it } from 'vitest';
  * - `views/` (application visualisations): may import document, building and any core module.
  * - shell (`App`, `Workspace`, `main`, `inspector/`): composes everything.
  *
- * Lower layers never import higher ones. Nothing in app/ imports projects/; student/ is only read
- * for example design JSON files.
+ * Lower layers never import higher ones. No relative import leaves app/; the built-in example
+ * design lives in `document/examples/`.
  */
 const sources = import.meta.glob<string>('./**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true });
 
@@ -54,10 +54,7 @@ function violation(file: string, specifier: string): string | null {
   if (specifier.startsWith('@app/')) target = `./${specifier.slice('@app/'.length)}`;
   else if (specifier.startsWith('.')) {
     target = resolveRelative(file, specifier);
-    if (!target.startsWith('./')) {
-      // Outside app/: only example design JSON under student/designs is allowed.
-      return /^student\/designs\/[^/]+\.json$/.test(target) ? null : `leaves app/ (${target})`;
-    }
+    if (!target.startsWith('./')) return `leaves app/ (${target})`;
   }
 
   if (target === null) {
@@ -91,7 +88,9 @@ describe('application layering', () => {
     expect(violation('./views/x.ts', '../../projects/a/b.ts')).not.toBeNull();
     expect(violation('./building/x.ts', '@app/document')).toBeNull();
     expect(violation('./building/x.ts', '@core/viewer/coordinates')).toBeNull();
-    expect(violation('./document/x.test.ts', '../../student/designs/two-storey-example.json?raw')).toBeNull();
+    expect(violation('./document/x.test.ts', '../../student/designs/two-storey-example.json?raw')).not.toBeNull();
+    expect(violation('./document/x.test.ts', './examples/two-storey-example.json?raw')).toBeNull();
+    expect(violation('./views/three/x.test.ts', '../../document/examples/two-storey-example.json')).toBeNull();
     expect(violation('./views/x.tsx', '@react-three/fiber')).toBeNull();
     expect(violation('./inspector/x.tsx', '@app/views/graph2d/diagram')).toBeNull();
   });

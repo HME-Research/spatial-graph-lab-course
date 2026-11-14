@@ -26,5 +26,5 @@
       "@app/*": ["./app/*"]
     }
   },
-  "include": ["core", "app", "student", "vite.config.ts"]
+  "include": ["core", "app", "vite.config.ts"]
 }

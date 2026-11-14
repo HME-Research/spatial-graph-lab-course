@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import exampleJson from '../../student/designs/two-storey-example.json?raw';
+import exampleJson from './examples/two-storey-example.json?raw';
 import { applyGraphCommand, type GraphCommand } from './apply';
 import { parseDesignJson, serializeDesign } from './serialize';
 import { threeRooms, threeRoomsRaw } from './test-fixtures';

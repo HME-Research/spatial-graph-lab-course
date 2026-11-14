@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import exampleJson from '../../student/designs/two-storey-example.json';
+import exampleJson from '../document/examples/two-storey-example.json';
 import { addEdge, changeEdgeKind, removeNode, validateDocument, type DesignDocument, type EdgeKind } from '@app/document';
 import { expectOk, threeRooms } from '@app/document/test-fixtures';
 import { FACE_DIRECTIONS, type ResolvedFace } from './contracts';
