@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import {
   EDGE_KINDS,
   isEdgeGeometryValid,
+  type AttributeValue,
   type DesignDocument,
   type EdgeKind,
   type GraphCommand,
@@ -10,7 +11,9 @@ import {
   type GraphNode,
 } from '@app/document';
 import { typeColor } from '@core/viewer/appearance';
+import { findNodeType, type ActiveProject, type AttributeSpecs, type ExtensionDiagnostic } from '@app/extensions';
 import type { GraphCommandHandler, InspectorProps, SelectionHandler } from '@app/views/contracts';
+import { nodeTypeStatus, typeDisplayName, type NodeTypeStatus, type ProjectViewContext } from '@app/views/project';
 import {
   EDGE_KIND_LABELS,
   EDGE_STYLES,
@@ -34,19 +37,28 @@ import {
   type AttributeValueKind,
   type GridDraft,
 } from './inspectorModel';
+import {
+  fieldDraft,
+  parseFieldDraft,
+  setTypedAttributeCommand,
+  setUndeclaredAttributesCommand,
+  typedFields,
+  undeclaredAttributes,
+  type TypedField,
+} from './typedAttributes';
 
 /**
  * Right-hand inspector for the single selected node or edge. Every edit is a GraphCommand sent
  * through `onCommand`; a rejected command leaves the document unchanged and its issues are shown.
  */
-export function Inspector({ doc, selection, onSelect, onCommand }: InspectorProps) {
+export function Inspector({ doc, selection, onSelect, onCommand, project }: InspectorProps) {
   const node = selection.kind === 'node' ? doc.nodes.find((n) => n.id === selection.id) : undefined;
   const edge = selection.kind === 'edge' ? doc.edges.find((e) => e.id === selection.id) : undefined;
   return (
     <aside className="inspector sgl-inspector">
       <h3>Inspector</h3>
       {node ? (
-        <NodePanel key={`node:${node.id}`} doc={doc} node={node} onSelect={onSelect} onCommand={onCommand} />
+        <NodePanel key={`node:${node.id}`} doc={doc} node={node} project={project} onSelect={onSelect} onCommand={onCommand} />
       ) : edge ? (
         <EdgePanel key={`edge:${edge.id}`} doc={doc} edge={edge} onSelect={onSelect} onCommand={onCommand} />
       ) : (
@@ -78,9 +90,17 @@ function useCommandRunner(onCommand: GraphCommandHandler) {
 // ---------------------------------------------------------------------------------------------
 // Node
 
-function NodePanel({ doc, node, onSelect, onCommand }: PanelBase & { readonly node: GraphNode }) {
+function NodePanel({ doc, node, project, onSelect, onCommand }: PanelBase & { readonly node: GraphNode; readonly project: ProjectViewContext | undefined }) {
   const { issues, setIssues, run } = useCommandRunner(onCommand);
-  const knownTypes = useMemo(() => [...new Set(doc.nodes.map((n) => n.typeId))].sort(), [doc]);
+  const active = project?.project ?? null;
+  const knownTypes = useMemo(
+    () => [...new Set([...(active?.nodeTypes.map((t) => t.id) ?? []), ...doc.nodes.map((n) => n.typeId)])].sort(),
+    [doc, active],
+  );
+  const typeStatus = nodeTypeStatus(active, node.typeId);
+  const checks = (project?.conformance ?? []).filter((d) => d.subject.kind === 'node' && d.subject.id === node.id);
+  // Typed attribute controls only for a valid, registered type.
+  const specs = typeStatus.kind === 'registered' ? (findNodeType(active!, node.typeId)?.definition.attributes ?? {}) : null;
   const incident = doc.edges.filter((e) => e.source === node.id || e.target === node.id);
   const neighbours = useMemo(() => neighbourConnections(doc, node.id), [doc, node.id]);
   const unconnected = neighbours.filter((n) => !n.existingEdge);
@@ -100,9 +120,23 @@ function NodePanel({ doc, node, onSelect, onCommand }: PanelBase & { readonly no
       <IssueList issues={issues} onDismiss={() => setIssues([])} />
 
       {/* Re-keyed on the stored value so the draft resets after any successful change. */}
-      <TypeForm key={node.typeId} node={node} knownTypes={knownTypes} run={run} />
+      <TypeForm key={node.typeId} node={node} knownTypes={knownTypes} project={active} status={typeStatus} run={run} />
+      <NodeChecks checks={checks} />
       <GridForm key={formatGrid(node.grid)} node={node} run={run} />
-      <AttributesForm key={JSON.stringify(node.attributes)} node={node} run={run} onLocalError={setIssues} />
+      {specs ? (
+        <>
+          <TypedAttributesForm node={node} specs={specs} label={typeStatus.kind === 'registered' ? typeStatus.label : node.typeId} run={run} onLocalError={setIssues} />
+          <AttributesForm
+            key={`other:${JSON.stringify(node.attributes)}`}
+            node={node}
+            specs={specs}
+            run={run}
+            onLocalError={setIssues}
+          />
+        </>
+      ) : (
+        <AttributesForm key={JSON.stringify(node.attributes)} node={node} specs={null} run={run} onLocalError={setIssues} />
+      )}
 
       <section className="sgl-section">
         <h4>Connections</h4>
@@ -163,7 +197,19 @@ function NodePanel({ doc, node, onSelect, onCommand }: PanelBase & { readonly no
 
 type Run = (command: GraphCommand) => boolean;
 
-function TypeForm({ node, knownTypes, run }: { node: GraphNode; knownTypes: readonly string[]; run: Run }) {
+function TypeForm({
+  node,
+  knownTypes,
+  project,
+  status,
+  run,
+}: {
+  node: GraphNode;
+  knownTypes: readonly string[];
+  project: ActiveProject | null;
+  status: NodeTypeStatus;
+  run: Run;
+}) {
   const [draft, setDraft] = useState(node.typeId);
   const listId = `sgl-types-${node.id}`;
   const submit = (e: FormEvent) => {
@@ -184,15 +230,178 @@ function TypeForm({ node, knownTypes, run }: { node: GraphNode; knownTypes: read
         />
         <datalist id={listId}>
           {knownTypes.map((t) => (
-            <option key={t} value={t} />
+            <option key={t} value={t} label={typeDisplayName(nodeTypeStatus(project, t), t)} />
           ))}
         </datalist>
         <button type="submit" disabled={draft.trim() === node.typeId}>
           Apply
         </button>
       </div>
-      <p className="sgl-help">Lowercase letters, digits and “-”, e.g. gallery.</p>
+      <TypeStatusNote status={status} typeId={node.typeId} projectId={project?.id ?? null} />
     </form>
+  );
+}
+
+/** How the active project knows the node's current type. The stored value is never changed. */
+function TypeStatusNote({ status, typeId, projectId }: { status: NodeTypeStatus; typeId: string; projectId: string | null }) {
+  switch (status.kind) {
+    case 'no-project':
+      return <p className="sgl-help">Lowercase letters, digits and “-”, e.g. gallery.</p>;
+    case 'registered':
+      return (
+        <p className="sgl-help">
+          <strong>{status.label}</strong> — defined in <code>{status.file}</code>.
+        </p>
+      );
+    case 'undefined-type':
+      return (
+        <p className="sgl-warning">
+          ⚠ Project “{projectId}” does not define type “{typeId}”. It keeps the fallback colour and façade; the value is kept.
+        </p>
+      );
+    case 'broken':
+      return (
+        <div className="sgl-error">
+          ✖ The definition of “{typeId}” in <code>{status.file}</code> is invalid, so this type is disabled:
+          <ul className="sgl-list">
+            {status.problems.map((p, i) => (
+              <li key={i}>{p}</li>
+            ))}
+          </ul>
+        </div>
+      );
+  }
+}
+
+const SEVERITY_ICON = { error: '✖', warning: '⚠', info: 'ℹ' } as const;
+
+/** Conformance of this node to its project type (never blocks editing). */
+function NodeChecks({ checks }: { checks: readonly ExtensionDiagnostic[] }) {
+  // Type problems are explained by the type note above; list the rest here.
+  const shown = checks.filter((d) => d.code !== 'unknown-node-type' && d.code !== 'broken-node-type');
+  if (shown.length === 0) return null;
+  return (
+    <section className="sgl-section">
+      <h4>Checks</h4>
+      <ul className="sgl-checks">
+        {shown.map((d) => (
+          <li key={d.id} className={`sgl-check-${d.severity}`}>
+            {SEVERITY_ICON[d.severity]} {d.message}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+const NO_VALUE = '';
+const INVALID_VALUE = '\u0000invalid';
+
+/**
+ * Controls generated from the type's attribute declarations. Each change is one validated
+ * command that keeps every other stored attribute; defaults are shown, never written.
+ */
+function TypedAttributesForm({
+  node,
+  specs,
+  label,
+  run,
+  onLocalError,
+}: {
+  node: GraphNode;
+  specs: AttributeSpecs;
+  label: string;
+  run: Run;
+  onLocalError: (issues: readonly GraphIssue[]) => void;
+}) {
+  const fields = typedFields(specs, node.attributes);
+  const send = (key: string, value: AttributeValue | undefined) => {
+    const command = setTypedAttributeCommand(node, specs, key, value);
+    if (!command.ok) onLocalError([{ path: ['attributes', key], code: 'schema', message: command.message }]);
+    else run(command.value);
+  };
+  return (
+    <section className="sgl-section">
+      <h4>{label} attributes</h4>
+      {fields.length === 0 && <p className="meta">This type declares no attributes.</p>}
+      {fields.map((field) => (
+        <TypedFieldControl key={`${field.key}:${JSON.stringify(field.stored)}`} field={field} send={send} />
+      ))}
+    </section>
+  );
+}
+
+function TypedFieldControl({ field, send }: { field: TypedField; send: (key: string, value: AttributeValue | undefined) => void }) {
+  const { key, spec, status, stored, defaultValue } = field;
+  const [draft, setDraft] = useState(() => fieldDraft(field));
+  const noValueLabel = `— no value${defaultValue !== undefined ? ` (default ${JSON.stringify(defaultValue)})` : ''}`;
+  const choice = (options: readonly (readonly [string, string])[]) => (
+    <select
+      aria-label={`${key} value`}
+      value={status === 'invalid' ? INVALID_VALUE : status === 'missing' ? NO_VALUE : String(stored)}
+      onChange={(e) => {
+        const v = e.currentTarget.value;
+        if (v === INVALID_VALUE) return;
+        send(key, v === NO_VALUE ? undefined : parseFieldDraft(spec, v));
+      }}
+    >
+      <option value={NO_VALUE}>{noValueLabel}</option>
+      {options.map(([value, text]) => (
+        <option key={value} value={value}>
+          {text}
+        </option>
+      ))}
+      {status === 'invalid' && (
+        <option value={INVALID_VALUE} disabled>
+          {JSON.stringify(stored)} (invalid — kept)
+        </option>
+      )}
+    </select>
+  );
+
+  let control;
+  if (spec.kind === 'enum') control = choice(spec.values.map((v) => [v, v] as const));
+  else if (spec.kind === 'boolean') control = choice([['true', 'yes (true)'], ['false', 'no (false)']]);
+  else {
+    const submit = (e: FormEvent) => {
+      e.preventDefault();
+      send(key, parseFieldDraft(spec, draft));
+    };
+    control = (
+      <form className="sgl-row" onSubmit={submit}>
+        <input
+          aria-label={`${key} value`}
+          type={spec.kind === 'number' ? 'number' : 'text'}
+          step="any"
+          value={draft}
+          placeholder={defaultValue !== undefined ? `default ${JSON.stringify(defaultValue)}` : 'no value'}
+          onChange={(e) => setDraft(e.currentTarget.value)}
+        />
+        <button type="submit" disabled={draft === fieldDraft(field) && status !== 'invalid'}>
+          Set
+        </button>
+        {stored !== undefined && (
+          <button type="button" title="Remove the stored value" onClick={() => send(key, undefined)}>
+            Clear
+          </button>
+        )}
+      </form>
+    );
+  }
+
+  return (
+    <div className="sgl-typed">
+      <div className="sgl-typed-label">
+        <code>{key}</code> <span className="sgl-help">{field.accepts}</span>
+      </div>
+      {control}
+      {status === 'invalid' && (
+        <p className="sgl-warning">
+          ⚠ Stored value {JSON.stringify(stored)} is not valid; it is kept until you change it
+          {defaultValue !== undefined ? `, and the default ${JSON.stringify(defaultValue)} is used meanwhile` : ''}.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -240,16 +449,25 @@ function GridForm({ node, run }: { node: GraphNode; run: Run }) {
   );
 }
 
+/**
+ * Free-form attribute rows. With `specs` (a valid registered type) it edits only the attributes
+ * the type does not declare, keeping declared values as stored; without, it edits them all.
+ */
 function AttributesForm({
   node,
+  specs,
   run,
   onLocalError,
 }: {
   node: GraphNode;
+  specs: AttributeSpecs | null;
   run: Run;
   onLocalError: (issues: readonly GraphIssue[]) => void;
 }) {
-  const initial = useMemo(() => attributesToRows(node.attributes), [node.attributes]);
+  const initial = useMemo(
+    () => attributesToRows(specs ? undeclaredAttributes(specs, node.attributes) : node.attributes),
+    [node.attributes, specs],
+  );
   const [rows, setRows] = useState<readonly AttributeRow[]>(initial);
   const dirty = JSON.stringify(rows) !== JSON.stringify(initial);
 
@@ -258,6 +476,12 @@ function AttributesForm({
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    if (specs) {
+      const command = setUndeclaredAttributesCommand(node, specs, rows);
+      if (!command.ok) onLocalError([{ path: ['attributes'], code: 'schema', message: command.message }]);
+      else run(command.value);
+      return;
+    }
     const parsed = rowsToAttributes(rows);
     if (!parsed.ok) {
       onLocalError([{ path: ['attributes'], code: 'schema', message: parsed.message }]);
@@ -268,8 +492,9 @@ function AttributesForm({
 
   return (
     <form className="sgl-section" onSubmit={submit}>
-      <h4>Attributes</h4>
-      {rows.length === 0 && <p className="meta">No attributes.</p>}
+      <h4>{specs ? 'Other attributes' : 'Attributes'}</h4>
+      {specs && <p className="sgl-help">Not declared by the type. They are kept exactly as stored.</p>}
+      {rows.length === 0 && <p className="meta">{specs ? 'None.' : 'No attributes.'}</p>}
       {rows.map((row, i) => (
         <div key={i} className="sgl-attr">
           <input
