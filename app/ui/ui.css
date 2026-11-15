@@ -1,0 +1,277 @@
+/* Stage 05 application-shell components (app/ui). Scoped with the `sgl-` prefix. */
+
+/* ── Vertical sidebar navigation ─────────────────────────────────────────────────────────── */
+
+.sgl-sidenav {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  background: var(--panel, #fff);
+  border: 1px solid var(--line, #d9d9d2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sgl-sidenav-panels {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sgl-sidenav-panels[hidden],
+.sgl-sidenav-panel[hidden] {
+  display: none;
+}
+
+.sgl-sidenav-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 8px 12px 12px;
+}
+
+.sgl-sidenav-heading {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.sgl-sidenav-strip {
+  flex: none;
+  width: 76px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-left: 1px solid var(--line, #d9d9d2);
+  background: #f2f2ee;
+}
+
+.sgl-sidenav.collapsed .sgl-sidenav-strip {
+  width: 100%;
+  border-left: none;
+}
+
+.sgl-sidenav-tabs {
+  display: flex;
+  flex-direction: column;
+}
+
+.sgl-sidenav-tab,
+.sgl-sidenav-toggle {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 2px 7px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--muted, #66665f);
+  font-size: 0.72rem;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.sgl-sidenav-tab:hover,
+.sgl-sidenav-toggle:hover {
+  color: var(--fg, #1d1d1b);
+  background: #e8e8e2;
+}
+
+.sgl-sidenav-tab:focus-visible,
+.sgl-sidenav-toggle:focus-visible {
+  outline: 2px solid var(--accent, #2c5d8f);
+  outline-offset: -2px;
+}
+
+.sgl-sidenav-tab.active {
+  color: var(--accent, #2c5d8f);
+  background: var(--panel, #fff);
+  font-weight: 650;
+}
+
+/* Active marker on the side facing the content. */
+.sgl-sidenav-tab.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--accent, #2c5d8f);
+}
+
+.sgl-sidenav-icon {
+  display: inline-flex;
+}
+
+.sgl-sidenav-badge {
+  font-size: 0.62rem;
+  font-weight: 500;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: #e2e2da;
+  color: var(--muted, #66665f);
+}
+
+/* Collapsed: icons only; labels stay available to assistive technology and as tooltips. */
+.sgl-sidenav.collapsed .sgl-sidenav-label,
+.sgl-sidenav.collapsed .sgl-sidenav-badge {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sgl-sidenav-toggle {
+  border-top: 1px solid var(--line, #d9d9d2);
+  font-size: 0.72rem;
+}
+
+/* ── Feedback (message first, technical details on demand) ───────────────────────────────── */
+
+.sgl-feedback {
+  margin: 6px 0;
+  padding: 7px 8px;
+  border: 1px solid;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.sgl-feedback-error {
+  background: #fdecec;
+  border-color: #e3a5a5;
+  color: #6f2626;
+}
+
+.sgl-feedback-warning {
+  background: #fdf6e3;
+  border-color: #e3cd8a;
+  color: #5e4510;
+}
+
+.sgl-feedback-info {
+  background: #eef3f9;
+  border-color: #b7cbe0;
+  color: #24496f;
+}
+
+.sgl-feedback-body {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.sgl-feedback-icon {
+  flex: none;
+  line-height: 1.35;
+}
+
+.sgl-feedback-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.sgl-feedback-text p,
+.sgl-feedback-text ul {
+  margin: 0;
+}
+
+.sgl-feedback-text ul {
+  padding-left: 16px;
+}
+
+.sgl-feedback-text p + p,
+.sgl-feedback-text p + ul {
+  margin-top: 3px;
+}
+
+.sgl-feedback-title {
+  font-weight: 600;
+}
+
+.sgl-feedback-details {
+  margin-top: 4px;
+}
+
+.sgl-feedback-details summary {
+  cursor: pointer;
+  font-size: 11.5px;
+  opacity: 0.85;
+}
+
+.sgl-feedback-details pre {
+  margin: 4px 0 0;
+  padding: 5px;
+  background: rgb(255 255 255 / 0.6);
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--fg, #1d1d1b);
+}
+
+.sgl-feedback-dismiss {
+  flex: none;
+  padding: 0 6px !important;
+  border: none !important;
+  background: none !important;
+  color: inherit;
+  font-size: 15px !important;
+  line-height: 1.2;
+}
+
+.sgl-feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.sgl-feedback-actions button {
+  font: inherit;
+  padding: 3px 10px;
+  border: 1px solid var(--line, #d9d9d2);
+  border-radius: 5px;
+  background: var(--panel, #fff);
+}
+
+.sgl-feedback-actions button.sgl-primary,
+.sgl-primary {
+  background: var(--accent, #2c5d8f);
+  border-color: var(--accent, #2c5d8f);
+  color: #fff;
+}
+
+/* ── Misc ─────────────────────────────────────────────────────────────────────────────────── */
+
+.sgl-placeholder p {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.sgl-placeholder .sgl-help {
+  font-size: 12px;
+  color: var(--muted, #66665f);
+}
+
+.sgl-load-failure {
+  flex: none;
+  max-height: 30vh;
+  overflow: auto;
+  margin: var(--gap, 8px) var(--gap, 8px) 0;
+}
+
+.sgl-load-failure .sgl-feedback {
+  margin: 0;
+  font-size: 13px;
+}

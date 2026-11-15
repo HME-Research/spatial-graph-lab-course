@@ -1,0 +1,187 @@
+diff --git a/app/Workspace.tsx b/app/Workspace.tsx
+index ded1663..9c70a26 100644
+--- a/app/Workspace.tsx
++++ b/app/Workspace.tsx
+@@ -1,16 +1,27 @@
+ import { useState, type ReactNode } from 'react';
+-import { VIEW_MODE_LABELS, VIEW_MODES, type ViewMode, type ViewProps } from '@app/views/contracts';
++import { type ViewMode, type ViewProps } from '@app/views/contracts';
+ import { createPanelMemory, PanelMemoryContext, type PanelMemory } from '@app/views/panelMemory';
+ import { VIEW_COMPONENTS } from '@app/views/registry';
+-import { Inspector } from './inspector/Inspector';
++import {
++  AlgorithmsIcon,
++  DesignerIcon,
++  DesignerPlaceholder,
++  PropertiesIcon,
++  SIDEBAR_DESCRIPTIONS,
++  SIDEBAR_LABELS,
++  SIDEBAR_SECTIONS,
++  SidebarNav,
++  ViewModeSelect,
++  type SidebarSection,
++} from '@app/ui';
++import { PropertiesPanel } from './inspector/Inspector';
+ 
+-type SidebarTab = 'inspector' | 'algorithms';
+-
+-const TAB_LABELS: Readonly<Record<SidebarTab, string>> = { inspector: 'Inspector', algorithms: 'Algorithms' };
++const SIDEBAR_ICONS = { properties: <PropertiesIcon />, algorithms: <AlgorithmsIcon />, designer: <DesignerIcon /> } as const;
+ 
+ /**
+  * Viewport host: one or two view panels sharing the same document, selection and command handler,
+- * and a sidebar with the inspector and the algorithm panel (`algorithms`) as tabs.
++ * and a sidebar with vertical sections: Properties, Algorithms (`algorithms`) and Designer
++ * (`designer`, a placeholder until the designer panel is supplied).
+  *
+  * Layout state lives here, not in the panels: each panel's view mode and its view memory (camera /
+  * diagram viewport) survive switching between single and split view. The second panel is unmounted
+@@ -18,11 +29,15 @@ const TAB_LABELS: Readonly<Record<SidebarTab, string>> = { inspector: 'Inspector
+  * layout change. Both sidebar tabs stay mounted, so switching tabs or collapsing the sidebar keeps
+  * drafts and algorithm results.
+  */
+-export function Workspace({ algorithms, ...props }: ViewProps & { readonly algorithms?: ReactNode }) {
++export function Workspace({
++  algorithms,
++  designer,
++  ...props
++}: ViewProps & { readonly algorithms?: ReactNode; readonly designer?: ReactNode }) {
+   const [split, setSplit] = useState(true);
+   const [modes, setModes] = useState<readonly [ViewMode, ViewMode]>(['graph2d', 'architecture']);
+   const [memories] = useState<readonly [PanelMemory, PanelMemory]>(() => [createPanelMemory(), createPanelMemory()]);
+-  const [tab, setTab] = useState<SidebarTab>('inspector');
++  const [tab, setTab] = useState<SidebarSection>('properties');
+   const [collapsed, setCollapsed] = useState(false);
+ 
+   const setMode = (index: 0 | 1, mode: ViewMode) => setModes((m) => (index === 0 ? [mode, m[1]] : [m[0], mode]));
+@@ -44,68 +59,21 @@ export function Workspace({ algorithms, ...props }: ViewProps & { readonly algor
+         ))}
+       </div>
+ 
+-      <aside className="sidebar" aria-label="Inspector and algorithms">
+-        <div className="sidebar-header">
+-          {collapsed ? null : (
+-            <div className="sidebar-tabs" role="tablist" aria-label="Sidebar">
+-              {(['inspector', 'algorithms'] as const).map((t) => (
+-                <button
+-                  key={t}
+-                  type="button"
+-                  role="tab"
+-                  id={`sidebar-tab-${t}`}
+-                  aria-selected={tab === t}
+-                  aria-controls={`sidebar-panel-${t}`}
+-                  className={tab === t ? 'sidebar-tab active' : 'sidebar-tab'}
+-                  onClick={() => setTab(t)}
+-                >
+-                  {TAB_LABELS[t]}
+-                </button>
+-              ))}
+-            </div>
+-          )}
+-          <button
+-            type="button"
+-            className="sidebar-toggle"
+-            aria-expanded={!collapsed}
+-            title={collapsed ? 'Show the sidebar' : 'Hide the sidebar'}
+-            aria-label={collapsed ? 'Show the sidebar' : 'Hide the sidebar'}
+-            onClick={() => setCollapsed((c) => !c)}
+-          >
+-            {collapsed ? '«' : '»'}
+-          </button>
+-        </div>
+-        {collapsed && (
+-          <div className="sidebar-rail">
+-            {(['inspector', 'algorithms'] as const).map((t) => (
+-              <button
+-                key={t}
+-                type="button"
+-                className="sidebar-rail-tab"
+-                title={`Show the ${TAB_LABELS[t].toLowerCase()}`}
+-                onClick={() => {
+-                  setTab(t);
+-                  setCollapsed(false);
+-                }}
+-              >
+-                {TAB_LABELS[t]}
+-              </button>
+-            ))}
+-          </div>
+-        )}
+-        {(['inspector', 'algorithms'] as const).map((t) => (
+-          <div
+-            key={t}
+-            role="tabpanel"
+-            id={`sidebar-panel-${t}`}
+-            aria-labelledby={`sidebar-tab-${t}`}
+-            className="sidebar-body"
+-            hidden={collapsed || tab !== t}
+-          >
+-            {t === 'inspector' ? <Inspector {...props} /> : algorithms}
+-          </div>
+-        ))}
+-      </aside>
++      <SidebarNav
++        label="Properties, algorithms and designer"
++        active={tab}
++        onActive={(id) => setTab(id as SidebarSection)}
++        collapsed={collapsed}
++        onCollapsedChange={setCollapsed}
++        tabs={SIDEBAR_SECTIONS.map((id) => ({
++          id,
++          label: SIDEBAR_LABELS[id],
++          description: SIDEBAR_DESCRIPTIONS[id],
++          icon: SIDEBAR_ICONS[id],
++          content: id === 'properties' ? <PropertiesPanel {...props} /> : id === 'algorithms' ? algorithms : (designer ?? <DesignerPlaceholder />),
++          ...(id === 'designer' && designer === undefined && { badge: 'soon' }),
++        }))}
++      />
+     </section>
+   );
+ }
+@@ -140,13 +108,7 @@ function ViewPanel({
+   return (
+     <div className="view-panel" data-panel={index}>
+       <div className="panel-header">
+-        <select value={mode} onChange={(e) => onMode(e.currentTarget.value as ViewMode)} aria-label={`View mode, panel ${index + 1}`}>
+-          {VIEW_MODES.map((m) => (
+-            <option key={m} value={m}>
+-              {VIEW_MODE_LABELS[m]}
+-            </option>
+-          ))}
+-        </select>
++        <ViewModeSelect mode={mode} onMode={onMode} panel={index + 1} />
+         <span className="panel-header-spacer" />
+         {layout}
+       </div>
+diff --git a/app/app.css b/app/app.css
+index 3de064b..4c8971d 100644
+--- a/app/app.css
++++ b/app/app.css
+@@ -7,7 +7,7 @@
+   --accent: #2c5d8f;
+   --error-bg: #fdecec;
+   --error-line: #d27373;
+-  --sidebar-width: 320px;
++  --sidebar-width: 380px;
+   --gap: 8px;
+   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+   color: var(--fg);
+@@ -133,7 +133,7 @@ main {
+ }
+ 
+ .workspace.sidebar-collapsed {
+-  --sidebar-width: 36px;
++  --sidebar-width: 54px;
+ }
+ 
+ .panels {
+@@ -331,7 +331,8 @@ main {
+     min-height: 420px;
+   }
+ 
+-  .sidebar-body {
++  .sidebar-body,
++  .sgl-sidenav-panel {
+     max-height: 70vh;
+   }
+ }

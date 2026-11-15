@@ -202,3 +202,184 @@
   margin: 0;
   font-weight: 600;
 }
+
+/* ── Stage 05: Properties ─────────────────────────────────────────────────────────────────── */
+
+.sgl-properties fieldset.sgl-section {
+  min-width: 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+.sgl-properties fieldset.sgl-section > legend {
+  float: left;
+  width: 100%;
+  margin: 0 0 6px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted, #66665f);
+}
+
+.sgl-properties fieldset.sgl-section > legend + * {
+  clear: left;
+}
+
+.sgl-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 9.5px;
+  font-style: italic;
+  font-weight: 700;
+  text-transform: none;
+  cursor: help;
+  vertical-align: 1px;
+}
+
+.sgl-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sgl-axis input {
+  width: 64px;
+}
+
+.sgl-inspector input.sgl-edited {
+  border-color: var(--accent, #2c5d8f);
+  background: #f3f7fc;
+}
+
+.sgl-inspector input[aria-invalid='true'] {
+  border-color: #d27373;
+  background: #fdf3f3;
+}
+
+.sgl-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--accent, #2c5d8f);
+}
+
+.sgl-type-select {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sgl-type-select select {
+  width: 100%;
+}
+
+.sgl-room-label {
+  font-variant-numeric: tabular-nums;
+}
+
+.sgl-title .sgl-id {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--muted, #66665f);
+}
+
+.sgl-empty {
+  margin: 0 0 4px;
+  color: var(--muted, #66665f);
+}
+
+.sgl-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.sgl-chip-ok {
+  margin-left: 0;
+  background: #e6f0e4;
+  color: #2f5a28;
+}
+
+.sgl-relations .sgl-chip-ok {
+  margin-left: 6px;
+}
+
+.sgl-chip-warning {
+  background: #fbeede;
+  color: #8a4b12;
+}
+
+.sgl-status {
+  margin: 0;
+}
+
+/* Two-choice radio group drawn as a segmented control. */
+.sgl-segmented {
+  display: inline-flex;
+}
+
+.sgl-segmented label {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 14px;
+  border: 1px solid var(--line, #d9d9d2);
+  background: var(--panel, #fff);
+  cursor: pointer;
+  user-select: none;
+}
+
+.sgl-segmented label:first-child {
+  border-radius: 5px 0 0 5px;
+}
+
+.sgl-segmented label:last-child {
+  border-radius: 0 5px 5px 0;
+  margin-left: -1px;
+}
+
+.sgl-segmented label.checked {
+  position: relative;
+  border-color: var(--accent, #2c5d8f);
+  background: #eef3f9;
+  font-weight: 600;
+}
+
+.sgl-segmented input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.sgl-segmented label:has(input:focus-visible) {
+  outline: 2px solid var(--accent, #2c5d8f);
+  outline-offset: 1px;
+}
+
+.sgl-connect {
+  margin-top: 6px;
+}
+
+.sgl-connect select {
+  flex: 1;
+}
+
+/* Long option texts must not widen the panel. */
+.sgl-inspector select {
+  max-width: 100%;
+}
