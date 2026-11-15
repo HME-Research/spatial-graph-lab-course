@@ -12,6 +12,8 @@ import {
   type GraphNode,
   type GridCoord,
 } from '@app/document';
+import { footprintBox, type DesignDocumentV2 } from '@app/document/v2';
+import type { Occupancy } from '@app/spatial';
 
 /**
  * Pure helpers for the Graph 2D editor and inspector. No React, no React Flow, no mutation.
@@ -26,6 +28,15 @@ export const NODE_HEIGHT = 64;
 const FALLBACK_GAP_X = 190;
 const FALLBACK_GAP_Y = 110;
 const FALLBACK_COLUMNS = 6;
+
+/**
+ * The part of a design document the diagram layout reads. Both schema v1 (`DesignDocument`) and
+ * v2 (`DesignDocumentV2`) documents satisfy it, so the layout helpers serve either.
+ */
+export interface DiagramSource {
+  readonly nodes: readonly { readonly id: string }[];
+  readonly diagram: { readonly positions: Readonly<Record<string, DiagramPosition>> };
+}
 
 export const formatGrid = (g: readonly number[]): string => `[${g.join(', ')}]`;
 
@@ -64,7 +75,7 @@ export const EDGE_STYLES: Readonly<Record<EdgeKind, EdgeStyle>> = {
  * node ID, so they are stable across renders and independent of grid cells. Nothing is written
  * to the document; a fallback only becomes stored when the user drags the node.
  */
-export function resolveDiagramPositions(doc: DesignDocument): ReadonlyMap<string, DiagramPosition> {
+export function resolveDiagramPositions(doc: DiagramSource): ReadonlyMap<string, DiagramPosition> {
   const result = new Map<string, DiagramPosition>();
   const missing: string[] = [];
   let minX = Infinity;
@@ -139,7 +150,7 @@ export function suggestFreeCell(doc: DesignDocument, nearNodeId?: string): GridC
 }
 
 /** Diagram position for a new node: beside `nearNodeId`, or below everything already shown. */
-export function suggestDiagramPosition(doc: DesignDocument, nearNodeId?: string): DiagramPosition {
+export function suggestDiagramPosition(doc: DiagramSource, nearNodeId?: string): DiagramPosition {
   const positions = resolveDiagramPositions(doc);
   const taken = [...positions.values()];
   const clear = (p: DiagramPosition) =>
@@ -232,4 +243,86 @@ export function rectBorderPoint(rect: Rect, toward: readonly [number, number]): 
   const sy = dy === 0 ? Infinity : rect.height / 2 / Math.abs(dy);
   const s = Math.min(sx, sy);
   return [cx + dx * s, cy + dy * s];
+}
+
+// ── Circular nodes ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Point on the border of a circle (centre, radius) in the direction of `toward`. Edges are drawn
+ * between circle borders so they visibly attach to each node regardless of handle placement.
+ * When `toward` is the centre itself, the centre is returned (there is no direction).
+ */
+export function circleBorderPoint(
+  centre: readonly [number, number],
+  radius: number,
+  toward: readonly [number, number],
+): [number, number] {
+  const dx = toward[0] - centre[0];
+  const dy = toward[1] - centre[1];
+  const length = Math.hypot(dx, dy);
+  if (length === 0) return [centre[0], centre[1]];
+  const r = Math.max(0, radius);
+  return [centre[0] + (dx / length) * r, centre[1] + (dy / length) * r];
+}
+
+export interface Circle {
+  readonly centre: readonly [number, number];
+  readonly radius: number;
+}
+
+/**
+ * Straight segment between two circles, border to border. When the circles touch or overlap (the
+ * diagram allows it) the segment falls back to the centre line so it never points backwards.
+ */
+export function circleSegment(a: Circle, b: Circle): { readonly from: [number, number]; readonly to: [number, number] } {
+  const distance = Math.hypot(b.centre[0] - a.centre[0], b.centre[1] - a.centre[1]);
+  if (distance <= a.radius + b.radius) return { from: [a.centre[0], a.centre[1]], to: [b.centre[0], b.centre[1]] };
+  return { from: circleBorderPoint(a.centre, a.radius, b.centre), to: circleBorderPoint(b.centre, b.radius, a.centre) };
+}
+
+// ── Default relationship for a new connection ────────────────────────────────────────────────
+
+/**
+ * Schema v1 only: the kind a new connection gets without asking — `door` for rooms side by side,
+ * `vertical-access` for rooms stacked on top of each other (the two v1 kinds that migrate to v2
+ * `access`), or null when the cells do not share a face (v1 cannot store that relationship).
+ * Schema v2 needs no such choice: every new relationship is `access`, touching or not.
+ */
+export function defaultV1ConnectionKind(a: GridCoord, b: GridCoord): EdgeKind | null {
+  if (isEdgeGeometryValid('door', a, b)) return 'door';
+  if (isEdgeGeometryValid('vertical-access', a, b)) return 'vertical-access';
+  return null;
+}
+
+// ── New rooms in a v2 document ───────────────────────────────────────────────────────────────
+
+/**
+ * A free 1×1×1 cell for a new v2 room: beside the room `nearNodeId` (at its minimum-corner row on
+ * each side, same storey first, then above and below), else the free cell on storey 0 closest to
+ * the origin. "Free" means no room and no generated connector occupies it. Deterministic.
+ */
+export function suggestFreeCellV2(doc: DesignDocumentV2, occupancy: Occupancy, nearNodeId?: string): GridCoord {
+  const isFree = (g: GridCoord) => occupancy.at(g) === undefined;
+  const near = nearNodeId === undefined ? undefined : doc.nodes.find((n) => n.id === nearNodeId);
+  if (near) {
+    const { min, max } = footprintBox(near);
+    const candidates: readonly GridCoord[] = [
+      [max[0] + 1, min[1], min[2]],
+      [min[0], max[1] + 1, min[2]],
+      [min[0] - 1, min[1], min[2]],
+      [min[0], min[1] - 1, min[2]],
+      [min[0], min[1], max[2] + 1],
+      [min[0], min[1], min[2] - 1],
+    ];
+    for (const g of candidates) if (isFree(g)) return g;
+  }
+  for (let r = 0; ; r++) {
+    for (let y = -r; y <= r; y++) {
+      for (let x = -r; x <= r; x++) {
+        if (Math.max(Math.abs(x), Math.abs(y)) !== r) continue;
+        const g: GridCoord = [x + 0, y + 0, 0]; // `+ 0` normalises -0
+        if (isFree(g)) return g;
+      }
+    }
+  }
 }
