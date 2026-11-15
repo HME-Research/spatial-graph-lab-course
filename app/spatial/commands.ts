@@ -3,6 +3,7 @@ import type { GridCoord } from '@core/spatial';
 import { fail, issue, SPATIAL_GRAPH_POLICY, type Attributes, type DiagramPosition, type Result } from '@app/document';
 import {
   DEFAULT_RELATIONSHIP_KIND,
+  footprintCells,
   nextDisplayId,
   validateDocumentV2,
   type ConnectorStyle,
@@ -14,6 +15,7 @@ import {
   type ValidationOptionsV2,
 } from '@app/document/v2';
 import { commitSpatialEdit, proposeSpatialEdit, type SpatialEditOptions } from './edit';
+import { resolveRelationships } from './resolve';
 
 /**
  * Schema-v2 document commands — FROZEN Gate 0 command shapes. Every command is pure, returns a
@@ -115,7 +117,27 @@ export function applyDesignCommand(
       const diagram = command.diagramPosition
         ? { positions: { ...doc.diagram.positions, [n.id]: [command.diagramPosition[0], command.diagramPosition[1]] as DiagramPosition } }
         : doc.diagram;
-      return validate({ ...doc, nodes: [...doc.nodes, node], diagram });
+      const added = validate({ ...doc, nodes: [...doc.nodes, node], diagram });
+      if (!added.ok) return added;
+      // A new room never silently fills a generated connector: place it elsewhere and move it with
+      // `set-node-geometry` + `confirmRouteDisplacement` ("Move anyway and recalculate").
+      const occupancy = (options.resolve ?? resolveRelationships)(doc).occupancy;
+      const displaced = new Set<string>();
+      for (const cell of footprintCells(node)) {
+        const o = occupancy.at(cell);
+        if (o?.kind === 'route') displaced.add(o.edgeId);
+      }
+      if (displaced.size > 0) {
+        return fail([
+          issue(
+            ['nodes'],
+            'route-displacement',
+            `room "${n.id}" would take cells of the connector(s) of ${[...displaced].sort().map((e) => `"${e}"`).join(', ')}; ` +
+              'place it elsewhere, then move it and confirm "Move anyway and recalculate"',
+          ),
+        ]);
+      }
+      return added;
     }
     case 'remove-node': {
       const result = graphRemoveNode({ policy: SPATIAL_GRAPH_POLICY, nodes: doc.nodes, edges: doc.edges }, command.nodeId);

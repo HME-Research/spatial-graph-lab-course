@@ -15,7 +15,7 @@ import {
 
 const doc = (): DesignDocumentV2 => expectOk(validateDocumentV2(v2Raw()));
 
-describe('resolveRelationships (Gate 0: direct + different-level; routing stubbed)', () => {
+describe('resolveRelationships (direct, different-level, straight routing)', () => {
   it('resolves every migrated v1 edge as direct, with the v1 contact orientation', () => {
     const example = expectOk(readDesignJson(exampleJson)).doc;
     const r = resolveRelationships(example);
@@ -25,12 +25,17 @@ describe('resolveRelationships (Gate 0: direct + different-level; routing stubbe
     expect(contact['entry-up']).toBe('vertical');
   });
 
-  it('keeps a non-touching relationship valid and reports it as unresolved, not as an error', () => {
+  it('keeps a non-touching relationship valid and routes it with a straight connector', () => {
+    // (Gate 0 asserted the `routing-unavailable` stub here; 02 replaced it with real routing.)
     const r = resolveRelationships(doc());
     const ab = r.byEdge.get('ab')!;
-    expect(ab.status).toBe('unresolved');
-    // GATE 0 STUB: 02-spatial-engine replaces this with a routed result or a real reason.
-    expect(ab.status === 'unresolved' && ab.reason).toBe('routing-unavailable');
+    expect(ab.status).toBe('routed');
+    expect(ab.status === 'routed' && ab.route.cells).toEqual([
+      [2, 0, 0],
+      [3, 0, 0],
+      [4, 0, 0],
+    ]);
+    expect(r.edges.some((e) => e.status === 'unresolved' && e.reason === 'routing-unavailable')).toBe(false);
   });
 
   it('reports separated rooms on different storeys as different-level', () => {
