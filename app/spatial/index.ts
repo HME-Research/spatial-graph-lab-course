@@ -8,3 +8,4 @@ export * from './edit';
 export * from './occupancy';
 export * from './port';
 export * from './resolve';
+export * from './straightRoute';

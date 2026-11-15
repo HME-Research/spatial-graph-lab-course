@@ -43,6 +43,7 @@ export type ExtensionIssueCode =
   | 'duplicate-node-id'
   | 'duplicate-edge-id'
   | 'invalid-grid'
+  | 'invalid-size'
   | 'occupied-cell'
   | 'undeclared-attribute-write'
   | 'unknown-edge-kind'

@@ -1,5 +1,6 @@
 import { exampleFacadeProvider, type FacadeSpec } from '@app/building';
 import type { DesignDocument } from '@app/document';
+import type { DesignDocumentV2 } from '@app/document/v2';
 import { typeColor } from '@core/viewer/appearance';
 import type { ActiveProject, RegisteredNodeType } from './activate';
 import { checkValue, describeSpec, specFor } from './attributes';
@@ -22,7 +23,8 @@ import { diagnostic, isBlocking, type ExtensionDiagnostic } from './diagnostics'
 export const findNodeType = (project: ActiveProject, typeId: string): RegisteredNodeType | undefined =>
   project.nodeTypes.find((t) => t.id === typeId);
 
-export function checkConformance(doc: DesignDocument, project: ActiveProject | null): ExtensionDiagnostic[] {
+/** Works on schema-v1 and schema-v2 documents (only node ids, types and attributes are read). */
+export function checkConformance(doc: Pick<DesignDocument, 'nodes'> | Pick<DesignDocumentV2, 'nodes'>, project: ActiveProject | null): ExtensionDiagnostic[] {
   if (!project) return [];
   const projectDefinesTypes = project.nodeTypes.length > 0;
   const out: ExtensionDiagnostic[] = [];
