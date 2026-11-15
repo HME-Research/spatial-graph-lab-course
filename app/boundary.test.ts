@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest';
 /**
  * Application layering (automated architectural check, not an access-control mechanism):
  *
- * - `document/` (v1 design document): pure; may import core/graph and core/spatial only.
+ * - `document/` (v1 design document and the schema-v2 contract in `document/v2/`): pure; may
+ *   import core/graph and core/spatial only.
+ * - `spatial/` (v2 relationship resolution, occupancy, spatial edits, v2 commands): pure; may
+ *   import `document/`, core/graph and core/spatial only.
  * - `building/` (architectural rules and geometry): pure; may also import `document/` and the
- *   pure core/viewer helpers (coordinates, selection), never React, Three.js or React Flow.
+ *   pure core/viewer helpers (coordinates, selection) and `spatial/`; never React, Three.js or React Flow.
  * - `extensions/` (project loading, definition validation, conformance, algorithm execution):
  *   pure; may import document, building, pure core modules and `@student-api`. It is the only
  *   app module that may import `@student-api` or glob `projects/` (`import.meta.glob`).
@@ -22,19 +25,20 @@ const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"]([^'"]+)
 const GLOB_CALL = /import\.meta\.glob\s*(?:<[^>]*>)?\s*\(\s*(\[[^\]]*\]|'[^']*'|"[^"]*")/g;
 const STRING = /['"]([^'"]+)['"]/g;
 
-type Layer = 'document' | 'building' | 'extensions' | 'views' | 'shell';
-const RANK: Readonly<Record<Layer, number>> = { document: 0, building: 1, extensions: 2, views: 3, shell: 4 };
+type Layer = 'document' | 'spatial' | 'building' | 'extensions' | 'views' | 'shell';
+const RANK: Readonly<Record<Layer, number>> = { document: 0, spatial: 1, building: 2, extensions: 3, views: 4, shell: 5 };
 
 const UI_PACKAGE = /^(react|react-dom|three)(\/|$)|^@react-three\/|^@xyflow\//;
 
 function layerOf(path: string): Layer {
-  for (const layer of ['document', 'building', 'extensions', 'views'] as const) {
+  for (const layer of ['document', 'spatial', 'building', 'extensions', 'views'] as const) {
     if (path.startsWith(`./${layer}/`) || path === `./${layer}`) return layer;
   }
   return 'shell';
 }
 
-const isPure = (layer: Layer) => layer === 'document' || layer === 'building' || layer === 'extensions';
+const isPure = (layer: Layer) =>
+  layer === 'document' || layer === 'spatial' || layer === 'building' || layer === 'extensions';
 
 /** Resolve a relative specifier against a glob key such as './views/three/x.ts'. */
 function resolveRelative(file: string, specifier: string): string {
@@ -56,7 +60,8 @@ function violation(file: string, specifier: string): string | null {
   }
 
   if (specifier.startsWith('@core/')) {
-    if (from === 'document' && !/^@core\/(graph|spatial)(\/|$)/.test(specifier)) return 'document may only use core/graph and core/spatial';
+    if ((from === 'document' || from === 'spatial') && !/^@core\/(graph|spatial)(\/|$)/.test(specifier))
+      return `${from} may only use core/graph and core/spatial`;
     if (from === 'building' && !/^@core\/(graph|spatial|viewer\/(coordinates|selection))$/.test(specifier))
       return 'building may only use pure core modules';
     if (from === 'extensions' && !/^@core\/(graph|spatial|viewer\/(appearance|coordinates|selection))$/.test(specifier))
@@ -98,7 +103,7 @@ const globPatterns = (text: string): string[] =>
 describe('application layering', () => {
   it('finds source files in every layer', () => {
     const keys = Object.keys(sources);
-    for (const dir of ['./document/', './building/', './extensions/', './views/', './inspector/']) {
+    for (const dir of ['./document/', './spatial/', './building/', './extensions/', './views/', './inspector/']) {
       expect(keys.some((k) => k.startsWith(dir))).toBe(true);
     }
     expect(keys).toContain('./App.tsx');
@@ -106,6 +111,13 @@ describe('application layering', () => {
 
   it('flags upward, UI and escaping imports (self-check)', () => {
     expect(violation('./document/x.ts', '@app/building')).not.toBeNull();
+    expect(violation('./document/v2/x.ts', '@app/spatial')).not.toBeNull();
+    expect(violation('./spatial/x.ts', '@app/building')).not.toBeNull();
+    expect(violation('./spatial/x.ts', 'three')).not.toBeNull();
+    expect(violation('./spatial/x.ts', '@core/viewer/coordinates')).not.toBeNull();
+    expect(violation('./spatial/x.ts', '@app/document/v2')).toBeNull();
+    expect(violation('./building/x.ts', '@app/spatial')).toBeNull();
+    expect(violation('./views/contracts.ts', '@app/spatial')).toBeNull();
     expect(violation('./document/x.ts', '@core/viewer/selection')).not.toBeNull();
     expect(violation('./building/x.ts', '@app/views/contracts')).not.toBeNull();
     expect(violation('./building/x.ts', '../views/registry')).not.toBeNull();

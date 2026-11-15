@@ -19,7 +19,12 @@ export type IssueCode =
   | 'duplicate-relationship'
   | 'invalid-edge-geometry'
   | 'unknown-node-position'
-  | 'not-found';
+  | 'not-found'
+  // Schema v2 (Gate 0, additive; never produced by the v1 validator):
+  | 'room-overlap'
+  | 'duplicate-display-id'
+  | 'too-many-cells'
+  | 'route-displacement';
 
 /** A readable problem located at a path inside the design document. */
 export type GraphIssue = Issue<IssueCode>;

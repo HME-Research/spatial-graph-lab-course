@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import type { DesignDocument, GraphCommand, GraphIssue } from '@app/document';
+import type { DesignPort } from '@app/spatial';
 import type { Selection, SelectionHandler } from '@core/viewer/selection';
 import type { ProjectViewContext } from './project';
 
@@ -32,6 +33,11 @@ export interface ViewProps {
    * without it a view behaves exactly as before projects existed.
    */
   readonly project?: ProjectViewContext;
+  /**
+   * Schema-v2 port (Gate 0; docs/CONTRACTS-V2.md). Optional and supplied only by the integration
+   * owner: without it a view keeps its v1 behaviour and hides v2-only features.
+   */
+  readonly design?: DesignPort;
 }
 
 export type ViewComponent = ComponentType<ViewProps>;

@@ -63,6 +63,13 @@
 - State transitions are computed outside React updater functions and handed to React as values (no side effects in updaters, StrictMode-safe). Shortcuts: Ctrl/Cmd+Z undo; Ctrl/Cmd+Shift+Z and Ctrl+Y redo; ignored inside text inputs, textareas and contenteditable elements so native text undo keeps working. No new dependency.
 - Not part of Stage 4B: persistent history across reloads, history of selection/camera/layout, merging consecutive edits, circular 2D nodes, connect mode, schema or Student API changes.
 
+## Schema v2 contract gate — Gate 0 (15 November 2026)
+- The parallel MVP wave builds against frozen v2 contracts in `docs/CONTRACTS-V2.md`: `@app/document/v2` (schema, validation, migration, read/write, footprints, display ids, appearance settings) and the new pure `@app/spatial` layer (relationship resolution, occupancy, spatial edits, v2 commands, the `DesignPort`).
+- Additive: the running app, the v1 module and its golden tests are unchanged. The app switches to v2 at integration. `ViewProps` gains one optional field, `design?: DesignPort`. `IssueCode` gains four v2-only codes.
+- Relationships are `access` / `open` and need no adjacency. Spatial status (`direct` / `routed` / `unresolved`) is derived, never validation. Rooms are integer boxes (`grid` minimum corner + `size`); room overlap is invalid. Resizing is anchored at the minimum corner. Taking generated connector cells needs explicit confirmation.
+- v1 → v2: `door`/`vertical-access` → `access`, `open`/`atrium` → `open`. The mapping is lossless because the v1 kind is recoverable from the rooms' contact. Read v1 and v2; write v2 only.
+- Straight-connector routing is a stub at Gate 0 (`routing-unavailable`). It and the Student API adaptation belong to 02-spatial-engine.
+
 ## Deferred / not yet verified
 - Full parametric face design tools, custom face code, GLB asset loading, stair markers, algorithm generation, multi-floor architectural slab joining, public hosting, class assignments, class-scale permission workflow.
 - Exact component parameters, site grid performance thresholds, geometry detail, architectural materials and deployment provider.
