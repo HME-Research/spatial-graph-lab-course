@@ -121,7 +121,10 @@ describe('display ids', () => {
     const added = v2Model(next).byNode.get(nodeId);
     expect(added?.label).toBe('03');
     // Beside room a (2×3×1 at the origin): first free cell on its +x side.
-    expect(added?.grid).toEqual([2, 0, 0]);
+    // With real routing (02) the a–b corridor reserves x = 2…4, y = 0, so the +x cell is a
+    // connector cell and the next free cell (+y side) is used.
+    expect(resolveRelationships(doc).occupancy.at([2, 0, 0])).toEqual({ kind: 'route', edgeId: 'ab' });
+    expect(added?.grid).toEqual([0, 3, 0]);
   });
 });
 

@@ -140,7 +140,8 @@ describe('one gesture = at most one command', () => {
     expect(host.sent[0]).toEqual({ type: 'set-node-geometry', nodeId: 'b', grid: [5, 3, 0], size: [1, 1, 1] });
     expect(room(host.port, 'b').grid).toEqual([5, 3, 0]);
     expect(r.state).toBe(IDLE);
-    expect(r.feedback).toEqual({ tone: 'info', text: 'Moved room 02 to [5, 3, 0].' });
+    // Real resolver: b leaves the a–b corridor axis, so ab goes from routed to unresolved.
+    expect(r.feedback).toEqual({ tone: 'info', text: 'Moved room 02 to [5, 3, 0]. 1 relationship changed status.' });
   });
 
   it('a drag that returns to the start sends nothing', () => {
