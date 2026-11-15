@@ -303,7 +303,7 @@ export function buildArchitecture(faces: readonly ResolvedFace[], options: Archi
 }
 
 /** World-space bounds of a set of elements, or null when empty. For camera framing. */
-export function elementBounds(elements: readonly ArchitecturalElement[]): { min: WorldPoint; max: WorldPoint; centre: WorldPoint; radius: number } | null {
+export function elementBounds(elements: readonly Pick<ArchitecturalElement, 'position' | 'size'>[]): { min: WorldPoint; max: WorldPoint; centre: WorldPoint; radius: number } | null {
   if (elements.length === 0) return null;
   const min = [Infinity, Infinity, Infinity];
   const max = [-Infinity, -Infinity, -Infinity];
