@@ -1,112 +1,97 @@
 import { useState, type ReactNode } from 'react';
-import { VIEW_MODE_LABELS, VIEW_MODES, type ViewMode, type ViewProps } from '@app/views/contracts';
+import { AnalysisOverlayContext } from '@app/views/analysisOverlay';
+import type { ViewMode, ViewProps } from '@app/views/contracts';
 import { createPanelMemory, PanelMemoryContext, type PanelMemory } from '@app/views/panelMemory';
+import type { AnalysisPresentation } from '@app/views/presentation';
+import { AnalysisLegend } from '@app/views/presentation/LegendViews';
 import { VIEW_COMPONENTS } from '@app/views/registry';
-import { Inspector } from './inspector/Inspector';
+import {
+  AlgorithmsIcon,
+  DesignerIcon,
+  DesignerPlaceholder,
+  PropertiesIcon,
+  SIDEBAR_DESCRIPTIONS,
+  SIDEBAR_LABELS,
+  SIDEBAR_SECTIONS,
+  SidebarNav,
+  ViewModeSelect,
+  type SidebarSection,
+} from '@app/ui';
+import { PropertiesPanel } from './inspector/Inspector';
 
-type SidebarTab = 'inspector' | 'algorithms';
+const SIDEBAR_ICONS = { properties: <PropertiesIcon />, algorithms: <AlgorithmsIcon />, designer: <DesignerIcon /> } as const;
 
-const TAB_LABELS: Readonly<Record<SidebarTab, string>> = { inspector: 'Inspector', algorithms: 'Algorithms' };
+export interface WorkspaceProps extends ViewProps {
+  readonly algorithms?: ReactNode;
+  /** The Designer panel; without it the Stage 05 placeholder is shown. */
+  readonly designer?: ReactNode;
+  /** Analysis values shown on the model (Stage 07 overlay), or null. Never part of the document. */
+  readonly analysis?: AnalysisPresentation | null;
+  readonly onClearAnalysis?: () => void;
+}
 
 /**
- * Viewport host: one or two view panels sharing the same document, selection and command handler,
- * and a sidebar with the inspector and the algorithm panel (`algorithms`) as tabs.
+ * Viewport host: one or two view panels sharing the same document, design port, selection and
+ * command handler, and a sidebar with vertical sections: Properties, Algorithms and Designer.
  *
  * Layout state lives here, not in the panels: each panel's view mode and its view memory (camera /
  * diagram viewport) survive switching between single and split view. The second panel is unmounted
  * in single view, so no hidden renderer keeps running; the first panel is never remounted by a
- * layout change. Both sidebar tabs stay mounted, so switching tabs or collapsing the sidebar keeps
- * drafts and algorithm results.
+ * layout change. All sidebar sections stay mounted (SidebarNav hides inactive ones), so switching
+ * sections or collapsing the sidebar keeps drafts and algorithm results.
  */
-export function Workspace({ algorithms, ...props }: ViewProps & { readonly algorithms?: ReactNode }) {
+export function Workspace({ algorithms, designer, analysis = null, onClearAnalysis, ...props }: WorkspaceProps) {
   const [split, setSplit] = useState(true);
   const [modes, setModes] = useState<readonly [ViewMode, ViewMode]>(['graph2d', 'architecture']);
   const [memories] = useState<readonly [PanelMemory, PanelMemory]>(() => [createPanelMemory(), createPanelMemory()]);
-  const [tab, setTab] = useState<SidebarTab>('inspector');
+  const [tab, setTab] = useState<SidebarSection>('properties');
   const [collapsed, setCollapsed] = useState(false);
 
   const setMode = (index: 0 | 1, mode: ViewMode) => setModes((m) => (index === 0 ? [mode, m[1]] : [m[0], mode]));
   const panels: readonly (0 | 1)[] = split ? [0, 1] : [0];
 
-  return (
-    <section className={collapsed ? 'workspace sidebar-collapsed' : 'workspace'} aria-label="Workspace">
-      <div className={split ? 'panels split' : 'panels'}>
-        {panels.map((index) => (
-          <PanelMemoryContext.Provider key={index} value={memories[index]}>
-            <ViewPanel
-              {...props}
-              index={index}
-              mode={modes[index]}
-              onMode={(mode) => setMode(index, mode)}
-              layout={index === 0 ? <LayoutToggle split={split} onSplit={setSplit} /> : null}
-            />
-          </PanelMemoryContext.Provider>
-        ))}
-      </div>
+  const algorithmsSection = (
+    <>
+      {analysis && <AnalysisLegend presentation={analysis} {...(onClearAnalysis && { onClear: onClearAnalysis })} />}
+      {algorithms}
+    </>
+  );
 
-      <aside className="sidebar" aria-label="Inspector and algorithms">
-        <div className="sidebar-header">
-          {collapsed ? null : (
-            <div className="sidebar-tabs" role="tablist" aria-label="Sidebar">
-              {(['inspector', 'algorithms'] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  role="tab"
-                  id={`sidebar-tab-${t}`}
-                  aria-selected={tab === t}
-                  aria-controls={`sidebar-panel-${t}`}
-                  className={tab === t ? 'sidebar-tab active' : 'sidebar-tab'}
-                  onClick={() => setTab(t)}
-                >
-                  {TAB_LABELS[t]}
-                </button>
-              ))}
-            </div>
-          )}
-          <button
-            type="button"
-            className="sidebar-toggle"
-            aria-expanded={!collapsed}
-            title={collapsed ? 'Show the sidebar' : 'Hide the sidebar'}
-            aria-label={collapsed ? 'Show the sidebar' : 'Hide the sidebar'}
-            onClick={() => setCollapsed((c) => !c)}
-          >
-            {collapsed ? '«' : '»'}
-          </button>
+  return (
+    <AnalysisOverlayContext.Provider value={analysis}>
+      <section className={collapsed ? 'workspace sidebar-collapsed' : 'workspace'} aria-label="Workspace">
+        <div className={split ? 'panels split' : 'panels'}>
+          {panels.map((index) => (
+            <PanelMemoryContext.Provider key={index} value={memories[index]}>
+              <ViewPanel
+                {...props}
+                index={index}
+                mode={modes[index]}
+                onMode={(mode) => setMode(index, mode)}
+                layout={index === 0 ? <LayoutToggle split={split} onSplit={setSplit} /> : null}
+              />
+            </PanelMemoryContext.Provider>
+          ))}
         </div>
-        {collapsed && (
-          <div className="sidebar-rail">
-            {(['inspector', 'algorithms'] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                className="sidebar-rail-tab"
-                title={`Show the ${TAB_LABELS[t].toLowerCase()}`}
-                onClick={() => {
-                  setTab(t);
-                  setCollapsed(false);
-                }}
-              >
-                {TAB_LABELS[t]}
-              </button>
-            ))}
-          </div>
-        )}
-        {(['inspector', 'algorithms'] as const).map((t) => (
-          <div
-            key={t}
-            role="tabpanel"
-            id={`sidebar-panel-${t}`}
-            aria-labelledby={`sidebar-tab-${t}`}
-            className="sidebar-body"
-            hidden={collapsed || tab !== t}
-          >
-            {t === 'inspector' ? <Inspector {...props} /> : algorithms}
-          </div>
-        ))}
-      </aside>
-    </section>
+
+        <SidebarNav
+          label="Properties, algorithms and designer"
+          active={tab}
+          onActive={(id) => setTab(id as SidebarSection)}
+          collapsed={collapsed}
+          onCollapsedChange={setCollapsed}
+          tabs={SIDEBAR_SECTIONS.map((id) => ({
+            id,
+            label: SIDEBAR_LABELS[id],
+            description: SIDEBAR_DESCRIPTIONS[id],
+            icon: SIDEBAR_ICONS[id],
+            content:
+              id === 'properties' ? <PropertiesPanel {...props} /> : id === 'algorithms' ? algorithmsSection : (designer ?? <DesignerPlaceholder />),
+            ...(id === 'designer' && designer === undefined && { badge: 'soon' }),
+          }))}
+        />
+      </section>
+    </AnalysisOverlayContext.Provider>
   );
 }
 
@@ -138,15 +123,9 @@ function ViewPanel({
 }) {
   const View = VIEW_COMPONENTS[mode];
   return (
-    <div className="view-panel" data-panel={index}>
+    <div className="view-panel" data-panel={index} data-view={mode}>
       <div className="panel-header">
-        <select value={mode} onChange={(e) => onMode(e.currentTarget.value as ViewMode)} aria-label={`View mode, panel ${index + 1}`}>
-          {VIEW_MODES.map((m) => (
-            <option key={m} value={m}>
-              {VIEW_MODE_LABELS[m]}
-            </option>
-          ))}
-        </select>
+        <ViewModeSelect mode={mode} onMode={onMode} panel={index + 1} />
         <span className="panel-header-spacer" />
         {layout}
       </div>

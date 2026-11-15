@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseDesignJson, serializeDesign } from '@app/document';
+import { readDesignJson, serializeDesignV2 } from '@app/document/v2';
 import { expectOk } from '@app/document/test-fixtures';
 import { PROJECT_GLOBS } from '@app/extensions';
 import { fakeGlobs, LAB_FILES } from '@app/extensions/test-fixtures';
@@ -15,7 +15,7 @@ import {
 
 // Definitions are written as plain objects: only app/extensions may import @student-api, whose
 // define… helpers are identity functions (algorithm helpers add `scope`).
-const builtIn = { doc: expectOk(parseDesignJson(builtInText)), source: 'built-in example' };
+const builtIn = { doc: expectOk(readDesignJson(builtInText)).doc, source: 'built-in example' };
 
 describe('project activation in the application', () => {
   it('activates example-gallery by default and opens its default design', async () => {
@@ -23,7 +23,7 @@ describe('project activation in the application', () => {
     expect(activeProjectOf(session)?.id).toBe('example-gallery');
     expect(session.available).toContain('example-gallery');
     expect(startup.source).toBe('projects/example-gallery/designs/two-storey-example.json');
-    expect(startup.doc && serializeDesign(startup.doc)).toBe(serializeDesign(builtIn.doc));
+    expect(startup.doc && serializeDesignV2(startup.doc)).toBe(serializeDesignV2(builtIn.doc));
     expect(startup.diagnostics).toEqual([]);
     expect(projectHeadline(session, true)).toEqual({ tone: 'ok', title: 'Example gallery' });
   });

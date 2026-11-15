@@ -1,5 +1,9 @@
 import type { FacadeProvider, FacadeSpec } from '@app/building';
 import type { DesignDocument } from '@app/document';
+import type { DesignDocumentV2 } from '@app/document/v2';
+
+/** Only node ids and types are read: a v1 document, or the stored schema-v2 document. */
+type TypedNodes = Pick<DesignDocument, 'nodes'> | Pick<DesignDocumentV2, 'nodes'>;
 import {
   checkConformance,
   findNodeType,
@@ -49,7 +53,7 @@ export function projectFacadeProvider(project: ActiveProject | null): FacadeProv
 /** Context for `doc`. Pass the project's `facade` provider to keep it stable across document edits. */
 export function buildProjectViewContext(
   project: ActiveProject | null,
-  doc: DesignDocument,
+  doc: TypedNodes,
   facade: FacadeProvider = projectFacadeProvider(project),
 ): ProjectViewContext {
   return { project, conformance: checkConformance(doc, project), facade };
@@ -92,7 +96,7 @@ export function typeDisplayName(status: NodeTypeStatus, typeId: string): string 
 }
 
 /** Ids of the document's node types whose definition is broken (sorted). */
-export function brokenTypeIds(project: ActiveProject | null, doc: DesignDocument): string[] {
+export function brokenTypeIds(project: ActiveProject | null, doc: TypedNodes): string[] {
   if (!project) return [];
-  return [...new Set(doc.nodes.map((n) => n.typeId))].filter((t) => nodeTypeStatus(project, t).kind === 'broken').sort();
+  return [...new Set((doc.nodes as readonly { readonly typeId: string }[]).map((n) => n.typeId))].filter((t) => nodeTypeStatus(project, t).kind === 'broken').sort();
 }

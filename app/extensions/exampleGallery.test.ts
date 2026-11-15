@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { buildArchitecture, EXAMPLE_FACADES, exampleFacadeProvider, resolveFaces } from '@app/building';
 import { parseDesignJson, serializeDesign, validateDocument, type DesignDocument } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
+import { migrateV1toV2, serializeDesignV2 } from '@app/document/v2';
 import { typeColor } from '@core/viewer/appearance';
 import builtInText from '../document/examples/two-storey-example.json?raw';
 import { activate, resolveStartupDesign, type ActiveProject } from './activate';
@@ -44,13 +45,14 @@ describe('projects/example-gallery', () => {
   it('teaching copy of the design has not drifted from the built-in example', () => {
     const copy = project.designs.find((d) => d.id === 'two-storey-example')!;
     expect(copy.file).toBe('projects/example-gallery/designs/two-storey-example.json');
-    expect(copy.result.ok && serializeDesign(copy.result.value)).toBe(serializeDesign(builtIn));
+    expect(copy.sourceVersion).toBe(1);
+    expect(copy.result.ok && serializeDesignV2(copy.result.value)).toBe(serializeDesignV2(migrateV1toV2(builtIn)));
   });
 
   it('starts with its default design (the same content as the built-in example)', () => {
-    const start = resolveStartupDesign({ status: 'active', project }, { doc: builtIn, source: 'built-in' });
+    const start = resolveStartupDesign({ status: 'active', project }, { doc: migrateV1toV2(builtIn), source: 'built-in' });
     expect(start.source).toBe('projects/example-gallery/designs/two-storey-example.json');
-    expect(start.doc && serializeDesign(start.doc)).toBe(serializeDesign(builtIn));
+    expect(start.doc && serializeDesignV2(start.doc)).toBe(serializeDesignV2(migrateV1toV2(builtIn)));
   });
 
   it('reproduces the existing appearance: typeColor and the example façades', () => {

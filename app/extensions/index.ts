@@ -12,6 +12,7 @@ export * from './diagnostics';
 export * from './discover';
 export * from './run';
 export * from './transform';
+export { applyTransformationV2, type TransformationPreviewV2 } from './transformV2';
 export { PROJECT_GLOBS } from './projectGlobs';
 /** Student API types the application shell needs (only app/extensions may import `@student-api`). */
 export type { AnalysisResult, AttributeSpec, AttributeSpecs, SpatialOperation } from '@student-api';

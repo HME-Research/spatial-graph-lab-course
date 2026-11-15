@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
-import type { ActiveProject, AttributeSpec, ExtensionDiagnostic, TransformationPreview } from '@app/extensions';
+import type { DesignDocumentV2 } from '@app/document/v2';
+import type { ActiveProject, AttributeSpec, ExtensionDiagnostic, TransformationPreviewV2 } from '@app/extensions';
+import { HelpTip } from '@app/ui/help';
 import { selectNode, type SelectionHandler } from '@core/viewer/selection';
 import {
   analysisRows,
@@ -8,9 +10,9 @@ import {
   isStale,
   listAlgorithms,
   parameterProblems,
-  runEntry,
+  runEntryV2,
   type AlgorithmEntry,
-  type AlgorithmRun,
+  type AlgorithmRunV2,
   type ApplyOutcome,
   type ParameterDrafts,
 } from './algorithmSession';
@@ -27,19 +29,28 @@ export function AlgorithmPanel({
   version,
   onApply,
   onSelect,
+  shownAnalysis = null,
+  onShowAnalysis,
 }: {
   readonly project: ActiveProject | null;
-  /** The current document and its revision; results are bound to it. */
-  readonly version: DocumentVersion | null;
-  /** Apply a preview to the current design (atomic, stale-checked). */
-  readonly onApply: (preview: TransformationPreview, ranAt: number, label: string) => ApplyOutcome;
+  /** The current (schema-v2) document and its revision; results are bound to it. */
+  readonly version: DocumentVersion<DesignDocumentV2> | null;
+  /**
+   * Apply a preview to the current design (atomic, stale-checked). `confirmed`: the user chose
+   * "Move anyway and recalculate" for corridors displaced by new rooms.
+   */
+  readonly onApply: (preview: TransformationPreviewV2, ranAt: number, label: string, confirmed: boolean) => ApplyOutcome<DesignDocumentV2>;
   readonly onSelect: SelectionHandler;
+  /** The analysis run currently shown on the model (owned by the shell), if any. */
+  readonly shownAnalysis?: AlgorithmRunV2 | null;
+  /** Show an analysis run's values on the model, or clear the overlay (null). */
+  readonly onShowAnalysis?: (run: AlgorithmRunV2 | null) => void;
 }) {
   const algorithms = listAlgorithms(project);
   // Selected by file: ids may collide (duplicate definitions are listed separately, both disabled).
   const [selectedFile, setSelectedFile] = useState<string | null>(() => algorithms.find((a) => a.enabled)?.file ?? algorithms[0]?.file ?? null);
   const [drafts, setDrafts] = useState<Readonly<Record<string, ParameterDrafts>>>({});
-  const [run, setRun] = useState<AlgorithmRun | null>(null);
+  const [run, setRun] = useState<AlgorithmRunV2 | null>(null);
   const [notice, setNotice] = useState<{ readonly tone: 'ok' | 'error'; readonly text: string } | null>(null);
 
   const selectedIndex = algorithms.findIndex((a) => a.file === selectedFile);
@@ -59,15 +70,15 @@ export function AlgorithmPanel({
     e.preventDefault();
     if (!selected || !selected.enabled || !version) return;
     setNotice(null);
-    setRun(runEntry(version, project, selected, entryDrafts));
+    setRun(runEntryV2(version, project, selected, entryDrafts));
   };
 
-  const apply = (preview: TransformationPreview) => {
+  const apply = (preview: TransformationPreviewV2, confirmed: boolean) => {
     if (!run) return;
-    const outcome = onApply(preview, run.revision, run.label);
+    const outcome = onApply(preview, run.revision, run.label, confirmed);
     if (outcome.ok) {
       setRun(null);
-      setNotice({ tone: 'ok', text: `Applied “${run.label}”: ${preview.operations.length} operation(s).` });
+      setNotice({ tone: 'ok', text: `Applied “${run.label}”: ${preview.operations.length} operation(s). Undo reverts it in one step.` });
     } else setNotice({ tone: 'error', text: outcome.message });
   };
 
@@ -136,7 +147,20 @@ export function AlgorithmPanel({
       )}
 
       {notice && <p className={notice.tone === 'ok' ? 'algorithm-notice' : 'sgl-error'}>{notice.text}</p>}
-      {run && <RunResult run={run} version={version} onApply={apply} onDiscard={() => setRun(null)} onSelect={onSelect} />}
+      {run && (
+        <RunResult
+          run={run}
+          version={version}
+          onApply={apply}
+          onDiscard={() => {
+            if (shownAnalysis === run) onShowAnalysis?.(null);
+            setRun(null);
+          }}
+          onSelect={onSelect}
+          shown={shownAnalysis === run}
+          {...(onShowAnalysis && { onShow: (show: boolean) => onShowAnalysis(show ? run : null) })}
+        />
+      )}
     </div>
   );
 }
@@ -209,13 +233,18 @@ function RunResult({
   onApply,
   onDiscard,
   onSelect,
+  shown,
+  onShow,
 }: {
-  readonly run: AlgorithmRun;
-  readonly version: DocumentVersion | null;
-  readonly onApply: (preview: TransformationPreview) => void;
+  readonly run: AlgorithmRunV2;
+  readonly version: DocumentVersion<DesignDocumentV2> | null;
+  readonly onApply: (preview: TransformationPreviewV2, confirmed: boolean) => void;
   readonly onDiscard: () => void;
   readonly onSelect: SelectionHandler;
+  readonly shown: boolean;
+  readonly onShow?: (show: boolean) => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
   const stale = isStale(run, version);
   const doc = version?.doc ?? null;
   const nodeButton = (id: string, enabled = true) =>
@@ -245,9 +274,22 @@ function RunResult({
     const rows = analysisRows(outcome.result.nodeValues, run.doc, doc);
     return (
       <section className="sgl-section algorithm-result">
-        <h4>Analysis: {run.label}</h4>
+        <h4>
+          Analysis: {run.label} <HelpTip topicId="analysis-results" />
+        </h4>
         {outcome.result.summary && <p>{outcome.result.summary}</p>}
-        {stale && <p className="sgl-warning">⚠ The design has changed since this ran; run it again for current values.</p>}
+        {stale && (
+          <p className="sgl-warning">
+            ⚠ The design has changed since this ran; run it again for current values. <HelpTip topicId="stale-results" />
+          </p>
+        )}
+        {onShow && (
+          <div className="sgl-buttons">
+            <button type="button" aria-pressed={shown} onClick={() => onShow(!shown)}>
+              {shown ? 'Hide colours on the model' : 'Show on the model'}
+            </button>
+          </div>
+        )}
         <table className="algorithm-table">
           <thead>
             <tr>
@@ -338,11 +380,32 @@ function RunResult({
           The design has changed since this preview was computed, so it can no longer be applied. Run the algorithm again.
         </p>
       )}
+      {!stale && !empty && preview.displacedRoutes.length > 0 && (
+        <p className="sgl-warning" role="status">
+          ⚠ New rooms would take the corridor cells of {preview.displacedRoutes.join(', ')}. Applying keeps those relationships
+          and recalculates their corridors; some may become Unresolved.
+        </p>
+      )}
       <div className="sgl-buttons">
-        {!empty && (
-          <button type="button" className="apply-button" disabled={stale} onClick={() => onApply(preview)}>
+        {!empty && !confirming && (
+          <button
+            type="button"
+            className="apply-button"
+            disabled={stale}
+            onClick={() => (preview.displacedRoutes.length > 0 ? setConfirming(true) : onApply(preview, false))}
+          >
             Apply
           </button>
+        )}
+        {!empty && confirming && (
+          <>
+            <button type="button" onClick={() => setConfirming(false)} autoFocus>
+              Cancel
+            </button>
+            <button type="button" className="apply-button" disabled={stale} onClick={() => onApply(preview, true)}>
+              Move anyway and recalculate
+            </button>
+          </>
         )}
         <button type="button" onClick={onDiscard}>
           {empty ? 'Close' : 'Discard'}

@@ -52,5 +52,5 @@ export const VIEW_MODE_LABELS: Readonly<Record<ViewMode, string>> = {
   graph2d: 'Graph 2D',
   graph3d: 'Graph 3D',
   voxels: 'Voxels',
-  architecture: 'Architecture',
+  architecture: 'Building',
 };

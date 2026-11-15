@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { validateDocument, type DesignDocument } from '@app/document';
+import { validateDocument } from '@app/document';
+import { migrateV1toV2, type DesignDocumentV2 } from '@app/document/v2';
 import exampleDesign from '../document/examples/two-storey-example.json';
 import { activateProject, type ActiveProject } from './activate';
 import { checkConformance } from './conformance';
 import { discoverProjects } from './discover';
 import { PROJECT_GLOBS } from './projectGlobs';
-import { runAlgorithm } from './run';
+import { runAlgorithmV2 } from './run';
 
 /**
  * Project check: every project under projects/ is loaded exactly as the app loads it. Run it
@@ -55,10 +56,11 @@ describe.each(projects.map((p) => [p.id, p] as const))('project "%s"', (_id, sou
     const project = await active();
     const chosen = project.designs.find((d) => d.id === project.definition.defaultDesign);
     const builtIn = validateDocument(exampleDesign);
-    const doc: DesignDocument | undefined = chosen?.result.ok ? chosen.result.value : builtIn.ok ? builtIn.value : undefined;
+    // The app runs algorithms on the stored schema-v2 document (v1 files are migrated on load).
+    const doc: DesignDocumentV2 | undefined = chosen?.result.ok ? chosen.result.value : builtIn.ok ? migrateV1toV2(builtIn.value) : undefined;
     expect(doc).toBeDefined();
     for (const algorithm of project.algorithms.filter((a) => a.status.ok)) {
-      const outcome = runAlgorithm(doc!, project, algorithm.id);
+      const outcome = runAlgorithmV2(doc!, project, algorithm.id);
       expect(outcome.ok ? [] : lines(outcome.issues), `${algorithm.file}`).toEqual([]);
     }
   });

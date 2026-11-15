@@ -1,5 +1,6 @@
 import type { ZodType } from 'zod';
-import { parseDesignJson, type DesignDocument, type Result } from '@app/document';
+import type { Result } from '@app/document';
+import { readDesignJson, type DesignDocumentV2 } from '@app/document/v2';
 import type { GraphAlgorithm, NodeTypeDefinition, ProjectDefinition, SpatialAlgorithm } from '@student-api';
 import {
   algorithmDefinitionSchema,
@@ -47,7 +48,10 @@ export interface RegisteredDesign {
   /** File name without `.json`. */
   readonly id: string;
   readonly file: string;
-  readonly result: Result<DesignDocument>;
+  /** Read with `readDesignJson`: v1 files are validated with the v1 rules, then migrated; v2 files validated as v2. */
+  readonly result: Result<DesignDocumentV2>;
+  /** Schema version of the file on disk (the file itself is never rewritten). */
+  readonly sourceVersion?: 1 | 2;
 }
 
 export interface ActiveProject {
@@ -180,13 +184,18 @@ export async function activateProject(source: ProjectSource): Promise<Activation
   const diagnostics: ExtensionDiagnostic[] = [...types.diagnostics, ...algorithms.diagnostics];
   const designs: RegisteredDesign[] = [];
   for (const d of source.designs) {
-    let result: Result<DesignDocument>;
+    let result: Result<DesignDocumentV2>;
+    let sourceVersion: 1 | 2 | undefined;
     try {
-      result = parseDesignJson(await d.load());
+      const read = readDesignJson(await d.load());
+      if (read.ok) {
+        result = { ok: true, value: read.value.doc };
+        sourceVersion = read.value.sourceVersion;
+      } else result = read;
     } catch (error) {
       result = { ok: false, issues: [{ path: [], code: 'invalid-json', message: error instanceof Error ? error.message : String(error) }] };
     }
-    designs.push({ id: d.stem, file: d.file, result });
+    designs.push({ id: d.stem, file: d.file, result, ...(sourceVersion !== undefined && { sourceVersion }) });
     if (!result.ok) {
       diagnostics.push(
         diagnostic('invalid-design', 'error', { kind: 'file', path: d.file }, `design ${d.file} is invalid (${result.issues.length} problem${result.issues.length === 1 ? '' : 's'}) and cannot be loaded`),
@@ -243,7 +252,7 @@ export async function activate(
 
 export interface StartupDesign {
   /** null: nothing loaded (the project's chosen default design is missing or invalid). */
-  readonly doc: DesignDocument | null;
+  readonly doc: DesignDocumentV2 | null;
   readonly source: string;
   /** To be shown prominently and persistently. */
   readonly diagnostics: readonly ExtensionDiagnostic[];
@@ -259,7 +268,7 @@ export interface StartupDesign {
  */
 export function resolveStartupDesign(
   activation: Activation,
-  builtIn: { readonly doc: DesignDocument; readonly source: string },
+  builtIn: { readonly doc: DesignDocumentV2; readonly source: string },
 ): StartupDesign {
   if (activation.status === 'none') return { ...builtIn, diagnostics: [] };
   if (activation.status === 'failed') return { ...builtIn, diagnostics: activation.diagnostics };

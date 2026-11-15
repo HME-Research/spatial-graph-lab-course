@@ -1,4 +1,4 @@
-import type { DesignDocument } from '@app/document';
+import type { DesignDocumentV2 } from '@app/document/v2';
 import {
   activate,
   discoverProjects,
@@ -47,7 +47,7 @@ export function searchWithProject(search: string, projectId: string): string {
 export async function startProject(
   globs: ProjectGlobs,
   request: ProjectRequest,
-  builtIn: { readonly doc: DesignDocument; readonly source: string },
+  builtIn: { readonly doc: DesignDocumentV2; readonly source: string },
 ): Promise<ProjectStart> {
   const { activation, discovery } = await activate(globs, request);
   const available = discoverProjects(globs).projects.map((p) => p.id);

@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
 import { serializeDesign, validateDocument } from '@app/document';
+import { migrateV1toV2 } from '@app/document/v2';
 import { defineGraphAlgorithm, defineNodeType, defineProject } from '@student-api';
 import exampleJson from '../document/examples/two-storey-example.json';
 import { activate, activateProject, resolveStartupDesign, type Activation } from './activate';
 import { DEFAULT_PROJECT_ID, discoverProjects, selectProject } from './discover';
 import { fakeGlobs, galleryType, LAB_FILES, labProject, LOAD_FAILS } from './test-fixtures';
 
-const builtIn = { doc: expectOk(validateDocument(exampleJson)), source: 'app/document/examples/two-storey-example.json' };
+// Project design files may be v1 (migrated on load) or v2; the app holds v2 after Gate 1.
+const builtInV1 = expectOk(validateDocument(exampleJson));
+const builtIn = { doc: migrateV1toV2(builtInV1), source: 'app/document/examples/two-storey-example.json' };
 const analysis = () => ({ kind: 'analysis' as const, nodeValues: {} });
 
 describe('project discovery', () => {
@@ -139,7 +142,7 @@ describe('project activation', () => {
 
   it('registers invalid designs as unloadable with an error', async () => {
     const project = await labProject({
-      'projects/lab/designs/good.json': serializeDesign(builtIn.doc),
+      'projects/lab/designs/good.json': serializeDesign(builtInV1),
       'projects/lab/designs/bad.json': '{ nope',
     });
     expect(project.designs.map((d) => [d.id, d.result.ok])).toEqual([
@@ -194,7 +197,7 @@ describe('startup design and fallback', () => {
     const start = resolveStartupDesign(
       await active({
         'projects/lab/project.ts': { default: defineProject({ name: 'Lab', defaultDesign: 'mine' }) },
-        'projects/lab/designs/mine.json': serializeDesign({ ...builtIn.doc, metadata: { name: 'Mine' } }),
+        'projects/lab/designs/mine.json': serializeDesign({ ...builtInV1, metadata: { name: 'Mine' } }),
       }),
       builtIn,
     );

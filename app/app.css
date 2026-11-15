@@ -7,7 +7,7 @@
   --accent: #2c5d8f;
   --error-bg: #fdecec;
   --error-line: #d27373;
-  --sidebar-width: 320px;
+  --sidebar-width: 380px;
   --gap: 8px;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--fg);
@@ -133,7 +133,7 @@ main {
 }
 
 .workspace.sidebar-collapsed {
-  --sidebar-width: 36px;
+  --sidebar-width: 54px;
 }
 
 .panels {
@@ -331,7 +331,8 @@ main {
     min-height: 420px;
   }
 
-  .sidebar-body {
+  .sidebar-body,
+  .sgl-sidenav-panel {
     max-height: 70vh;
   }
 }

@@ -1,4 +1,6 @@
 import { applyGraphCommand, type DesignDocument, type GraphCommand, type GraphIssue } from '@app/document';
+import { nodeLabel, type DesignDocumentV2 } from '@app/document/v2';
+import { applyDesignCommand, type DesignCommand } from '@app/spatial';
 import { createHistory, record, redo, undo, type History } from './history';
 
 /**
@@ -7,8 +9,8 @@ import { createHistory, record, redo, undo, type History } from './history';
  *
  * Only the document is in history. Selection, cameras, panel layout and algorithm results are not.
  */
-export interface DocumentSession {
-  readonly history: History<DesignDocument>;
+export interface DocumentSession<D extends object = DesignDocument> {
+  readonly history: History<D>;
   /** Where the document was loaded from (shown in the project bar). */
   readonly source: string;
   /**
@@ -22,15 +24,15 @@ export interface DocumentSession {
 }
 
 /** The document and the revision it is shown at; what an algorithm result is bound to. */
-export interface DocumentVersion {
-  readonly doc: DesignDocument;
+export interface DocumentVersion<D extends object = DesignDocument> {
+  readonly doc: D;
   readonly revision: number;
 }
 
 // ---------------------------------------------------------------------------------------------
 // Clean-state signature
 
-const signatures = new WeakMap<DesignDocument, string>();
+const signatures = new WeakMap<object, string>();
 
 /** Plain data with every object's keys sorted; array order is kept (it is part of the document). */
 function canonical(value: unknown): unknown {
@@ -51,7 +53,7 @@ function canonical(value: unknown): unknown {
  * same signature exactly when they have the same content (attribute or position key order does not
  * matter; node and edge order does, because it is exported). Cached per document object.
  */
-export function documentSignature(doc: DesignDocument): string {
+export function documentSignature(doc: object): string {
   let signature = signatures.get(doc);
   if (signature === undefined) {
     signature = JSON.stringify(canonical(doc));
@@ -60,31 +62,31 @@ export function documentSignature(doc: DesignDocument): string {
   return signature;
 }
 
-export const sameDocument = (a: DesignDocument, b: DesignDocument): boolean => a === b || documentSignature(a) === documentSignature(b);
+export const sameDocument = (a: object, b: object): boolean => a === b || documentSignature(a) === documentSignature(b);
 
 // ---------------------------------------------------------------------------------------------
 // Transitions
 
 /** A freshly opened document: empty history, clean. `previous` keeps revisions increasing. */
-export function openDocument(doc: DesignDocument, source: string, previous: DocumentSession | null): DocumentSession {
+export function openDocument<D extends object>(doc: D, source: string, previous: DocumentSession<object> | null): DocumentSession<D> {
   return { history: createHistory(doc), source, revision: (previous?.revision ?? 0) + 1, baseline: documentSignature(doc) };
 }
 
-export const currentDocument = (session: DocumentSession): DesignDocument => session.history.present;
+export const currentDocument = <D extends object>(session: DocumentSession<D>): D => session.history.present;
 
-export const versionOf = (session: DocumentSession): DocumentVersion => ({ doc: session.history.present, revision: session.revision });
+export const versionOf = <D extends object>(session: DocumentSession<D>): DocumentVersion<D> => ({ doc: session.history.present, revision: session.revision });
 
 /** Record an already-validated new document as one history step. A no-op returns the same session. */
-export function commitDocument(session: DocumentSession, next: DesignDocument, label: string | null): DocumentSession {
+export function commitDocument<D extends object>(session: DocumentSession<D>, next: D, label: string | null): DocumentSession<D> {
   const history = record(session.history, next, label, sameDocument);
   return history === session.history ? session : { ...session, history, revision: session.revision + 1 };
 }
 
-export type SessionCommandOutcome =
-  | { readonly ok: true; readonly session: DocumentSession; readonly changed: boolean }
+export type SessionCommandOutcome<D extends object = DesignDocument> =
+  | { readonly ok: true; readonly session: DocumentSession<D>; readonly changed: boolean }
   | { readonly ok: false; readonly issues: readonly GraphIssue[] };
 
-/** Apply one graph command and record it. Failed commands leave the session (and history) untouched. */
+/** Apply one v1 graph command and record it. Failed commands leave the session (and history) untouched. */
 export function applyCommand(session: DocumentSession, command: GraphCommand): SessionCommandOutcome {
   const result = applyGraphCommand(currentDocument(session), command);
   if (!result.ok) return { ok: false, issues: result.issues };
@@ -92,24 +94,40 @@ export function applyCommand(session: DocumentSession, command: GraphCommand): S
   return { ok: true, session: next, changed: next !== session };
 }
 
-export function undoDocument(session: DocumentSession): DocumentSession {
+/**
+ * Apply one schema-v2 command (`applyDesignCommand`, which validates the result) and record it as
+ * one history step labelled for the Undo/Redo tooltips. A failed command (including an
+ * unconfirmed route displacement) leaves the session and history untouched; a no-op records nothing.
+ */
+export function applyDesignCommandToSession(
+  session: DocumentSession<DesignDocumentV2>,
+  command: DesignCommand,
+): SessionCommandOutcome<DesignDocumentV2> {
+  const before = currentDocument(session);
+  const result = applyDesignCommand(before, command);
+  if (!result.ok) return { ok: false, issues: result.issues };
+  const next = commitDocument(session, result.value, designCommandLabel(command, before));
+  return { ok: true, session: next, changed: next !== session };
+}
+
+export function undoDocument<D extends object>(session: DocumentSession<D>): DocumentSession<D> {
   const history = undo(session.history);
   return history === session.history ? session : { ...session, history, revision: session.revision + 1 };
 }
 
-export function redoDocument(session: DocumentSession): DocumentSession {
+export function redoDocument<D extends object>(session: DocumentSession<D>): DocumentSession<D> {
   const history = redo(session.history);
   return history === session.history ? session : { ...session, history, revision: session.revision + 1 };
 }
 
 /** After a successful export of `exported`: it becomes the clean state. History is kept. */
-export function markExported(session: DocumentSession, exported: DesignDocument): DocumentSession {
+export function markExported<D extends object>(session: DocumentSession<D>, exported: D): DocumentSession<D> {
   const baseline = documentSignature(exported);
   return baseline === session.baseline ? session : { ...session, baseline };
 }
 
 /** Unsaved changes: the current content differs from the last loaded or exported content. */
-export const isModified = (session: DocumentSession | null): boolean =>
+export const isModified = (session: DocumentSession<object> | null): boolean =>
   session !== null && documentSignature(currentDocument(session)) !== session.baseline;
 
 // ---------------------------------------------------------------------------------------------
@@ -139,6 +157,50 @@ export function commandLabel(command: GraphCommand): string {
     default: {
       const unreachable: never = command;
       throw new Error(`unknown graph command ${JSON.stringify(unreachable)}`);
+    }
+  }
+}
+
+/**
+ * Short label for a schema-v2 command, in the app's vocabulary (rooms, connections, Building), using
+ * the rooms' short display labels from the document the command applies to.
+ */
+export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocumentV2, 'nodes'>): string {
+  const room = (id: string) => {
+    const node = doc.nodes.find((n) => n.id === id);
+    return `room ${node ? nodeLabel(node) : id}`;
+  };
+  switch (command.type) {
+    case 'add-node':
+      return `Add room ${command.node.displayId ?? command.node.id}`;
+    case 'remove-node':
+      return `Delete ${room(command.nodeId)}`;
+    case 'set-node-geometry':
+      if (command.grid && command.size) return `Move and resize ${room(command.nodeId)}`;
+      return command.size
+        ? `Resize ${room(command.nodeId)} to ${command.size.join('×')}`
+        : `Move ${room(command.nodeId)} to [${(command.grid ?? []).join(', ')}]`;
+    case 'set-node-type':
+      return `Change the type of ${room(command.nodeId)}`;
+    case 'set-node-attributes':
+      return `Edit the attributes of ${room(command.nodeId)}`;
+    case 'set-display-id':
+      return `Rename ${room(command.nodeId)}`;
+    case 'set-diagram-position':
+      return `Move ${room(command.nodeId)} in the diagram`;
+    case 'add-edge':
+      return `Add connection ${room(command.edge.source)} ↔ ${room(command.edge.target).slice(5)}`;
+    case 'remove-edge':
+      return `Remove connection ${command.edgeId}`;
+    case 'change-edge-kind':
+      return `Change connection ${command.edgeId} to ${command.kind === 'open' ? 'Open' : 'Access'}`;
+    case 'set-connector-style':
+      return `Change the connector style of ${command.edgeId}`;
+    case 'set-type-appearance':
+      return `Change Designer settings for ${command.typeId}`;
+    default: {
+      const unreachable: never = command;
+      throw new Error(`unknown design command ${JSON.stringify(unreachable)}`);
     }
   }
 }

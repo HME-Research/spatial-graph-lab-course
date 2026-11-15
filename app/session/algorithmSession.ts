@@ -1,6 +1,10 @@
-import type { AttributeValue, DesignDocument, GridCoord } from '@app/document';
+import type { AttributeValue, Attributes, DesignDocument, GridCoord } from '@app/document';
+import type { DesignDocumentV2 } from '@app/document/v2';
 import {
   runAlgorithm,
+  runAlgorithmV2,
+  type RunOutcomeV2,
+  type TransformationPreviewV2,
   validateParameters,
   type ActiveProject,
   type AttributeSpec,
@@ -79,15 +83,18 @@ export function parameterProblems(entry: AlgorithmEntry, drafts: ParameterDrafts
   return result.ok ? [] : result.issues;
 }
 
-export interface AlgorithmRun {
+export interface AlgorithmRun<D extends object = DesignDocument, O = RunOutcome> {
   readonly algorithmId: string;
   readonly label: string;
   /** The exact document object the algorithm ran on. */
-  readonly doc: DesignDocument;
+  readonly doc: D;
   /** The document revision it ran at (see `DocumentSession.revision`). */
   readonly revision: number;
-  readonly outcome: ExtensionResult<RunOutcome>;
+  readonly outcome: ExtensionResult<O>;
 }
+
+/** A run against the stored schema-v2 document (the app after Gate 1). */
+export type AlgorithmRunV2 = AlgorithmRun<DesignDocumentV2, RunOutcomeV2>;
 
 /** Run once. Never changes `doc`; a failure is reported in `outcome`. */
 export function runEntry(version: DocumentVersion, project: ActiveProject, entry: AlgorithmEntry, drafts: ParameterDrafts): AlgorithmRun {
@@ -101,12 +108,29 @@ export function runEntry(version: DocumentVersion, project: ActiveProject, entry
   };
 }
 
+/** Run once against the schema-v2 document (`runAlgorithmV2`). Never changes `doc`. */
+export function runEntryV2(
+  version: DocumentVersion<DesignDocumentV2>,
+  project: ActiveProject,
+  entry: AlgorithmEntry,
+  drafts: ParameterDrafts,
+): AlgorithmRunV2 {
+  const { doc, revision } = version;
+  return {
+    algorithmId: entry.id,
+    label: entry.label,
+    doc,
+    revision,
+    outcome: runAlgorithmV2(doc, project, entry.id, draftsToParameters(entry, drafts)),
+  };
+}
+
 /**
  * A result is stale when the document has changed since the algorithm ran: any edit, undo, redo or
  * load changes the revision, so a result never becomes current again by returning to an equivalent
  * (or the very same) document.
  */
-export const isStale = (run: AlgorithmRun, current: DocumentVersion | null): boolean =>
+export const isStale = (run: Pick<AlgorithmRun<object, unknown>, 'doc' | 'revision'>, current: DocumentVersion<object> | null): boolean =>
   current === null || run.doc !== current.doc || run.revision !== current.revision;
 
 export interface AnalysisRow {
@@ -117,7 +141,9 @@ export interface AnalysisRow {
 }
 
 /** Node values in the document's node order (values for unknown ids are not possible: the runtime rejects them). */
-export function analysisRows(nodeValues: Readonly<Record<string, AttributeValue>>, ranOn: DesignDocument, current: DesignDocument | null): AnalysisRow[] {
+type HasNodes = { readonly nodes: readonly { readonly id: string }[] };
+
+export function analysisRows(nodeValues: Readonly<Record<string, AttributeValue>>, ranOn: HasNodes, current: HasNodes | null): AnalysisRow[] {
   const present = new Set(current?.nodes.map((n) => n.id) ?? []);
   return ranOn.nodes
     .filter((n) => Object.prototype.hasOwnProperty.call(nodeValues, n.id))
@@ -139,7 +165,11 @@ export interface PreviewSummary {
 }
 
 /** What a validated preview changes, read from its operations and its before/after documents. */
-export function describePreview(preview: TransformationPreview): PreviewSummary {
+export function describePreview(
+  preview: Pick<TransformationPreview | TransformationPreviewV2, 'operations'> & {
+    readonly before: { readonly nodes: readonly { readonly id: string; readonly attributes: Attributes }[] };
+  },
+): PreviewSummary {
   const before = new Map(preview.before.nodes.map((n) => [n.id, n] as const));
   const addedNodes: PreviewSummary['addedNodes'][number][] = [];
   const addedEdges: PreviewSummary['addedEdges'][number][] = [];
@@ -170,9 +200,9 @@ export function describePreview(preview: TransformationPreview): PreviewSummary 
   };
 }
 
-export type ApplyOutcome =
-  | { readonly ok: true; readonly doc: DesignDocument }
-  | { readonly ok: false; readonly reason: 'stale' | 'no-document'; readonly message: string };
+export type ApplyOutcome<D extends object = DesignDocument> =
+  | { readonly ok: true; readonly doc: D }
+  | { readonly ok: false; readonly reason: 'stale' | 'no-document' | 'needs-confirmation'; readonly message: string };
 
 /**
  * Applying a preview replaces the document with the preview's already-validated result in one
@@ -193,3 +223,32 @@ export function applyPreview(current: DocumentVersion | null, preview: Transform
 }
 
 export const formatValue = (value: AttributeValue | undefined): string => (value === undefined ? '—' : JSON.stringify(value));
+
+/**
+ * Schema-v2 apply: the same atomic, stale-checked replacement as `applyPreview`. In addition, a
+ * preview whose new rooms take cells of generated connectors (`displacedRoutes`) is applied only
+ * after the user chose "Move anyway and recalculate" (`confirmRouteDisplacement`); never silently.
+ */
+export function applyPreviewV2(
+  current: DocumentVersion<DesignDocumentV2> | null,
+  preview: TransformationPreviewV2,
+  ranAt: number,
+  options: { readonly confirmRouteDisplacement?: boolean } = {},
+): ApplyOutcome<DesignDocumentV2> {
+  if (current === null) return { ok: false, reason: 'no-document', message: 'No design is open.' };
+  if (current.doc !== preview.before || current.revision !== ranAt) {
+    return {
+      ok: false,
+      reason: 'stale',
+      message: 'The design has changed since this preview was computed, so it was not applied. Run the algorithm again.',
+    };
+  }
+  if (preview.displacedRoutes.length > 0 && options.confirmRouteDisplacement !== true) {
+    return {
+      ok: false,
+      reason: 'needs-confirmation',
+      message: `New rooms would take the corridor cells of ${preview.displacedRoutes.join(', ')}. Confirm "Move anyway and recalculate" to apply.`,
+    };
+  }
+  return { ok: true, doc: preview.after };
+}

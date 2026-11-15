@@ -6,6 +6,7 @@ import { resolveRelationships } from '@app/spatial';
 import { defineSpatialAlgorithm, roomCells, type SpatialAlgorithmContext, type SpatialOperation } from '@student-api';
 import builtInText from '../document/examples/two-storey-example.json?raw';
 import { activate, type ActiveProject } from './activate';
+import { discoverProjects } from './discover';
 import { PROJECT_GLOBS } from './projectGlobs';
 import { runAlgorithm, runAlgorithmV2 } from './run';
 import { expectDiagnostic, expectExtOk, labDoc, labProject } from './test-fixtures';
@@ -172,11 +173,13 @@ describe('shipped projects on schema v2', () => {
   });
   const exampleV1 = () => expectOk(parseDesignJson(builtInText));
   const exampleV2 = () => expectOk(readDesignJson(builtInText)).doc;
-  const starterV1 = () => {
-    const design = projects['starter-template']!.designs.find((d) => d.id === 'starter')!;
-    if (!design.result.ok) throw new Error('starter design invalid');
-    return design.result.value;
-  };
+  // The starter design file on disk is v1; read it exactly as v1 for the v1 comparison runs.
+  let starterText = '';
+  beforeAll(async () => {
+    const source = discoverProjects(PROJECT_GLOBS).projects.find((p) => p.id === 'starter-template')!;
+    starterText = await source.designs.find((d) => d.stem === 'starter')!.load();
+  });
+  const starterV1 = () => expectOk(parseDesignJson(starterText));
 
   it('access-depth gives the same analysis on v1 and v2', () => {
     const p = projects['example-gallery']!;
