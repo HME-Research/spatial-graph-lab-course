@@ -101,13 +101,5 @@ export function sessionDiagnostics(session: ProjectSession): ExtensionDiagnostic
   return [...session.discovery, ...own].sort((a, b) => rank[a.severity] - rank[b.severity]);
 }
 
-/**
- * Unsaved-change tracking: a document is "modified" when it is not the very document object that
- * was last loaded or exported. Every successful command and every applied transformation creates
- * a new document object, so identity is an exact and cheap test.
- */
-export const isModified = (current: DesignDocument | null, baseline: DesignDocument | null): boolean =>
-  current !== null && current !== baseline;
-
 export const DISCARD_PROMPT =
   'The current design has changes that have not been exported. Switching will discard them.\n\nUse “Export JSON” first to keep them. Discard the changes?';

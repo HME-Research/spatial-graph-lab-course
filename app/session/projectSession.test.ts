@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { applyGraphCommand, parseDesignJson, serializeDesign } from '@app/document';
+import { parseDesignJson, serializeDesign } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
 import { PROJECT_GLOBS } from '@app/extensions';
-import { fakeGlobs, LAB_FILES, labDoc } from '@app/extensions/test-fixtures';
+import { fakeGlobs, LAB_FILES } from '@app/extensions/test-fixtures';
 import builtInText from '../document/examples/two-storey-example.json?raw';
 import {
   activeProjectOf,
-  isModified,
   projectHeadline,
   readProjectRequest,
   searchWithProject,
@@ -77,14 +76,5 @@ describe('project activation in the application', () => {
     const { session } = await startProject(globs, { query: 'lab' }, builtIn);
     expect(activeProjectOf(session)?.algorithms).toHaveLength(2);
     expect(runs).toBe(0);
-  });
-
-  it('a design is modified when it is not the document last loaded or exported', () => {
-    const doc = labDoc();
-    expect(isModified(doc, doc)).toBe(false);
-    expect(isModified(null, doc)).toBe(false);
-    const edited = expectOk(applyGraphCommand(doc, { type: 'set-diagram-position', nodeId: 'g1', position: [5, 5] }));
-    expect(isModified(edited, doc)).toBe(true);
-    expect(isModified(edited, edited)).toBe(false);
   });
 });

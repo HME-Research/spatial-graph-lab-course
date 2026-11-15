@@ -17,6 +17,7 @@ import {
   type AlgorithmEntry,
   type AlgorithmRun,
 } from './algorithmSession';
+import type { DocumentVersion } from './documentSession';
 
 // Definitions are plain objects: only app/extensions may import @student-api.
 const numberAlgorithm = {
@@ -34,6 +35,8 @@ const numberAlgorithm = {
 
 let example: ActiveProject;
 const builtIn = expectOk(parseDesignJson(builtInText));
+/** A document shown at a revision (revision 1 unless given). */
+const at = (doc: DesignDocument, revision = 1): DocumentVersion => ({ doc, revision });
 
 beforeAll(async () => {
   const { activation } = await activate(PROJECT_GLOBS, { query: 'example-gallery' });
@@ -74,7 +77,7 @@ describe('algorithm list', () => {
     expect(list[1]!.problems.join(' ')).toContain('also defined in');
     expect(list[2]!.label).toBe('twin'); // a non-text label is not shown
     expect(list.every((a) => a.parameters.length === 0)).toBe(true);
-    const run = runEntry(labDoc(), project, list[0]!, {});
+    const run = runEntry(at(labDoc()), project, list[0]!, {});
     expect(run.outcome.ok).toBe(false);
     expect(!run.outcome.ok && run.outcome.issues.map((d) => d.code)).toEqual(['algorithm-disabled']);
   });
@@ -95,7 +98,7 @@ describe('algorithm parameters', () => {
     expect(messages({ count: '9' })).toEqual(['parameter "count" must be a number from 1 to 5, not 9']);
     expect(messages({ mode: 'medium' })[0]).toContain('one of "fast", "slow"');
     // Invalid parameters stop the run before the algorithm is called.
-    const run = runEntry(labDoc(), project, grow, { count: '0' });
+    const run = runEntry(at(labDoc()), project, grow, { count: '0' });
     expect(!run.outcome.ok && run.outcome.issues.map((d) => d.code)).toEqual(['invalid-parameter']);
   });
 });
@@ -103,7 +106,7 @@ describe('algorithm parameters', () => {
 describe('generic analysis results', () => {
   it('shows the summary and node values and does not modify the document', () => {
     const before = serializeDesign(builtIn);
-    const run = runEntry(builtIn, example, entry(example, 'access-depth'), { start: 'store' });
+    const run = runEntry(at(builtIn), example, entry(example, 'access-depth'), { start: 'store' });
     expect(serializeDesign(builtIn)).toBe(before);
     if (!run.outcome.ok || run.outcome.value.kind !== 'analysis') throw new Error('expected an analysis');
     const { result } = run.outcome.value;
@@ -118,14 +121,14 @@ describe('generic analysis results', () => {
     ]);
     const smaller = expectOk(applyGraphCommand(builtIn, { type: 'remove-node', nodeId: 'store' }));
     expect(analysisRows(result.nodeValues, run.doc, smaller).find((r) => r.nodeId === 'store')!.exists).toBe(false);
-    expect(isStale(run, builtIn)).toBe(false);
-    expect(isStale(run, smaller)).toBe(true);
+    expect(isStale(run, at(builtIn))).toBe(false);
+    expect(isStale(run, at(smaller, 2))).toBe(true);
   });
 });
 
 describe('spatial transformation preview', () => {
   it('daylight-from-exposure: preview, then Apply replaces the document with the validated result', () => {
-    const run = runEntry(builtIn, example, entry(example, 'daylight-from-exposure'), {});
+    const run = runEntry(at(builtIn), example, entry(example, 'daylight-from-exposure'), {});
     const preview = transformation(run);
     expect(describePreview(preview)).toEqual({
       addedNodes: [],
@@ -135,7 +138,7 @@ describe('spatial transformation preview', () => {
     });
     // The preview never touched the current document.
     expect(builtIn.nodes.find((n) => n.id === 'entry-gallery')!.attributes['daylight']).toBe('high');
-    const applied = applyPreview(builtIn, preview);
+    const applied = applyPreview(at(builtIn), preview, 1);
     if (!applied.ok) throw new Error(applied.message);
     expect(applied.doc).toBe(preview.after);
     expect(applied.doc.nodes.find((n) => n.id === 'entry-gallery')!.attributes).toEqual({ daylight: 'medium', public: true });
@@ -143,7 +146,7 @@ describe('spatial transformation preview', () => {
   });
 
   it('connect-storage-to-galleries: the added door changes the generated boundary only after Apply', () => {
-    const preview = transformation(runEntry(builtIn, example, entry(example, 'connect-storage-to-galleries'), {}));
+    const preview = transformation(runEntry(at(builtIn), example, entry(example, 'connect-storage-to-galleries'), {}));
     expect(describePreview(preview)).toMatchObject({
       addedEdges: [{ id: 'door-1', source: 'store', target: 'reading-gallery', kind: 'door' }],
       affectedNodeIds: ['reading-gallery', 'store'],
@@ -151,24 +154,24 @@ describe('spatial transformation preview', () => {
     const wall = (doc: DesignDocument) =>
       resolveFaces(doc).find((f) => [f.ownerNodeId, f.neighbourNodeId].sort().join() === 'reading-gallery,store')!.condition;
     expect(wall(builtIn)).toBe('solid');
-    const applied = applyPreview(builtIn, preview);
+    const applied = applyPreview(at(builtIn), preview, 1);
     expect(applied.ok && wall(applied.doc)).toBe('door');
   });
 
   it('Discard keeps the original design (running produced only a preview)', () => {
     const before = serializeDesign(builtIn);
-    transformation(runEntry(builtIn, example, entry(example, 'connect-storage-to-galleries'), {}));
+    transformation(runEntry(at(builtIn), example, entry(example, 'connect-storage-to-galleries'), {}));
     expect(serializeDesign(builtIn)).toBe(before);
   });
 
   it('rejects a stale preview when the document changed after the run', () => {
-    const preview = transformation(runEntry(builtIn, example, entry(example, 'daylight-from-exposure'), {}));
+    const preview = transformation(runEntry(at(builtIn), example, entry(example, 'daylight-from-exposure'), {}));
     const edited = expectOk(applyGraphCommand(builtIn, { type: 'set-diagram-position', nodeId: 'store', position: [1, 2] }));
-    expect(applyPreview(edited, preview)).toMatchObject({ ok: false, reason: 'stale' });
+    expect(applyPreview(at(edited, 2), preview, 1)).toMatchObject({ ok: false, reason: 'stale' });
     // Applying twice is also refused: after the first apply the document is a different one.
-    const once = applyPreview(builtIn, preview);
-    expect(once.ok && applyPreview(once.doc, preview)).toMatchObject({ ok: false, reason: 'stale' });
-    expect(applyPreview(null, preview)).toMatchObject({ ok: false, reason: 'no-document' });
+    const once = applyPreview(at(builtIn), preview, 1);
+    expect(once.ok && applyPreview(at(once.doc, 2), preview, 1)).toMatchObject({ ok: false, reason: 'stale' });
+    expect(applyPreview(null, preview, 1)).toMatchObject({ ok: false, reason: 'no-document' });
   });
 
   it('a failing transformation reports diagnostics and leaves the design unchanged', async () => {
@@ -190,7 +193,7 @@ describe('spatial transformation preview', () => {
     });
     const doc = labDoc();
     const before = serializeDesign(doc);
-    const run = runEntry(doc, project, entry(project, 'bad'), {});
+    const run = runEntry(at(doc), project, entry(project, 'bad'), {});
     expect(run.outcome.ok).toBe(false);
     expect(!run.outcome.ok && run.outcome.issues.map((d) => d.code)).toEqual(['invalid-edge-geometry']);
     expect(serializeDesign(doc)).toBe(before);

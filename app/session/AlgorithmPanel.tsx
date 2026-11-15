@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react';
-import type { DesignDocument } from '@app/document';
 import type { ActiveProject, AttributeSpec, ExtensionDiagnostic, TransformationPreview } from '@app/extensions';
 import { selectNode, type SelectionHandler } from '@core/viewer/selection';
 import {
@@ -15,6 +14,7 @@ import {
   type ApplyOutcome,
   type ParameterDrafts,
 } from './algorithmSession';
+import type { DocumentVersion } from './documentSession';
 
 /**
  * Compact algorithm controls: list, parameters, run, and the result. Analyses only display
@@ -24,14 +24,15 @@ import {
  */
 export function AlgorithmPanel({
   project,
-  doc,
+  version,
   onApply,
   onSelect,
 }: {
   readonly project: ActiveProject | null;
-  readonly doc: DesignDocument | null;
+  /** The current document and its revision; results are bound to it. */
+  readonly version: DocumentVersion | null;
   /** Apply a preview to the current design (atomic, stale-checked). */
-  readonly onApply: (preview: TransformationPreview) => ApplyOutcome;
+  readonly onApply: (preview: TransformationPreview, ranAt: number, label: string) => ApplyOutcome;
   readonly onSelect: SelectionHandler;
 }) {
   const algorithms = listAlgorithms(project);
@@ -56,16 +57,17 @@ export function AlgorithmPanel({
 
   const execute = (e: FormEvent) => {
     e.preventDefault();
-    if (!selected || !selected.enabled || !doc) return;
+    if (!selected || !selected.enabled || !version) return;
     setNotice(null);
-    setRun(runEntry(doc, project, selected, entryDrafts));
+    setRun(runEntry(version, project, selected, entryDrafts));
   };
 
   const apply = (preview: TransformationPreview) => {
-    const outcome = onApply(preview);
+    if (!run) return;
+    const outcome = onApply(preview, run.revision, run.label);
     if (outcome.ok) {
       setRun(null);
-      setNotice({ tone: 'ok', text: `Applied “${run?.label}”: ${preview.operations.length} operation(s).` });
+      setNotice({ tone: 'ok', text: `Applied “${run.label}”: ${preview.operations.length} operation(s).` });
     } else setNotice({ tone: 'error', text: outcome.message });
   };
 
@@ -125,7 +127,7 @@ export function AlgorithmPanel({
           ))}
           <DiagnosticLines diagnostics={problems} />
           <div className="sgl-buttons">
-            <button type="submit" disabled={!selected.enabled || problems.length > 0 || !doc}>
+            <button type="submit" disabled={!selected.enabled || problems.length > 0 || !version}>
               Run
             </button>
             {selected.scope === 'spatial' && selected.enabled && <span className="sgl-help">Shows a preview; nothing changes until you apply it.</span>}
@@ -134,7 +136,7 @@ export function AlgorithmPanel({
       )}
 
       {notice && <p className={notice.tone === 'ok' ? 'algorithm-notice' : 'sgl-error'}>{notice.text}</p>}
-      {run && <RunResult run={run} doc={doc} onApply={apply} onDiscard={() => setRun(null)} onSelect={onSelect} />}
+      {run && <RunResult run={run} version={version} onApply={apply} onDiscard={() => setRun(null)} onSelect={onSelect} />}
     </div>
   );
 }
@@ -203,18 +205,19 @@ function DiagnosticLines({ diagnostics }: { readonly diagnostics: readonly Exten
 
 function RunResult({
   run,
-  doc,
+  version,
   onApply,
   onDiscard,
   onSelect,
 }: {
   readonly run: AlgorithmRun;
-  readonly doc: DesignDocument | null;
+  readonly version: DocumentVersion | null;
   readonly onApply: (preview: TransformationPreview) => void;
   readonly onDiscard: () => void;
   readonly onSelect: SelectionHandler;
 }) {
-  const stale = isStale(run, doc);
+  const stale = isStale(run, version);
+  const doc = version?.doc ?? null;
   const nodeButton = (id: string, enabled = true) =>
     enabled ? (
       <button type="button" className="sgl-link" onClick={() => onSelect(selectNode(id))}>

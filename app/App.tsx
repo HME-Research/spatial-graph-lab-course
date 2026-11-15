@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import exampleDesign from './document/examples/two-storey-example.json';
 import {
-  applyGraphCommand,
   formatIssuePath,
   parseDesignJson,
   serializeDesign,
@@ -16,26 +15,34 @@ import { buildProjectViewContext, projectFacadeProvider } from '@app/views/proje
 import { NO_SELECTION, reconcileSelection, type Selection } from '@core/viewer/selection';
 import { AlgorithmPanel } from './session/AlgorithmPanel';
 import { applyPreview, type ApplyOutcome } from './session/algorithmSession';
+import {
+  applyCommand,
+  commitDocument,
+  currentDocument,
+  isModified,
+  markExported,
+  openDocument,
+  redoDocument,
+  undoDocument,
+  versionOf,
+  type DocumentSession,
+} from './session/documentSession';
+import { canRedo, canUndo, redoLabel, undoLabel } from './session/history';
 import { ProjectBar } from './session/ProjectBar';
 import {
   activeProjectOf,
   DISCARD_PROMPT,
-  isModified,
   readProjectRequest,
   searchWithProject,
   startProject,
   type ProjectSession,
   type ProjectStart,
 } from './session/projectSession';
+import { historyButtonTitle, historyShortcut, isApplePlatform, type HistoryShortcut } from './session/shortcuts';
 import './session/session.css';
 import { Workspace } from './Workspace';
 
 const EXAMPLE_LABEL = 'app/document/examples/two-storey-example.json';
-
-interface Loaded {
-  readonly doc: DesignDocument;
-  readonly source: string;
-}
 
 interface LoadFailure {
   readonly source: string;
@@ -43,16 +50,15 @@ interface LoadFailure {
 }
 
 interface State {
-  readonly current: Loaded | null;
+  /** The open document with its history and clean baseline; null when no design is open. */
+  readonly current: DocumentSession | null;
   readonly failure: LoadFailure | null;
-  /** The document last loaded or exported: unsaved changes are detected against it. */
-  readonly baseline: DesignDocument | null;
 }
 
-/** Validated results only ever replace the current document; failures leave it untouched. */
+/** Validated results only ever replace the current document (resetting its history); failures leave it untouched. */
 function applyResult(prev: State, result: Result<DesignDocument>, source: string): State {
   return result.ok
-    ? { current: { doc: result.value, source }, failure: null, baseline: result.value }
+    ? { current: openDocument(result.value, source, prev.current), failure: null }
     : { ...prev, failure: { source, issues: result.issues } };
 }
 
@@ -79,14 +85,18 @@ function downloadDesign(doc: DesignDocument): void {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+const APPLE = typeof navigator !== 'undefined' && isApplePlatform(navigator.platform);
+
 export function App() {
-  const [state, setStateRaw] = useState<State>({ current: null, failure: null, baseline: null });
+  const [state, setStateRaw] = useState<State>({ current: null, failure: null });
   /** null while a project is being activated. */
   const [session, setSession] = useState<ProjectSession | null>(null);
   /** Increments on every activation, to reset per-project panels. */
   const [generation, setGeneration] = useState(0);
   const [rawSelection, setSelection] = useState<Selection>(NO_SELECTION);
-  // Mirror of the latest state so command handlers can validate synchronously against it.
+  // Mirror of the latest state so command handlers can validate synchronously against it. Every
+  // transition is computed here, outside React's updater functions, and handed to React as a
+  // value: nothing runs twice under StrictMode and no updater has side effects.
   const stateRef = useRef(state);
   const setState = useCallback((update: (prev: State) => State) => {
     const next = update(stateRef.current);
@@ -96,22 +106,22 @@ export function App() {
   }, []);
 
   const { current, failure } = state;
-  const selection = current ? reconcileSelection(rawSelection, current.doc) : NO_SELECTION;
+  const doc = current ? currentDocument(current) : null;
+  const version = useMemo(() => (current ? versionOf(current) : null), [current]);
+  const selection = doc ? reconcileSelection(rawSelection, doc) : NO_SELECTION;
   const project = activeProjectOf(session);
   const facade = useMemo(() => projectFacadeProvider(project), [project]);
-  const doc = current?.doc ?? null;
   const projectContext = useMemo(() => (doc ? buildProjectViewContext(project, doc, facade) : undefined), [project, doc, facade]);
-  const modified = isModified(doc, state.baseline);
+  const modified = isModified(current);
 
   /** Show an activation outcome: its design (or none), replacing the current one. Never runs algorithms. */
   const showStart = useCallback(
     (start: ProjectStart) => {
       setSession(start.session);
       setGeneration((g) => g + 1);
-      setState(() => ({
-        current: start.startup.doc ? { doc: start.startup.doc, source: start.startup.source } : null,
+      setState((prev) => ({
+        current: start.startup.doc ? openDocument(start.startup.doc, start.startup.source, prev.current) : null,
         failure: null,
-        baseline: start.startup.doc,
       }));
       setSelection(NO_SELECTION);
     },
@@ -131,7 +141,7 @@ export function App() {
   }, [showStart]);
 
   /** Unsaved changes are never discarded silently. */
-  const confirmDiscard = () => !isModified(stateRef.current.current?.doc ?? null, stateRef.current.baseline) || window.confirm(DISCARD_PROMPT);
+  const confirmDiscard = () => !isModified(stateRef.current.current) || window.confirm(DISCARD_PROMPT);
 
   /** Loading a document replaces it wholesale; the selection is cleared only when it succeeds. */
   const load = (update: (prev: State) => State) => {
@@ -153,27 +163,55 @@ export function App() {
     load((prev) => applyResult(prev, design.result, design.file));
   };
 
+  /** Validate and apply one command; a successful change is one history step, a no-op none. */
   const onCommand = useCallback<GraphCommandHandler>(
     (command) => {
-      const doc = stateRef.current.current?.doc;
-      if (!doc) return { ok: false, issues: [{ path: [], code: 'not-found', message: 'no design is loaded' }] };
-      const result = applyGraphCommand(doc, command);
-      if (!result.ok) return { ok: false, issues: result.issues };
-      setState((prev) => ({ ...prev, current: prev.current && { ...prev.current, doc: result.value } }));
+      const open = stateRef.current.current;
+      if (!open) return { ok: false, issues: [{ path: [], code: 'not-found', message: 'no design is loaded' }] };
+      const outcome = applyCommand(open, command);
+      if (!outcome.ok) return { ok: false, issues: outcome.issues };
+      if (outcome.changed) setState((prev) => ({ ...prev, current: outcome.session }));
       return { ok: true };
     },
     [setState],
   );
 
-  /** Apply an already-validated preview as one state replacement, unless it is stale. */
+  /** Apply an already-validated preview as one state replacement and one history step, unless it is stale. */
   const onApplyPreview = useCallback(
-    (preview: TransformationPreview): ApplyOutcome => {
-      const outcome = applyPreview(stateRef.current.current?.doc ?? null, preview);
-      if (outcome.ok) setState((prev) => ({ ...prev, current: prev.current && { ...prev.current, doc: outcome.doc } }));
+    (preview: TransformationPreview, ranAt: number, label: string): ApplyOutcome => {
+      const open = stateRef.current.current;
+      const outcome = applyPreview(open && versionOf(open), preview, ranAt);
+      if (outcome.ok && open) setState((prev) => ({ ...prev, current: commitDocument(open, outcome.doc, `Apply “${label}”`) }));
       return outcome;
     },
     [setState],
   );
+
+  /** Undo or redo one document step. Selection is reconciled; cameras and layout are untouched. */
+  const navigate = useCallback(
+    (action: HistoryShortcut) => {
+      const open = stateRef.current.current;
+      if (!open) return;
+      const next = action === 'undo' ? undoDocument(open) : redoDocument(open);
+      if (next === open) return;
+      setState((prev) => ({ ...prev, current: next }));
+      const nextDoc = currentDocument(next);
+      setSelection((sel) => reconcileSelection(sel, nextDoc));
+    },
+    [setState],
+  );
+
+  // Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z and Ctrl+Y, except inside text fields (native text undo).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const action = historyShortcut(event, event.target as Partial<HTMLElement> | null);
+      if (!action) return;
+      event.preventDefault();
+      navigate(action);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [navigate]);
 
   async function onFile(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
@@ -185,17 +223,38 @@ export function App() {
     load((prev) => applyResult(prev, parseDesignJson(text), file.name));
   }
 
+  /** The exported content becomes the clean state, only once the download was started successfully. */
   const exportDesign = () => {
-    if (!current) return;
-    downloadDesign(current.doc);
-    setState((prev) => ({ ...prev, baseline: prev.current?.doc ?? prev.baseline }));
+    const open = stateRef.current.current;
+    if (!open) return;
+    const exported = currentDocument(open);
+    try {
+      downloadDesign(exported);
+    } catch (error) {
+      window.alert(`Export failed: ${error instanceof Error ? error.message : String(error)}`);
+      return;
+    }
+    setState((prev) => (prev.current ? { ...prev, current: markExported(prev.current, exported) } : prev));
   };
+
+  const undoable = current !== null && canUndo(current.history);
+  const redoable = current !== null && canRedo(current.history);
+  const undoTitle = historyButtonTitle('undo', undoable, current && undoLabel(current.history), APPLE);
+  const redoTitle = historyButtonTitle('redo', redoable, current && redoLabel(current.history), APPLE);
 
   return (
     <div className="app">
       <header className="toolbar">
         <h1>Spatial Graph Lab</h1>
         <div className="actions">
+          <div className="history-actions" role="group" aria-label="Edit history">
+            <button type="button" disabled={!undoable} title={undoTitle} aria-label={undoTitle} onClick={() => navigate('undo')}>
+              <span aria-hidden="true">↶</span> Undo
+            </button>
+            <button type="button" disabled={!redoable} title={redoTitle} aria-label={redoTitle} onClick={() => navigate('redo')}>
+              <span aria-hidden="true">↷</span> Redo
+            </button>
+          </div>
           <button type="button" onClick={() => confirmDiscard() && load(loadExample)}>
             Load example
           </button>
@@ -240,9 +299,9 @@ export function App() {
           </section>
         )}
 
-        {current && (
+        {doc && (
           <Workspace
-            doc={current.doc}
+            doc={doc}
             selection={selection}
             onSelect={setSelection}
             onCommand={onCommand}
@@ -251,7 +310,7 @@ export function App() {
               <AlgorithmPanel
                 key={`${project?.id ?? '-'}:${generation}`}
                 project={project}
-                doc={current.doc}
+                version={version}
                 onApply={onApplyPreview}
                 onSelect={setSelection}
               />

@@ -9,6 +9,7 @@ import {
   type RunOutcome,
   type TransformationPreview,
 } from '@app/extensions';
+import type { DocumentVersion } from './documentSession';
 
 /**
  * Pure algorithm-panel logic. Execution and validation are the Stage 3A runtime's
@@ -83,21 +84,30 @@ export interface AlgorithmRun {
   readonly label: string;
   /** The exact document object the algorithm ran on. */
   readonly doc: DesignDocument;
+  /** The document revision it ran at (see `DocumentSession.revision`). */
+  readonly revision: number;
   readonly outcome: ExtensionResult<RunOutcome>;
 }
 
 /** Run once. Never changes `doc`; a failure is reported in `outcome`. */
-export function runEntry(doc: DesignDocument, project: ActiveProject, entry: AlgorithmEntry, drafts: ParameterDrafts): AlgorithmRun {
+export function runEntry(version: DocumentVersion, project: ActiveProject, entry: AlgorithmEntry, drafts: ParameterDrafts): AlgorithmRun {
+  const { doc, revision } = version;
   return {
     algorithmId: entry.id,
     label: entry.label,
     doc,
+    revision,
     outcome: runAlgorithm(doc, project, entry.id, draftsToParameters(entry, drafts)),
   };
 }
 
-/** A result is stale when the document has changed since the algorithm ran. */
-export const isStale = (run: AlgorithmRun, current: DesignDocument | null): boolean => run.doc !== current;
+/**
+ * A result is stale when the document has changed since the algorithm ran: any edit, undo, redo or
+ * load changes the revision, so a result never becomes current again by returning to an equivalent
+ * (or the very same) document.
+ */
+export const isStale = (run: AlgorithmRun, current: DocumentVersion | null): boolean =>
+  current === null || run.doc !== current.doc || run.revision !== current.revision;
 
 export interface AnalysisRow {
   readonly nodeId: string;
@@ -166,12 +176,13 @@ export type ApplyOutcome =
 
 /**
  * Applying a preview replaces the document with the preview's already-validated result in one
- * step. It is refused when the current document is not the exact document the preview was
- * computed from (any edit, load or earlier apply makes a preview stale).
+ * step. It is refused unless the current document is the exact document, at the exact revision
+ * (`ranAt`), that the preview was computed from: any edit, undo, redo, load or earlier apply makes
+ * a preview stale, and running the algorithm again is the new validation step.
  */
-export function applyPreview(current: DesignDocument | null, preview: TransformationPreview): ApplyOutcome {
+export function applyPreview(current: DocumentVersion | null, preview: TransformationPreview, ranAt: number): ApplyOutcome {
   if (current === null) return { ok: false, reason: 'no-document', message: 'No design is open.' };
-  if (current !== preview.before) {
+  if (current.doc !== preview.before || current.revision !== ranAt) {
     return {
       ok: false,
       reason: 'stale',

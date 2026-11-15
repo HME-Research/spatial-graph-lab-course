@@ -16,7 +16,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
-import { EDGE_KINDS, type EdgeKind, type GraphCommand, type GraphIssue } from '@app/document';
+import { EDGE_KINDS, type DesignDocument, type EdgeKind, type GraphCommand, type GraphIssue } from '@app/document';
 import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
 import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
@@ -60,7 +60,13 @@ export function Graph2DView(props: ViewProps) {
 
 function Graph2DEditor({ doc, selection, onSelect, onCommand, project }: ViewProps) {
   const [overlay, setOverlay] = useState<Readonly<Record<string, NodeOverlay>>>({});
-  const [pending, setPending] = useState<{ source: string; target: string } | null>(null);
+  // A pending connection (choosing its edge kind) belongs to the document it was started on: any
+  // document change, including undo/redo, cancels it.
+  const [pendingState, setPending] = useState<{ source: string; target: string; doc: DesignDocument } | null>(null);
+  // Cleared (not just hidden) during render, so that redo returning the same document object
+  // cannot bring it back.
+  if (pendingState && pendingState.doc !== doc) setPending(null);
+  const pending = pendingState?.doc === doc ? pendingState : null;
   const [issues, setIssues] = useState<readonly GraphIssue[]>([]);
   // The diagram viewport (pan/zoom) is remembered by the hosting panel; without one, fit the diagram.
   const viewportMemory = useRemembered<Viewport>('viewport:graph2d');
@@ -156,8 +162,8 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project }: ViewPro
 
   const isValidConnection = useCallback<IsValidConnection>((c) => c.source !== c.target, []);
   const onConnect = useCallback((c: Connection) => {
-    if (c.source !== c.target) setPending({ source: c.source, target: c.target });
-  }, []);
+    if (c.source !== c.target) setPending({ source: c.source, target: c.target, doc });
+  }, [doc]);
 
   const pendingOptions = pending ? connectionOptions(doc, pending.source, pending.target) : undefined;
 
