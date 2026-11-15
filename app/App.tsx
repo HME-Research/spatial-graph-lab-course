@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import exampleDesign from './document/examples/two-storey-example.json';
-import type { GraphIssue, Result } from '@app/document';
+import { formatIssuePath, type GraphIssue, type Result } from '@app/document';
 import { readDesign, readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
 import { PROJECT_GLOBS, type TransformationPreviewV2 } from '@app/extensions';
 import { proposeSpatialEdit, resolveRelationships, type DesignCommand, type DesignPort } from '@app/spatial';
 import type { CommandOutcome, GraphCommandHandler } from '@app/views/contracts';
-import { presentAnalysis, type AnalysisPresentation } from '@app/views/presentation';
+import { conciseIssues, presentAnalysis, type AnalysisPresentation } from '@app/views/presentation';
 import { buildProjectViewContext, projectFacadeProvider } from '@app/views/project';
 import { NO_SELECTION, reconcileSelection, selectEdge, type Selection } from '@core/viewer/selection';
 import { DesignerPanel } from './designer';
@@ -25,7 +25,6 @@ import {
 } from './session/documentSession';
 import { canRedo, canUndo, redoLabel, undoLabel } from './session/history';
 import { designCommandFromLegacy, legacyProjection } from './session/legacyBridge';
-import { LoadFailureNotice } from './ui';
 import { ProjectBar } from './session/ProjectBar';
 import {
   activeProjectOf,
@@ -55,7 +54,7 @@ const EXAMPLE_LABEL = 'app/document/examples/two-storey-example.json';
 
 type Doc = DesignDocumentV2;
 
-interface LoadFailure {
+interface LoadFailureState {
   readonly source: string;
   readonly issues: readonly GraphIssue[];
 }
@@ -63,7 +62,7 @@ interface LoadFailure {
 interface State {
   /** The open document with its history and clean baseline; null when no design is open. */
   readonly current: DocumentSession<Doc> | null;
-  readonly failure: LoadFailure | null;
+  readonly failure: LoadFailureState | null;
 }
 
 const noDesign: GraphIssue = { path: [], code: 'not-found', message: 'no design is loaded' };
@@ -99,6 +98,35 @@ function downloadDesign(doc: Doc): void {
 }
 
 const APPLE = typeof navigator !== 'undefined' && isApplePlatform(navigator.platform);
+
+/**
+ * A design that could not be opened (Stage 07 concise feedback): one headline naming the file and
+ * whether the current design was kept, at most three beginner lines, and the exact validator
+ * messages and paths behind "More details".
+ */
+function LoadFailure({ failure, kept, onDismiss }: { readonly failure: LoadFailureState; readonly kept: boolean; readonly onDismiss: () => void }) {
+  const feedback = conciseIssues(failure.issues, { action: `load ${failure.source}`, kept });
+  return (
+    <section className="issues sgl-load-failure" role="alert">
+      <h2>{kept ? feedback.headline : `${feedback.headline} No design is loaded.`}</h2>
+      <ul>
+        {feedback.lines.map((l, n) => (
+          <li key={n}>{l.hint}</li>
+        ))}
+      </ul>
+      {feedback.more > 0 && <p className="meta">…and {feedback.more} more.</p>}
+      <details>
+        <summary>More details</summary>
+        <pre className="issues-technical">
+          {failure.issues.map((i) => `${formatIssuePath(i.path) || '(document)'} — ${i.message} (${i.code})`).join('\n')}
+        </pre>
+      </details>
+      <button type="button" onClick={onDismiss}>
+        Dismiss
+      </button>
+    </section>
+  );
+}
 
 export function App() {
   const [state, setStateRaw] = useState<State>({ current: null, failure: null });
@@ -334,12 +362,7 @@ export function App() {
         />
 
         {failure && (
-          <LoadFailureNotice
-            source={failure.source}
-            issues={failure.issues}
-            kept={current !== null}
-            onDismiss={() => setState((s) => ({ ...s, failure: null }))}
-          />
+          <LoadFailure failure={failure} kept={current !== null} onDismiss={() => setState((s) => ({ ...s, failure: null }))} />
         )}
 
         {doc && viewDoc && port && (

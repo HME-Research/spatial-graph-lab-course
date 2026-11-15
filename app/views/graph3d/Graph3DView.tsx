@@ -14,6 +14,10 @@ import { useRemembered } from '../panelMemory';
 import type { CameraState } from '@core/viewer/three/viewport';
 import { ControlBar, InfoPanel, NAVIGATION_HINT } from '@core/viewer/three/ViewControls';
 import { ColorBySelect, Legend, LevelSelect } from '../three/SpatialControls';
+import { nodeLabel } from '@app/document/v2';
+import { useAnalysisOverlay } from '../analysisOverlay';
+import { analysisNodeStyle } from '../presentation/analysis';
+import { lineOf, RelationshipTube, tooltipOf, useSceneSource, ViewRelationshipLegend } from '../three/v2Scene';
 
 /**
  * Graph 3D: node markers at their cell centres (spatialToThree) and typed edges between centres.
@@ -25,8 +29,11 @@ const NODE_RADIUS = 0.36;
 /** Above this, per-node HTML labels are switched off by default (DOM cost). */
 const LABEL_LIMIT = 150;
 
-export function Graph3DView({ doc, selection, onSelect }: ViewProps) {
-  const s = useSpatialScene(doc, selection);
+export function Graph3DView({ doc, selection, onSelect, design }: ViewProps) {
+  const source = useSceneSource(doc, design);
+  const s = useSpatialScene(source, selection);
+  const analysis = useAnalysisOverlay();
+  const labelOf = useMemo(() => new Map((design?.doc.nodes ?? []).map((n) => [n.id, nodeLabel(n)] as const)), [design]);
   const camera = useRemembered<CameraState>('camera:graph3d');
   const [showLabels, setShowLabels] = useState(() => doc.nodes.length <= LABEL_LIMIT);
   const [showCells, setShowCells] = useState(true);
@@ -59,13 +66,16 @@ export function Graph3DView({ doc, selection, onSelect }: ViewProps) {
             </button>
           </ControlBar>
           <InfoPanel>
-            <HoverInfo hovered={s.hovered} doc={doc} />
+            <HoverInfo hovered={s.hovered} doc={doc} design={design} />
             <div className="viewer3d-count">
               {doc.nodes.length} nodes · {doc.edges.length} edges · {s.levels.length} level{s.levels.length === 1 ? '' : 's'} ·{' '}
               {s.groups.count} access group{s.groups.count === 1 ? '' : 's'}
             </div>
           </InfoPanel>
-          <Legend coloring={s.coloring} showEdges />
+          <Legend coloring={s.coloring} showEdges={!design}>
+            {analysis && <div className="viewer3d-count">Fill: analysis “{analysis.title}”{analysis.stale ? ' (out of date)' : ''}</div>}
+            {design && <ViewRelationshipLegend view="graph3d" design={design} />}
+          </Legend>
           {doc.nodes.length === 0 ? (
             <div className="viewer3d-empty">No nodes in this design.</div>
           ) : (
@@ -88,6 +98,22 @@ export function Graph3DView({ doc, selection, onSelect }: ViewProps) {
         ))}
       {s.edgeItems.map((e) => {
         const ghost = ghostNode(nodeById.get(e.source)) || ghostNode(nodeById.get(e.target));
+        const line = lineOf(design, e.id);
+        if (line) {
+          return (
+            <RelationshipTube
+              key={e.id}
+              item={e}
+              line={line}
+              geometry={geo.unitCylinder}
+              selected={s.emphasis.edges.has(e.id)}
+              hovered={s.hovered?.kind === 'edge' && s.hovered.id === e.id}
+              ghost={ghost}
+              handlers={ghost ? undefined : pickHandlers('edge', e.id, onSelect, s.setHovered)}
+              pickInset={NODE_RADIUS * 1.3}
+            />
+          );
+        }
         return (
           <EdgeMarker
             key={e.id}
@@ -105,7 +131,8 @@ export function Graph3DView({ doc, selection, onSelect }: ViewProps) {
         const primary = s.emphasis.primaryNodes.has(n.id);
         const secondary = s.emphasis.secondaryNodes.has(n.id);
         const hovered = s.hovered?.kind === 'node' && s.hovered.id === n.id;
-        const color = s.coloring.colorOf.get(n.id)!;
+        const overlay = analysisNodeStyle(n.id, analysis, selection);
+        const color = overlay.fill ?? s.coloring.colorOf.get(n.id)!;
         const missing = s.coloring.missing.has(n.id);
         return (
           <group key={n.id} position={[...n.position]}>
@@ -129,7 +156,11 @@ export function Graph3DView({ doc, selection, onSelect }: ViewProps) {
               </mesh>
             )}
             {showLabels && !ghost && (
-              <SceneLabel position={[0, NODE_RADIUS * 1.9, 0]} text={n.id} strong={primary || secondary} />
+              <SceneLabel
+                position={[0, NODE_RADIUS * 1.9, 0]}
+                text={overlay.valueLabel !== null ? `${labelOf.get(n.id) ?? n.id}: ${overlay.valueLabel}` : (labelOf.get(n.id) ?? n.id)}
+                strong={primary || secondary}
+              />
             )}
           </group>
         );
@@ -184,8 +215,18 @@ function EdgeMarker({
   );
 }
 
-function HoverInfo({ hovered, doc }: { readonly hovered: Hover | null; readonly doc: ViewProps['doc'] }) {
+function HoverInfo({ hovered, doc, design }: { readonly hovered: Hover | null; readonly doc: ViewProps['doc']; readonly design: ViewProps['design'] }) {
   if (!hovered) return <div className="viewer3d-count">Hover a node or edge</div>;
+  const tip = hovered.kind === 'edge' ? tooltipOf(design, hovered.id) : null;
+  if (tip) return <div>{tip}</div>;
+  const room = hovered.kind === 'node' ? design?.doc.nodes.find((x) => x.id === hovered.id) : undefined;
+  if (room) {
+    return (
+      <div>
+        <strong>{nodeLabel(room)}</strong> · {room.typeId} · grid [{room.grid.join(', ')}] · size {room.size.join('×')} · L{room.grid[2]}
+      </div>
+    );
+  }
   if (hovered.kind === 'node') {
     const n = doc.nodes.find((x) => x.id === hovered.id);
     if (!n) return null;

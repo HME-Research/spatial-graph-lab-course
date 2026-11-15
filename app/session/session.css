@@ -211,3 +211,13 @@
 .history-actions button:disabled:hover {
   border-color: var(--line);
 }
+
+.algorithm-result-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.algorithm-result-header h4 {
+  margin: 0;
+}

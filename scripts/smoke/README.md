@@ -41,7 +41,7 @@ Unit tests for the harness helpers: `node --test scripts/smoke/lib.test.mjs`.
 | `import/invalid-json-message` | Error clarity: the heading names the file, the message says whether the design was kept, it lists 1–5 issue lines, and the design is unchanged. |
 | `import/valid-example` | Imports the example design. |
 | `export/json` | Downloads Export JSON and parses it. It must have nodes and edges, and with `--feature v2` it must have `schemaVersion: 2`. |
-| `components/*` | **Dev server only.** `fixtures/components.html` renders the Stage 07 components in isolation. Checked: real Tab focus shows the tooltip (`aria-describedby` matches), Enter opens "More details", Escape closes, hover works, all four view legends share identical status entries with only Unresolved dashed, and the analysis legend marks stale results and Clear removes it. |
+| `components/*` | **Dev server only.** `fixtures/components.html` renders the Stage 07 components in isolation. Checked: real Tab focus shows the tooltip (`aria-describedby` matches), Enter opens "More details", Escape closes, hover works, all four view legends share identical status entries with only Routed (long dashes) and Unresolved (short dashes) dashed, and the analysis legend marks stale results and Clear removes it. |
 | `console/no-errors` | No uncaught exceptions or console errors. The browser's automatic `/favicon.ico` 404 is listed but ignored. |
 
 ### Post-integration checks (flags)
@@ -68,4 +68,4 @@ Use `--only viewports,select,...` to run selected groups. The groups are `viewpo
 6. Open an invalid JSON file: the message names the file, says the design was kept, and lists a short reason.
 7. Export JSON downloads a file that opens as valid JSON.
 8. After integration: Tab to a "?" help button, and a one-sentence tooltip appears. Enter shows "More details" and Escape closes it.
-9. After integration: an unresolved relationship is a thin muted red dashed line in every view, and each view's legend says "Unresolved" in the same way.
+9. After integration: Direct is a solid neutral line, Routed long-dashed neutral and Unresolved short-dashed muted red in every view; Access is thin and Open heavy; each view's legend says "Unresolved" in the same way.

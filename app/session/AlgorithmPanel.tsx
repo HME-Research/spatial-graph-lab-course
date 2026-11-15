@@ -70,7 +70,11 @@ export function AlgorithmPanel({
     e.preventDefault();
     if (!selected || !selected.enabled || !version) return;
     setNotice(null);
-    setRun(runEntryV2(version, project, selected, entryDrafts));
+    const next = runEntryV2(version, project, selected, entryDrafts);
+    setRun(next);
+    // An analysis is shown on the model straight away (temporary colours; "Hide" / Clear remove them).
+    if (next.outcome.ok && next.outcome.value.kind === 'analysis') onShowAnalysis?.(next);
+    else if (shownAnalysis === run) onShowAnalysis?.(null);
   };
 
   const apply = (preview: TransformationPreviewV2, confirmed: boolean) => {
@@ -274,14 +278,14 @@ function RunResult({
     const rows = analysisRows(outcome.result.nodeValues, run.doc, doc);
     return (
       <section className="sgl-section algorithm-result">
-        <h4>
-          Analysis: {run.label} <HelpTip topicId="analysis-results" />
-        </h4>
+        <div className="algorithm-result-header">
+          <h4>Analysis: {run.label}</h4> <HelpTip topicId="analysis-results" />
+        </div>
         {outcome.result.summary && <p>{outcome.result.summary}</p>}
         {stale && (
-          <p className="sgl-warning">
+          <div className="sgl-warning">
             ⚠ The design has changed since this ran; run it again for current values. <HelpTip topicId="stale-results" />
-          </p>
+          </div>
         )}
         {onShow && (
           <div className="sgl-buttons">

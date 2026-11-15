@@ -11,12 +11,29 @@ import type { Bounds, Framing, GroundGrid } from '@core/viewer/three/viewport';
 export interface NodeItem {
   readonly id: string;
   readonly typeId: string;
+  /** Minimum-corner cell. */
   readonly grid: GridCoord;
-  /** Cell centre in Three.js world space. */
+  /** Whole cells along grid x, y, z (schema v2 rooms); [1, 1, 1] for single-cell (v1) nodes. */
+  readonly size: readonly [number, number, number];
+  /** Room (footprint) centre in Three.js world space; the cell centre for a single cell. */
   readonly position: WorldPoint;
-  /** Storey (grid z). */
+  /** Footprint extents along Three.js X, Y, Z. */
+  readonly extent: WorldPoint;
+  /** Storey (grid z of the minimum corner). */
   readonly level: number;
 }
+
+/** A node with an optional schema-v2 size (absent = one cell). */
+export type SizedNode = Pick<GraphNode, 'id' | 'typeId' | 'grid'> & { readonly size?: readonly [number, number, number] };
+
+const UNIT_SIZE = [1, 1, 1] as const;
+const sizeOf = (n: SizedNode): readonly [number, number, number] => n.size ?? UNIT_SIZE;
+
+/** Footprint centre in grid space (fractional for even sizes). */
+const centreOf = (n: SizedNode): readonly [number, number, number] => {
+  const [sx, sy, sz] = sizeOf(n);
+  return [n.grid[0] + (sx - 1) / 2, n.grid[1] + (sy - 1) / 2, n.grid[2] + (sz - 1) / 2];
+};
 
 export interface EdgeItem {
   readonly id: string;
@@ -32,23 +49,28 @@ export interface EdgeItem {
   readonly direction: WorldPoint;
 }
 
-export function buildNodeItems(nodes: readonly GraphNode[], cell: CellSize = DEFAULT_CELL_SIZE): NodeItem[] {
-  return nodes.map((n) => ({
-    id: n.id,
-    typeId: n.typeId,
-    grid: n.grid,
-    position: spatialToThree(n.grid, cell),
-    level: n.grid[2],
-  }));
+export function buildNodeItems(nodes: readonly SizedNode[], cell: CellSize = DEFAULT_CELL_SIZE): NodeItem[] {
+  return nodes.map((n) => {
+    const size = sizeOf(n);
+    return {
+      id: n.id,
+      typeId: n.typeId,
+      grid: n.grid,
+      size,
+      position: spatialToThree(centreOf(n), cell),
+      extent: [size[0] * cell.horizontal, size[2] * cell.vertical, size[1] * cell.horizontal],
+      level: n.grid[2],
+    };
+  });
 }
 
-/** Edge segments between endpoint cell centres. Edges with a missing endpoint are skipped. */
+/** Edge segments between endpoint room centres. Edges with a missing endpoint are skipped. */
 export function buildEdgeItems(
-  nodes: readonly GraphNode[],
+  nodes: readonly SizedNode[],
   edges: readonly GraphEdge[],
   cell: CellSize = DEFAULT_CELL_SIZE,
 ): EdgeItem[] {
-  const gridOf = new Map(nodes.map((n) => [n.id, n.grid] as const));
+  const gridOf = new Map(nodes.map((n) => [n.id, centreOf(n)] as const));
   const items: EdgeItem[] = [];
   for (const e of edges) {
     const a = gridOf.get(e.source);
@@ -75,22 +97,42 @@ export function buildEdgeItems(
   return items;
 }
 
-/** Distinct occupied storeys, ascending. */
-export function storeyLevels(nodes: readonly GraphNode[]): number[] {
-  return [...new Set(nodes.map((n) => n.grid[2]))].sort((a, b) => a - b);
+/** Distinct occupied storeys (every storey a room spans), ascending. */
+export function storeyLevels(nodes: readonly SizedNode[]): number[] {
+  const levels = new Set<number>();
+  for (const n of nodes) for (let z = 0; z < sizeOf(n)[2]; z++) levels.add(n.grid[2] + z);
+  return [...levels].sort((a, b) => a - b);
 }
 
 /** World-space box enclosing every occupied cell (full cell extents), or null when empty. */
-export function cellBounds(nodes: readonly GraphNode[], cell: CellSize = DEFAULT_CELL_SIZE): Bounds | null {
+export function cellBounds(nodes: readonly SizedNode[], cell: CellSize = DEFAULT_CELL_SIZE): Bounds | null {
   if (nodes.length === 0) return null;
   const min = [Infinity, Infinity, Infinity];
   const max = [-Infinity, -Infinity, -Infinity];
-  const half = [cell.horizontal / 2, cell.vertical / 2, cell.horizontal / 2];
   for (const n of nodes) {
-    const p = spatialToThree(n.grid, cell);
+    const size = sizeOf(n);
+    const p = spatialToThree(centreOf(n), cell);
+    const half = [(size[0] * cell.horizontal) / 2, (size[2] * cell.vertical) / 2, (size[1] * cell.horizontal) / 2];
     for (let i = 0; i < 3; i++) {
       min[i] = Math.min(min[i]!, p[i]! - half[i]!);
       max[i] = Math.max(max[i]!, p[i]! + half[i]!);
+    }
+  }
+  return { min: min as unknown as WorldPoint, max: max as unknown as WorldPoint };
+}
+
+/** `bounds` grown to include world-space boxes (e.g. connector cells); null stays null only if both are empty. */
+export function includeBoxes(
+  bounds: Bounds | null,
+  boxes: readonly { readonly position: WorldPoint; readonly size: WorldPoint }[],
+): Bounds | null {
+  if (boxes.length === 0) return bounds;
+  const min = bounds ? [...bounds.min] : [Infinity, Infinity, Infinity];
+  const max = bounds ? [...bounds.max] : [-Infinity, -Infinity, -Infinity];
+  for (const b of boxes) {
+    for (let i = 0; i < 3; i++) {
+      min[i] = Math.min(min[i]!, b.position[i]! - b.size[i]! / 2);
+      max[i] = Math.max(max[i]!, b.position[i]! + b.size[i]! / 2);
     }
   }
   return { min: min as unknown as WorldPoint, max: max as unknown as WorldPoint };
@@ -116,7 +158,7 @@ export function framingFor(bounds: Bounds | null, cell: CellSize = DEFAULT_CELL_
  * occupied cell (in plan) plus `margin` cells on each side.
  */
 export function groundGrid(
-  nodes: readonly GraphNode[],
+  nodes: readonly SizedNode[],
   cell: CellSize = DEFAULT_CELL_SIZE,
   margin = 2,
 ): GroundGrid {
@@ -126,11 +168,12 @@ export function groundGrid(
   let maxY = 0;
   nodes.forEach((n, i) => {
     const [x, y] = n.grid;
-    if (i === 0) [minX, maxX, minY, maxY] = [x, x, y, y];
+    const [sx, sy] = sizeOf(n);
+    if (i === 0) [minX, maxX, minY, maxY] = [x, x + sx - 1, y, y + sy - 1];
     minX = Math.min(minX, x);
-    maxX = Math.max(maxX, x);
+    maxX = Math.max(maxX, x + sx - 1);
     minY = Math.min(minY, y);
-    maxY = Math.max(maxY, y);
+    maxY = Math.max(maxY, y + sy - 1);
   });
   // Half-cell boundaries span [min - 0.5 - margin, max + 0.5 + margin]; use an even, square cell count
   // centred on a cell boundary so the GridHelper lines fall exactly on boundaries.

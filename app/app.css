@@ -117,6 +117,14 @@ main {
   font-size: 1rem;
 }
 
+.issues-technical {
+  white-space: pre-wrap;
+  font-size: 0.8rem;
+  max-height: 10rem;
+  overflow: auto;
+  margin: 4px 0;
+}
+
 .issues .code {
   color: var(--muted);
 }

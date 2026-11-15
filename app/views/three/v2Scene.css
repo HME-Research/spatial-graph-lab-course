@@ -1,0 +1,22 @@
+/* Schema-v2 additions to the 3D overlays (Gate 1 integration). */
+
+/* Inside a view legend panel (Voxels, Graph 3D): a compact, collapsible section. */
+.viewer3d-relationship-legend {
+  pointer-events: auto;
+  margin-top: 6px;
+}
+
+.viewer3d-relationship-legend .sgl-pres-legend {
+  max-width: 240px;
+  max-height: 32vh;
+  padding: 4px 6px;
+}
+
+/* Standalone in the overlay grid (Building): left column, middle row, bottom-aligned. */
+.viewer3d-relationship-legend.standalone {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: end;
+  justify-self: start;
+  margin-top: 0;
+}

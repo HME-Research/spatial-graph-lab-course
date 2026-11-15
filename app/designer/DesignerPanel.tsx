@@ -1,3 +1,4 @@
+import { HelpTip } from '@app/ui/help';
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { exampleFacadeProvider } from '@app/building';
 import { ROOF_STYLES } from '@app/document/v2';
@@ -81,6 +82,7 @@ export function DesignerPanel({ design, project, selection, onShowRelationship }
         <h3>
           Type appearance <span className="sgl-designer-scope">this design</span>
         </h3>
+        <HelpTip topicId="designer-windows" />
         <details className="sgl-designer-help">
           <summary title={HELP} aria-label="About the Designer">
             ?

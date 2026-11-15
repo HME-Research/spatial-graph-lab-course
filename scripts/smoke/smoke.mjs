@@ -141,7 +141,7 @@ const RECTS_JS = `(() => {
   return {
     toolbar: r('.toolbar'), projectBar: r('.project-bar'), workspace: r('.workspace'),
     panel1: r('.view-panel[data-panel="0"]'), panel2: r('.view-panel[data-panel="1"]'),
-    sidebar: r('.sidebar'), sidebarBody: r('.sidebar-body:not([hidden])'),
+    sidebar: r('.sidebar, .sgl-sidenav'), sidebarBody: r('.sidebar-body:not([hidden]), .sgl-sidenav-panel:not([hidden])'),
   };
 })()`;
 const rects = () => evaluate(RECTS_JS);
@@ -219,7 +219,7 @@ const skip = (message) => ({ status: 'SKIP', message });
 /** Make sure a design with nodes is shown in panel 1 (Graph 2D), loading the example if needed. */
 async function ensureDesign() {
   if ((await nodeCount()) > 0) return;
-  await evaluate(`(() => { const s = document.querySelector('select[aria-label="View mode, panel 1"]'); if (!s || s.value === 'graph2d') return;
+  await evaluate(`(() => { const s = document.querySelector('select[aria-label="View mode, panel 1"], select[aria-label="View shown in panel 1"]'); if (!s || s.value === 'graph2d') return;
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'graph2d'); s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
   if ((await nodeCount()) > 0) return;
   await clickButton('Load example');
@@ -266,7 +266,7 @@ if (wants('viewports')) {
 if (wants('select')) {
   await check('select/node-without-resize', async () => {
     await ensureDesign();
-    await evaluate(`document.querySelector('#sidebar-tab-inspector')?.click()`);
+    await evaluate(`(document.querySelector('#sidebar-tab-inspector') ?? document.querySelector('#sidebar-tab-properties'))?.click()`);
     await delay(200);
     const before = await rects();
     const node = await nodeCenter(0);
@@ -288,7 +288,7 @@ if (wants('select')) {
 }
 
 if (wants('views')) {
-  const select = 'select[aria-label="View mode, panel 2"]';
+  const select = 'select[aria-label="View mode, panel 2"], select[aria-label="View shown in panel 2"]';
   const original = await evaluate(`document.querySelector(${JSON.stringify(select)})?.value ?? null`);
   const modes = await evaluate(`[...(document.querySelector(${JSON.stringify(select)})?.options ?? [])].map((o) => o.value)`);
   if (!original || modes.length === 0) record('views', 'FAIL', 'panel 2 view-mode selector not found (split view expected by default)');
@@ -389,7 +389,7 @@ if (wants('analysis')) {
     const n = await evaluate(`document.querySelectorAll('.sgl-pres-analysis').length`);
     return n > 0 ? pass(`${n} analysis legend(s) visible`) : fail('no .sgl-pres-analysis legend after running an analysis');
   });
-  await evaluate(`document.querySelector('#sidebar-tab-inspector')?.click()`);
+  await evaluate(`(document.querySelector('#sidebar-tab-inspector') ?? document.querySelector('#sidebar-tab-properties'))?.click()`);
 }
 
 if (wants('import')) {
@@ -554,11 +554,11 @@ if (wants('components')) {
       if (legends.length !== 4) problems.push(`expected 4 view legends, found ${legends.length}`);
       for (const l of legends) {
         if (JSON.stringify(l.status) !== JSON.stringify(legends[0].status)) problems.push(`${l.view} status entries differ from ${legends[0].view}`);
-        if (JSON.stringify(l.dashed) !== JSON.stringify(['status:unresolved'])) problems.push(`${l.view}: dashed items ${JSON.stringify(l.dashed)}`);
+        if (JSON.stringify(l.dashed) !== JSON.stringify(['status:routed', 'status:unresolved'])) problems.push(`${l.view}: dashed items ${JSON.stringify(l.dashed)}`);
         if (!l.focusable) problems.push(`${l.view}: legend items not keyboard focusable`);
       }
       const data = { legends: legends.map((l) => l.view), screenshot: file };
-      return problems.length ? fail(problems.join('; '), data) : pass(`${legends.length} view legends share identical status entries; only Unresolved is dashed`, data);
+      return problems.length ? fail(problems.join('; '), data) : pass(`${legends.length} view legends share identical status entries; only Routed (long) and Unresolved (short) are dashed`, data);
     });
 
     await check('components/analysis-legend', async () => {

@@ -1,3 +1,4 @@
+import { HelpTip } from '@app/ui/help';
 import { useEffect, useMemo, useState } from 'react';
 import type { EdgeKind, GraphNode } from '@app/document';
 import { MAX_ROOM_SIZE, nodeLabel, type RoomNode } from '@app/document/v2';
@@ -168,6 +169,9 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
               z is the storey. This moves the physical room{design ? '' : '; the target cell must be empty and every relationship must keep touching'}. Moving
               the node in Graph 2D only rearranges the diagram.
             </p>
+            <div className="sgl-help-row">
+              Diagram vs grid <HelpTip topicId="graph-vs-grid" />
+            </div>
           </>
         }
       />
@@ -187,7 +191,9 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
           footer={
             <>
               {confirmation('resize')}
-              <p className="sgl-help">Whole cells, 1 to {MAX_ROOM_SIZE}. The room grows from its position.</p>
+              <div className="sgl-help-row">
+                <span className="sgl-help">Whole cells, 1 to {MAX_ROOM_SIZE}. The room grows from its position.</span> <HelpTip topicId="room-size" />
+              </div>
             </>
           }
         />

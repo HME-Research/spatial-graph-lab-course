@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { DesignDocument } from '@app/document';
+import type { SceneSource } from './v2Scene';
 import { selectionEmphasis, type Selection } from '@core/viewer/selection';
 import type { Hover } from '@core/viewer/three/picking';
 import {
@@ -16,7 +16,7 @@ import { accessGroups, buildEdgeItems, buildNodeItems, cellBounds, framingFor, g
  * (colour-by, level cut, hover, camera fit requests). Derived data is memoised on the
  * document's node/edge arrays, so selection changes never rebuild scene data.
  */
-export function useSpatialScene(doc: DesignDocument, selection: Selection) {
+export function useSpatialScene(doc: SceneSource, selection: Selection) {
   const { nodes, edges } = doc;
   const nodeItems = useMemo(() => buildNodeItems(nodes), [nodes]);
   const edgeItems = useMemo(() => buildEdgeItems(nodes, edges), [nodes, edges]);

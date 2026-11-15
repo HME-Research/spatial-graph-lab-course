@@ -383,3 +383,15 @@
 .sgl-inspector select {
   max-width: 100%;
 }
+
+/* Stage 07 help tips placed next to Properties headings and fields (Gate 1). */
+.sgl-help-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sgl-help-row h4 {
+  margin: 0;
+}

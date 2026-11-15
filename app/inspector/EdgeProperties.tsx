@@ -1,3 +1,4 @@
+import { HelpTip } from '@app/ui/help';
 import { EDGE_KINDS, isEdgeGeometryValid, type EdgeKind } from '@app/document';
 import { connectorStyleOf, nodeLabel, type ConnectorStyle, type RelationshipKind } from '@app/document/v2';
 import { EDGE_KIND_LABELS, EDGE_STYLES, formatGrid, orientationOf } from '@app/views/graph2d/diagram';
@@ -81,6 +82,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: string }) {
 
       <fieldset className="sgl-section">
         <legend>Kind</legend>
+        <HelpTip topicId="access-open" />
         <div className="sgl-segmented" role="radiogroup" aria-label="Relationship kind">
           {RELATIONSHIP_KIND_CHOICES.map((c) => (
             <label key={c.value} className={edge.kind === c.value ? 'checked' : undefined} title={c.description}>
@@ -93,7 +95,9 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: string }) {
       </fieldset>
 
       <section className="sgl-section" aria-live="polite">
-        <h4>In the building</h4>
+        <div className="sgl-help-row">
+          <h4>In the building</h4> <HelpTip topicId={resolution?.status === 'unresolved' ? 'unresolved' : 'relationship-status'} />
+        </div>
         {status && resolution ? (
           status.tone === 'warning' && resolution.status === 'unresolved' ? (
             <Feedback
@@ -115,6 +119,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: string }) {
       {resolution?.status === 'routed' ? (
         <fieldset className="sgl-section">
           <legend>Corridor style</legend>
+          <HelpTip topicId="connector-style" />
           <select value={style} aria-label="Corridor style" onChange={(e) => setStyle(e.currentTarget.value as ConnectorStyle)}>
             {CONNECTOR_STYLE_CHOICES.map((c) => (
               <option key={c.value} value={c.value} title={c.description}>

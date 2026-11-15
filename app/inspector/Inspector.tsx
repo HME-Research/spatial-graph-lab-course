@@ -1,3 +1,4 @@
+import { HelpTip } from '@app/ui/help';
 import type { DesignDocument } from '@app/document';
 import type { DesignPort } from '@app/spatial';
 import type { InspectorProps } from '@app/views/contracts';
@@ -57,13 +58,22 @@ function DesignSummary({ doc, design }: { readonly doc: DesignDocument; readonly
       <p className="sgl-design-name">{metadata.name}</p>
       {metadata.description && <p className="sgl-help">{metadata.description}</p>}
       <p className="sgl-help">
-        {nodes.length} rooms · {edgeCount} relationships{notBuilt > 0 ? ` (${notBuilt} not built)` : ''} · storeys (z):{' '}
+        {nodes.length} rooms · {edgeCount} relationships{notBuilt > 0 ? ` (${notBuilt} unresolved)` : ''} · storeys (z):{' '}
         {storeys.join(', ') || '—'} · schema v{design ? design.doc.schemaVersion : doc.schemaVersion}
       </p>
-      <p className="sgl-help">
-        Tip: moving a node in Graph 2D only rearranges the diagram. To move a room in the building, change its Position
-        here.
-      </p>
+      <div className="sgl-help-row">
+        <span className="sgl-help">
+          Tip: moving a node in Graph 2D only rearranges the diagram. To move a room in the building, change its Position
+          here.
+        </span>
+        <HelpTip topicId="graph-vs-grid" />
+      </div>
+      {design && (
+        <div className="sgl-help-row">
+          <span className="sgl-help">Relationship lines: solid = direct, long dashes = via route, short red dashes = unresolved.</span>
+          <HelpTip topicId="relationship-status" />
+        </div>
+      )}
     </section>
   );
 }
