@@ -14,19 +14,22 @@ A relationship has a **kind**, which is what the designer intends: **Access** or
 
 | Concept | Label | Line (2D / 3D) |
 |---|---|---|
-| Direct, same storey | Direct | solid, `#2f5878` |
-| Direct, between storeys | Direct | solid, `#d0621b` |
-| Routed | Connected via route | solid, ring at the midpoint |
-| Unresolved | Unresolved | **thin muted red dashed**, `#a2453f`, 1.5 px, dashes `6 4` |
-| Access | Access | thin, 2 px / 0.07 m |
-| Open | Open | thick, 4.5 px / 0.12 m |
+| Direct | Direct | solid, neutral `#3a4756` |
+| Routed | Connected via route | **long** dashes `12 5`, neutral `#3a4756` |
+| Unresolved | Unresolved | **short** dashes `4 4`, muted red `#a2453f`, thinner |
+| Access | Access | thin, 2 px / 0.07 m (unresolved 1.5 px) |
+| Open | Open | heavy, 4.5 px / 0.12 m (unresolved 3 px) |
 | Selected | Selected | pink `SELECTION_COLOR`, which always wins |
 | Rejected document / import / command | Error tone (`ERROR_TONE`) | not a line colour, never the unresolved red |
 | Out-of-date analysis | Warning tone (`WARNING_TONE`) | — |
 
 The tokens are in `vocabulary.ts`: `relationshipLine(kind, status, contact)`, `UNRESOLVED_LINE`, `STATUS_PRESENTATION`, `KIND_PRESENTATION`, `CONNECTOR_PRESENTATION` and `UNRESOLVED_REASON_TEXT`. Tests check that the unresolved colour has at least 4.5:1 contrast on white and on the app background, and that it differs from the selection pink and the error tone.
 
-### Proposal to the Graph UI owner (01) and root: dashes mean Unresolved only
+### Gate 1 decision (supersedes the proposal below)
+
+Integration chose one scheme for every view and legend: **Direct = solid neutral, Routed = long-dashed neutral, Unresolved = short-dashed muted red; Access/Open by line weight, independently of status.** Storey contact is no longer a line colour (tooltips and Properties state it). `relationshipLine` is the single token source; Graph 2D (`edgePresentation.ts`), the 3D views and both legend implementations read it. v1 rendering paths (no `design` port) keep their old styles.
+
+### Original Stage 07 proposal (not adopted as written): dashes mean Unresolved only
 
 The v1 views currently give dashes two meanings that contradict each other:
 - Graph 2D: "dashed = between storeys" (`atrium`, `vertical-access`).

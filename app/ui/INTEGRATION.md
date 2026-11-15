@@ -19,6 +19,8 @@ size, Access/Open, corridor style, spatial status, and the corridor-clash confir
 
 ## 1. Workspace: vertical navigation + "Building" label (patch)
 
+> **Gate 1:** applied by adaptation, not with `git apply`: `Workspace.tsx` was rewritten on the merged source (SidebarNav, ViewModeSelect, the real `DesignerPanel`, analysis overlay); only the `app.css` hunk was applied as is. `VIEW_MODE_LABELS.architecture` is now "Building". The patch file is kept for reference only.
+
 `integration/workspace-wiring.patch` was generated against `e9692b5`, and `git apply --check`
 passes. It was checked in a real browser at 1280×720 and 1366×768: no page scroll, keyboard
 section navigation, and collapse/expand all worked.

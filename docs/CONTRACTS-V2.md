@@ -4,6 +4,8 @@ Shared interfaces for the seven parallel MVP branches (`01-graph-ui` … `07-tea
 
 ## 0. State at the baseline (read first)
 
+> **Gate 1 (integrated on main):** the app now stores, edits, undoes and exports **v2** only (v1 files are read and migrated; export is `serializeDesignV2`). Straight-connector routing is implemented (02); `routing-unavailable` and `endpoint-clearance` are never emitted. The Student API and `app/extensions` run on v2 (`runAlgorithmV2`, `validateDocumentV2`); project designs are read with `readDesignJson`. One live `DesignPort` is passed to every view, Properties and the Designer. The frozen v1 `ViewProps.doc`/`onCommand` receive a read-only projection and a v1→v2 command translation (`app/session/legacyBridge.ts`). The bullets below describe the Gate 0 baseline.
+
 - **Additive.** The running app still stores and edits a **v1** `DesignDocument` (`@app/document`, unchanged; golden tests unchanged). Schema v2 lives beside it in `@app/document/v2` and `@app/spatial`. Integration (Gate 1) switches `App`/history/load/export to v2.
 - **Stubbed:** only straight-connector routing in `app/spatial/resolve.ts`. A separated pair on a shared storey returns `unresolved` with reason `routing-unavailable`. Every other function below is implemented and tested.
 - **Not yet adapted:** the Student API and `app/extensions` (still v1). See §7.
