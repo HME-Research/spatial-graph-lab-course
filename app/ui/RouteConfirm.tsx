@@ -8,7 +8,7 @@ import { Feedback } from './Feedback';
  * - Cancel: nothing is sent; the document is unchanged.
  * - Move anyway and recalculate: the host sends `set-node-geometry` with
  *   `confirmRouteDisplacement: true` (one history step). Relationships are kept; their corridors
- *   are recalculated and may become "Not built".
+ *   are recalculated and may become "Unresolved".
  */
 export function RouteConfirm({
   relationships,
@@ -30,7 +30,7 @@ export function RouteConfirm({
       title={`${verb} this room would block the generated corridor of ${relationships.length === 1 ? 'relationship' : 'relationships'} ${list}.`}
       messages={[
         {
-          text: 'If you continue, the relationships are kept and their corridors are recalculated. Some may become “Not built”.',
+          text: 'If you continue, the relationships are kept and their corridors are recalculated. Some may become “Unresolved”.',
           technical: '',
         },
       ]}

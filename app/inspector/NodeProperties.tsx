@@ -292,7 +292,7 @@ function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { rea
           </button>
         </div>
       )}
-      <p className="sgl-help">Rooms do not need to touch to be related. If a relationship cannot be built yet, it is kept and marked “Not built”.</p>
+      <p className="sgl-help">Rooms do not need to touch to be related. If a relationship cannot be built yet, it is kept and marked “Unresolved”.</p>
     </section>
   );
 }

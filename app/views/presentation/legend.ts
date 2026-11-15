@@ -69,9 +69,9 @@ const VIEW_TITLE: Readonly<Record<ViewMode, string>> = {
 
 /** Physical meaning per status in the building views. */
 const BUILT_SUMMARY: Readonly<Record<ResolutionStatus, string>> = {
-  direct: 'Built as a door, opening or void in the shared wall or floor.',
-  routed: 'Built as a straight connector between the rooms.',
-  unresolved: 'Not built. Shown only as a thin red dashed line.',
+  direct: 'Built as a door, opening or void in the shared wall or floor. Solid line.',
+  routed: 'Built as a straight connector between the rooms. Long-dashed line.',
+  unresolved: 'Not built. Shown only as a short-dashed red line.',
 };
 
 function statusSection(view: ViewMode, opts: RelationshipLegendOptions): LegendSection {

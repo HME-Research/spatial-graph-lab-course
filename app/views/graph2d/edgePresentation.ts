@@ -1,6 +1,13 @@
 import type { EdgeKind } from '@app/document';
 import type { RelationshipKind } from '@app/document/v2';
 import type { ResolutionStatus, UnresolvedReason } from '@app/spatial';
+import {
+  relationshipLine,
+  RELATIONSHIP_NEUTRAL_COLOR,
+  STATUS_PRESENTATION,
+  UNRESOLVED_COLOR,
+  UNRESOLVED_REASON_TEXT as SHARED_REASON_TEXT,
+} from '../presentation/vocabulary';
 import { EDGE_KIND_LABELS, EDGE_STYLES, orientationOf } from './diagram';
 import type { DiagramEdge, DiagramModel } from './diagramModel';
 
@@ -17,9 +24,10 @@ import type { DiagramEdge, DiagramModel } from './diagramModel';
  * still reads as unresolved.
  */
 
-export const NEUTRAL_STROKE = '#3a4756';
-export const ROUTED_STROKE = '#5b6774';
-export const UNRESOLVED_STROKE = '#b55e63';
+// Gate 1: one scheme for every view — tokens come from the shared teaching vocabulary.
+export const NEUTRAL_STROKE = RELATIONSHIP_NEUTRAL_COLOR;
+export const ROUTED_STROKE = RELATIONSHIP_NEUTRAL_COLOR;
+export const UNRESOLVED_STROKE = UNRESOLVED_COLOR;
 
 export const RELATIONSHIP_KIND_LABELS: Readonly<Record<RelationshipKind, string>> = {
   access: 'Access',
@@ -32,9 +40,9 @@ export const RELATIONSHIP_KIND_HINTS: Readonly<Record<RelationshipKind, string>>
 };
 
 export const STATUS_LABELS: Readonly<Record<ResolutionStatus, string>> = {
-  direct: 'Touching',
-  routed: 'Via connector',
-  unresolved: 'Not buildable yet',
+  direct: STATUS_PRESENTATION.direct.label,
+  routed: STATUS_PRESENTATION.routed.label,
+  unresolved: STATUS_PRESENTATION.unresolved.label,
 };
 
 export const STATUS_HINTS: Readonly<Record<ResolutionStatus, string>> = {
@@ -43,15 +51,8 @@ export const STATUS_HINTS: Readonly<Record<ResolutionStatus, string>> = {
   unresolved: 'kept as a relationship, but no physical connection can be made yet',
 };
 
-/** Short beginner explanations of why a relationship cannot be built (shown on hover / popover). */
-export const UNRESOLVED_REASON_TEXT: Readonly<Record<UnresolvedReason, string>> = {
-  'different-level': 'The rooms are on different storeys and do not touch. Stairs and ramps are not generated yet.',
-  'not-aligned': 'No straight corridor can join facing sides of these rooms.',
-  'blocked-by-room': 'Every straight corridor would pass through another room.',
-  'blocked-by-route': 'Every straight corridor would cross another generated connector.',
-  'endpoint-clearance': 'There is not enough clear space where a corridor would meet the rooms.',
-  'routing-unavailable': 'Connectors between separated rooms are not generated yet.',
-};
+/** Short beginner explanations of why a relationship cannot be built: the shared teaching text. */
+export const UNRESOLVED_REASON_TEXT: Readonly<Record<UnresolvedReason, string>> = SHARED_REASON_TEXT;
 
 export type EdgeStatus = ResolutionStatus | 'legacy';
 
@@ -66,20 +67,13 @@ export interface EdgePresentation {
   readonly title: string;
 }
 
-const KIND_WIDTH: Readonly<Record<RelationshipKind, number>> = { access: 2, open: 4.5 };
-
-const ROUTED_DASH = '10 4';
-const UNRESOLVED_DASH = '5 4';
-
-/** Stroke for a v2 relationship (intent × status). Exported for the legend and tests. */
+/** Stroke for a v2 relationship (intent × status), from the shared `relationshipLine` tokens. */
 export function relationshipStroke(
   kind: RelationshipKind,
   status: ResolutionStatus,
 ): Pick<EdgePresentation, 'stroke' | 'strokeWidth' | 'strokeDasharray'> {
-  const width = KIND_WIDTH[kind];
-  if (status === 'unresolved') return { stroke: UNRESOLVED_STROKE, strokeWidth: kind === 'open' ? 2.5 : 1.5, strokeDasharray: UNRESOLVED_DASH };
-  if (status === 'routed') return { stroke: ROUTED_STROKE, strokeWidth: width, strokeDasharray: ROUTED_DASH };
-  return { stroke: NEUTRAL_STROKE, strokeWidth: width, strokeDasharray: undefined };
+  const line = relationshipLine(kind, status);
+  return { stroke: line.color, strokeWidth: line.width2d, strokeDasharray: line.dash2d ?? undefined };
 }
 
 /** Presentation of one edge of the model; endpoints are named by their short display labels. */

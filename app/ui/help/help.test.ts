@@ -35,7 +35,7 @@ describe('help topics', () => {
   it('uses the shared status vocabulary', () => {
     const t = HELP_TOPICS['relationship-status'];
     for (const word of ['Direct', 'Connected via route', 'Unresolved']) expect(t.title + t.details).toContain(word);
-    expect(HELP_TOPICS.unresolved.summary).toMatch(/red dashed/);
+    expect(HELP_TOPICS.unresolved.summary).toMatch(/short-dashed muted red/);
   });
 });
 

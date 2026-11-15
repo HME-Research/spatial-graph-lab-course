@@ -240,7 +240,7 @@ describe('edge presentation', () => {
     const p = presentEdge(model, model.edges[0]!);
     expect(p.status).toBe('routed');
     expect(p.stroke).toBe(ROUTED_STROKE);
-    expect(p.label).toBe('Access · Via connector');
+    expect(p.label).toBe('Access · Connected via route');
   });
 
   it('keeps the v1 kind styles for v1 documents', () => {

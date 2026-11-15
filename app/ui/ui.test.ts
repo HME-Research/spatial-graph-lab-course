@@ -52,7 +52,7 @@ describe('beginner vocabulary', () => {
     expect(describeResolution(routed).detail).toBe('Joined by a generated covered corridor, 2 cells long, on storey 1.');
     for (const reason of Object.keys(UNRESOLVED_REASON_TEXT) as (keyof typeof UNRESOLVED_REASON_TEXT)[]) {
       const text = describeResolution({ ...base, status: 'unresolved', reason, message: 'x' });
-      expect(text).toMatchObject({ title: 'Not built', tone: 'warning' });
+      expect(text).toMatchObject({ title: 'Unresolved', tone: 'warning' });
       expect(text.detail).toBe(UNRESOLVED_REASON_TEXT[reason]);
     }
   });

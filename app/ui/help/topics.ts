@@ -44,7 +44,7 @@ const topics = [
   {
     id: 'unresolved',
     title: 'Unresolved relationship',
-    summary: 'A thin red dashed line: the relationship is kept, but nothing can be built for it in the current layout.',
+    summary: 'A short-dashed muted red line: the relationship is kept, but nothing can be built for it in the current layout.',
     details:
       'Common causes: the rooms are on different storeys and do not touch, they do not line up along x or y, or another room or connector is in the way. ' +
       'Move or resize a room so they touch or face each other with clear cells between. Unresolved is not a validation error and the design can still be saved.',

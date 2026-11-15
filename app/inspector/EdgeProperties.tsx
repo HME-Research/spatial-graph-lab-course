@@ -98,7 +98,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: string }) {
           status.tone === 'warning' && resolution.status === 'unresolved' ? (
             <Feedback
               tone="warning"
-              title="Not built yet. The relationship is kept."
+              title="Unresolved: nothing can be built yet. The relationship is kept."
               messages={[{ text: status.detail, technical: `${resolution.reason} · ${resolution.message}` }]}
             />
           ) : (

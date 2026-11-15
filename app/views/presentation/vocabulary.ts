@@ -9,16 +9,11 @@ import { SELECTION_COLOR } from '@core/viewer/appearance';
  *  - its KIND (what the designer intends): Access or Open;
  *  - its spatial STATUS (derived, never saved): Direct, Connected via route, or Unresolved.
  *
- * Line encoding (proposed for every view, see docs/TEACHING-FEEDBACK.md):
- *  - DASHES mean "Unresolved" and nothing else. Unresolved is always a thin, muted red dashed line.
- *  - Kind is encoded by line WIDTH (Access thin, Open thick), never by dashes.
- *  - Contact family keeps the existing colours: same storey blue-grey, between storeys orange.
- *  - A routed relationship is a solid line with a ring at its midpoint ("via route").
+ * Line encoding (adopted by every view and legend at Gate 1; see `relationshipLine` below):
+ *  - Direct = solid neutral; Routed = long-dashed neutral; Unresolved = short-dashed muted red.
+ *  - Kind is encoded independently by line WEIGHT (Access thin, Open heavy).
  *  - Selection keeps its own pink (SELECTION_COLOR) and always wins over every other colour.
  *  - Document / import / type errors use the ERROR tone, never the unresolved line colour.
- *
- * These are presentation helpers only. Existing views (graph2d, three/edgeStyle) are owned by
- * other branches; the integration owner adopts these tokens there.
  */
 
 /** Same-storey (horizontal) relationship colour; equal to `HORIZONTAL_EDGE_COLOR` in three/edgeStyle. */
@@ -143,39 +138,66 @@ export function unresolvedReasonText(reason: string): string {
     : 'The relationship cannot be built in the current design.';
 }
 
-const ACCESS_WIDTH = 2;
-const OPEN_WIDTH = 4.5;
-const ACCESS_RADIUS = 0.07;
-const OPEN_RADIUS = 0.12;
+// ── The one relationship line scheme (Gate 1 decision, all views and legends) ──────────────────
+//
+// Integration resolved the Stage 01 / Stage 07 mismatch as follows (docs/TEACHING-FEEDBACK.md §1):
+//  - STATUS is encoded by dash pattern and colour:
+//      Direct     → solid, neutral;
+//      Routed     → LONG dashes, neutral;
+//      Unresolved → SHORT dashes, muted red.
+//  - KIND is encoded independently by line WEIGHT (Access thin, Open heavy), for every status.
+//  - Storey contact is no longer a line colour (it is stated in tooltips and Properties); the 3D
+//    v1 colours remain only for schema-v1 rendering paths.
+//  - Selection keeps its own pink and always wins.
 
-/** The unresolved line: thin, muted red, dashed, identical for both kinds. */
+/** Neutral line colour for Direct and Routed relationships (≥ 4.5:1 on white). */
+export const RELATIONSHIP_NEUTRAL_COLOR = '#3a4756';
+
+const WIDTH_2D: Readonly<Record<RelationshipKind, number>> = { access: 2, open: 4.5 };
+const RADIUS_3D: Readonly<Record<RelationshipKind, number>> = { access: 0.07, open: 0.12 };
+/** Unresolved lines are thinner than built ones, but still weighted by kind. */
+const UNRESOLVED_WIDTH_2D: Readonly<Record<RelationshipKind, number>> = { access: 1.5, open: 3 };
+const UNRESOLVED_RADIUS_3D: Readonly<Record<RelationshipKind, number>> = { access: 0.045, open: 0.08 };
+
+/** SVG dash patterns (px). Long = routed, short = unresolved. */
+export const ROUTED_DASH_2D = '12 5';
+export const UNRESOLVED_DASH_2D = '4 4';
+/** 3D dash patterns `[dash, gap]` in metres. */
+export const ROUTED_DASH_3D: readonly [number, number] = [0.75, 0.3];
+export const UNRESOLVED_DASH_3D: readonly [number, number] = [0.22, 0.2];
+
+/** The unresolved Access line (the thinnest unresolved line; Open is heavier). */
 export const UNRESOLVED_LINE: LineToken = Object.freeze({
   color: UNRESOLVED_COLOR,
-  width2d: 1.5,
-  radius3d: 0.045,
-  dash2d: '6 4',
-  dash3d: [0.26, 0.18] as const,
+  width2d: UNRESOLVED_WIDTH_2D.access,
+  radius3d: UNRESOLVED_RADIUS_3D.access,
+  dash2d: UNRESOLVED_DASH_2D,
+  dash3d: UNRESOLVED_DASH_3D,
   marker: 'none',
 });
 
 /**
- * Line token for a relationship. `contact` is known for direct edges; routed edges are always on
- * one storey; for unknown contact (e.g. v1 views without resolution) pass 'horizontal'.
+ * Line token for a relationship (kind × derived status). `contact` is accepted for compatibility
+ * and does not change the line: storey contact is not a line colour in the unified scheme.
  */
 export function relationshipLine(
   kind: RelationshipKind,
   status: ResolutionStatus,
-  contact: 'horizontal' | 'vertical' = 'horizontal',
+  _contact: 'horizontal' | 'vertical' = 'horizontal',
 ): LineToken {
-  if (status === 'unresolved') return UNRESOLVED_LINE;
-  const open = kind === 'open';
+  if (status === 'unresolved') {
+    return kind === 'access'
+      ? UNRESOLVED_LINE
+      : { ...UNRESOLVED_LINE, width2d: UNRESOLVED_WIDTH_2D[kind], radius3d: UNRESOLVED_RADIUS_3D[kind] };
+  }
+  const routed = status === 'routed';
   return {
-    color: status === 'direct' && contact === 'vertical' ? BETWEEN_STOREYS_COLOR : SAME_STOREY_COLOR,
-    width2d: open ? OPEN_WIDTH : ACCESS_WIDTH,
-    radius3d: open ? OPEN_RADIUS : ACCESS_RADIUS,
-    dash2d: null,
-    dash3d: null,
-    marker: status === 'routed' ? 'route-ring' : 'none',
+    color: RELATIONSHIP_NEUTRAL_COLOR,
+    width2d: WIDTH_2D[kind],
+    radius3d: RADIUS_3D[kind],
+    dash2d: routed ? ROUTED_DASH_2D : null,
+    dash3d: routed ? ROUTED_DASH_3D : null,
+    marker: 'none',
   };
 }
 

@@ -89,7 +89,7 @@ export const UNRESOLVED_REASON_TEXT: Readonly<Record<UnresolvedReason, string>> 
 export type StatusTone = 'ok' | 'warning';
 
 export interface ResolutionText {
-  /** Short status, e.g. "Direct" or "Not built". */
+  /** Short status, e.g. "Direct" or "Unresolved". */
   readonly title: string;
   /** One-sentence explanation. */
   readonly detail: string;
@@ -119,13 +119,13 @@ export function describeResolution(resolution: EdgeResolution): ResolutionText {
       const n = resolution.route.cells.length;
       const style = labelOfChoice(CONNECTOR_STYLE_CHOICES, resolution.route.style).toLowerCase();
       return {
-        title: 'Corridor',
+        title: 'Connected via route',
         detail: `Joined by a generated ${style} corridor, ${n} cell${n === 1 ? '' : 's'} long, on storey ${resolution.route.level}.`,
         tone: 'ok',
       };
     }
     case 'unresolved':
-      return { title: 'Not built', detail: UNRESOLVED_REASON_TEXT[resolution.reason], tone: 'warning' };
+      return { title: 'Unresolved', detail: UNRESOLVED_REASON_TEXT[resolution.reason], tone: 'warning' };
   }
 }
 

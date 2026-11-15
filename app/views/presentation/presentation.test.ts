@@ -20,12 +20,17 @@ import {
   presentRelationship,
   relationshipLegend,
   relationshipLine,
+  RELATIONSHIP_NEUTRAL_COLOR,
+  ROUTED_DASH_2D,
+  ROUTED_DASH_3D,
   SAME_STOREY_COLOR,
   BETWEEN_STOREYS_COLOR,
   STATUS_PRESENTATION,
   summarizeRelationships,
   textColorOn,
   UNRESOLVED_COLOR,
+  UNRESOLVED_DASH_2D,
+  UNRESOLVED_DASH_3D,
   UNRESOLVED_LINE,
   UNRESOLVED_REASON_TEXT,
   unresolvedReasonText,
@@ -76,28 +81,41 @@ describe('vocabulary and line tokens', () => {
     expect(BETWEEN_STOREYS_COLOR).toBe(VERTICAL_EDGE_COLOR);
   });
 
-  it('dashes ONLY unresolved relationships, thin and muted red, for both kinds', () => {
+  // Gate 1 scheme: Direct solid neutral · Routed long-dashed neutral · Unresolved short-dashed muted
+  // red; kind (Access/Open) independently by weight, for every status.
+  it('encodes status by dash and colour: direct solid neutral, routed long-dashed neutral, unresolved short-dashed red', () => {
     for (const kind of ['access', 'open'] as const) {
-      for (const status of ['direct', 'routed'] as const) {
-        for (const contact of ['horizontal', 'vertical'] as const) {
-          const t = relationshipLine(kind, status, contact);
-          expect(t.dash2d).toBeNull();
-          expect(t.dash3d).toBeNull();
-          expect(t.color).not.toBe(UNRESOLVED_COLOR);
-        }
+      for (const contact of ['horizontal', 'vertical'] as const) {
+        const direct = relationshipLine(kind, 'direct', contact);
+        expect(direct.dash2d).toBeNull();
+        expect(direct.dash3d).toBeNull();
+        expect(direct.color).toBe(RELATIONSHIP_NEUTRAL_COLOR);
       }
-      expect(relationshipLine(kind, 'unresolved')).toEqual(UNRESOLVED_LINE);
+      const routed = relationshipLine(kind, 'routed');
+      expect(routed.color).toBe(RELATIONSHIP_NEUTRAL_COLOR);
+      expect(routed.dash2d).toBe(ROUTED_DASH_2D);
+      expect(routed.dash3d).toEqual(ROUTED_DASH_3D);
+      const unresolved = relationshipLine(kind, 'unresolved');
+      expect(unresolved.color).toBe(UNRESOLVED_COLOR);
+      expect(unresolved.dash2d).toBe(UNRESOLVED_DASH_2D);
+      expect(unresolved.dash3d).toEqual(UNRESOLVED_DASH_3D);
     }
-    expect(UNRESOLVED_LINE.dash2d).not.toBeNull();
+    const dashLength = (d: string) => Number(d.split(' ')[0]);
+    expect(dashLength(ROUTED_DASH_2D)).toBeGreaterThan(dashLength(UNRESOLVED_DASH_2D));
+    expect(ROUTED_DASH_3D[0]).toBeGreaterThan(UNRESOLVED_DASH_3D[0]);
+    expect(relationshipLine('access', 'unresolved')).toEqual(UNRESOLVED_LINE);
     expect(UNRESOLVED_LINE.width2d).toBeLessThan(relationshipLine('access', 'direct').width2d);
+    expect(contrastRatio(RELATIONSHIP_NEUTRAL_COLOR, '#ffffff')).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('encodes kind by width and route by a midpoint ring', () => {
-    expect(relationshipLine('open', 'direct').width2d).toBeGreaterThan(relationshipLine('access', 'direct').width2d);
-    expect(relationshipLine('open', 'direct').radius3d).toBeGreaterThan(relationshipLine('access', 'direct').radius3d);
-    expect(relationshipLine('access', 'routed').marker).toBe('route-ring');
-    expect(relationshipLine('access', 'direct').marker).toBe('none');
-    expect(relationshipLine('access', 'direct', 'vertical').color).toBe(BETWEEN_STOREYS_COLOR);
+  it('encodes kind by weight, independently of status', () => {
+    for (const status of ['direct', 'routed', 'unresolved'] as const) {
+      expect(relationshipLine('open', status).width2d).toBeGreaterThan(relationshipLine('access', status).width2d);
+      expect(relationshipLine('open', status).radius3d).toBeGreaterThan(relationshipLine('access', status).radius3d);
+      expect(relationshipLine('open', status).dash2d).toBe(relationshipLine('access', status).dash2d);
+      expect(relationshipLine('open', status).color).toBe(relationshipLine('access', status).color);
+    }
+    for (const status of ['direct', 'routed', 'unresolved'] as const) expect(relationshipLine('access', status).marker).toBe('none');
   });
 
   it('unresolved colour is legible and distinct from selection and error tones', () => {
@@ -139,7 +157,7 @@ describe('relationship presentation', () => {
 
     const u = presentRelationship(unresolved('e5', 'different-level'));
     expect(u.statusLabel).toBe('Unresolved');
-    expect(u.line).toEqual(UNRESOLVED_LINE);
+    expect(u.line).toEqual(relationshipLine('open', 'unresolved'));
     expect(u.reason).toBe(UNRESOLVED_REASON_TEXT['different-level']);
     expect(u.detail).toBe('engine says different-level');
     expect(u.tooltip).toBe(`Open · Unresolved — ${UNRESOLVED_REASON_TEXT['different-level']}`);
@@ -189,7 +207,7 @@ describe('relationship presentation', () => {
     expect(presentEdgeById(spatial, 'ab')?.status).toBe('direct');
     const ac = presentEdgeById(spatial, 'ac')!;
     expect(ac.status).toBe('unresolved');
-    expect(ac.line).toEqual(UNRESOLVED_LINE);
+    expect(ac.line).toEqual(relationshipLine('open', 'unresolved'));
     expect(ac.reason).toBe(UNRESOLVED_REASON_TEXT['different-level']);
   });
 });
@@ -205,12 +223,12 @@ describe('view legends', () => {
     expect(labels).toEqual([STATUS_PRESENTATION.direct.label, STATUS_PRESENTATION.routed.label, STATUS_PRESENTATION.unresolved.label]);
   });
 
-  it('never uses a dashed swatch for anything but Unresolved', () => {
+  it('uses dashed swatches only for the Routed (long) and Unresolved (short) statuses', () => {
     for (const v of VIEW_MODES) {
       for (const s of relationshipLegend(v).sections) {
         for (const i of s.items) {
           const dashed = i.swatch.shape === 'line' && i.swatch.line.dash2d !== null;
-          expect(dashed, `${v} ${i.id}`).toBe(i.id === 'status:unresolved');
+          expect(dashed, `${v} ${i.id}`).toBe(i.id === 'status:unresolved' || i.id === 'status:routed');
         }
       }
     }
@@ -238,7 +256,7 @@ describe('view legends', () => {
     );
     expect(html).toContain('data-legend-item="status:unresolved"');
     expect(html).toContain('tabindex="0"');
-    expect(html).toContain('stroke-dasharray="6 4"');
+    expect(html).toContain(`stroke-dasharray="${UNRESOLVED_DASH_2D}"`);
     expect(html).toContain('More details');
     expect(html).toContain('LONG DETAILS');
   });

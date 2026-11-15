@@ -572,7 +572,7 @@ function NoticeLine({
     <>
       Connected <strong>{a}</strong> ↔ <strong>{b}</strong> as {kind}
       {model.version === 2 && <> (change it from the right-click menu or Properties)</>}.
-      {unresolved && <span className="sgl-unresolved-text"> Not buildable yet: {UNRESOLVED_REASON_TEXT[unresolved.reason]}</span>}{' '}
+      {unresolved && <span className="sgl-unresolved-text"> Unresolved: {UNRESOLVED_REASON_TEXT[unresolved.reason]}</span>}{' '}
       <button type="button" className="sgl-link" onClick={() => onRemove(edge.id)} title="Delete this new relationship (Ctrl/⌘+Z also undoes it)">
         Remove
       </button>{' '}

@@ -92,7 +92,7 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     const design = fakePort();
     const html = render({ doc: v1(), design, selection: selectNode('a') });
     expect(html).toContain('room 02');
-    expect(html).toContain('>Corridor</span>');
+    expect(html).toContain('>Connected via route</span>');
     expect(selectOptions(html, 'Room to connect to')).toEqual(['Connect to room…', '03 (studio)']);
   });
 
@@ -112,7 +112,7 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     const blocked = { ...raw, nodes: [...raw.nodes, { id: 'd', displayId: '04', grid: [3, 0, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} }] };
     const design = fakePort(blocked);
     const html = render({ doc: v1(), design, selection: selectEdge('ab') });
-    expect(html).toContain('Not built yet. The relationship is kept.');
+    expect(html).toContain('Unresolved: nothing can be built yet. The relationship is kept.');
     expect(html).toContain('Another room is in the way of every straight corridor between these rooms.');
     expect(html).toContain('role="status"');
     expect(html).not.toContain('role="alert"');
