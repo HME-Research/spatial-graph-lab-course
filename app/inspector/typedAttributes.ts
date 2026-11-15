@@ -2,6 +2,12 @@ import type { AttributeValue, Attributes, GraphCommand, GraphNode } from '@app/d
 import { checkValue, describeSpec, specFor, type AttributeSpec, type AttributeSpecs, type ValueStatus } from '@app/extensions';
 import { rowsToAttributes, type AttributeRow, type ParseResult } from './inspectorModel';
 
+/** The one command these helpers build (same shape in schema v1 and v2). */
+export type SetAttributesCommand = Extract<GraphCommand, { readonly type: 'set-node-attributes' }>;
+
+/** What the helpers read from a node (a v1 `GraphNode` or a v2 room). */
+export type AttributedNode = Pick<GraphNode, 'id' | 'typeId' | 'attributes'>;
+
 /**
  * Pure helpers for the type-aware part of the inspector. Typed-attribute semantics (what a value
  * must be, defaults) are the Stage 3A runtime's (`checkValue`, `describeSpec`, `specFor`); nothing
@@ -64,11 +70,11 @@ export const fieldDraft = (field: TypedField): string =>
  * declaration. All other stored attributes are kept, in their original order.
  */
 export function setTypedAttributeCommand(
-  node: GraphNode,
+  node: AttributedNode,
   specs: AttributeSpecs,
   key: string,
   value: AttributeValue | undefined,
-): ParseResult<GraphCommand> {
+): ParseResult<SetAttributesCommand> {
   const spec = specFor(specs, key);
   if (!spec) return { ok: false, message: `"${key}" is not declared by type "${node.typeId}"` };
   if (value !== undefined && checkValue(spec, value) !== 'ok') {
@@ -88,10 +94,10 @@ export function setTypedAttributeCommand(
  * while keeping every declared attribute exactly as stored. A row may not use a declared name.
  */
 export function setUndeclaredAttributesCommand(
-  node: GraphNode,
+  node: AttributedNode,
   specs: AttributeSpecs,
   rows: readonly AttributeRow[],
-): ParseResult<GraphCommand> {
+): ParseResult<SetAttributesCommand> {
   const parsed = rowsToAttributes(rows);
   if (!parsed.ok) return parsed;
   const clash = Object.keys(parsed.value).find((key) => specFor(specs, key));

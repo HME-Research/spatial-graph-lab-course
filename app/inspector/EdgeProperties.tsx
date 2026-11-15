@@ -1,0 +1,203 @@
+import { EDGE_KINDS, isEdgeGeometryValid, type EdgeKind } from '@app/document';
+import { connectorStyleOf, nodeLabel, type ConnectorStyle, type RelationshipKind } from '@app/document/v2';
+import { EDGE_KIND_LABELS, EDGE_STYLES, formatGrid, orientationOf } from '@app/views/graph2d/diagram';
+import {
+  CONNECTOR_STYLE_CHOICES,
+  describeResolution,
+  Feedback,
+  IssueFeedback,
+  RELATIONSHIP_KIND_CHOICES,
+  UNDO_HINT,
+} from '@app/ui';
+import { selectNode } from '@core/viewer/selection';
+import { StoredData } from './AttributeEditors';
+import { messageContextFor, useCommands, type PanelProps } from './panelSupport';
+
+/** Properties of one relationship. v2 (with the design port): Access/Open, status, connector. */
+export function EdgeProperties(props: PanelProps & { readonly edgeId: string }) {
+  return props.design ? <EdgePropertiesV2 {...props} /> : <EdgePropertiesV1 {...props} />;
+}
+
+function RemoveConnection({ onRemove }: { readonly onRemove: () => void }) {
+  return (
+    <section className="sgl-section">
+      <button type="button" className="sgl-danger" onClick={onRemove}>
+        Remove connection
+      </button>
+      <p className="sgl-help">The two rooms stay where they are. {UNDO_HINT}</p>
+    </section>
+  );
+}
+
+function EdgePropertiesV2(props: PanelProps & { readonly edgeId: string }) {
+  const { design, onSelect, edgeId } = props;
+  const { issues, clearIssues, runShared, runV2 } = useCommands(props);
+  const edge = design?.doc.edges.find((e) => e.id === edgeId);
+  if (!design || !edge) return null;
+  const rooms = [edge.source, edge.target].map((id) => design.doc.nodes.find((n) => n.id === id));
+  const label = (id: string) => {
+    const n = design.doc.nodes.find((x) => x.id === id);
+    return n ? nodeLabel(n) : id;
+  };
+  const resolution = design.spatial.byEdge.get(edge.id);
+  const status = resolution ? describeResolution(resolution) : null;
+  const style = connectorStyleOf(edge);
+  const kindChoice = RELATIONSHIP_KIND_CHOICES.find((c) => c.value === edge.kind);
+
+  const setKind = (kind: RelationshipKind) => {
+    if (kind !== edge.kind) runV2({ type: 'change-edge-kind', edgeId, kind });
+  };
+  // `style` already includes the default, so choosing the effective value sends nothing.
+  const setStyle = (next: ConnectorStyle) => {
+    if (next !== style) runV2({ type: 'set-connector-style', edgeId, style: next });
+  };
+
+  return (
+    <div className="sgl-panel">
+      <div className="sgl-title">
+        Relationship {label(edge.source)} ↔ {label(edge.target)}
+      </div>
+
+      <IssueFeedback issues={issues} context={messageContextFor(props)} onDismiss={clearIssues} />
+
+      <section className="sgl-section">
+        <h4>Connects</h4>
+        <ul className="sgl-list">
+          {rooms.map(
+            (n, i) =>
+              n && (
+                <li key={i}>
+                  <button type="button" className="sgl-link" onClick={() => onSelect(selectNode(n.id))} title="Show this room">
+                    room {nodeLabel(n)}
+                  </button>{' '}
+                  <span className="meta">
+                    {n.typeId} · at {formatGrid(n.grid)}
+                  </span>
+                </li>
+              ),
+          )}
+        </ul>
+      </section>
+
+      <fieldset className="sgl-section">
+        <legend>Kind</legend>
+        <div className="sgl-segmented" role="radiogroup" aria-label="Relationship kind">
+          {RELATIONSHIP_KIND_CHOICES.map((c) => (
+            <label key={c.value} className={edge.kind === c.value ? 'checked' : undefined} title={c.description}>
+              <input type="radio" name={`kind-${edgeId}`} value={c.value} checked={edge.kind === c.value} onChange={() => setKind(c.value)} />
+              {c.label}
+            </label>
+          ))}
+        </div>
+        {kindChoice && <p className="sgl-help">{kindChoice.description}</p>}
+      </fieldset>
+
+      <section className="sgl-section" aria-live="polite">
+        <h4>In the building</h4>
+        {status && resolution ? (
+          status.tone === 'warning' && resolution.status === 'unresolved' ? (
+            <Feedback
+              tone="warning"
+              title="Not built yet. The relationship is kept."
+              messages={[{ text: status.detail, technical: `${resolution.reason} · ${resolution.message}` }]}
+            />
+          ) : (
+            <p className="sgl-status">
+              <span className="sgl-chip sgl-chip-ok">{status.title}</span> {status.detail}
+            </p>
+          )
+        ) : (
+          <p className="meta">No spatial status available.</p>
+        )}
+        <p className="sgl-help">A relationship says how rooms connect. It is not a guarantee of a designed stair or corridor.</p>
+      </section>
+
+      {resolution?.status === 'routed' ? (
+        <fieldset className="sgl-section">
+          <legend>Corridor style</legend>
+          <select value={style} aria-label="Corridor style" onChange={(e) => setStyle(e.currentTarget.value as ConnectorStyle)}>
+            {CONNECTOR_STYLE_CHOICES.map((c) => (
+              <option key={c.value} value={c.value} title={c.description}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <p className="sgl-help">{CONNECTOR_STYLE_CHOICES.find((c) => c.value === style)?.description}</p>
+        </fieldset>
+      ) : (
+        edge.connectorStyle !== undefined && (
+          <p className="sgl-help">
+            Corridor style “{CONNECTOR_STYLE_CHOICES.find((c) => c.value === edge.connectorStyle)?.label}” is stored. It is
+            used only when a corridor is generated.
+          </p>
+        )
+      )}
+
+      <RemoveConnection onRemove={() => runShared({ type: 'remove-edge', edgeId })} />
+      <StoredData record={edge} />
+    </div>
+  );
+}
+
+function EdgePropertiesV1(props: PanelProps & { readonly edgeId: string }) {
+  const { doc, onSelect, edgeId } = props;
+  const { issues, clearIssues, runShared, runV1 } = useCommands(props);
+  const edge = doc.edges.find((e) => e.id === edgeId);
+  if (!edge) return null;
+  const source = doc.nodes.find((n) => n.id === edge.source);
+  const target = doc.nodes.find((n) => n.id === edge.target);
+  const validFor = (kind: EdgeKind) => source !== undefined && target !== undefined && isEdgeGeometryValid(kind, source.grid, target.grid);
+
+  return (
+    <div className="sgl-panel">
+      <div className="sgl-title">
+        Relationship {edge.source} ↔ {edge.target}
+      </div>
+
+      <IssueFeedback issues={issues} context={messageContextFor(props)} onDismiss={clearIssues} />
+
+      <section className="sgl-section">
+        <h4>Connects</h4>
+        <ul className="sgl-list">
+          {[source, target].map(
+            (n, i) =>
+              n && (
+                <li key={i}>
+                  <button type="button" className="sgl-link" onClick={() => onSelect(selectNode(n.id))} title="Show this room">
+                    room {n.id}
+                  </button>{' '}
+                  <span className="meta">
+                    {n.typeId} · at {formatGrid(n.grid)}
+                  </span>
+                </li>
+              ),
+          )}
+        </ul>
+        <p className="sgl-help">
+          A {orientationOf(edge.kind)} relationship{orientationOf(edge.kind) === 'vertical' ? ' between storeys' : ''}. It
+          describes access, not a designed staircase or corridor.
+        </p>
+      </section>
+
+      <section className="sgl-section">
+        <h4>Kind</h4>
+        <select
+          value={edge.kind}
+          aria-label="Relationship kind"
+          onChange={(e) => runV1({ type: 'change-edge-kind', edgeId: edge.id, kind: e.currentTarget.value as EdgeKind })}
+        >
+          {EDGE_KINDS.map((kind) => (
+            <option key={kind} value={kind} disabled={!validFor(kind)}>
+              {EDGE_STYLES[kind].symbol} {EDGE_KIND_LABELS[kind]}
+              {validFor(kind) ? '' : ' (needs differently placed rooms)'}
+            </option>
+          ))}
+        </select>
+        <p className="sgl-help">Door and Open join rooms side by side on one storey; Atrium and Vertical access join stacked rooms.</p>
+      </section>
+
+      <RemoveConnection onRemove={() => runShared({ type: 'remove-edge', edgeId })} />
+      <StoredData record={edge} />
+    </div>
+  );
+}
