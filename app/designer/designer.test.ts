@@ -1,0 +1,266 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
+import { exampleFacadeProvider } from '@app/building';
+import { expectOk } from '@app/document/test-fixtures';
+import {
+  readDesignJson,
+  serializeDesignV2,
+  validateDocumentV2,
+  type DesignDocumentV2,
+} from '@app/document/v2';
+import { labProject } from '@app/extensions/test-fixtures';
+import { applyDesignCommand, proposeSpatialEdit, resolveRelationships, type DesignCommand, type DesignPort } from '@app/spatial';
+import { createHistory, record, redo, undo } from '@app/session/history';
+import { buildProjectViewContext, projectFacadeProvider } from '@app/views/project';
+import { selectEdge, selectNode } from '@core/viewer/selection';
+import { DesignerPanel } from './DesignerPanel';
+import {
+  designerTypeRows,
+  designFacadeProvider,
+  designRoofOf,
+  parseWindowPercent,
+  resetTypeEdit,
+  selectedRelationship,
+  setRoofEdit,
+  setWindowFractionEdit,
+  type DesignerEdit,
+} from './designerModel';
+
+/** g1, g2 (gallery), s1 (studio), k1 (kiosk: not defined by the lab project), touching g1–g2. */
+function labDocV2(typeAppearance: Record<string, unknown> = {}): DesignDocumentV2 {
+  return expectOk(
+    validateDocumentV2({
+      schemaVersion: 2,
+      metadata: { name: 'Lab v2' },
+      nodes: [
+        { id: 'g1', displayId: '01', grid: [0, 0, 0], typeId: 'gallery' },
+        { id: 'g2', displayId: '02', grid: [1, 0, 0], typeId: 'gallery' },
+        { id: 's1', displayId: '03', grid: [0, 2, 0], typeId: 'studio' },
+        { id: 'k1', displayId: '04', grid: [6, 6, 0], typeId: 'kiosk' },
+      ],
+      edges: [
+        { id: 'e1', source: 'g1', target: 'g2', kind: 'access' },
+        { id: 'e2', source: 'g1', target: 'k1', kind: 'open', connectorStyle: 'deck' },
+      ],
+      settings: { typeAppearance },
+    }),
+  );
+}
+
+function commandOf(edit: DesignerEdit): DesignCommand {
+  if (edit.kind !== 'command') throw new Error(`expected a command, got ${JSON.stringify(edit)}`);
+  return edit.command;
+}
+
+const apply = (doc: DesignDocumentV2, edit: DesignerEdit) => expectOk(applyDesignCommand(doc, commandOf(edit)));
+
+describe('designer type rows', () => {
+  it('lists project types first, then design-only types, with project defaults and node counts', async () => {
+    const project = await labProject();
+    const rows = designerTypeRows(labDocV2(), project, projectFacadeProvider(project));
+    expect(rows.map((r) => r.typeId)).toEqual(['gallery', 'studio', 'kiosk']);
+    const [gallery, studio, kiosk] = rows;
+    expect(gallery).toMatchObject({
+      name: 'Gallery (gallery)',
+      nodeCount: 2,
+      projectDefault: { windowFraction: 0.6, source: 'type-definition' },
+      effective: { windowFraction: 0.6, roof: 'flat', source: { windowFraction: 'project', roof: 'default' } },
+      hasOverride: false,
+      warning: null,
+    });
+    // Studio declares no façade: the existing fallback is inherited.
+    expect(studio!.projectDefault).toEqual({ windowFraction: exampleFacadeProvider('studio').windowFraction, source: 'fallback' });
+    expect(kiosk!.status.kind).toBe('undefined-type');
+    expect(kiosk!.warning).toMatch(/does not define "kiosk"/);
+  });
+
+  it('shows a new student-defined type automatically, even before any room uses it', async () => {
+    const pavilionType = { id: 'pavilion', label: 'Pavilion', facade: { windowFraction: 0.9 } };
+    const project = await labProject({ 'projects/lab/types/pavilion.ts': { default: pavilionType } });
+    const rows = designerTypeRows(labDocV2(), project, projectFacadeProvider(project));
+    const pavilion = rows.find((r) => r.typeId === 'pavilion');
+    expect(pavilion).toMatchObject({ name: 'Pavilion (pavilion)', nodeCount: 0, orphanOverride: false, warning: null });
+    expect(pavilion!.effective.windowFraction).toBe(0.9);
+  });
+
+  it('flags a broken type definition instead of silently using it', async () => {
+    const project = await labProject({ 'projects/lab/types/studio.ts': { default: { id: 'studio', label: 42 } } });
+    const studio = designerTypeRows(labDocV2(), project, projectFacadeProvider(project)).find((r) => r.typeId === 'studio')!;
+    expect(studio.status.kind).toBe('broken');
+    expect(studio.projectDefault.source).toBe('broken');
+    expect(studio.warning).toMatch(/invalid/);
+  });
+
+  it('keeps an orphan override visible so it can be reset', () => {
+    const rows = designerTypeRows(labDocV2({ ghost: { roof: 'none' } }), null, exampleFacadeProvider);
+    const ghost = rows.find((r) => r.typeId === 'ghost')!;
+    expect(ghost).toMatchObject({ orphanOverride: true, hasOverride: true });
+    expect(ghost.warning).toMatch(/No room uses this type/);
+  });
+
+  it('works without a project (existing fallback façades)', () => {
+    const rows = designerTypeRows(labDocV2(), null, exampleFacadeProvider);
+    expect(rows.map((r) => [r.typeId, r.effective.windowFraction, r.warning])).toEqual([
+      ['gallery', 0.7, null],
+      ['kiosk', 0.15, null],
+      ['studio', 0.25, null],
+    ]);
+  });
+});
+
+describe('designer edits', () => {
+  it('a design override beats the project default for every room of the type, and reset restores inheritance', async () => {
+    const project = await labProject();
+    const facade = projectFacadeProvider(project);
+    const doc = labDocV2();
+    const edited = apply(doc, setWindowFractionEdit(doc, 'gallery', 0.35, 0.6));
+    expect(edited.settings.typeAppearance).toEqual({ gallery: { windowFraction: 0.35 } });
+
+    const effective = designFacadeProvider(edited, facade);
+    for (const node of edited.nodes.filter((n) => n.typeId === 'gallery')) expect(effective(node.typeId).windowFraction).toBe(0.35);
+    expect(effective('studio')).toEqual(facade('studio'));
+
+    const row = designerTypeRows(edited, project, facade).find((r) => r.typeId === 'gallery')!;
+    expect(row.effective.source.windowFraction).toBe('design');
+    expect(row.projectDefault.windowFraction).toBe(0.6);
+
+    const reset = apply(edited, resetTypeEdit(edited, 'gallery'));
+    expect(reset.settings.typeAppearance).toEqual({});
+    expect(designFacadeProvider(reset, facade)('gallery').windowFraction).toBe(0.6);
+  });
+
+  it('never alters the project definition or another design', async () => {
+    const project = await labProject();
+    const definitionBefore = JSON.stringify(project.nodeTypes.map((t) => t.definition));
+    const designA = labDocV2();
+    const designB = labDocV2();
+    const textB = serializeDesignV2(designB);
+    const editedA = apply(designA, setWindowFractionEdit(designA, 'gallery', 0.1, 0.6));
+    expect(editedA.settings.typeAppearance.gallery).toEqual({ windowFraction: 0.1 });
+    expect(designA.settings.typeAppearance).toEqual({});
+    expect(serializeDesignV2(designB)).toBe(textB);
+    expect(JSON.stringify(project.nodeTypes.map((t) => t.definition))).toBe(definitionBefore);
+    expect(projectFacadeProvider(project)('gallery').windowFraction).toBe(0.6);
+  });
+
+  it('sends nothing when the value would not change (no empty history step)', () => {
+    const doc = labDocV2({ studio: { windowFraction: 0.5 } });
+    expect(setWindowFractionEdit(doc, 'gallery', 0.6, 0.6).kind).toBe('unchanged');
+    expect(setWindowFractionEdit(doc, 'studio', 0.5, 0.25).kind).toBe('unchanged');
+    expect(setRoofEdit(doc, 'gallery', 'flat').kind).toBe('unchanged');
+    expect(resetTypeEdit(doc, 'gallery').kind).toBe('unchanged');
+    // An explicit override equal to the project default is still a real change.
+    expect(setWindowFractionEdit(doc, 'studio', 0.25, 0.25).kind).toBe('command');
+  });
+
+  it('validates window coverage bounds', () => {
+    const doc = labDocV2();
+    for (const bad of [-0.01, 1.01, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(setWindowFractionEdit(doc, 'gallery', bad, 0.6).kind).toBe('invalid');
+    }
+    expect(parseWindowPercent('35')).toEqual({ ok: true, fraction: 0.35 });
+    expect(parseWindowPercent(' 12.5 % ')).toEqual({ ok: true, fraction: 0.125 });
+    expect(parseWindowPercent('0')).toEqual({ ok: true, fraction: 0 });
+    expect(parseWindowPercent('100%')).toEqual({ ok: true, fraction: 1 });
+    for (const bad of ['', 'abc', '-1', '101', '1e3', '50 50']) expect(parseWindowPercent(bad).ok).toBe(false);
+    // The frozen command validates too: an out-of-range patch is rejected, not clamped.
+    expect(applyDesignCommand(doc, { type: 'set-type-appearance', typeId: 'gallery', patch: { windowFraction: 2 } }).ok).toBe(false);
+  });
+
+  it('roof override and per-field reset keep the other override', () => {
+    const doc = labDocV2();
+    const roofless = apply(doc, setRoofEdit(doc, 'studio', 'none'));
+    expect(designRoofOf(roofless, 'studio')).toBe('none');
+    expect(designRoofOf(roofless, 'gallery')).toBe('flat');
+    expect(setRoofEdit(roofless, 'studio', 'pitched').kind).toBe('invalid');
+    const both = apply(roofless, setWindowFractionEdit(roofless, 'studio', 0.4, 0.25));
+    const windowOnly = apply(both, resetTypeEdit(both, 'studio', 'roof'));
+    expect(windowOnly.settings.typeAppearance).toEqual({ studio: { windowFraction: 0.4 } });
+  });
+});
+
+describe('designer persistence and history', () => {
+  it('v2 export/import preserves overrides and does not materialise defaults', () => {
+    let doc = labDocV2();
+    doc = apply(doc, setWindowFractionEdit(doc, 'gallery', 0.35, 0.6));
+    doc = apply(doc, setRoofEdit(doc, 'kiosk', 'none'));
+    const text = serializeDesignV2(doc);
+    expect(text).not.toMatch(/"studio":/); // inherited types are not written
+    const read = expectOk(readDesignJson(text));
+    expect(read.sourceVersion).toBe(2);
+    expect(read.doc.settings.typeAppearance).toEqual({ gallery: { windowFraction: 0.35 }, kiosk: { roof: 'none' } });
+    expect(serializeDesignV2(read.doc)).toBe(text);
+  });
+
+  it('one committed change is one undoable history step', () => {
+    const doc = labDocV2();
+    let history = createHistory(doc);
+    const edit = setWindowFractionEdit(doc, 'gallery', 0.2, 0.6);
+    history = record(history, apply(doc, edit), edit.kind === 'command' ? edit.label : null);
+    expect(history.past).toHaveLength(1);
+    expect(history.past[0]!.label).toBe('Set gallery window coverage to 20 %');
+    history = undo(history);
+    expect(history.present.settings.typeAppearance).toEqual({});
+    history = redo(history);
+    expect(history.present.settings.typeAppearance).toEqual({ gallery: { windowFraction: 0.2 } });
+  });
+});
+
+describe('selected relationship summary', () => {
+  it('summarises the selected relationship connector style for Properties', () => {
+    const doc = labDocV2();
+    const spatial = resolveRelationships(doc);
+    expect(selectedRelationship(doc, selectEdge('e2'), spatial)).toMatchObject({
+      edgeId: 'e2',
+      label: '01 → 04',
+      style: 'deck',
+      styleIsDefault: false,
+    });
+    expect(selectedRelationship(doc, selectEdge('e1'), spatial)).toMatchObject({ style: 'enclosed', styleIsDefault: true, status: 'direct' });
+    expect(selectedRelationship(doc, selectNode('g1'), spatial)).toBeNull();
+    expect(selectedRelationship(doc, selectEdge('missing'), spatial)).toBeNull();
+  });
+});
+
+describe('DesignerPanel (static render)', () => {
+  function fakePort(doc: DesignDocumentV2, sent: DesignCommand[] = []): DesignPort {
+    return {
+      doc,
+      spatial: resolveRelationships(doc),
+      onCommand: (command) => {
+        sent.push(command);
+        const result = applyDesignCommand(doc, command);
+        return result.ok ? { ok: true } : { ok: false, issues: result.issues };
+      },
+      proposeEdit: (request) => proposeSpatialEdit(doc, request),
+    };
+  }
+
+  it('explains that it is unavailable without a v2 port', () => {
+    const html = renderToStaticMarkup(createElement(DesignerPanel, {}));
+    expect(html).toMatch(/needs a schema-v2 design/);
+    expect(html).not.toMatch(/<input/);
+  });
+
+  it('renders one row per type with window coverage, roof, reset and warnings', async () => {
+    const project = await labProject();
+    const v1Placeholder = { schemaVersion: 1 as const, metadata: { name: 'x' }, nodes: [], edges: [], diagram: { positions: {} } };
+    const context = buildProjectViewContext(project, v1Placeholder);
+    const doc = labDocV2({ gallery: { windowFraction: 0.35 } });
+    const html = renderToStaticMarkup(
+      createElement(DesignerPanel, { design: fakePort(doc), project: context, selection: selectEdge('e2'), onShowRelationship: () => {} }),
+    );
+    expect(html).toMatch(/Gallery \(gallery\)/);
+    expect(html).toMatch(/Studio \(studio\)/);
+    expect(html).toMatch(/kiosk/);
+    expect(html).toMatch(/does not define &quot;kiosk&quot;/);
+    expect(html).toMatch(/exterior walls/);
+    expect(html).toMatch(/value="35"/);
+    expect(html).toMatch(/Design override · project default 60 %/);
+    expect(html).toMatch(/Reset to project default/);
+    expect(html).toMatch(/None \(open top\)/);
+    expect(html).toMatch(/Edit in Properties/);
+    expect(html).toMatch(/Deck/);
+  });
+});
