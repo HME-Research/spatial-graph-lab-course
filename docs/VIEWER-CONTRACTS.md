@@ -24,7 +24,7 @@ Views ──onCommand(GraphCommand)──▶ App: applyGraphCommand(doc, cmd) �
 ```
 
 - The graph is the single source of truth. Views receive `doc` as read-only input and **never mutate it, copy it into state, or keep their own graph**. Derive everything with `useMemo` from `doc`.
-- All edits go through `onCommand`. The app validates them, replaces the document only on success, and will own undo/redo later (commands are serialisable for that reason).
+- All edits go through `onCommand`. The app validates them, replaces the document only on success, and owns undo/redo: each successful command that changes the document is one undo step (a no-op or rejected command is none), so a view must send one command per completed gesture (Graph 2D sends one `set-diagram-position` per drag, on drag stop).
 
 ## 2. Shared props — `app/views/contracts.ts`
 
