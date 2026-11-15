@@ -258,15 +258,16 @@ describe('direct openings between multi-cell rooms', () => {
 
 describe('unresolved relationships', () => {
   it('build nothing physical and keep the reason for the UI', () => {
-    const doc = v2([{ id: 'a', grid: [0, 0, 0] }, { id: 'b', grid: [4, 0, 0] }, { id: 'c', grid: [8, 0, 3] }], [
+    // Real straight routing (02) is active after integration: use pairs no straight connector can join.
+    const doc = v2([{ id: 'a', grid: [0, 0, 0] }, { id: 'b', grid: [4, 2, 0] }, { id: 'c', grid: [8, 0, 3] }], [
       { id: 'ab', source: 'a', target: 'b' },
       { id: 'ac', source: 'a', target: 'c' },
     ]);
-    const model = buildBuildingV2(doc); // Gate 0 resolver: routing stub
+    const model = buildBuildingV2(doc);
     expect(model.connectors).toEqual([]);
     expect(model.faces.every((f) => f.condition === 'exterior')).toBe(true);
     expect(model.relationships.map((r) => [r.edgeId, r.geometry, r.reason])).toEqual([
-      ['ab', 'not-built', model.relationships[0]!.reason],
+      ['ab', 'not-built', 'not-aligned'],
       ['ac', 'not-built', 'different-level'],
     ]);
     expect(model.relationships.every((r) => r.elementIds.length === 0 && typeof r.message === 'string')).toBe(true);
@@ -391,5 +392,48 @@ describe('resolveBuildingFaces', () => {
   it('reads occupancy from the spatial resolution only (consistent with resolveRelationships)', () => {
     const doc = v2([{ id: 'a', grid: [0, 0, 0], size: [2, 1, 1] }]);
     expect(resolveBuildingFaces(doc, resolveRelationships(doc))).toEqual(buildBuildingV2(doc).faces);
+  });
+});
+
+// ── integration: the real resolver (02) drives the building (03) ─────────────────────────────
+
+describe('integration: real straight routing', () => {
+  it('a collinear separated pair is routed by the real resolver and matches the hand-built route', () => {
+    const { doc, model: handBuilt } = corridorFixture();
+    const real = buildBuildingV2(doc); // no injected spatial → resolveRelationships(doc)
+    const r = resolveRelationships(doc).byEdge.get('ab')!;
+    expect(r.status).toBe('routed');
+    expect(real.relationships.map((x) => [x.edgeId, x.geometry, x.connectorStyle])).toEqual([['ab', 'connector', 'enclosed']]);
+    expect(real.connectors).toEqual(handBuilt.connectors);
+  });
+
+  it.each<[ConnectorStyle, string, number]>([
+    ['enclosed', 'connector-wall', 6],
+    ['covered', 'connector-post', 8],
+    ['deck', 'connector-roof', 0],
+  ])('real route honours connector style %s', (style, part, n) => {
+    const { doc } = corridorFixture(style);
+    expect(count(buildBuildingV2(doc).connectors, part)).toBe(n);
+  });
+
+  it('a room in the corridor path makes the relationship unresolved and builds no connector', () => {
+    const doc = v2([{ id: 'a', grid: [0, 0, 0] }, { id: 'b', grid: [4, 0, 0] }, { id: 'x', grid: [2, 0, 0] }], [
+      { id: 'ab', source: 'a', target: 'b' },
+    ]);
+    const model = buildBuildingV2(doc);
+    expect(model.connectors).toEqual([]);
+    expect(model.relationships[0]).toMatchObject({ edgeId: 'ab', geometry: 'not-built', reason: 'blocked-by-room' });
+  });
+
+  it('a separated cross-storey pair stays unresolved (different-level)', () => {
+    const doc = v2([{ id: 'a', grid: [0, 0, 0] }, { id: 'b', grid: [4, 0, 1] }], [{ id: 'ab', source: 'a', target: 'b' }]);
+    expect(buildBuildingV2(doc).relationships[0]).toMatchObject({ geometry: 'not-built', reason: 'different-level' });
+  });
+
+  it('a direct pair builds an opening, not a connector', () => {
+    const doc = v2([{ id: 'a', grid: [0, 0, 0] }, { id: 'b', grid: [1, 0, 0] }], [{ id: 'ab', source: 'a', target: 'b' }]);
+    const model = buildBuildingV2(doc);
+    expect(model.connectors).toEqual([]);
+    expect(model.relationships[0]).toMatchObject({ status: 'direct', geometry: 'opening' });
   });
 });
