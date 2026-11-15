@@ -1,0 +1,132 @@
+/* Room editing overlay (Voxels / Building). Lives in the .viewer3d-overlay grid, right column, middle row. */
+.room-edit {
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: end;
+  align-self: start;
+  width: 236px;
+  max-width: 236px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.room-edit button {
+  font: inherit;
+  padding: 2px 8px;
+  min-height: 26px;
+  cursor: pointer;
+}
+
+.room-edit button:disabled {
+  cursor: default;
+}
+
+.room-edit-title span {
+  color: var(--muted, #66665f);
+}
+
+.room-edit-modes {
+  display: flex;
+  gap: 4px;
+}
+
+.room-edit-modes button {
+  flex: 1;
+  border: 1px solid var(--line, #d9d9d2);
+  background: #fff;
+  border-radius: 4px;
+}
+
+.room-edit-modes button.active {
+  background: #2f2f2a;
+  color: #fff;
+  border-color: #2f2f2a;
+}
+
+.room-edit-steps {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.room-edit-axis {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.room-edit-axis button {
+  padding: 0 6px;
+  min-width: 26px;
+}
+
+.room-edit-axis-name {
+  font-weight: 700;
+  width: 1em;
+  text-align: center;
+}
+
+.room-edit-hint {
+  color: var(--muted, #66665f);
+  font-size: 0.75rem;
+}
+
+.room-edit-status,
+.room-edit-message {
+  border-radius: 4px;
+  padding: 4px 6px;
+  background: #f2f2ec;
+}
+
+.room-edit-message {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.room-edit-message span {
+  flex: 1;
+}
+
+.room-edit .room-edit-dismiss {
+  padding: 0 4px;
+  min-height: 0;
+  border: none;
+  background: transparent;
+  line-height: 1;
+}
+
+.tone-blocked,
+.tone-error {
+  background: #fbe9e7;
+  color: #8e2a1f;
+}
+
+.tone-warning {
+  background: #fdf1dc;
+  color: #7a4c05;
+}
+
+.room-edit-confirm {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.room-edit-confirm .primary {
+  background: #b5650a;
+  color: #fff;
+  border: 1px solid #9a5408;
+  border-radius: 4px;
+}
+
+@media (max-width: 720px) {
+  .room-edit {
+    grid-column: 1 / 4;
+    justify-self: stretch;
+    width: auto;
+    max-width: none;
+  }
+}

@@ -1,0 +1,54 @@
+import type { GridCoord } from '@core/spatial';
+import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize } from '@core/viewer/coordinates';
+import { AXIS_INDEX, type GizmoAxis, type GizmoMode } from '@core/viewer/three/gizmoMath';
+import { MAX_ROOM_SIZE, type RoomSize } from '@app/document/v2';
+
+/**
+ * Integer room placement used by the 3D editing adapter (pure). A room is its minimum-corner cell
+ * `grid` plus whole-cell `size`, exactly as stored in a v2 document; world positions are derived.
+ */
+export interface RoomGeometry {
+  readonly grid: GridCoord;
+  readonly size: RoomSize;
+}
+
+/**
+ * Geometry after `steps` whole cells along one grid axis.
+ * - move: the minimum corner shifts; size unchanged.
+ * - resize: the size changes, clamped to 1…MAX_ROOM_SIZE; the minimum corner never moves.
+ */
+export function applyAxisSteps(start: RoomGeometry, mode: GizmoMode, axis: GizmoAxis, steps: number): RoomGeometry {
+  const i = AXIS_INDEX[axis];
+  const step = Math.trunc(steps) + 0;
+  if (mode === 'move') {
+    const grid = [...start.grid] as [number, number, number];
+    grid[i] = grid[i] + step;
+    return { grid, size: start.size };
+  }
+  const size = [...start.size] as [number, number, number];
+  size[i] = Math.min(MAX_ROOM_SIZE, Math.max(1, size[i] + step));
+  return { grid: start.grid, size };
+}
+
+export const sameGeometry = (a: RoomGeometry, b: RoomGeometry): boolean =>
+  a.grid[0] === b.grid[0] &&
+  a.grid[1] === b.grid[1] &&
+  a.grid[2] === b.grid[2] &&
+  a.size[0] === b.size[0] &&
+  a.size[1] === b.size[1] &&
+  a.size[2] === b.size[2];
+
+/** World-space box of a room footprint (Three.js X, Y, Z extents), via `spatialToThree`. */
+export function roomWorldBox(room: RoomGeometry, cell: CellSize = DEFAULT_CELL_SIZE) {
+  const [gx, gy, gz] = room.grid;
+  const [sx, sy, sz] = room.size;
+  return {
+    center: spatialToThree([gx + (sx - 1) / 2, gy + (sy - 1) / 2, gz + (sz - 1) / 2], cell),
+    size: [sx * cell.horizontal, sz * cell.vertical, sy * cell.horizontal] as const,
+  };
+}
+
+/** "2 × 3 × 1". */
+export const formatSize = (size: RoomSize): string => `${size[0]} × ${size[1]} × ${size[2]}`;
+/** "[0, 4, 1]". */
+export const formatGrid = (grid: GridCoord): string => `[${grid[0]}, ${grid[1]}, ${grid[2]}]`;
