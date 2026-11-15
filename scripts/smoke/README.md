@@ -69,3 +69,14 @@ Use `--only viewports,select,...` to run selected groups. The groups are `viewpo
 7. Export JSON downloads a file that opens as valid JSON.
 8. After integration: Tab to a "?" help button, and a one-sentence tooltip appears. Enter shows "More details" and Escape closes it.
 9. After integration: Direct is a solid neutral line, Routed long-dashed neutral and Unresolved short-dashed muted red in every view; Access is thin and Open heavy; each view's legend says "Unresolved" in the same way.
+
+## Gate 1 workflow check (`workflow.mjs`)
+
+An end-to-end check of the integrated app on real schema-v2 data and the real resolver. Same safety rules as `smoke.mjs` (it never starts or stops servers and never writes into the repository).
+
+```powershell
+node scripts/smoke/workflow.mjs --url http://localhost:5181/ --viewport 1366x768
+node scripts/smoke/workflow.mjs --url http://localhost:5181/ --viewport 1280x720
+```
+
+It loads the app three times from scratch, then: adds a room, moves it with Properties, connects it to a separated room (an enclosed corridor is generated: 3 connector cells in Voxels), switches the corridor to Covered and Deck, resizes the room, moves it with the gizmo's step buttons (one undo step), orbits without losing the selection, changes window coverage and a roof in the Designer, applies a transformation, undoes every step one at a time (N operations = N undo steps) and redoes them, exports v2 and re-imports it (byte-identical re-export). Failure cases: room collision (rejected, no history entry), corridor displacement (Cancel keeps the document; "Move anyway and recalculate" records one step), the resulting Unresolved relationship and its undo, a stale transformation preview, invalid JSON, an unsupported schema version and an unknown room type. Finally the selection is checked across Graph 3D, Voxels and Building, and the console must be free of errors.

@@ -1,5 +1,5 @@
 import { applyGraphCommand, type DesignDocument, type GraphCommand, type GraphIssue } from '@app/document';
-import { nodeLabel, type DesignDocumentV2 } from '@app/document/v2';
+import { nextDisplayId, nodeLabel, type DesignDocumentV2 } from '@app/document/v2';
 import { applyDesignCommand, type DesignCommand } from '@app/spatial';
 import { createHistory, record, redo, undo, type History } from './history';
 
@@ -172,14 +172,21 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
   };
   switch (command.type) {
     case 'add-node':
-      return `Add room ${command.node.displayId ?? command.node.id}`;
+      // The command assigns `nextDisplayId(doc)` when no display id is given.
+      return `Add room ${command.node.displayId ?? nextDisplayId(doc)}`;
     case 'remove-node':
       return `Delete ${room(command.nodeId)}`;
-    case 'set-node-geometry':
-      if (command.grid && command.size) return `Move and resize ${room(command.nodeId)}`;
-      return command.size
-        ? `Resize ${room(command.nodeId)} to ${command.size.join('×')}`
-        : `Move ${room(command.nodeId)} to [${(command.grid ?? []).join(', ')}]`;
+    case 'set-node-geometry': {
+      // Gizmos send grid AND size; name only what actually changes relative to the stored room.
+      const stored = doc.nodes.find((n) => n.id === command.nodeId);
+      const same = (a: readonly number[] | undefined, b: readonly number[] | undefined) =>
+        a === undefined || (b !== undefined && a.every((v, i) => v === b[i]));
+      const moves = command.grid !== undefined && !same(command.grid, stored?.grid);
+      const resizes = command.size !== undefined && !same(command.size, stored?.size);
+      if (moves && resizes) return `Move and resize ${room(command.nodeId)}`;
+      if (resizes) return `Resize ${room(command.nodeId)} to ${command.size!.join('×')}`;
+      return `Move ${room(command.nodeId)} to [${(command.grid ?? stored?.grid ?? []).join(', ')}]`;
+    }
     case 'set-node-type':
       return `Change the type of ${room(command.nodeId)}`;
     case 'set-node-attributes':
