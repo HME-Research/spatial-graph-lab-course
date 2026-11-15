@@ -6,50 +6,138 @@
   outline: none;
 }
 
-.sgl-room {
-  width: 150px;
-  padding: 0 0 6px;
+/* ── Circular nodes ─────────────────────────────────────────────────────────── */
+
+.sgl-circle {
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border: 3px solid;
+  border-radius: 50%;
   background: #ffffff;
-  border: 2px solid;
-  border-radius: 8px;
-  font-size: 12px;
-  line-height: 1.3;
-  overflow: hidden;
   cursor: grab;
 }
 
-.sgl-room-type {
-  padding: 2px 8px;
-  color: #ffffff;
-  font-weight: 600;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.45);
-  white-space: nowrap;
+/* Light tint of the type colour behind the text, so the label keeps full contrast. */
+.sgl-circle-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.sgl-circle-text {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 82%;
+  line-height: 1.15;
+  text-align: center;
+  pointer-events: none;
+}
+
+.sgl-circle-line {
+  max-width: 100%;
   overflow: hidden;
+  color: #2d2d2a;
+  font-size: 10px;
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.sgl-room-id {
-  padding: 3px 8px 0;
+.sgl-circle-primary {
   font-family: ui-monospace, Consolas, monospace;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.sgl-room-cell {
-  padding: 0 8px;
+.sgl-circle-more {
   color: #66665f;
-  font-size: 11px;
+  font-size: 9px;
+}
+
+.sgl-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border: 1.5px solid #ffffff;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.sgl-badge-warning {
+  background: #b7791f;
+}
+
+.sgl-badge-unresolved {
+  background: #b55e63;
+}
+
+.sgl-graph2d .react-flow__node:focus-visible .sgl-circle {
+  outline: 2px solid #2c5d8f;
+  outline-offset: 4px;
 }
 
 .sgl-graph2d .react-flow__handle.sgl-handle {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
+  bottom: -5px;
   background: #2c5d8f;
   border: 2px solid #ffffff;
   cursor: crosshair;
+  opacity: 0;
+  transition: opacity 0.1s;
 }
+
+/* The connect handle appears on hover/selection only, keeping the canvas quiet. */
+.sgl-graph2d .react-flow__node:hover .sgl-handle,
+.sgl-graph2d .react-flow__node.selected .sgl-handle,
+.sgl-graph2d .react-flow__node:focus-visible .sgl-handle {
+  opacity: 1;
+}
+
+.sgl-connect-source {
+  animation: sgl-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes sgl-pulse {
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sgl-connect-source {
+    animation: none;
+  }
+}
+
+.sgl-edge-label {
+  z-index: 1100;
+  position: absolute;
+  padding: 1px 6px;
+  border: 1px solid #d9d9d2;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #2d2d2a;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── Panels ─────────────────────────────────────────────────────────────────── */
 
 .sgl-toolbar {
   display: flex;
@@ -60,8 +148,8 @@
 }
 
 .sgl-toolbar button,
-.sgl-connect button,
-.sgl-issues button {
+.sgl-issues button,
+.sgl-popover-actions button {
   font: inherit;
   font-size: 13px;
   padding: 4px 10px;
@@ -71,8 +159,12 @@
   cursor: pointer;
 }
 
-.sgl-toolbar button:disabled,
-.sgl-connect button:disabled {
+.sgl-toolbar button[aria-pressed='true'] {
+  border-color: #2c5d8f;
+  background: #e8f0f8;
+}
+
+.sgl-toolbar button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -84,32 +176,25 @@
 }
 
 .sgl-empty,
-.sgl-connect,
-.sgl-legend {
-  padding: 8px 10px;
+.sgl-status,
+.sgl-legend,
+.sgl-display {
+  padding: 6px 10px;
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid #d9d9d2;
   border-radius: 8px;
   font-size: 13px;
 }
 
-.sgl-connect {
-  max-width: 420px;
-  margin-top: 52px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-.sgl-kind-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 8px 0;
-}
-
-.sgl-reason {
-  margin: 0 0 6px;
-  color: #8a3b3b;
+.sgl-status {
+  max-width: min(520px, calc(100% - 40px));
+  margin-top: 76px;
   font-size: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sgl-unresolved-text {
+  color: #8f4449;
 }
 
 .sgl-legend {
@@ -122,7 +207,8 @@
   gap: 2px;
 }
 
-.sgl-legend summary {
+.sgl-legend summary,
+.sgl-display summary {
   font-weight: 600;
   cursor: pointer;
   pointer-events: auto;
@@ -132,6 +218,46 @@
   display: flex;
   gap: 6px;
   align-items: center;
+  pointer-events: auto;
+}
+
+/* Sits to the right of the zoom controls in the same corner. */
+.sgl-display-panel {
+  margin-left: 52px;
+}
+
+.sgl-display {
+  font-size: 12px;
+}
+
+.sgl-display-body {
+  display: grid;
+  gap: 6px;
+  max-height: 40vh;
+  margin-top: 4px;
+  overflow: auto;
+}
+
+.sgl-display fieldset {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.sgl-display legend {
+  padding: 0;
+  color: #66665f;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.sgl-display-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
 }
 
 .sgl-issues-panel {
@@ -157,12 +283,124 @@
 }
 
 button.sgl-link,
-.sgl-issues button.sgl-link,
-.sgl-connect button.sgl-link {
+.sgl-issues button.sgl-link {
   padding: 0;
   border: none;
   background: none;
   color: #2c5d8f;
+  font: inherit;
   text-decoration: underline;
   cursor: pointer;
+}
+
+button.sgl-icon-button {
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: #66665f;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ── Popover and context menu (positioned in container pixels) ──────────────── */
+
+.sgl-popover,
+.sgl-menu {
+  position: absolute;
+  z-index: 10;
+  background: #ffffff;
+  border: 1px solid #d0d0c8;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  font-size: 12px;
+}
+
+.sgl-popover {
+  width: 250px;
+  max-width: calc(100% - 16px);
+  max-height: calc(100% - 16px);
+  overflow: auto;
+  padding: 8px 10px;
+}
+
+.sgl-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 14px;
+}
+
+.sgl-popover dl {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+
+.sgl-popover-row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 6px;
+}
+
+.sgl-popover dt {
+  overflow: hidden;
+  color: #66665f;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sgl-popover dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.sgl-popover-row.sgl-warning dd {
+  color: #8a5a12;
+}
+
+.sgl-popover-row.sgl-unresolved dd {
+  color: #8f4449;
+}
+
+.sgl-popover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.sgl-menu {
+  display: grid;
+  min-width: 170px;
+  padding: 4px 0;
+}
+
+.sgl-menu button {
+  padding: 5px 12px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sgl-menu button:hover:not(:disabled),
+.sgl-menu button:focus-visible {
+  background: #eef2f6;
+  outline: none;
+}
+
+.sgl-menu button:disabled {
+  color: #9a9a92;
+  cursor: default;
+}
+
+.sgl-menu button.sgl-menu-separated {
+  margin-top: 4px;
+  border-top: 1px solid #e4e4dd;
 }

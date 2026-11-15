@@ -5,6 +5,8 @@ import {
   Panel,
   ReactFlow,
   ReactFlowProvider,
+  useReactFlow,
+  useViewport,
   type Connection,
   type EdgeTypes,
   type IsValidConnection,
@@ -15,24 +17,33 @@ import {
   type XYPosition,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
-import { EDGE_KINDS, type DesignDocument, type EdgeKind, type GraphCommand, type GraphIssue } from '@app/document';
+import { useCallback, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type RefObject } from 'react';
+import { EDGE_KINDS, type DiagramPosition, type GraphIssue } from '@app/document';
+import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
-import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
+import { nodeTypeStatus, typeDisplayName } from '../project';
+import { EDGE_STYLES, orientationOf, resolveDiagramPositions } from './diagram';
 import {
-  EDGE_KIND_LABELS,
-  EDGE_STYLES,
-  connectionOptions,
-  nextFreeId,
-  orientationOf,
-  resolveDiagramPositions,
-  suggestDiagramPosition,
-  suggestFreeCell,
-} from './diagram';
-import { brokenTypeIds } from '../project';
+  addNodeRequest,
+  changeRelationshipKindCommand,
+  changeV1EdgeKindCommand,
+  connectRequest,
+  describePlacement,
+  diagramPositionCommand,
+  modelFromV1,
+  modelFromV2,
+  removeEdgeCommand,
+  removeNodeCommand,
+  type DiagramModel,
+  type ModelCommand,
+} from './diagramModel';
+import { presentEdge, relationshipLegend, UNRESOLVED_REASON_TEXT, RELATIONSHIP_KIND_LABELS, type LegendRow } from './edgePresentation';
 import './graph2d.css';
 import { IssueList } from './IssueList';
+import { menuItems, NodeContextMenu, type MenuAction, type MenuTarget } from './NodeContextMenu';
+import { attributeKeysOf, NodeDisplayControl, nodeLines, sanitizeDisplay, type DisplaySettings } from './NodeDisplay';
+import { NodePopover, popoverRows } from './NodePopover';
 import { RelationEdge, type RelationFlowEdge } from './RelationEdge';
 import { RoomNode, type RoomFlowNode } from './RoomNode';
 
@@ -45,9 +56,23 @@ interface NodeOverlay {
   readonly drag?: XYPosition;
 }
 
+interface OpenMenu {
+  readonly target: MenuTarget;
+  /** Container pixels. */
+  readonly point: { readonly x: number; readonly y: number };
+  /** Diagram coordinates of the opening point ("Add node here"). */
+  readonly flow?: DiagramPosition;
+}
+
+/** Short status line after an action; `created` follows the new edge's live status. */
+type Notice =
+  | { readonly kind: 'created'; readonly edgeId: string }
+  | { readonly kind: 'message'; readonly text: string };
+
 /**
- * Graph 2D editor: one abstract diagram of the entire 3D spatial graph (all storeys).
- * Reads `doc` only; every edit is a GraphCommand sent through `onCommand`.
+ * Graph 2D editor: one abstract diagram of the entire 3D spatial graph (all storeys), drawn as
+ * circles. Diagram positions are independent of spatial cells. Reads the v2 port when the host
+ * supplies `design` (feature gate), else the v1 `doc`; every edit is one command.
  */
 export function Graph2DView(props: ViewProps) {
   // One provider per panel instance, so split panels keep independent viewports.
@@ -58,67 +83,119 @@ export function Graph2DView(props: ViewProps) {
   );
 }
 
-function Graph2DEditor({ doc, selection, onSelect, onCommand, project }: ViewProps) {
+function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }: ViewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const flow = useReactFlow();
   const [overlay, setOverlay] = useState<Readonly<Record<string, NodeOverlay>>>({});
-  // A pending connection (choosing its edge kind) belongs to the document it was started on: any
-  // document change, including undo/redo, cancels it.
-  const [pendingState, setPending] = useState<{ source: string; target: string; doc: DesignDocument } | null>(null);
-  // Cleared (not just hidden) during render, so that redo returning the same document object
-  // cannot bring it back.
-  if (pendingState && pendingState.doc !== doc) setPending(null);
-  const pending = pendingState?.doc === doc ? pendingState : null;
   const [issues, setIssues] = useState<readonly GraphIssue[]>([]);
-  // The diagram viewport (pan/zoom) is remembered by the hosting panel; without one, fit the diagram.
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [popoverNode, setPopoverNode] = useState<string | null>(null);
+  const [menu, setMenu] = useState<OpenMenu | null>(null);
+  const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  // The diagram viewport (pan/zoom) and display options are remembered by the hosting panel.
   const viewportMemory = useRemembered<Viewport>('viewport:graph2d');
   const [initialViewport] = useState(() => viewportMemory?.load());
+  const displayMemory = useRemembered<DisplaySettings>('display:graph2d');
+  const [display, setDisplayState] = useState(() => sanitizeDisplay(displayMemory?.load()));
+  const setDisplay = (next: DisplaySettings) => {
+    setDisplayState(next);
+    displayMemory?.save(next);
+  };
 
-  /** Send a command; show issues on rejection. Returns whether it was applied. */
+  const designDoc = design?.doc;
+  const designSpatial = design?.spatial;
+  const model = useMemo<DiagramModel>(
+    () => (designDoc && designSpatial ? modelFromV2(designDoc, designSpatial) : modelFromV1(doc)),
+    [designDoc, designSpatial, doc],
+  );
+
+  /** Send a command to the document it was built for; show issues on rejection. */
   const run = useCallback(
-    (command: GraphCommand): boolean => {
-      const outcome = onCommand(command);
+    (mc: ModelCommand): boolean => {
+      let outcome;
+      if (mc.version === 2) {
+        if (!design) return false;
+        outcome = design.onCommand(mc.command);
+      } else {
+        outcome = onCommand(mc.command);
+      }
       setIssues(outcome.ok ? [] : outcome.issues);
       return outcome.ok;
     },
-    [onCommand],
+    [design, onCommand],
   );
 
-  const positions = useMemo(() => resolveDiagramPositions(doc), [doc]);
-  const broken = useMemo(() => new Set(brokenTypeIds(project?.project ?? null, doc)), [project, doc]);
+  const positions = useMemo(() => resolveDiagramPositions(model), [model]);
+  const activeProject = project?.project ?? null;
+  const typeStatus = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof nodeTypeStatus>>();
+    for (const node of model.nodes) if (!map.has(node.typeId)) map.set(node.typeId, nodeTypeStatus(activeProject, node.typeId));
+    return map;
+  }, [model, activeProject]);
+  const isBroken = (typeId: string) => typeStatus.get(typeId)?.kind === 'broken';
 
   const emphasised = useMemo(() => {
     if (selection.kind !== 'edge') return new Set<string>();
-    const edge = doc.edges.find((e) => e.id === selection.id);
+    const edge = model.edges.find((e) => e.id === selection.id);
     return new Set(edge ? [edge.source, edge.target] : []);
-  }, [doc, selection]);
+  }, [model, selection]);
+
+  const unresolvedCount = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of model.edges) {
+      if (e.resolution?.status !== 'unresolved') continue;
+      counts.set(e.source, (counts.get(e.source) ?? 0) + 1);
+      counts.set(e.target, (counts.get(e.target) ?? 0) + 1);
+    }
+    return counts;
+  }, [model]);
+
+  const lines = useMemo(() => new Map(model.nodes.map((n) => [n.id, nodeLines(n, display)])), [model, display]);
 
   const nodes = useMemo<RoomFlowNode[]>(
     () =>
-      doc.nodes.map((node) => {
+      model.nodes.map((node) => {
         const o = overlay[node.id];
         const p = positions.get(node.id) ?? [0, 0];
+        const l = lines.get(node.id) ?? nodeLines(node, display);
+        const broken = typeStatus.get(node.typeId)?.kind === 'broken';
+        const unresolved = unresolvedCount.get(node.id) ?? 0;
         return {
           id: node.id,
           type: 'room',
           position: o?.drag ?? { x: p[0], y: p[1] },
-          data: { node, emphasised: emphasised.has(node.id), brokenType: broken.has(node.typeId) },
+          ariaLabel: `Node ${node.label}, type ${node.typeId}`,
+          data: {
+            typeId: node.typeId,
+            lines: l.lines,
+            hidden: l.hidden,
+            diameter: l.diameter,
+            tooltip:
+              `${node.label} · ${node.typeId}${broken ? ' (invalid type definition)' : ''}\n${describePlacement(node)}` +
+              (unresolved ? `\n${unresolved} relationship(s) not buildable yet` : ''),
+            emphasised: emphasised.has(node.id),
+            brokenType: broken,
+            connectSource: connectFrom === node.id,
+            unresolved,
+          },
           selected: selection.kind === 'node' && selection.id === node.id,
           ...(o?.measured ? { measured: o.measured } : {}),
         };
       }),
-    [doc, positions, overlay, selection, emphasised, broken],
+    [model, positions, overlay, selection, emphasised, typeStatus, lines, display, unresolvedCount, connectFrom],
   );
 
   const edges = useMemo<RelationFlowEdge[]>(
     () =>
-      doc.edges.map((edge) => ({
+      model.edges.map((edge) => ({
         id: edge.id,
         source: edge.source,
         target: edge.target,
         type: 'relation',
-        data: { kind: edge.kind },
+        data: { presentation: presentEdge(model, edge) },
         selected: selection.kind === 'edge' && selection.id === edge.id,
       })),
-    [doc, selection],
+    [model, selection],
   );
 
   // Only measurements and drag positions are kept locally; selection/removal changes are ignored
@@ -140,11 +217,14 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project }: ViewPro
   }, []);
 
   const onNodeDragStart = useCallback<OnNodeDrag<RoomFlowNode>>(
-    (_event, node) => onSelect(selectNode(node.id)),
+    (_event, node) => {
+      setPopoverNode(null);
+      onSelect(selectNode(node.id));
+    },
     [onSelect],
   );
 
-  // One set-diagram-position per drag, on stop. Never move-node: the spatial cell is untouched.
+  // One set-diagram-position per drag, on stop. Never a spatial move: the room's cell is untouched.
   const onNodeDragStop = useCallback<OnNodeDrag<RoomFlowNode>>(
     (_event, node) => {
       const position: [number, number] = [Math.round(node.position.x), Math.round(node.position.y)];
@@ -153,60 +233,144 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project }: ViewPro
         if (!current?.drag) return prev;
         return { ...prev, [node.id]: current.measured ? { measured: current.measured } : {} };
       });
-      const stored = doc.diagram.positions[node.id];
+      const stored = model.diagram.positions[node.id];
       if (stored && stored[0] === position[0] && stored[1] === position[1]) return;
-      run({ type: 'set-diagram-position', nodeId: node.id, position });
+      run(diagramPositionCommand(model, node.id, position));
     },
-    [doc, run],
+    [model, run],
   );
 
-  const isValidConnection = useCallback<IsValidConnection>((c) => c.source !== c.target, []);
-  const onConnect = useCallback((c: Connection) => {
-    if (c.source !== c.target) setPending({ source: c.source, target: c.target, doc });
-  }, [doc]);
-
-  const pendingOptions = pending ? connectionOptions(doc, pending.source, pending.target) : undefined;
-
-  const createEdge = (kind: EdgeKind) => {
-    if (!pending) return;
-    const id = nextFreeId('edge', doc.edges.map((e) => e.id));
-    if (run({ type: 'add-edge', edge: { id, source: pending.source, target: pending.target, kind } })) {
-      setPending(null);
-      onSelect(selectEdge(id));
+  /** Create the relationship at once (default kind), select it and show a short status. */
+  const connect = (source: string, target: string) => {
+    setConnectFrom(null);
+    const request = connectRequest(model, source, target);
+    if (request.status === 'existing') {
+      onSelect(selectEdge(request.edgeId));
+      setNotice({ kind: 'message', text: 'These nodes are already connected; that relationship is now selected.' });
+    } else if (request.status === 'refused') {
+      setNotice({ kind: 'message', text: request.message });
+    } else if (run(request.command)) {
+      onSelect(selectEdge(request.edgeId));
+      setNotice({ kind: 'created', edgeId: request.edgeId });
     }
   };
 
-  const addNode = () => {
-    const nearId = selection.kind === 'node' ? selection.id : undefined;
-    const near = nearId === undefined ? undefined : doc.nodes.find((n) => n.id === nearId);
-    const id = nextFreeId('node', doc.nodes.map((n) => n.id));
-    const command: GraphCommand = {
-      type: 'add-node',
-      node: { id, grid: suggestFreeCell(doc, nearId), typeId: near?.typeId ?? 'room', attributes: {} },
-      diagramPosition: suggestDiagramPosition(doc, nearId),
-    };
-    if (run(command)) onSelect(selectNode(id));
+  const startConnect = (nodeId: string) => {
+    setPopoverNode(null);
+    setNotice(null);
+    setConnectFrom(nodeId);
+    onSelect(selectNode(nodeId));
+  };
+
+  const addNode = (nearNodeId?: string, at?: DiagramPosition) => {
+    const { nodeId, command } = addNodeRequest(model, nearNodeId, at);
+    if (run(command)) onSelect(selectNode(nodeId));
   };
 
   const removeSelected = () => {
-    if (selection.kind === 'node') run({ type: 'remove-node', nodeId: selection.id });
-    else if (selection.kind === 'edge') run({ type: 'remove-edge', edgeId: selection.id });
+    if (selection.kind === 'node') run(removeNodeCommand(model, selection.id));
+    else if (selection.kind === 'edge') run(removeEdgeCommand(model, selection.id));
+  };
+
+  const onMenuAction = (action: MenuAction) => {
+    switch (action.type) {
+      case 'inspect':
+        onSelect(selectNode(action.nodeId));
+        setPopoverNode(action.nodeId);
+        return;
+      case 'connect':
+        return startConnect(action.nodeId);
+      case 'add-node':
+        return addNode(action.nearNodeId, action.nearNodeId === undefined ? menu?.flow : undefined);
+      case 'remove-node':
+        return void run(removeNodeCommand(model, action.nodeId));
+      case 'remove-edge':
+        return void run(removeEdgeCommand(model, action.edgeId));
+      case 'set-relationship-kind':
+        return void run(changeRelationshipKindCommand(action.edgeId, action.kind));
+      case 'set-v1-kind':
+        return void run(changeV1EdgeKindCommand(action.edgeId, action.kind));
+    }
+  };
+
+  const pointIn = (event: { clientX: number; clientY: number }) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    return { x: event.clientX - (rect?.left ?? 0), y: event.clientY - (rect?.top ?? 0) };
+  };
+
+  const openMenu = (event: ReactMouseEvent | MouseEvent, target: MenuTarget) => {
+    event.preventDefault();
+    const p = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    setPopoverNode(null);
+    setConnectFrom(null);
+    if (target.kind === 'node') onSelect(selectNode(target.id));
+    else if (target.kind === 'edge') onSelect(selectEdge(target.id));
+    setMenu({ target, point: pointIn(event), flow: [Math.round(p.x), Math.round(p.y)] });
+  };
+
+  /** Centre and radius of a node in container pixels (for keyboard-opened menus and the popover). */
+  const nodeAnchor = (nodeId: string, viewport: Viewport) => {
+    const p = overlay[nodeId]?.drag ?? (() => {
+      const q = positions.get(nodeId) ?? [0, 0];
+      return { x: q[0], y: q[1] };
+    })();
+    const d = lines.get(nodeId)?.diameter ?? 46;
+    return {
+      x: (p.x + d / 2) * viewport.zoom + viewport.x,
+      y: (p.y + d / 2) * viewport.zoom + viewport.y,
+      radius: (d / 2) * viewport.zoom,
+    };
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
-    if (target.closest('input, select, textarea, button')) return;
+    if (target.closest('input, select, textarea, button, .sgl-menu, .sgl-popover')) return;
+    // An open menu or popover closes itself on Escape (document listener).
+    if (menu || popoverNode) return;
+    const focusedNode = target.closest('.react-flow__node')?.getAttribute('data-id') ?? null;
     if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
       removeSelected();
     } else if (event.key === 'Escape') {
-      setPending(null);
-      onSelect(NO_SELECTION);
+      if (connectFrom) setConnectFrom(null);
+      else onSelect(NO_SELECTION);
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      const nodeId = focusedNode ?? (selection.kind === 'node' ? selection.id : null);
+      if (!nodeId) return;
+      event.preventDefault();
+      if (connectFrom && connectFrom !== nodeId) connect(connectFrom, nodeId);
+      else {
+        onSelect(selectNode(nodeId));
+        setPopoverNode(nodeId);
+      }
+    } else if (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)) {
+      const nodeId = focusedNode ?? (selection.kind === 'node' ? selection.id : null);
+      event.preventDefault();
+      const box = containerRef.current?.getBoundingClientRect();
+      if (nodeId) {
+        const a = nodeAnchor(nodeId, flow.getViewport());
+        onSelect(selectNode(nodeId));
+        setMenu({ target: { kind: 'node', id: nodeId }, point: { x: a.x + a.radius, y: a.y } });
+      } else if (selection.kind === 'edge') {
+        setMenu({ target: { kind: 'edge', id: selection.id }, point: { x: (box?.width ?? 0) / 2, y: (box?.height ?? 0) / 2 } });
+      }
     }
   };
 
+  const isValidConnection = useCallback<IsValidConnection>((c) => c.source !== c.target, []);
+  const onConnect = (c: Connection) => {
+    if (c.source !== c.target) connect(c.source, c.target);
+  };
+
+  const popover = popoverNode && selection.kind === 'node' && selection.id === popoverNode ? model.byNode.get(popoverNode) : undefined;
+  const menuList = menu ? menuItems(model, menu.target) : [];
+  const connectSource = connectFrom ? model.byNode.get(connectFrom) : undefined;
+  // A "created" notice disappears with its edge (undo, delete elsewhere).
+  const shownNotice = notice?.kind === 'created' && !model.edges.some((e) => e.id === notice.edgeId) ? null : notice;
+  const attributeKeys = useMemo(() => attributeKeysOf(model), [model]);
+
   return (
-    <div className="sgl-graph2d" onKeyDown={onKeyDown} tabIndex={-1}>
+    <div ref={containerRef} className="sgl-graph2d" onKeyDown={onKeyDown} tabIndex={-1}>
       <ReactFlow<RoomFlowNode, RelationFlowEdge>
         nodes={nodes}
         edges={edges}
@@ -215,71 +379,91 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project }: ViewPro
         onNodesChange={onNodesChange}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
-        onNodeClick={(_e, node) => onSelect(selectNode(node.id))}
-        onEdgeClick={(_e, edge) => onSelect(selectEdge(edge.id))}
-        onPaneClick={() => onSelect(NO_SELECTION)}
+        onNodeClick={(_e, node) => {
+          if (connectFrom && connectFrom !== node.id) return connect(connectFrom, node.id);
+          setConnectFrom(null);
+          setNotice(null);
+          onSelect(selectNode(node.id));
+          setPopoverNode(node.id);
+        }}
+        onEdgeClick={(_e, edge) => {
+          setConnectFrom(null);
+          setNotice(null);
+          onSelect(selectEdge(edge.id));
+        }}
+        onPaneClick={() => {
+          setConnectFrom(null);
+          setNotice(null);
+          onSelect(NO_SELECTION);
+        }}
+        onNodeContextMenu={(e, node) => openMenu(e, { kind: 'node', id: node.id })}
+        onEdgeContextMenu={(e, edge) => openMenu(e, { kind: 'edge', id: edge.id })}
+        onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         connectionMode={ConnectionMode.Loose}
-        // Dropping anywhere on a target node (not only on its small dot) completes the connection.
-        connectionRadius={70}
+        // Dropping on (or right next to) a target circle completes the connection; small enough
+        // that a careless handle drag in empty space creates nothing.
+        connectionRadius={30}
         deleteKeyCode={null}
         selectionKeyCode={null}
         multiSelectionKeyCode={null}
         selectNodesOnDrag={false}
         {...(initialViewport ? { defaultViewport: initialViewport } : { fitView: true })}
+        onMoveStart={() => setMenu(null)}
         onMoveEnd={(_event, viewport) => viewportMemory?.save(viewport)}
-        fitViewOptions={{ padding: 0.2 }}
+        fitViewOptions={{ padding: 0.25, maxZoom: 1.5 }}
         minZoom={0.2}
       >
         <Background gap={20} />
         <Controls showInteractive={false} />
 
         <Panel position="top-left" className="sgl-toolbar">
-          <button type="button" onClick={addNode} title="Add a node in a free cell (next to the selected node, if any)">
+          <button
+            type="button"
+            onClick={() => addNode(selection.kind === 'node' ? selection.id : undefined)}
+            title="Add a node in a free cell (next to the selected node, if any)"
+          >
             + Add node
+          </button>
+          <button
+            type="button"
+            onClick={() => (connectFrom ? setConnectFrom(null) : selection.kind === 'node' && startConnect(selection.id))}
+            disabled={!connectFrom && selection.kind !== 'node'}
+            aria-pressed={connectFrom !== null}
+            title="Connect the selected node: then click the node to connect to"
+          >
+            {connectFrom ? 'Cancel connection' : 'Add connection…'}
           </button>
           <button
             type="button"
             onClick={removeSelected}
             disabled={selection.kind === 'none'}
-            title="Remove the selected node (with its edges) or the selected edge"
+            title="Delete the selected node (with its relationships) or the selected relationship"
           >
-            Delete {selection.kind === 'edge' ? 'edge' : 'node'}
+            Delete {selection.kind === 'edge' ? 'relationship' : 'node'}
           </button>
-          <span className="sgl-hint">
-            Drag a node to rearrange the diagram. Drag from a node’s dot onto another node to connect.
-          </span>
+          <span className="sgl-hint">Click a node for details · right-click for actions</span>
         </Panel>
 
-        {doc.nodes.length === 0 && (
+        {model.nodes.length === 0 && (
           <Panel position="top-center" className="sgl-empty">
             This design has no nodes yet. Click <strong>+ Add node</strong> to start.
           </Panel>
         )}
 
-        {pendingOptions && (
-          <Panel position="top-center" className="sgl-connect" role="dialog" aria-label="Choose edge kind">
-            <div>
-              Connect <code>{pendingOptions.source.id}</code> ↔ <code>{pendingOptions.target.id}</code> as:
-            </div>
-            <div className="sgl-kind-buttons">
-              {pendingOptions.kinds.map(({ kind, valid }) => (
-                <button
-                  key={kind}
-                  type="button"
-                  disabled={!valid}
-                  onClick={() => createEdge(kind)}
-                  title={valid ? `Create a ${orientationOf(kind)} "${kind}" edge` : 'Not possible for these two cells'}
-                >
-                  {EDGE_STYLES[kind].symbol} {EDGE_KIND_LABELS[kind]}
+        {(connectSource || shownNotice) && (
+          <Panel position="top-center" className="sgl-status" aria-live="polite">
+            {connectSource ? (
+              <>
+                Connecting from <strong>{connectSource.label}</strong>: click the node to connect to.{' '}
+                <button type="button" className="sgl-link" onClick={() => setConnectFrom(null)}>
+                  Cancel (Esc)
                 </button>
-              ))}
-            </div>
-            {pendingOptions.reason && <p className="sgl-reason">{pendingOptions.reason}</p>}
-            <button type="button" className="sgl-link" onClick={() => setPending(null)}>
-              Cancel
-            </button>
+              </>
+            ) : shownNotice ? (
+              <NoticeLine notice={shownNotice} model={model} onRemove={(id) => run(removeEdgeCommand(model, id))} onDismiss={() => setNotice(null)} />
+            ) : null}
           </Panel>
         )}
 
@@ -289,35 +473,159 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project }: ViewPro
           </Panel>
         )}
 
-        {/* Collapsible, and click-through when open, so it never blocks nodes underneath. */}
-        <Panel position="bottom-right" className="sgl-legend" aria-label="Edge legend">
-          <details open>
-            <summary>Edges</summary>
-            {EDGE_KINDS.map((kind) => {
-              const s = EDGE_STYLES[kind];
-              return (
-                <div key={kind} className="sgl-legend-row">
-                  <svg width="36" height="10" aria-hidden="true">
-                    <line
-                      x1="2"
-                      y1="5"
-                      x2="34"
-                      y2="5"
-                      stroke={s.stroke}
-                      strokeWidth={s.strokeWidth}
-                      {...(s.strokeDasharray ? { strokeDasharray: s.strokeDasharray } : {})}
-                    />
-                  </svg>
-                  <span>
-                    {s.symbol} {kind} <span className="sgl-muted">({orientationOf(kind)})</span>
-                  </span>
-                </div>
-              );
-            })}
-            <div className="sgl-muted">Solid = same storey · dashed = between storeys</div>
-          </details>
+        <Panel position="bottom-left" className="sgl-display-panel">
+          <NodeDisplayControl settings={display} attributeKeys={attributeKeys} onChange={setDisplay} />
         </Panel>
+
+        {display.showLegend && (
+          // Collapsible, and click-through when open, so it never blocks nodes underneath.
+          <Panel position="bottom-right" className="sgl-legend" aria-label="Relationship legend">
+            <details open>
+              <summary>Relationships</summary>
+              {model.version === 2 ? <V2Legend /> : <V1Legend />}
+            </details>
+          </Panel>
+        )}
       </ReactFlow>
+
+      {popover && (
+        <PopoverLayer
+          containerRef={containerRef}
+          anchorOf={nodeAnchor}
+          nodeId={popover.id}
+          onClose={() => setPopoverNode(null)}
+          onConnect={() => startConnect(popover.id)}
+          rows={popoverRows(model, popover, {
+            brokenType: isBroken(popover.typeId),
+            typeName: typeDisplayName(typeStatus.get(popover.typeId) ?? { kind: 'no-project' }, popover.typeId),
+            attributeKeys: display.attributeKeys,
+          })}
+          node={popover}
+        />
+      )}
+
+      {menu && menuList.length > 0 && (
+        <NodeContextMenu
+          items={menuList}
+          point={menu.point}
+          containerRef={containerRef}
+          label={menuLabel(model, menu.target)}
+          onAction={onMenuAction}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function menuLabel(model: DiagramModel, target: MenuTarget): string {
+  if (target.kind === 'node') return `Actions for node ${model.byNode.get(target.id)?.label ?? target.id}`;
+  if (target.kind === 'edge') return 'Actions for relationship';
+  return 'Diagram actions';
+}
+
+/** Tracks pan/zoom so the popover stays beside its node. */
+function PopoverLayer({
+  containerRef,
+  anchorOf,
+  nodeId,
+  ...rest
+}: {
+  readonly containerRef: RefObject<HTMLDivElement | null>;
+  readonly anchorOf: (nodeId: string, viewport: Viewport) => { x: number; y: number; radius: number };
+  readonly nodeId: string;
+} & Omit<Parameters<typeof NodePopover>[0], 'anchor' | 'containerRef'>) {
+  const viewport = useViewport();
+  return <NodePopover {...rest} containerRef={containerRef} anchor={anchorOf(nodeId, viewport)} />;
+}
+
+function NoticeLine({
+  notice,
+  model,
+  onRemove,
+  onDismiss,
+}: {
+  readonly notice: Notice;
+  readonly model: DiagramModel;
+  readonly onRemove: (edgeId: string) => void;
+  readonly onDismiss: () => void;
+}) {
+  const dismiss = (
+    <button type="button" className="sgl-icon-button" onClick={onDismiss} aria-label="Dismiss" title="Dismiss">
+      ×
+    </button>
+  );
+  if (notice.kind === 'message') {
+    return (
+      <>
+        {notice.text} {dismiss}
+      </>
+    );
+  }
+  const edge = model.edges.find((e) => e.id === notice.edgeId);
+  if (!edge) return null;
+  const a = model.byNode.get(edge.source)?.label ?? edge.source;
+  const b = model.byNode.get(edge.target)?.label ?? edge.target;
+  const kind = model.version === 2 ? RELATIONSHIP_KIND_LABELS[edge.kind as 'access' | 'open'] : edge.kind;
+  const unresolved = edge.resolution?.status === 'unresolved' ? edge.resolution : undefined;
+  return (
+    <>
+      Connected <strong>{a}</strong> ↔ <strong>{b}</strong> as {kind}
+      {model.version === 2 && <> (change it from the right-click menu or Properties)</>}.
+      {unresolved && <span className="sgl-unresolved-text"> Not buildable yet: {UNRESOLVED_REASON_TEXT[unresolved.reason]}</span>}{' '}
+      <button type="button" className="sgl-link" onClick={() => onRemove(edge.id)} title="Delete this new relationship (Ctrl/⌘+Z also undoes it)">
+        Remove
+      </button>{' '}
+      <span className="sgl-muted">· Ctrl/⌘+Z to undo</span> {dismiss}
+    </>
+  );
+}
+
+function LegendLine({ row }: { readonly row: Pick<LegendRow, 'stroke'> }) {
+  return (
+    <svg width="36" height="10" aria-hidden="true">
+      <line
+        x1="2"
+        y1="5"
+        x2="34"
+        y2="5"
+        stroke={row.stroke.stroke}
+        strokeWidth={row.stroke.strokeWidth}
+        {...(row.stroke.strokeDasharray ? { strokeDasharray: row.stroke.strokeDasharray } : {})}
+      />
+    </svg>
+  );
+}
+
+function V2Legend() {
+  return (
+    <>
+      {relationshipLegend().map((row) => (
+        <div key={row.key} className="sgl-legend-row" title={row.hint}>
+          <LegendLine row={row} />
+          <span>{row.label}</span>
+        </div>
+      ))}
+      <div className="sgl-muted">Hover a line for details</div>
+    </>
+  );
+}
+
+function V1Legend() {
+  return (
+    <>
+      {EDGE_KINDS.map((kind) => {
+        const s = EDGE_STYLES[kind];
+        return (
+          <div key={kind} className="sgl-legend-row">
+            <LegendLine row={{ stroke: s }} />
+            <span>
+              {s.symbol} {kind} <span className="sgl-muted">({orientationOf(kind)})</span>
+            </span>
+          </div>
+        );
+      })}
+      <div className="sgl-muted">Solid = same storey · dashed = between storeys</div>
+    </>
   );
 }
