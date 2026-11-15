@@ -1,0 +1,113 @@
+/* Stage 07 presentation legends. Prefixed `sgl-pres-` to avoid clashing with view styles. */
+.sgl-pres-legend,
+.sgl-pres-analysis {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #d9d9d2;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #1d1d1b;
+  max-width: 300px;
+  max-height: 45vh;
+  overflow: auto;
+}
+.sgl-pres-legend > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.sgl-pres-section h5,
+.sgl-pres-analysis h5 {
+  margin: 6px 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #66665f;
+}
+.sgl-pres-legend ul,
+.sgl-pres-analysis ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sgl-pres-item {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  align-items: center;
+  column-gap: 4px;
+  padding: 1px 2px;
+  border-radius: 3px;
+}
+.sgl-pres-item:focus-visible {
+  outline: 2px solid #2c5d8f;
+  outline-offset: 1px;
+}
+.sgl-pres-swatch {
+  display: block;
+}
+.sgl-pres-count {
+  color: #66665f;
+}
+/* Summary appears on hover and on keyboard focus (same text as the title tooltip). */
+.sgl-pres-summary {
+  grid-column: 2;
+  display: none;
+  color: #4a4a44;
+}
+.sgl-pres-item:hover .sgl-pres-summary,
+.sgl-pres-item:focus-within .sgl-pres-summary {
+  display: block;
+}
+.sgl-pres-details {
+  margin: 2px 0 0 42px;
+}
+.sgl-pres-details p {
+  margin: 4px 0;
+  color: #4a4a44;
+}
+.sgl-pres-details > summary {
+  cursor: pointer;
+  color: #2c5d8f;
+}
+.sgl-pres-analysis header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sgl-pres-analysis.stale {
+  border-color: #d9b44a;
+}
+.sgl-pres-stale {
+  margin: 4px 0;
+  padding: 3px 6px;
+  background: #fff6dc;
+  border-left: 3px solid;
+  color: #5c4500;
+}
+.sgl-pres-chip {
+  display: inline-block;
+  justify-self: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+.sgl-pres-scale {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0;
+}
+.sgl-pres-gradient {
+  flex: 1;
+  height: 8px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #f6e3a1, #3a2c7a);
+}
+.sgl-pres-note {
+  margin: 4px 0 0;
+  color: #66665f;
+  font-size: 11px;
+}
