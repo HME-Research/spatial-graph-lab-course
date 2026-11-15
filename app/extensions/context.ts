@@ -1,4 +1,5 @@
-import { EDGE_KINDS, gridKey, isEdgeGeometryValid, SPATIAL_GRAPH_POLICY, type DesignDocument, type EdgeKind } from '@app/document';
+import { EDGE_KINDS, gridKey, isEdgeGeometryValid, SPATIAL_GRAPH_POLICY, unorderedPairKey, type DesignDocument, type EdgeKind } from '@app/document';
+import { footprintCells, migrateV1toV2, roomContact, type DesignDocumentV2, type RoomNode } from '@app/document/v2';
 import type {
   AttributeSpecs,
   AttributesOf,
@@ -36,7 +37,13 @@ export function freezeDeep<T>(value: T): T {
   return value;
 }
 
-export function buildGraphContext<P extends AttributeSpecs>(doc: DesignDocument, params: AttributesOf<P>): GraphAlgorithmContext<P> {
+/** The parts of a v1 or v2 document a graph analysis may see. */
+export interface GraphSource {
+  readonly nodes: readonly { readonly id: string }[];
+  readonly edges: readonly { readonly id: string; readonly source: string; readonly target: string }[];
+}
+
+export function buildGraphContext<P extends AttributeSpecs>(doc: GraphSource, params: AttributesOf<P>): GraphAlgorithmContext<P> {
   const nodes: NodeRecord[] = doc.nodes.map((n) => ({ id: n.id }));
   const edges: EdgeRecord[] = doc.edges.map((e) => ({ id: e.id, source: e.source, target: e.target }));
   return freezeDeep({ graph: { policy: { ...SPATIAL_GRAPH_POLICY }, nodes, edges }, params: structuredClone(params) });
@@ -45,8 +52,23 @@ export function buildGraphContext<P extends AttributeSpecs>(doc: DesignDocument,
 const isGrid = (g: unknown): g is GridCoord =>
   Array.isArray(g) && g.length === 3 && g.every((c) => typeof c === 'number' && Number.isInteger(c));
 
+/**
+ * Spatial context for a schema-v1 document (the running app until integration). Students always
+ * see schema-v2 records: the document is migrated (`migrateV1toV2`) for the context only, so
+ * edges read `access`/`open` and nodes carry `size` [1, 1, 1] and a `displayId`.
+ */
 export function buildSpatialContext<P extends AttributeSpecs>(
   doc: DesignDocument,
+  project: ActiveProject,
+  algorithmId: string,
+  params: AttributesOf<P>,
+): SpatialAlgorithmContext<P> {
+  return buildSpatialContextV2(migrateV1toV2(doc), project, algorithmId, params);
+}
+
+/** Spatial context for a VALIDATED schema-v2 document. */
+export function buildSpatialContextV2<P extends AttributeSpecs>(
+  doc: DesignDocumentV2,
   project: ActiveProject,
   algorithmId: string,
   params: AttributesOf<P>,
@@ -56,7 +78,11 @@ export function buildSpatialContext<P extends AttributeSpecs>(
     nodes: structuredClone(doc.nodes),
     edges: structuredClone(doc.edges),
   });
-  const occupant = new Map(doc.nodes.map((n) => [gridKey(n.grid), n.id] as const));
+  const occupant = new Map<string, string>();
+  for (const n of doc.nodes) for (const cell of footprintCells(n)) occupant.set(gridKey(cell), n.id);
+  const rooms = new Map<string, RoomNode>(structuredClone(doc.nodes).map((n) => [n.id, n] as const));
+  const pairs = new Set(doc.edges.map((e) => unorderedPairKey(e.source, e.target)));
+  const isId = (v: unknown): v is string => typeof v === 'string';
   const subject = { kind: 'algorithm', id: algorithmId } as const;
   const runError = (code: 'type-not-registered' | 'broken-node-type' | 'type-mismatch', message: string) =>
     new ExtensionRunError(diagnostic(code, 'error', subject, message));
@@ -65,6 +91,13 @@ export function buildSpatialContext<P extends AttributeSpecs>(
     design,
     params: freezeDeep(structuredClone(params)),
     nodeAt: (cell: GridCoord) => (isGrid(cell) ? occupant.get(gridKey([cell[0], cell[1], cell[2]])) : undefined),
+    touches: (a: string, b: string) => {
+      const ra = isId(a) ? rooms.get(a) : undefined;
+      const rb = isId(b) ? rooms.get(b) : undefined;
+      return ra !== undefined && rb !== undefined && a !== b && roomContact(ra, rb) !== null;
+    },
+    canRelate: (a: string, b: string) =>
+      isId(a) && isId(b) && a !== b && rooms.has(a) && rooms.has(b) && !pairs.has(unorderedPairKey(a, b)),
     canConnect: (kind: string, a: GridCoord, b: GridCoord) =>
       (EDGE_KINDS as readonly string[]).includes(kind) &&
       isGrid(a) &&

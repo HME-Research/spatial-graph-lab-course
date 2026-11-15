@@ -1,4 +1,4 @@
-# Student API (v1)
+# Student API (v1, schema-v2 data)
 
 How to write your own node types, designs and algorithms for Spatial Graph Lab. Your code lives in **one project folder** and imports **only** `@student-api`.
 
@@ -119,10 +119,12 @@ A spatial algorithm gets the design's own records and a few helpers:
 
 | `ctx.…` | Meaning |
 |---|---|
-| `design.nodes` | `{ id, typeId, grid: [x, y, z], attributes }`; z is the storey |
-| `design.edges` | `{ id, source, target, kind, attributes }`; kind is `door`, `open`, `atrium` or `vertical-access` |
-| `nodeAt(cell)` | id of the node in that cell, or `undefined` if the cell is free |
-| `canConnect(kind, a, b)` | whether that edge kind may join two cells (face adjacency) |
+| `design.nodes` | `{ id, displayId?, typeId, grid: [x, y, z], size: [sx, sy, sz], attributes }`. A room is a box of whole cells: `grid` is its minimum corner, `size` its extent (`[1, 1, 1]` for one cell); z is the storey. `displayId` (e.g. `"01"`) is a label only, never an identity |
+| `design.edges` | `{ id, source, target, kind, connectorStyle?, attributes }`; kind is `access` or `open` |
+| `nodeAt(cell)` | id of the room whose box contains that cell, or `undefined` if the cell is free |
+| `touches(a, b)` | whether rooms `a` and `b` share a wall or floor, so a relationship between them is built directly |
+| `canRelate(a, b)` | whether a relationship between rooms `a` and `b` may be created: both exist, are different and aren't related yet. **They don't need to touch** |
+| `canConnect(kind, a, b)` | *Deprecated.* The schema-v1 rule: whether that v1 kind (`door`, `open`, `atrium`, `vertical-access`) may join two **cells**. Use `touches` or `canRelate` |
 | `attributesOf(node, type)` | typed attribute values, with defaults applied; `type` is imported from your `types/` folder |
 | `params` | your parameters, already checked, with defaults applied |
 
@@ -130,9 +132,16 @@ It returns a list of **operations**:
 
 | Operation | Rules |
 |---|---|
-| `{ op: 'add-node', id, grid, typeId, attributes? }` | New unique id, an explicit free integer cell, a valid type of your project, and only declared attributes with valid values |
-| `{ op: 'add-edge', id, source, target, kind }` | New unique id, existing nodes, an existing edge kind, the correct adjacency, and not already connected |
+| `{ op: 'add-node', id, grid, size?, typeId, attributes? }` | New unique id, an integer minimum corner, an optional `size` of positive integers (default `[1, 1, 1]`), a box that overlaps no other room, a valid type of your project, and only declared attributes with valid values. A display id is given automatically |
+| `{ op: 'add-edge', id, source, target, kind }` | New unique id, existing different rooms, not already related. `kind` is `access` or `open`; the old kinds still work (`door`/`vertical-access` → `access`, `open`/`atrium` → `open`). The rooms **don't need to touch** |
 | `{ op: 'set-node-attribute', nodeId, key, value }` | The attribute must be declared by the node's (valid) type; the value must be valid, or `null` |
+
+**Relationships and space.** A relationship says what you want (`access` = people can pass, `open` = no separating element). Whether it can be built is worked out afterwards and is never an error:
+- the rooms **touch**: a door or a removed wall, or an opening in the floor between stacked rooms;
+- they are on the **same storey** and lined up, with nothing in between: a straight connector is generated (style `enclosed`, `covered` or `deck`);
+- otherwise (different storeys, diagonal, or blocked): the relationship is kept but shown as **unresolved**.
+
+If a new room would take the cells of a generated connector, the app asks before applying the change.
 
 The operations are applied **in order** and **all together**: a later operation may use a node added by an earlier one. If any operation, or the final design, is invalid, nothing changes and the error names the operation.
 
@@ -158,7 +167,7 @@ export default defineSpatialAlgorithm({
           kind: 'transformation',
           operations: [
             { op: 'add-node', id, grid: cell, typeId: gallery.id, attributes: { daylight: 'medium' } },
-            { op: 'add-edge', id: doorId, source: room.id, target: id, kind: 'door' },
+            { op: 'add-edge', id: doorId, source: room.id, target: id, kind: 'access' },
           ],
         };
       }
@@ -186,5 +195,7 @@ Algorithms may declare `parameters` using the same kinds as attributes. For exam
 Exports of `@student-api`:
 - **Definitions:** `defineProject`, `defineNodeType`, `defineGraphAlgorithm`, `defineSpatialAlgorithm`
 - **Graph helpers:** `neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite`, `uniqueId`
-- **Grid helpers:** `FACE_DIRECTIONS`, `neighbourCell`
-- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ProjectDefinition`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `SpatialNode`, `SpatialEdge`, `SpatialEdgeKind`, `SpatialOperation`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`
+- **Grid helpers:** `FACE_DIRECTIONS`, `neighbourCell`, `roomCells` (every cell of a room's box)
+- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ProjectDefinition`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `ConnectorStyle`, `SpatialEdgeKind` (the old v1 kinds), `SpatialOperation`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`
+
+**Changes with schema v2.** Existing algorithms keep compiling and running. What you read changed: edges now have kind `access` or `open` (not `door`, `atrium`, …), and rooms have `size` and `displayId`. Code that compared `edge.kind === 'door'` should compare with `'access'`. `add-edge` still accepts the old kinds, and `canConnect` still works, but is deprecated.

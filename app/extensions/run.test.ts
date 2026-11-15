@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_LIMITS, serializeDesign, validateDocument, type DesignDocument } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
+import { migrateV1toV2 } from '@app/document/v2';
 import {
   defineGraphAlgorithm,
   defineNodeType,
@@ -115,13 +116,17 @@ describe('generic graph analysis', () => {
 });
 
 describe('spatial algorithm input', () => {
-  it('exposes the document records unchanged, including edge attributes', async () => {
+  it('exposes the document records as schema-v2 records (migrated view), including edge attributes', async () => {
     let seen: SpatialAlgorithmContext | undefined;
     const project = await transforming((ctx) => ((seen = ctx), []));
     const doc = labDoc();
     expectExtOk(runAlgorithm(doc, project, 't'));
-    expect(seen!.design.nodes).toEqual(doc.nodes);
-    expect(seen!.design.edges).toEqual(doc.edges);
+    // Since schema v2 students always read v2 records: size [1,1,1], displayId, access/open kinds.
+    const v2 = migrateV1toV2(doc);
+    expect(seen!.design.nodes).toEqual(v2.nodes);
+    expect(seen!.design.edges).toEqual(v2.edges);
+    expect(seen!.design.nodes.every((n) => n.size.join() === '1,1,1')).toBe(true);
+    expect(seen!.design.edges.every((e) => e.kind === 'access' || e.kind === 'open')).toBe(true);
     expect(seen!.design.edges.find((e) => e.id === 'e1')!.attributes).toEqual({ width: 0.9 });
     expect(seen!.design.nodes).not.toBe(doc.nodes); // a copy
     expect(seen!.nodeAt([1, 0, 0])).toBe('g2');

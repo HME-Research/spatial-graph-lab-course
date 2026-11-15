@@ -1,6 +1,6 @@
 import type { EdgeRecord, Graph, NodeRecord } from '@core/graph';
 import type { AttributeSpecs, AttributeValue, AttributesOf } from './attributes';
-import type { GridCoord, SpatialEdge, SpatialEdgeKind, SpatialNode } from './spatial';
+import type { GridCoord, RelationshipKind, RoomSize, SpatialEdge, SpatialEdgeKind, SpatialNode } from './spatial';
 import type { NodeTypeDefinition } from './types';
 
 /**
@@ -49,9 +49,24 @@ export interface SpatialAlgorithmContext<P extends AttributeSpecs = AttributeSpe
   /** A fresh copy of the document's nodes and edges for this run. */
   readonly design: Graph<SpatialNode, SpatialEdge>;
   readonly params: AttributesOf<P>;
-  /** Id of the node occupying `cell`, or undefined if the cell is free. */
+  /** Id of the room whose footprint contains `cell`, or undefined if no room occupies it. */
   nodeAt(cell: GridCoord): string | undefined;
-  /** Whether an edge of `kind` may join cells `a` and `b` (schema-v1 face-adjacency rule). */
+  /**
+   * Whether rooms `aNodeId` and `bNodeId` share at least one face (wall or floor/ceiling), i.e.
+   * a relationship between them would be built directly, without a connector. False for unknown
+   * ids or the same room.
+   */
+  touches(aNodeId: string, bNodeId: string): boolean;
+  /**
+   * Whether a relationship between `aNodeId` and `bNodeId` may be created: both rooms exist,
+   * they are different, and they are not related yet. The rooms need NOT touch.
+   */
+  canRelate(aNodeId: string, bNodeId: string): boolean;
+  /**
+   * @deprecated Schema-v1 rule kept for existing algorithms: whether the CELLS `a` and `b` are
+   * face-adjacent in the way the v1 `kind` required (door/open: same storey; atrium/
+   * vertical-access: stacked). Use `touches` (direct contact) or `canRelate` (may create) instead.
+   */
   canConnect(kind: SpatialEdgeKind, a: GridCoord, b: GridCoord): boolean;
   /**
    * Effective typed attributes of `node` for its type definition `type` (imported from the
@@ -69,7 +84,10 @@ export type SpatialOperation =
   | {
       readonly op: 'add-node';
       readonly id: string;
+      /** Minimum corner cell of the new room. */
       readonly grid: GridCoord;
+      /** Extent in cells; omitted: `[1, 1, 1]`. The room must not overlap another room. */
+      readonly size?: RoomSize;
       /** Must be a valid node type of the active project. */
       readonly typeId: string;
       /** Only attributes declared by the type, with valid values (or null). Defaults are not written. */
@@ -80,7 +98,11 @@ export type SpatialOperation =
       readonly id: string;
       readonly source: string;
       readonly target: string;
-      readonly kind: SpatialEdgeKind;
+      /**
+       * `access` or `open`. The legacy v1 kinds are still accepted and mapped
+       * (door/vertical-access → access, open/atrium → open).
+       */
+      readonly kind: RelationshipKind | SpatialEdgeKind;
     }
   | {
       readonly op: 'set-node-attribute';

@@ -64,19 +64,19 @@ type Check = ExtensionDiagnostic | null;
 
 const fmt = (g: readonly number[]) => `[${g.join(', ')}]`;
 
-function opError(index: number, code: ExtensionIssueCode, message: string, attribute?: string): ExtensionDiagnostic {
+export function opError(index: number, code: ExtensionIssueCode, message: string, attribute?: string): ExtensionDiagnostic {
   return diagnostic(code, 'error', { kind: 'operation', index }, `operation ${index + 1}: ${message}`, attribute === undefined ? {} : { attribute });
 }
 
 /** The node's type, if it is registered and valid; otherwise a diagnostic explaining why not. */
-function writableType(project: ActiveProject, typeId: string, index: number, what: string): RegisteredNodeType | ExtensionDiagnostic {
+export function writableType(project: ActiveProject, typeId: string, index: number, what: string): RegisteredNodeType | ExtensionDiagnostic {
   const type = findNodeType(project, typeId);
   if (!type) return opError(index, 'type-not-registered', `${what}: type "${typeId}" is not a node type of project "${project.id}"`);
   if (!type.status.ok) return opError(index, 'broken-node-type', `${what}: type "${typeId}" (${type.file}) is invalid and cannot be used`);
   return type;
 }
 
-function checkAttributeWrite(type: RegisteredNodeType, key: string, value: AttributeValue, index: number, what: string): Check {
+export function checkAttributeWrite(type: RegisteredNodeType, key: string, value: AttributeValue, index: number, what: string): Check {
   const spec = specFor(type.definition.attributes ?? {}, key);
   if (!spec) return opError(index, 'undeclared-attribute-write', `${what}: type "${type.id}" does not declare attribute "${key}"`, key);
   if (checkValue(spec, value) === 'invalid') {
@@ -92,6 +92,9 @@ function addNode(draft: Draft, project: ActiveProject, op: Extract<SpatialOperat
   if (draft.nodes.has(op.id)) return opError(i, 'duplicate-node-id', `${what}: a node with id "${op.id}" already exists`);
   const grid = gridSchema.safeParse(op.grid);
   if (!grid.success) return opError(i, 'invalid-grid', `${what}: ${grid.error.issues[0]?.message ?? 'invalid grid'}`);
+  if (op.size !== undefined && !(op.size[0] === 1 && op.size[1] === 1 && op.size[2] === 1)) {
+    return opError(i, 'invalid-size', `${what}: a schema-v1 design holds single-cell rooms only (size [1, 1, 1]), not ${fmt(op.size)}`);
+  }
   const cell: GridCoord = [grid.data[0], grid.data[1], grid.data[2]];
   const limit = DEFAULT_LIMITS.maxAbsCoordinate;
   if (cell.some((c) => Math.abs(c) > limit)) return opError(i, 'invalid-grid', `${what}: cell ${fmt(cell)} exceeds the coordinate limit of ±${limit}`);
@@ -117,10 +120,9 @@ function addEdge(draft: Draft, op: Extract<SpatialOperation, { op: 'add-edge' }>
   const id = idSchema.safeParse(op.id);
   if (!id.success) return opError(i, 'invalid-id', `${what}: ${id.error.issues[0]?.message ?? 'invalid id'}`);
   if (draft.edgeIds.has(op.id)) return opError(i, 'duplicate-edge-id', `${what}: an edge with id "${op.id}" already exists`);
-  if (!(EDGE_KINDS as readonly string[]).includes(op.kind)) {
-    return opError(i, 'unknown-edge-kind', `${what}: kind "${op.kind}" is not one of ${EDGE_KINDS.join(', ')} (new kinds are not supported)`);
+  if (op.kind !== 'access' && !(EDGE_KINDS as readonly string[]).includes(op.kind)) {
+    return opError(i, 'unknown-edge-kind', `${what}: kind "${op.kind}" is not one of access, ${EDGE_KINDS.join(', ')} (new kinds are not supported)`);
   }
-  const kind = op.kind as EdgeKind;
   for (const end of [op.source, op.target]) {
     if (!draft.nodes.has(end)) return opError(i, 'missing-node', `${what}: node "${end}" does not exist`);
   }
@@ -130,6 +132,21 @@ function addEdge(draft: Draft, op: Extract<SpatialOperation, { op: 'add-edge' }>
   }
   const a = draft.nodes.get(op.source)!;
   const b = draft.nodes.get(op.target)!;
+  // Schema-v2 `access` in a v1 design: door between wall neighbours, vertical-access between
+  // stacked rooms. A v1 design cannot store a relationship between rooms that do not touch.
+  // (`open` keeps its v1 meaning here: same-storey wall neighbours.)
+  let kind: EdgeKind;
+  if (op.kind === 'access') {
+    if (isEdgeGeometryValid('door', a.grid, b.grid)) kind = 'door';
+    else if (isEdgeGeometryValid('vertical-access', a.grid, b.grid)) kind = 'vertical-access';
+    else {
+      return opError(
+        i,
+        'invalid-edge-geometry',
+        `${what}: a schema-v1 design can only store "access" between touching rooms; ${fmt(a.grid)} and ${fmt(b.grid)} do not touch`,
+      );
+    }
+  } else kind = op.kind as EdgeKind;
   if (!isEdgeGeometryValid(kind, a.grid, b.grid)) {
     return opError(i, 'invalid-edge-geometry', `${what}: "${kind}" requires ${edgeGeometryRequirement(kind)}; ${fmt(a.grid)} and ${fmt(b.grid)} are not`);
   }

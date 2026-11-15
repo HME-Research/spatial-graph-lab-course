@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { attributeValueSchema, type AttributeValue, type DesignDocument } from '@app/document';
-import type { AnalysisResult, AttributeSpecs, SpatialOperation } from '@student-api';
+import type { DesignDocumentV2 } from '@app/document/v2';
+import type { AnalysisResult, AttributeSpecs, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
 import type { ActiveProject } from './activate';
 import { checkValue, describeSpec, specFor } from './attributes';
-import { buildGraphContext, buildSpatialContext, ExtensionRunError } from './context';
+import { buildGraphContext, buildSpatialContext, buildSpatialContextV2, ExtensionRunError, type GraphSource } from './context';
 import { zodMessages } from './definitions';
 import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionResult } from './diagnostics';
 import { applyTransformation, type TransformationPreview } from './transform';
+import { applyTransformationV2, type TransformationPreviewV2 } from './transformV2';
 
 /**
  * Runs one algorithm of the active project against a document. The algorithm receives copies
@@ -37,6 +39,7 @@ const operationSchema = z.discriminatedUnion(
       op: z.literal('add-node'),
       id: z.string(),
       grid: z.tuple([z.number(), z.number(), z.number()], { error: 'grid must be [x, y, z]' }),
+      size: z.tuple([z.number(), z.number(), z.number()], { error: 'size must be [sx, sy, sz]' }).optional(),
       typeId: z.string(),
       attributes: attributesRecord.optional(),
     }),
@@ -87,7 +90,19 @@ function invalidResult(algorithmId: string, messages: readonly string[]): Extens
   );
 }
 
-export function runAlgorithm(doc: DesignDocument, project: ActiveProject, algorithmId: string, params?: unknown): ExtensionResult<RunOutcome> {
+/** How one document schema plugs into the shared run pipeline. */
+interface RunAdapter<D extends GraphSource, Preview> {
+  spatialContext<P extends AttributeSpecs>(doc: D, project: ActiveProject, algorithmId: string, params: never): SpatialAlgorithmContext<P>;
+  apply(doc: D, project: ActiveProject, operations: readonly SpatialOperation[], summary?: string): ExtensionResult<Preview>;
+}
+
+function runWith<D extends GraphSource, Preview>(
+  adapter: RunAdapter<D, Preview>,
+  doc: D,
+  project: ActiveProject,
+  algorithmId: string,
+  params: unknown,
+): ExtensionResult<{ readonly kind: 'analysis'; readonly result: AnalysisResult } | { readonly kind: 'transformation'; readonly preview: Preview }> {
   const subject = { kind: 'algorithm', id: algorithmId } as const;
   const entry = project.algorithms.find((a) => a.id === algorithmId);
   if (!entry) return fail([diagnostic('unknown-algorithm', 'error', subject, `project "${project.id}" has no algorithm "${algorithmId}"`)]);
@@ -103,7 +118,7 @@ export function runAlgorithm(doc: DesignDocument, project: ActiveProject, algori
     raw =
       algorithm.scope === 'graph'
         ? algorithm.run(buildGraphContext(doc, parameters.value))
-        : algorithm.run(buildSpatialContext(doc, project, algorithmId, parameters.value));
+        : algorithm.run(adapter.spatialContext(doc, project, algorithmId, parameters.value as never));
   } catch (error) {
     if (error instanceof ExtensionRunError) return fail([error.diagnostic]);
     const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
@@ -136,6 +151,34 @@ export function runAlgorithm(doc: DesignDocument, project: ActiveProject, algori
   if (!parsed.success) return invalidResult(algorithmId, zodMessages(parsed.error.issues));
   // Zod's output is a fresh copy: later changes by the algorithm to its own objects have no effect.
   const operations = parsed.data.operations as readonly SpatialOperation[];
-  const preview = applyTransformation(doc, project, operations, parsed.data.summary);
+  const preview = adapter.apply(doc, project, operations, parsed.data.summary);
   return preview.ok ? ok({ kind: 'transformation', preview: preview.value }) : preview;
+}
+
+const V1_ADAPTER: RunAdapter<DesignDocument, TransformationPreview> = {
+  spatialContext: (doc, project, id, params) => buildSpatialContext(doc, project, id, params),
+  apply: applyTransformation,
+};
+
+const V2_ADAPTER: RunAdapter<DesignDocumentV2, TransformationPreviewV2> = {
+  spatialContext: (doc, project, id, params) => buildSpatialContextV2(doc, project, id, params),
+  apply: applyTransformationV2,
+};
+
+/** Run an algorithm against the schema-v1 document (today's app; see `runAlgorithmV2`). */
+export function runAlgorithm(doc: DesignDocument, project: ActiveProject, algorithmId: string, params?: unknown): ExtensionResult<RunOutcome> {
+  return runWith(V1_ADAPTER, doc, project, algorithmId, params);
+}
+
+export type RunOutcomeV2 =
+  | { readonly kind: 'analysis'; readonly result: AnalysisResult }
+  | { readonly kind: 'transformation'; readonly preview: TransformationPreviewV2 };
+
+/**
+ * Run an algorithm against a VALIDATED schema-v2 document. Same validation pipeline; the
+ * transformation preview's `after` is a validated v2 document (`validateDocumentV2`), and
+ * `displacedRoutes` must be confirmed by the user before it is applied.
+ */
+export function runAlgorithmV2(doc: DesignDocumentV2, project: ActiveProject, algorithmId: string, params?: unknown): ExtensionResult<RunOutcomeV2> {
+  return runWith(V2_ADAPTER, doc, project, algorithmId, params);
 }
