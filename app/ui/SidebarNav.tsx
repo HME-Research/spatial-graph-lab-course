@@ -186,3 +186,27 @@ export const DesignerIcon = () => (
     <path d="M3 8h14M10 8v9M6 11h1.5M12.5 11H14M6 14h1.5M12.5 14H14" />
   </svg>
 );
+
+/** Two stacked sheets: design alternatives (scenarios). */
+export const ScenariosIcon = () => (
+  <svg {...ICON_PROPS}>
+    <rect x="6" y="3" width="11" height="11" rx="1" />
+    <path d="M3 7v9a1 1 0 0 0 1 1h9" />
+  </svg>
+);
+
+/** Camera body with lens: saved camera views. */
+export const CameraIcon = () => (
+  <svg {...ICON_PROPS}>
+    <path d="M2.5 7a1 1 0 0 1 1-1h2.5l1.5-2h5l1.5 2h2.5a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1z" />
+    <circle cx="10" cy="11" r="3" />
+  </svg>
+);
+
+/** Eye: how the views are displayed. */
+export const DisplayIcon = () => (
+  <svg {...ICON_PROPS}>
+    <path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10z" />
+    <circle cx="10" cy="10" r="2.5" />
+  </svg>
+);

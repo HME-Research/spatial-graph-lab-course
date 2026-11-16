@@ -25,6 +25,8 @@ export type ResolutionStatus = 'direct' | 'routed' | 'unresolved';
  * - `blocked-by-room`: every straight candidate passes through a room cell.
  * - `blocked-by-route`: every free-of-rooms candidate crosses an earlier route's cells.
  * - `endpoint-clearance`: reserved for an endpoint clearance rule (02 defines it or never emits it).
+ * - `preferred-face-unavailable`: the student chose a wall for this relationship and that wall is no
+ *   longer shared by the two rooms. The relationship is kept and NOTHING is built elsewhere.
  * - `routing-unavailable`: GATE 0 STUB ONLY — straight routing not implemented yet. 02 must stop
  *   emitting it; nothing may depend on it.
  */
@@ -34,7 +36,9 @@ export type UnresolvedReason =
   | 'blocked-by-room'
   | 'blocked-by-route'
   | 'endpoint-clearance'
-  | 'routing-unavailable';
+  | 'routing-unavailable'
+  /** Gate F: the edge's preferred face (scenario sidecar) is no longer a face shared by its rooms. */
+  | 'preferred-face-unavailable';
 
 /** A unit face of a room: the room's cell and the outward direction. */
 export interface RoomFace extends SharedFace {
@@ -77,6 +81,8 @@ export type EdgeResolution =
       readonly status: 'direct';
       readonly contact: 'horizontal' | 'vertical';
       readonly faces: readonly SharedFace[];
+      /** Gate F: the student's chosen face (seen from the SOURCE), from `resolveWithPreferences`. */
+      readonly preferredFace?: SharedFace;
     })
   | (ResolutionBase & { readonly status: 'routed'; readonly route: ConnectorRoute })
   | (ResolutionBase & { readonly status: 'unresolved'; readonly reason: UnresolvedReason; readonly message: string });

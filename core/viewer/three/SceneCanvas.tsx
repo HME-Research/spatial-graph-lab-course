@@ -1,8 +1,9 @@
 import { Html, OrbitControls } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { PerspectiveCamera, type Camera, type Vector3 } from 'three';
+import { OrthographicCamera, PerspectiveCamera, type Camera, type Vector3 } from 'three';
 import type { WorldPoint } from '../coordinates';
+import type { CameraBus, CameraHandle, CameraPose } from './camera';
 import { isBackgroundClick } from './interaction';
 import { fitCameraToBounds, type CameraMemory, type CameraState, type Framing, type GroundGrid } from './viewport';
 import './viewer3d.css';
@@ -44,6 +45,12 @@ interface SceneCanvasProps {
   readonly frameloop?: 'always' | 'demand';
   /** Orbit inertia (default true). */
   readonly damping?: boolean;
+  /**
+   * With `cameraBus`: this canvas registers its camera on the bus under this id (capture / apply a
+   * `CameraPose`) and unregisters on unmount. Without both props nothing is registered.
+   */
+  readonly viewportId?: string | undefined;
+  readonly cameraBus?: CameraBus | undefined;
 }
 
 /**
@@ -71,6 +78,8 @@ export function SceneCanvas({
   flat = true,
   frameloop = 'always',
   damping = true,
+  viewportId,
+  cameraBus,
 }: SceneCanvasProps) {
   // Stable camera options: R3F re-applies camera props whenever they change shallowly, which would
   // reset the user's view on every render. The CameraRig places the camera before the first frame.
@@ -95,7 +104,13 @@ export function SceneCanvas({
           raycast={() => null}
         />
         <OrbitControls makeDefault enableDamping={damping} dampingFactor={0.15} screenSpacePanning minDistance={0.5} />
-        <CameraRig framing={framing} request={fitRequest} memory={cameraMemory} />
+        <CameraRig
+          framing={framing}
+          request={fitRequest}
+          memory={cameraMemory}
+          viewportId={viewportId}
+          bus={viewportId !== undefined ? cameraBus : undefined}
+        />
         <AfterFirstFrame>{children}</AfterFirstFrame>
       </Canvas>
       <div className="viewer3d-overlay">{overlay}</div>
@@ -121,18 +136,39 @@ function place(camera: Camera, controls: OrbitControlsLike, position: WorldPoint
   controls.update();
 }
 
+const Y_UP_TOLERANCE = 1e-6;
+
+/** True when `up` points along +Y: the only up vector the orbit controls support. */
+function isYUp(up: readonly [number, number, number]): boolean {
+  const length = Math.hypot(...up);
+  return length > 0 && up[1] > 0 && Math.abs(up[0] / length) < Y_UP_TOLERANCE && Math.abs(up[2] / length) < Y_UP_TOLERANCE;
+}
+
 /**
  * Owns the camera pose: initial placement (fit or remembered pose), manual fits, refits on resize
  * while fitted, and the fitted → user transition when the orbit controls start an interaction.
+ *
+ * With `bus` + `viewportId` it also registers a CameraBus handle (F-D, ./camera.ts):
+ * - capture: the live pose (perspective with `fov`; orthographic with `orthoHeight` if the camera is one).
+ * - apply: perspective poses with +Y up only. An orthographic pose or another up vector is refused
+ *   through `accepts`, so the bus answers 'unavailable': this canvas renders a perspective camera and
+ *   OrbitControls fixes +Y up (orthographic rendering belongs to workstream E). An applied pose ends
+ *   the fitted state like a user orbit and is saved to `memory`.
+ * - available: false while the canvas is detached or not displayed (a hidden viewport), so a hidden
+ *   viewport is never targeted. Unregistered on unmount.
  */
 function CameraRig({
   framing,
   request,
   memory,
+  viewportId,
+  bus,
 }: {
   readonly framing: Framing;
   readonly request: number;
   readonly memory: CameraMemory | undefined;
+  readonly viewportId: string | undefined;
+  readonly bus: CameraBus | undefined;
 }) {
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls) as unknown as OrbitControlsLike | null;
@@ -162,6 +198,8 @@ function CameraRig({
   };
   const fit = () => {
     if (!controls) return;
+    // A pose applied through the camera bus may have changed the field of view; the fit assumes CAMERA_FOV.
+    if (camera instanceof PerspectiveCamera && camera.fov !== CAMERA_FOV) camera.fov = CAMERA_FOV;
     const { framing: f, aspect: a } = latest.current;
     const placement = fitCameraToBounds(f.bounds, CAMERA_FOV, f.minRadius, a);
     place(camera, controls, placement.position, placement.target, placement.near, placement.far);
@@ -202,6 +240,35 @@ function CameraRig({
       controls.removeEventListener('change', remember);
     };
   }, [controls]);
+
+  // Camera bus registration (only with both a bus and a viewport id).
+  useEffect(() => {
+    if (!controls || !bus || viewportId === undefined) return;
+    const handle: CameraHandle = {
+      available: () => canvas.isConnected && canvas.getClientRects().length > 0,
+      accepts: (pose) => pose.projection === 'perspective' && camera instanceof PerspectiveCamera && isYUp(pose.up),
+      capture: (): CameraPose => {
+        const position: [number, number, number] = [camera.position.x, camera.position.y, camera.position.z];
+        const target: [number, number, number] = [controls.target.x, controls.target.y, controls.target.z];
+        const up: [number, number, number] = [camera.up.x, camera.up.y, camera.up.z];
+        if (camera instanceof OrthographicCamera)
+          return { projection: 'orthographic', position, target, up, orthoHeight: (camera.top - camera.bottom) / camera.zoom };
+        return { projection: 'perspective', position, target, up, fov: camera instanceof PerspectiveCamera ? camera.fov : CAMERA_FOV };
+      },
+      apply: (pose) => {
+        // The bus only calls apply after `accepts`; re-checked so a direct call cannot misapply.
+        if (!(camera instanceof PerspectiveCamera) || pose.projection !== 'perspective') return;
+        camera.fov = pose.fov ?? CAMERA_FOV;
+        const { framing: f, aspect: a } = latest.current;
+        const placement = fitCameraToBounds(f.bounds, camera.fov, f.minRadius, a);
+        place(camera, controls, pose.position, pose.target, placement.near, placement.far);
+        setFitted(false);
+        remember();
+        invalidate();
+      },
+    };
+    return bus.register(viewportId, handle);
+  }, [bus, viewportId, controls, camera, canvas, invalidate]);
 
   return null;
 }

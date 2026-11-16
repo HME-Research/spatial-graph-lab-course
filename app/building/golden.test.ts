@@ -1,0 +1,138 @@
+import { describe, expect, it } from 'vitest';
+import exampleJson from '../document/examples/two-storey-example.json';
+import { validateDocument } from '@app/document';
+import { expectOk } from '@app/document/test-fixtures';
+import { readDesign, validateDocumentV2, type ConnectorStyle, type DesignDocumentV2, type RelationshipKind } from '@app/document/v2';
+import type { GridCoord } from '@core/spatial';
+import { buildBuildingV2 } from './buildingV2';
+import { buildArchitecture } from './geometry';
+import { resolveFaces } from './resolve';
+
+/**
+ * Golden geometry (Gate F, F-C). The JSON files under `__golden__/` were generated from the
+ * building pipeline at `88f408e`, BEFORE `buildArchitecture` was refactored onto `layoutFaces`.
+ * The comparison is on the exact JSON text (shortest round-trip number formatting), so any change
+ * of an element, its order, id or a single floating-point bit fails. Never regenerate these files
+ * to make a refactor pass; a deliberate geometry change must say so in its report.
+ */
+
+type N = { id: string; grid: GridCoord; size?: [number, number, number]; typeId?: string };
+type E = { id: string; source: string; target: string; kind?: RelationshipKind; connectorStyle?: ConnectorStyle };
+
+function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown> = {}): DesignDocumentV2 {
+  return expectOk(
+    validateDocumentV2({
+      schemaVersion: 2,
+      metadata: { name: 'golden' },
+      nodes: nodes.map((n) => ({ id: n.id, grid: n.grid, size: n.size ?? [1, 1, 1], typeId: n.typeId ?? 'gallery' })),
+      edges: edges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        kind: e.kind ?? 'access',
+        ...(e.connectorStyle ? { connectorStyle: e.connectorStyle } : {}),
+      })),
+      settings: { typeAppearance },
+    }),
+  );
+}
+
+const example = expectOk(readDesign(exampleJson)).doc;
+const exampleTypes = [...new Set(example.nodes.map((n) => n.typeId))].sort();
+
+const FIXTURES: Readonly<Record<string, DesignDocumentV2>> = {
+  'two-storey-example': example,
+  'two-storey-example-roofs-off': {
+    ...example,
+    settings: { typeAppearance: Object.fromEntries(exampleTypes.map((t) => [t, { roof: 'none' as const }])) },
+  },
+  'two-storey-example-appearance': {
+    ...example,
+    settings: { typeAppearance: { gallery: { windowFraction: 1 }, studio: { windowFraction: 0, roof: 'none' as const } } },
+  },
+  'multi-cell-rooms': v2(
+    [
+      { id: 'm', grid: [0, 0, 0], size: [2, 3, 1] },
+      { id: 'n', grid: [2, 0, 0], size: [1, 1, 2], typeId: 'studio' },
+      { id: 'o', grid: [0, 0, 1], size: [2, 2, 1], typeId: 'storage' },
+      { id: 'p', grid: [0, 2, 1], typeId: 'studio' },
+      { id: 'q', grid: [3, 0, 0], size: [1, 1, 2] },
+      { id: 'r', grid: [1, 2, 1], size: [1, 1, 2], typeId: 'lab' },
+    ],
+    [
+      { id: 'mn', source: 'm', target: 'n', kind: 'access' },
+      { id: 'mo', source: 'm', target: 'o', kind: 'open' },
+      { id: 'mp', source: 'p', target: 'm', kind: 'access' },
+      { id: 'nq', source: 'n', target: 'q', kind: 'open' },
+      { id: 'pr', source: 'p', target: 'r', kind: 'access' },
+    ],
+  ),
+  'vertical-access-and-open': v2(
+    [
+      { id: 'g0', grid: [0, 0, 0], size: [2, 2, 1] },
+      { id: 'g1', grid: [0, 0, 1], size: [2, 1, 1], typeId: 'studio' },
+      { id: 'g2', grid: [0, 1, 1], size: [2, 1, 1], typeId: 'storage' },
+      { id: 'g3', grid: [0, 0, 2], size: [2, 2, 1] },
+    ],
+    [
+      { id: 'v-access', source: 'g0', target: 'g1', kind: 'access' },
+      { id: 'v-open', source: 'g2', target: 'g0', kind: 'open' },
+      { id: 'v-up', source: 'g1', target: 'g3', kind: 'open' },
+      { id: 'h-access', source: 'g1', target: 'g2', kind: 'access' },
+    ],
+  ),
+  'routed-connectors': v2(
+    [
+      { id: 'a', grid: [0, 0, 0] },
+      { id: 'b', grid: [4, 0, 0], typeId: 'studio' },
+      { id: 'c', grid: [0, 2, 0], size: [1, 1, 2] },
+      { id: 'd', grid: [4, 2, 0], typeId: 'storage' },
+      { id: 'e', grid: [0, 4, 0], size: [2, 1, 1] },
+      { id: 'f', grid: [5, 4, 0] },
+      { id: 'g', grid: [0, 6, 0] },
+      { id: 'h', grid: [4, 6, 0] },
+      { id: 'i', grid: [0, 7, 0], typeId: 'studio' },
+      { id: 'j', grid: [4, 7, 0], typeId: 'studio' },
+      { id: 'k', grid: [2, 6, 1], typeId: 'storage' },
+      { id: 'l', grid: [10, 10, 3] },
+      { id: 's', grid: [2, 9, 0] },
+      { id: 't', grid: [2, 12, 0], size: [1, 2, 1] },
+    ],
+    [
+      { id: 'ab', source: 'a', target: 'b', kind: 'access' },
+      { id: 'cd', source: 'c', target: 'd', kind: 'open', connectorStyle: 'covered' },
+      { id: 'ef', source: 'f', target: 'e', kind: 'access', connectorStyle: 'deck' },
+      { id: 'gh', source: 'g', target: 'h', kind: 'access', connectorStyle: 'enclosed' },
+      { id: 'ij', source: 'i', target: 'j', kind: 'open', connectorStyle: 'covered' },
+      { id: 'al', source: 'a', target: 'l', kind: 'access' },
+      { id: 'st', source: 's', target: 't', kind: 'access' },
+    ],
+  ),
+};
+
+const snapshot = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
+
+describe('golden building geometry (pre-refactor output, byte-identical)', () => {
+  for (const [name, doc] of Object.entries(FIXTURES)) {
+    it(`buildBuildingV2: ${name}`, async () => {
+      const model = buildBuildingV2(doc);
+      await expect(
+        snapshot({ faces: model.faces, elements: model.elements, connectors: model.connectors, relationships: model.relationships }),
+      ).toMatchFileSnapshot(`./__golden__/building-${name}.json`);
+    });
+  }
+
+  const v1 = expectOk(validateDocument(exampleJson));
+  const OPTION_SETS = {
+    default: {},
+    'custom-cell-thickness': { cell: { horizontal: 4, vertical: 3.5 }, wallThickness: 0.3, slabThickness: 0.25 },
+    'facade-closed-open-nan': {
+      facade: (typeId: string) => ({ windowFraction: typeId === 'gallery' ? 1 : typeId === 'studio' ? 0 : Number.NaN }),
+    },
+  } as const;
+  for (const [name, options] of Object.entries(OPTION_SETS)) {
+    it(`buildArchitecture (v1 example faces): ${name}`, async () => {
+      await expect(snapshot(buildArchitecture(resolveFaces(v1), options))).toMatchFileSnapshot(`./__golden__/architecture-${name}.json`);
+    });
+  }
+});

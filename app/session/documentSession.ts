@@ -201,6 +201,10 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       return `Add connection ${room(command.edge.source)} ↔ ${room(command.edge.target).slice(5)}`;
     case 'remove-edge':
       return `Remove connection ${connection(command.edgeId)}`;
+    case 'remove-edges': {
+      const n = command.edgeIds.length;
+      return `Remove ${n} invalid connection${n === 1 ? '' : 's'}`;
+    }
     case 'change-edge-kind':
       return `Change connection ${connection(command.edgeId)} to ${command.kind === 'open' ? 'Open' : 'Access'}`;
     case 'set-edge-attributes':

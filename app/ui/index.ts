@@ -13,9 +13,12 @@ export { RouteConfirm } from './RouteConfirm';
 export {
   AlgorithmsIcon,
   AttributesIcon,
+  CameraIcon,
   DesignerIcon,
+  DisplayIcon,
   ProjectIcon,
   PropertiesIcon,
+  ScenariosIcon,
   SidebarNav,
   type SidebarNavProps,
   type SidebarNavTab,

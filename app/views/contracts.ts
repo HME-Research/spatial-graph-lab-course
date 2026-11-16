@@ -45,7 +45,11 @@ export type ViewComponent = ComponentType<ViewProps>;
 /** The inspector uses the same props as a view. */
 export type InspectorProps = ViewProps;
 
-export const VIEW_MODES = ['graph2d', 'graph3d', 'voxels', 'architecture'] as const;
+/**
+ * Five view modes (Gate F). `plan` is the architectural floor plan of one storey; its view is a
+ * placeholder until the Plan workstream fills it. Graph 2D keeps its non-spatial diagram meaning.
+ */
+export const VIEW_MODES = ['graph2d', 'graph3d', 'voxels', 'architecture', 'plan'] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 
 export const VIEW_MODE_LABELS: Readonly<Record<ViewMode, string>> = {
@@ -53,4 +57,5 @@ export const VIEW_MODE_LABELS: Readonly<Record<ViewMode, string>> = {
   graph3d: 'Graph 3D',
   voxels: 'Voxels',
   architecture: 'Building',
+  plan: 'Plan',
 };

@@ -22,6 +22,7 @@ export const VIEW_DESCRIPTIONS: Readonly<Record<ViewMode, string>> = {
   graph3d: 'Rooms as points at their physical cells, with relationships drawn as lines.',
   voxels: 'The occupied cells of the building grid, coloured by room type.',
   architecture: 'The building generated from the graph: walls, doors, openings, floors and roofs.',
+  plan: 'An architectural floor plan of one storey of the same building (not drawn yet).',
 };
 
 /**
@@ -33,6 +34,7 @@ export const VIEW_CAPTIONS: Readonly<Record<ViewMode, string>> = {
   graph3d: 'Relationships at real cell positions',
   voxels: 'Occupied grid cells (one box per cell)',
   architecture: 'Building generated from rooms and relationships',
+  plan: 'Floor plan of one storey (coming soon)',
 };
 
 /** Ordered view modes with their visible label and tooltip. */
@@ -41,17 +43,22 @@ export const VIEW_OPTIONS: readonly { readonly mode: ViewMode; readonly label: s
 );
 
 /**
- * The LEFT navigation rail (programme phase 04): exactly four destinations, top to bottom. The
- * right-hand panel holds Properties only (`PROPERTIES_LABEL`).
+ * The LEFT navigation rail (Gate F): seven ordered destinations, top to bottom, each with an icon
+ * and an always-visible label. This supersedes the phase-04 "exactly four destinations" decision.
+ * The internal id `designer` is kept; students read "Building Designer". The right-hand panel
+ * holds Properties only (`PROPERTIES_LABEL`). Ordering and icons: `app/workspace/destinations.ts`.
  */
-export const SIDEBAR_SECTIONS = ['project', 'attributes', 'designer', 'algorithms'] as const;
+export const SIDEBAR_SECTIONS = ['project', 'attributes', 'designer', 'algorithms', 'scenarios', 'camera', 'display'] as const;
 export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number];
 
 export const SIDEBAR_LABELS: Readonly<Record<SidebarSection, string>> = {
   project: 'Project',
   attributes: 'Attributes',
-  designer: 'Designer',
+  designer: 'Building Designer',
   algorithms: 'Algorithms',
+  scenarios: 'Scenarios',
+  camera: 'Camera',
+  display: 'Display',
 };
 
 export const SIDEBAR_DESCRIPTIONS: Readonly<Record<SidebarSection, string>> = {
@@ -59,6 +66,9 @@ export const SIDEBAR_DESCRIPTIONS: Readonly<Record<SidebarSection, string>> = {
   attributes: 'Custom fields of every room (Nodes) and relationship (Edges) in this project',
   designer: 'Appearance settings per room type in this design',
   algorithms: 'Run the project’s analyses and transformations on this design',
+  scenarios: 'Design alternatives of this project',
+  camera: 'Saved camera views of the 3D viewports',
+  display: 'How each view looks: labels, legend, colours and lighting',
 };
 
 export const PROPERTIES_LABEL = 'Properties';
@@ -103,6 +113,8 @@ export const UNRESOLVED_REASON_TEXT: Readonly<Record<UnresolvedReason, string>> 
   'blocked-by-route': 'Another generated corridor is in the way.',
   'endpoint-clearance': 'There is not enough clear space at one end of the corridor.',
   'routing-unavailable': 'Corridors between rooms that do not touch are not generated in this version yet.',
+  'preferred-face-unavailable':
+    'The wall chosen for this connection is no longer shared by the two rooms. Choose another shared wall or clear the choice.',
 };
 
 export type StatusTone = 'ok' | 'warning';

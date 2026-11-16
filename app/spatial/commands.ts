@@ -70,6 +70,12 @@ export type DesignCommand =
   | { readonly type: 'set-diagram-position'; readonly nodeId: string; readonly position: DiagramPosition }
   | { readonly type: 'add-edge'; readonly edge: NewRelationship }
   | { readonly type: 'remove-edge'; readonly edgeId: string }
+  /**
+   * Remove several UNRESOLVED relationships in one step ("Remove N invalid connections", Gate F).
+   * Refused, with no change, when the list is empty, repeats an id, names an unknown edge, or names
+   * an edge that is not `unresolved` under `options.resolve ?? resolveRelationships`. Never automatic.
+   */
+  | { readonly type: 'remove-edges'; readonly edgeIds: readonly string[] }
   | { readonly type: 'change-edge-kind'; readonly edgeId: string; readonly kind: RelationshipKind }
   /** Replaces the edge's stored custom attributes (additive after Gate 0; see docs/PROJECT-ATTRIBUTES.md). */
   | { readonly type: 'set-edge-attributes'; readonly edgeId: string; readonly attributes: Attributes }
@@ -191,6 +197,29 @@ export function applyDesignCommand(
     case 'remove-edge':
       if (!hasEdge(command.edgeId)) return notFound('edge', command.edgeId);
       return validate({ ...doc, edges: doc.edges.filter((e) => e.id !== command.edgeId) });
+    case 'remove-edges': {
+      const ids = command.edgeIds;
+      if (ids.length === 0) return fail([issue(['edges'], 'schema', 'no connections were chosen to remove')]);
+      const listed = new Set<string>();
+      for (const id of ids) {
+        if (listed.has(id)) return fail([issue(['edges'], 'duplicate-edge-id', `connection "${id}" is listed more than once`)]);
+        listed.add(id);
+        if (!hasEdge(id)) return notFound('edge', id);
+      }
+      const spatial = (options.resolve ?? resolveRelationships)(doc);
+      const built = ids.filter((id) => spatial.byEdge.get(id)?.status !== 'unresolved');
+      if (built.length > 0) {
+        return fail([
+          issue(
+            ['edges'],
+            'schema',
+            `only unresolved connections can be removed together; ${built.map((id) => `"${id}"`).join(', ')} ` +
+              `${built.length === 1 ? 'is' : 'are'} built`,
+          ),
+        ]);
+      }
+      return validate({ ...doc, edges: doc.edges.filter((e) => !listed.has(e.id)) });
+    }
     case 'change-edge-kind':
       return mapEdge(command.edgeId, (e) => ({ ...e, kind: command.kind }));
     case 'set-edge-attributes':

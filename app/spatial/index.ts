@@ -9,3 +9,5 @@ export * from './occupancy';
 export * from './port';
 export * from './resolve';
 export * from './straightRoute';
+export * from './preferences';
+export * from './scenario';

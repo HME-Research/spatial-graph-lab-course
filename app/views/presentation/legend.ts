@@ -65,6 +65,7 @@ const VIEW_TITLE: Readonly<Record<ViewMode, string>> = {
   graph3d: 'Relationships (3D graph)',
   voxels: 'Rooms and connectors',
   architecture: 'What gets built',
+  plan: 'Floor plan',
 };
 
 /** Physical meaning per status in the building views. */

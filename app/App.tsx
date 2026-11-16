@@ -49,7 +49,23 @@ import {
 } from './session/projectSession';
 import { historyButtonTitle, historyShortcut, isApplePlatform, type HistoryShortcut } from './session/shortcuts';
 import './session/session.css';
-import { LEFT_AUTO_COLLAPSE_BELOW, Workspace } from './Workspace';
+import { Workspace } from './Workspace';
+import { DESTINATION_PANELS } from '@app/workspace/panelSlots';
+import {
+  browserPaneStorage,
+  initialLeftCollapsed,
+  initialRightPane,
+  PANE_STORAGE_KEYS,
+  readFlag,
+  readLeftWidth,
+  rightPaneOnSelection,
+  userSetRightCollapsed,
+  writeFlag,
+  writeLeftWidth,
+  type RightPaneState,
+} from '@app/workspace/panes';
+import { WorkspaceServicesContext, type WorkspaceServices } from '@app/workspace/services';
+import { DEFAULT_VIEWPORT_STATE, deriveViewports, type ViewportState } from '@app/workspace/viewports';
 
 /**
  * Application shell (Gate 1 integration). The app stores, edits, undoes and exports ONE schema-v2
@@ -168,9 +184,16 @@ export function App() {
   const [attributeSaveError, setAttributeSaveError] = useState<string | null>(null);
   /** Workspace rails (programme phase 04): owned here so the header and Properties can open a destination. */
   const [leftTab, setLeftTab] = useState<SidebarSection>('project');
-  // Narrow screens start with the left content collapsed (rail only) so the views keep their width.
-  const [leftCollapsed, setLeftCollapsed] = useState(() => typeof window === 'undefined' || window.innerWidth < LEFT_AUTO_COLLAPSE_BELOW);
-  const [rightCollapsed, setRightCollapsed] = useState(false);
+  // An explicit, remembered collapse choice wins; otherwise narrow screens start with the left
+  // content collapsed (rail only) so the views keep their width.
+  const [leftCollapsed, setLeftCollapsed] = useState(() =>
+    initialLeftCollapsed(readFlag(browserPaneStorage(), PANE_STORAGE_KEYS.leftCollapsed), typeof window === 'undefined' ? null : window.innerWidth),
+  );
+  const [leftWidth, setLeftWidth] = useState(() => readLeftWidth(browserPaneStorage()));
+  /** Properties pane: a deliberate collapse is remembered; otherwise a new selection opens it. */
+  const [rightPane, setRightPane] = useState<RightPaneState>(() => initialRightPane(readFlag(browserPaneStorage(), PANE_STORAGE_KEYS.rightCollapsed)));
+  /** Centre viewports (layout 1/2/4, modes, maximise); owned here so WorkspaceServices can describe them. */
+  const [viewports, setViewports] = useState<ViewportState>(DEFAULT_VIEWPORT_STATE);
   const [attributeCollection, setAttributeCollection] = useState<AttributeCollection>('nodes');
   const fileInput = useRef<HTMLInputElement>(null);
   const setAttributes = useCallback((next: AttributeSession | null, persist = true) => {
@@ -201,6 +224,12 @@ export function App() {
   const projectContext = useMemo(() => (doc ? buildProjectViewContext(project, doc, facade, schema) : undefined), [project, doc, facade, schema]);
   const attributesVersion = useMemo(() => (attributes && schema ? { schema, revision: attributes.revision } : undefined), [attributes, schema]);
   const modified = isModified(current);
+
+  /** Shared selection handler: a node/edge selection opens Properties unless deliberately collapsed. */
+  const select = useCallback((next: Selection) => {
+    setSelection(next);
+    if (next.kind !== 'none') setRightPane((pane) => rightPaneOnSelection(pane, true));
+  }, []);
 
   /** Show an activation outcome: its design (or none), replacing the current one. Never runs algorithms. */
   const showStart = useCallback(
@@ -286,6 +315,13 @@ export function App() {
   const port = useMemo<DesignPort | undefined>(
     () => (doc ? { doc, spatial: resolveRelationships(doc), onCommand: onDesignCommand, proposeEdit } : undefined),
     [doc, onDesignCommand, proposeEdit],
+  );
+
+  /** Services for destination panels (Scenarios, Camera, Display): read through `useWorkspaceServices()`. */
+  const viewportInfos = useMemo(() => deriveViewports(viewports), [viewports]);
+  const services = useMemo<WorkspaceServices>(
+    () => ({ design: port ?? null, selection, onSelect: select, viewports: viewportInfos }),
+    [port, selection, select, viewportInfos],
   );
 
   /** Apply an already-validated preview as one state replacement and one history step, unless stale or unconfirmed. */
@@ -390,6 +426,20 @@ export function App() {
     setLeftTab(tab);
     setLeftCollapsed(false);
   };
+  /** The user collapsed or opened the left pane: an explicit choice, remembered. */
+  const onLeftCollapsed = (collapsed: boolean) => {
+    setLeftCollapsed(collapsed);
+    writeFlag(browserPaneStorage(), PANE_STORAGE_KEYS.leftCollapsed, collapsed);
+  };
+  const onLeftWidth = (width: number, done: boolean) => {
+    setLeftWidth(width);
+    if (done) writeLeftWidth(browserPaneStorage(), width);
+  };
+  /** The user collapsed or opened Properties (or asked to show something in it): remembered. */
+  const setRightCollapsedByUser = (collapsed: boolean) => {
+    setRightPane(userSetRightCollapsed(collapsed));
+    writeFlag(browserPaneStorage(), PANE_STORAGE_KEYS.rightCollapsed, collapsed);
+  };
   const openAttributes = (collection: AttributeCollection) => {
     setAttributeCollection(collection);
     openLeft('attributes');
@@ -455,19 +505,24 @@ export function App() {
           <LoadFailure failure={failure} kept={current !== null} onDismiss={() => setState((s) => ({ ...s, failure: null }))} />
         )}
 
+        <WorkspaceServicesContext.Provider value={services}>
         <OpenAttributesContext.Provider value={project ? openAttributes : null}>
           <Workspace
             view={
               doc && viewDoc && port
-                ? { doc: viewDoc, design: port, selection, onSelect: setSelection, onCommand, ...(projectContext && { project: projectContext }) }
+                ? { doc: viewDoc, design: port, selection, onSelect: select, onCommand, ...(projectContext && { project: projectContext }) }
                 : null
             }
             leftTab={leftTab}
             onLeftTab={setLeftTab}
             leftCollapsed={leftCollapsed}
-            onLeftCollapsed={setLeftCollapsed}
-            rightCollapsed={rightCollapsed}
-            onRightCollapsed={setRightCollapsed}
+            onLeftCollapsed={onLeftCollapsed}
+            leftWidth={leftWidth}
+            onLeftWidth={onLeftWidth}
+            rightCollapsed={rightPane.collapsed}
+            onRightCollapsed={setRightCollapsedByUser}
+            viewports={viewports}
+            onViewports={setViewports}
             analysis={analysis}
             onClearAnalysis={() => setShownAnalysis(null)}
             empty={
@@ -487,7 +542,7 @@ export function App() {
                   attributeProblems={attributeProblems}
                   onSwitchProject={(id) => void switchProject(id)}
                   onOpenDesign={openProjectDesign}
-                  onSelect={setSelection}
+                  onSelect={select}
                   onLoadExample={loadExampleDesign}
                   onOpenFile={() => fileInput.current?.click()}
                   onExport={exportDesign}
@@ -512,7 +567,7 @@ export function App() {
                   selection={selection}
                   onShowRelationship={(edgeId) => {
                     setSelection(selectEdge(edgeId));
-                    setRightCollapsed(false);
+                    setRightCollapsedByUser(false);
                   }}
                 />
               ) : (
@@ -524,15 +579,20 @@ export function App() {
                   project={project}
                   version={version}
                   onApply={onApplyPreview}
-                  onSelect={setSelection}
+                  onSelect={select}
                   shownAnalysis={shownAnalysis}
                   onShowAnalysis={setShownAnalysis}
                   {...(attributesVersion && { attributes: attributesVersion })}
                 />
               ),
+              // Panel slots (Gate F): workstreams own the component bodies, the registry owns the map.
+              scenarios: <DESTINATION_PANELS.scenarios />,
+              camera: <DESTINATION_PANELS.camera />,
+              display: <DESTINATION_PANELS.display />,
             }}
           />
         </OpenAttributesContext.Provider>
+        </WorkspaceServicesContext.Provider>
       </main>
     </div>
   );

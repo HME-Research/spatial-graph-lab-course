@@ -76,8 +76,8 @@ function directFaceConditions(resolutions: readonly EdgeResolution[]): Map<strin
     const kind = v1KindFor(r.kind, r.contact);
     if (kind === null) continue;
     if (r.kind === 'access') {
-      const i = representativeFaceIndex(r.faces);
-      const f = r.faces[i];
+      // Gate F: the student's preferred face (resolveWithPreferences), else the representative one.
+      const f = r.preferredFace ?? r.faces[representativeFaceIndex(r.faces)];
       if (f) out.set(unitFaceKey(f.cell, f.direction), { edgeId: r.edgeId, condition: kind });
     } else {
       for (const f of r.faces) out.set(unitFaceKey(f.cell, f.direction), { edgeId: r.edgeId, condition: kind });

@@ -129,6 +129,7 @@ export const UNRESOLVED_REASON_TEXT: Readonly<Record<UnresolvedReason, string>> 
   'blocked-by-route': 'The straight path is already used by another connector.',
   'endpoint-clearance': 'There is not enough clear space at a room face to start a connector.',
   'routing-unavailable': 'Connector routing is not available in this build yet.',
+  'preferred-face-unavailable': 'The wall chosen for this connection is no longer shared by the two rooms.',
 };
 
 /** Reason text for any string, including reasons added after this file was written. */

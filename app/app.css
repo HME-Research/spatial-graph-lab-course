@@ -181,8 +181,93 @@ main {
   min-height: 0;
 }
 
-.panels.split {
+/* Viewport layouts (Gate F): 1, 2 side by side, or 2 × 2; a maximised viewport fills the area. */
+.panels.layout-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panels.layout-4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.panels.maximised {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+/* Mounted but hidden (another viewport is maximised): keeps cameras and state. */
+.view-panel[hidden] {
+  display: none;
+}
+
+.viewport-maximise {
+  padding: 2px 8px;
+  font-size: inherit;
+}
+
+/* Honest placeholder of a view that is not implemented yet. */
+.view-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 16px;
+  text-align: center;
+}
+
+/*
+ * Left pane (Gate F): rail + content, resizable by a separator in the gap on its right edge, with
+ * a collapse chevron vertically centred on that edge.
+ */
+.left-pane {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+.left-pane-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: calc(-1 * var(--gap));
+  width: var(--gap);
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 2;
+}
+
+.left-pane-resize:hover,
+.left-pane-resize:focus-visible {
+  background: #d6e2ee;
+  outline: none;
+}
+
+.left-pane-chevron {
+  position: absolute;
+  top: 50%;
+  right: calc(-1 * var(--gap) - 4px);
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 16px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.left-pane-chevron:hover {
+  color: var(--fg);
 }
 
 .view-panel {
@@ -366,8 +451,10 @@ main {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .panels.split {
+  .panels.layout-2,
+  .panels.layout-4 {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
   }
 
   .view-panel {

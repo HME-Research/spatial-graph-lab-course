@@ -23,8 +23,19 @@ describe('beginner vocabulary', () => {
     expect(Object.values(VIEW_LABELS)).not.toContain('Architecture');
   });
 
-  it('names exactly four left destinations: Project, Attributes, Designer, Algorithms (phase 04)', () => {
-    expect(SIDEBAR_SECTIONS.map((s) => SIDEBAR_LABELS[s])).toEqual(['Project', 'Attributes', 'Designer', 'Algorithms']);
+  // Gate F deliberately supersedes the phase-04 "exactly four destinations" decision with seven
+  // ordered destinations (00-DECISIONS-AND-UX: UI hierarchy); the id `designer` is kept.
+  it('names exactly seven ordered left destinations (Gate F)', () => {
+    expect(SIDEBAR_SECTIONS).toEqual(['project', 'attributes', 'designer', 'algorithms', 'scenarios', 'camera', 'display']);
+    expect(SIDEBAR_SECTIONS.map((s) => SIDEBAR_LABELS[s])).toEqual([
+      'Project',
+      'Attributes',
+      'Building Designer',
+      'Algorithms',
+      'Scenarios',
+      'Camera',
+      'Display',
+    ]);
     expect(PROPERTIES_LABEL).toBe('Properties');
   });
 
@@ -137,7 +148,7 @@ describe('shell components (static markup)', () => {
   it('renders a vertical tab list with every panel mounted', () => {
     const html = nav(false);
     expect(html).toContain('role="tablist" aria-orientation="vertical"');
-    for (const label of ['Project', 'Attributes', 'Designer', 'Algorithms']) expect(html).toContain(`>${label}</span>`);
+    for (const id of SIDEBAR_SECTIONS) expect(html).toContain(`>${SIDEBAR_LABELS[id]}</span>`);
     // Every panel is in the DOM (drafts and algorithm results survive switching); only one is visible.
     for (const id of SIDEBAR_SECTIONS) expect(html).toContain(`content of ${id}`);
     expect(html.match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(SIDEBAR_SECTIONS.length - 1);
