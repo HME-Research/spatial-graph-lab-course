@@ -2,7 +2,10 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { readDesign, serializeDesignV2 } from '@app/document/v2';
+import { makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import { createMemoryProjectStore, readProjectFile, serializeProjectFile } from '@app/project';
+import { attributeStorageKey } from '@app/session/projectAttributeStore';
+import { readLegacyAttributeRecord } from './legacyAttributes';
 import { fileOf, twoRooms } from '@app/session/projectStore.fixtures';
 import { createProjectController, showsWelcome } from '@app/session/projectStoreController';
 import { ProjectControllerContext } from '@app/session/projectStoreContext';
@@ -73,7 +76,8 @@ describe('Welcome flow', () => {
     const b = await tryExample(h, example(), 'example.json');
     await h.controller.flush();
     expect(a.ok && b.ok && a.projectId !== b.projectId).toBe(true);
-    expect((await h.controller.listRecent()).length).toBe(2);
+    const recent = await h.controller.listRecent();
+    expect(recent.status === 'ok' && recent.items.length).toBe(2);
   });
 
   it('imports a legacy v1 design file as a new project with one scenario', async () => {
@@ -130,7 +134,83 @@ describe('Welcome flow', () => {
   });
 });
 
+describe('legacy attribute seed (one-time, read-only)', () => {
+  /** A localStorage stand-in that records every write attempt. */
+  function legacyStorage(entries: Record<string, string>) {
+    const data = new Map(Object.entries(entries));
+    const writes: string[] = [];
+    return {
+      writes,
+      data,
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string) => void writes.push(`set ${k}`),
+      removeItem: (k: string) => void writes.push(`remove ${k}`),
+    };
+  }
+  const legacyText = (projectId: string) =>
+    serializeAttributeRecord(
+      makeAttributeRecord(projectId, { nodes: [{ id: 'cost', key: 'cost', label: 'Cost', kind: 'number' }], edges: [], nodeTypeDefaults: {} }, 'legacy-baseline'),
+    );
+
+  it('seeds a project created from a code project with that code project’s legacy record, never touching it', async () => {
+    const storage = legacyStorage({ [attributeStorageKey('starter-template')]: legacyText('starter-template') });
+    const h = { ...host(), legacyAttributes: storage };
+    expect((await createProject(h, 'Seeded', 'starter-template')).ok).toBe(true);
+    const attrs = h.controller.getState().project!.meta.attributes as { projectId: string; schema: { nodes: { key: string }[] } };
+    expect(attrs.projectId).toBe('starter-template');
+    expect(attrs.schema.nodes.map((n) => n.key)).toEqual(['cost']);
+    expect(storage.writes).toEqual([]);
+    expect(storage.data.get(attributeStorageKey('starter-template'))).toBe(legacyText('starter-template'));
+    // Another code project without a legacy record starts from its files.
+    expect((await createProject(h, 'Plain', 'example-gallery')).ok).toBe(true);
+    expect(h.controller.getState().project!.meta.attributes).toBeNull();
+  });
+
+  it('seeds Try Example and design-file imports, but never an opened project file', async () => {
+    const storage = legacyStorage({ [attributeStorageKey('example-gallery')]: legacyText('example-gallery') });
+    const h = { ...host(), legacyAttributes: storage };
+    await tryExample(h, example(), 'example.json');
+    expect(h.controller.getState().project!.meta.attributes).not.toBeNull();
+    await openProjectText(h, JSON.stringify(exampleV1), 'old.json');
+    expect(h.controller.getState().project!.meta.attributes).not.toBeNull();
+    await openProjectText(h, serializeProjectFile(fileOf()), 'p.project.json');
+    expect(h.controller.getState().project!.meta.attributes).toBeNull();
+    expect(storage.writes).toEqual([]);
+  });
+
+  it('ignores an unreadable legacy record with a short notice', async () => {
+    const storage = legacyStorage({ [attributeStorageKey('example-gallery')]: '{ broken' });
+    const h = { ...host(), legacyAttributes: storage };
+    expect((await createProject(h, 'x', 'example-gallery')).ok).toBe(true);
+    expect(h.controller.getState().project!.meta.attributes).toBeNull();
+    expect(h.controller.getState().notice).toMatch(/could not be read/);
+    expect(readLegacyAttributeRecord(storage, 'example-gallery').kind).toBe('unreadable');
+    expect(readLegacyAttributeRecord(null, 'example-gallery').kind).toBe('none');
+    expect(storage.writes).toEqual([]);
+  });
+});
+
+describe('leaving a project that could not be saved', () => {
+  it('a flow reports needsConfirmation and only discards on the explicit retry', async () => {
+    const h = host(createMemoryProjectStore({ quotaBytes: 10 }));
+    await createProject(h, 'First', 'example-gallery');
+    await h.controller.flush();
+    const first = h.controller.getState().project!;
+    const r = await tryExample(h, example(), 'example.json');
+    expect(r.ok === false && r.needsConfirmation).toBe(true);
+    expect(h.controller.getState().project).toBe(first);
+    const again = await tryExample(h, example(), 'example.json', { discard: true });
+    expect(again.ok).toBe(true);
+  });
+});
+
 describe('Welcome screen', () => {
+  it('says honestly when local storage is unavailable', () => {
+    const html = renderToStaticMarkup(createElement(Welcome, props({ recent: { status: 'unavailable', message: 'IndexedDB is not available' } })));
+    expect(html).toContain('cannot be listed');
+    expect(html).toContain('IndexedDB is not available');
+  });
+
   it('offers Create, Open, Try Example and Recent', () => {
     const html = renderToStaticMarkup(createElement(Welcome, props()));
     expect(html).toContain('Create project');

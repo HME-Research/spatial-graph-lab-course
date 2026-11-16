@@ -114,7 +114,16 @@ describe('startup and Welcome', () => {
     const second = makeController(store).c;
     expect(second.getState().project).toBeNull();
     expect(showsWelcome(second.getState())).toBe(true);
-    expect((await second.listRecent()).map((s) => s.status)).toEqual(['ok']);
+    const recent = await second.listRecent();
+    expect(recent.status === 'ok' && recent.items.map((s) => s.status)).toEqual(['ok']);
+  });
+
+  it('says honestly when storage is unavailable instead of listing nothing', async () => {
+    const none = makeController(createIndexedStoreWithoutDb()).c;
+    const recent = await none.listRecent();
+    expect(recent.status).toBe('unavailable');
+    const empty = await makeController().c.listRecent();
+    expect(empty).toEqual({ status: 'ok', items: [] });
   });
 
   it('restores a Recent project explicitly, without writing', async () => {
@@ -142,7 +151,7 @@ describe('startup and Welcome', () => {
     store.records.set('project-bad', '{ corrupt');
     const { c } = makeController(store);
     const recent = await c.listRecent();
-    expect(recent).toEqual([expect.objectContaining({ status: 'unreadable', projectId: 'project-bad' })]);
+    expect(recent).toEqual({ status: 'ok', items: [expect.objectContaining({ status: 'unreadable', projectId: 'project-bad' })] });
     const r = await c.restore('project-bad');
     expect(r.ok === false && r.status).toBe('unreadable');
     expect(r.ok === false && r.message).toMatch(/cannot be read/);
@@ -419,7 +428,7 @@ describe('writes in flight', () => {
     expect(c.getState().project).toBeNull();
   });
 
-  it('a blocked write of a project no longer shown becomes a notice', async () => {
+  it('a write that becomes blocked while leaving keeps the project open and asks (audit repair 1)', async () => {
     const g = gatedStore();
     const { c, timers, store } = makeController(g.store);
     await c.open(fileOf(), created);
@@ -433,10 +442,55 @@ describe('writes in flight', () => {
     move(c, 'c', [6, 8, 0]);
     const opening = c.open(fileOf(), created);
     await g.release();
-    await opening;
+    const r = await opening;
+    expect(r.ok === false && r.needsConfirmation).toBe(true);
+    expect(project(c).meta.projectId).toBe(a);
+    expect(gridOf(c, 'c')).toEqual([6, 8, 0]);
+    expect(store.records.get(a)).toBe('garbage');
+  });
+
+  it('never drops blocked (quota) changes when another project is opened, restored or created; discard is explicit', async () => {
+    const tiny = createMemoryProjectStore({ quotaBytes: 10 });
+    const { c } = makeController(tiny);
+    await c.open(fileOf(), created);
     await c.flush();
-    await tick();
-    expect(c.getState().notice).toMatch(/could not be saved/);
+    expect(c.getState().save.local).toBe('blocked');
+    expect(c.hasPendingWork()).toBe(true);
+    const shown = project(c);
+    const other = await c.open(fileOf(), created);
+    expect(other.ok === false && other.needsConfirmation).toBe(true);
+    expect(other.ok === false && other.message).toMatch(/could not be saved/);
+    expect(project(c)).toBe(shown);
+    const restored = await c.restore('project-anything');
+    expect(restored.ok === false && restored.status).toBe('needs-confirmation');
+    expect(project(c)).toBe(shown);
+    const discarded = await c.open(fileOf(), created, { discard: true });
+    expect(discarded.ok).toBe(true);
+    expect(project(c)).not.toBe(shown);
+  });
+
+  it('a conflict-blocked project is not left silently either; Save As keeps its changes in the copy', async () => {
+    const store = createMemoryProjectStore();
+    const one = makeController(store).c;
+    await one.open(fileOf(), created);
+    await one.flush();
+    const id = project(one).meta.projectId;
+    const two = makeController(store).c;
+    await two.restore(id);
+    move(two, 'b', [2, 1, 0]);
+    await two.flush();
+    move(one, 'c', [6, 7, 0]);
+    await one.flush();
+    expect(one.getState().save.local).toBe('blocked');
+    const r = await one.open(fileOf(), created);
+    expect(r.ok === false && r.needsConfirmation).toBe(true);
+    expect(await one.close()).toBe(false);
+    const copy = await one.saveAs('Mine');
+    expect(copy.ok).toBe(true);
+    await one.flush();
+    expect(gridOf(one, 'c')).toEqual([6, 7, 0]);
+    expect(one.getState().save.local).toBe('saved');
+    expect(one.hasPendingWork()).toBe(false);
   });
 
   it('opening a file with the id of the shown (not yet stored) project opens a separate copy, without a false conflict', async () => {

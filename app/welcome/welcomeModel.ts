@@ -1,10 +1,16 @@
 import type { ProjectSummary } from '@app/project';
+import type { RecentList } from '@app/session/projectStoreController';
 
 /** Pure helpers for the Welcome screen and the Project Files actions (workstream B). */
 
 export type RecentState =
   | { readonly status: 'loading' }
-  | { readonly status: 'ready'; readonly items: readonly ProjectSummary[] };
+  | { readonly status: 'ready'; readonly items: readonly ProjectSummary[] }
+  /** Local storage cannot be used: say so instead of showing an empty list. */
+  | { readonly status: 'unavailable'; readonly message: string };
+
+export const recentStateOf = (list: RecentList): RecentState =>
+  list.status === 'ok' ? { status: 'ready', items: list.items } : { status: 'unavailable', message: list.message };
 
 /** A code project (`projects/<id>`) that can supply types and algorithms for a new project. */
 export interface DefinitionChoice {

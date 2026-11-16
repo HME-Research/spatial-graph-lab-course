@@ -145,6 +145,14 @@ function RecentList({
 }) {
   const [confirming, setConfirming] = useState<string | null>(null);
   if (recent.status === 'loading') return <p className="meta">Looking for projects saved in this browser…</p>;
+  if (recent.status === 'unavailable') {
+    return (
+      <p className="sgl-welcome-storage" role="alert">
+        Projects saved in this browser cannot be listed: local storage is not available ({recent.message}). New projects cannot be saved here either;
+        use Export Project to keep your work.
+      </p>
+    );
+  }
   const rows = recentRows(recent.items);
   if (rows.length === 0) return <p className="meta">No projects are saved in this browser yet.</p>;
   return (

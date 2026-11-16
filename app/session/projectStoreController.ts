@@ -99,11 +99,28 @@ export interface ProjectControllerOptions {
   readonly locks?: LockManagerLike | null;
 }
 
-export type OpenOutcome = { readonly ok: true; readonly project: OpenProject } | { readonly ok: false; readonly message: string };
+/**
+ * Leaving the shown project (open, restore, close). Its pending changes are written first; if
+ * they still cannot be stored (blocked: quota, conflict, …) nothing happens unless `discard` is
+ * set — an explicit user decision. Changes are never dropped silently.
+ */
+export interface LeaveOptions {
+  readonly discard?: boolean;
+}
+
+export type OpenOutcome =
+  | { readonly ok: true; readonly project: OpenProject }
+  /** `needsConfirmation`: the shown project has changes that could not be stored (ask, then retry with `discard`). */
+  | { readonly ok: false; readonly message: string; readonly needsConfirmation?: true };
 
 export type RestoreOutcome =
   | { readonly ok: true; readonly project: OpenProject }
-  | { readonly ok: false; readonly status: 'missing' | 'unreadable' | 'unavailable'; readonly message: string };
+  | { readonly ok: false; readonly status: 'missing' | 'unreadable' | 'unavailable' | 'needs-confirmation'; readonly message: string };
+
+/** Projects stored in this browser, or why they cannot be listed. */
+export type RecentList =
+  | { readonly status: 'ok'; readonly items: readonly ProjectSummary[] }
+  | { readonly status: 'unavailable'; readonly message: string };
 
 export interface ProjectController {
   getState(): ControllerState;
@@ -111,15 +128,19 @@ export interface ProjectController {
 
   // Lifecycle
   /** Open a validated file as the current project (a new identity if another local project uses its id). Stored at once. */
-  open(file: ProjectFileV1, origin: ProjectOrigin, options?: { readonly exported?: boolean }): Promise<OpenOutcome>;
-  /** Reopen a project stored in this browser (Recent). Never writes. */
-  restore(projectId: string): Promise<RestoreOutcome>;
+  open(file: ProjectFileV1, origin: ProjectOrigin, options?: { readonly exported?: boolean } & LeaveOptions): Promise<OpenOutcome>;
+  /** Reopen a project stored in this browser (Recent). Never writes it. */
+  restore(projectId: string, options?: LeaveOptions): Promise<RestoreOutcome>;
   /**
    * Back to Welcome. Pending changes are written first; when they cannot be stored, nothing is
    * closed and `false` is returned unless `discard` is set (an explicit user decision).
    */
-  close(options?: { readonly discard?: boolean }): Promise<boolean>;
-  listRecent(): Promise<ProjectSummary[]>;
+  close(options?: LeaveOptions): Promise<boolean>;
+  listRecent(): Promise<RecentList>;
+  /** Unstored changes or a write in progress (for a `beforeunload` prompt). */
+  hasPendingWork(): boolean;
+  /** Show a one-off notice (e.g. from a host flow). */
+  notify(message: string): void;
   discardUnreadable(projectId: string): Promise<DiscardResult>;
 
   // Active scenario (undoable)
@@ -148,7 +169,11 @@ export interface ProjectController {
   /** The project file to export now, and its text. Call `markExported(signature)` once the download started. */
   exportFile(): Outcome<{ readonly file: ProjectFileV1; readonly text: string; readonly signature: string }>;
   markExported(signature: string): void;
-  /** Save As New Project: open an independent copy (new ids), stored at once. */
+  /**
+   * Save As New Project: open an independent copy (new ids) of the CURRENT state, stored at once.
+   * Not guarded by `LeaveOptions`: the copy carries every unsaved change, so nothing is lost (it is
+   * also the way out of a blocked or conflicting save). The original keeps its last stored state.
+   */
   saveAs(name?: string): Promise<Outcome<OpenProject>>;
 
   // Saving
@@ -176,8 +201,9 @@ function defaultLocks(): LockManagerLike | null {
 }
 
 /**
- * Bookkeeping of one opened project (a new book on every open/restore/Save As). A book outlives
- * its project being shown: after a switch, its pending changes are still written from `latest`.
+ * Bookkeeping of one opened project (a new book on every open/restore/Save As). Leaving a project
+ * (open, restore, close) first writes everything in its book; a book with unstored changes is
+ * dropped only after an explicit discard (Save As carries them into the copy).
  */
 interface Book {
   readonly projectId: string;
@@ -216,8 +242,6 @@ export function createProjectController(options: ProjectControllerOptions): Proj
   let state: ControllerState = { project: null, save: { local: 'saved', at: '' }, notice: null };
   /** The book of the project shown, or null (Welcome). */
   let book: Book | null = null;
-  /** Books of projects no longer shown whose last changes are still being written. */
-  const outgoing = new Set<Book>();
   const listeners = new Set<() => void>();
   let disposed = false;
 
@@ -339,28 +363,30 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     }
   }
 
-  /** Finish the writes of every book of `projectId` (shown or outgoing). */
-  async function settleProject(projectId: string): Promise<void> {
-    const books = [...outgoing, ...(book ? [book] : [])].filter((b) => b.projectId === projectId);
-    await Promise.all(books.map(flushBook));
+  /**
+   * Prepare to leave the shown project: write everything it still has and wait. Returns null when
+   * it may be left, or the reason it must not be left without an explicit `discard`.
+   */
+  async function leave(opts: LeaveOptions): Promise<string | null> {
+    const b = book;
+    if (!b) return null;
+    await flushBook(b);
+    if (book !== b || !isDirty(b) || opts.discard === true) return null;
+    const why = b.status.local === 'blocked' ? ` ${b.status.message}` : '';
+    return `The latest changes of “${b.latest.meta.name}” could not be saved in this browser.${why}`;
   }
 
-  /** Make `project` current with a new book; stores it at once when `known` is null (not yet stored). */
+  /**
+   * Make `project` current with a new book; stores it at once when `known` is null (not yet stored).
+   * Callers have already left the previous project (`leave`, or Save As whose copy carries its
+   * changes): its book is dropped here, so no hidden write of it can land later.
+   */
   function activate(project: OpenProject, known: string | null): void {
-    const previous = book;
-    if (previous) {
-      // The previous project's last changes are still written, from its own book.
-      cancelTimer(previous);
-      if (isDirty(previous)) {
-        outgoing.add(previous);
-        void flushBook(previous).finally(() => outgoing.delete(previous));
-      }
-    }
+    if (book) cancelTimer(book);
     const status: LocalSaveState = known === null ? { local: 'pending' } : { local: 'saved', at: project.meta.updatedAt };
     const b: Book = { projectId: project.meta.projectId, latest: project, known, savedChanges: known === null ? -1 : project.changes, status, writing: null, again: false, overwrite: false, timer: null };
     book = b;
-    const carried = previous && isDirty(previous) && previous.status.local === 'blocked' ? `The project “${previous.latest.meta.name}” has changes that could not be saved: ${previous.status.message}` : null;
-    setState({ project, save: status, notice: carried });
+    setState({ project, save: status, notice: null });
     if (known === null) schedule(b, 0);
   }
 
@@ -384,8 +410,10 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
 
     async open(file, origin, opts = {}) {
-      // An id used by the shown project, a project still being written, or a stored record is taken.
-      const inUse = book?.projectId === file.projectId || [...outgoing].some((b) => b.projectId === file.projectId);
+      const blocked = await leave(opts);
+      if (blocked) return { ok: false, message: blocked, needsConfirmation: true };
+      // An id used by the shown project or by a stored record is taken.
+      const inUse = book?.projectId === file.projectId;
       const existing = inUse ? null : await store.load(file.projectId);
       const identityTaken = inUse || existing?.status === 'ok' || existing?.status === 'unreadable';
       const separate = separateIdentity(file, identityTaken, { now, newId: newProjectId, newScenarioId });
@@ -400,9 +428,10 @@ export function createProjectController(options: ProjectControllerOptions): Proj
       return { ok: true, project };
     },
 
-    async restore(projectId) {
-      // Earlier writes of this project (e.g. just before a switch) land first.
-      await settleProject(projectId);
+    async restore(projectId, opts = {}) {
+      // The shown project's writes land first (also when it is this very project).
+      const blocked = await leave(opts);
+      if (blocked) return { ok: false, status: 'needs-confirmation', message: blocked };
       const loaded = await store.load(projectId);
       if (loaded.status === 'missing') return { ok: false, status: 'missing', message: 'This project is no longer stored in this browser.' };
       if (loaded.status === 'unavailable') return { ok: false, status: 'unavailable', message: `Local storage is not available: ${loaded.message}` };
@@ -421,20 +450,32 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     async close(opts = {}) {
       const b = book;
       if (!b) return true;
-      await flushBook(b);
+      if ((await leave(opts)) !== null) return false;
       if (book !== b) return true;
-      if (isDirty(b) && opts.discard !== true) return false;
+      cancelTimer(b);
       book = null;
       setState({ project: null, save: { local: 'saved', at: '' }, notice: null });
       return true;
     },
 
     async listRecent() {
+      let items: readonly ProjectSummary[] = [];
       try {
-        return await store.list();
+        items = await store.list();
       } catch {
-        return [];
+        items = [];
       }
+      // `list()` answers [] both for "nothing stored" and "storage unusable": tell them apart.
+      if (items.length === 0) {
+        const probe = await store.load('sgl-storage-probe');
+        if (probe.status === 'unavailable') return { status: 'unavailable', message: probe.message };
+      }
+      return { status: 'ok', items };
+    },
+
+    hasPendingWork: () => book !== null && (isDirty(book) || book.writing !== null),
+    notify(message) {
+      setState({ notice: message });
     },
 
     discardUnreadable: (projectId) => store.discardUnreadable(projectId),
@@ -510,14 +551,18 @@ export function createProjectController(options: ProjectControllerOptions): Proj
       if (!project) return { ok: false, message: 'No project is open.' };
       const copy = saveProjectAs(project, name, { now, newId: newProjectId, newScenarioId });
       if (!copy.ok) return copy;
+      // A write of the original already running finishes first; later changes live in the copy.
+      const original = book;
+      if (original) {
+        cancelTimer(original);
+        await settle(original);
+      }
       activate(copy.value, null);
-      // The copy carries the unsaved changes, so the original's pending state is no news here.
-      setState({ notice: null });
       return copy;
     },
 
     async flush() {
-      await Promise.all([...outgoing, ...(book ? [book] : [])].map(flushBook));
+      if (book) await flushBook(book);
     },
     async retrySave() {
       const b = book;
@@ -539,7 +584,7 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
     dispose() {
       disposed = true;
-      for (const b of [...outgoing, ...(book ? [book] : [])]) cancelTimer(b);
+      if (book) cancelTimer(book);
       listeners.clear();
     },
   };

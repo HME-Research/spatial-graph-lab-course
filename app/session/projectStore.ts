@@ -258,6 +258,20 @@ export const redoActive = (project: OpenProject): OpenProject => withActiveSessi
 // ---------------------------------------------------------------------------------------------
 // Scenario management (not undoable; autosaved)
 
+/** A structural copy of plain JSON data (cameras, display settings). */
+const deepCopy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+/**
+ * The saved cameras of a scenario, copied for a NEW scenario: deep copies with new ids derived
+ * from the new scenario's id, so no camera object or id is shared between scenarios.
+ */
+export function copyCameras(cameras: readonly SavedCamera[], scenarioId: string): SavedCamera[] {
+  return cameras.map((camera, index) => {
+    const suffix = `-camera-${index + 1}`;
+    return { ...deepCopy(camera), id: `${scenarioId.slice(0, 64 - suffix.length)}${suffix}` };
+  });
+}
+
 /** A design with no rooms that keeps `from`'s Building settings (type appearance). */
 export function blankDesign(from: DesignDocumentV2, name: string): DesignDocumentV2 {
   const read = readDesign({ schemaVersion: 2, metadata: { name }, nodes: [], edges: [], diagram: { positions: {} }, settings: from.settings });
@@ -311,8 +325,8 @@ export function createScenario(project: OpenProject, request: NewScenarioRequest
     id: request.id,
     name: unique,
     session: openDocument(content, label, null),
-    cameras: request.from === 'current' ? source.cameras : [],
-    display: request.from === 'current' ? source.display : {},
+    cameras: request.from === 'current' ? copyCameras(source.cameras, request.id) : [],
+    display: request.from === 'current' ? deepCopy(source.display) : {},
   };
   return accept(addSlot(project, slot, source.id));
 }
@@ -327,8 +341,8 @@ export function duplicateScenario(project: OpenProject, sourceId: string, newId:
     id: newId,
     name,
     session: openDocument(currentDocument(source.session), `copy of ${source.name}`, null),
-    cameras: source.cameras,
-    display: source.display,
+    cameras: copyCameras(source.cameras, newId),
+    display: deepCopy(source.display),
   };
   return accept(addSlot(project, slot, source.id));
 }

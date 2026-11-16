@@ -185,6 +185,18 @@ describe('scenario management', () => {
     p = ok(duplicateScenario(p, first, 'dup2'));
     expect(p.scenarios.map((s) => s.name)).toEqual(['Scenario 1', 'Scenario 1 copy (2)', 'Scenario 1 copy']);
     expect(scenarioById(p, 'dup')!.cameras).toHaveLength(1);
+    // Deep copies with NEW ids: no camera object or id is shared with the source scenario.
+    const original = scenarioById(p, first)!.cameras[0]!;
+    const copied = scenarioById(p, 'dup')!.cameras[0]!;
+    expect(copied.id).toBe('dup-camera-1');
+    expect(copied.id).not.toBe(original.id);
+    expect(scenarioById(p, 'dup2')!.cameras[0]!.id).toBe('dup2-camera-1');
+    expect(copied.pose).not.toBe(original.pose);
+    expect(copied.pose).toEqual(original.pose);
+    expect(copied.name).toBe('Front');
+    const fromCurrent = ok(createScenario(ok(switchScenario(p, first)), { id: 'cur', from: 'current' }));
+    expect(scenarioById(fromCurrent, 'cur')!.cameras[0]!.id).toBe('cur-camera-1');
+    expect(projectFileOf(fromCurrent).ok).toBe(true);
     expect(currentDocument(scenarioById(p, 'dup')!.session).design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 8, 0]);
     expect(canUndo(scenarioById(p, 'dup')!.session.history)).toBe(false);
   });
