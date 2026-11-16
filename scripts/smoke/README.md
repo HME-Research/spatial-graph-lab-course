@@ -82,3 +82,19 @@ node scripts/smoke/workflow.mjs --url http://localhost:5181/ --viewport 1280x720
 ```
 
 It loads the app three times from scratch, then: adds a room, moves it with Properties, connects it to a separated room (an enclosed corridor is generated: 3 connector cells in Voxels), switches the corridor to Covered and Deck, resizes the room, moves it with the gizmo's step buttons (one undo step), orbits without losing the selection, changes window coverage and a roof in the Designer, applies a transformation, undoes every step one at a time (N operations = N undo steps) and redoes them, exports v2 and re-imports it (byte-identical re-export). Failure cases: room collision (rejected, no history entry), corridor displacement (Cancel keeps the document; "Move anyway and recalculate" records one step), the resulting Unresolved relationship and its undo, a stale transformation preview, invalid JSON, an unsupported schema version and an unknown room type. Finally the selection is checked across Graph 3D, Voxels and Building, and the console must be free of errors.
+
+## Integration Gate I1 scenario (`gate-i1.mjs`)
+
+The mandatory integrated scenario of Gate I1 (projects, scenarios, cameras, display, Plan and calculated values together). Same safety rules as `smoke.mjs`. It creates its own uniquely named project in the private browser profile.
+
+```powershell
+node scripts/smoke/gate-i1.mjs --url http://localhost:5291/ --viewport 1280x720
+node scripts/smoke/gate-i1.mjs --url http://localhost:5291/ --viewport 1366x768
+```
+
+Items (each PASS only when all its checks pass; `gate-i1.json` and screenshots go to `--out`):
+1. Welcome → Create project → a second scenario → a different room moved in each (no leak, Undo only for the active scenario) → a node attribute field shared by both scenarios → reload (Welcome, no auto-resume) → Recent → both scenarios, the edits and the field restored with fresh history → Export Project (two scenarios, the field, `settings.calculatedFields`, cameras per scenario, no metric values) → import as a separate copy → scenarios, schema and separate histories intact.
+2. Add a relationship in Graph 2D ("Add connection…") between two touching rooms → Building's status legend counts one more Direct and Plan draws a door for the new edge id; moving a room to another storey keeps the edge (Unresolved, no Plan door) until it is removed explicitly; undo restores the door.
+3. Enable "Exposed façade area" in Attributes → Calculated → Properties shows it read-only (no inputs, Level shown once) → Voxels "Colour by" offers and uses it → a move refreshes the value and the legend, undo restores it; still enabled after reload.
+4. Layout 4 with Graph 2D, Building, Voxels/Graph 3D and Plan, with and without a selected room, maximise/restore of each viewport, layouts 1 and 2: no page scroll, panels inside the workspace, header controls not clipped, the projection toggle never covering an overlay, one visible layout selector.
+5. Camera: explicit target viewport 2 (Building), a saved view in one scenario only, kept target across scenario switches, exact recall; after reload the target and the saved view are back and recall gives the saved pose.
