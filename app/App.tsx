@@ -41,6 +41,7 @@ import {
 import { activeProjectOf, readProjectRequest, startProject, type ProjectSession } from './session/projectSession';
 import { activeSession, activeSlot, isExported } from './session/projectStore';
 import { createProjectController, showsWelcome, type LeaveOptions } from './session/projectStoreController';
+import { createProjectCameraStore, createProjectDisplayStore } from './session/projectViewSettings';
 import { ProjectControllerContext, useProjectControllerState } from './session/projectStoreContext';
 import { historyButtonTitle, historyShortcut, isApplePlatform, type HistoryShortcut } from './session/shortcuts';
 import './session/session.css';
@@ -64,7 +65,7 @@ import {
   type RightPaneState,
 } from '@app/workspace/panes';
 import { WorkspaceServicesContext, type WorkspaceServices } from '@app/workspace/services';
-import { SavedCamerasProvider, UNBOUND_SCENARIO_ID } from '@app/camera/savedCameras';
+import { SavedCamerasProvider } from '@app/camera/savedCameras';
 import { DisplayProvider } from '@app/display/DisplayProvider';
 import { DEFAULT_VIEWPORT_STATE, deriveViewports, type ViewportState } from '@app/workspace/viewports';
 
@@ -175,6 +176,9 @@ export function App() {
   /** The local project controller: one per App instance, IndexedDB-backed. */
   const [controller] = useState(() => createProjectController({ store: createIndexedDbProjectStore() }));
   const cstate = useProjectControllerState(controller);
+  /** Saved cameras and Display (workstream E) bound to the open project's scenarios and settings (I1). */
+  const [cameraStore] = useState(() => createProjectCameraStore(controller));
+  const [displayStore] = useState(() => createProjectDisplayStore(controller));
   const openProject = cstate.project;
   const [failure, setFailure] = useState<LoadFailureState | null>(null);
   /** Welcome: shown whenever no project is open; `create` opens with the Create form. */
@@ -644,9 +648,9 @@ export function App() {
             <>
               {failureView}
               <WorkspaceServicesContext.Provider value={services}>
-                {/* Saved cameras and Display (workstream E): in-memory per App until I1 binds them to the active scenario of the project file. */}
-                <SavedCamerasProvider scenarioId={UNBOUND_SCENARIO_ID}>
-                <DisplayProvider scenarioId={UNBOUND_SCENARIO_ID}>
+                {/* Saved cameras and Display of the ACTIVE scenario, persisted in the project file (autosaved, not undoable). */}
+                <SavedCamerasProvider scenarioId={scenarioId ?? ''} store={cameraStore}>
+                <DisplayProvider scenarioId={scenarioId ?? ''} store={displayStore}>
                 <OpenAttributesContext.Provider value={project ? openAttributes : null}>
                   <Workspace
                     view={
@@ -669,15 +673,16 @@ export function App() {
                     empty={<p className="meta">No design is open.</p>}
                     sections={{
                       project: (
-                        <>
-                          <section className="sgl-section sgl-project-files-section">
-                            <h4>Project Files</h4>
-                            {/* Keyed by project: no draft name or Save As form carries over to another project. */}
-                            <ProjectNameField key={`name:${projectId ?? '-'}`} controller={controller} />
-                            <ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} onNew={() => void backToWelcome()} onOpenFile={openFile} />
-                            <SaveStatus controller={controller} />
-                          </section>
                           <ProjectPanel
+                            // Workstream B's project-file actions, mounted in A's single Project Files section.
+                            files={
+                              <div className="sgl-project-files-section">
+                                {/* Keyed by project: no draft name or Save As form carries over to another project. */}
+                                <ProjectNameField key={`name:${projectId ?? '-'}`} controller={controller} />
+                                <ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} onNew={() => void backToWelcome()} onOpenFile={openFile} />
+                                <SaveStatus controller={controller} />
+                              </div>
+                            }
                             session={session}
                             docLoaded={doc !== null}
                             source={current?.source ?? null}
@@ -693,7 +698,6 @@ export function App() {
                             onOpenFile={() => fileInput.current?.click()}
                             onExport={exportDesign}
                           />
-                        </>
                       ),
                       attributes: (
                         <AttributesPanel

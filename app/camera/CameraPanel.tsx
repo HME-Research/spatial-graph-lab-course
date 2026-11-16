@@ -1,12 +1,37 @@
 import { useEffect, useState } from 'react';
 import { VIEW_LABELS } from '@app/ui';
 import { cameraTargetLabel, cameraTargets, cameraTargetStatus } from '@app/workspace/cameraTargets';
+import { browserPaneStorage } from '@app/workspace/panes';
 import { useWorkspaceServices } from '@app/workspace/services';
 import type { CameraViewMode } from './savedCamera';
 import { nextCameraName, recallPlan, useSavedCameras } from './savedCameras';
 import './camera.css';
 
 type Message = { readonly kind: 'ok' | 'warning'; readonly text: string } | null;
+
+/**
+ * The explicit target viewport is a per-browser UI choice (like the pane widths): remembered in
+ * localStorage so it survives a scenario switch and a reload. Every access is guarded; only a
+ * viewport id (`viewport-1…4`) is accepted.
+ */
+const TARGET_KEY = 'sgl:ui:camera-target';
+const TARGET_ID = /^viewport-[1-4]$/;
+function readTarget(): string | null {
+  try {
+    const raw = browserPaneStorage()?.getItem(TARGET_KEY) ?? null;
+    return raw !== null && TARGET_ID.test(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+function writeTarget(id: string | null): void {
+  try {
+    const storage = browserPaneStorage();
+    if (storage) storage.setItem(TARGET_KEY, id ?? '');
+  } catch {
+    // Not remembered; the choice still applies in this page.
+  }
+}
 
 /**
  * Camera destination (workstream E): an explicit target viewport, then Save current view, and the
@@ -22,7 +47,11 @@ type Message = { readonly kind: 'ok' | 'warning'; readonly text: string } | null
 export function CameraPanel() {
   const { viewports, cameraBus } = useWorkspaceServices();
   const saved = useSavedCameras();
-  const [chosen, setChosen] = useState<string | null>(null);
+  const [chosen, setChosenState] = useState<string | null>(readTarget);
+  const setChosen = (id: string | null) => {
+    setChosenState(id);
+    writeTarget(id);
+  };
   const [registered, setRegistered] = useState<readonly string[]>(() => cameraBus.registered());
   const [name, setName] = useState('');
   const [message, setMessage] = useState<Message>(null);

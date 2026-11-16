@@ -139,12 +139,12 @@ export function ProjectPanel({
           {docLoaded && (
             <>
               <dt>State</dt>
-              <dd className="sgl-project-state" title="Compared with when the design was opened or last exported">{modified ? 'Changed' : 'No changes'}</dd>
+              <dd className="sgl-project-state" title="Compared with the last Export Project (or the file the project was opened from)">{modified ? 'Not exported' : 'Exported'}</dd>
             </>
           )}
         </dl>
         {headline.detail && <p className="sgl-help">{headline.detail}</p>}
-        <p className="sgl-help">Export JSON keeps a copy of the design as a file.</p>
+        <p className="sgl-help">Projects are saved in this browser automatically; Export Project keeps a file copy.</p>
       </CollapsibleSection>
 
       {actionable.length > 0 && (
