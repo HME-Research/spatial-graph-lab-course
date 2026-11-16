@@ -216,8 +216,18 @@ const pass = (message, data) => ({ status: 'PASS', message, data });
 const fail = (message, data) => ({ status: 'FAIL', message, data });
 const skip = (message) => ({ status: 'SKIP', message });
 
+/** On the Welcome screen (always shown at startup, workstream B): open the example as a new project. */
+async function leaveWelcome() {
+  if (!(await evaluate(`!!document.querySelector('.sgl-welcome')`))) return false;
+  const clicked = await clickButton('Try Example', `document.querySelector('.sgl-welcome')`);
+  if (clicked !== 'clicked') throw new Error(`Welcome "Try Example" button ${clicked}`);
+  await waitFor(`!document.querySelector('.sgl-welcome') && document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length > 0`, 'the example project after Try Example');
+  return true;
+}
+
 /** Make sure a design with nodes is shown in panel 1 (Graph 2D), loading the example if needed. */
 async function ensureDesign() {
+  if (await leaveWelcome()) return;
   if ((await nodeCount()) > 0) return;
   await evaluate(`(() => { const s = document.querySelector('select[aria-label="View mode, panel 1"], select[aria-label="View shown in panel 1"]'); if (!s || s.value === 'graph2d') return;
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'graph2d'); s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
@@ -236,7 +246,18 @@ await check('load/app', async () => {
   return title.includes('Spatial Graph Lab') ? pass(`app rendered ("${title}")`) : fail(`unexpected title "${title}"`);
 });
 
+await check('load/welcome', async () => {
+  const shown = await waitFor(`(() => { const w = document.querySelector('.sgl-welcome'); return w ? { text: w.innerText.slice(0, 600), panels: document.querySelectorAll('.view-panel').length } : null; })()`, 'the Welcome screen');
+  const file = await screenshot('welcome-1366x768');
+  const problems = ['Create project', 'Open file', 'Try Example', 'Recent local projects'].filter((t) => !shown.text.includes(t));
+  if (shown.panels > 0) problems.push(`${shown.panels} view panel(s) mounted behind Welcome`);
+  return problems.length
+    ? fail(`Welcome incomplete: ${problems.join('; ')}`, { screenshot: file })
+    : pass('Welcome shown at startup (Create, Open, Try Example, Recent); no project auto-opened', { screenshot: file });
+});
+
 await check('load/project', async () => {
+  await leaveWelcome();
   await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'project activation to finish');
   const project = await evaluate(`(() => { const s = document.querySelector('select[aria-label="Active project"]'); return s ? s.value : null; })()`);
   await ensureDesign();
@@ -601,6 +622,198 @@ if (wants('project-store')) {
       await check(`project-store/${c.id}`, async () => (c.ok ? pass(JSON.stringify(c.detail ?? null)) : fail(JSON.stringify(c.detail ?? null))));
     }
   }
+}
+
+// ── Scenarios, autosave, Recent, project export/import (workstream B) ────────────────────────
+if (wants('scenarios')) {
+  const ROW = (name) => `[...document.querySelectorAll('.sgl-scenario')].find((li) => li.querySelector('.sgl-scenario-name')?.textContent === ${JSON.stringify(name)})`;
+  const scenarioNames = () => evaluate(`[...document.querySelectorAll('.sgl-scenario .sgl-scenario-name')].map((e) => e.textContent)`);
+  const headerScenario = () => evaluate(`document.querySelector('.sgl-identity-scenario')?.textContent ?? null`);
+  const openTab = (id) => evaluate(`(() => { const t = document.querySelector('#sidebar-tab-${id}'); if (!t) return false; t.click(); return true; })()`);
+  const transforms = () =>
+    evaluate(`Object.fromEntries([...document.querySelectorAll(${JSON.stringify(NODE_SEL)})].map((n) => [n.getAttribute('data-id'), n.style.transform]))`);
+  const undoState = () => evaluate(`(() => { const [u, r] = document.querySelectorAll('.history-actions button'); return u && r ? { undo: !u.disabled, redo: !r.disabled } : null; })()`);
+  const switchTo = async (name) => {
+    await openTab('scenarios');
+    const ok = await evaluate(`(() => { const b = ${ROW(name)}?.querySelector('.sgl-scenario-switch'); if (!b) return false; b.click(); return true; })()`);
+    if (!ok) throw new Error(`no scenario row "${name}"`);
+    await waitFor(`document.querySelector('.sgl-identity-scenario')?.textContent === ${JSON.stringify(name)}`, `scenario "${name}" to become active`);
+    await delay(400);
+  };
+  const setInput = (selector, value) =>
+    evaluate(`(() => { const i = document.querySelector(${JSON.stringify(selector)}); if (!i) return false;
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, ${JSON.stringify(value)});
+      i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+  const waitSaved = () =>
+    waitFor(
+      `(() => { const s = document.querySelector('.sgl-save-status')?.getAttribute('data-save-state'); if (s === 'blocked') throw new Error('save blocked: ' + document.querySelector('.sgl-save-status')?.title); return s === 'saved'; })()`,
+      'the project to be saved in this browser',
+      15000,
+    );
+  const st = { ok: false };
+
+  await check('scenarios/create-rename-delete', async () => {
+    await page.send('Page.navigate', { url: opts.url });
+    await waitFor(`!!document.querySelector('.sgl-welcome')`, 'the Welcome screen after a fresh load');
+    await leaveWelcome();
+    st.project = await evaluate(`document.querySelector('.sgl-identity-project')?.textContent ?? null`);
+    if (!(await openTab('scenarios'))) return fail('Scenarios tab (#sidebar-tab-scenarios) not found');
+    await waitFor(`document.querySelectorAll('.sgl-scenario').length === 1`, 'exactly one scenario in a new project');
+    for (let n = 2; n <= 3; n++) {
+      if ((await clickButton('+ New scenario')) !== 'clicked') return fail('"+ New scenario" not clickable');
+      await waitFor(`!!document.querySelector('.sgl-scenario-form')`, 'the new-scenario form');
+      if ((await clickButton('Create scenario')) !== 'clicked') return fail('"Create scenario" not clickable');
+      await waitFor(`document.querySelectorAll('.sgl-scenario').length === ${n}`, `${n} scenarios`);
+    }
+    // Rename the active (third) scenario.
+    await evaluate(`${ROW('Scenario 3')}.querySelector('button[aria-label="Rename Scenario 3"]').click()`);
+    await waitFor(`!!document.querySelector('input[aria-label="New name for Scenario 3"]')`, 'the rename field');
+    await setInput('input[aria-label="New name for Scenario 3"]', 'Option C');
+    await evaluate(`document.querySelector('input[aria-label="New name for Scenario 3"]').form.requestSubmit()`);
+    await waitFor(`!!${ROW('Option C')}`, 'the renamed scenario');
+    // Delete Scenario 1 with confirmation.
+    await evaluate(`${ROW('Scenario 1')}.querySelector('button[aria-label="Delete Scenario 1"]').click()`);
+    await waitFor(`!!${ROW('Scenario 1')}?.querySelector('[role="alertdialog"]')`, 'the delete confirmation');
+    await clickButton('Delete scenario', ROW('Scenario 1'));
+    await waitFor(`!${ROW('Scenario 1')}`, 'Scenario 1 to be deleted');
+    const names = await scenarioNames();
+    const header = await headerScenario();
+    const headerSwitch = await evaluate(`!!document.querySelector('.toolbar select, .toolbar [role="listbox"], .toolbar [role="combobox"]')`);
+    const file = await screenshot('scenarios-panel-1366x768');
+    const data = { names, header, screenshot: file };
+    if (names.join('|') !== 'Scenario 2|Option C') return fail(`scenarios ${JSON.stringify(names)}, expected Scenario 2, Option C`, data);
+    if (header !== 'Option C') return fail(`header shows scenario "${header}", expected the active "Option C"`, data);
+    if (headerSwitch) return fail('the header contains a selector (no scenario switcher in the header)', data);
+    st.ok = true;
+    return pass(`created 2 scenarios, renamed one, deleted one with confirmation; header names "${header}" without a switcher`, data);
+  });
+
+  await check('scenarios/isolated-edits-and-undo', async () => {
+    if (!st.ok) return skip('needs scenarios/create-rename-delete');
+    st.ok = false;
+    const base = await transforms();
+    const ids = Object.keys(base);
+    // Option C (active): move node 0.
+    let n = await nodeCenter(0);
+    await drag(n.x, n.y, 60, 35);
+    const c = await transforms();
+    if (c[ids[0]] === base[ids[0]]) return fail('dragging node 0 in Option C did not move it');
+    // Scenario 2: unchanged, then move node 1.
+    await switchTo('Scenario 2');
+    const s2 = await transforms();
+    if (s2[ids[0]] !== base[ids[0]]) return fail(`Option C's edit leaked into Scenario 2 (${s2[ids[0]]})`);
+    const u0 = await undoState();
+    if (u0.undo) return fail('Scenario 2 offers Undo before any edit in it (histories mixed)');
+    n = await nodeCenter(1);
+    await drag(n.x, n.y, -55, 30);
+    const s2b = await transforms();
+    if (s2b[ids[1]] === base[ids[1]]) return fail('dragging node 1 in Scenario 2 did not move it');
+    // Undo in Scenario 2 reverts only its own step, then there is nothing more to undo.
+    await clickButton('↶');
+    await delay(300);
+    const s2u = await transforms();
+    const u1 = await undoState();
+    if (s2u[ids[1]] !== base[ids[1]]) return fail('Undo in Scenario 2 did not restore node 1');
+    if (u1.undo) return fail('after undoing the only step of Scenario 2, Undo is still enabled (it would reach another scenario)');
+    await clickButton('↷');
+    await delay(300);
+    // Option C keeps its own step and history.
+    await switchTo('Option C');
+    const c2 = await transforms();
+    const u2 = await undoState();
+    if (c2[ids[0]] !== c[ids[0]] || c2[ids[1]] !== base[ids[1]]) return fail(`Option C changed after editing Scenario 2: ${JSON.stringify(c2)}`);
+    if (!u2.undo) return fail('Option C lost its undo step after switching');
+    await clickButton('↶');
+    await delay(300);
+    if ((await transforms())[ids[0]] !== base[ids[0]]) return fail('Undo in Option C did not restore node 0');
+    await clickButton('↷');
+    await delay(300);
+    st.expect = { ids, optionC: c[ids[0]], scenario2: s2b[ids[1]], base };
+    await waitSaved();
+    st.ok = true;
+    return pass('edits stay in their scenario; Undo/Redo act only on the active scenario; saved in this browser', { expect: st.expect });
+  });
+
+  await check('scenarios/reload-recent-restore', async () => {
+    if (!st.ok) return skip('needs scenarios/isolated-edits-and-undo');
+    st.ok = false;
+    await page.send('Page.navigate', { url: opts.url });
+    const w = await waitFor(
+      `(() => { const w = document.querySelector('.sgl-welcome'); if (!w) return null; const rows = [...w.querySelectorAll('.sgl-recent .sgl-recent-name')].map((e) => e.textContent); return rows.length ? { rows, panels: document.querySelectorAll('.view-panel').length } : null; })()`,
+      'Welcome with Recent projects after reload',
+    );
+    if (w.panels > 0) return fail('a project was reopened automatically after reload');
+    const file = await screenshot('welcome-recent-1366x768');
+    const opened = await evaluate(
+      `(() => { const b = [...document.querySelectorAll('.sgl-recent-open')].find((e) => e.querySelector('.sgl-recent-name')?.textContent === ${JSON.stringify(st.project)}); if (!b) return false; b.click(); return true; })()`,
+    );
+    if (!opened) return fail(`"${st.project}" not in Recent: ${JSON.stringify(w.rows)}`);
+    await waitFor(`!document.querySelector('.sgl-welcome') && document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length > 0`, 'the restored project');
+    await openTab('scenarios');
+    const names = await scenarioNames();
+    const header = await headerScenario();
+    const { ids, optionC, scenario2, base } = st.expect;
+    const c = await transforms();
+    const u = await undoState();
+    await switchTo('Scenario 2');
+    const s2 = await transforms();
+    const data = { names, header, recent: w.rows, screenshot: file };
+    if (names.join('|') !== 'Scenario 2|Option C') return fail(`restored scenarios ${JSON.stringify(names)}`, data);
+    if (header !== 'Option C') return fail(`restored active scenario "${header}", expected Option C`, data);
+    if (c[ids[0]] !== optionC || c[ids[1]] !== base[ids[1]]) return fail(`Option C restored wrongly: ${JSON.stringify(c)}`, data);
+    if (s2[ids[1]] !== scenario2 || s2[ids[0]] !== base[ids[0]]) return fail(`Scenario 2 restored wrongly: ${JSON.stringify(s2)}`, data);
+    if (u.undo) return fail('a restored project offers Undo (history should start fresh)', data);
+    st.ok = true;
+    return pass(`Welcome after reload (no auto-resume); Recent restored "${st.project}" with both scenarios and their edits`, data);
+  });
+
+  await check('scenarios/export-import-project', async () => {
+    if (!st.ok) return skip('needs scenarios/reload-recent-restore');
+    await browser.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir, eventsEnabled: true });
+    await openTab('project');
+    await delay(200);
+    await screenshot('project-files-1366x768');
+    const existing = new Set(readdirSync(downloadDir));
+    if ((await clickButton('Export Project')) !== 'clicked') return fail('"Export Project" not clickable');
+    let name = null;
+    for (const end = Date.now() + opts.timeout; name === null && Date.now() < end; ) {
+      name = readdirSync(downloadDir).find((x) => !existing.has(x) && x.endsWith('.project.json')) ?? null;
+      if (name === null) await delay(150);
+    }
+    if (!name) return fail('no .project.json was downloaded');
+    const path = join(downloadDir, name);
+    const json = JSON.parse(readFileSync(path, 'utf8'));
+    if (json.format !== 'spatial-graph-lab/project' || json.scenarios?.length !== 2) return fail(`exported ${name}: format ${json.format}, ${json.scenarios?.length} scenarios`);
+    await setFile('.toolbar input[type="file"]', path);
+    const notice = await waitFor(`document.querySelector('.sgl-notice')?.textContent ?? null`, 'the "opened as a separate copy" notice');
+    await openTab('scenarios');
+    await waitFor(`document.querySelectorAll('.sgl-scenario').length === 2`, 'two scenarios in the imported project');
+    const names = await scenarioNames();
+    const { ids, optionC, scenario2 } = st.expect;
+    await switchTo('Option C');
+    const c = await transforms();
+    await switchTo('Scenario 2');
+    const s2 = await transforms();
+    const data = { file: path, names, notice };
+    if (names.join('|') !== 'Scenario 2|Option C') return fail(`imported scenarios ${JSON.stringify(names)}`, data);
+    if (c[ids[0]] !== optionC || s2[ids[1]] !== scenario2) return fail('imported scenarios lost their edits', data);
+    await waitSaved();
+    return pass(`exported ${name} (2 scenarios) and re-imported it as a separate local copy with both scenarios intact`, data);
+  });
+
+  await check('scenarios/1280x720', async () => {
+    await setViewport(VIEWPORTS[0]);
+    await openTab('scenarios');
+    const m = await evaluate(OVERFLOW_JS);
+    const file = await screenshot('scenarios-panel-1280x720');
+    await page.send('Page.navigate', { url: opts.url });
+    await waitFor(`!!document.querySelector('.sgl-welcome .sgl-recent')`, 'Welcome with Recent');
+    const m2 = await evaluate(OVERFLOW_JS);
+    const file2 = await screenshot('welcome-1280x720');
+    await setViewport(VIEWPORTS[1]);
+    const problem = overflowProblem(m) ?? overflowProblem(m2);
+    return problem ? fail(`page scrolls: ${problem}`, { screenshots: [file, file2] }) : pass('Scenarios panel and Welcome fit 1280×720 without page scroll', { screenshots: [file, file2] });
+  });
 }
 
 if (opts.features.has('v2') && !wants('export')) record('v2', 'SKIP', 'v2 is checked by the export group, which was not run');
