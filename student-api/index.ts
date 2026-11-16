@@ -8,7 +8,13 @@
  * runtime. Imports only core/graph and core/spatial (student-api/boundary.test.ts).
  */
 export type { AttributeSpec, AttributeSpecs, AttributeValue, AttributesOf, ValueOf } from './attributes';
-export { defineProject, type ProjectDefinition } from './project';
+export {
+  defineProject,
+  type ProjectAttributes,
+  type ProjectAttributeSpec,
+  type ProjectAttributeSpecs,
+  type ProjectDefinition,
+} from './project';
 export { defineNodeType, type FacadeParameters, type NodeTypeDefinition } from './types';
 export {
   edgesBetween,

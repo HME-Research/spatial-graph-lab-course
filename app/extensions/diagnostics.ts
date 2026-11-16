@@ -29,6 +29,15 @@ export type ExtensionIssueCode =
   | 'broken-node-type'
   | 'invalid-attribute-value'
   | 'undeclared-attribute'
+  | 'legacy-attribute-key'
+  // project-wide attribute schema (docs/PROJECT-ATTRIBUTES.md)
+  | 'attribute-declaration-conflict'
+  | 'invalid-attribute-schema'
+  | 'attribute-schema-version'
+  | 'attribute-schema-project-mismatch'
+  | 'attribute-baseline-changed'
+  | 'attribute-schema-storage'
+  | 'attribute-edit-refused'
   // algorithm execution
   | 'unknown-algorithm'
   | 'algorithm-disabled'

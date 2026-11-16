@@ -45,8 +45,14 @@ import { defineProject } from '@student-api';
 export default defineProject({
   name: 'My project',
   defaultDesign: 'my-design', // optional: designs/my-design.json is loaded at startup
+  attributes: {               // optional: project-wide custom fields (see below)
+    nodes: { capacity: { kind: 'number', min: 0, label: 'Capacity (people)' } },
+    edges: { weight: { kind: 'number', default: 1 } },
+  },
 });
 ```
+
+**Project-wide attributes.** Every node in every design of your project has the same custom node fields, and every edge has the same custom edge fields. The fields come from `attributes` here plus every attribute your node types declare; a type's `default` becomes that type's default. You can also add, rename and delete fields in the app; the app saves them in the browser and can export them as a file. It never changes your TypeScript. Full contract: `docs/PROJECT-ATTRIBUTES.md`.
 
 If `defaultDesign` is left out, the built-in example is loaded. If it's set but the file is missing or invalid, nothing is loaded and an error is shown.
 

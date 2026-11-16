@@ -9,6 +9,7 @@ import {
   readableId,
   zodMessages,
 } from './definitions';
+import { deriveAttributeBaseline, type AttributeBaseline } from './attributeBaseline';
 import { diagnostic, type ExtensionDiagnostic } from './diagnostics';
 import {
   discoverProjects,
@@ -60,6 +61,12 @@ export interface ActiveProject {
   readonly nodeTypes: readonly RegisteredNodeType[];
   readonly algorithms: readonly RegisteredAlgorithm[];
   readonly designs: readonly RegisteredDesign[];
+  /**
+   * The project-wide attribute schema its FILES describe (`defineProject({ attributes })` plus
+   * node type declarations): the immutable baseline that seeds the stored schema. See
+   * docs/PROJECT-ATTRIBUTES.md; the schema in use comes from app/session/projectAttributeStore.ts.
+   */
+  readonly attributeBaseline: AttributeBaseline;
   /** Every loading/definition problem of this project. */
   readonly diagnostics: readonly ExtensionDiagnostic[];
 }
@@ -215,12 +222,17 @@ export async function activateProject(source: ProjectSource): Promise<Activation
     }
   }
 
+  const nodeTypes = types.entries.map((e) => ({ id: e.id, file: e.file, definition: e.definition, status: status(e.diagnosticIds) }));
+  const attributeBaseline = deriveAttributeBaseline(source.id, definition, nodeTypes);
+  diagnostics.push(...attributeBaseline.diagnostics);
+
   return {
     status: 'active',
     project: {
       id: source.id,
       definition,
-      nodeTypes: types.entries.map((e) => ({ id: e.id, file: e.file, definition: e.definition, status: status(e.diagnosticIds) })),
+      nodeTypes,
+      attributeBaseline,
       algorithms: algorithms.entries.map((e) => ({ id: e.id, file: e.file, definition: e.definition, status: status(e.diagnosticIds) })),
       designs,
       diagnostics,
