@@ -86,3 +86,13 @@
 - **Interaction:** Graph 2D click selects (summary on double-click / Inspect / Enter); whole-circle drop targets while dragging a connection; room editor docked bottom-right and shown only in the panel last used; labels never take pointer presses; legends fold in narrow panels; analysis colours shown in Graph 2D.
 - **Not changed (measured):** main chunk ≈ 1.73 MB (three.js ≈ 40 % of its source, needed by the default Building view at startup); no split or lazy loading without a meaningful gain. Building build/render cost negligible up to the largest room. Gizmo-tip framing padding rejected (it shrank models by about half).
 - Still deferred: arbitrary room shapes, A*/multi-segment corridors, full gumball, pitched roofs, stairs/ramps, OBJ/3DM façades, plugin sandboxing.
+
+## Programme 2026-11 — Gate F root foundation (16 November 2026)
+Contracts: `docs/CONTRACTS-V3.md`.
+- **Seven destinations supersede the four-destination rule (N06):** Project, Attributes, Building Designer, Algorithms, Scenarios, Camera, Display, each with an always-visible label. Right side: Properties only. No 8th destination.
+- **Five views:** Plan is a separate fifth view of one storey. Graph 2D stays a free diagram, not a floor slice. Layouts of 1, 2 or 4 viewports (default 2), each with maximise.
+- **Scenario = complete design alternative** with its own undo history, kept in a versioned project file (`spatial-graph-lab/project` v1) with the shared attribute schema, cameras and display settings. The design v2 schema is unchanged. The Welcome screen always shows; no automatic resume.
+- **Clicked-wall preference** is a per-scenario sidecar, room-relative, for access edges only. A move keeps it with the room; a resize keeps its absolute cell. If the wall stops being shared, the edge stays and is unresolved (`preferred-face-unavailable`); the door is never moved to another wall.
+- **Invalid connections are removed only explicitly**, with `remove-edges` (selected unresolved edges, one undo step). Moving geometry never removes edges.
+- **Computed metrics** are derived on read, read-only, never stored or exported. Level is system-backed (`grid[2]`).
+- **D04 promoted:** façade-only 3DM import (Repeat/Stretch) is in scope, subject to a licensing and dependency spike. Binary assets are **not** in project JSON until an asset policy is decided (BLOCKED-DECISION).
