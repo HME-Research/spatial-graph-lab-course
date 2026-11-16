@@ -8,13 +8,14 @@ import {
   findField,
   keyProblem,
   normaliseSchema,
-  schemaProblems,
+  parseAttributeSchema,
   type AttributeCollection,
   type AttributeField,
   type DefaultValue,
   type FieldKind,
   type ProjectAttributeSchema,
 } from './projectAttributes';
+import { humanizeKey } from './attributeBaseline';
 import { storedKeyOf } from './resolveAttributes';
 
 /**
@@ -193,11 +194,14 @@ function shapeChangeProblem(schema: ProjectAttributeSchema, collection: Attribut
   return null;
 }
 
+/**
+ * Every edit result goes through the SAME validation as a stored or imported record (Zod limits
+ * plus structural rules), so an edit can never produce a schema that fails to load again.
+ */
 function finish(schema: ProjectAttributeSchema, label: string, fieldId?: string): EditOutcome {
-  const normal = normaliseSchema(schema);
-  const problems = schemaProblems(normal);
-  if (problems.length > 0) return refuse(problems.join('; '));
-  return { ok: true, schema: normal, label, ...(fieldId !== undefined && { fieldId }) };
+  const parsed = parseAttributeSchema(normaliseSchema(schema));
+  if (!parsed.ok) return refuse(parsed.problems.join('; '));
+  return { ok: true, schema: parsed.value, label, ...(fieldId !== undefined && { fieldId }) };
 }
 
 function replaceField(schema: ProjectAttributeSchema, collection: AttributeCollection, field: AttributeField): ProjectAttributeSchema {
@@ -223,7 +227,7 @@ export function applySchemaEdit(schema: ProjectAttributeSchema, edit: SchemaEdit
       const { collection, field: input } = edit;
       const conflict = keyConflict(schema, collection, input.key);
       if (conflict) return refuse(conflict);
-      const label = (input.label ?? '').trim() || input.key;
+      const label = (input.label ?? '').trim() || humanizeKey(input.key);
       const field: AttributeField = {
         id: newFieldId(schema, collection, input.key),
         key: input.key,
@@ -276,10 +280,13 @@ export function applySchemaEdit(schema: ProjectAttributeSchema, edit: SchemaEdit
       const field = findField(schema, collection, fieldId);
       if (!field) return refuse(`there is no ${what(collection)} field with id "${fieldId}"`);
       if (key === field.key) return refuse(`the field is already called "${key}"`);
+      if (key.toLowerCase() === field.key.toLowerCase()) {
+        return refuse(`"${key}" differs from "${field.key}" only in upper/lower case; keys ignore case, so choose a different name`);
+      }
       const conflict = keyConflict(schema, collection, key, field.id);
       if (conflict) return refuse(conflict);
       // Renaming back to a former key makes it current again; the old current key becomes former.
-      const former = [field.key, ...(field.formerKeys ?? []).filter((k) => k !== key)];
+      const former = [field.key, ...(field.formerKeys ?? []).filter((k) => k.toLowerCase() !== key.toLowerCase())];
       const next: AttributeField = { ...field, key, formerKeys: former, ...(field.label === field.key && { label: key }) };
       return finish(replaceField(schema, collection, next), `Rename ${what(collection)} field “${field.key}” to “${key}”`, field.id);
     }

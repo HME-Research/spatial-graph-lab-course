@@ -23,10 +23,14 @@ import { canRedo, canUndo, createHistory, record, redo, redoLabel, undo, undoLab
  *   is used. Every schema change is persisted at once by the host (`persistAttributeSession`), so
  *   every design opened in this project — in this browser, now or after a reload — sees it.
  * - **History.** Schema edits have their own undo/redo, independent of the open design's history.
- *   Schema edits never change design data and design edits never change the schema.
+ *   Schema edits never change design data and design edits never change the schema. A history
+ *   step holds the schema AND the files' signature it was based on, so undoing a merge or reset
+ *   also restores the "project files changed" state.
+ * - **Never overwrite what cannot be read.** A stored record that cannot be read (corrupt, or
+ *   written by a newer app version) is copied to a backup key and saving is BLOCKED until the user
+ *   explicitly replaces it (import, reset to the files, or "discard the unreadable copy").
  * - **Modified** means changed since the last export/import of the attribute file (or, if never
- *   exported, since the project files' version). It is a reminder to export, like a design's
- *   "modified (not exported)".
+ *   exported, since the project files' version).
  *
  * Pure: every transition returns a new session (or the same object for a no-op). Storage access
  * is limited to `loadAttributeSession` / `persistAttributeSession` with an injectable storage.
@@ -45,13 +49,17 @@ export const unreadableStorageKey = (projectId: string): string => `sgl:project-
 
 export type AttributeOrigin = 'files' | 'browser';
 
+/** One history step: the schema and the files' signature it was created from or merged with. */
+export interface AttributeState {
+  readonly schema: ProjectAttributeSchema;
+  readonly recordBaseline: string;
+}
+
 export interface AttributeSession {
   readonly projectId: string;
-  readonly history: History<ProjectAttributeSchema>;
+  readonly history: History<AttributeState>;
   /** Signature of the schema derived from the project's files NOW. */
   readonly filesSignature: string;
-  /** Files signature the stored schema was created from or last merged with. */
-  readonly recordBaseline: string;
   /** Signature of the last exported/imported schema (the "clean" state). */
   readonly exportedSignature: string;
   /** Where the schema came from when the project was activated. */
@@ -60,14 +68,18 @@ export interface AttributeSession {
   readonly revision: number;
   /** Loading/storage problems to show persistently. */
   readonly diagnostics: readonly ExtensionDiagnostic[];
+  /** Set while an unreadable stored record must not be overwritten (reason for the user). */
+  readonly saveBlocked?: string;
 }
 
-export const currentSchema = (session: AttributeSession): ProjectAttributeSchema => session.history.present;
+export const currentSchema = (session: AttributeSession): ProjectAttributeSchema => session.history.present.schema;
+export const currentRecordBaseline = (session: AttributeSession): string => session.history.present.recordBaseline;
 
-const sameSchema = (a: ProjectAttributeSchema, b: ProjectAttributeSchema) => a === b || schemaSignature(a) === schemaSignature(b);
+const sameState = (a: AttributeState, b: AttributeState) =>
+  a === b || (a.recordBaseline === b.recordBaseline && schemaSignature(a.schema) === schemaSignature(b.schema));
 
 function safeGet(storage: KeyValueStorage | null, key: string): { value: string | null; error?: string } {
-  if (!storage) return { value: null };
+  if (!storage) return { value: null, error: 'no browser storage' };
   try {
     return { value: storage.getItem(key) };
   } catch (error) {
@@ -80,15 +92,15 @@ export function loadAttributeSession(storage: KeyValueStorage | null, project: A
   const baseline = project.attributeBaseline;
   const subject = { kind: 'project', id: project.id } as const;
   const diagnostics: ExtensionDiagnostic[] = [];
-  const fromFiles = (): AttributeSession => ({
+  const fromFiles = (saveBlocked?: string): AttributeSession => ({
     projectId: project.id,
-    history: createHistory(baseline.schema),
+    history: createHistory({ schema: baseline.schema, recordBaseline: baseline.signature }),
     filesSignature: baseline.signature,
-    recordBaseline: baseline.signature,
     exportedSignature: baseline.signature,
     origin: 'files',
     revision: 1,
     diagnostics,
+    ...(saveBlocked !== undefined && { saveBlocked }),
   });
 
   const stored = safeGet(storage, attributeStorageKey(project.id));
@@ -102,20 +114,25 @@ export function loadAttributeSession(storage: KeyValueStorage | null, project: A
 
   const read = readAttributeRecord(stored.value, { projectId: project.id });
   if (!read.ok) {
+    // Keep every unreadable copy: never overwrite an earlier backup.
+    let backup = unreadableStorageKey(project.id);
     try {
-      storage?.setItem(unreadableStorageKey(project.id), stored.value);
+      for (let n = 2; storage?.getItem(backup) !== null && storage?.getItem(backup) !== stored.value; n++) backup = `${unreadableStorageKey(project.id)}-${n}`;
+      storage?.setItem(backup, stored.value);
     } catch {
-      // Best effort: the original stays under its own key until the next successful save.
+      // Best effort: the original also stays under its own key, because saving is blocked.
     }
+    const newer = read.issues.some((i) => i.code === 'attribute-schema-version');
+    const reason = `${newer ? 'the saved project attributes were written by a different app version' : 'the saved project attributes could not be read'} (${read.issues.map((i) => i.message).join('; ')})`;
     diagnostics.push(
       diagnostic(
         'attribute-schema-storage',
         'error',
         subject,
-        `the saved attribute schema of this project could not be read (${read.issues.map((i) => i.message).join('; ')}). The fields from the project files are used; the unreadable copy is kept in browser storage under "${unreadableStorageKey(project.id)}"`,
+        `${reason}. The fields from the project files are shown. Changes are NOT saved until you import an attribute file, reset to the project files or discard the saved copy; a copy is kept in browser storage under "${backup}"`,
       ),
     );
-    return fromFiles();
+    return fromFiles(reason);
   }
   const schema = read.value.schema;
   if (read.value.baseline !== baseline.signature) {
@@ -131,9 +148,8 @@ export function loadAttributeSession(storage: KeyValueStorage | null, project: A
   const exported = safeGet(storage, exportedStorageKey(project.id)).value;
   return {
     projectId: project.id,
-    history: createHistory(schema),
+    history: createHistory({ schema, recordBaseline: read.value.baseline }),
     filesSignature: baseline.signature,
-    recordBaseline: read.value.baseline,
     exportedSignature: exported ?? read.value.baseline,
     origin: 'browser',
     revision: 1,
@@ -143,19 +159,21 @@ export function loadAttributeSession(storage: KeyValueStorage | null, project: A
 
 /**
  * Write the schema in use to storage. Returns an error message when it could not be saved (the
- * session keeps working in memory). The files' version is stored as nothing at all: removing the
- * record means "use the project files", so an untouched project leaves no data behind.
+ * session keeps working in memory). A schema identical to the project files that was never
+ * exported differently is stored as nothing at all: no record means "use the project files".
  */
 export function persistAttributeSession(storage: KeyValueStorage | null, session: AttributeSession, now: () => string = () => new Date().toISOString()): string | null {
+  if (session.saveBlocked !== undefined) return `not saved: ${session.saveBlocked}`;
   if (!storage) return 'browser storage is not available';
   const schema = currentSchema(session);
+  const recordBaseline = currentRecordBaseline(session);
   try {
-    if (session.recordBaseline === session.filesSignature && schemaSignature(schema) === session.filesSignature && session.exportedSignature === session.filesSignature) {
+    if (recordBaseline === session.filesSignature && schemaSignature(schema) === session.filesSignature && session.exportedSignature === session.filesSignature) {
       storage.removeItem(attributeStorageKey(session.projectId));
       storage.removeItem(exportedStorageKey(session.projectId));
       return null;
     }
-    storage.setItem(attributeStorageKey(session.projectId), serializeAttributeRecord(makeAttributeRecord(session.projectId, schema, session.recordBaseline, now())));
+    storage.setItem(attributeStorageKey(session.projectId), serializeAttributeRecord(makeAttributeRecord(session.projectId, schema, recordBaseline, now())));
     storage.setItem(exportedStorageKey(session.projectId), session.exportedSignature);
     return null;
   } catch (error) {
@@ -163,10 +181,16 @@ export function persistAttributeSession(storage: KeyValueStorage | null, session
   }
 }
 
-function commit(session: AttributeSession, schema: ProjectAttributeSchema, label: string, extra: Partial<AttributeSession> = {}): AttributeSession {
-  const history = record(session.history, schema, label, sameSchema);
-  if (history === session.history && Object.keys(extra).length === 0) return session;
-  return { ...session, ...extra, history, revision: session.revision + 1 };
+/** Explicit user decision: the unreadable saved copy may be replaced (its backup is kept). */
+export function discardUnreadableRecord(session: AttributeSession): AttributeSession {
+  if (session.saveBlocked === undefined) return session;
+  const { saveBlocked: _gone, ...rest } = session;
+  return rest;
+}
+
+function commit(session: AttributeSession, state: AttributeState, label: string): AttributeSession {
+  const history = record(session.history, state, label, sameState);
+  return history === session.history ? session : { ...session, history, revision: session.revision + 1 };
 }
 
 export type AttributeEditResult =
@@ -177,7 +201,8 @@ export type AttributeEditResult =
 export function editAttributes(session: AttributeSession, edit: SchemaEdit, context: EditContext = {}): AttributeEditResult {
   const outcome = applySchemaEdit(currentSchema(session), edit, context);
   if (!outcome.ok) return outcome;
-  return { ok: true, session: commit(session, outcome.schema, outcome.label), label: outcome.label, ...(outcome.fieldId !== undefined && { fieldId: outcome.fieldId }) };
+  const next = commit(session, { schema: outcome.schema, recordBaseline: currentRecordBaseline(session) }, outcome.label);
+  return { ok: true, session: next, label: outcome.label, ...(outcome.fieldId !== undefined && { fieldId: outcome.fieldId }) };
 }
 
 export function undoAttributes(session: AttributeSession): AttributeSession {
@@ -202,9 +227,12 @@ export const isAttributeSchemaModified = (session: AttributeSession): boolean =>
 /** Differs from what the project files describe (i.e. customised in this browser). */
 export const differsFromFiles = (session: AttributeSession): boolean => schemaSignature(currentSchema(session)) !== session.filesSignature;
 
+/** The project files declare attributes the schema in use was not merged with. */
+export const filesChangedSinceSaved = (session: AttributeSession): boolean => currentRecordBaseline(session) !== session.filesSignature;
+
 /** The attribute file to download for the schema in use. */
 export const exportAttributeFile = (session: AttributeSession, now?: string): string =>
-  serializeAttributeRecord(makeAttributeRecord(session.projectId, currentSchema(session), session.recordBaseline, now));
+  serializeAttributeRecord(makeAttributeRecord(session.projectId, currentSchema(session), currentRecordBaseline(session), now));
 
 /** After a successful download: the exported schema is the clean state. */
 export function markAttributesExported(session: AttributeSession): AttributeSession {
@@ -214,30 +242,31 @@ export function markAttributesExported(session: AttributeSession): AttributeSess
 
 /**
  * Replace the schema in use with an imported attribute file (validated: format, version, project
- * id, schema). One undoable schema-history step. Stored design values are untouched.
+ * id, schema). One undoable schema-history step. Stored design values are untouched. A file of
+ * another project (explicitly allowed) is re-based on this project's files.
  */
 export function importAttributeFile(session: AttributeSession, text: string, options: { readonly allowOtherProject?: boolean } = {}):
   | { readonly ok: true; readonly session: AttributeSession }
   | { readonly ok: false; readonly issues: readonly ExtensionDiagnostic[] } {
   const read = readAttributeRecord(text, { projectId: session.projectId, ...(options.allowOtherProject !== undefined && { allowOtherProject: options.allowOtherProject }) });
   if (!read.ok) return { ok: false, issues: read.issues };
+  const raw = JSON.parse(text) as { projectId?: unknown };
+  const foreign = raw.projectId !== session.projectId;
   const schema = read.value.schema;
-  const signature = schemaSignature(schema);
-  const history = record(session.history, schema, 'Import project attributes', sameSchema);
-  return {
-    ok: true,
-    session: { ...session, history, recordBaseline: read.value.baseline, exportedSignature: signature, revision: session.revision + 1 },
-  };
+  const history = record(session.history, { schema, recordBaseline: foreign ? session.filesSignature : read.value.baseline }, 'Import project attributes', sameState);
+  const { saveBlocked: _replaced, ...rest } = session;
+  return { ok: true, session: { ...rest, history, exportedSignature: schemaSignature(schema), revision: session.revision + 1 } };
 }
 
 /** Add fields and type defaults the project files declare but the schema in use lacks (one step). */
 export function mergeFilesIntoSession(session: AttributeSession, project: ActiveProject): { readonly session: AttributeSession; readonly added: readonly string[] } {
   const merged = mergeBaseline(currentSchema(session), project.attributeBaseline.schema);
-  const next = commit(session, merged.schema, 'Add fields from project files', { recordBaseline: project.attributeBaseline.signature });
+  const next = commit(session, { schema: merged.schema, recordBaseline: project.attributeBaseline.signature }, 'Add fields from project files');
   return { session: next, added: merged.added };
 }
 
-/** Use exactly what the project files describe (one undoable step). */
+/** Use exactly what the project files describe (one undoable step; also unblocks saving). */
 export function resetToFiles(session: AttributeSession, project: ActiveProject): AttributeSession {
-  return commit(session, project.attributeBaseline.schema, 'Reset attributes to the project files', { recordBaseline: project.attributeBaseline.signature });
+  const next = commit(discardUnreadableRecord(session), { schema: project.attributeBaseline.schema, recordBaseline: project.attributeBaseline.signature }, 'Reset attributes to the project files');
+  return next;
 }

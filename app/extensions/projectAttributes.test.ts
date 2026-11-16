@@ -291,6 +291,42 @@ describe('schema edits', () => {
   });
 });
 
+describe('audit regressions (phase 01 review)', () => {
+  it('an edit can only produce a schema that loads again (same rules as stored records)', () => {
+    const long = 'x'.repeat(150);
+    expect(refused(edit(EMPTY_ATTRIBUTE_SCHEMA, { type: 'add-field', collection: 'nodes', field: { key: 'a', kind: 'text', label: long } }))).toMatch(/label/);
+    expect(edit(EMPTY_ATTRIBUTE_SCHEMA, { type: 'add-field', collection: 'nodes', field: { key: 'c', kind: 'enum', values: [''] } }).ok).toBe(false);
+    const n = ok(edit(EMPTY_ATTRIBUTE_SCHEMA, { type: 'add-field', collection: 'nodes', field: { key: 'n', kind: 'number' } }));
+    expect(edit(n, { type: 'update-field', collection: 'nodes', fieldId: 'n', patch: { min: Infinity } }).ok).toBe(false);
+    expect(edit(n, { type: 'set-type-default', typeId: 'Not A Type', fieldId: 'n', value: 1 }).ok).toBe(false);
+  });
+
+  it('case-only renames are refused clearly; new fields get readable labels', () => {
+    const s = ok(edit(EMPTY_ATTRIBUTE_SCHEMA, { type: 'add-field', collection: 'nodes', field: { key: 'floorArea', kind: 'number' } }));
+    expect(s.nodes[0]!.label).toBe('Floor area');
+    expect(refused(edit(s, { type: 'rename-field', collection: 'nodes', fieldId: 'floorArea', key: 'FloorArea' }))).toMatch(/only in upper/);
+    const renamed = ok(edit(s, { type: 'rename-field', collection: 'nodes', fieldId: 'floorArea', key: 'area' }));
+    const back = ok(edit(renamed, { type: 'rename-field', collection: 'nodes', fieldId: 'floorArea', key: 'FLOORAREA' }));
+    expect(back.nodes[0]!.formerKeys).toEqual(['area']);
+  });
+
+  it('a different value hidden under a former key is never dropped by a write', () => {
+    const renamed = ok(edit(ok(edit(EMPTY_ATTRIBUTE_SCHEMA, { type: 'add-field', collection: 'nodes', field: { key: 'capacity', kind: 'number' } })), { type: 'rename-field', collection: 'nodes', fieldId: 'capacity', key: 'seats' }));
+    const field = renamed.nodes[0]!;
+    const stored = { seats: 3, capacity: 8 };
+    expect(resolveNodeAttributes(renamed, { typeId: 'g', attributes: stored })[0]!.shadowedKeys).toEqual(['capacity']);
+    expect(writeFieldValue(field, stored, 4)).toEqual({ seats: 4, capacity: 8 });
+    expect(writeFieldValue(field, { capacity: 8 }, 4)).toEqual({ seats: 4 });
+    expect(writeFieldValue(field, { seats: 8, capacity: 8 }, 4)).toEqual({ seats: 4 });
+  });
+
+  it('a type default that does not fit the project field is reported, not silently ignored', async () => {
+    const odd = defineNodeType({ id: 'odd', label: 'Odd', attributes: { public: { kind: 'text', default: 'yes' } } });
+    const project = await labProject({ 'projects/lab/types/zz-odd.ts': { default: odd } });
+    expect(project.attributeBaseline.diagnostics.some((d) => d.message.includes('default "yes"'))).toBe(true);
+  });
+});
+
 describe('algorithm reference warnings (heuristic)', () => {
   it('finds quoted and property references in algorithm source', async () => {
     const reads = defineSpatialAlgorithm({

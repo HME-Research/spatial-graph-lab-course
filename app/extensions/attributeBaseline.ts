@@ -138,8 +138,19 @@ export function deriveAttributeBaseline(
           ),
         );
       }
-      if (spec.default !== undefined && checkFieldValue(entry.field, spec.default) === 'ok') {
-        (nodeTypeDefaults[type.id] ??= {})[entry.field.id] = spec.default;
+      if (spec.default !== undefined) {
+        if (checkFieldValue(entry.field, spec.default) === 'ok') (nodeTypeDefaults[type.id] ??= {})[entry.field.id] = spec.default;
+        else {
+          diagnostics.push(
+            diagnostic(
+              'attribute-declaration-conflict',
+              'warning',
+              subject,
+              `type "${type.id}" gives "${key}" the default ${JSON.stringify(spec.default)}, which does not fit the project field (${entry.field.kind}); the default is ignored`,
+              { attribute: key, detail: 'default' },
+            ),
+          );
+        }
       }
     }
   }

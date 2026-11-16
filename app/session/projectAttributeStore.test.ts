@@ -14,6 +14,8 @@ import {
   isAttributeSchemaModified,
   loadAttributeSession,
   markAttributesExported,
+  discardUnreadableRecord,
+  filesChangedSinceSaved,
   mergeFilesIntoSession,
   persistAttributeSession,
   redoAttributes,
@@ -56,6 +58,46 @@ const doc = (name: string, nodes: unknown[]): DesignDocumentV2 => {
 async function projectNamed(id: 'lab', name: string, extra: Record<string, unknown> = {}): Promise<ActiveProject> {
   return labProject({ [`projects/${id}/project.ts`]: { default: { name } }, ...extra });
 }
+
+describe('audit regressions (phase 01 review)', () => {
+  it('an unreadable or newer stored record is never overwritten: saving is blocked until an explicit decision', async () => {
+    const storage = memoryStorage();
+    const newer = JSON.stringify({ format: 'spatial-graph-lab/project-attributes', formatVersion: 2, projectId: 'lab', schema: {}, baseline: 'x' });
+    storage.setItem(attributeStorageKey('lab'), newer);
+    storage.setItem(unreadableStorageKey('lab'), 'older backup');
+    const project = await projectNamed('lab', 'Lab');
+    const session = addCapacity(loadAttributeSession(storage, project));
+    expect(session.saveBlocked).toMatch(/different app version/);
+    expect(persistAttributeSession(storage, session)).toMatch(/^not saved/);
+    expect(storage.data.get(attributeStorageKey('lab'))).toBe(newer);
+    expect(storage.data.get(unreadableStorageKey('lab'))).toBe('older backup');
+    expect(storage.data.get(`${unreadableStorageKey('lab')}-2`)).toBe(newer);
+    expect(persistAttributeSession(storage, discardUnreadableRecord(session))).toBeNull();
+    expect(storage.data.get(attributeStorageKey('lab'))).toMatch(/"formatVersion": 1/);
+  });
+
+  it('undoing a merge also restores the "project files changed" state', async () => {
+    const storage = memoryStorage();
+    persistAttributeSession(storage, addCapacity(loadAttributeSession(storage, await projectNamed('lab', 'Lab'))));
+    const kiosk = { id: 'kiosk', label: 'Kiosk', attributes: { open24h: { kind: 'boolean' } } };
+    const changed = await projectNamed('lab', 'Lab', { 'projects/lab/types/kiosk.ts': { default: kiosk } });
+    const session = loadAttributeSession(storage, changed);
+    expect(filesChangedSinceSaved(session)).toBe(true);
+    const merged = mergeFilesIntoSession(session, changed).session;
+    expect(filesChangedSinceSaved(merged)).toBe(false);
+    const undone = undoAttributes(merged);
+    expect(filesChangedSinceSaved(undone)).toBe(true);
+    persistAttributeSession(storage, undone);
+    expect(loadAttributeSession(storage, changed).diagnostics.map((d) => d.code)).toEqual(['attribute-baseline-changed']);
+  });
+
+  it('an explicitly allowed import from another project is re-based on this project', async () => {
+    const project = await projectNamed('lab', 'Lab');
+    const file = exportAttributeFile({ ...addCapacity(loadAttributeSession(null, project)), projectId: 'other' });
+    const imported = importAttributeFile(loadAttributeSession(null, project), file, { allowOtherProject: true });
+    expect(imported.ok && filesChangedSinceSaved(imported.session)).toBe(false);
+  });
+});
 
 describe('project attribute session', () => {
   it('starts from the project files when nothing is stored, and stores nothing until changed', async () => {
