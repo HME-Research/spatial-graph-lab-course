@@ -1,6 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
-import { OpenAttributesContext } from '@app/attributes/navigation';
-import type { AttributeCollection } from '@app/extensions';
+import { useState, type ReactNode } from 'react';
 import { AnalysisOverlayContext } from '@app/views/analysisOverlay';
 import type { ViewMode, ViewProps } from '@app/views/contracts';
 import { createPanelMemory, PanelMemoryContext, type PanelMemory } from '@app/views/panelMemory';
@@ -11,7 +9,9 @@ import {
   AlgorithmsIcon,
   AttributesIcon,
   DesignerIcon,
-  DesignerPlaceholder,
+  ProjectIcon,
+  PROPERTIES_DESCRIPTION,
+  PROPERTIES_LABEL,
   PropertiesIcon,
   SIDEBAR_DESCRIPTIONS,
   SIDEBAR_LABELS,
@@ -22,95 +22,129 @@ import {
 } from '@app/ui';
 import { PropertiesPanel } from './inspector/Inspector';
 
-const SIDEBAR_ICONS = { properties: <PropertiesIcon />, attributes: <AttributesIcon />, algorithms: <AlgorithmsIcon />, designer: <DesignerIcon /> } as const;
+const SECTION_ICONS = { project: <ProjectIcon />, attributes: <AttributesIcon />, designer: <DesignerIcon />, algorithms: <AlgorithmsIcon /> } as const;
 
-export interface WorkspaceProps extends ViewProps {
-  readonly algorithms?: ReactNode;
-  /** The Designer panel; without it the Stage 05 placeholder is shown. */
-  readonly designer?: ReactNode;
+/** Viewport width below which the left content starts collapsed (rail only), keeping the canvas wide. */
+export const LEFT_AUTO_COLLAPSE_BELOW = 1600;
+
+export interface WorkspaceProps {
+  /** The open design's view props; null when no design is open (the rails stay usable). */
+  readonly view: ViewProps | null;
+  /** Content of the four left destinations. */
+  readonly sections: Readonly<Record<SidebarSection, ReactNode>>;
+  readonly leftTab: SidebarSection;
+  readonly onLeftTab: (tab: SidebarSection) => void;
+  readonly leftCollapsed: boolean;
+  readonly onLeftCollapsed: (collapsed: boolean) => void;
+  readonly rightCollapsed: boolean;
+  readonly onRightCollapsed: (collapsed: boolean) => void;
   /** Analysis values shown on the model (Stage 07 overlay), or null. Never part of the document. */
   readonly analysis?: AnalysisPresentation | null;
   readonly onClearAnalysis?: () => void;
-  /** The project Attributes manager, given the shown sub-list (Nodes/Edges) and a setter. */
-  readonly attributes?: (collection: AttributeCollection, onCollection: (c: AttributeCollection) => void) => ReactNode;
+  /** Shown in the centre when no design is open. */
+  readonly empty?: ReactNode;
 }
 
 /**
- * Viewport host: one or two view panels sharing the same document, design port, selection and
- * command handler, and a sidebar with vertical sections: Properties, Algorithms and Designer.
+ * Application workspace (programme phase 04):
+ * - LEFT: a persistent vertical rail with exactly four destinations — Project, Attributes,
+ *   Designer, Algorithms — whose content opens beside the rail and collapses back to the rail;
+ * - CENTRE: one or two coordinated view panels (modes, single/split, per-panel camera memory);
+ * - RIGHT: Properties of the selection only, collapsible to its own rail.
  *
- * Layout state lives here, not in the panels: each panel's view mode and its view memory (camera /
- * diagram viewport) survive switching between single and split view. The second panel is unmounted
- * in single view, so no hidden renderer keeps running; the first panel is never remounted by a
- * layout change. All sidebar sections stay mounted (SidebarNav hides inactive ones), so switching
- * sections or collapsing the sidebar keeps drafts and algorithm results.
+ * Every section stays mounted while hidden (drafts, results and diagnostics survive switching
+ * and collapsing). The second view panel is unmounted in single view; the first is never
+ * remounted by a layout change. Rail and collapse state are owned by the shell (App), so the
+ * header and Properties can open a destination.
  */
-export function Workspace({ algorithms, designer, analysis = null, onClearAnalysis, attributes, ...props }: WorkspaceProps) {
+export function Workspace({
+  view,
+  sections,
+  leftTab,
+  onLeftTab,
+  leftCollapsed,
+  onLeftCollapsed,
+  rightCollapsed,
+  onRightCollapsed,
+  analysis = null,
+  onClearAnalysis,
+  empty,
+}: WorkspaceProps) {
   const [split, setSplit] = useState(true);
   const [modes, setModes] = useState<readonly [ViewMode, ViewMode]>(['graph2d', 'architecture']);
   const [memories] = useState<readonly [PanelMemory, PanelMemory]>(() => [createPanelMemory(), createPanelMemory()]);
-  const [tab, setTab] = useState<SidebarSection>('properties');
-  const [collapsed, setCollapsed] = useState(false);
-  const [attributeCollection, setAttributeCollection] = useState<AttributeCollection>('nodes');
-  const openAttributes = useCallback((collection: AttributeCollection) => {
-    setAttributeCollection(collection);
-    setTab('attributes');
-    setCollapsed(false);
-  }, []);
 
   const setMode = (index: 0 | 1, mode: ViewMode) => setModes((m) => (index === 0 ? [mode, m[1]] : [m[0], mode]));
   const panels: readonly (0 | 1)[] = split ? [0, 1] : [0];
 
-  const algorithmsSection = (
-    <>
-      {analysis && <AnalysisLegend presentation={analysis} {...(onClearAnalysis && { onClear: onClearAnalysis })} />}
-      {algorithms}
-    </>
-  );
+  const content = (id: SidebarSection): ReactNode =>
+    id === 'algorithms' ? (
+      <>
+        {analysis && <AnalysisLegend presentation={analysis} {...(onClearAnalysis && { onClear: onClearAnalysis })} />}
+        {sections.algorithms}
+      </>
+    ) : (
+      sections[id]
+    );
+
+  const className = ['workspace', leftCollapsed ? 'left-collapsed' : 'left-open', rightCollapsed ? 'right-collapsed' : 'right-open'].join(' ');
 
   return (
-    <OpenAttributesContext.Provider value={attributes ? openAttributes : null}>
     <AnalysisOverlayContext.Provider value={analysis}>
-      <section className={collapsed ? 'workspace sidebar-collapsed' : 'workspace'} aria-label="Workspace">
-        <div className={split ? 'panels split' : 'panels'}>
-          {panels.map((index) => (
-            <PanelMemoryContext.Provider key={index} value={memories[index]}>
-              <ViewPanel
-                {...props}
-                index={index}
-                mode={modes[index]}
-                onMode={(mode) => setMode(index, mode)}
-                layout={index === 0 ? <LayoutToggle split={split} onSplit={setSplit} /> : null}
-              />
-            </PanelMemoryContext.Provider>
-          ))}
-        </div>
-
+      <section className={className} aria-label="Workspace">
         <SidebarNav
-          label="Properties, algorithms and designer"
-          active={tab}
-          onActive={(id) => setTab(id as SidebarSection)}
-          collapsed={collapsed}
-          onCollapsedChange={setCollapsed}
+          side="left"
+          label="project tools"
+          active={leftTab}
+          onActive={(id) => onLeftTab(id as SidebarSection)}
+          collapsed={leftCollapsed}
+          onCollapsedChange={onLeftCollapsed}
           tabs={SIDEBAR_SECTIONS.map((id) => ({
             id,
             label: SIDEBAR_LABELS[id],
             description: SIDEBAR_DESCRIPTIONS[id],
-            icon: SIDEBAR_ICONS[id],
-            content:
-              id === 'properties'
-                ? <PropertiesPanel {...props} />
-                : id === 'attributes'
-                  ? (attributes?.(attributeCollection, setAttributeCollection) ?? <p className="meta">No active project.</p>)
-                  : id === 'algorithms'
-                    ? algorithmsSection
-                    : (designer ?? <DesignerPlaceholder />),
-            ...(id === 'designer' && designer === undefined && { badge: 'soon' }),
+            icon: SECTION_ICONS[id],
+            content: content(id),
           }))}
+        />
+
+        {view ? (
+          <div className={split ? 'panels split' : 'panels'}>
+            {panels.map((index) => (
+              <PanelMemoryContext.Provider key={index} value={memories[index]}>
+                <ViewPanel
+                  {...view}
+                  index={index}
+                  mode={modes[index]}
+                  onMode={(mode) => setMode(index, mode)}
+                  layout={index === 0 ? <LayoutToggle split={split} onSplit={setSplit} /> : null}
+                />
+              </PanelMemoryContext.Provider>
+            ))}
+          </div>
+        ) : (
+          <div className="panels panels-empty">{empty ?? <p className="meta">No design is open.</p>}</div>
+        )}
+
+        <SidebarNav
+          side="right"
+          label="Properties"
+          active="properties"
+          onActive={() => {}}
+          collapsed={rightCollapsed}
+          onCollapsedChange={onRightCollapsed}
+          tabs={[
+            {
+              id: 'properties',
+              label: PROPERTIES_LABEL,
+              description: PROPERTIES_DESCRIPTION,
+              icon: <PropertiesIcon />,
+              content: view ? <PropertiesPanel {...view} /> : <p className="meta">No design is open.</p>,
+            },
+          ]}
         />
       </section>
     </AnalysisOverlayContext.Provider>
-    </OpenAttributesContext.Provider>
   );
 }
 

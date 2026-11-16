@@ -7,7 +7,10 @@
   --accent: #2c5d8f;
   --error-bg: #fdecec;
   --error-line: #d27373;
-  --sidebar-width: 380px;
+  /* Workspace rails (phase 04): left destinations, right Properties. Widths measured for 1280–1920 px. */
+  --rail-width: 68px;
+  --left-width: 300px;
+  --right-width: 330px;
   --gap: 8px;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--fg);
@@ -129,19 +132,44 @@ main {
   color: var(--muted);
 }
 
-/* Workspace: view panels on the left, sidebar on the right. */
+/*
+ * Workspace: LEFT rail (Project / Attributes / Designer / Algorithms) + centre views + RIGHT
+ * Properties. Each side collapses to its rail; the centre takes the rest.
+ */
 .workspace {
+  --left-col: var(--left-width);
+  --right-col: var(--right-width);
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--sidebar-width);
+  grid-template-columns: var(--left-col) minmax(0, 1fr) var(--right-col);
   grid-template-rows: minmax(0, 1fr);
   gap: var(--gap);
   padding: var(--gap);
 }
 
-.workspace.sidebar-collapsed {
-  --sidebar-width: 54px;
+.workspace.left-collapsed {
+  --left-col: var(--rail-width);
+}
+
+.workspace.right-collapsed {
+  --right-col: var(--rail-width);
+}
+
+/* Laptop widths: slimmer side panels so two views stay usable even with both sides open. */
+@media (max-width: 1440px) {
+  :root {
+    --left-width: 272px;
+    --right-width: 300px;
+  }
+}
+
+.panels-empty {
+  display: grid;
+  place-items: center;
+  background: var(--panel);
+  border: 1px dashed var(--line);
+  border-radius: 8px;
 }
 
 .panels {
@@ -323,7 +351,8 @@ main {
   }
 
   .workspace,
-  .workspace.sidebar-collapsed {
+  .workspace.left-collapsed,
+  .workspace.right-collapsed {
     grid-template-columns: minmax(0, 1fr);
   }
 

@@ -17,7 +17,7 @@ import {
   type XYPosition,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useCallback, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type RefObject } from 'react';
 import { EDGE_KINDS, type DiagramPosition, type GraphIssue } from '@app/document';
 import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 import type { ViewProps } from '../contracts';
@@ -96,6 +96,37 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
   // The diagram viewport (pan/zoom) and display options are remembered by the hosting panel.
   const viewportMemory = useRemembered<Viewport>('viewport:graph2d');
   const [initialViewport] = useState(() => viewportMemory?.load());
+  /**
+   * Like the 3D cameras: the diagram starts automatically fitted and, while it is, a panel resize
+   * (split/single, side panels opened or collapsed, window size) refits it. The first user pan or
+   * zoom keeps the user's viewport from then on; the Fit button returns to automatic fitting.
+   */
+  const autoFitMemory = useRemembered<boolean>('autofit:graph2d');
+  const autoFit = useRef<boolean>(autoFitMemory?.load() ?? initialViewport === undefined);
+  const setAutoFit = (value: boolean) => {
+    autoFit.current = value;
+    autoFitMemory?.save(value);
+  };
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    let frame = 0;
+    let last = '';
+    const observer = new ResizeObserver(([entry]) => {
+      const size = entry ? `${Math.round(entry.contentRect.width)}x${Math.round(entry.contentRect.height)}` : '';
+      if (size === last) return;
+      const first = last === '';
+      last = size;
+      if (first || !autoFit.current) return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => void flow.fitView({ padding: 0.25, maxZoom: 1.5 }));
+    });
+    observer.observe(element);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [flow]);
   const displayMemory = useRemembered<DisplaySettings>('display:graph2d');
   const [display, setDisplayState] = useState(() => sanitizeDisplay(displayMemory?.load()));
   const setDisplay = (next: DisplaySettings) => {
@@ -110,6 +141,19 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
     () => (designDoc && designSpatial ? modelFromV2(designDoc, designSpatial, attributeSchema) : modelFromV1(doc)),
     [designDoc, designSpatial, doc, attributeSchema],
   );
+
+  // A different design (no room in common with the previous one, e.g. Load example / Open JSON)
+  // is fitted too while automatic fitting is on; edits within a design never move the diagram.
+  const previousIds = useRef<ReadonlySet<string> | null>(null);
+  useEffect(() => {
+    const ids = new Set(model.nodes.map((n) => n.id));
+    const before = previousIds.current;
+    previousIds.current = ids;
+    if (!before || ids.size === 0 || !autoFit.current) return;
+    if ([...ids].some((id) => before.has(id))) return;
+    const frame = requestAnimationFrame(() => void flow.fitView({ padding: 0.25, maxZoom: 1.5 }));
+    return () => cancelAnimationFrame(frame);
+  }, [model, flow]);
 
   /** Send a command to the document it was built for; show issues on rejection. */
   const run = useCallback(
@@ -416,13 +460,17 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
         multiSelectionKeyCode={null}
         selectNodesOnDrag={false}
         {...(initialViewport ? { defaultViewport: initialViewport } : { fitView: true })}
-        onMoveStart={() => setMenu(null)}
+        onMoveStart={(event) => {
+          setMenu(null);
+          // A move caused by the user (pointer, wheel, keyboard) ends automatic fitting.
+          if (event) setAutoFit(false);
+        }}
         onMoveEnd={(_event, viewport) => viewportMemory?.save(viewport)}
         fitViewOptions={{ padding: 0.25, maxZoom: 1.5 }}
         minZoom={0.2}
       >
         <Background gap={20} />
-        <Controls showInteractive={false} />
+        <Controls showInteractive={false} onFitView={() => setAutoFit(true)} />
 
         <Panel position="top-left" className="sgl-toolbar">
           <button

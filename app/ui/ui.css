@@ -42,7 +42,7 @@
 
 .sgl-sidenav-strip {
   flex: none;
-  width: 76px;
+  width: var(--rail-width, 68px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -53,6 +53,18 @@
 .sgl-sidenav.collapsed .sgl-sidenav-strip {
   width: 100%;
   border-left: none;
+  border-right: none;
+}
+
+/* Left rail: the strip is on the outer (left) edge; the active marker faces the content. */
+.sgl-sidenav.side-left .sgl-sidenav-strip {
+  border-left: none;
+  border-right: 1px solid var(--line, #d9d9d2);
+}
+.sgl-sidenav.side-left .sgl-sidenav-tab.active::before {
+  left: auto;
+  right: 0;
+  border-radius: 2px 0 0 2px;
 }
 
 .sgl-sidenav-tabs {
@@ -120,8 +132,10 @@
   color: var(--muted, #66665f);
 }
 
-/* Collapsed: icons only; labels stay available to assistive technology and as tooltips. */
-.sgl-sidenav.collapsed .sgl-sidenav-label,
+/*
+ * Collapsed: the rail keeps its icons AND short labels (the rail is wide enough), so the
+ * destinations stay discoverable; only badges are hidden visually (still announced).
+ */
 .sgl-sidenav.collapsed .sgl-sidenav-badge {
   position: absolute;
   width: 1px;

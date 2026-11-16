@@ -25,6 +25,8 @@ export interface SidebarNavProps {
   readonly onCollapsedChange: (collapsed: boolean) => void;
   /** Accessible name of the whole sidebar. */
   readonly label?: string;
+  /** Which window edge the rail sits on (default right). The rail is always on the outer edge. */
+  readonly side?: 'left' | 'right';
 }
 
 /**
@@ -37,7 +39,7 @@ export interface SidebarNavProps {
  *
  * Layout only; the host (Workspace) decides its grid width with `--sidebar-width`.
  */
-export function SidebarNav({ tabs, active, onActive, collapsed, onCollapsedChange, label = 'Sidebar' }: SidebarNavProps) {
+export function SidebarNav({ tabs, active, onActive, collapsed, onCollapsedChange, label = 'Sidebar', side = 'right' }: SidebarNavProps) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const activeIndex = Math.max(
     0,
@@ -58,8 +60,7 @@ export function SidebarNav({ tabs, active, onActive, collapsed, onCollapsedChang
     buttons.current[next]?.focus();
   };
 
-  return (
-    <aside className={collapsed ? 'sgl-sidenav collapsed' : 'sgl-sidenav'} aria-label={label}>
+  const panels = (
       <div className="sgl-sidenav-panels" hidden={collapsed}>
         {tabs.map((tab, i) => (
           <div
@@ -75,7 +76,8 @@ export function SidebarNav({ tabs, active, onActive, collapsed, onCollapsedChang
           </div>
         ))}
       </div>
-
+  );
+  const strip = (
       <nav className="sgl-sidenav-strip" aria-label={`${label} sections`}>
         <div role="tablist" aria-orientation="vertical" aria-label={`${label} sections`} className="sgl-sidenav-tabs">
           {tabs.map((tab, i) => {
@@ -114,14 +116,19 @@ export function SidebarNav({ tabs, active, onActive, collapsed, onCollapsedChang
           type="button"
           className="sgl-sidenav-toggle"
           aria-expanded={!collapsed}
-          title={collapsed ? 'Show the sidebar' : 'Hide the sidebar to give the views more room'}
-          aria-label={collapsed ? 'Show the sidebar' : 'Hide the sidebar'}
+          title={collapsed ? `Show ${label}` : `Hide ${label} to give the views more room`}
+          aria-label={collapsed ? `Show ${label}` : `Hide ${label}`}
           onClick={() => onCollapsedChange(!collapsed)}
         >
-          <span aria-hidden="true">{collapsed ? '«' : '»'}</span>
+          <span aria-hidden="true">{(side === 'right') === collapsed ? '«' : '»'}</span>
           <span className="sgl-sidenav-label">{collapsed ? 'Show' : 'Hide'}</span>
         </button>
       </nav>
+  );
+  return (
+    <aside className={`sgl-sidenav side-${side}${collapsed ? ' collapsed' : ''}`} aria-label={label}>
+      {side === 'left' ? strip : panels}
+      {side === 'left' ? panels : strip}
     </aside>
   );
 }
@@ -144,6 +151,13 @@ export const PropertiesIcon = () => (
     <circle cx="13" cy="5" r="2" />
     <circle cx="7" cy="10" r="2" />
     <circle cx="15" cy="15" r="2" />
+  </svg>
+);
+
+/** Folder: the project, its designs and files. */
+export const ProjectIcon = () => (
+  <svg {...ICON_PROPS}>
+    <path d="M2.5 5.5a1 1 0 0 1 1-1h4l1.6 1.8h7.4a1 1 0 0 1 1 1v8.2a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1z" />
   </svg>
 );
 

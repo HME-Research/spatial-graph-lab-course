@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } f
 import exampleDesign from './document/examples/two-storey-example.json';
 import { formatIssuePath, type GraphIssue, type Result } from '@app/document';
 import { readDesign, readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
-import { PROJECT_GLOBS, type TransformationPreviewV2 } from '@app/extensions';
+import { PROJECT_GLOBS, type AttributeCollection, type ExtensionDiagnostic, type TransformationPreviewV2 } from '@app/extensions';
 import { proposeSpatialEdit, resolveRelationships, type DesignCommand, type DesignPort } from '@app/spatial';
 import type { CommandOutcome, GraphCommandHandler } from '@app/views/contracts';
 import { conciseIssues, presentAnalysis, type AnalysisPresentation } from '@app/views/presentation';
@@ -26,7 +26,9 @@ import {
 } from './session/documentSession';
 import { canRedo, canUndo, redoLabel, undoLabel } from './session/history';
 import { designCommandFromLegacy, legacyProjection } from './session/legacyBridge';
-import { ProjectBar } from './session/ProjectBar';
+import { ProjectPanel, projectStatus } from './session/ProjectPanel';
+import { OpenAttributesContext } from './attributes/navigation';
+import type { SidebarSection } from '@app/ui';
 import {
   currentSchema,
   loadAttributeSession,
@@ -37,6 +39,7 @@ import {
 import {
   activeProjectOf,
   DISCARD_PROMPT,
+  projectHeadline,
   readProjectRequest,
   searchWithProject,
   startProject,
@@ -45,7 +48,7 @@ import {
 } from './session/projectSession';
 import { historyButtonTitle, historyShortcut, isApplePlatform, type HistoryShortcut } from './session/shortcuts';
 import './session/session.css';
-import { Workspace } from './Workspace';
+import { LEFT_AUTO_COLLAPSE_BELOW, Workspace } from './Workspace';
 
 /**
  * Application shell (Gate 1 integration). The app stores, edits, undoes and exports ONE schema-v2
@@ -162,6 +165,13 @@ export function App() {
   const attributesRef = useRef(attributes);
   /** Last failure to save the schema (shown persistently), or null. */
   const [attributeSaveError, setAttributeSaveError] = useState<string | null>(null);
+  /** Workspace rails (programme phase 04): owned here so the header and Properties can open a destination. */
+  const [leftTab, setLeftTab] = useState<SidebarSection>('project');
+  // Narrow screens start with the left content collapsed (rail only) so the views keep their width.
+  const [leftCollapsed, setLeftCollapsed] = useState(() => typeof window === 'undefined' || window.innerWidth < LEFT_AUTO_COLLAPSE_BELOW);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [attributeCollection, setAttributeCollection] = useState<AttributeCollection>('nodes');
+  const fileInput = useRef<HTMLInputElement>(null);
   const setAttributes = useCallback((next: AttributeSession | null, persist = true) => {
     attributesRef.current = next;
     setAttributesRaw(next);
@@ -367,12 +377,58 @@ export function App() {
   const undoTitle = historyButtonTitle('undo', undoable, current && undoLabel(current.history), APPLE);
   const redoTitle = historyButtonTitle('redo', redoable, current && redoLabel(current.history), APPLE);
 
+  const conformance = projectContext?.conformance ?? [];
+  const attributeProblems: readonly ExtensionDiagnostic[] = [
+    ...(attributes?.diagnostics ?? []),
+    ...(attributeSaveError
+      ? [{ id: 'attribute-save', code: 'attribute-schema-storage', severity: 'error', subject: { kind: 'project', id: project?.id ?? '' }, message: `project attributes were not saved: ${attributeSaveError}` } as const]
+      : []),
+  ];
+  const status = projectStatus(session, conformance, attributeProblems);
+  const openLeft = (tab: SidebarSection) => {
+    setLeftTab(tab);
+    setLeftCollapsed(false);
+  };
+  const openAttributes = (collection: AttributeCollection) => {
+    setAttributeCollection(collection);
+    openLeft('attributes');
+  };
+  const loadExampleDesign = () => confirmDiscard() && load(loadExample);
+  const projectName = session === null ? 'Activating project…' : (project?.definition.name ?? projectHeadline(session, current !== null).title);
+  const designName = doc?.metadata.name ?? null;
+
   return (
     <div className="app">
       <header className="toolbar">
         <h1>Spatial Graph Lab</h1>
+        {/* Short identity; full paths, project switching and checks live in the Project section. */}
+        <div className="project-bar sgl-identity" aria-label="Open project and design">
+          <button type="button" className="sgl-identity-project" onClick={() => openLeft('project')} title="Project, designs, files and checks">
+            {projectName}
+          </button>
+          {designName && (
+            <>
+              <span className="sgl-identity-sep" aria-hidden="true">
+                /
+              </span>
+              <span className="sgl-identity-design" title={current?.source ?? undefined}>
+                {designName}
+              </span>
+            </>
+          )}
+          {modified && (
+            <span className="modified-badge" title="Changed since it was loaded or exported. Use Export JSON to keep it.">
+              modified (not exported)
+            </span>
+          )}
+          {status.problems > 0 && (
+            <button type="button" className={`sgl-problem-badge ${status.errors > 0 ? 'error' : 'warning'}`} onClick={() => openLeft('project')} title="Show the problems in the Project section">
+              {status.errors > 0 ? '✖' : '⚠'} {status.problems} {status.problems === 1 ? 'problem' : 'problems'}
+            </button>
+          )}
+        </div>
         <div className="actions">
-          <div className="history-actions" role="group" aria-label="Edit history">
+          <div className="history-actions" role="group" aria-label="Design edit history">
             <button type="button" disabled={!undoable} title={undoTitle} aria-label={undoTitle} onClick={() => navigate('undo')}>
               <span aria-hidden="true">↶</span> Undo
             </button>
@@ -380,92 +436,102 @@ export function App() {
               <span aria-hidden="true">↷</span> Redo
             </button>
           </div>
-          <button type="button" onClick={() => confirmDiscard() && load(loadExample)}>
+          <button type="button" onClick={loadExampleDesign} title="Replace the open design with the built-in two-storey example">
             Load example
           </button>
-          <label className="file-button">
+          <label className="file-button" title="Open a design JSON file (schema v1 or v2) from your computer">
             Open JSON…
-            <input type="file" accept=".json,application/json" onChange={onFile} />
+            <input ref={fileInput} type="file" accept=".json,application/json" onChange={onFile} />
           </label>
-          <button type="button" disabled={!current} onClick={exportDesign}>
+          <button type="button" disabled={!current} onClick={exportDesign} title="Download the open design as schema-v2 JSON">
             Export JSON
           </button>
         </div>
       </header>
 
       <main>
-        <ProjectBar
-          session={session}
-          docLoaded={current !== null}
-          source={current?.source ?? null}
-          modified={modified}
-          conformance={projectContext?.conformance ?? []}
-          onSwitchProject={(id) => void switchProject(id)}
-          onOpenDesign={openProjectDesign}
-          onSelect={setSelection}
-        />
-
-        {attributes && (attributes.diagnostics.length > 0 || attributeSaveError) && (
-          <section className="issues sgl-attribute-problems" role="alert" aria-label="Project attribute problems">
-            <ul>
-              {attributes.diagnostics.map((d) => (
-                <li key={d.id}>
-                  {d.severity === 'error' ? '✖' : '⚠'} {d.message}
-                </li>
-              ))}
-              {attributeSaveError && <li>✖ Project attributes were not saved: {attributeSaveError}</li>}
-            </ul>
-          </section>
-        )}
-
         {failure && (
           <LoadFailure failure={failure} kept={current !== null} onDismiss={() => setState((s) => ({ ...s, failure: null }))} />
         )}
 
-        {doc && viewDoc && port && (
+        <OpenAttributesContext.Provider value={project ? openAttributes : null}>
           <Workspace
-            doc={viewDoc}
-            design={port}
-            selection={selection}
-            onSelect={setSelection}
-            onCommand={onCommand}
+            view={
+              doc && viewDoc && port
+                ? { doc: viewDoc, design: port, selection, onSelect: setSelection, onCommand, ...(projectContext && { project: projectContext }) }
+                : null
+            }
+            leftTab={leftTab}
+            onLeftTab={setLeftTab}
+            leftCollapsed={leftCollapsed}
+            onLeftCollapsed={setLeftCollapsed}
+            rightCollapsed={rightCollapsed}
+            onRightCollapsed={setRightCollapsed}
             analysis={analysis}
             onClearAnalysis={() => setShownAnalysis(null)}
-            {...(projectContext && { project: projectContext })}
-            algorithms={
-              <AlgorithmPanel
-                key={`${project?.id ?? '-'}:${generation}`}
-                project={project}
-                version={version}
-                onApply={onApplyPreview}
-                onSelect={setSelection}
-                shownAnalysis={shownAnalysis}
-                onShowAnalysis={setShownAnalysis}
-                {...(attributesVersion && { attributes: attributesVersion })}
-              />
+            empty={
+              <p className="meta">
+                No design is open. {session ? 'See the Project section for the reason, or load the example.' : 'Activating project…'}
+              </p>
             }
-            attributes={(collection, onCollection) => (
-              <AttributesPanel
-                session={attributes}
-                project={project}
-                doc={doc}
-                source={current?.source ?? null}
-                onChange={(next) => setAttributes(next)}
-                saveError={attributeSaveError}
-                collection={collection}
-                onCollection={onCollection}
-              />
-            )}
-            designer={
-              <DesignerPanel
-                design={port}
-                {...(projectContext && { project: projectContext })}
-                selection={selection}
-                onShowRelationship={(edgeId) => setSelection(selectEdge(edgeId))}
-              />
-            }
+            sections={{
+              project: (
+                <ProjectPanel
+                  session={session}
+                  docLoaded={current !== null}
+                  source={current?.source ?? null}
+                  designName={designName}
+                  modified={modified}
+                  conformance={conformance}
+                  attributeProblems={attributeProblems}
+                  onSwitchProject={(id) => void switchProject(id)}
+                  onOpenDesign={openProjectDesign}
+                  onSelect={setSelection}
+                  onLoadExample={loadExampleDesign}
+                  onOpenFile={() => fileInput.current?.click()}
+                  onExport={exportDesign}
+                />
+              ),
+              attributes: (
+                <AttributesPanel
+                  session={attributes}
+                  project={project}
+                  doc={doc}
+                  source={current?.source ?? null}
+                  onChange={(next) => setAttributes(next)}
+                  saveError={attributeSaveError}
+                  collection={attributeCollection}
+                  onCollection={setAttributeCollection}
+                />
+              ),
+              designer: port ? (
+                <DesignerPanel
+                  design={port}
+                  {...(projectContext && { project: projectContext })}
+                  selection={selection}
+                  onShowRelationship={(edgeId) => {
+                    setSelection(selectEdge(edgeId));
+                    setRightCollapsed(false);
+                  }}
+                />
+              ) : (
+                <p className="meta">Open a design to change its appearance.</p>
+              ),
+              algorithms: (
+                <AlgorithmPanel
+                  key={`${project?.id ?? '-'}:${generation}`}
+                  project={project}
+                  version={version}
+                  onApply={onApplyPreview}
+                  onSelect={setSelection}
+                  shownAnalysis={shownAnalysis}
+                  onShowAnalysis={setShownAnalysis}
+                  {...(attributesVersion && { attributes: attributesVersion })}
+                />
+              ),
+            }}
           />
-        )}
+        </OpenAttributesContext.Provider>
       </main>
     </div>
   );

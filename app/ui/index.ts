@@ -14,6 +14,7 @@ export {
   AlgorithmsIcon,
   AttributesIcon,
   DesignerIcon,
+  ProjectIcon,
   PropertiesIcon,
   SidebarNav,
   type SidebarNavProps,

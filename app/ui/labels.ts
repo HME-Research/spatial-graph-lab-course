@@ -29,23 +29,29 @@ export const VIEW_OPTIONS: readonly { readonly mode: ViewMode; readonly label: s
   (mode) => ({ mode, label: VIEW_LABELS[mode], description: VIEW_DESCRIPTIONS[mode] }),
 );
 
-/** Sidebar sections, in display order (top to bottom of the vertical navigation). */
-export const SIDEBAR_SECTIONS = ['properties', 'attributes', 'algorithms', 'designer'] as const;
+/**
+ * The LEFT navigation rail (programme phase 04): exactly four destinations, top to bottom. The
+ * right-hand panel holds Properties only (`PROPERTIES_LABEL`).
+ */
+export const SIDEBAR_SECTIONS = ['project', 'attributes', 'designer', 'algorithms'] as const;
 export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number];
 
 export const SIDEBAR_LABELS: Readonly<Record<SidebarSection, string>> = {
-  properties: 'Properties',
+  project: 'Project',
   attributes: 'Attributes',
-  algorithms: 'Algorithms',
   designer: 'Designer',
+  algorithms: 'Algorithms',
 };
 
 export const SIDEBAR_DESCRIPTIONS: Readonly<Record<SidebarSection, string>> = {
-  properties: 'Properties of the selected room or relationship',
-  attributes: 'Custom fields of every room and relationship in this project',
-  algorithms: 'Run the project’s algorithms on this design',
-  designer: 'Appearance settings per room type',
+  project: 'Project, designs, files and checks',
+  attributes: 'Custom fields of every room (Nodes) and relationship (Edges) in this project',
+  designer: 'Appearance settings per room type in this design',
+  algorithms: 'Run the project’s analyses and transformations on this design',
 };
+
+export const PROPERTIES_LABEL = 'Properties';
+export const PROPERTIES_DESCRIPTION = 'Properties of the selected room or relationship';
 
 // ── Relationships (schema v2) ────────────────────────────────────────────────────────────────
 

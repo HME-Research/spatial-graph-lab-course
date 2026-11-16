@@ -6,7 +6,7 @@ import type { EdgeResolution } from '@app/spatial';
 import { VIEW_MODES } from '@app/views/contracts';
 import { DesignerPlaceholder } from './DesignerPlaceholder';
 import { Feedback, IssueFeedback } from './Feedback';
-import { describeResolution, SIDEBAR_LABELS, SIDEBAR_SECTIONS, UNRESOLVED_REASON_TEXT, VIEW_LABELS } from './labels';
+import { describeResolution, PROPERTIES_LABEL, SIDEBAR_LABELS, SIDEBAR_SECTIONS, UNRESOLVED_REASON_TEXT, VIEW_LABELS } from './labels';
 import { LoadFailureNotice } from './LoadFailureNotice';
 import { friendlyMessages, friendlyText, roomList } from './messages';
 import { nextTabIndex } from './navigation';
@@ -23,8 +23,9 @@ describe('beginner vocabulary', () => {
     expect(Object.values(VIEW_LABELS)).not.toContain('Architecture');
   });
 
-  it('names the sidebar sections Properties, Algorithms, Designer in that order', () => {
-    expect(SIDEBAR_SECTIONS.map((s) => SIDEBAR_LABELS[s])).toEqual(['Properties', 'Attributes', 'Algorithms', 'Designer']);
+  it('names exactly four left destinations: Project, Attributes, Designer, Algorithms (phase 04)', () => {
+    expect(SIDEBAR_SECTIONS.map((s) => SIDEBAR_LABELS[s])).toEqual(['Project', 'Attributes', 'Designer', 'Algorithms']);
+    expect(PROPERTIES_LABEL).toBe('Properties');
   });
 
   it('describes every spatial status; unresolved is a warning with a reason', () => {
@@ -130,26 +131,31 @@ describe('shell components (static markup)', () => {
     icon: null,
     content: createElement('p', null, `content of ${id}`),
   }));
-  const nav = (collapsed: boolean) =>
-    renderToStaticMarkup(createElement(SidebarNav, { tabs, active: 'algorithms', onActive: () => {}, collapsed, onCollapsedChange: () => {} }));
+  const nav = (collapsed: boolean, side: 'left' | 'right' = 'left') =>
+    renderToStaticMarkup(createElement(SidebarNav, { tabs, active: 'algorithms', onActive: () => {}, collapsed, onCollapsedChange: () => {}, label: 'project tools', side }));
 
   it('renders a vertical tab list with every panel mounted', () => {
     const html = nav(false);
     expect(html).toContain('role="tablist" aria-orientation="vertical"');
-    for (const label of ['Properties', 'Algorithms', 'Designer']) expect(html).toContain(`>${label}</span>`);
+    for (const label of ['Project', 'Attributes', 'Designer', 'Algorithms']) expect(html).toContain(`>${label}</span>`);
     // Every panel is in the DOM (drafts and algorithm results survive switching); only one is visible.
     for (const id of SIDEBAR_SECTIONS) expect(html).toContain(`content of ${id}`);
     expect(html.match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(SIDEBAR_SECTIONS.length - 1);
     expect(html).toMatch(/id="sidebar-tab-algorithms"[^>]*aria-selected="true"/);
     expect(html).toMatch(/id="sidebar-tab-algorithms"[^>]*tabindex="0"/);
-    expect(html).toMatch(/id="sidebar-tab-properties"[^>]*tabindex="-1"/);
+    expect(html).toMatch(/id="sidebar-tab-project"[^>]*tabindex="-1"/);
+    // Left rail: the strip comes first (outer edge), then the content.
+    expect(html.indexOf('sgl-sidenav-strip')).toBeLessThan(html.indexOf('sgl-sidenav-panels'));
+    expect(html).toContain('sgl-sidenav side-left');
+    const right = nav(false, 'right');
+    expect(right.indexOf('sgl-sidenav-panels')).toBeLessThan(right.indexOf('sgl-sidenav-strip'));
   });
 
   it('keeps an accessible name and tooltip for each icon when collapsed', () => {
     const html = nav(true);
-    expect(html).toContain('aria-label="Properties (opens the sidebar)"');
-    expect(html).toContain('title="properties"');
-    expect(html).toContain('aria-label="Show the sidebar"');
+    expect(html).toContain('aria-label="Project (opens the sidebar)"');
+    expect(html).toContain('title="project"');
+    expect(html).toContain('aria-label="Show project tools"');
     expect(html.match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(SIDEBAR_SECTIONS.length);
   });
 
