@@ -11,10 +11,13 @@ import { EDGE_LEGEND_ORDER, EDGE_STYLES } from './edgeStyle';
 export function ColorBySelect({
   mode,
   attributeKeys,
+  metrics = [],
   onChange,
 }: {
   readonly mode: ColorMode;
   readonly attributeKeys: readonly string[];
+  /** Calculated node values on offer (`useSpatialScene().metricOptions`). */
+  readonly metrics?: readonly { readonly id: string; readonly label: string; readonly unit?: string | undefined }[];
   readonly onChange: (mode: ColorMode) => void;
 }) {
   return (
@@ -28,6 +31,15 @@ export function ColorBySelect({
             {attributeKeys.map((k) => (
               <option key={k} value={colorModeToValue({ kind: 'attribute', key: k })}>
                 {k}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        {metrics.length > 0 && (
+          <optgroup label="Calculated">
+            {metrics.map((m) => (
+              <option key={m.id} value={colorModeToValue({ kind: 'metric', metricId: m.id })}>
+                {m.unit ? `${m.label} (${m.unit})` : m.label}
               </option>
             ))}
           </optgroup>

@@ -44,7 +44,7 @@ const BASE_OPACITY = 0.38;
 
 export function VoxelView({ doc, selection, onSelect, design, project }: ViewProps) {
   const source = useSceneSource(doc, design);
-  const s = useSpatialScene(source, selection, project?.attributes);
+  const s = useSpatialScene(source, selection, project?.attributes, design);
   const camera = useRemembered<CameraState>('camera:voxels');
   const viewportCamera = useViewportCamera();
   const [opacity, setOpacity] = useState(BASE_OPACITY);
@@ -67,7 +67,7 @@ export function VoxelView({ doc, selection, onSelect, design, project }: ViewPro
   const [legendOpen, setLegendOpen] = useDefaultOpen(compact, width !== null);
   const options = (
     <>
-      <ColorBySelect mode={s.colorMode} attributeKeys={s.attributeKeys} onChange={s.setColorMode} />
+      <ColorBySelect mode={s.colorMode} attributeKeys={s.attributeKeys} metrics={s.metricOptions} onChange={s.setColorMode} />
       <LevelSelect levels={s.levels} maxLevel={s.maxLevel} onChange={s.setMaxLevel} />
       <label title="Voxel opacity">
         Opacity{' '}
