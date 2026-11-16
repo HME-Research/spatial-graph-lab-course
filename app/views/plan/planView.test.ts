@@ -105,8 +105,21 @@ describe('PlanView', () => {
     expect(html).toContain('1 unresolved relationship not drawn');
   });
 
-  it('wall targets are not drawn without the wall data hook', () => {
+  it('wall targets are not drawn without the wall data hook, and are with it (shared walls only)', () => {
     expect(render(twoRooms)).not.toContain('sgl-plan-wall-target');
+    const html = renderToStaticMarkup(
+      createElement(PlanView, {
+        doc: v1Example,
+        selection: NO_SELECTION,
+        onSelect: () => {},
+        onCommand: () => ({ ok: true }) as const,
+        design: port(twoRooms),
+        onWallTarget: () => {},
+      }),
+    );
+    const targets = [...html.matchAll(/class="sgl-plan-wall-target[^"]*" data-face-id="([^"]+)"/g)].map((m) => m[1]);
+    // a | b share exactly one wall on Level 0; c stands alone.
+    expect(targets).toEqual(['a:+x']);
   });
 
   it('an empty design shows an explanation and a disabled storey selector', () => {
