@@ -340,6 +340,148 @@ describe('two tabs on one project', () => {
   });
 });
 
+// ── Writes in flight (independent audit C1/C2/m1/m2/m3) ──────────────────────────────────────
+
+/** A memory store whose `save` waits until the test releases it (a slow IndexedDB). */
+function gatedStore() {
+  const inner = createMemoryProjectStore();
+  const gates: Array<() => void> = [];
+  let gated = false;
+  const store: MemoryProjectStore = {
+    ...inner,
+    save: async (file) => {
+      if (gated) await new Promise<void>((r) => gates.push(r));
+      return inner.save(file);
+    },
+  };
+  return {
+    store,
+    gate: () => void (gated = true),
+    release: async () => {
+      gated = false;
+      while (gates.length) gates.shift()!();
+      await new Promise((r) => setTimeout(r, 0));
+    },
+  };
+}
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+describe('writes in flight', () => {
+  it('close() writes changes made while a write was running before returning to Welcome', async () => {
+    const g = gatedStore();
+    const { c, timers } = makeController(g.store);
+    await c.open(fileOf(), created);
+    await c.flush();
+    const id = project(c).meta.projectId;
+    g.gate();
+    move(c, 'c', [6, 7, 0]);
+    timers.run();
+    await tick();
+    move(c, 'c', [6, 8, 0]); // during the write
+    const closing = c.close();
+    await g.release();
+    expect(await closing).toBe(true);
+    expect(stored(g.store, id).scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 8, 0]);
+  });
+
+  it('switching project still writes the previous project’s newest changes', async () => {
+    const g = gatedStore();
+    const { c, timers } = makeController(g.store);
+    await c.open(fileOf(), created);
+    await c.flush();
+    const a = project(c).meta.projectId;
+    g.gate();
+    move(c, 'c', [6, 7, 0]);
+    timers.run();
+    await tick();
+    move(c, 'c', [6, 9, 0]); // during the write
+    const opening = c.open(fileOf(), created);
+    await g.release();
+    await opening;
+    await c.flush();
+    expect(stored(g.store, a).scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 9, 0]);
+    // Restoring A afterwards sees the final copy and saves without a false conflict.
+    await c.restore(a);
+    move(c, 'b', [2, 1, 0]);
+    await c.flush();
+    expect(c.getState().save.local).toBe('saved');
+  });
+
+  it('close() refuses to drop changes that could not be stored unless discarded explicitly', async () => {
+    const tiny = createMemoryProjectStore({ quotaBytes: 10 });
+    const { c } = makeController(tiny);
+    await c.open(fileOf(), created);
+    expect(await c.close()).toBe(false);
+    expect(c.getState().project).not.toBeNull();
+    expect(c.getState().save.local).toBe('blocked');
+    expect(await c.close({ discard: true })).toBe(true);
+    expect(c.getState().project).toBeNull();
+  });
+
+  it('a blocked write of a project no longer shown becomes a notice', async () => {
+    const g = gatedStore();
+    const { c, timers, store } = makeController(g.store);
+    await c.open(fileOf(), created);
+    await c.flush();
+    const a = project(c).meta.projectId;
+    g.gate();
+    move(c, 'c', [6, 7, 0]);
+    timers.run();
+    await tick();
+    store.records.set(a, 'garbage'); // the stored copy becomes unreadable before the write lands
+    move(c, 'c', [6, 8, 0]);
+    const opening = c.open(fileOf(), created);
+    await g.release();
+    await opening;
+    await c.flush();
+    await tick();
+    expect(c.getState().notice).toMatch(/could not be saved/);
+  });
+
+  it('opening a file with the id of the shown (not yet stored) project opens a separate copy, without a false conflict', async () => {
+    const g = gatedStore();
+    const { c } = makeController(g.store);
+    const file = fileOf();
+    g.gate();
+    await c.open(file, created);
+    const opening = c.open(file, { kind: 'opened-file', label: 'same.json' });
+    await g.release();
+    await opening;
+    await c.flush();
+    expect(project(c).meta.projectId).not.toBe(file.projectId);
+    expect(c.getState().save.local).toBe('saved');
+  });
+
+  it('a failed Overwrite does not leave conflict detection switched off', async () => {
+    const store = createMemoryProjectStore();
+    const one = makeController(store).c;
+    await one.open(fileOf(), created);
+    await one.flush();
+    const id = project(one).meta.projectId;
+    const two = makeController(store).c;
+    await two.restore(id);
+    move(two, 'b', [2, 1, 0]);
+    await two.flush();
+    move(one, 'c', [6, 7, 0]);
+    await one.flush();
+    store.records.set(id, 'garbage');
+    await one.overwriteStored();
+    const s = one.getState().save;
+    expect(s.local === 'blocked' && s.reason).toBe('refused-unreadable');
+    // The record becomes readable again (another tab discards and saves): this tab must not overwrite it silently.
+    store.records.delete(id);
+    move(two, 'b', [2, 2, 0]);
+    await two.retrySave();
+    await two.flush();
+    move(one, 'c', [6, 8, 0]);
+    await one.retrySave();
+    await one.flush();
+    const after = one.getState().save;
+    expect(after.local === 'blocked' && after.reason).toBe('conflict');
+  });
+});
+
 // ── Isolation and files ───────────────────────────────────────────────────────────────────────
 
 describe('cross-project isolation', () => {

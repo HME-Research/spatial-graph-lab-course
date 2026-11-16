@@ -53,8 +53,12 @@
   color: inherit;
   cursor: pointer;
 }
-.sgl-welcome-action.primary {
+.sgl-welcome-action.is-primary {
   border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.sgl-welcome-action.is-primary .sgl-welcome-action-title {
+  color: var(--accent);
 }
 .sgl-welcome-action:hover,
 .sgl-welcome-action:focus-within {

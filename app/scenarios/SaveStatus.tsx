@@ -27,7 +27,7 @@ export function SaveStatus({
         void controller.overwriteStored();
       }
     } else if (onSaveAs) onSaveAs();
-    else void controller.saveAs();
+    else void controller.saveAs(`${(state.project?.meta.name ?? 'Project').slice(0, 75)} copy`);
   };
   if (compact) {
     return (

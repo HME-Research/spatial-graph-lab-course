@@ -59,11 +59,13 @@
 }
 .sgl-scenario-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   padding: 0 4px 2px;
 }
 .sgl-scenario-actions button {
   min-height: 32px;
+  padding: 4px 8px;
   font-size: 13px;
 }
 .sgl-scenario-form {

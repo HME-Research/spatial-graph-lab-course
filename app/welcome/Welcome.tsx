@@ -105,7 +105,7 @@ export function Welcome({
             </form>
           ) : (
             <div className="sgl-welcome-actions">
-              <button type="button" className="sgl-welcome-action primary" onClick={() => setCreating(true)} disabled={disabled}>
+              <button type="button" className="sgl-welcome-action is-primary" onClick={() => setCreating(true)} disabled={disabled}>
                 <span className="sgl-welcome-action-title">Create project</span>
                 <span className="sgl-welcome-action-sub">A new project from a course starting design</span>
               </button>

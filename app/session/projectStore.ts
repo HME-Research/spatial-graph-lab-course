@@ -269,8 +269,15 @@ export interface NewScenarioRequest {
   readonly id: string;
   /** Default: the next free "Scenario N". */
   readonly name?: string;
-  /** `current`: a copy of the active scenario's current content and settings; `blank`: no rooms. */
-  readonly from: 'current' | 'blank';
+  /**
+   * `current`: a copy of the active scenario's current content and settings; `blank`: no rooms
+   * (Building settings kept); `design`: the given validated design (e.g. a code project's design).
+   */
+  readonly from: 'current' | 'blank' | 'design';
+  /** Required when `from` is `design`. */
+  readonly design?: DesignDocumentV2;
+  /** Where a `design` came from (history source label). */
+  readonly source?: string;
 }
 
 function addSlot(project: OpenProject, slot: ScenarioSlot, afterId: string): OpenProject {
@@ -287,14 +294,23 @@ export function createScenario(project: OpenProject, request: NewScenarioRequest
   if (!name.ok) return name;
   const unique = uniqueScenarioName(project, name.value);
   const source = activeSlot(project);
-  const content: ScenarioContent =
-    request.from === 'current'
-      ? currentDocument(source.session)
-      : { design: blankDesign(currentDocument(source.session).design, unique), facePreferences: {} };
+  let content: ScenarioContent;
+  let label: string;
+  if (request.from === 'current') {
+    content = currentDocument(source.session);
+    label = `copy of ${source.name}`;
+  } else if (request.from === 'design') {
+    if (request.design === undefined) return refuse('No design was given for the new scenario.');
+    content = { design: request.design, facePreferences: {} };
+    label = request.source ?? 'design';
+  } else {
+    content = { design: blankDesign(currentDocument(source.session).design, unique), facePreferences: {} };
+    label = 'blank scenario';
+  }
   const slot: ScenarioSlot = {
     id: request.id,
     name: unique,
-    session: openDocument(content, request.from === 'current' ? `copy of ${source.name}` : 'blank scenario', null),
+    session: openDocument(content, label, null),
     cameras: request.from === 'current' ? source.cameras : [],
     display: request.from === 'current' ? source.display : {},
   };

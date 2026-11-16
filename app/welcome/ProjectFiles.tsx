@@ -78,7 +78,7 @@ export function ProjectFiles({
         >
           Export Project
         </button>
-        <button type="button" disabled={!project} onClick={() => project && setSaveAsName(`${project.meta.name} copy`)} title="Continue in an independent copy of this project">
+        <button type="button" disabled={!project} onClick={() => project && setSaveAsName(`${project.meta.name.slice(0, MAX_NAME_LENGTH - 5)} copy`)} title="Continue in an independent copy of this project">
           Save As New Project
         </button>
       </div>

@@ -114,8 +114,11 @@ export interface ProjectController {
   open(file: ProjectFileV1, origin: ProjectOrigin, options?: { readonly exported?: boolean }): Promise<OpenOutcome>;
   /** Reopen a project stored in this browser (Recent). Never writes. */
   restore(projectId: string): Promise<RestoreOutcome>;
-  /** Back to Welcome (pending changes are written first). */
-  close(): Promise<void>;
+  /**
+   * Back to Welcome. Pending changes are written first; when they cannot be stored, nothing is
+   * closed and `false` is returned unless `discard` is set (an explicit user decision).
+   */
+  close(options?: { readonly discard?: boolean }): Promise<boolean>;
   listRecent(): Promise<ProjectSummary[]>;
   discardUnreadable(projectId: string): Promise<DiscardResult>;
 
@@ -172,24 +175,34 @@ function defaultLocks(): LockManagerLike | null {
   }
 }
 
-/** Bookkeeping of the project currently open (replaced on every open). */
+/**
+ * Bookkeeping of one opened project (a new book on every open/restore/Save As). A book outlives
+ * its project being shown: after a switch, its pending changes are still written from `latest`.
+ */
 interface Book {
   readonly projectId: string;
+  /** The newest state of this project (what the next write stores). */
+  latest: OpenProject;
   /** Canonical text this tab last loaded from or wrote to the store; null = this tab never saw a stored copy. */
   known: string | null;
   /** `changes` of the last successful write; -1 = nothing written yet. */
   savedChanges: number;
+  /** This project's save state (mirrored to `ControllerState.save` while it is shown). */
+  status: LocalSaveState;
   /** The write in progress, if any. */
   writing: Promise<void> | null;
   /** Another write was requested while one was running. */
   again: boolean;
-  /** The user explicitly chose to overwrite a conflicting stored copy. */
+  /** The user explicitly chose to overwrite a conflicting stored copy (for the next write only). */
   overwrite: boolean;
   timer: unknown;
 }
 
 export const CONFLICT_MESSAGE =
   'Not saved: this project was saved from another tab or window after it was opened here. To keep that work, saving here has stopped. Use “Save As New Project” to keep this version separately, or “Overwrite” to replace the stored copy.';
+
+const isConflicted = (b: Book): boolean => b.status.local === 'blocked' && b.status.reason === 'conflict';
+const isDirty = (b: Book): boolean => b.latest.changes !== b.savedChanges || b.overwrite;
 
 export function createProjectController(options: ProjectControllerOptions): ProjectController {
   const { store } = options;
@@ -201,7 +214,10 @@ export function createProjectController(options: ProjectControllerOptions): Proj
   const locks = options.locks === undefined ? defaultLocks() : options.locks;
 
   let state: ControllerState = { project: null, save: { local: 'saved', at: '' }, notice: null };
+  /** The book of the project shown, or null (Welcome). */
   let book: Book | null = null;
+  /** Books of projects no longer shown whose last changes are still being written. */
+  const outgoing = new Set<Book>();
   const listeners = new Set<() => void>();
   let disposed = false;
 
@@ -215,6 +231,13 @@ export function createProjectController(options: ProjectControllerOptions): Proj
 
   const withLock = <T>(name: string, run: () => Promise<T>): Promise<T> => (locks ? locks.request(name, run) : run());
 
+  /** Record a book's save state; shown when it is the open project, otherwise a failure becomes a notice. */
+  function setStatus(b: Book, status: LocalSaveState) {
+    b.status = status;
+    if (book === b) setState({ save: status });
+    else if (status.local === 'blocked') setState({ notice: `The project “${b.latest.meta.name}” could not be saved: ${status.message}` });
+  }
+
   function cancelTimer(b: Book) {
     if (b.timer !== null) {
       scheduler.clear(b.timer);
@@ -222,9 +245,8 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     }
   }
 
-  function schedule(delay = debounceMs) {
-    const b = book;
-    if (!b || disposed) return;
+  function schedule(b: Book, delay = debounceMs) {
+    if (disposed) return;
     cancelTimer(b);
     b.timer = scheduler.set(() => {
       b.timer = null;
@@ -232,102 +254,114 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     }, delay);
   }
 
-  /** Replace the open project after a change; schedules a write when something is unsaved. */
+  /** Show `next` (a change of the open project); schedules a write when something is unsaved. */
   function update(next: OpenProject) {
-    const current = state.project;
-    if (next === current) return;
     const b = book;
-    const dirty = b !== null && next.changes !== b.savedChanges;
-    const conflicted = state.save.local === 'blocked' && state.save.reason === 'conflict';
+    if (!b || next === state.project) return;
+    b.latest = next;
+    const dirty = isDirty(b);
     // A blocked state stays visible until a write succeeds (never silently "Saving…" over it).
-    const save: LocalSaveState = dirty && state.save.local !== 'blocked' && state.save.local !== 'saving' ? { local: 'pending' } : state.save;
-    setState({ project: next, save });
-    if (dirty && !conflicted) schedule();
+    if (dirty && b.status.local === 'saved') b.status = { local: 'pending' };
+    setState({ project: next, save: b.status });
+    if (dirty && !isConflicted(b)) schedule(b);
   }
 
-  /** Write the open project of `b` (if still open) once; serialised per book. */
+  /**
+   * Write `b.latest` once. Writes of one book are serialised; a request during a write is
+   * chained right after it (so nothing requested is ever dropped, also after a switch or close).
+   */
   function write(b: Book): Promise<void> {
     if (b.writing) {
       b.again = true;
       return b.writing;
     }
-    const project = state.project;
-    if (!project || project.meta.projectId !== b.projectId) return Promise.resolve();
-    if (project.changes === b.savedChanges && !b.overwrite) return Promise.resolve();
+    if (!isDirty(b) || (isConflicted(b) && !b.overwrite)) return Promise.resolve();
     cancelTimer(b);
-    if (book === b) setState({ save: { local: 'saving' } });
+    const project = b.latest;
+    const overwrite = b.overwrite;
+    if (b.status.local !== 'blocked') setStatus(b, { local: 'saving' });
     const run = async () => {
       const at = now();
       const file = projectFileOf(project, at);
       if (!file.ok) {
-        if (book === b) setState({ save: { local: 'blocked', reason: 'error', message: `Not saved: the project is invalid (${formatProjectIssues(file.issues)}).` } });
+        setStatus(b, { local: 'blocked', reason: 'error', message: `Not saved: the project is invalid (${formatProjectIssues(file.issues)}).` });
         return;
       }
       const text = serializeProjectFile(file.value);
       const outcome = await withLock(`sgl-project:${b.projectId}`, async () => {
         const stored = await store.load(b.projectId);
-        if (stored.status === 'ok' && !b.overwrite && serializeProjectFile(stored.file) !== b.known) {
-          return { status: 'conflict' as const };
-        }
+        if (stored.status === 'ok' && !overwrite && serializeProjectFile(stored.file) !== b.known) return { status: 'conflict' as const };
         return store.save(file.value);
       });
+      b.overwrite = false;
       if (outcome.status === 'saved') {
         b.known = text;
         b.savedChanges = project.changes;
-        b.overwrite = false;
-        if (book !== b || !state.project) return;
-        const current = state.project;
-        const updated: OpenProject = { ...current, meta: { ...current.meta, updatedAt: at } };
-        const clean = current.changes === b.savedChanges;
-        setState({ project: updated, save: clean ? { local: 'saved', at: outcome.at } : { local: 'pending' } });
+        b.latest = { ...b.latest, meta: { ...b.latest.meta, updatedAt: at } };
+        if (book === b) setState({ project: b.latest });
+        const clean = b.latest.changes === b.savedChanges;
+        setStatus(b, clean ? { local: 'saved', at: outcome.at } : { local: 'pending' });
         if (!clean) b.again = true;
         return;
       }
-      if (book !== b) return;
-      if (outcome.status === 'conflict') setState({ save: { local: 'blocked', reason: 'conflict', message: CONFLICT_MESSAGE } });
-      else setState({ save: { local: 'blocked', reason: outcome.reason, message: outcome.message } });
+      if (outcome.status === 'conflict') setStatus(b, { local: 'blocked', reason: 'conflict', message: CONFLICT_MESSAGE });
+      else setStatus(b, { local: 'blocked', reason: outcome.reason, message: outcome.message });
     };
     b.writing = run()
       .catch((error: unknown) => {
-        if (book === b) setState({ save: { local: 'blocked', reason: 'error', message: `Not saved: ${error instanceof Error ? error.message : String(error)}` } });
+        b.overwrite = false;
+        setStatus(b, { local: 'blocked', reason: 'error', message: `Not saved: ${error instanceof Error ? error.message : String(error)}` });
       })
       .finally(() => {
         b.writing = null;
         if (b.again) {
           b.again = false;
-          if (book === b && !(state.save.local === 'blocked' && state.save.reason === 'conflict')) schedule(0);
+          if (isDirty(b) && !isConflicted(b)) void write(b);
         }
       });
     return b.writing;
   }
 
-  /** Wait until `b` has no write in progress (and none requested). */
+  /** Wait until `b` has no write in progress (including chained ones). */
   async function settle(b: Book): Promise<void> {
     while (b.writing) await b.writing;
   }
 
-  async function flushBook(b: Book | null): Promise<void> {
-    if (!b) return;
+  /** Write everything `b` still has (unless blocked by a conflict) and wait for it. */
+  async function flushBook(b: Book): Promise<void> {
     cancelTimer(b);
-    if (state.project && book === b && state.project.changes !== b.savedChanges) {
-      const conflicted = state.save.local === 'blocked' && state.save.reason === 'conflict';
-      if (!conflicted) await write(b);
-    }
     await settle(b);
+    // Bounded: a blocked write is attempted once per flush; a conflict is never written over.
+    for (let attempt = 0; attempt < 3 && isDirty(b) && !isConflicted(b); attempt++) {
+      await write(b);
+      await settle(b);
+      if (b.status.local === 'blocked') break;
+    }
   }
 
-  /** Make `project` current with fresh bookkeeping; writes immediately when `known` is null (not yet stored). */
+  /** Finish the writes of every book of `projectId` (shown or outgoing). */
+  async function settleProject(projectId: string): Promise<void> {
+    const books = [...outgoing, ...(book ? [book] : [])].filter((b) => b.projectId === projectId);
+    await Promise.all(books.map(flushBook));
+  }
+
+  /** Make `project` current with a new book; stores it at once when `known` is null (not yet stored). */
   function activate(project: OpenProject, known: string | null): void {
     const previous = book;
     if (previous) {
-      // The previous project's pending changes are written first (fire and forget: its write
-      // captured its own project and book synchronously).
+      // The previous project's last changes are still written, from its own book.
       cancelTimer(previous);
-      if (state.project && state.project.changes !== previous.savedChanges) void write(previous);
+      if (isDirty(previous)) {
+        outgoing.add(previous);
+        void flushBook(previous).finally(() => outgoing.delete(previous));
+      }
     }
-    book = { projectId: project.meta.projectId, known, savedChanges: known === null ? -1 : project.changes, writing: null, again: false, overwrite: false, timer: null };
-    setState({ project, save: known === null ? { local: 'pending' } : { local: 'saved', at: project.meta.updatedAt }, notice: null });
-    if (known === null) schedule(0);
+    const status: LocalSaveState = known === null ? { local: 'pending' } : { local: 'saved', at: project.meta.updatedAt };
+    const b: Book = { projectId: project.meta.projectId, latest: project, known, savedChanges: known === null ? -1 : project.changes, status, writing: null, again: false, overwrite: false, timer: null };
+    book = b;
+    const carried = previous && isDirty(previous) && previous.status.local === 'blocked' ? `The project “${previous.latest.meta.name}” has changes that could not be saved: ${previous.status.message}` : null;
+    setState({ project, save: status, notice: carried });
+    if (known === null) schedule(b, 0);
   }
 
   const mutate = (fn: (p: OpenProject) => OpenProject) => {
@@ -350,9 +384,10 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
 
     async open(file, origin, opts = {}) {
-      let identityTaken = false;
-      const existing = await store.load(file.projectId);
-      if (existing.status === 'ok' || existing.status === 'unreadable') identityTaken = true;
+      // An id used by the shown project, a project still being written, or a stored record is taken.
+      const inUse = book?.projectId === file.projectId || [...outgoing].some((b) => b.projectId === file.projectId);
+      const existing = inUse ? null : await store.load(file.projectId);
+      const identityTaken = inUse || existing?.status === 'ok' || existing?.status === 'unreadable';
       const separate = separateIdentity(file, identityTaken, { now, newId: newProjectId, newScenarioId });
       if (!separate.ok) return { ok: false, message: `The project could not be opened: ${formatProjectIssues(separate.issues)}` };
       const project = openProject(separate.value, origin, { exported: opts.exported === true && !identityTaken });
@@ -366,6 +401,8 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
 
     async restore(projectId) {
+      // Earlier writes of this project (e.g. just before a switch) land first.
+      await settleProject(projectId);
       const loaded = await store.load(projectId);
       if (loaded.status === 'missing') return { ok: false, status: 'missing', message: 'This project is no longer stored in this browser.' };
       if (loaded.status === 'unavailable') return { ok: false, status: 'unavailable', message: `Local storage is not available: ${loaded.message}` };
@@ -381,13 +418,15 @@ export function createProjectController(options: ProjectControllerOptions): Proj
       return { ok: true, project };
     },
 
-    async close() {
+    async close(opts = {}) {
       const b = book;
+      if (!b) return true;
       await flushBook(b);
-      if (book === b) {
-        book = null;
-        setState({ project: null, save: { local: 'saved', at: '' }, notice: null });
-      }
+      if (book !== b) return true;
+      if (isDirty(b) && opts.discard !== true) return false;
+      book = null;
+      setState({ project: null, save: { local: 'saved', at: '' }, notice: null });
+      return true;
     },
 
     async listRecent() {
@@ -461,7 +500,9 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
     markExported(signature) {
       // Export bookkeeping only: not a change to save.
-      if (state.project) setState({ project: markProjectExported(state.project, signature) });
+      if (!state.project || !book) return;
+      book.latest = markProjectExported(state.project, signature);
+      setState({ project: book.latest });
     },
 
     async saveAs(name) {
@@ -470,24 +511,26 @@ export function createProjectController(options: ProjectControllerOptions): Proj
       const copy = saveProjectAs(project, name, { now, newId: newProjectId, newScenarioId });
       if (!copy.ok) return copy;
       activate(copy.value, null);
+      // The copy carries the unsaved changes, so the original's pending state is no news here.
+      setState({ notice: null });
       return copy;
     },
 
-    flush: () => flushBook(book),
+    async flush() {
+      await Promise.all([...outgoing, ...(book ? [book] : [])].map(flushBook));
+    },
     async retrySave() {
       const b = book;
-      if (!b || !state.project) return;
-      if (state.save.local === 'blocked' && state.save.reason === 'conflict') return;
-      b.savedChanges = Math.min(b.savedChanges, state.project.changes - 1);
+      if (!b || isConflicted(b)) return;
+      await settle(b);
       await write(b);
       await settle(b);
     },
     async overwriteStored() {
       const b = book;
-      if (!b || !state.project) return;
+      if (!b) return;
+      await settle(b);
       b.overwrite = true;
-      b.savedChanges = Math.min(b.savedChanges, state.project.changes - 1);
-      setState({ save: { local: 'pending' } });
       await write(b);
       await settle(b);
     },
@@ -496,7 +539,7 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
     dispose() {
       disposed = true;
-      if (book) cancelTimer(book);
+      for (const b of [...outgoing, ...(book ? [book] : [])]) cancelTimer(b);
       listeners.clear();
     },
   };

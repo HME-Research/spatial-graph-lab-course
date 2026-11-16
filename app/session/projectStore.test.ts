@@ -164,6 +164,16 @@ describe('scenario management', () => {
     expect(scenarioById(p, 'blank')!.name).toBe('Empty');
   });
 
+  it('creates a scenario from a given design (e.g. a code project design), and refuses a missing one', () => {
+    let p = open();
+    expect(createScenario(p, { id: 'x', from: 'design' }).ok).toBe(false);
+    const d = twoRooms();
+    p = ok(createScenario(p, { id: 'from-design', from: 'design', design: d, name: 'Starter', source: 'projects/x/designs/s.json' }));
+    expect(activeDesign(p)).toBe(d);
+    expect(activeSession(p).source).toBe('projects/x/designs/s.json');
+    expect(activeContent(p).facePreferences).toEqual({});
+  });
+
   it('duplicates current content and settings, not history, with a unique name', () => {
     let p = open();
     const first = p.activeScenarioId;
