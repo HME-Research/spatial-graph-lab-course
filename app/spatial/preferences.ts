@@ -7,6 +7,7 @@ import { resolveRelationships } from './resolve';
 
 /**
  * Preferred face (Gate F, F-C): which shared wall (or floor) an `access` relationship opens on.
+ * Only `access` relationships carry one (an `open` relationship removes the whole shared boundary).
  *
  * A SCENARIO SIDECAR, not part of the design document (schema v2 is strict and frozen). The
  * preference is room-relative: a cell offset from one endpoint room's minimum corner plus an
@@ -27,7 +28,13 @@ export interface FacePreference {
 /** Keyed by edge id. */
 export type FacePreferences = Readonly<Record<string, FacePreference>>;
 
-const offsetIntSchema = z.int({ error: 'offset values must be integers' }).min(0, { error: 'offset values must not be negative' });
+/**
+ * Offsets may be negative or beyond the room's size: a resize keeps a preferred face at its
+ * ABSOLUTE cell (see `rebasePreferences`), which can leave it outside the resized room. Such a
+ * stale preference must survive saving and loading so the edge stays visibly unresolved
+ * (`preferred-face-unavailable`); `set-face-preference` still refuses a face outside the room.
+ */
+const offsetIntSchema = z.int({ error: 'offset values must be integers' });
 
 export const facePreferenceSchema = z.strictObject({
   nodeId: idSchema,
@@ -92,20 +99,63 @@ const NOT_AVAILABLE_TEXT: Readonly<Record<'not-endpoint' | 'outside-room' | 'not
   'not-shared': 'is no longer shared by the two rooms',
 };
 
+const sameTriple = (a: readonly number[], b: readonly number[]) => a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+
+/**
+ * Keep preferences attached to the right face when a command changed rooms (owner rule, F-C):
+ * - a room whose SIZE is unchanged was only translated: its offsets are kept, so the preferred
+ *   face moves with the room;
+ * - a room whose SIZE changed (min-corner anchored, possibly also moved) keeps each preferred face
+ *   at its ABSOLUTE grid cell: `offset += oldGrid - newGrid`. When that cell is no longer inside
+ *   the resized room the rebased (out-of-range) offset is stored as is, so `checkFacePreference`
+ *   reports `outside-room` and the edge becomes `unresolved` / `preferred-face-unavailable`.
+ *   Another face is never chosen and the edge is never deleted.
+ * Rooms missing from either document are left alone (`prunePreferences` handles removed edges).
+ * Applies to any before/after pair of designs (a command, or an algorithm result applied in one
+ * step). Returns `prefs` itself when nothing changes.
+ */
+export function rebasePreferences(
+  prefs: FacePreferences,
+  before: Pick<DesignDocumentV2, 'nodes'>,
+  after: Pick<DesignDocumentV2, 'nodes'>,
+): FacePreferences {
+  const keys = Object.keys(prefs);
+  if (keys.length === 0 || before.nodes === after.nodes) return prefs;
+  const oldById = new Map(before.nodes.map((n) => [n.id, n]));
+  const newById = new Map(after.nodes.map((n) => [n.id, n]));
+  let next: Record<string, FacePreference> | null = null;
+  for (const key of keys) {
+    const pref = prefs[key]!;
+    const oldRoom = oldById.get(pref.nodeId);
+    const newRoom = newById.get(pref.nodeId);
+    if (!oldRoom || !newRoom || oldRoom === newRoom || sameTriple(oldRoom.size, newRoom.size)) continue;
+    const offset: [number, number, number] = [
+      pref.offset[0] + oldRoom.grid[0] - newRoom.grid[0],
+      pref.offset[1] + oldRoom.grid[1] - newRoom.grid[1],
+      pref.offset[2] + oldRoom.grid[2] - newRoom.grid[2],
+    ];
+    if (sameTriple(offset, pref.offset)) continue;
+    next ??= { ...prefs };
+    next[key] = { nodeId: pref.nodeId, offset, direction: pref.direction };
+  }
+  return next ?? prefs;
+}
+
 /**
  * `resolveRelationships` with face preferences applied:
  * - an edge whose preference is not a currently shared face becomes `unresolved` /
  *   `preferred-face-unavailable`; it is removed from the document BEFORE routing, so it reserves
  *   no connector cells (it is never silently routed or opened on another face);
  * - an edge with a valid preference is `direct` and carries `preferredFace`;
- * - preferences of unknown edges are ignored.
+ * - preferences of unknown edges, and (defensively) of non-`access` edges, are ignored: an `open`
+ *   relationship has no door and therefore no preferred face, and commands never store one.
  * Without (applicable) preferences the result is exactly `resolveRelationships(doc)`.
  */
 export function resolveWithPreferences(doc: DesignDocumentV2, preferences: FacePreferences): SpatialResolution {
   const preferred = new Map<string, SharedFace>();
   const unavailable = new Map<string, string>();
   for (const edge of doc.edges) {
-    if (!Object.prototype.hasOwnProperty.call(preferences, edge.id)) continue;
+    if (edge.kind !== 'access' || !Object.prototype.hasOwnProperty.call(preferences, edge.id)) continue;
     const check = checkFacePreference(doc, edge, preferences[edge.id]!);
     if (check.ok) preferred.set(edge.id, check.face);
     else unavailable.set(edge.id, `the wall chosen for the connection between "${edge.source}" and "${edge.target}" ${NOT_AVAILABLE_TEXT[check.reason]}`);

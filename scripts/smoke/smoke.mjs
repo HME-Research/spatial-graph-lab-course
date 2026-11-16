@@ -300,6 +300,8 @@ if (wants('views')) {
       const body = '.view-panel[data-panel="1"] .view-body';
       const content = await waitFor(
         `(() => { const b = document.querySelector(${JSON.stringify(body)}); if (!b) return null;
+          // A view that is still an explicit placeholder (marked data-placeholder="<mode>") draws no canvas yet.
+          if (b.querySelector(${JSON.stringify(`[data-placeholder="${mode}"]`)})) return { kind: 'placeholder' };
           const area = (e) => { const r = e.getBoundingClientRect(); return r.width * r.height; };
           const c = [...b.querySelectorAll('canvas')].sort((x, y) => area(y) - area(x))[0]; const f = b.querySelector('.react-flow');
           const el = c ?? f; if (!el) return null; const r = el.getBoundingClientRect(), br = b.getBoundingClientRect();
@@ -312,7 +314,9 @@ if (wants('views')) {
       const file = await screenshot(`view-${mode}-1366x768`);
       const problem = overflowProblem(m);
       const data = { content, screenshot: file };
-      return problem ? fail(`${mode}: page scrolls (${problem})`, data) : pass(`${mode}: ${content.kind} ${content.width}×${content.height}, no page scroll`, data);
+      if (problem) return fail(`${mode}: page scrolls (${problem})`, data);
+      if (content.kind === 'placeholder') return skip(`${mode}: view is a placeholder (data-placeholder="${mode}"), nothing drawn to check yet; no page scroll`);
+      return pass(`${mode}: ${content.kind} ${content.width}×${content.height}, no page scroll`, data);
     });
   }
   if (original) {
@@ -569,6 +573,33 @@ if (wants('components')) {
       const cleared = await waitFor(`!!document.querySelector('#analysis-cleared') && !document.querySelector('.sgl-pres-analysis')`, 'Clear to remove the analysis legend');
       return stale && cleared ? pass('stale analysis is marked "Out of date"; Clear removes the overlay legend', { screenshot: file }) : fail('analysis legend did not behave as expected');
     });
+  }
+}
+
+// F-B project store against real IndexedDB (dev server only: the fixture is not part of the build).
+if (wants('project-store')) {
+  const fixtureUrl = new URL('scripts/smoke/fixtures/project-store.html', new URL('/', opts.url)).href;
+  let available = false;
+  try {
+    const res = await fetch(fixtureUrl, { signal: AbortSignal.timeout(5_000) });
+    available = res.ok && (await res.text()).includes('project-store.js');
+  } catch {
+    available = false;
+  }
+  if (!available) {
+    record('project-store', 'SKIP', `project-store fixture not served at ${fixtureUrl} (only "npm run dev" serves it, not "preview")`);
+  } else {
+    await page.send('Page.navigate', { url: fixtureUrl });
+    let result = null;
+    await check('project-store/run', async () => {
+      const text = await waitFor(`document.querySelector('#result[data-done="true"]')?.textContent ?? null`, 'the project-store fixture to finish');
+      result = JSON.parse(text);
+      const failed = result.checks.filter((c) => !c.ok).map((c) => c.id);
+      return failed.length ? fail(`failed: ${failed.join(', ')}`, result) : pass(`${result.checks.length} IndexedDB checks ran in ${result.dbName} (deleted afterwards)`, result);
+    });
+    for (const c of result?.checks ?? []) {
+      await check(`project-store/${c.id}`, async () => (c.ok ? pass(JSON.stringify(c.detail ?? null)) : fail(JSON.stringify(c.detail ?? null))));
+    }
   }
 }
 

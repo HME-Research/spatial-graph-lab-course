@@ -1,4 +1,4 @@
-import { createElement, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import { createElement, useContext, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { AnalysisOverlayContext } from '@app/views/analysisOverlay';
 import type { ViewMode, ViewProps } from '@app/views/contracts';
 import { createPanelMemory, PanelMemoryContext, type PanelMemory } from '@app/views/panelMemory';
@@ -6,9 +6,11 @@ import type { AnalysisPresentation } from '@app/views/presentation';
 import { AnalysisLegend } from '@app/views/presentation/LegendViews';
 import { VIEW_COMPONENTS } from '@app/views/registry';
 import { EditPanelOwnerContext, PanelIndexContext } from '@app/views/three/editing/editPanelOwner';
+import { ViewportCameraContext, type ViewportCamera } from '@app/views/viewportCamera';
 import { PROPERTIES_DESCRIPTION, PROPERTIES_LABEL, PropertiesIcon, SidebarNav, VIEW_CAPTIONS, ViewModeSelect, type SidebarSection } from '@app/ui';
 import { DESTINATIONS } from '@app/workspace/destinations';
 import { clampLeftWidth, keyboardResize, LEFT_WIDTH_MAX, LEFT_WIDTH_MIN } from '@app/workspace/panes';
+import { WorkspaceServicesContext } from '@app/workspace/services';
 import {
   canMaximise,
   deriveViewports,
@@ -88,6 +90,13 @@ export function Workspace({
   /** The viewport last interacted with; decides which of several editing views shows the room editor. */
   const [lastPanel, setLastPanel] = useState<ViewportIndex>(1);
 
+  /** The App's camera bus (WorkspaceServices); each viewport's 3D canvas registers under its viewport id. */
+  const cameraBus = useContext(WorkspaceServicesContext)?.cameraBus ?? null;
+  const viewportCameras = useMemo<readonly (ViewportCamera | null)[]>(
+    () => VIEWPORT_INDICES.map((index) => (cameraBus ? { viewportId: VIEWPORT_IDS[index], cameraBus } : null)),
+    [cameraBus],
+  );
+
   const infos = deriveViewports(viewports);
   const editOwner = editPanelOwner(infos, lastPanel);
   const mounted = VIEWPORT_INDICES.filter((index) => isMounted(viewports, index));
@@ -145,20 +154,22 @@ export function Workspace({
                 return (
                   <PanelMemoryContext.Provider key={index} value={memories[index]!}>
                     <PanelIndexContext.Provider value={index}>
-                      <ViewPanel
-                        onInteract={() => setLastPanel(index)}
-                        {...view}
-                        index={index}
-                        mode={info.mode}
-                        hidden={!info.visible}
-                        onMode={(mode) => onViewports((s) => setViewportMode(s, index, mode))}
-                        maximise={
-                          canMaximise(viewports) ? (
-                            <MaximiseButton maximised={viewports.maximised === index} onToggle={() => onViewports((s) => toggleMaximise(s, index))} />
-                          ) : null
-                        }
-                        layout={index === 0 ? <LayoutSelect layout={viewports.layout} onLayout={(l) => onViewports((s) => setViewportLayout(s, l))} /> : null}
-                      />
+                      <ViewportCameraContext.Provider value={viewportCameras[index] ?? null}>
+                        <ViewPanel
+                          onInteract={() => setLastPanel(index)}
+                          {...view}
+                          index={index}
+                          mode={info.mode}
+                          hidden={!info.visible}
+                          onMode={(mode) => onViewports((s) => setViewportMode(s, index, mode))}
+                          maximise={
+                            canMaximise(viewports) ? (
+                              <MaximiseButton maximised={viewports.maximised === index} onToggle={() => onViewports((s) => toggleMaximise(s, index))} />
+                            ) : null
+                          }
+                          layout={index === 0 ? <LayoutSelect layout={viewports.layout} onLayout={(l) => onViewports((s) => setViewportLayout(s, l))} /> : null}
+                        />
+                      </ViewportCameraContext.Provider>
                     </PanelIndexContext.Provider>
                   </PanelMemoryContext.Provider>
                 );

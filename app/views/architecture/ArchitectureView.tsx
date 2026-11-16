@@ -15,6 +15,7 @@ import { SELECTION_COLOR, typeColor } from '@core/viewer/appearance';
 import type { ViewProps } from '../contracts';
 import { brokenTypeIds, projectFacadeProvider } from '../project';
 import { useRemembered } from '../panelMemory';
+import { useViewportCamera } from '../viewportCamera';
 import { buildEdgeItems, framingFor } from '../three/sceneModel';
 import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
 import { lineOf, RelationshipTube, useUnitCylinder, ViewRelationshipLegend } from '../three/v2Scene';
@@ -111,6 +112,7 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
   const framing = useMemo(() => framingFor(bounds), [bounds]);
   const grid = useMemo(() => groundGridFor(bounds), [bounds]);
   const camera = useRemembered<CameraState>('camera:architecture');
+  const viewportCamera = useViewportCamera();
   // v1: open-top by default. v2: roofs follow the Designer's rules, so they are shown; the checkbox
   // is only a view cutaway and never changes the design.
   const [showRoofs, setShowRoofs] = useState(design !== undefined);
@@ -145,6 +147,7 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
 
   return (
     <SceneCanvas
+      {...viewportCamera}
       ariaLabel="Building view"
       framing={framing}
       fitRequest={fitRequest}

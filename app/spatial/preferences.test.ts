@@ -6,6 +6,7 @@ import {
   applyScenarioCommand,
   checkFacePreference,
   facePreferencesSchema,
+  rebasePreferences,
   resolveRelationships,
   resolveWithPreferences,
   type FacePreference,
@@ -169,9 +170,103 @@ describe('scenario commands', () => {
     expect(prefs).toEqual(c.facePreferences);
     expect(expectOk(validateDocumentV2(parsed.design))).toEqual(c.design);
     expect(facePreferencesSchema.safeParse({ ab: { ...PREF, extra: 1 } }).success).toBe(false);
-    expect(facePreferencesSchema.safeParse({ ab: { ...PREF, offset: [0, -1, 0] } }).success).toBe(false);
+    // A stale (rebased, out-of-room) offset may be negative and must round-trip; it is not a valid face.
+    expect(facePreferencesSchema.safeParse({ ab: { ...PREF, offset: [0, -1, 0] } }).success).toBe(true);
+    expect(facePreferencesSchema.safeParse({ ab: { ...PREF, offset: [0, 0.5, 0] } }).success).toBe(false);
+    expect(applyScenarioCommand(content(), { type: 'set-face-preference', edgeId: 'ab', preference: { ...PREF, offset: [0, -1, 0] } }).ok).toBe(false);
     expect(facePreferencesSchema.safeParse({ ab: { ...PREF, direction: 'up' } }).success).toBe(false);
     expect(facePreferencesSchema.safeParse({ 'bad id': PREF }).success).toBe(false);
+  });
+});
+
+describe('preferred face under move and resize (owner rule)', () => {
+  const content = (): ScenarioContent => ({ design: pair(), facePreferences: { ab: PREF } });
+  const preferred = (c: ScenarioContent) => resolveWithPreferences(c.design, c.facePreferences).byEdge.get('ab')!;
+
+  it('resizing keeps the preferred face at its absolute cell (audit probe)', () => {
+    const next = expectOk(applyScenarioCommand(content(), { type: 'set-node-geometry', nodeId: 'a', grid: [0, -1, 0], size: [1, 4, 1] }));
+    expect(next.facePreferences).toEqual({ ab: { nodeId: 'a', offset: [0, 3, 0], direction: '+x' } });
+    const r = preferred(next);
+    expect(r.status).toBe('direct');
+    expect(r.status === 'direct' && r.preferredFace).toEqual({ cell: [0, 2, 0], direction: '+x' });
+  });
+
+  it('a pure translation keeps the offset: the face moves with the room', () => {
+    // Move both rooms; same sizes.
+    let c = expectOk(applyScenarioCommand(content(), { type: 'set-node-geometry', nodeId: 'b', grid: [11, 5, 2] }));
+    c = expectOk(applyScenarioCommand(c, { type: 'set-node-geometry', nodeId: 'a', grid: [10, 5, 2] }));
+    expect(c.facePreferences).toEqual({ ab: PREF });
+    const r = preferred(c);
+    expect(r.status === 'direct' && r.preferredFace).toEqual({ cell: [10, 7, 2], direction: '+x' });
+  });
+
+  it('shrinking the room away from the face keeps it in absolute terms: unresolved, edge kept, no other face', () => {
+    // a now covers y 0..1 only: absolute cell [0,2,0] is outside it.
+    const shrunk = expectOk(applyScenarioCommand(content(), { type: 'set-node-geometry', nodeId: 'a', size: [1, 2, 1] }));
+    expect(shrunk.facePreferences).toEqual({ ab: PREF });
+    expect(shrunk.design.edges.map((e) => e.id)).toEqual(['ab']);
+    expect(preferred(shrunk)).toMatchObject({ status: 'unresolved', reason: 'preferred-face-unavailable' });
+
+    // Resized from the min side (a now covers y 1..2; the face at absolute y = 0 is below it): negative offset.
+    const moved = expectOk(
+      applyScenarioCommand({ design: pair([1, 0, 0]), facePreferences: { ab: { ...PREF, offset: [0, 0, 0] } } }, {
+        type: 'set-node-geometry',
+        nodeId: 'a',
+        grid: [0, 1, 0],
+        size: [1, 2, 1],
+      }),
+    );
+    expect(moved.facePreferences).toEqual({ ab: { nodeId: 'a', offset: [0, -1, 0], direction: '+x' } });
+    expect(preferred(moved)).toMatchObject({ status: 'unresolved', reason: 'preferred-face-unavailable' });
+    // The stale preference survives a JSON round trip through the schema.
+    expect(facePreferencesSchema.parse(JSON.parse(JSON.stringify(moved.facePreferences)))).toEqual(moved.facePreferences);
+  });
+
+  it('rebasePreferences returns the same object when no preferred room changed size', () => {
+    const c = content();
+    const moved = expectOk(applyDesignCommand(c.design, { type: 'set-node-geometry', nodeId: 'b', grid: [1, 1, 0] }));
+    expect(rebasePreferences(c.facePreferences, c.design, moved)).toBe(c.facePreferences);
+  });
+});
+
+describe('preferences only for access edges', () => {
+  const openPair = () =>
+    make([{ id: 'a', grid: [0, 0, 0], size: [1, 3, 1] }, { id: 'b', grid: [1, 0, 0], size: [1, 3, 1] }], [{ id: 'ab', source: 'a', target: 'b', kind: 'open' }]);
+
+  it('set-face-preference and add-edge-at-face refuse an open edge with a readable issue', () => {
+    const set = applyScenarioCommand({ design: openPair(), facePreferences: {} }, { type: 'set-face-preference', edgeId: 'ab', preference: PREF });
+    expect(set.ok).toBe(false);
+    expect(!set.ok && set.issues[0]!.message).toMatch(/only access connections/);
+    const empty: ScenarioContent = { design: make([{ id: 'a', grid: [0, 0, 0], size: [1, 3, 1] }, { id: 'b', grid: [1, 0, 0], size: [1, 3, 1] }], []), facePreferences: {} };
+    const added = applyScenarioCommand(empty, { type: 'add-edge-at-face', edge: { id: 'ab', source: 'a', target: 'b', kind: 'open' }, preference: PREF });
+    expect(added.ok).toBe(false);
+    expect(!added.ok && added.issues[0]!.message).toMatch(/only access connections/);
+  });
+
+  it('change-edge-kind to open drops the preference in the same step; back to access does not resurrect it', () => {
+    const start: ScenarioContent = { design: pair(), facePreferences: { ab: PREF } };
+    const open = expectOk(applyScenarioCommand(start, { type: 'change-edge-kind', edgeId: 'ab', kind: 'open' }));
+    expect(open.facePreferences).toEqual({});
+    const back = expectOk(applyScenarioCommand(open, { type: 'change-edge-kind', edgeId: 'ab', kind: 'access' }));
+    expect(back.facePreferences).toEqual({});
+  });
+
+  it('resolveWithPreferences ignores a stale preference on an open edge (audit probe)', () => {
+    const doc = make([{ id: 'a', grid: [0, 0, 0], size: [1, 3, 1] }, { id: 'b', grid: [1, -2, 0], size: [1, 3, 1] }], [{ id: 'ab', source: 'a', target: 'b', kind: 'open' }]);
+    const r = resolveWithPreferences(doc, { ab: PREF });
+    expect(r.byEdge.get('ab')!.status).not.toBe('unresolved');
+    expectSameResolution(r, resolveRelationships(doc));
+  });
+});
+
+describe('set-face-preference no-op', () => {
+  it('the identical preference, or clearing a missing one, returns the same content object', () => {
+    const c: ScenarioContent = { design: pair(), facePreferences: { ab: PREF } };
+    expect(expectOk(applyScenarioCommand(c, { type: 'set-face-preference', edgeId: 'ab', preference: { ...PREF, offset: [0, 2, 0] } }))).toBe(c);
+    const none: ScenarioContent = { design: pair(), facePreferences: {} };
+    expect(expectOk(applyScenarioCommand(none, { type: 'set-face-preference', edgeId: 'ab', preference: null }))).toBe(none);
+    // A different face is a real change.
+    expect(expectOk(applyScenarioCommand(c, { type: 'set-face-preference', edgeId: 'ab', preference: { ...PREF, offset: [0, 1, 0] } }))).not.toBe(c);
   });
 });
 

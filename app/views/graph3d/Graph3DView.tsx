@@ -11,6 +11,7 @@ import type { EdgeItem, NodeItem } from '../three/sceneModel';
 import { pickHandlers, type Hover } from '@core/viewer/three/picking';
 import { useSpatialScene } from '../three/useSpatialScene';
 import { useRemembered } from '../panelMemory';
+import { useViewportCamera } from '../viewportCamera';
 import type { CameraState } from '@core/viewer/three/viewport';
 import { ControlBar, InfoPanel, NAVIGATION_HINT } from '@core/viewer/three/ViewControls';
 import { ColorBySelect, Legend, LevelSelect } from '../three/SpatialControls';
@@ -35,6 +36,7 @@ export function Graph3DView({ doc, selection, onSelect, design, project }: ViewP
   const analysis = useAnalysisOverlay();
   const labelOf = useMemo(() => new Map((design?.doc.nodes ?? []).map((n) => [n.id, nodeLabel(n)] as const)), [design]);
   const camera = useRemembered<CameraState>('camera:graph3d');
+  const viewportCamera = useViewportCamera();
   const [showLabels, setShowLabels] = useState(() => doc.nodes.length <= LABEL_LIMIT);
   const [showCells, setShowCells] = useState(true);
   const geo = useSharedGeometry();
@@ -43,6 +45,7 @@ export function Graph3DView({ doc, selection, onSelect, design, project }: ViewP
 
   return (
     <SceneCanvas
+      {...viewportCamera}
       ariaLabel="Graph 3D view"
       framing={s.framing}
       cameraMemory={camera}

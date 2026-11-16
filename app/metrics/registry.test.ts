@@ -121,6 +121,64 @@ describe('createMetricEvaluator memoisation', () => {
     expect(typeof first).toBe('string');
   });
 
+  it('a types metric recomputes when a node type changes, not when geometry changes', () => {
+    const typeOf = spied({
+      id: 'type-of',
+      label: 'Type',
+      collection: 'nodes',
+      valueKind: 'text',
+      dependsOn: ['types'],
+      compute: ({ doc }, nodeId) => doc.nodes.find((n) => n.id === nodeId)?.typeId ?? null,
+    } satisfies ComputedMetric);
+    const evaluator = createMetricEvaluator([typeOf.metric]);
+    const before = doc();
+    const original = evaluator.value(ctxOf(before), 'type-of', 'a');
+    evaluator.value(ctxOf(moveNode(before, 'b', [7, 0, 0])), 'type-of', 'a');
+    expect(typeOf.compute).toHaveBeenCalledTimes(1);
+    const retyped: DesignDocumentV2 = { ...before, nodes: before.nodes.map((n) => (n.id === 'a' ? { ...n, typeId: 'other-type' } : n)) };
+    expect(evaluator.value(ctxOf(retyped), 'type-of', 'a')).toBe('other-type');
+    expect(original).not.toBe('other-type');
+    expect(typeOf.compute).toHaveBeenCalledTimes(2);
+  });
+
+  it('an edge metric declaring topology recomputes when topology changes', () => {
+    const ends = spied({
+      id: 'ends',
+      label: 'Ends',
+      collection: 'edges',
+      valueKind: 'text',
+      dependsOn: ['topology'],
+      compute: ({ doc }, edgeId) => {
+        const e = doc.edges.find((x) => x.id === edgeId);
+        return e ? `${e.source}-${e.target}-${e.kind}` : null;
+      },
+    } satisfies ComputedMetric);
+    const evaluator = createMetricEvaluator([ends.metric]);
+    const before = doc();
+    const first = evaluator.value(ctxOf(before), 'ends', 'ab');
+    const flipped: DesignDocumentV2 = { ...before, edges: before.edges.map((e) => (e.id === 'ab' ? { ...e, kind: e.kind === 'access' ? 'open' : 'access' } : e)) };
+    const second = evaluator.value(ctxOf(flipped), 'ends', 'ab');
+    expect(ends.compute).toHaveBeenCalledTimes(2);
+    expect(second).not.toBe(first);
+  });
+
+  it('switching between two documents (scenarios) does not thrash the cache', () => {
+    const area = spied(areaMetric);
+    const evaluator = createMetricEvaluator([area.metric]);
+    const one = ctxOf(doc());
+    const two = ctxOf({ ...one.doc, nodes: one.doc.nodes.map((n) => (n.id === 'a' ? { ...n, size: [1, 1, 1] } : n)) });
+    for (let i = 0; i < 5; i++) {
+      evaluator.value(one, 'area', 'a');
+      evaluator.value(two, 'area', 'a');
+    }
+    expect(area.compute).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects a metric with no declared dependency or an unknown one', () => {
+    expect(() => createMetricEvaluator([{ ...areaMetric, dependsOn: [] }])).toThrow(/declares no dependencies/);
+    expect(() => createMetricEvaluator([{ ...areaMetric, dependsOn: ['metadata' as never] }])).toThrow(/unknown dependency/);
+  });
+
   it('never writes values into the document or its serialisation', () => {
     const d = doc();
     const text = serializeDesignV2(d);

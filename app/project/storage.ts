@@ -1,0 +1,367 @@
+import { formatProjectIssues, nowIso, readProjectFile, serializeProjectFile, type ProjectFileV1, type ProjectIssue } from './projectFile';
+
+/**
+ * Local project storage (Gate F, F-B; root-owned).
+ *
+ * One record per project: key = `projectId`, value = the canonical project-file text. All policy
+ * lives in `createRecordProjectStore` and is shared by the in-memory store (tests) and the
+ * IndexedDB store (browser); the backends only move values.
+ *
+ * - **Never overwrite what cannot be read.** A stored record that is not a valid project file (or
+ *   belongs to another id) is copied to quarantine under `<id>:unreadable:<ts>` (an existing
+ *   quarantine key is never reused; an identical copy is not duplicated). A save over it returns
+ *   `blocked/refused-unreadable` until `discardUnreadable(id)` is called explicitly; discarding
+ *   keeps the quarantine copy.
+ * - **Failures are reported, never thrown.** Quota (`QuotaExceededError`) → `blocked/quota`;
+ *   no IndexedDB (or it cannot be opened) → `blocked/unavailable`; anything else → `blocked/error`.
+ * - `list()` = readable projects sorted by `updatedAt` (newest first), then unreadable records.
+ *
+ * Only the IndexedDB adapter touches browser APIs, through an injected `IDBFactory`.
+ */
+
+export type ProjectSummary =
+  | {
+      readonly status: 'ok';
+      readonly projectId: string;
+      readonly name: string;
+      readonly description?: string | undefined;
+      readonly createdAt: string;
+      readonly updatedAt: string;
+      readonly scenarioCount: number;
+      readonly definitionId: string | null;
+    }
+  | { readonly status: 'unreadable'; readonly projectId: string; readonly quarantineKey: string | null; readonly issues: readonly ProjectIssue[] };
+
+export type LoadResult =
+  | { readonly status: 'ok'; readonly file: ProjectFileV1 }
+  | { readonly status: 'missing' }
+  /** `quarantineKey` is null only when the copy could not be written (the record itself is untouched). */
+  | { readonly status: 'unreadable'; readonly quarantineKey: string | null; readonly issues: readonly ProjectIssue[] }
+  /** Additive to the F-B shape: storage itself cannot be used. */
+  | { readonly status: 'unavailable'; readonly message: string };
+
+export type SaveBlockReason = 'quota' | 'unavailable' | 'refused-unreadable' | 'error';
+
+export type SaveResult =
+  | { readonly status: 'saved'; readonly at: string }
+  | { readonly status: 'blocked'; readonly reason: SaveBlockReason; readonly message: string };
+
+export type DiscardResult =
+  | { readonly status: 'discarded'; readonly quarantineKey: string }
+  /** Nothing to discard: missing or readable (a readable record is never deleted here). */
+  | { readonly status: 'not-unreadable' }
+  | { readonly status: 'blocked'; readonly reason: SaveBlockReason; readonly message: string };
+
+export interface ProjectStore {
+  list(): Promise<ProjectSummary[]>;
+  load(projectId: string): Promise<LoadResult>;
+  save(file: ProjectFileV1): Promise<SaveResult>;
+  /** Explicit user decision: delete an unreadable record (its quarantine copy is kept). */
+  discardUnreadable(projectId: string): Promise<DiscardResult>;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Shared policy over a minimal backend
+
+/** Thrown by a backend when storage cannot be used at all. */
+export class StoreUnavailableError extends Error {
+  override readonly name = 'StoreUnavailableError';
+}
+
+/** What a storage backend must offer. Values are opaque (normally strings). */
+export interface RecordBackend {
+  getProject(id: string): Promise<unknown>;
+  allProjects(): Promise<Array<readonly [string, unknown]>>;
+  putProject(id: string, text: string): Promise<void>;
+  deleteProject(id: string): Promise<void>;
+  allQuarantine(): Promise<Array<readonly [string, unknown]>>;
+  /** Must fail rather than overwrite an existing key. */
+  addQuarantine(key: string, value: unknown): Promise<void>;
+}
+
+export const quarantinePrefix = (projectId: string): string => `${projectId}:unreadable:`;
+
+const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+export function isQuotaError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const e = error as { name?: unknown; code?: unknown };
+  return e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22;
+}
+
+function blocked(error: unknown): { readonly status: 'blocked'; readonly reason: SaveBlockReason; readonly message: string } {
+  if (error instanceof StoreUnavailableError) return { status: 'blocked', reason: 'unavailable', message: `local storage is not available: ${error.message}` };
+  if (isQuotaError(error)) return { status: 'blocked', reason: 'quota', message: `not saved: the browser's storage quota is full (${messageOf(error)})` };
+  return { status: 'blocked', reason: 'error', message: `not saved: ${messageOf(error)}` };
+}
+
+function readStored(id: string, value: unknown): { ok: true; file: ProjectFileV1 } | { ok: false; issues: readonly ProjectIssue[] } {
+  if (typeof value !== 'string') return { ok: false, issues: [{ path: [], code: 'invalid-json', message: 'the stored record is not text' }] };
+  const read = readProjectFile(value);
+  if (!read.ok) return { ok: false, issues: read.issues };
+  if (read.value.projectId !== id) {
+    return { ok: false, issues: [{ path: ['projectId'], code: 'schema', message: `the stored record belongs to project "${read.value.projectId}", not "${id}"` }] };
+  }
+  return { ok: true, file: read.value };
+}
+
+export interface RecordStoreOptions {
+  /** Clock for save times and quarantine keys. */
+  readonly now?: () => string;
+}
+
+/** The storage policy over any backend. */
+export function createRecordProjectStore(backend: RecordBackend, options: RecordStoreOptions = {}): ProjectStore {
+  const now = options.now ?? nowIso;
+
+  /** Copy `value` to quarantine (once per identical value). Returns the key, or null when it could not be written. */
+  async function quarantine(id: string, value: unknown): Promise<string | null> {
+    try {
+      const prefix = quarantinePrefix(id);
+      const existing = (await backend.allQuarantine()).filter(([k]) => k.startsWith(prefix));
+      const same = existing.find(([, v]) => v === value);
+      if (same) return same[0];
+      const taken = new Set(existing.map(([k]) => k));
+      const base = `${prefix}${now()}`;
+      let key = base;
+      for (let n = 2; taken.has(key); n++) key = `${base}-${n}`;
+      await backend.addQuarantine(key, value);
+      return key;
+    } catch {
+      return null;
+    }
+  }
+
+  return {
+    async list() {
+      let rows: Array<readonly [string, unknown]>;
+      try {
+        rows = await backend.allProjects();
+      } catch {
+        return [];
+      }
+      const ok: Extract<ProjectSummary, { status: 'ok' }>[] = [];
+      const bad: ProjectSummary[] = [];
+      for (const [id, value] of rows) {
+        const read = readStored(id, value);
+        if (read.ok) {
+          const f = read.file;
+          ok.push({
+            status: 'ok',
+            projectId: f.projectId,
+            name: f.name,
+            ...(f.description !== undefined && { description: f.description }),
+            createdAt: f.createdAt,
+            updatedAt: f.updatedAt,
+            scenarioCount: f.scenarios.length,
+            definitionId: f.definition?.projectId ?? null,
+          });
+        } else {
+          bad.push({ status: 'unreadable', projectId: id, quarantineKey: await quarantine(id, value), issues: read.issues });
+        }
+      }
+      ok.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt) || a.projectId.localeCompare(b.projectId));
+      bad.sort((a, b) => a.projectId.localeCompare(b.projectId));
+      return [...ok, ...bad];
+    },
+
+    async load(projectId) {
+      let value: unknown;
+      try {
+        value = await backend.getProject(projectId);
+      } catch (error) {
+        return { status: 'unavailable', message: messageOf(error) };
+      }
+      if (value === undefined) return { status: 'missing' };
+      const read = readStored(projectId, value);
+      if (read.ok) return { status: 'ok', file: read.file };
+      return { status: 'unreadable', quarantineKey: await quarantine(projectId, value), issues: read.issues };
+    },
+
+    async save(file) {
+      const valid = readProjectFile(serializeProjectFile(file));
+      if (!valid.ok) return { status: 'blocked', reason: 'error', message: `not saved: the project is invalid (${formatProjectIssues(valid.issues)})` };
+      try {
+        const existing = await backend.getProject(file.projectId);
+        if (existing !== undefined && !readStored(file.projectId, existing).ok) {
+          const key = await quarantine(file.projectId, existing);
+          return {
+            status: 'blocked',
+            reason: 'refused-unreadable',
+            message: `not saved: the stored copy of this project cannot be read and is never overwritten${key ? ` (a copy is kept under "${key}")` : ''}; discard it explicitly to save`,
+          };
+        }
+        await backend.putProject(file.projectId, serializeProjectFile(valid.value));
+        return { status: 'saved', at: now() };
+      } catch (error) {
+        return blocked(error);
+      }
+    },
+
+    async discardUnreadable(projectId) {
+      try {
+        const existing = await backend.getProject(projectId);
+        if (existing === undefined || readStored(projectId, existing).ok) return { status: 'not-unreadable' };
+        const key = await quarantine(projectId, existing);
+        if (key === null) return { status: 'blocked', reason: 'error', message: 'not discarded: a copy of the unreadable record could not be kept' };
+        await backend.deleteProject(projectId);
+        return { status: 'discarded', quarantineKey: key };
+      } catch (error) {
+        return blocked(error);
+      }
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// In-memory store (tests)
+
+export interface MemoryProjectStoreOptions extends RecordStoreOptions {
+  /** Total characters the project records may use (quarantine excluded); exceeding it → `QuotaExceededError`. */
+  readonly quotaBytes?: number;
+}
+
+export interface MemoryProjectStore extends ProjectStore {
+  /** Raw records (tests may plant corrupt values). */
+  readonly records: Map<string, unknown>;
+  readonly quarantined: Map<string, unknown>;
+}
+
+const quotaError = (): Error => Object.assign(new Error('quota exceeded'), { name: 'QuotaExceededError' });
+
+export function createMemoryProjectStore(options: MemoryProjectStoreOptions = {}): MemoryProjectStore {
+  const records = new Map<string, unknown>();
+  const quarantined = new Map<string, unknown>();
+  const size = (except: string) => [...records].reduce((n, [k, v]) => (k === except ? n : n + (typeof v === 'string' ? v.length : 0)), 0);
+  const backend: RecordBackend = {
+    getProject: async (id) => records.get(id),
+    allProjects: async () => [...records],
+    putProject: async (id, text) => {
+      if (options.quotaBytes !== undefined && size(id) + text.length > options.quotaBytes) throw quotaError();
+      records.set(id, text);
+    },
+    deleteProject: async (id) => {
+      records.delete(id);
+    },
+    allQuarantine: async () => [...quarantined],
+    addQuarantine: async (key, value) => {
+      if (quarantined.has(key)) throw new Error(`quarantine key "${key}" exists`);
+      quarantined.set(key, value);
+    },
+  };
+  return { ...createRecordProjectStore(backend, options), records, quarantined };
+}
+
+// ---------------------------------------------------------------------------------------------
+// IndexedDB store (browser)
+
+export const PROJECT_DB_NAME = 'sgl-projects';
+export const PROJECTS_STORE = 'projects';
+export const QUARANTINE_STORE = 'quarantine';
+const DB_VERSION = 1;
+
+/** The part of the IndexedDB API used here (injectable). */
+export type ProjectDbFactory = Pick<IDBFactory, 'open'>;
+
+const request = <T>(req: IDBRequest<T>): Promise<T> =>
+  new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error ?? new Error('IndexedDB request failed'));
+  });
+
+/** Resolves when the transaction completes; rejects with its error (e.g. QuotaExceededError) on abort. */
+const done = (tx: IDBTransaction): Promise<void> =>
+  new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'));
+    tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed'));
+  });
+
+function defaultFactory(): ProjectDbFactory | null {
+  try {
+    return (globalThis as { indexedDB?: IDBFactory }).indexedDB ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export interface IndexedDbProjectStoreOptions extends RecordStoreOptions {
+  /** Default: `globalThis.indexedDB` (null/absent → every save is `blocked/unavailable`). */
+  readonly factory?: ProjectDbFactory | null;
+}
+
+export function createIndexedDbProjectStore(dbName: string = PROJECT_DB_NAME, options: IndexedDbProjectStoreOptions = {}): ProjectStore {
+  const factory = options.factory === undefined ? defaultFactory() : options.factory;
+  let opening: Promise<IDBDatabase> | null = null;
+
+  function open(): Promise<IDBDatabase> {
+    if (!factory) return Promise.reject(new StoreUnavailableError('IndexedDB is not available in this browser'));
+    if (opening) return opening;
+    opening = new Promise<IDBDatabase>((resolve, reject) => {
+      let req: IDBOpenDBRequest;
+      try {
+        req = factory.open(dbName, DB_VERSION);
+      } catch (error) {
+        reject(new StoreUnavailableError(messageOf(error)));
+        return;
+      }
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(PROJECTS_STORE)) db.createObjectStore(PROJECTS_STORE);
+        if (!db.objectStoreNames.contains(QUARANTINE_STORE)) db.createObjectStore(QUARANTINE_STORE);
+      };
+      req.onsuccess = () => {
+        const db = req.result;
+        db.onversionchange = () => {
+          db.close();
+          opening = null;
+        };
+        resolve(db);
+      };
+      req.onerror = () => reject(new StoreUnavailableError(messageOf(req.error ?? 'IndexedDB could not be opened')));
+      req.onblocked = () => reject(new StoreUnavailableError('IndexedDB is blocked by another open tab'));
+    });
+    opening.catch(() => {
+      opening = null;
+    });
+    return opening;
+  }
+
+  async function entries(storeName: string): Promise<Array<readonly [string, unknown]>> {
+    const db = await open();
+    const store = db.transaction(storeName, 'readonly').objectStore(storeName);
+    const [keys, values] = await Promise.all([request(store.getAllKeys()), request(store.getAll())]);
+    return keys.map((k, i) => [String(k), values[i]] as const);
+  }
+
+  async function write(storeName: string, action: (store: IDBObjectStore) => IDBRequest): Promise<void> {
+    const db = await open();
+    const tx = db.transaction(storeName, 'readwrite');
+    const finished = done(tx);
+    try {
+      action(tx.objectStore(storeName));
+    } catch (error) {
+      try {
+        tx.abort();
+      } catch {
+        // already finished
+      }
+      finished.catch(() => undefined);
+      throw error;
+    }
+    await finished;
+  }
+
+  const backend: RecordBackend = {
+    getProject: async (id) => {
+      const db = await open();
+      return request(db.transaction(PROJECTS_STORE, 'readonly').objectStore(PROJECTS_STORE).get(id));
+    },
+    allProjects: () => entries(PROJECTS_STORE),
+    putProject: (id, text) => write(PROJECTS_STORE, (s) => s.put(text, id)),
+    deleteProject: (id) => write(PROJECTS_STORE, (s) => s.delete(id)),
+    allQuarantine: () => entries(QUARANTINE_STORE),
+    addQuarantine: (key, value) => write(QUARANTINE_STORE, (s) => s.add(value, key)),
+  };
+  return createRecordProjectStore(backend, options);
+}

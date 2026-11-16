@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
+import { VIEW_MODES } from '@app/views/contracts';
 import {
   DEFAULT_DISPLAY,
   DISPLAY_VIEW_MODES,
@@ -17,6 +18,10 @@ void _defaults;
 void _overrides;
 
 describe('display contracts', () => {
+  it('resolves display for exactly the workspace view modes', () => {
+    expect(DISPLAY_VIEW_MODES).toEqual(VIEW_MODES);
+  });
+
   it('DEFAULT_DISPLAY is a valid, frozen DisplayDefaults', () => {
     expect(displayDefaultsSchema.parse(DEFAULT_DISPLAY)).toEqual(DEFAULT_DISPLAY);
     expect(Object.isFrozen(DEFAULT_DISPLAY)).toBe(true);

@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { DesignPort } from '@app/spatial';
 import type { Selection, SelectionHandler } from '@core/viewer/selection';
+import type { CameraBus } from '@core/viewer/three/camera';
 import type { ViewportInfo } from './viewports';
 
 /**
@@ -19,6 +20,12 @@ export interface WorkspaceServices {
   readonly onSelect: SelectionHandler;
   /** The four viewports in order (`VIEWPORT_IDS`), with their mode and visibility. */
   readonly viewports: readonly ViewportInfo[];
+  /**
+   * The workspace camera bus (F-D), one per App instance. Each mounted 3D viewport registers its
+   * camera under its viewport id; a hidden or unmounted viewport answers `null` / `'unavailable'`
+   * and is never re-targeted. Choose targets with `app/workspace/cameraTargets.ts`.
+   */
+  readonly cameraBus: CameraBus;
 }
 
 export const WorkspaceServicesContext = createContext<WorkspaceServices | null>(null);

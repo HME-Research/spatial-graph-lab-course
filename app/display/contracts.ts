@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { VIEW_MODES, type ViewMode } from '@app/views/contracts';
 
 /**
  * Display contract (Gate F, F-D; root-owned). Pure: no React, no Three.js.
@@ -12,9 +13,9 @@ import { z } from 'zod';
  * resulting `ViewDisplay` for one view mode.
  */
 
-/** View modes display can be resolved for. Mirrors the workspace view vocabulary (F-A `VIEW_MODES`). */
-export const DISPLAY_VIEW_MODES = ['graph2d', 'graph3d', 'voxels', 'architecture', 'plan'] as const;
-export type DisplayViewMode = (typeof DISPLAY_VIEW_MODES)[number];
+/** View modes display can be resolved for: exactly the workspace view vocabulary (F-A `VIEW_MODES`). */
+export const DISPLAY_VIEW_MODES = VIEW_MODES;
+export type DisplayViewMode = ViewMode;
 
 export const COLOUR_PRESETS = ['by-function', 'neutral'] as const;
 export type ColourPreset = (typeof COLOUR_PRESETS)[number];

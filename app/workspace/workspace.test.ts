@@ -5,6 +5,7 @@ import { VIEW_MODES } from '@app/views/contracts';
 import { VIEW_COMPONENTS } from '@app/views/registry';
 import { VIEW_CAPTIONS, VIEW_DESCRIPTIONS, VIEW_LABELS } from '@app/ui';
 import { NO_SELECTION } from '@core/viewer/selection';
+import { createCameraBus } from '@core/viewer/three/camera';
 import { DESTINATIONS } from './destinations';
 import { DESTINATION_PANELS, SLOT_DESTINATIONS } from './panelSlots';
 import {
@@ -59,6 +60,7 @@ describe('panel slots through WorkspaceServices', () => {
     selection: NO_SELECTION,
     onSelect: () => {},
     viewports: deriveViewports(DEFAULT_VIEWPORT_STATE),
+    cameraBus: createCameraBus(),
     ...over,
   });
   const mount = (id: (typeof SLOT_DESTINATIONS)[number], value: WorkspaceServices) =>
@@ -69,15 +71,22 @@ describe('panel slots through WorkspaceServices', () => {
       const html = mount(id, services());
       expect(html, id).toContain(`data-placeholder="${id}"`);
       expect(html, id).toMatch(/not available yet/);
-      expect(html, id).not.toMatch(/<(button|input|select)\b/);
+      // Superseded for Camera only (F-D): its one real control is the explicit target-viewport selector.
+      expect(html, id).not.toMatch(id === 'camera' ? /<(button|input)\b/ : /<(button|input|select)\b/);
     }
   });
 
-  it('the Camera placeholder reads the real viewports from the services', () => {
+  it('the Camera placeholder offers exactly the visible 3D viewports as explicit targets', () => {
     // Default: viewport 1 Graph 2D, viewport 2 Building (3D) visible; 3 and 4 outside the layout.
-    expect(mount('camera', services())).toContain('3D viewports shown now: 2 (Building).');
+    const html = mount('camera', services());
+    expect(html).toContain('aria-label="Camera target viewport"');
+    expect(html).toContain('<option value="viewport-2">Viewport 2 — Building</option>');
+    expect(html).not.toContain('value="viewport-1"');
+    expect(html).not.toContain('value="viewport-3"');
     const none = deriveViewports(setViewportLayout(DEFAULT_VIEWPORT_STATE, 1));
-    expect(mount('camera', services({ viewports: none }))).toContain('No 3D viewport is shown right now.');
+    const empty = mount('camera', services({ viewports: none }));
+    expect(empty).toContain('No 3D viewport is shown right now.');
+    expect(empty).not.toMatch(/<select\b/);
   });
 
   it('useWorkspaceServices fails loudly without a provider', () => {

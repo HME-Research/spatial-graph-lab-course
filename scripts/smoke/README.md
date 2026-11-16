@@ -42,6 +42,7 @@ Unit tests for the harness helpers: `node --test scripts/smoke/lib.test.mjs`.
 | `import/valid-example` | Imports the example design. |
 | `export/json` | Downloads Export JSON and parses it. It must have nodes and edges, and with `--feature v2` it must have `schemaVersion: 2`. |
 | `components/*` | **Dev server only.** `fixtures/components.html` renders the Stage 07 components in isolation. Checked: real Tab focus shows the tooltip (`aria-describedby` matches), Enter opens "More details", Escape closes, hover works, all four view legends share identical status entries with only Routed (long dashes) and Unresolved (short dashes) dashed, and the analysis legend marks stale results and Clear removes it. |
+| `project-store/*` | **Dev server only.** `fixtures/project-store.html` runs `app/project/storage.ts` against the browser's real IndexedDB in a fresh database (deleted afterwards): save, list order, load round trip, missing, corrupt record quarantined (once), save over it refused, explicit discard then save (copy kept), quota (put throws the browser's own `QuotaExceededError`) and no IndexedDB. |
 | `console/no-errors` | No uncaught exceptions or console errors. The browser's automatic `/favicon.ico` 404 is listed but ignored. |
 
 ### Post-integration checks (flags)
@@ -56,7 +57,7 @@ These checks report **SKIP** until they are requested. They never pass by defaul
 | `--feature v2` | Export writes `schemaVersion: 2`. |
 | `--feature all` | All of the above. |
 
-Use `--only viewports,select,...` to run selected groups. The groups are `viewports`, `select`, `views`, `undo-redo`, `analysis`, `import`, `export`, `help`, `legend` and `components`. The `load/*` and `console` checks always run.
+Use `--only viewports,select,...` to run selected groups. The groups are `viewports`, `select`, `views`, `undo-redo`, `analysis`, `import`, `export`, `help`, `legend`, `components` and `project-store`. The `load/*` and `console` checks always run.
 
 ## Manual checklist (when no browser is available)
 

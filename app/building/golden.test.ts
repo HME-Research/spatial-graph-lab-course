@@ -14,6 +14,12 @@ import { resolveFaces } from './resolve';
  * The comparison is on the exact JSON text (shortest round-trip number formatting), so any change
  * of an element, its order, id or a single floating-point bit fails. Never regenerate these files
  * to make a refactor pass; a deliberate geometry change must say so in its report.
+ *
+ * Each fixture is read with `fs.readFileSync` and compared as an exact string (`toBe`); Vitest's
+ * snapshot machinery (`-u`, CI mode) is NOT used, and a missing fixture FAILS the test. The only
+ * way to (re)write the files is the explicit opt-in
+ *   SGL_UPDATE_GOLDEN=1 npx vitest --run app/building/golden.test.ts
+ * which overwrites them; review the `__golden__/` diff before keeping it.
  */
 
 type N = { id: string; grid: GridCoord; size?: [number, number, number]; typeId?: string };
@@ -112,13 +118,40 @@ const FIXTURES: Readonly<Record<string, DesignDocumentV2>> = {
 
 const snapshot = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 
+// The project has no Node type definitions (tsconfig `types: ["vite/client"]`, no @types/node
+// dependency), so the Node built-ins this Vitest-only file needs are typed locally.
+interface NodeFs {
+  existsSync(path: URL): boolean;
+  readFileSync(path: URL, encoding: 'utf8'): string;
+  writeFileSync(path: URL, data: string): void;
+}
+const NODE_FS = 'node:fs';
+const fs = (await import(/* @vite-ignore */ NODE_FS)) as NodeFs;
+const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
+const UPDATE = env['SGL_UPDATE_GOLDEN'] === '1';
+
+/**
+ * Exact comparison with `__golden__/<file>`; writes the file only under SGL_UPDATE_GOLDEN=1.
+ * CRLF in the fixture is read as LF (a Windows `core.autocrlf` checkout artefact, not geometry).
+ */
+function expectGolden(actual: string, file: string): void {
+  const path = new URL(`./__golden__/${file}`, import.meta.url);
+  if (UPDATE) {
+    fs.writeFileSync(path, actual);
+    return;
+  }
+  if (!fs.existsSync(path)) throw new Error(`golden fixture __golden__/${file} is missing (only SGL_UPDATE_GOLDEN=1 may create it)`);
+  expect(actual, `golden fixture __golden__/${file}`).toBe(fs.readFileSync(path, 'utf8').replace(/\r\n/g, '\n'));
+}
+
 describe('golden building geometry (pre-refactor output, byte-identical)', () => {
   for (const [name, doc] of Object.entries(FIXTURES)) {
-    it(`buildBuildingV2: ${name}`, async () => {
+    it(`buildBuildingV2: ${name}`, () => {
       const model = buildBuildingV2(doc);
-      await expect(
+      expectGolden(
         snapshot({ faces: model.faces, elements: model.elements, connectors: model.connectors, relationships: model.relationships }),
-      ).toMatchFileSnapshot(`./__golden__/building-${name}.json`);
+        `building-${name}.json`,
+      );
     });
   }
 
@@ -131,8 +164,8 @@ describe('golden building geometry (pre-refactor output, byte-identical)', () =>
     },
   } as const;
   for (const [name, options] of Object.entries(OPTION_SETS)) {
-    it(`buildArchitecture (v1 example faces): ${name}`, async () => {
-      await expect(snapshot(buildArchitecture(resolveFaces(v1), options))).toMatchFileSnapshot(`./__golden__/architecture-${name}.json`);
+    it(`buildArchitecture (v1 example faces): ${name}`, () => {
+      expectGolden(snapshot(buildArchitecture(resolveFaces(v1), options)), `architecture-${name}.json`);
     });
   }
 });

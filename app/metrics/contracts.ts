@@ -14,10 +14,15 @@ import type { SpatialResolution } from '@app/spatial';
  * unchanged, so `dependsOn` must list everything `compute` reads:
  * - `topology`: node ids and edges (id, source, target, kind);
  * - `geometry`: each node's `grid` and `size`;
+ * - `types`: each node's `typeId`;
+ * - `attributes`: node and edge custom `attributes`;
+ * - `settings`: the document `settings` (e.g. per-type appearance);
  * - `resolution`: the `SpatialResolution` object (by identity).
- * Reading any other document data (attributes, types, metadata) is not supported by this contract.
+ * Reading any other document data (metadata, display ids, diagram positions) is not supported.
+ * `dependsOn` must not be empty: `createMetricEvaluator` rejects such a metric (a metric that
+ * truly reads nothing would be a constant; one that forgot to declare would be cached wrongly).
  */
-export const METRIC_DEPENDENCIES = ['topology', 'geometry', 'resolution'] as const;
+export const METRIC_DEPENDENCIES = ['topology', 'geometry', 'types', 'attributes', 'settings', 'resolution'] as const;
 export type MetricDependency = (typeof METRIC_DEPENDENCIES)[number];
 
 export type MetricValueKind = 'number' | 'boolean' | 'text';
@@ -34,6 +39,7 @@ export interface ComputedMetric {
   readonly collection: 'nodes' | 'edges';
   readonly valueKind: MetricValueKind;
   readonly unit?: string | undefined;
+  /** Non-empty; see `METRIC_DEPENDENCIES`. */
   readonly dependsOn: readonly MetricDependency[];
   /** Pure. `null` when the item does not exist or the metric has no value for it. */
   compute(ctx: MetricContext, itemId: string): MetricValue | null;

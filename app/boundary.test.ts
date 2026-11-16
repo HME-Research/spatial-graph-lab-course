@@ -14,6 +14,10 @@ import { describe, expect, it } from 'vitest';
  * - `extensions/` (project loading, definition validation, conformance, algorithm execution):
  *   pure; may import document, building, pure core modules and `@student-api`. It is the only
  *   app module that may import `@student-api` or glob `projects/` (`import.meta.glob`).
+ * - `project/` (project file envelope and local storage, F-B): pure (its IndexedDB adapter uses
+ *   only an injected `IDBFactory`); may import document, spatial, extensions (the attribute
+ *   record reader), `display/contracts` (only that pure file of the shell-level `display/`),
+ *   core/graph, core/spatial and the pure camera contract `core/viewer/three/camera`.
  * - `views/` (application visualisations): may import document, building, extensions and any core module.
  * - shell (`App`, `Workspace`, `main`, `inspector/`): composes everything.
  *
@@ -27,20 +31,20 @@ const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"]([^'"]+)
 const GLOB_CALL = /import\.meta\.glob\s*(?:<[^>]*>)?\s*\(\s*(\[[^\]]*\]|'[^']*'|"[^"]*")/g;
 const STRING = /['"]([^'"]+)['"]/g;
 
-type Layer = 'document' | 'spatial' | 'building' | 'metrics' | 'extensions' | 'views' | 'shell';
-const RANK: Readonly<Record<Layer, number>> = { document: 0, spatial: 1, building: 2, metrics: 3, extensions: 4, views: 5, shell: 6 };
+type Layer = 'document' | 'spatial' | 'building' | 'metrics' | 'extensions' | 'project' | 'views' | 'shell';
+const RANK: Readonly<Record<Layer, number>> = { document: 0, spatial: 1, building: 2, metrics: 3, extensions: 4, project: 5, views: 6, shell: 7 };
 
 const UI_PACKAGE = /^(react|react-dom|three)(\/|$)|^@react-three\/|^@xyflow\//;
 
 function layerOf(path: string): Layer {
-  for (const layer of ['document', 'spatial', 'building', 'metrics', 'extensions', 'views'] as const) {
+  for (const layer of ['document', 'spatial', 'building', 'metrics', 'extensions', 'project', 'views'] as const) {
     if (path.startsWith(`./${layer}/`) || path === `./${layer}`) return layer;
   }
   return 'shell';
 }
 
 const isPure = (layer: Layer) =>
-  layer === 'document' || layer === 'spatial' || layer === 'building' || layer === 'metrics' || layer === 'extensions';
+  layer === 'document' || layer === 'spatial' || layer === 'building' || layer === 'metrics' || layer === 'extensions' || layer === 'project';
 
 /** Resolve a relative specifier against a glob key such as './views/three/x.ts'. */
 function resolveRelative(file: string, specifier: string): string {
@@ -68,6 +72,8 @@ function violation(file: string, specifier: string): string | null {
       return `${from} may only use pure core modules`;
     if (from === 'extensions' && !/^@core\/(graph|spatial|viewer\/(appearance|coordinates|selection))$/.test(specifier))
       return 'extensions may only use pure core modules';
+    if (from === 'project' && !/^@core\/(graph|spatial|viewer\/three\/camera)$/.test(specifier))
+      return 'project may only use core/graph, core/spatial and the camera contract';
     return null;
   }
 
@@ -83,6 +89,7 @@ function violation(file: string, specifier: string): string | null {
     return pure && UI_PACKAGE.test(specifier) ? `pure ${from} layer imports UI package ${specifier}` : null;
   }
   if (pure && target.endsWith('.css')) return `pure ${from} layer imports CSS`;
+  if (from === 'project' && target === './display/contracts') return null;
   const to = layerOf(target);
   return RANK[to] > RANK[from] ? `${from} imports higher layer ${to} (${specifier})` : null;
 }
@@ -105,7 +112,7 @@ const globPatterns = (text: string): string[] =>
 describe('application layering', () => {
   it('finds source files in every layer', () => {
     const keys = Object.keys(sources);
-    for (const dir of ['./document/', './spatial/', './building/', './metrics/', './extensions/', './views/', './inspector/']) {
+    for (const dir of ['./document/', './spatial/', './building/', './metrics/', './extensions/', './project/', './views/', './inspector/']) {
       expect(keys.some((k) => k.startsWith(dir))).toBe(true);
     }
     expect(keys).toContain('./App.tsx');
@@ -154,6 +161,16 @@ describe('application layering', () => {
     expect(violation('./views/three/x.test.ts', '../../document/examples/two-storey-example.json')).toBeNull();
     expect(violation('./views/x.tsx', '@react-three/fiber')).toBeNull();
     expect(violation('./inspector/x.tsx', '@app/views/graph2d/diagram')).toBeNull();
+    expect(violation('./project/x.ts', '@app/display/contracts')).toBeNull();
+    expect(violation('./project/x.ts', '@app/display/DisplayPanel')).not.toBeNull();
+    expect(violation('./project/x.ts', '@app/session/projectAttributeStore')).not.toBeNull();
+    expect(violation('./project/x.ts', '@app/extensions/projectAttributes')).toBeNull();
+    expect(violation('./project/x.ts', '@app/spatial')).toBeNull();
+    expect(violation('./project/x.ts', '@core/viewer/three/camera')).toBeNull();
+    expect(violation('./project/x.ts', '@core/viewer/three/SceneCanvas')).not.toBeNull();
+    expect(violation('./project/x.ts', 'react')).not.toBeNull();
+    expect(violation('./project/x.ts', '@app/views/contracts')).not.toBeNull();
+    expect(violation('./extensions/x.ts', '@app/project')).not.toBeNull();
   });
 
   it('flags globs into projects/ outside extensions and globs leaving app/ (self-check)', () => {

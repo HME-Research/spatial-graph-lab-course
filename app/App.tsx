@@ -8,6 +8,7 @@ import type { CommandOutcome, GraphCommandHandler } from '@app/views/contracts';
 import { conciseIssues, presentAnalysis, type AnalysisPresentation } from '@app/views/presentation';
 import { buildProjectViewContext, projectFacadeProvider } from '@app/views/project';
 import { NO_SELECTION, reconcileSelection, selectEdge, type Selection } from '@core/viewer/selection';
+import { createCameraBus } from '@core/viewer/three/camera';
 import { AttributesPanel } from './attributes/AttributesPanel';
 import { DesignerPanel } from './designer';
 import { AlgorithmPanel } from './session/AlgorithmPanel';
@@ -319,9 +320,11 @@ export function App() {
 
   /** Services for destination panels (Scenarios, Camera, Display): read through `useWorkspaceServices()`. */
   const viewportInfos = useMemo(() => deriveViewports(viewports), [viewports]);
+  /** One camera bus per App instance (F-D); 3D viewports register on it under their viewport id. */
+  const [cameraBus] = useState(createCameraBus);
   const services = useMemo<WorkspaceServices>(
-    () => ({ design: port ?? null, selection, onSelect: select, viewports: viewportInfos }),
-    [port, selection, select, viewportInfos],
+    () => ({ design: port ?? null, selection, onSelect: select, viewports: viewportInfos, cameraBus }),
+    [port, selection, select, viewportInfos, cameraBus],
   );
 
   /** Apply an already-validated preview as one state replacement and one history step, unless stale or unconfirmed. */

@@ -1,7 +1,7 @@
 import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
 import type { DesignDocumentV2 } from '@app/document/v2';
 import type { SpatialResolution } from '@app/spatial';
-import type { ComputedMetric, MetricContext, MetricDependency, MetricEvaluator, MetricRegistry, MetricValue } from './contracts';
+import { METRIC_DEPENDENCIES, type ComputedMetric, type MetricContext, type MetricDependency, type MetricEvaluator, type MetricRegistry, type MetricValue } from './contracts';
 
 /** Node footprint (plan) area in m²: size x × size y cells at the central cell size (3 m). */
 export const areaMetric: ComputedMetric = {
@@ -37,20 +37,21 @@ export const degreeMetric: ComputedMetric = {
 /** Representative metrics at Gate F; the rest of the catalogue belongs to workstream M. */
 export const BUILT_IN_METRICS: MetricRegistry = Object.freeze([areaMetric, degreeMetric]);
 
-type Signatures = { topology?: string; geometry?: string };
-const signatureCache = new WeakMap<DesignDocumentV2, Signatures>();
+type DocumentDependency = Exclude<MetricDependency, 'resolution'>;
+const signatureCache = new WeakMap<DesignDocumentV2, Partial<Record<DocumentDependency, string>>>();
 
-function signature(doc: DesignDocumentV2, dependency: 'topology' | 'geometry'): string {
+const SIGNATURE_TEXT: Readonly<Record<DocumentDependency, (doc: DesignDocumentV2) => unknown>> = {
+  topology: (doc) => [doc.nodes.map((n) => n.id), doc.edges.map((e) => [e.id, e.source, e.target, e.kind])],
+  geometry: (doc) => doc.nodes.map((n) => [n.id, n.grid, n.size]),
+  types: (doc) => doc.nodes.map((n) => [n.id, n.typeId]),
+  attributes: (doc) => [doc.nodes.map((n) => [n.id, n.attributes]), doc.edges.map((e) => [e.id, e.attributes])],
+  settings: (doc) => doc.settings,
+};
+
+function signature(doc: DesignDocumentV2, dependency: DocumentDependency): string {
   let entry = signatureCache.get(doc);
   if (!entry) signatureCache.set(doc, (entry = {}));
-  const cached = entry[dependency];
-  if (cached !== undefined) return cached;
-  const text =
-    dependency === 'topology'
-      ? JSON.stringify([doc.nodes.map((n) => n.id), doc.edges.map((e) => [e.id, e.source, e.target, e.kind])])
-      : JSON.stringify(doc.nodes.map((n) => [n.id, n.grid, n.size]));
-  entry[dependency] = text;
-  return text;
+  return (entry[dependency] ??= JSON.stringify(SIGNATURE_TEXT[dependency](doc)));
 }
 
 const idCache = new WeakMap<DesignDocumentV2, { nodes?: ReadonlySet<string>; edges?: ReadonlySet<string> }>();
@@ -79,17 +80,36 @@ interface CacheEntry {
 }
 
 /**
- * Memoised evaluator. Per metric, values are cached for the last (doc, spatial) identity pair; when
- * either identity changes, the cache survives if every dependency the metric declares is unchanged
- * (e.g. moving a room keeps `degree` but recomputes `area`). Pure apart from its private cache.
+ * Entries kept per metric. More than one, so that alternating between a few documents (e.g.
+ * switching scenarios, or comparing two) does not recompute on every switch.
+ */
+export const METRIC_CACHE_ENTRIES = 4;
+
+function checkMetric(metric: ComputedMetric): void {
+  if (metric.dependsOn.length === 0) {
+    throw new Error(`metric "${metric.id}" declares no dependencies; list everything compute reads in dependsOn (${METRIC_DEPENDENCIES.join(', ')})`);
+  }
+  for (const d of metric.dependsOn) {
+    if (!(METRIC_DEPENDENCIES as readonly string[]).includes(d)) throw new Error(`metric "${metric.id}" declares unknown dependency "${String(d)}"`);
+  }
+}
+
+/**
+ * Memoised evaluator. Per metric, values are cached in a small most-recently-used list of
+ * (doc, spatial) entries (`METRIC_CACHE_ENTRIES`). A context whose identities differ from every
+ * entry still reuses an entry when every dependency the metric declares is unchanged (e.g. moving
+ * a room keeps `degree` but recomputes `area`). Pure apart from its private cache.
+ * Registration throws for a duplicate id, an empty `dependsOn` or an unknown dependency.
  */
 export function createMetricEvaluator(registry: MetricRegistry = BUILT_IN_METRICS): MetricEvaluator {
   const byId = new Map<string, ComputedMetric>();
   for (const metric of registry) {
     if (byId.has(metric.id)) throw new Error(`duplicate metric id "${metric.id}"`);
+    checkMetric(metric);
     byId.set(metric.id, metric);
   }
-  const cache = new Map<string, CacheEntry>();
+  /** Per metric id, most recently used first. */
+  const cache = new Map<string, CacheEntry[]>();
 
   const metricOf = (metricId: string): ComputedMetric => {
     const metric = byId.get(metricId);
@@ -98,17 +118,27 @@ export function createMetricEvaluator(registry: MetricRegistry = BUILT_IN_METRIC
   };
 
   const entryFor = (ctx: MetricContext, metric: ComputedMetric): CacheEntry => {
-    const entry = cache.get(metric.id);
-    if (entry && entry.doc === ctx.doc && entry.spatial === ctx.spatial) return entry;
+    let entries = cache.get(metric.id);
+    if (!entries) cache.set(metric.id, (entries = []));
+    const promote = (index: number): CacheEntry => {
+      const [entry] = entries.splice(index, 1);
+      entries.unshift(entry!);
+      return entry!;
+    };
+    const exact = entries.findIndex((e) => e.doc === ctx.doc && e.spatial === ctx.spatial);
+    if (exact >= 0) return promote(exact);
     const key = dependencyKey(ctx, metric.dependsOn);
-    if (entry && sameKey(entry.key, key, metric.dependsOn)) {
+    const same = entries.findIndex((e) => sameKey(e.key, key, metric.dependsOn));
+    if (same >= 0) {
+      const entry = promote(same);
       entry.doc = ctx.doc;
       entry.spatial = ctx.spatial;
       entry.key = key;
       return entry;
     }
     const fresh: CacheEntry = { doc: ctx.doc, spatial: ctx.spatial, key, values: new Map() };
-    cache.set(metric.id, fresh);
+    entries.unshift(fresh);
+    if (entries.length > METRIC_CACHE_ENTRIES) entries.length = METRIC_CACHE_ENTRIES;
     return fresh;
   };
 

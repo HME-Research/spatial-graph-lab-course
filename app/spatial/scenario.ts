@@ -1,7 +1,14 @@
 import { fail, issue, ok, type Result } from '@app/document';
 import type { DesignDocumentV2 } from '@app/document/v2';
 import { applyDesignCommand, type DesignCommand, type DesignCommandOptions, type NewRelationship } from './commands';
-import { checkFacePreference, facePreferenceSchema, resolveWithPreferences, type FacePreference, type FacePreferences } from './preferences';
+import {
+  checkFacePreference,
+  facePreferenceSchema,
+  rebasePreferences,
+  resolveWithPreferences,
+  type FacePreference,
+  type FacePreferences,
+} from './preferences';
 
 /**
  * Scenario content (Gate F, F-C): what one scenario's undo history records — the design plus its
@@ -9,11 +16,18 @@ import { checkFacePreference, facePreferenceSchema, resolveWithPreferences, type
  *
  * Every command is pure and returns new content or readable issues (the input is never mutated).
  * - Design commands run through `applyDesignCommand`, resolving with the scenario's preferences
- *   (unless the caller supplies `options.resolve`). Removing an edge or a node drops the
- *   preferences of edges that no longer exist IN THE SAME STEP. Moving or resizing never removes
- *   an edge or its preference (an unavailable preference makes the edge unresolved instead).
- * - `set-face-preference` sets (only to a currently shared face) or clears one edge's preference.
- * - `add-edge-at-face` adds an edge and its preference as ONE step.
+ *   (unless the caller supplies `options.resolve`). IN THE SAME STEP the sidecar is then kept
+ *   consistent with the new design (`nextPreferences`):
+ *   - removing an edge or a node drops the preferences of edges that no longer exist;
+ *   - changing an edge to `open` drops its preference (changing it back to `access` does not
+ *     bring it back: the representative face applies until a face is chosen again);
+ *   - moving a room keeps its offsets (the face moves with the room); resizing it keeps each
+ *     preferred face at its ABSOLUTE cell (`rebasePreferences`). Moving or resizing never removes
+ *     an edge or its preference (an unavailable preference makes the edge unresolved instead).
+ * - `set-face-preference` sets (only to a currently shared face of an `access` edge) or clears one
+ *   edge's preference. Setting the identical preference, or clearing a missing one, returns the
+ *   SAME content object (no change, no undo step).
+ * - `add-edge-at-face` adds an `access` edge and its preference as ONE step.
  */
 
 export interface ScenarioContent {
@@ -39,14 +53,29 @@ function withPreference(prefs: FacePreferences, edgeId: string, preference: Face
   return next;
 }
 
-/** Drop preferences of edges that are not in `doc`; the same object when nothing is dropped. */
+const samePreference = (a: FacePreference, b: FacePreference) =>
+  a.nodeId === b.nodeId && a.direction === b.direction && a.offset.length === b.offset.length && a.offset.every((v, i) => v === b.offset[i]);
+
+/**
+ * Drop preferences of edges that are not in `doc` or are not `access` edges; the same object when
+ * nothing is dropped.
+ */
 export function prunePreferences(prefs: FacePreferences, doc: Pick<DesignDocumentV2, 'edges'>): FacePreferences {
-  const ids = new Set(doc.edges.map((e) => e.id));
+  const ids = new Set(doc.edges.filter((e) => e.kind === 'access').map((e) => e.id));
   const keys = Object.keys(prefs);
   if (keys.every((k) => ids.has(k))) return prefs;
   const next: Record<string, FacePreference> = {};
   for (const k of keys) if (ids.has(k)) next[k] = prefs[k]!;
   return next;
+}
+
+/**
+ * The sidecar that goes with `after`, a design derived from `before` in one step (a command or
+ * an applied algorithm result): rebased for resized rooms, then pruned of removed / non-access
+ * edges. The same object when nothing changes.
+ */
+export function nextPreferences(prefs: FacePreferences, before: DesignDocumentV2, after: DesignDocumentV2): FacePreferences {
+  return prunePreferences(rebasePreferences(prefs, before, after), after);
 }
 
 /** Validate `preference` against `doc` for `edgeId`; null when acceptable. */
@@ -55,6 +84,13 @@ function preferenceIssue(doc: DesignDocumentV2, edgeId: string, preference: Face
   if (!parsed.success) return issue(['facePreferences', edgeId], 'schema', parsed.error.issues[0]?.message ?? 'invalid face preference');
   const edge = doc.edges.find((e) => e.id === edgeId);
   if (!edge) return issue(['edges'], 'not-found', `edge "${edgeId}" does not exist`);
+  if (edge.kind !== 'access') {
+    return issue(
+      ['facePreferences', edgeId],
+      'schema',
+      `only access connections can choose the wall they open on; "${edgeId}" is an ${edge.kind} connection, which opens the whole shared boundary`,
+    );
+  }
   const check = checkFacePreference(doc, edge, preference);
   return check.ok ? null : issue(['facePreferences', edgeId], 'invalid-edge-geometry', CHECK_TEXT[check.reason]);
 }
@@ -68,13 +104,13 @@ export function applyScenarioCommand(
     case 'set-face-preference': {
       const { design, facePreferences } = content;
       if (!design.edges.some((e) => e.id === command.edgeId)) return fail([issue(['edges'], 'not-found', `edge "${command.edgeId}" does not exist`)]);
+      const has = Object.prototype.hasOwnProperty.call(facePreferences, command.edgeId);
       if (command.preference === null) {
-        return ok(Object.prototype.hasOwnProperty.call(facePreferences, command.edgeId)
-          ? { design, facePreferences: withPreference(facePreferences, command.edgeId, null) }
-          : content);
+        return ok(has ? { design, facePreferences: withPreference(facePreferences, command.edgeId, null) } : content);
       }
       const problem = preferenceIssue(design, command.edgeId, command.preference);
       if (problem) return fail([problem]);
+      if (has && samePreference(facePreferences[command.edgeId]!, command.preference)) return ok(content);
       return ok({ design, facePreferences: withPreference(facePreferences, command.edgeId, command.preference) });
     }
     case 'add-edge-at-face': {
@@ -88,11 +124,17 @@ export function applyScenarioCommand(
       });
     }
     default: {
-      const resolve = options.resolve ?? ((d: DesignDocumentV2) => resolveWithPreferences(d, content.facePreferences));
+      // A proposed design is resolved with the preferences it would carry (rebased / pruned), so
+      // the command's own checks (e.g. "would this become unresolved?") see the same result as
+      // the committed scenario will.
+      const resolve =
+        options.resolve ??
+        ((d: DesignDocumentV2) =>
+          resolveWithPreferences(d, d === content.design ? content.facePreferences : nextPreferences(content.facePreferences, content.design, d)));
       const result = applyDesignCommand(content.design, command, { ...options, resolve });
       if (!result.ok) return result;
       if (result.value === content.design) return ok(content);
-      return ok({ design: result.value, facePreferences: prunePreferences(content.facePreferences, result.value) });
+      return ok({ design: result.value, facePreferences: nextPreferences(content.facePreferences, content.design, result.value) });
     }
   }
 }

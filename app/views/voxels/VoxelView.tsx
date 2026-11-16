@@ -10,6 +10,7 @@ import { LevelLabels } from '../three/LevelLabels';
 import { pickHandlers, type Hover } from '@core/viewer/three/picking';
 import { useSpatialScene } from '../three/useSpatialScene';
 import { useRemembered } from '../panelMemory';
+import { useViewportCamera } from '../viewportCamera';
 import type { CameraState } from '@core/viewer/three/viewport';
 import { ControlBar, InfoPanel, NAVIGATION_HINT } from '@core/viewer/three/ViewControls';
 import { ColorBySelect, Legend, LevelSelect } from '../three/SpatialControls';
@@ -45,6 +46,7 @@ export function VoxelView({ doc, selection, onSelect, design, project }: ViewPro
   const source = useSceneSource(doc, design);
   const s = useSpatialScene(source, selection, project?.attributes);
   const camera = useRemembered<CameraState>('camera:voxels');
+  const viewportCamera = useViewportCamera();
   const [opacity, setOpacity] = useState(BASE_OPACITY);
   const geo = useVoxelGeometry();
   const tube = useUnitCylinder();
@@ -76,6 +78,7 @@ export function VoxelView({ doc, selection, onSelect, design, project }: ViewPro
 
   return (
     <SceneCanvas
+      {...viewportCamera}
       ariaLabel="Voxel view"
       framing={framing}
       cameraMemory={camera}
