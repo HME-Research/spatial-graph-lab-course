@@ -59,6 +59,13 @@ export function AlgorithmPanel({
   const selected = selectedIndex >= 0 ? algorithms[selectedIndex]! : null;
   const entryDrafts = (selected && drafts[selected.id]) ?? {};
   const problems = selected?.enabled ? parameterProblems(selected, entryDrafts) : [];
+  // "Clear" on the result card (shell) clears the shown analysis; its value list goes with it, so
+  // one result never appears twice (phase 08, O03).
+  const [shownBefore, setShownBefore] = useState<AlgorithmRunV2 | null>(shownAnalysis);
+  if (shownBefore !== shownAnalysis) {
+    setShownBefore(shownAnalysis);
+    if (shownAnalysis === null && run !== null && shownBefore === run) setRun(null);
+  }
 
   if (!project) {
     return (
@@ -282,20 +289,20 @@ function RunResult({
   if (outcome.kind === 'analysis') {
     const rows = analysisRows(outcome.result.nodeValues, run.doc, doc);
     return (
-      <section className="sgl-section algorithm-result">
+      <section className="sgl-section algorithm-result" aria-label={`Values of ${run.label}`}>
         <div className="algorithm-result-header">
-          <h4>Analysis: {run.label}</h4> <HelpTip topicId="analysis-results" />
+          <h4>Values per room</h4> <HelpTip topicId="analysis-results" />
         </div>
-        {outcome.result.summary && <p>{outcome.result.summary}</p>}
+        {!shown && outcome.result.summary && <p>{outcome.result.summary}</p>}
         {stale && (
           <div className="sgl-warning">
             ⚠ The design has changed since this ran; run it again for current values. <HelpTip topicId="stale-results" />
           </div>
         )}
-        {onShow && (
+        {onShow && !shown && (
           <div className="sgl-buttons">
-            <button type="button" aria-pressed={shown} onClick={() => onShow(!shown)}>
-              {shown ? 'Hide colours on the model' : 'Show on the model'}
+            <button type="button" onClick={() => onShow(true)}>
+              Show on the model
             </button>
           </div>
         )}
@@ -315,10 +322,12 @@ function RunResult({
             ))}
           </tbody>
         </table>
-        <p className="sgl-help">Analyses never change the design.</p>
-        <button type="button" onClick={onDiscard}>
-          Close
-        </button>
+        <p className="sgl-help">Analyses never change the design. “Clear” above removes the colours and these values.</p>
+        {!shown && (
+          <button type="button" onClick={onDiscard}>
+            Clear results
+          </button>
+        )}
       </section>
     );
   }

@@ -55,7 +55,8 @@ export function TripleField({
   footer,
 }: {
   readonly legend: string;
-  readonly info: string;
+  /** Optional "i" explanation; most fields use one help "?" in their footer instead (phase 08, O02). */
+  readonly info?: string;
   /** Short visible axis labels, e.g. ['x', 'y', 'z']. */
   readonly axes: readonly [string, string, string];
   readonly bounds: TripleBounds;
@@ -115,7 +116,13 @@ export function TripleField({
       }}
     >
       <legend>
-        {legend} <InfoTip id={infoId} text={info} />
+        {legend}
+        {/* Accessible description only: the visible explanation is one help "?" in the footer (phase 08, O02). */}
+        {info !== undefined && (
+          <span className="sgl-visually-hidden" id={infoId}>
+            {info}
+          </span>
+        )}
       </legend>
       <div className="sgl-row">
         {axes.map((axis, i) => (

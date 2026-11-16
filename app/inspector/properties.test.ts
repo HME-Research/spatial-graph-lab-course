@@ -46,7 +46,7 @@ describe('Properties panel, schema v1 (today)', () => {
     expect(html).not.toMatch(/>(Apply|Move|Set)<\/button>/);
     // The explanation is reachable from the fields (tooltip + accessible description).
     expect(html).toMatch(/aria-describedby="[^"]+"/);
-    expect(html).toContain('Moving a node in Graph 2D only rearranges the diagram');
+    expect(html).toContain('Dragging its node in Graph 2D only tidies the diagram'); // phase 08 (O02): one sentence
     // Size is a schema-v2 feature: hidden without the port.
     expect(html).not.toContain('Size (cells)');
   });

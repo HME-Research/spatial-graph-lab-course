@@ -257,7 +257,7 @@ describe('DesignerPanel (static render)', () => {
     expect(html).toMatch(/does not define &quot;kiosk&quot;/);
     expect(html).toMatch(/exterior walls/);
     expect(html).toMatch(/value="35"/);
-    expect(html).toMatch(/Design override · project default 60 %/);
+    expect(html).toContain("Changed from the project default (60 %)"); // phase 08 (O06) wording
     expect(html).toMatch(/Reset to project default/);
     expect(html).toMatch(/None \(open top\)/);
     expect(html).toMatch(/Edit in Properties/);

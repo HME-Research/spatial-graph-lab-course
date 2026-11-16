@@ -61,7 +61,7 @@ export function Graph3DView({ doc, selection, onSelect, design, project }: ViewP
             <label>
               <input type="checkbox" checked={showCells} onChange={(e) => setShowCells(e.currentTarget.checked)} /> Cells
             </label>
-            <button type="button" onClick={s.refit}>
+            <button type="button" onClick={s.refit} title="Frame the whole model again (also after you orbit or zoom)">
               Fit view
             </button>
           </ControlBar>

@@ -61,13 +61,6 @@ function DesignSummary({ doc, design }: { readonly doc: DesignDocument; readonly
         {nodes.length} rooms · {edgeCount} relationships{notBuilt > 0 ? ` (${notBuilt} unresolved)` : ''} · storeys (z):{' '}
         {storeys.join(', ') || '—'} · schema v{design ? design.doc.schemaVersion : doc.schemaVersion}
       </p>
-      <div className="sgl-help-row">
-        <span className="sgl-help">
-          Tip: moving a node in Graph 2D only rearranges the diagram. To move a room in the building, change its Position
-          here.
-        </span>
-        <HelpTip topicId="graph-vs-grid" />
-      </div>
       {design && (
         <div className="sgl-help-row">
           <span className="sgl-help">Relationship lines: solid = direct, long dashes = via route, short red dashes = unresolved.</span>

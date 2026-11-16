@@ -18,6 +18,7 @@ import {
   SIDEBAR_LABELS,
   SIDEBAR_SECTIONS,
   SidebarNav,
+  VIEW_CAPTIONS,
   ViewModeSelect,
   type SidebarSection,
 } from '@app/ui';
@@ -194,6 +195,9 @@ function ViewPanel({
     <div className="view-panel" data-panel={index} data-view={mode} onPointerDownCapture={onInteract}>
       <div className="panel-header">
         <ViewModeSelect mode={mode} onMode={onMode} panel={index + 1} />
+        <span className="panel-caption" title={VIEW_CAPTIONS[mode]}>
+          {VIEW_CAPTIONS[mode]}
+        </span>
         <span className="panel-header-spacer" />
         {layout}
       </div>

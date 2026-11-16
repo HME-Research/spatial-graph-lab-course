@@ -40,10 +40,6 @@ export interface DesignerPanelProps {
   readonly onShowRelationship?: (edgeId: string) => void;
 }
 
-const HELP =
-  'Rules apply to every room of a type in THIS design only. They do not change the project type ' +
-  'definitions or other saved designs. Window coverage affects exterior walls only; roofs are ' +
-  'drawn on exposed tops only.';
 
 export function DesignerPanel({ design, project, selection, onShowRelationship }: DesignerPanelProps) {
   const [error, setError] = useState<string | null>(null);
@@ -79,21 +75,13 @@ export function DesignerPanel({ design, project, selection, onShowRelationship }
   return (
     <div className="sgl-designer" aria-label="Designer">
       <header className="sgl-designer-header">
-        <h3>
-          Type appearance <span className="sgl-designer-scope">this design</span>
-        </h3>
+        <h3>Type appearance</h3>
         <HelpTip topicId="designer-windows" />
-        <details className="sgl-designer-help">
-          <summary title={HELP} aria-label="About the Designer">
-            ?
-          </summary>
-          <p>{HELP}</p>
-          <p>
-            Connector style (Enclosed, Covered, Deck) is chosen per relationship in Properties. Custom geometry
-            imports are not part of this version.
-          </p>
-        </details>
       </header>
+      <p className="sgl-help">
+        Windows and roofs per room type, for this design only (other designs keep the project defaults). Custom fields
+        are in Attributes; corridor styles are chosen per relationship in Properties.
+      </p>
 
       {error && (
         <p className="sgl-designer-error" role="alert">
@@ -233,7 +221,7 @@ function TypeRow({ row, onWindow, onInvalid, onRoof, onReset }: TypeRowProps) {
         </span>
       </div>
       <p className="sgl-designer-source">
-        {inherited ? 'Project default' : 'Design override'} · project default {defaultText}
+        {inherited ? `Uses the project default (${defaultText})` : `Changed from the project default (${defaultText})`}
       </p>
 
       <div className="sgl-designer-field">
@@ -247,7 +235,7 @@ function TypeRow({ row, onWindow, onInvalid, onRoof, onReset }: TypeRowProps) {
             </option>
           ))}
         </select>
-        <span className="sgl-designer-source">{row.effective.source.roof === 'design' ? 'Design override' : 'Default'}</span>
+        <span className="sgl-designer-source">{row.effective.source.roof === 'design' ? 'Changed for this design' : 'Uses the default'}</span>
       </div>
 
       <button type="button" className="sgl-designer-reset" disabled={!row.hasOverride} onClick={onReset}>

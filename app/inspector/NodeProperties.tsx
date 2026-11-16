@@ -19,9 +19,9 @@ import {
   IssueFeedback,
   labelOfChoice,
   POSITION_HELP,
+  SIZE_HELP,
   RELATIONSHIP_KIND_CHOICES,
   RouteConfirm,
-  SIZE_HELP,
   UNDO_HINT,
 } from '@app/ui';
 import { typeColor } from '@core/viewer/appearance';
@@ -174,12 +174,12 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
         footer={
           <>
             {confirmation('move')}
-            <p className="sgl-help">
-              z is the storey. This moves the physical room{design ? '' : '; the target cell must be empty and every relationship must keep touching'}. Moving
-              the node in Graph 2D only rearranges the diagram.
-            </p>
             <div className="sgl-help-row">
-              Diagram vs grid <HelpTip topicId="graph-vs-grid" />
+              <span className="sgl-help">
+                {POSITION_HELP}
+                {design ? '' : ' The target cell must be empty and every relationship must keep touching.'}
+              </span>
+              <HelpTip topicId="graph-vs-grid" />
             </div>
           </>
         }

@@ -369,7 +369,7 @@ function Overlay({
         <label title={v2 ? 'View cutaway only: the Designer decides which room types have roofs' : 'Show roofs'}>
           <input type="checkbox" checked={showRoofs} onChange={(e) => onToggleRoofs(e.currentTarget.checked)} /> Roofs
         </label>
-        <button type="button" onClick={onFit}>
+        <button type="button" onClick={onFit} title="Frame the whole model again (also after you orbit or zoom)">
           Fit view
         </button>
       </ControlBar>

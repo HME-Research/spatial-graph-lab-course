@@ -18,10 +18,21 @@ export const VIEW_LABELS: Readonly<Record<ViewMode, string>> = {
 
 /** One-line tooltip per view, shown on the view selector. */
 export const VIEW_DESCRIPTIONS: Readonly<Record<ViewMode, string>> = {
-  graph2d: 'Diagram of rooms and their relationships. Moving a node here only rearranges the diagram; it never moves the room.',
+  graph2d: 'Diagram of rooms and their relationships. Its layout is free: dragging a node never moves the room.',
   graph3d: 'Rooms as points at their physical cells, with relationships drawn as lines.',
   voxels: 'The occupied cells of the building grid, coloured by room type.',
   architecture: 'The building generated from the graph: walls, doors, openings, floors and roofs.',
+};
+
+/**
+ * One-line caption under each view panel header (phase 08, O07): graph → grid → building.
+ * "Voxels" is kept as the established name; the caption explains it.
+ */
+export const VIEW_CAPTIONS: Readonly<Record<ViewMode, string>> = {
+  graph2d: 'Relationships · free layout',
+  graph3d: 'Relationships at real cell positions',
+  voxels: 'Occupied grid cells (one box per cell)',
+  architecture: 'Building generated from rooms and relationships',
 };
 
 /** Ordered view modes with their visible label and tooltip. */
@@ -139,8 +150,8 @@ export function describeResolution(resolution: EdgeResolution): ResolutionText {
 
 // ── Spatial guidance ────────────────────────────────────────────────────────────────────────
 
-export const POSITION_HELP =
-  'The room’s physical cell in the building grid: x and y across the site, z is the storey. Changing it moves the room in the Voxels and Building views. Moving a node in Graph 2D only rearranges the diagram and never moves the room.';
+/** The ONE place that explains diagram position vs grid position in Properties (phase 08, O02). */
+export const POSITION_HELP = 'Where the room is built: x and y across the site, z is the storey. Dragging its node in Graph 2D only tidies the diagram.';
 
 export const SIZE_HELP = 'How many cells the room spans along x, y and z. The room grows from its position (its lowest corner).';
 

@@ -53,6 +53,7 @@ export function RoomEditPanel({ editing }: { readonly editing: RoomEditing }) {
                 className={editing.mode === m ? 'active' : undefined}
                 disabled={busy}
                 onClick={() => editing.setMode(m)}
+                title={m === 'move' ? 'Arrows move the room by whole cells' : 'Cubes resize the room by whole cells (its lowest corner stays)'}
               >
                 {m === 'move' ? 'Move' : 'Resize'}
               </button>

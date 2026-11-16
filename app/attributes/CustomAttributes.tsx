@@ -22,6 +22,7 @@ import {
   parseValueDraft,
   sourceText,
 } from './attributesModel';
+import { HelpTip } from '@app/ui/help';
 import './attributes.css';
 
 type Stored = { readonly [key: string]: AttributeValue };
@@ -71,6 +72,7 @@ export function CustomAttributes({
     <section className="sgl-section sgl-custom-attributes" aria-label="Custom attributes">
       <div className="sgl-help-row">
         <h4>Custom attributes</h4>
+        <HelpTip topicId="project-attributes" />
         {onManage && (
           <button type="button" className="sgl-link" onClick={onManage} title="Add, rename or delete project fields">
             Manage fields…

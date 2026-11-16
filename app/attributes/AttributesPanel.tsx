@@ -36,6 +36,7 @@ import {
   type AttributeSession,
 } from '@app/session/projectAttributeStore';
 import { formatFieldValue, KIND_HELP, parseChoices, parseValueDraft, typeChoices } from './attributesModel';
+import { HelpTip } from '@app/ui/help';
 import './attributes.css';
 
 /**
@@ -143,6 +144,7 @@ export function AttributesPanel({
       <p className="sgl-help">
         Fields of project <strong>{project.definition.name}</strong>. Every {collection === 'nodes' ? 'room' : 'relationship'} in every design of this project has the same fields; designs store only values that differ from the defaults.
       </p>
+      <HelpTip topicId="project-attributes" />
       <div className={`sgl-attr-status sgl-attr-status-${status.tone}`} role="status">
         {status.text}
       </div>

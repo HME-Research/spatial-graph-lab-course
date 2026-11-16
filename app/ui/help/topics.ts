@@ -97,6 +97,15 @@ const topics = [
       'Results are tied to the exact version of the design they were computed on. Returning to an equal-looking design does not make them current again; run the algorithm again.',
   },
   {
+    id: 'project-attributes',
+    title: 'Custom attributes',
+    summary: 'Every room (and every relationship) in a project has the same fields; a value set on one room applies to that room only.',
+    details:
+      'Fields are defined once per project in Attributes (Nodes and Edges) and saved in this browser; Export keeps a copy. ' +
+      'A room shows the value set on it, else its type’s default, else the field default. “Use default” removes the room’s own value. ' +
+      'Renaming a field keeps every stored value; deleting a field keeps stored values, listed as not in the project fields.',
+  },
+  {
     id: 'display-id',
     title: 'Room label',
     summary: 'The short label (such as 01) is for reading; the permanent id never changes.',

@@ -215,6 +215,16 @@ main {
   flex: 1;
 }
 
+/* One-line explanation of the view (phase 08, O07); shortened with an ellipsis in narrow panels. */
+.panel-caption {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .segmented {
   display: inline-flex;
 }
