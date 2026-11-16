@@ -66,13 +66,25 @@ export interface BuildingModelV2 {
   readonly relationships: readonly RelationshipBuildInfo[];
 }
 
-export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Options = {}): BuildingModelV2 {
-  const spatial = options.spatial ?? resolveRelationships(doc);
-  const base = options.facade ?? exampleFacadeProvider;
+/**
+ * The building faces and effective façade of `doc`, exactly as `buildBuildingV2` uses them
+ * (`resolveBuildingFaces` → `applyRoofPolicy`; window fraction = design override → `base` →
+ * example). Shared with the Plan (`planSourceV2`) so both views lay out the same faces.
+ */
+export function buildingFacesV2(
+  doc: DesignDocumentV2,
+  spatial: SpatialResolution,
+  base: FacadeProvider = exampleFacadeProvider,
+): { readonly faces: BuildingFace[]; readonly facade: FacadeProvider } {
   const appearance = (typeId: string) => effectiveTypeAppearance(doc, typeId, base(typeId));
   const facade: FacadeProvider = (typeId) => ({ windowFraction: appearance(typeId).windowFraction });
-
   const faces = applyRoofPolicy(resolveBuildingFaces(doc, spatial), (t) => appearance(t).roof);
+  return { faces, facade };
+}
+
+export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Options = {}): BuildingModelV2 {
+  const spatial = options.spatial ?? resolveRelationships(doc);
+  const { faces, facade } = buildingFacesV2(doc, spatial, options.facade ?? exampleFacadeProvider);
   const elements = buildArchitecture(faces.map(toResolvedFace), {
     facade,
     ...(options.cell ? { cell: options.cell } : {}),

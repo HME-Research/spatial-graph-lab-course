@@ -22,7 +22,7 @@ export const VIEW_DESCRIPTIONS: Readonly<Record<ViewMode, string>> = {
   graph3d: 'Rooms as points at their physical cells, with relationships drawn as lines.',
   voxels: 'The occupied cells of the building grid, coloured by room type.',
   architecture: 'The building generated from the graph: walls, doors, openings, floors and roofs.',
-  plan: 'An architectural floor plan of one storey of the same building (not drawn yet).',
+  plan: 'An architectural floor plan of one storey of the same building, cut at 1.2 m: walls, doors, openings and rooms.',
 };
 
 /**
@@ -34,7 +34,7 @@ export const VIEW_CAPTIONS: Readonly<Record<ViewMode, string>> = {
   graph3d: 'Relationships at real cell positions',
   voxels: 'Occupied grid cells (one box per cell)',
   architecture: 'Building generated from rooms and relationships',
-  plan: 'Floor plan of one storey (coming soon)',
+  plan: 'Floor plan of one storey of the building',
 };
 
 /** Ordered view modes with their visible label and tooltip. */

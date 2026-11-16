@@ -1,0 +1,233 @@
+/* Plan view (workstream C). Neutral drafting style: thin dark lines, wall poché, one accent for
+   the shared selection (--sgl-plan-selection = SELECTION_COLOR). Scoped with `sgl-plan`. */
+
+.sgl-plan {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #fbfbf9;
+  color: #1d1d1b;
+  --sgl-plan-ink: #232320;
+  --sgl-plan-poche: #34342f;
+  --sgl-plan-muted: #8a8a82;
+}
+
+.sgl-plan-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  text-align: center;
+}
+
+.sgl-plan-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.sgl-plan-svg:active {
+  cursor: grabbing;
+}
+.sgl-plan-svg [role='button'] {
+  cursor: pointer;
+}
+.sgl-plan-svg [role='button']:focus {
+  outline: none;
+}
+
+/* Rooms: a faint tint of the type colour, so the drawing stays neutral. */
+.sgl-plan-room {
+  fill: var(--sgl-plan-type, #cccccc);
+  fill-opacity: 0.1;
+  stroke: none;
+}
+.sgl-plan-room:hover {
+  fill-opacity: 0.2;
+}
+.sgl-plan-room.related {
+  fill: var(--sgl-plan-selection);
+  fill-opacity: 0.1;
+}
+.sgl-plan-room.selected,
+.sgl-plan-room:focus-visible {
+  fill: var(--sgl-plan-selection);
+  fill-opacity: 0.22;
+}
+
+/* Generated connector cells (routed relationships). */
+.sgl-plan-route {
+  fill: #e4e1da;
+  stroke: var(--sgl-plan-muted);
+  stroke-width: 1px;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+.sgl-plan-route.selected {
+  fill: var(--sgl-plan-selection);
+  fill-opacity: 0.25;
+  stroke: var(--sgl-plan-selection);
+}
+
+/* Walls: solid poché. */
+.sgl-plan-wall {
+  fill: var(--sgl-plan-poche);
+  stroke: none;
+}
+.sgl-plan-wall.solid {
+  fill: #55554e;
+}
+
+/* Openings. The hit rect is invisible but clickable. */
+.sgl-plan-hit {
+  fill: transparent;
+  stroke: none;
+}
+.sgl-plan-opening path {
+  fill: none;
+  stroke: var(--sgl-plan-ink);
+  stroke-width: 1px;
+}
+.sgl-plan-opening.open path {
+  stroke-dasharray: 5 4;
+}
+.sgl-plan-opening.window path {
+  stroke-width: 0.75px;
+}
+.sgl-plan-opening:hover path {
+  stroke-width: 2px;
+}
+.sgl-plan-opening.selected path,
+.sgl-plan-opening:focus-visible path {
+  stroke: var(--sgl-plan-selection);
+  stroke-width: 2.5px;
+}
+.sgl-plan-opening.selected .sgl-plan-hit {
+  fill: var(--sgl-plan-selection);
+  fill-opacity: 0.25;
+}
+
+/* Slab openings: crossed rectangle (void); dashed when it is in the slab above. */
+.sgl-plan-slab rect,
+.sgl-plan-slab path {
+  fill: none;
+  stroke: var(--sgl-plan-ink);
+  stroke-width: 1px;
+}
+.sgl-plan-slab.slab-void rect {
+  fill: #ffffff;
+  fill-opacity: 0.6;
+}
+.sgl-plan-slab.above rect,
+.sgl-plan-slab.above path {
+  stroke: var(--sgl-plan-muted);
+  stroke-dasharray: 5 4;
+  fill: none;
+}
+rect.sgl-plan-slab.access-marker {
+  fill: var(--sgl-plan-ink);
+  stroke: none;
+}
+rect.sgl-plan-slab.access-marker.above {
+  fill: var(--sgl-plan-muted);
+}
+.sgl-plan-slab.selected rect,
+.sgl-plan-slab.selected path {
+  stroke: var(--sgl-plan-selection);
+  stroke-width: 2px;
+}
+rect.sgl-plan-slab.access-marker.selected {
+  fill: var(--sgl-plan-selection);
+}
+
+/* Wall targets (only with the wall data hook). */
+.sgl-plan-wall-target {
+  stroke: transparent;
+  stroke-linecap: butt;
+  cursor: crosshair;
+}
+.sgl-plan-wall-target.hovered {
+  stroke: var(--sgl-plan-selection);
+  stroke-opacity: 0.35;
+}
+
+.sgl-plan-labels text {
+  fill: var(--sgl-plan-ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: #fbfbf9;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.sgl-plan-labels .sgl-plan-span {
+  fill: var(--sgl-plan-muted);
+}
+
+/* Overlay controls. */
+.sgl-plan-level,
+.sgl-plan-zoom {
+  position: absolute;
+  top: 8px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #d9d9d2;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.sgl-plan-level {
+  right: 8px;
+}
+.sgl-plan-level label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.sgl-plan-zoom {
+  left: 8px;
+}
+.sgl-plan-level select,
+.sgl-plan-zoom button {
+  font: inherit;
+  padding: 2px 8px;
+}
+.sgl-plan-zoom button[aria-pressed='true'] {
+  font-weight: 600;
+}
+
+.sgl-plan-note {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  margin: 0;
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: #66665f;
+  pointer-events: none;
+}
+
+.sgl-plan-empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(420px, calc(100% - 32px));
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #d9d9d2;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 13px;
+  pointer-events: none;
+}
