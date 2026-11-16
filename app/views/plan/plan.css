@@ -231,3 +231,9 @@ rect.sgl-plan-slab.access-marker.selected {
   font-size: 13px;
   pointer-events: none;
 }
+
+/* The wall whose panel is open (wave 2, D). */
+.sgl-plan-wall-target.active {
+  stroke: var(--sgl-plan-selection);
+  stroke-opacity: 0.6;
+}
