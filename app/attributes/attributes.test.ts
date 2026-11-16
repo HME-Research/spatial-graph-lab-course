@@ -6,7 +6,7 @@ import { labProject } from '@app/extensions/test-fixtures';
 import { loadAttributeSession } from '@app/session/projectAttributeStore';
 import { readDesign } from '@app/document/v2';
 import { decodeChoice, encodeChoice, EXPLICIT_NONE, inheritedText, INHERIT, parseChoices, parseValueDraft, sourceText, typeChoices } from './attributesModel';
-import { AttributesPanel } from './AttributesPanel';
+import { AttributesPanel, metricKindText } from './AttributesPanel';
 import { CustomAttributes } from './CustomAttributes';
 
 /** Phase 03: Attributes manager and custom attributes in Properties. */
@@ -97,5 +97,28 @@ describe('Attributes manager', () => {
   it('without a project explains that fields belong to a project', () => {
     const html = renderToStaticMarkup(createElement(AttributesPanel, { session: null, project: null, doc: null, source: null, onChange: () => {} }));
     expect(html).toContain('custom fields belong to a project');
+  });
+});
+
+describe('Calculated catalogue (I1: enabled calculated values)', () => {
+  it('names value kinds correctly and ticks exactly the enabled calculated values', async () => {
+    const project = await labProject();
+    const session = loadAttributeSession(null, project);
+    const html = renderToStaticMarkup(
+      createElement(AttributesPanel, { session, project, doc: null, source: null, onChange: () => {}, calculatedFields: ['area', 'has-exterior-facade'], onCalculatedFields: () => {} }),
+    );
+    const row = (id: string) => {
+      const start = html.indexOf(`data-metric="${id}"`);
+      expect(start, id).toBeGreaterThanOrEqual(0);
+      return html.slice(start, html.indexOf('</li>', start));
+    };
+    expect(row('area')).toContain('number, in m²');
+    expect(row('area')).toMatch(/checked=""/);
+    expect(row('has-exterior-facade')).toContain('yes / no');
+    expect(row('has-exterior-facade')).toMatch(/checked=""/);
+    expect(row('volume')).not.toMatch(/checked=""/);
+    expect(row('degree')).toContain('>number<');
+    expect(html).toContain('2 of 7 shown');
+    expect(metricKindText({ valueKind: 'text' })).toBe('text');
   });
 });

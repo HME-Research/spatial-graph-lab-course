@@ -10,7 +10,8 @@ Additive to `docs/CONTRACTS-V2.md`. The v2 design schema (`app/document/v2/schem
   - Width and a deliberate collapse persist in `localStorage` (`sgl:ui:*`, every access guarded).
   - Properties auto-opens on selection unless the user deliberately collapsed it.
 - **Views:**
-  - `VIEW_MODES = graph2d, graph3d, voxels, architecture, plan`. Plan is a placeholder until workstream C, and it is marked `data-placeholder="plan"`.
+  - `VIEW_MODES = graph2d, graph3d, voxels, architecture, plan`. Plan (workstream C, merged at I1) draws one storey as SVG from the shared face layout (`buildPlan`); its drawing surface is `svg[data-view-surface="plan"]`.
+  - Graph 3D, Voxels and Building are `React.lazy` in the registry, under `<Suspense key={mode}>` in `Workspace` (workstream E).
   - Graph 3D stays read-only.
   - Viewports are `viewport-1…4`, with layout 1 | 2 | 4 (default 2) and default modes `[graph2d, architecture, graph3d, plan]`.
   - Maximise/Restore is offered per viewport. Viewports maximised away stay mounted (`hidden`); viewports outside the layout are unmounted.
@@ -22,6 +23,7 @@ Additive to `docs/CONTRACTS-V2.md`. The v2 design schema (`app/document/v2/schem
   - `attributes`: the project attribute record, validated by `readAttributeRecord`;
   - `activeScenarioId` and `scenarios[]`;
   - `settings.display`;
+  - `settings.calculatedFields?` (optional, added at I1): the ids of the calculated values (metrics) the project shows in Properties and offers for colour-by. Metric ids only, never values. Absent = the built-in default selection; the key is written only when set, so older files stay byte-identical. The file keeps the ids as written (structure validated: at most 64 strings of 1–64 characters); the app reads them with `sanitizeEnabledMetrics` (unknown ids ignored, canonical order) and writes canonical lists. Project-level, not per scenario, not undoable;
   - `assets: {policy: 'none'}`.
 - **Scenario** = `{id, name, design (DesignDocumentV2, read with readDesign), facePreferences, cameras: SavedCamera[], display: DisplayOverrides}`. A scenario is a complete design alternative.
 - **Reading and writing:**
@@ -42,6 +44,8 @@ Additive to `docs/CONTRACTS-V2.md`. The v2 design schema (`app/document/v2/schem
   - Each scenario has its own `DocumentSession<ScenarioContent>` history.
   - Cameras and display settings are not undoable; they are autosaved.
   - "Not exported" is not "unsaved". Local save state and the exported state are tracked separately.
+- **Open project and autosave (workstream B, merged at I1):** `app/session/projectStore.ts` (pure open-project state) and `projectStoreController.ts` (UI-independent controller). The app starts with no project: Welcome is always shown and nothing reopens automatically. Save state is explicit (`pending | saving | saved | blocked` with a reason, including `conflict` for a two-tab write detected under a Web Lock); leaving a project with changes that could not be stored needs explicit confirmation. Project settings that are not design content go through `setCameras`, `setScenarioDisplay`, `setDisplayDefaults`, `setCalculatedFields` and `setAttributeRecord`: autosaved and exported, never undo steps.
+- **Camera and Display binding (I1):** `app/session/projectViewSettings.ts` backs E's `SavedCameraStore` with each scenario's `cameras` and E's `DisplayStore` with `settings.display` (defaults) and each scenario's `display` (overrides). The providers receive the ACTIVE scenario id; reads always follow the open project, so nothing leaks between projects. Cameras of view modes the app does not offer are kept in the file but not listed. The Camera panel's chosen target viewport is a per-browser UI choice (`localStorage` `sgl:ui:camera-target`), not project data.
 
 ## 3. Faces, wall runs, interaction (`app/building/**`)
 - **Pipeline:** `resolveRelationships → resolveBuildingFaces → applyRoofPolicy → layoutFaces → buildArchitecture`. Plan will add `buildPlan`, which uses the same `FaceLayout` input.
@@ -76,10 +80,13 @@ Additive to `docs/CONTRACTS-V2.md`. The v2 design schema (`app/document/v2/schem
   - `resolveDisplay(defaults → scenario overrides → per-view)` (`app/display/contracts.ts`), with fields `labels`, `legend`, `roofs`, `colourPreset`, `lighting`.
   - Display settings are appearance only. They are persisted in the project file and not undoable.
 - **Metrics:**
-  - Each `ComputedMetric` has an id, label, collection, value kind, unit, a non-empty `dependsOn` (`topology | geometry | resolution | types | attributes | settings`) and `compute`. `createMetricEvaluator` memoises per document.
+  - Each `ComputedMetric` has an id, label, collection, value kind, unit, an optional `description` (added at I1, additive), a non-empty `dependsOn` (`topology | geometry | resolution | types | attributes | settings`) and `compute`. `createMetricEvaluator` memoises per document.
   - Metric values are derived on read and never written to designs or exports.
-  - The first metrics are `area` (plan area, m²) and `degree`. `Level` is system-backed (`grid[2]`) and is not a metric.
-- **Student API:** unchanged. `student-api/surface.test.ts` pins its runtime exports, and `check:project` must stay green.
+  - The built-in catalogue (workstream M, `app/metrics/catalogue.ts`; each entry carries a `definition`): node metrics `area` (m²), `volume` (m³), `degree`, `has-exterior-facade` (yes/no), `exposed-facade-length` (m), `exposed-facade-area` (m²), `unresolved-connections`; edge metrics `resolution-status` (text) and `route-length` (m). Façade metrics use the Building's own face resolution.
+  - `Function` (`typeId`) and `Level` (`grid[2]`) are system-backed fields (`app/metrics/system.ts`), not metrics; Properties shows Level once, with the room's identity.
+  - **Enabled selection:** the project's `settings.calculatedFields` (§2), read with `sanitizeEnabledMetrics`, toggled in the Attributes "Calculated" catalogue, provided to views and Properties through `EnabledMetricsContext` (`app/views/three/enabledMetrics.ts`). Properties renders `metricRows` (shared `defaultMetricEvaluator`, `formatMetricValue`) read-only; the 3D views offer enabled node metrics in "Colour by" (`{kind: 'metric', metricId}`; a disabled metric falls back to the type colouring).
+  - Metrics are computed on the design port's preference-aware resolution (`resolveWithPreferences`), the same one the views draw.
+- **Student API:** additive only. Spatial algorithm contexts gained `ctx.metrics` (`list()` and `value(metricId, itemId)`, read-only, types `MetricInfo` and `MetricReader`; workstream M) with the new diagnostic code `unknown-metric`. The host passes the port's preference-aware resolution (`RunOptions.spatial`), so `ctx.metrics` equals what the views show. The frozen runtime surface is unchanged: `student-api/surface.test.ts` pins its runtime exports, and `check:project` must stay green. Graph-algorithm contexts have no `ctx.metrics`.
 
 ## 6. Exclusive file ownership for the parallel waves
 | Owner | Files |

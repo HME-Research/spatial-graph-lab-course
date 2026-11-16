@@ -66,8 +66,21 @@ export interface ProjectFileV1 {
   readonly activeScenarioId: string;
   /** At least one; unique ids. */
   readonly scenarios: readonly ScenarioRecord[];
-  readonly settings: { readonly display: DisplayDefaults };
+  readonly settings: ProjectSettings;
   readonly assets: { readonly policy: 'none' };
+}
+
+/**
+ * Project-level settings (not per scenario, not undoable).
+ * - `display`: the Display defaults (scenario overrides and per-view settings refine them).
+ * - `calculatedFields` (optional, I1): the ids of the calculated values (metrics) the project shows in
+ *   Properties and offers for colour-by. Metric ids only, never values. Absent = the built-in
+ *   default selection. The file keeps the ids as written; the app reads them with
+ *   `sanitizeEnabledMetrics` (unknown ids are ignored, order is canonical) and writes canonical lists.
+ */
+export interface ProjectSettings {
+  readonly display: DisplayDefaults;
+  readonly calculatedFields?: readonly string[];
 }
 
 export type ProjectIssueCode =
@@ -133,7 +146,10 @@ const projectShape = z.strictObject({
   attributes: z.looseObject({}).nullable(),
   activeScenarioId: idSchema,
   scenarios: z.array(scenarioShape).min(1, { error: 'a project needs at least one scenario' }),
-  settings: z.strictObject({ display: displayDefaultsSchema }),
+  settings: z.strictObject({
+    display: displayDefaultsSchema,
+    calculatedFields: z.array(z.string().min(1).max(64), { error: 'calculatedFields must be a list of calculated value ids' }).max(64).optional(),
+  }),
   assets: z.strictObject({ policy: z.literal('none') }),
 });
 
@@ -225,7 +241,7 @@ export function readProjectFile(input: unknown): ProjectResult<ProjectFileV1> {
     attributes,
     activeScenarioId: data.activeScenarioId,
     scenarios,
-    settings: { display: canonicalDefaults(data.settings.display) },
+    settings: canonicalSettings(data.settings),
     assets: { policy: 'none' },
   });
 }
@@ -287,6 +303,12 @@ const canonicalDefaults = (d: DisplayDefaults): DisplayDefaults => ({
  * by edge id, optional fields omitted when undefined, trailing newline. Same file → same text.
  * Expects a valid file (as returned by `readProjectFile` or the builders here).
  */
+/** Settings in canonical key order; `calculatedFields` only when present (older files stay byte-identical). */
+const canonicalSettings = (settings: { readonly display: DisplayDefaults; readonly calculatedFields?: readonly string[] | undefined }): ProjectSettings => ({
+  display: canonicalDefaults(settings.display),
+  ...(settings.calculatedFields !== undefined && { calculatedFields: [...settings.calculatedFields] }),
+});
+
 export function serializeProjectFile(file: ProjectFileV1): string {
   const canonical = {
     format: PROJECT_FILE_FORMAT,
@@ -307,7 +329,7 @@ export function serializeProjectFile(file: ProjectFileV1): string {
       cameras: s.cameras.map(canonicalCamera),
       display: canonicalOverrides(s.display),
     })),
-    settings: { display: canonicalDefaults(file.settings.display) },
+    settings: canonicalSettings(file.settings),
     assets: { policy: 'none' },
   };
   return `${JSON.stringify(canonical, null, 2)}\n`;

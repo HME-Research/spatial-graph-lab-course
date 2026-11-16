@@ -36,7 +36,7 @@ import {
   type AttributeSession,
 } from '@app/session/projectAttributeStore';
 import { formatFieldValue, KIND_HELP, parseChoices, parseValueDraft, typeChoices } from './attributesModel';
-import { BUILT_IN_METRICS } from '@app/metrics/registry';
+import { DEFAULT_ENABLED_METRICS, METRIC_CATALOGUE, setMetricEnabled, type CatalogueMetric, type EnabledMetricIds } from '@app/metrics';
 import { CollapsibleSection, HorizontalTabs, InfoButton } from '@app/ui';
 import { HelpTip } from '@app/ui/help';
 import './attributes.css';
@@ -56,6 +56,8 @@ export function AttributesPanel({
   saveError = null,
   collection: controlledCollection,
   onCollection,
+  calculatedFields = DEFAULT_ENABLED_METRICS,
+  onCalculatedFields,
 }: {
   readonly session: AttributeSession | null;
   readonly project: ActiveProject | null;
@@ -67,6 +69,10 @@ export function AttributesPanel({
   /** Optional controlled sub-section (Nodes / Edges). */
   readonly collection?: AttributeCollection;
   readonly onCollection?: (collection: AttributeCollection) => void;
+  /** The project's enabled calculated values (`settings.calculatedFields`, canonical ids). */
+  readonly calculatedFields?: EnabledMetricIds;
+  /** Enable/disable calculated values (a project setting: autosaved, not undoable). Read-only list without it. */
+  readonly onCalculatedFields?: (ids: EnabledMetricIds) => void;
 }) {
   const [ownCollection, setOwnCollection] = useState<AttributeCollection>('nodes');
   const collection = controlledCollection ?? ownCollection;
@@ -233,7 +239,7 @@ export function AttributesPanel({
           <AddField collection={collection} apply={apply} onError={(text) => setNotice({ tone: 'error', text })} />
         </CollapsibleSection>
 
-        <CalculatedCatalogue collection={collection} />
+        <CalculatedCatalogue collection={collection} enabled={calculatedFields} {...(onCalculatedFields && { onChange: onCalculatedFields })} />
       </HorizontalTabs>
 
       <CollapsibleSection title="Advanced" sectionId="attributes-advanced" defaultOpen={false} variant="advanced">
@@ -289,29 +295,59 @@ function SystemFields({ collection }: { readonly collection: AttributeCollection
   );
 }
 
-/** The calculated values Properties shows for this kind of item (read-only catalogue from `app/metrics`). */
-function CalculatedCatalogue({ collection }: { readonly collection: AttributeCollection }) {
-  const metrics = BUILT_IN_METRICS.filter((m) => m.collection === collection);
+/** What kind of value a calculated value has, in plain words (never "number" for yes/no or text). */
+export function metricKindText(metric: Pick<CatalogueMetric, 'valueKind' | 'unit'>): string {
+  if (metric.valueKind === 'boolean') return 'yes / no';
+  if (metric.valueKind === 'text') return 'text';
+  return metric.unit ? `number, in ${metric.unit}` : 'number';
+}
+
+/**
+ * The catalogue of built-in calculated values for this kind of item (`app/metrics`), each with its
+ * kind and definition. The checkbox chooses whether Properties shows it and colour-by offers it
+ * (project setting `settings.calculatedFields`). The values themselves are read-only.
+ */
+function CalculatedCatalogue({
+  collection,
+  enabled,
+  onChange,
+}: {
+  readonly collection: AttributeCollection;
+  readonly enabled: EnabledMetricIds;
+  readonly onChange?: (ids: EnabledMetricIds) => void;
+}) {
+  const metrics = METRIC_CATALOGUE.filter((m) => m.collection === collection);
+  const on = metrics.filter((m) => enabled.includes(m.id)).length;
   return (
     <CollapsibleSection
       title="Calculated"
       sectionId="calculated-catalogue"
       variant="calculated"
-      meta={<span className="sgl-chip sgl-chip-readonly">read-only</span>}
+      meta={<span className="sgl-chip sgl-chip-readonly">{`${on} of ${metrics.length} shown`}</span>}
       actions={<InfoButton concept="calculated-values" />}
     >
       {metrics.length === 0 ? (
         <p className="meta">No calculated values for {collection === 'nodes' ? 'rooms' : 'relationships'} yet.</p>
       ) : (
-        <dl className="sgl-readonly-list">
+        <ul className="sgl-calculated-catalogue">
           {metrics.map((m) => (
-            <div key={m.id} style={{ display: 'contents' }}>
-              <dt>{m.label}</dt>
-              <dd>{m.unit ? `in ${m.unit}` : 'number'}</dd>
-            </div>
+            <li key={m.id} data-metric={m.id}>
+              <label className="sgl-check-row" title={m.definition}>
+                <input
+                  type="checkbox"
+                  checked={enabled.includes(m.id)}
+                  disabled={!onChange}
+                  onChange={(e) => onChange?.(setMetricEnabled(enabled, m.id, e.currentTarget.checked))}
+                />
+                <span className="sgl-calculated-name">{m.label}</span>
+                <span className="sgl-calculated-kind meta">{metricKindText(m)}</span>
+              </label>
+              <p className="sgl-help">{m.definition}</p>
+            </li>
           ))}
-        </dl>
+        </ul>
       )}
+      <p className="sgl-help">Ticked values appear read-only in Properties and in the 3D views’ “Colour by”. They are worked out from the design, never typed in or exported as data.</p>
     </CollapsibleSection>
   );
 }

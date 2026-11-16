@@ -148,3 +148,29 @@
 .sgl-field-body {
   min-width: 0;
 }
+
+/* Calculated values catalogue (I1): one checkbox row per built-in metric, definition below. */
+.sgl-calculated-catalogue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.sgl-calculated-catalogue .sgl-check-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-height: 32px;
+  cursor: pointer;
+}
+.sgl-calculated-catalogue .sgl-calculated-name {
+  font-weight: 600;
+}
+.sgl-calculated-catalogue .sgl-calculated-kind {
+  margin-left: auto;
+}
+.sgl-calculated-catalogue .sgl-help {
+  margin: 0 0 0 26px;
+}

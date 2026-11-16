@@ -127,3 +127,21 @@ describe('cameras and display bound to the project file (I1)', () => {
     expect(display.defaults()).toEqual(DEFAULT_DISPLAY);
   });
 });
+
+describe('calculated fields are a project setting (I1)', () => {
+  it('persist in settings.calculatedFields, autosaved, exported and not undoable', async () => {
+    const store = createMemoryProjectStore();
+    const c = makeController(store);
+    await c.open(fileOf(), created);
+    expect(c.getState().project!.meta.settings.calculatedFields).toBeUndefined();
+    c.setCalculatedFields(['area', 'has-exterior-facade']);
+    expect(c.getState().project!.meta.settings.calculatedFields).toEqual(['area', 'has-exterior-facade']);
+    expect(canUndo(activeSession(c.getState().project!).history)).toBe(false);
+    await c.flush();
+    const id = c.getState().project!.meta.projectId;
+    expect(stored(store, id).settings.calculatedFields).toEqual(['area', 'has-exterior-facade']);
+    const exported = c.exportFile();
+    if (!exported.ok) throw new Error(exported.message);
+    expect(JSON.parse(exported.value.text).settings.calculatedFields).toEqual(['area', 'has-exterior-facade']);
+  });
+});

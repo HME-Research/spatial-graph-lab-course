@@ -67,6 +67,8 @@ import {
 import { WorkspaceServicesContext, type WorkspaceServices } from '@app/workspace/services';
 import { SavedCamerasProvider } from '@app/camera/savedCameras';
 import { DisplayProvider } from '@app/display/DisplayProvider';
+import { sanitizeEnabledMetrics } from '@app/metrics';
+import { EnabledMetricsContext } from '@app/views/three/enabledMetrics';
 import { DEFAULT_VIEWPORT_STATE, deriveViewports, type ViewportState } from '@app/workspace/viewports';
 
 /**
@@ -215,6 +217,9 @@ export function App() {
   const definitionId = openProject?.meta.definition?.projectId ?? null;
   const projectId = openProject?.meta.projectId ?? null;
   const scenarioId = openProject?.activeScenarioId ?? null;
+  /** The project's calculated values (`settings.calculatedFields`), validated at runtime; absent = defaults. */
+  const storedCalculatedFields = openProject?.meta.settings.calculatedFields;
+  const calculatedFields = useMemo(() => sanitizeEnabledMetrics(storedCalculatedFields).enabled, [storedCalculatedFields]);
 
   /**
    * A user change of the schema: carried in the LOCAL project file (autosaved with the project),
@@ -651,6 +656,7 @@ export function App() {
                 {/* Saved cameras and Display of the ACTIVE scenario, persisted in the project file (autosaved, not undoable). */}
                 <SavedCamerasProvider scenarioId={scenarioId ?? ''} store={cameraStore}>
                 <DisplayProvider scenarioId={scenarioId ?? ''} store={displayStore}>
+                <EnabledMetricsContext.Provider value={calculatedFields}>
                 <OpenAttributesContext.Provider value={project ? openAttributes : null}>
                   <Workspace
                     view={
@@ -709,6 +715,8 @@ export function App() {
                           saveError={attributeSaveError}
                           collection={attributeCollection}
                           onCollection={setAttributeCollection}
+                          calculatedFields={calculatedFields}
+                          onCalculatedFields={(ids) => controller.setCalculatedFields(ids)}
                         />
                       ),
                       designer: port ? (
@@ -734,6 +742,7 @@ export function App() {
                           shownAnalysis={shownAnalysis}
                           onShowAnalysis={setShownAnalysis}
                           {...(attributesVersion && { attributes: attributesVersion })}
+                          {...(port && { resolution: port })}
                         />
                       ),
                       // Panel slots (Gate F): workstreams own the component bodies, the registry owns the map.
@@ -743,6 +752,7 @@ export function App() {
                     }}
                   />
                 </OpenAttributesContext.Provider>
+                </EnabledMetricsContext.Provider>
                 </DisplayProvider>
                 </SavedCamerasProvider>
               </WorkspaceServicesContext.Provider>

@@ -9,7 +9,8 @@ import { describe, expect, it } from 'vitest';
  *   import `document/`, core/graph and core/spatial only.
  * - `building/` (architectural rules and geometry): pure; may also import `document/` and the
  *   pure core/viewer helpers (coordinates, selection) and `spatial/`; never React, Three.js or React Flow.
- * - `metrics/` (computed metrics, F-D): pure; may import `document/`, `spatial/`, core/graph,
+ * - `metrics/` (computed metrics, F-D): pure; may import `document/`, `spatial/`, `building/` (face
+ *   resolution for façade metrics), core/graph,
  *   core/spatial and the pure core/viewer helpers (coordinates, selection); never React or Three.js.
  * - `extensions/` (project loading, definition validation, conformance, algorithm execution):
  *   pure; may import document, building, pure core modules and `@student-api`. It is the only

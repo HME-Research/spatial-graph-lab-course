@@ -4,6 +4,8 @@ import { applyGraphCommand, parseDesignJson, serializeDesign, validateDocument, 
 import { expectOk } from '@app/document/test-fixtures';
 import { activate, PROJECT_GLOBS, type ActiveProject } from '@app/extensions';
 import { labDoc, labProject } from '@app/extensions/test-fixtures';
+import { metricsLabDoc } from '@app/metrics/test-fixtures';
+import { resolveWithPreferences } from '@app/spatial';
 import builtInText from '../document/examples/two-storey-example.json?raw';
 import {
   analysisRows,
@@ -14,6 +16,7 @@ import {
   listAlgorithms,
   parameterProblems,
   runEntry,
+  runEntryV2,
   type AlgorithmEntry,
   type AlgorithmRun,
 } from './algorithmSession';
@@ -198,5 +201,30 @@ describe('spatial transformation preview', () => {
     expect(run.outcome.ok).toBe(false);
     expect(!run.outcome.ok && run.outcome.issues.map((d) => d.code)).toEqual(['invalid-edge-geometry']);
     expect(serializeDesign(doc)).toBe(before);
+  });
+});
+
+describe('runEntryV2 passes the host (preference-aware) resolution (I1)', () => {
+  it('ctx.metrics sees the scenario face preferences the views show, only for the very document run', async () => {
+    const seen: unknown[] = [];
+    const probe = {
+      id: 'probe',
+      label: 'Probe',
+      scope: 'spatial',
+      run: (ctx: { metrics: { value: (m: string, id: string) => unknown } }) => {
+        seen.push(ctx.metrics.value('resolution-status', 'e1'));
+        return { kind: 'transformation', operations: [] };
+      },
+    };
+    const project = await labProject({ 'projects/lab/algorithms/probe.ts': { default: probe } });
+    const entry = listAlgorithms(project).find((a) => a.id === 'probe')!;
+    const doc = metricsLabDoc();
+    const spatial = resolveWithPreferences(doc, { e1: { nodeId: 'hall', offset: [0, 0, 0], direction: '-x' } });
+    const version = { doc, revision: 1 };
+    runEntryV2(version, project, entry, {});
+    runEntryV2(version, project, entry, {}, undefined, { doc, spatial });
+    // A resolution of another document object is ignored (never mixes documents).
+    runEntryV2(version, project, entry, {}, undefined, { doc: metricsLabDoc(), spatial });
+    expect(seen).toEqual(['direct', 'unresolved', 'direct']);
   });
 });

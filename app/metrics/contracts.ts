@@ -39,6 +39,11 @@ export interface ComputedMetric {
   readonly collection: 'nodes' | 'edges';
   readonly valueKind: MetricValueKind;
   readonly unit?: string | undefined;
+  /**
+   * Optional plain-language definition (exactly what is counted or measured), shown as a tooltip or
+   * in the Attributes catalogue (I1, additive). The built-in catalogue carries it as `definition`.
+   */
+  readonly description?: string | undefined;
   /** Non-empty; see `METRIC_DEPENDENCIES`. */
   readonly dependsOn: readonly MetricDependency[];
   /** Pure. `null` when the item does not exist or the metric has no value for it. */

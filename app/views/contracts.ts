@@ -46,8 +46,9 @@ export type ViewComponent = ComponentType<ViewProps>;
 export type InspectorProps = ViewProps;
 
 /**
- * Five view modes (Gate F). `plan` is the architectural floor plan of one storey; its view is a
- * placeholder until the Plan workstream fills it. Graph 2D keeps its non-spatial diagram meaning.
+ * Five view modes (Gate F). `plan` is the architectural floor plan of one storey (workstream C,
+ * `app/views/plan`: an SVG drawn from the shared face layout, `svg[data-view-surface="plan"]`).
+ * Graph 2D keeps its non-spatial diagram meaning.
  */
 export const VIEW_MODES = ['graph2d', 'graph3d', 'voxels', 'architecture', 'plan'] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];

@@ -14,7 +14,7 @@ import {
   runEntryV2,
   type AlgorithmRunV2,
   type ApplyOutcome,
-  type ParameterDrafts, type AttributesVersion, relationshipLabel } from './algorithmSession';
+  type ParameterDrafts, type AttributesVersion, type HostResolution, relationshipLabel } from './algorithmSession';
 import type { DocumentVersion } from './documentSession';
 
 /**
@@ -31,6 +31,7 @@ export function AlgorithmPanel({
   shownAnalysis = null,
   onShowAnalysis,
   attributes,
+  resolution,
 }: {
   readonly project: ActiveProject | null;
   /** The current (schema-v2) document and its revision; results are bound to it. */
@@ -47,6 +48,8 @@ export function AlgorithmPanel({
   readonly onShowAnalysis?: (run: AlgorithmRunV2 | null) => void;
   /** The project attribute schema in use; a result is stale once it changes. */
   readonly attributes?: AttributesVersion;
+  /** The design port's preference-aware resolution of the current document (`ctx.metrics` equals what the views show). */
+  readonly resolution?: HostResolution;
 }) {
   const algorithms = listAlgorithms(project);
   // Selected by file: ids may collide (duplicate definitions are listed separately, both disabled).
@@ -79,7 +82,7 @@ export function AlgorithmPanel({
     e.preventDefault();
     if (!selected || !selected.enabled || !version) return;
     setNotice(null);
-    const next = runEntryV2(version, project, selected, entryDrafts, attributes);
+    const next = runEntryV2(version, project, selected, entryDrafts, attributes, resolution);
     setRun(next);
     // An analysis is shown on the model straight away (temporary colours; "Hide" / Clear remove them).
     if (next.outcome.ok && next.outcome.value.kind === 'analysis') onShowAnalysis?.(next);

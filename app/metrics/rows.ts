@@ -66,7 +66,7 @@ export function metricRows(
       valueKind: metric.valueKind,
       value,
       text: formatMetricValue(metric, value),
-      definition: (metric as Partial<CatalogueMetric>).definition ?? '',
+      definition: (metric as Partial<CatalogueMetric>).definition ?? metric.description ?? '',
       readOnly: true,
     };
   });

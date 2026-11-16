@@ -422,6 +422,16 @@ export function setDisplayDefaults(project: OpenProject, display: DisplayDefault
   return changed(project, { meta: { ...project.meta, settings: { ...project.meta.settings, display } } });
 }
 
+/**
+ * The calculated values (metric ids) the project shows (`settings.calculatedFields`). The caller
+ * passes a canonical list (`sanitizeEnabledMetrics` / `setMetricEnabled`). Not undoable; autosaved.
+ */
+export function setCalculatedFields(project: OpenProject, ids: readonly string[]): OpenProject {
+  const current = project.meta.settings.calculatedFields;
+  if (current && current.length === ids.length && current.every((id, i) => id === ids[i])) return project;
+  return changed(project, { meta: { ...project.meta, settings: { ...project.meta.settings, calculatedFields: [...ids] } } });
+}
+
 /** The project attribute record (`exportAttributeFile` shape) or null (= the project files' schema). */
 export function setAttributeRecord(project: OpenProject, record: unknown | null): OpenProject {
   if (JSON.stringify(project.meta.attributes ?? null) === JSON.stringify(record ?? null)) return project;

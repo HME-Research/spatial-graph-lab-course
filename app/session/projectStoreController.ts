@@ -30,6 +30,7 @@ import {
   saveProjectAs,
   separateIdentity,
   setAttributeRecord,
+  setCalculatedFields,
   setDisplayDefaults,
   setProjectDescription,
   setScenarioCameras,
@@ -163,6 +164,8 @@ export interface ProjectController {
   setCameras(scenarioId: string, cameras: readonly SavedCamera[]): void;
   setScenarioDisplay(scenarioId: string, display: DisplayOverrides): void;
   setDisplayDefaults(display: DisplayDefaults): void;
+  /** Project `settings.calculatedFields` (canonical metric ids). Not undoable; autosaved. */
+  setCalculatedFields(ids: readonly string[]): void;
   setAttributeRecord(record: unknown | null): void;
 
   // Files
@@ -527,6 +530,9 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
     setDisplayDefaults(display) {
       mutate((p) => setDisplayDefaults(p, display));
+    },
+    setCalculatedFields(ids) {
+      mutate((p) => setCalculatedFields(p, ids));
     },
     setAttributeRecord(record) {
       mutate((p) => setAttributeRecord(p, record));

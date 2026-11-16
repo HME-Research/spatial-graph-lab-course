@@ -16,6 +16,7 @@ import {
   type RunOutcome,
   type TransformationPreview,
 } from '@app/extensions';
+import type { SpatialResolution } from '@app/spatial';
 import type { DocumentVersion } from './documentSession';
 
 /**
@@ -119,22 +120,40 @@ export function runEntry(version: DocumentVersion, project: ActiveProject, entry
   };
 }
 
-/** Run once against the schema-v2 document (`runAlgorithmV2`). Never changes `doc`. */
+/**
+ * The host's resolution of a document (the design port's `spatial`: resolved WITH the scenario's
+ * face preferences). Used only when `doc` is the very document being run.
+ */
+export interface HostResolution {
+  readonly doc: DesignDocumentV2;
+  readonly spatial: SpatialResolution;
+}
+
+/**
+ * Run once against the schema-v2 document (`runAlgorithmV2`). Never changes `doc`. With
+ * `resolution` for this exact document, spatial algorithms (and `ctx.metrics`) see the same
+ * preference-aware resolution the views show; otherwise the runtime resolves without preferences.
+ */
 export function runEntryV2(
   version: DocumentVersion<DesignDocumentV2>,
   project: ActiveProject,
   entry: AlgorithmEntry,
   drafts: ParameterDrafts,
   attributes?: AttributesVersion,
+  resolution?: HostResolution,
 ): AlgorithmRunV2 {
   const { doc, revision } = version;
+  const spatial = resolution && resolution.doc === doc ? resolution.spatial : undefined;
   return {
     algorithmId: entry.id,
     label: entry.label,
     doc,
     revision,
     ...(attributes && { attributesRevision: attributes.revision }),
-    outcome: runAlgorithmV2(doc, project, entry.id, draftsToParameters(entry, drafts), attributes ? { attributes: attributes.schema } : {}),
+    outcome: runAlgorithmV2(doc, project, entry.id, draftsToParameters(entry, drafts), {
+      ...(attributes && { attributes: attributes.schema }),
+      ...(spatial && { spatial }),
+    }),
   };
 }
 

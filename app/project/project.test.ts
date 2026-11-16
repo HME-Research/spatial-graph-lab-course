@@ -403,3 +403,29 @@ describe('project store', () => {
     expect(await createMemoryProjectStore().load('nothing')).toEqual({ status: 'missing' });
   });
 });
+
+describe('settings.calculatedFields (I1, optional)', () => {
+  it('is absent by default and older files stay byte-identical', () => {
+    const text = serializeProjectFile(validFile());
+    expect(JSON.parse(text).settings).not.toHaveProperty('calculatedFields');
+    expect(serializeProjectFile(okValue(readProjectFile(text)))).toBe(text);
+  });
+
+  it('round-trips metric ids (ids only, never values), keeping ids a newer catalogue may know', () => {
+    const raw = rawFile();
+    raw.settings = { ...raw.settings, calculatedFields: ['volume', 'area', 'future-metric'] };
+    const file = okValue(readProjectFile(raw));
+    expect(file.settings.calculatedFields).toEqual(['volume', 'area', 'future-metric']);
+    const text = serializeProjectFile(file);
+    expect(Object.keys(JSON.parse(text).settings)).toEqual(['display', 'calculatedFields']);
+    expect(serializeProjectFile(okValue(readProjectFile(text)))).toBe(text);
+  });
+
+  it('rejects a malformed list before anything replaces state', () => {
+    for (const bad of ['area', [1], [''], { area: true }]) {
+      const raw = rawFile();
+      raw.settings = { ...raw.settings, calculatedFields: bad };
+      expect(codes(readProjectFile(raw))).toContain('schema');
+    }
+  });
+});

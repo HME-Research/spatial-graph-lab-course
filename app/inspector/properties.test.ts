@@ -9,6 +9,7 @@ import type { InspectorProps } from '@app/views/contracts';
 import { buildProjectViewContext } from '@app/views/project';
 import { selectEdge, selectNode, NO_SELECTION, type Selection } from '@core/viewer/selection';
 import { OpenAttributesContext } from '@app/attributes/navigation';
+import { EnabledMetricsContext } from '@app/views/three/enabledMetrics';
 import { Inspector } from './Inspector';
 import { corridorRaw, fakePort } from './test-fixtures';
 
@@ -156,13 +157,31 @@ describe('Properties grouping (wave 1)', () => {
     const calculated = sectionBody(html, 'calculated');
     expect(html).toMatch(/class="[^"]*sgl-csection-calculated[^"]*" data-section="calculated"/);
     expect(calculated).toContain('read-only');
-    expect(calculated).toContain('<dt>Area</dt>');
-    expect(calculated).toMatch(/<dt>Degree<\/dt><dd>\d+<\/dd>/);
+    expect(calculated).toMatch(/<dt[^>]*>Area<\/dt>/);
+    expect(calculated).toMatch(/<dt[^>]*>Degree<\/dt><dd>\d+<\/dd>/);
+    // Level is a system field (identity), never a duplicated calculated row.
+    expect(calculated).not.toContain('>Level<');
     expect(calculated).toMatch(/<dd>\d+(\.\d+)? m²<\/dd>/);
     expect(calculated).not.toMatch(/<input|<select|<textarea/);
     expect(calculated).toContain('aria-label="About Calculated values"');
     // Geometry stays editable.
     expect(sectionBody(html, 'geometry')).toContain('<input');
+  });
+
+  it('shows only the project’s enabled calculated values (I1), and none when nothing is enabled', () => {
+    const withIds = (ids: readonly string[]) =>
+      renderToStaticMarkup(
+        createElement(
+          EnabledMetricsContext.Provider,
+          { value: ids },
+          createElement(Inspector, { onSelect: () => {}, onCommand: noop, doc: v1(), design: fakePort(), selection: selectNode('a') }),
+        ),
+      );
+    const calculated = sectionBody(withIds(['volume', 'has-exterior-facade']), 'calculated');
+    expect(calculated).toMatch(/data-metric="volume"/);
+    expect(calculated).toMatch(/data-metric="has-exterior-facade"[^]*<dd>(yes|no)<\/dd>/);
+    expect(calculated).not.toMatch(/data-metric="area"|data-metric="degree"/);
+    expect(withIds([])).not.toContain('data-section="calculated"');
   });
 
   it('shows the room id and its Level (= z) as read-only identity facts', () => {

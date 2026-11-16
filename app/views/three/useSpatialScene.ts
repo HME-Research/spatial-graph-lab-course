@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SceneSource } from './v2Scene';
 import { displayKeys, viewAttributes, type ProjectAttributeSchema } from '@app/extensions';
-import { defaultMetricEvaluator, DEFAULT_ENABLED_METRICS, type EnabledMetricIds, type MetricContext } from '@app/metrics';
+import { defaultMetricEvaluator, type EnabledMetricIds, type MetricContext } from '@app/metrics';
 import { selectionEmphasis, type Selection } from '@core/viewer/selection';
 import type { Hover } from '@core/viewer/three/picking';
 import {
@@ -12,6 +12,7 @@ import {
   resolveColoring,
   type ColorMode,
 } from './colorBy';
+import { useEnabledMetrics } from './enabledMetrics';
 import { isNeutral, neutralColoring, useViewDisplay } from './viewDisplay';
 import { accessGroups, buildEdgeItems, buildNodeItems, cellBounds, framingFor, groundGrid, storeyLevels } from './sceneModel';
 
@@ -26,8 +27,11 @@ export function useSpatialScene(
   attributeSchema?: ProjectAttributeSchema,
   /** The v2 document and its resolution (the design port): enables colour-by calculated values. */
   design?: MetricContext,
-  enabledMetricIds: EnabledMetricIds = DEFAULT_ENABLED_METRICS,
+  /** Default: the project's enabled calculated values (`EnabledMetricsContext`). */
+  enabledMetricIdsArg?: EnabledMetricIds,
 ) {
+  const projectMetricIds = useEnabledMetrics();
+  const enabledMetricIds = enabledMetricIdsArg ?? projectMetricIds;
   const { nodes, edges } = doc;
   // Colour-by reads EFFECTIVE values of the project's node fields (the shared resolver), so a type
   // default colours a room exactly as Properties and Graph 2D show it.
