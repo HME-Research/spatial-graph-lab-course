@@ -7,7 +7,7 @@ import { AnalysisLegend } from '@app/views/presentation/LegendViews';
 import { VIEW_COMPONENTS } from '@app/views/registry';
 import { EditPanelOwnerContext, PanelIndexContext } from '@app/views/three/editing/editPanelOwner';
 import { ViewportCameraContext, type ViewportCamera } from '@app/views/viewportCamera';
-import { PROPERTIES_DESCRIPTION, PROPERTIES_LABEL, PropertiesIcon, SidebarNav, VIEW_CAPTIONS, ViewModeSelect, type SidebarSection } from '@app/ui';
+import { ChevronIcon, PROPERTIES_DESCRIPTION, PROPERTIES_LABEL, PropertiesIcon, SidebarNav, VIEW_CAPTIONS, ViewModeSelect, type SidebarSection } from '@app/ui';
 import { DESTINATIONS } from '@app/workspace/destinations';
 import { clampLeftWidth, keyboardResize, LEFT_WIDTH_MAX, LEFT_WIDTH_MIN } from '@app/workspace/panes';
 import { WorkspaceServicesContext } from '@app/workspace/services';
@@ -100,6 +100,8 @@ export function Workspace({
   const infos = deriveViewports(viewports);
   const editOwner = editPanelOwner(infos, lastPanel);
   const mounted = VIEWPORT_INDICES.filter((index) => isMounted(viewports, index));
+  /** The layout selector sits in the first VISIBLE viewport, so it stays reachable while another one is maximised. */
+  const layoutHost = mounted.find((index) => infos[index]?.visible) ?? 0;
 
   const content = (id: SidebarSection): ReactNode =>
     id === 'algorithms' ? (
@@ -142,7 +144,7 @@ export function Workspace({
             title={leftCollapsed ? 'Show the project tools' : 'Hide the project tools to give the views more room'}
             onClick={() => onLeftCollapsed(!leftCollapsed)}
           >
-            <span aria-hidden="true">{leftCollapsed ? '›' : '‹'}</span>
+            <ChevronIcon towards={leftCollapsed ? 'right' : 'left'} />
           </button>
         </div>
 
@@ -167,7 +169,7 @@ export function Workspace({
                               <MaximiseButton maximised={viewports.maximised === index} onToggle={() => onViewports((s) => toggleMaximise(s, index))} />
                             ) : null
                           }
-                          layout={index === 0 ? <LayoutSelect layout={viewports.layout} onLayout={(l) => onViewports((s) => setViewportLayout(s, l))} /> : null}
+                          layout={index === layoutHost ? <LayoutSelect layout={viewports.layout} onLayout={(l) => onViewports((s) => setViewportLayout(s, l))} /> : null}
                         />
                       </ViewportCameraContext.Provider>
                     </PanelIndexContext.Provider>

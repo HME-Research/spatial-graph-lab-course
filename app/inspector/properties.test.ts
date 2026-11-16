@@ -8,6 +8,7 @@ import { labDoc, labProject } from '@app/extensions/test-fixtures';
 import type { InspectorProps } from '@app/views/contracts';
 import { buildProjectViewContext } from '@app/views/project';
 import { selectEdge, selectNode, NO_SELECTION, type Selection } from '@core/viewer/selection';
+import { OpenAttributesContext } from '@app/attributes/navigation';
 import { Inspector } from './Inspector';
 import { corridorRaw, fakePort } from './test-fixtures';
 
@@ -126,5 +127,73 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     const html = render({ doc: v1(), design, selection: NO_SELECTION });
     expect(html).toContain('3 rooms · 1 relationships');
     expect(html).toContain('schema v2');
+  });
+});
+
+// Wave 1 (A): Properties are grouped Identity / Geometry / Attributes / Calculated; calculated values
+// are read-only text in a distinct box (from the root metric contract), and there is a direct link
+// to the attribute manager.
+describe('Properties grouping (wave 1)', () => {
+  const v1 = () => labDoc();
+  const sectionBody = (html: string, id: string): string => {
+    const start = html.indexOf(`data-section="${id}"`);
+    expect(start, `section ${id}`).toBeGreaterThanOrEqual(0);
+    const next = html.indexOf('data-section="', start + 1);
+    return html.slice(start, next < 0 ? undefined : next);
+  };
+
+  it('a room shows Identity, Geometry, Attributes, Calculated and Relationships in that order', () => {
+    const html = render({ doc: v1(), design: fakePort(), selection: selectNode('a') });
+    const order = ['identity', 'geometry', 'attributes', 'calculated', 'relationships'].map((id) => html.indexOf(`data-section="${id}"`));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((x, y) => x - y)).toEqual(order);
+    // Each group is a disclosure: a heading button that controls a mounted body.
+    expect(html).toMatch(/<h3 class="sgl-csection-title"><button type="button" class="sgl-csection-toggle" aria-expanded="true" aria-controls="[^"]+"/);
+  });
+
+  it('calculated values are read-only text from the metric registry, visually distinct', () => {
+    const html = render({ doc: v1(), design: fakePort(), selection: selectNode('a') });
+    const calculated = sectionBody(html, 'calculated');
+    expect(html).toMatch(/class="[^"]*sgl-csection-calculated[^"]*" data-section="calculated"/);
+    expect(calculated).toContain('read-only');
+    expect(calculated).toContain('<dt>Area</dt>');
+    expect(calculated).toMatch(/<dt>Degree<\/dt><dd>\d+<\/dd>/);
+    expect(calculated).toMatch(/<dd>\d+(\.\d+)? m²<\/dd>/);
+    expect(calculated).not.toMatch(/<input|<select|<textarea/);
+    expect(calculated).toContain('aria-label="About Calculated values"');
+    // Geometry stays editable.
+    expect(sectionBody(html, 'geometry')).toContain('<input');
+  });
+
+  it('shows the room id and its Level (= z) as read-only identity facts', () => {
+    const design = fakePort();
+    const node = design.doc.nodes.find((n) => n.id === 'a')!;
+    const identity = sectionBody(render({ doc: v1(), design, selection: selectNode('a') }), 'identity');
+    expect(identity).toContain('<dt>Level</dt>');
+    expect(identity).toContain(`>${node.grid[2]}</dd>`);
+  });
+
+  it('offers "Manage attributes" in the Attributes group header when a project is active', async () => {
+    const project = await labProject();
+    const design = fakePort();
+    const context = buildProjectViewContext(project, v1());
+    const html = renderToStaticMarkup(
+      createElement(
+        OpenAttributesContext.Provider,
+        { value: () => {} },
+        createElement(Inspector, { onSelect: () => {}, onCommand: noop, doc: v1(), design, project: context, selection: selectNode('a') }),
+      ),
+    );
+    const attributes = sectionBody(html, 'attributes');
+    expect(attributes).toMatch(/sgl-csection-actions"><button type="button" class="sgl-link sgl-manage-link"[^>]*>Manage attributes<\/button>/);
+    expect(attributes.match(/Manage attributes<\/button>/g)).toHaveLength(1);
+  });
+
+  it('a relationship explains Access/Open with an `i` concept dialog instead of a tooltip', () => {
+    const html = render({ doc: v1(), design: fakePort(), selection: selectEdge('ab') });
+    const identity = sectionBody(html, 'identity');
+    expect(identity).toContain('aria-label="About Access and Open"');
+    expect(identity).toContain('aria-haspopup="dialog"');
+    expect(identity).not.toContain('data-help-topic="access-open"');
   });
 });

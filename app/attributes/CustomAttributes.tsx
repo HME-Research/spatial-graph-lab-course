@@ -27,6 +27,15 @@ import './attributes.css';
 
 type Stored = { readonly [key: string]: AttributeValue };
 
+/** Link from Properties to the project's attribute manager (Attributes destination, Node or Edge tab). */
+export function ManageAttributesLink({ onManage }: { readonly onManage: () => void }) {
+  return (
+    <button type="button" className="sgl-link sgl-manage-link" onClick={onManage} title="Add, rename or delete this project's attributes">
+      Manage attributes
+    </button>
+  );
+}
+
 /**
  * Properties section for the custom attributes of ONE node or edge (docs/PROJECT-ATTRIBUTES.md).
  *
@@ -45,6 +54,7 @@ export function CustomAttributes({
   run,
   onError,
   onManage,
+  showHeader = true,
 }: {
   readonly collection: AttributeCollection;
   readonly item: { readonly id: string; readonly typeId?: string; readonly attributes: Stored };
@@ -54,6 +64,8 @@ export function CustomAttributes({
   readonly onError: (message: string) => void;
   /** Opens the Attributes manager (shown as a link). */
   readonly onManage?: () => void;
+  /** Own heading and Manage link (default). Off when the host's section header shows them (Properties). */
+  readonly showHeader?: boolean;
 }) {
   const resolved =
     collection === 'nodes' ? resolveNodeAttributes(schema, { typeId: item.typeId ?? '', attributes: item.attributes }) : resolveEdgeAttributes(schema, item);
@@ -70,23 +82,19 @@ export function CustomAttributes({
 
   return (
     <section className="sgl-section sgl-custom-attributes" aria-label="Custom attributes">
-      <div className="sgl-help-row">
-        <h4>Custom attributes</h4>
-        <HelpTip topicId="project-attributes" />
-        {onManage && (
-          <button type="button" className="sgl-link" onClick={onManage} title="Add, rename or delete project fields">
-            Manage fields…
-          </button>
-        )}
-      </div>
+      {showHeader && (
+        <div className="sgl-help-row">
+          <h4>Custom attributes</h4>
+          <HelpTip topicId="project-attributes" />
+          {onManage && <ManageAttributesLink onManage={onManage} />}
+        </div>
+      )}
       {resolved.length === 0 ? (
         <p className="meta">
-          The project has no {collection === 'nodes' ? 'node' : 'edge'} fields yet.{onManage ? ' Use “Manage fields…” to add one.' : ''}
+          The project has no {collection === 'nodes' ? 'node' : 'edge'} attributes yet.{onManage ? ' Use “Manage attributes” to add one.' : ''}
         </p>
       ) : (
-        <p className="sgl-help">
-          Every {what} in this project has these fields. A value set here applies to this {what} only; “Use default” returns to the inherited value.
-        </p>
+        <p className="sgl-help">A value set here applies to this {what} only; “Use default” returns to the inherited value.</p>
       )}
       {resolved.map((r) => (
         <FieldValue key={`${r.field.id}:${JSON.stringify(r.storedValue)}:${r.storedKey ?? ''}`} r={r} typeId={item.typeId} send={(v) => send(r, v)} onError={onError} />

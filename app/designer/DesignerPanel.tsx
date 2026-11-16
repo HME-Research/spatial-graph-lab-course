@@ -1,3 +1,4 @@
+import { CollapsibleSection, InfoButton } from '@app/ui';
 import { HelpTip } from '@app/ui/help';
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { exampleFacadeProvider } from '@app/building';
@@ -73,14 +74,9 @@ export function DesignerPanel({ design, project, selection, onShowRelationship }
   };
 
   return (
-    <div className="sgl-designer" aria-label="Designer">
-      <header className="sgl-designer-header">
-        <h3>Type appearance</h3>
-        <HelpTip topicId="designer-windows" />
-      </header>
-      <p className="sgl-help">
-        Windows and roofs per room type, for this design only (other designs keep the project defaults). Custom fields
-        are in Attributes; corridor styles are chosen per relationship in Properties.
+    <div className="sgl-designer" aria-label="Building Designer">
+      <p className="sgl-help sgl-designer-intro">
+        Building rules of this design: windows and roofs per function. Colours, materials and lighting are in Display.
       </p>
 
       {error && (
@@ -89,41 +85,60 @@ export function DesignerPanel({ design, project, selection, onShowRelationship }
         </p>
       )}
 
-      {rows.length === 0 ? (
-        <p className="sgl-designer-notice">No node types yet: add a room or define a type in your project.</p>
-      ) : (
-        <ul className="sgl-designer-list">
-          {rows.map((row) => (
-            <li key={row.typeId}>
-              <TypeRow
-                row={row}
-                onWindow={(fraction) =>
-                  send(setWindowFractionEdit(doc, row.typeId, fraction, row.projectDefault.windowFraction))
-                }
-                onInvalid={setError}
-                onRoof={(roof) => send(setRoofEdit(doc, row.typeId, roof))}
-                onReset={() => send(resetTypeEdit(doc, row.typeId))}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+      <CollapsibleSection title="Defaults" sectionId="designer-defaults">
+        <p className="sgl-help">Every function starts from its project default. Changes under Function-Specific apply to this design only.</p>
+        {rows.length > 0 && (
+          <dl className="sgl-readonly-list sgl-designer-defaults" aria-label="Project defaults (read-only)">
+            {rows.map((row) => (
+              <div key={row.typeId} style={{ display: 'contents' }}>
+                <dt>{row.name}</dt>
+                <dd>{row.projectDefault.source === 'broken' ? 'invalid definition' : `windows ${formatPercent(row.projectDefault.windowFraction)} %`}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        <p className="sgl-help">Corridors default to Enclosed; choose another style per relationship in Properties.</p>
+        {relationship && (
+          <section className="sgl-designer-relationship" aria-label="Selected relationship">
+            <p>
+              Relationship <strong>{relationship.label}</strong>: connector{' '}
+              <strong>{CONNECTOR_STYLE_LABELS[relationship.style]}</strong>
+              {relationship.styleIsDefault ? ' (default)' : ''}.
+              {relationship.status !== 'routed' && ' The style is only built when the relationship gets a connector.'}
+            </p>
+            {onShowRelationship && (
+              <button type="button" onClick={() => onShowRelationship(relationship.edgeId)}>
+                Edit in Properties
+              </button>
+            )}
+          </section>
+        )}
+      </CollapsibleSection>
 
-      {relationship && (
-        <section className="sgl-designer-relationship" aria-label="Selected relationship">
-          <p>
-            Relationship <strong>{relationship.label}</strong>: connector{' '}
-            <strong>{CONNECTOR_STYLE_LABELS[relationship.style]}</strong>
-            {relationship.styleIsDefault ? ' (default)' : ''}.
-            {relationship.status !== 'routed' && ' The style is only built when the relationship gets a connector.'}
-          </p>
-          {onShowRelationship && (
-            <button type="button" onClick={() => onShowRelationship(relationship.edgeId)}>
-              Edit in Properties
-            </button>
-          )}
-        </section>
-      )}
+      <CollapsibleSection title="Function-Specific" sectionId="designer-functions" meta={String(rows.length)} actions={<HelpTip topicId="designer-windows" />}>
+        {rows.length === 0 ? (
+          <p className="sgl-designer-notice">No functions yet: add a room or define a type in your project.</p>
+        ) : (
+          <ul className="sgl-designer-list">
+            {rows.map((row) => (
+              <li key={row.typeId}>
+                <TypeRow
+                  row={row}
+                  onWindow={(fraction) =>
+                    send(setWindowFractionEdit(doc, row.typeId, fraction, row.projectDefault.windowFraction))
+                  }
+                  onInvalid={setError}
+                  onRoof={(roof) => send(setRoofEdit(doc, row.typeId, roof))}
+                  onReset={() => send(resetTypeEdit(doc, row.typeId))}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+        <CollapsibleSection title="Imported façade (3DM)" level={4} defaultOpen={false} sectionId="designer-imported-facade" actions={<InfoButton concept="repeat-stretch" />}>
+          <p className="sgl-help">Not available yet. A later version lets a function use an imported façade module, fitted to each wall by Repeat or Stretch.</p>
+        </CollapsibleSection>
+      </CollapsibleSection>
     </div>
   );
 }

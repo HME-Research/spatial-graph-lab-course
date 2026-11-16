@@ -68,7 +68,7 @@ describe('custom attributes in Properties', () => {
     expect(html).toContain('gallery default');
     expect(html).toContain('Use default');
     expect(html).toContain('Not in the project fields (1)');
-    expect(html).toContain('Manage fields…');
+    expect(html).toContain('Manage attributes');
   });
 
   it('edges show the edge fields only, and an invalid stored value is flagged but kept', () => {
@@ -88,7 +88,7 @@ describe('Attributes manager', () => {
     const html = renderToStaticMarkup(
       createElement(AttributesPanel, { session, project, doc: doc.ok ? doc.value.doc : null, source: 'd.json', onChange: () => {} }),
     );
-    for (const text of ['Nodes (3)', 'Edges (0)', 'daylight', 'public', 'occupancy', 'Undo field change', 'Export fields…', 'Import fields…', 'Add a node field', 'Default per room type', '1 in d (open)']) {
+    for (const text of ['Node <span class="sgl-htab-count">(3)</span>', 'Edge <span class="sgl-htab-count">(0)</span>', 'role="tablist" aria-orientation="horizontal"', 'System fields', 'Function', 'Level', 'daylight', 'public', 'occupancy', 'Undo field change', 'Export fields…', 'Import fields…', 'Add a node field', 'Default per room type', '1 in d (open)']) {
       expect(html).toContain(text);
     }
     expect(html).toContain('Same as the project files.');

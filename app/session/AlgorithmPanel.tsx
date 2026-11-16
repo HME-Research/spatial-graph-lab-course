@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import type { DesignDocumentV2 } from '@app/document/v2';
 import type { ActiveProject, AttributeSpec, ExtensionDiagnostic, TransformationPreviewV2 } from '@app/extensions';
+import { ALGORITHM_GROUP_LABELS, EFFECT_LABELS, groupAlgorithms, presentAlgorithm } from '@app/ui';
 import { HelpTip } from '@app/ui/help';
 import { selectNode, type SelectionHandler } from '@core/viewer/selection';
 import {
@@ -11,7 +12,6 @@ import {
   listAlgorithms,
   parameterProblems,
   runEntryV2,
-  type AlgorithmEntry,
   type AlgorithmRunV2,
   type ApplyOutcome,
   type ParameterDrafts, type AttributesVersion, relationshipLabel } from './algorithmSession';
@@ -102,32 +102,53 @@ export function AlgorithmPanel({
           Project “{project.id}” has no algorithms. Add one in <code>projects/{project.id}/algorithms/</code>.
         </p>
       ) : (
-        <ul className="algorithm-list" role="listbox" aria-label="Algorithms">
-          {algorithms.map((a, i) => (
-            <li key={a.file}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={i === selectedIndex}
-                className={i === selectedIndex ? 'algorithm-item selected' : 'algorithm-item'}
-                onClick={() => {
-                  setSelectedFile(a.file);
-                  setRun(null);
-                  setNotice(null);
-                }}
-              >
-                <span className="algorithm-label">{a.label}</span>
-                <span className={`algorithm-tag ${a.enabled ? a.scope : 'disabled'}`}>{a.enabled ? scopeLabel(a) : 'disabled'}</span>
-              </button>
-            </li>
+        <div className="algorithm-list" aria-label="Algorithms" role="region">
+          {groupAlgorithms(algorithms).map(({ group, items }) => (
+            <section key={group} aria-labelledby={`algorithm-group-${group}`} className="sgl-algo-group" data-group={group}>
+              <div className="sgl-algo-group-head">
+                <h3 id={`algorithm-group-${group}`}>{ALGORITHM_GROUP_LABELS[group].label}</h3>
+                <p>{ALGORITHM_GROUP_LABELS[group].description}</p>
+              </div>
+              <ul className="sgl-algo-items">
+                {items.map(({ entry: a, index: i, presentation }) => (
+                  <li key={a.file}>
+                    <button
+                      type="button"
+                      aria-pressed={i === selectedIndex}
+                      className={i === selectedIndex ? 'algorithm-item selected' : 'algorithm-item'}
+                      title={EFFECT_LABELS[presentation.effect].description}
+                      onClick={() => {
+                        setSelectedFile(a.file);
+                        setRun(null);
+                        setNotice(null);
+                      }}
+                    >
+                      <span className="algorithm-text">
+                        <span className="algorithm-label">{a.label}</span>
+                        <span className="algorithm-meta">
+                          <span className="algorithm-term">{presentation.term}</span>
+                          <span className={`algorithm-tag effect-${presentation.effect}`}>
+                            {EFFECT_LABELS[presentation.effect].tag}
+                            <span className="sgl-visually-hidden">{EFFECT_LABELS[presentation.effect].spoken}</span>
+                          </span>
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
 
       {selected && (
         <form className="sgl-section" onSubmit={execute}>
           <p className="sgl-help">
-            <code>{selected.id}</code> · <code>{selected.file}</code>
+            {EFFECT_LABELS[presentAlgorithm(selected).effect].description}{' '}
+            <span className="algorithm-source" title={selected.file}>
+              <code>{selected.id}</code>
+            </span>
           </p>
           {!selected.enabled && (
             <div className="sgl-error">
@@ -151,7 +172,7 @@ export function AlgorithmPanel({
           ))}
           <DiagnosticLines diagnostics={problems} />
           <div className="sgl-buttons">
-            <button type="submit" disabled={!selected.enabled || problems.length > 0 || !version}>
+            <button type="submit" className="sgl-primary" disabled={!selected.enabled || problems.length > 0 || !version}>
               Run
             </button>
             {selected.scope === 'spatial' && selected.enabled && <span className="sgl-help">Shows a preview; nothing changes until you apply it.</span>}
@@ -178,8 +199,6 @@ export function AlgorithmPanel({
     </div>
   );
 }
-
-const scopeLabel = (a: AlgorithmEntry) => (a.scope === 'graph' ? 'analysis' : a.scope === 'spatial' ? 'transformation' : a.scope);
 
 function ParameterField({
   name,
@@ -420,7 +439,7 @@ function RunResult({
         {!empty && !confirming && (
           <button
             type="button"
-            className="apply-button"
+            className="apply-button sgl-primary"
             disabled={stale}
             onClick={() => (preview.displacedRoutes.length > 0 ? setConfirming(true) : onApply(preview, false))}
           >
@@ -432,7 +451,7 @@ function RunResult({
             <button type="button" onClick={() => setConfirming(false)} autoFocus>
               Cancel
             </button>
-            <button type="button" className="apply-button" disabled={stale} onClick={() => onApply(preview, true)}>
+            <button type="button" className="apply-button sgl-primary" disabled={stale} onClick={() => onApply(preview, true)}>
               Move anyway and recalculate
             </button>
           </>

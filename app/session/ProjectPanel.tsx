@@ -1,4 +1,6 @@
+import type { ReactNode } from 'react';
 import type { ExtensionDiagnostic } from '@app/extensions';
+import { CollapsibleSection, InfoButton } from '@app/ui';
 import { selectNode, type SelectionHandler } from '@core/viewer/selection';
 import { activeProjectOf, projectHeadline, sessionDiagnostics, type ProjectSession } from './projectSession';
 
@@ -17,10 +19,14 @@ export function projectStatus(session: ProjectSession | null, conformance: reado
 }
 
 /**
- * The **Project** section of the left rail (programme phase 04): which project and design are
- * open, opening/loading/exporting designs, and every persistent problem — project loading
- * problems (never auto-dismissed), project attribute storage problems and the design's checks.
- * Replaces the former full-width project bar; the header keeps only a short identity.
+ * The **Project** destination (wave 1 A layout): three collapsible sections.
+ * - **Project Files**: which project is open and the file actions (open, export, example). The
+ *   project-file actions of workstream B (New, Save As New Project, Export Project) are mounted by
+ *   the integration owner through `files`.
+ * - **Information**: project and current design, with the Project/Scenario concept.
+ * - **Advanced** (collapsed): where the design came from and every check with its code.
+ * Problems that need action (errors, warnings) open a Checks section; info notes stay in Advanced.
+ * Scenario management is NOT here: it is the Scenarios destination.
  */
 export function ProjectPanel({
   session,
@@ -36,6 +42,7 @@ export function ProjectPanel({
   onLoadExample,
   onOpenFile,
   onExport,
+  files,
 }: {
   /** null while a project is being activated. */
   readonly session: ProjectSession | null;
@@ -52,6 +59,8 @@ export function ProjectPanel({
   readonly onLoadExample: () => void;
   readonly onOpenFile: () => void;
   readonly onExport: () => void;
+  /** Optional project-file actions (workstream B), shown first in Project Files. */
+  readonly files?: ReactNode;
 }) {
   if (!session) {
     return (
@@ -63,17 +72,18 @@ export function ProjectPanel({
   const headline = projectHeadline(session, docLoaded);
   const project = activeProjectOf(session);
   const problems = [...sessionDiagnostics(session), ...attributeProblems];
-  const errors = problems.filter((d) => d.severity === 'error').length;
   const selected = project?.id ?? (session.activation.status === 'failed' ? session.activation.projectId : '');
+  const actionable = [...problems, ...(docLoaded && project ? conformance : [])].filter((d) => d.severity !== 'info');
+  const errors = actionable.filter((d) => d.severity === 'error').length;
   const tally = (severity: ExtensionDiagnostic['severity']) => conformance.filter((d) => d.severity === severity).length;
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
   return (
     <div className={`sgl-project sgl-inspector tone-${headline.tone}`}>
-      <section className="sgl-section">
-        <h4>Project</h4>
-        <label className="sgl-form-row">
-          Active project
+      <CollapsibleSection title="Project Files" sectionId="project-files">
+        {files}
+        <label className="sgl-form-row sgl-stacked">
+          <span>Active project</span>
           <select value={selected} onChange={(e) => onSwitchProject(e.currentTarget.value)} aria-label="Active project">
             {!session.available.includes(selected) && <option value={selected}>{selected || '(none)'}</option>}
             {session.available.map((id) => (
@@ -83,30 +93,9 @@ export function ProjectPanel({
             ))}
           </select>
         </label>
-        <p className="sgl-project-name">
-          {headline.tone === 'error' ? `${ICON.error} ` : ''}
-          <strong>{headline.title}</strong>
-        </p>
-        {headline.detail && <p className="sgl-help">{headline.detail}</p>}
-      </section>
-
-      <section className="sgl-section">
-        <h4>Design</h4>
-        {docLoaded ? (
-          <p>
-            <strong>{designName}</strong> {modified ? <span className="modified-badge">modified (not exported)</span> : <span className="meta">saved state</span>}
-          </p>
-        ) : (
-          <p className="meta">No design is open.</p>
-        )}
-        {source && (
-          <p className="sgl-help sgl-source" title="Where the open design was loaded from">
-            From <code>{source}</code>
-          </p>
-        )}
         {project && project.designs.length > 0 && (
-          <label className="sgl-form-row">
-            Open
+          <label className="sgl-form-row sgl-stacked">
+            <span>Open a project design</span>
             <select
               value=""
               onChange={(e) => {
@@ -115,7 +104,7 @@ export function ProjectPanel({
               }}
               aria-label="Open a project design"
             >
-              <option value="">a project design…</option>
+              <option value="">Choose a design…</option>
               {project.designs.map((d) => (
                 <option key={d.id} value={d.id} disabled={!d.result.ok}>
                   {d.id}
@@ -126,27 +115,57 @@ export function ProjectPanel({
           </label>
         )}
         <div className="sgl-buttons">
-          <button type="button" onClick={onLoadExample} title="Replace the open design with the built-in two-storey example">
-            Load example
-          </button>
           <button type="button" onClick={onOpenFile} title="Open a design JSON file (schema v1 or v2) from your computer">
             Open JSON…
           </button>
           <button type="button" disabled={!docLoaded} onClick={onExport} title="Download the open design as schema-v2 JSON">
             Export JSON
           </button>
+          <button type="button" onClick={onLoadExample} title="Replace the open design with the built-in two-storey example">
+            Load example
+          </button>
         </div>
-        <p className="sgl-help">Designs are saved by exporting them; the project’s attribute fields are saved in this browser automatically.</p>
-      </section>
+      </CollapsibleSection>
 
-      <section className="sgl-section" aria-live="polite">
-        <h4>Checks</h4>
+      <CollapsibleSection title="Information" sectionId="project-information" actions={<InfoButton concept="project-scenario" />}>
+        <dl className="sgl-readonly-list">
+          <dt>Project</dt>
+          <dd className="sgl-project-name">
+            {headline.tone === 'error' ? `${ICON.error} ` : ''}
+            {headline.title}
+          </dd>
+          <dt>Design</dt>
+          <dd>{docLoaded ? designName : <span className="meta">none open</span>}</dd>
+          {docLoaded && (
+            <>
+              <dt>State</dt>
+              <dd className="sgl-project-state" title="Compared with when the design was opened or last exported">{modified ? 'Changed' : 'No changes'}</dd>
+            </>
+          )}
+        </dl>
+        {headline.detail && <p className="sgl-help">{headline.detail}</p>}
+        <p className="sgl-help">Export JSON keeps a copy of the design as a file.</p>
+      </CollapsibleSection>
+
+      {actionable.length > 0 && (
+        <CollapsibleSection title="Checks" sectionId="project-checks" meta={errors > 0 ? plural(errors, 'error') : plural(actionable.length, 'warning')}>
+          <div aria-live="polite">
+            <DiagnosticList diagnostics={actionable} onSelect={onSelect} />
+          </div>
+        </CollapsibleSection>
+      )}
+
+      <CollapsibleSection title="Advanced" sectionId="project-advanced" defaultOpen={false} variant="advanced">
+        {source && (
+          <p className="sgl-help sgl-source" title="Where the open design was loaded from">
+            Loaded from <code>{source}</code>
+          </p>
+        )}
+        <p className="sgl-help">The project’s attribute fields are saved in this browser automatically.</p>
         {problems.length === 0 && conformance.length === 0 && <p className="meta">No problems.</p>}
         {problems.length > 0 && (
-          <details className="project-problems" open={problems.some((d) => d.severity !== 'info')}>
-            <summary>
-              Project problems ({problems.length}){errors > 0 ? ` — ${errors} error${errors === 1 ? '' : 's'}` : ''}
-            </summary>
+          <details className="project-problems">
+            <summary>Project messages ({problems.length})</summary>
             <DiagnosticList diagnostics={problems} onSelect={onSelect} />
           </details>
         )}
@@ -159,7 +178,7 @@ export function ProjectPanel({
             <DiagnosticList diagnostics={conformance} onSelect={onSelect} />
           </details>
         )}
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }

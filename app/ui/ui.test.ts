@@ -164,10 +164,20 @@ describe('shell components (static markup)', () => {
 
   it('keeps an accessible name and tooltip for each icon when collapsed', () => {
     const html = nav(true);
-    expect(html).toContain('aria-label="Project (opens the sidebar)"');
+    expect(html).toContain('aria-label="Project (opens the panel)"');
     expect(html).toContain('title="project"');
-    expect(html).toContain('aria-label="Show project tools"');
     expect(html.match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(SIDEBAR_SECTIONS.length);
+  });
+
+  // Wave 1 (A): the left pane is collapsed by Workspace's centred chevron only; the rail no longer
+  // has a second Show/Hide toggle. A right-hand rail keeps its own toggle unless told otherwise.
+  it('has no duplicate Show/Hide toggle on the left rail', () => {
+    for (const collapsed of [false, true]) {
+      const html = nav(collapsed);
+      expect(html).not.toContain('sgl-sidenav-toggle');
+      expect(html).not.toMatch(/aria-label="(Show|Hide) project tools"/);
+    }
+    expect(nav(true, 'right')).toContain('aria-label="Show project tools"');
   });
 
   it('shows "Building" in the view selector', () => {

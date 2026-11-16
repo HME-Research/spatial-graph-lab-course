@@ -8,12 +8,17 @@ export { Feedback, IssueFeedback, type FeedbackTone } from './Feedback';
 export * from './labels';
 export { LoadFailureNotice } from './LoadFailureNotice';
 export * from './messages';
-export { nextTabIndex } from './navigation';
+export * from './algorithmGroups';
+export * from './concepts';
+export { FOCUSABLE_SELECTOR, nextTabIndex, trappedFocusIndex } from './navigation';
+export { CollapsibleSection, toggleSection, type CollapsibleSectionProps } from './Section';
+export { HorizontalTabs, tabKeyTarget, type TabItem } from './Tabs';
 export { RouteConfirm } from './RouteConfirm';
 export {
   AlgorithmsIcon,
   AttributesIcon,
   CameraIcon,
+  ChevronIcon,
   DesignerIcon,
   DisplayIcon,
   ProjectIcon,
