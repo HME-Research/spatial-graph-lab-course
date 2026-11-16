@@ -1,0 +1,130 @@
+/* Scenarios panel and save indicator (workstream B). Neutral; one accent for the active scenario. */
+.sgl-scenarios {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+.sgl-scenario-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sgl-scenario {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  padding: 4px;
+}
+.sgl-scenario.is-active {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.sgl-scenario-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.sgl-scenario-switch:hover,
+.sgl-scenario-switch:focus-visible {
+  background: var(--bg);
+}
+.sgl-scenario-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.sgl-scenario-meta {
+  color: var(--muted);
+  font-size: 13px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.sgl-scenario-badge {
+  color: var(--accent);
+  font-weight: 600;
+}
+.sgl-scenario-actions {
+  display: flex;
+  gap: 4px;
+  padding: 0 4px 2px;
+}
+.sgl-scenario-actions button {
+  min-height: 32px;
+  font-size: 13px;
+}
+.sgl-scenario-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px;
+}
+.sgl-scenario-form input[type='text'] {
+  min-height: 32px;
+  font: inherit;
+}
+.sgl-scenario-from {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sgl-scenario-from legend {
+  color: var(--muted);
+  padding: 0;
+  margin-bottom: 2px;
+}
+.sgl-scenario-confirm {
+  padding: 6px;
+  background: var(--error-bg);
+  border-radius: 4px;
+}
+.sgl-scenario-confirm p {
+  margin: 0 0 6px;
+}
+.sgl-scenario-error {
+  color: #9b2c2c;
+  margin: 6px 0 0;
+}
+button.danger {
+  border-color: var(--error-line);
+  color: #9b2c2c;
+}
+
+/* Save indicator */
+.sgl-save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.sgl-save-status.tone-error {
+  color: #9b2c2c;
+  font-weight: 600;
+}
+.sgl-save-panel p {
+  margin: 0 0 4px;
+}
+.sgl-save-panel.tone-error {
+  background: var(--error-bg);
+  border: 1px solid var(--error-line);
+  border-radius: 4px;
+  padding: 8px;
+}
