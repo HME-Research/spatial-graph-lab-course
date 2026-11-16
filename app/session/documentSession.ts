@@ -165,10 +165,15 @@ export function commandLabel(command: GraphCommand): string {
  * Short label for a schema-v2 command, in the app's vocabulary (rooms, connections, Building), using
  * the rooms' short display labels from the document the command applies to.
  */
-export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocumentV2, 'nodes'>): string {
+export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocumentV2, 'nodes'> & { readonly edges?: DesignDocumentV2['edges'] }): string {
   const room = (id: string) => {
     const node = doc.nodes.find((n) => n.id === id);
     return `room ${node ? nodeLabel(node) : id}`;
+  };
+  /** "01 ↔ 04" for a relationship id (phase 07, O08); the raw id only if it is unknown. */
+  const connection = (edgeId: string) => {
+    const edge = doc.edges?.find((e) => e.id === edgeId);
+    return edge ? `${room(edge.source).slice(5)} ↔ ${room(edge.target).slice(5)}` : edgeId;
   };
   switch (command.type) {
     case 'add-node':
@@ -198,13 +203,13 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
     case 'add-edge':
       return `Add connection ${room(command.edge.source)} ↔ ${room(command.edge.target).slice(5)}`;
     case 'remove-edge':
-      return `Remove connection ${command.edgeId}`;
+      return `Remove connection ${connection(command.edgeId)}`;
     case 'change-edge-kind':
-      return `Change connection ${command.edgeId} to ${command.kind === 'open' ? 'Open' : 'Access'}`;
+      return `Change connection ${connection(command.edgeId)} to ${command.kind === 'open' ? 'Open' : 'Access'}`;
     case 'set-edge-attributes':
-      return `Edit the attributes of connection ${command.edgeId}`;
+      return `Edit the attributes of connection ${connection(command.edgeId)}`;
     case 'set-connector-style':
-      return `Change the connector style of ${command.edgeId}`;
+      return `Change the connector style of ${connection(command.edgeId)}`;
     case 'set-type-appearance':
       return `Change Designer settings for ${command.typeId}`;
     default: {

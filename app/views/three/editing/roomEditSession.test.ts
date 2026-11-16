@@ -215,7 +215,7 @@ describe('corridor reservations need confirmation', () => {
     expect(previewTone(r.during)).toBe('warning');
     expect(r.state.phase).toBe('confirm');
     expect(r.feedback?.tone).toBe('warning');
-    expect(r.feedback?.text).toContain('relationship "ab"');
+    expect(r.feedback?.text).toContain('relationship 01 ↔ 02'); // phase 07 (O08): room labels, not the raw id
     expect(host.sent).toHaveLength(0);
     expect(displayedGeometry(host.port.doc, r.state, 'b')?.grid).toEqual([3, 0, 0]);
 

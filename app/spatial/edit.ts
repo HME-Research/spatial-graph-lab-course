@@ -18,8 +18,13 @@ export interface SpatialEditOptions {
 }
 
 /**
- * Pure preview of moving and/or resizing one room (minimum-corner anchored). Room overlaps are
- * rejected; taking cells of generated connectors needs confirmation. Nothing is applied.
+ * Pure preview of moving and/or resizing one room (minimum-corner anchored). Nothing is applied.
+ * - A room overlap is always rejected.
+ * - Taking cells of ANOTHER room's relationship connector needs confirmation ("Move anyway and
+ *   recalculate"): never a silent reroute of a relationship the student is not editing.
+ * - Taking cells of the moved room's OWN relationship connector (moving or growing along its own
+ *   corridor) needs confirmation only if one of its relationships would become unresolved;
+ *   otherwise the corridor is simply recalculated (programme phase 07, A11).
  */
 export function proposeSpatialEdit(
   doc: DesignDocumentV2,
@@ -59,7 +64,10 @@ export function proposeSpatialEdit(
     const was = before.byEdge.get(r.edgeId)?.status;
     return was !== undefined && was !== r.status ? [{ edgeId: r.edgeId, before: was, after: r.status }] : [];
   });
-  return displaced.size > 0
+  const own = new Set(doc.edges.filter((e) => e.source === node.id || e.target === node.id).map((e) => e.id));
+  const ownBreaks = [...own].some((id) => after.byEdge.get(id)?.status === 'unresolved' && before.byEdge.get(id)?.status !== 'unresolved');
+  const needsConfirmation = [...displaced].some((id) => !own.has(id)) || (ownBreaks && [...displaced].some((id) => own.has(id)));
+  return needsConfirmation
     ? { status: 'needs-confirmation', next, displacedRoutes: [...displaced].sort(), impacted }
     : { status: 'ok', next, impacted };
 }

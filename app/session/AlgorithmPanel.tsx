@@ -14,7 +14,7 @@ import {
   type AlgorithmEntry,
   type AlgorithmRunV2,
   type ApplyOutcome,
-  type ParameterDrafts, type AttributesVersion } from './algorithmSession';
+  type ParameterDrafts, type AttributesVersion, relationshipLabel } from './algorithmSession';
 import type { DocumentVersion } from './documentSession';
 
 /**
@@ -403,7 +403,7 @@ function RunResult({
       )}
       {!stale && !empty && preview.displacedRoutes.length > 0 && (
         <p className="sgl-warning" role="status">
-          ⚠ New rooms would take the corridor cells of {preview.displacedRoutes.join(', ')}. Applying keeps those relationships
+          ⚠ New rooms would take the corridor cells of {preview.displacedRoutes.map((id) => relationshipLabel(preview.before, id)).join(', ')}. Applying keeps those relationships
           and recalculates their corridors; some may become Unresolved.
         </p>
       )}

@@ -71,7 +71,7 @@ describe('v2 document session (one command = one history step)', () => {
     const r = applyDesignCommandToSession(s, { type: 'set-connector-style', edgeId: 'ab', style: 'deck' });
     if (!r.ok) throw new Error('expected ok');
     s = r.session;
-    expect(undoLabel(s.history)).toBe('Change the connector style of ab');
+    expect(undoLabel(s.history)).toBe('Change the connector style of 01 ↔ 02'); // phase 07: readable label, not the id
     expect(s.history.past).toHaveLength(1);
     expect(isModified(s)).toBe(true);
     s = undoDocument(s);

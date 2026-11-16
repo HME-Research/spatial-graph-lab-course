@@ -247,6 +247,11 @@ describe('connector reservations and spatial edits', () => {
       'route-displacement',
     );
     expect(expectOk(applyDesignCommand(base(), { type: 'add-node', node: { id: 'c', grid: [2, 1, 0], typeId: 'room' } })).nodes).toHaveLength(3);
+    // Phase 07 (A11): confirmed, it is added like a confirmed move; the relationship is kept.
+    const added = expectOk(applyDesignCommand(base(), { type: 'add-node', node: { id: 'c', grid: [2, 0, 0], typeId: 'room' }, confirmRouteDisplacement: true }));
+    expect(added.edges).toEqual(base().edges);
+    expect(status(resolveRelationships(added).byEdge.get('ab')!)).toBe('unresolved:blocked-by-room');
+    expectIssue(applyDesignCommand(base(), { type: 'add-node', node: { id: 'c', grid: [0, 0, 0], typeId: 'room' }, confirmRouteDisplacement: true }), 'room-overlap');
   });
 
   it('moving onto a connector needs confirmation; Cancel keeps the document; confirm recalculates atomically', () => {
@@ -266,14 +271,33 @@ describe('connector reservations and spatial edits', () => {
     expect(status(resolveRelationships(moved).byEdge.get('ab')!)).toBe('unresolved:blocked-by-room');
   });
 
-  it('moving a room re-routes on the next resolution (no stored route)', () => {
-    // (2,0,0) is on ab's own connector, so the move needs confirmation like any displacement.
-    expectIssue(applyDesignCommand(base(), { type: 'set-node-geometry', nodeId: 'b', grid: [2, 0, 0] }), 'route-displacement');
-    const moved = expectOk(
-      applyDesignCommand(base(), { type: 'set-node-geometry', nodeId: 'b', grid: [2, 0, 0], confirmRouteDisplacement: true }),
-    );
+  it('moving a room along its OWN corridor (still buildable) needs no confirmation and re-routes (A11)', () => {
+    // (2,0,0) is on ab's own connector; ab stays routed (shorter), so no confirmation is needed.
+    const p = proposeSpatialEdit(base(), { nodeId: 'b', grid: [2, 0, 0] });
+    expect(p.status).toBe('ok');
+    const grown = expectOk(applyDesignCommand(base(), { type: 'set-node-geometry', nodeId: 'a', size: [4, 1, 1] }));
+    expect(resolveRelationships(grown).byEdge.get('ab')!.status).toBe('direct');
+    const moved = expectOk(applyDesignCommand(base(), { type: 'set-node-geometry', nodeId: 'b', grid: [2, 0, 0] }));
     const r = resolveRelationships(moved).byEdge.get('ab')!;
     expect(r.status === 'routed' && r.route.cells).toEqual([[1, 0, 0]]);
+  });
+
+  it('taking ANOTHER relationship\'s corridor always asks for confirmation (A11)', () => {
+    const d = make(
+      [
+        { id: 'a', grid: [0, 0, 0] },
+        { id: 'b', grid: [4, 0, 0] },
+        { id: 'c', grid: [2, 3, 0] },
+        { id: 'd', grid: [2, 6, 0] },
+      ],
+      [
+        { id: 'ab', source: 'a', target: 'b' },
+        { id: 'cd', source: 'c', target: 'd' },
+      ],
+    );
+    const p = proposeSpatialEdit(d, { nodeId: 'c', grid: [2, 0, 0] });
+    expect(p.status).toBe('needs-confirmation');
+    expect(p.status === 'needs-confirmation' && p.displacedRoutes).toEqual(['ab']);
   });
 
   it('an overlap with a room is always refused', () => {

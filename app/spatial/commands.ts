@@ -52,7 +52,8 @@ export interface TypeAppearancePatch {
 }
 
 export type DesignCommand =
-  | { readonly type: 'add-node'; readonly node: NewRoom; readonly diagramPosition?: DiagramPosition }
+  /** A new room taking connector cells needs `confirmRouteDisplacement`, like a move (phase 07, A11). */
+  | { readonly type: 'add-node'; readonly node: NewRoom; readonly diagramPosition?: DiagramPosition; readonly confirmRouteDisplacement?: boolean }
   | { readonly type: 'remove-node'; readonly nodeId: string }
   /** Move and/or resize (min-corner anchored). Taking connector cells needs `confirmRouteDisplacement`. */
   | {
@@ -129,13 +130,13 @@ export function applyDesignCommand(
         const o = occupancy.at(cell);
         if (o?.kind === 'route') displaced.add(o.edgeId);
       }
-      if (displaced.size > 0) {
+      if (displaced.size > 0 && !command.confirmRouteDisplacement) {
         return fail([
           issue(
             ['nodes'],
             'route-displacement',
             `room "${n.id}" would take cells of the connector(s) of ${[...displaced].sort().map((e) => `"${e}"`).join(', ')}; ` +
-              'place it elsewhere, then move it and confirm "Move anyway and recalculate"',
+              'confirm to add it anyway and recalculate those connectors, or place it elsewhere',
           ),
         ]);
       }

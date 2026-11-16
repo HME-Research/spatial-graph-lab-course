@@ -102,6 +102,7 @@ The gate's `{ status, reason?, routeCells?, connectorStyle? }` is this union: `r
   - `rejected`: issues, plus `collidingRooms` for a room overlap. A room overlap is **always** refused.
   - `ok`: `next`, plus `impacted` edges `{ edgeId, before, after }`.
   - `needs-confirmation`: `next`, `displacedRoutes`, `impacted`. The room would take connector cells.
+  - **Policy (programme phase 07, A11).** Taking cells of ANOTHER room's relationship connector always needs confirmation. Taking cells of the moved room's OWN connector (moving or growing along its own corridor) needs confirmation only if one of its own relationships would become unresolved; otherwise it is `ok` and the corridor is recalculated. `add-node` follows the same rule: a new room has no relationships, so taking any connector cells needs `confirmRouteDisplacement` (it is refused without it, never silent). A room overlap is always refused.
 - **Resize** is anchored at the **minimum corner**: `size` alone never changes `grid`. Whole cells only; callers snap world drags to integers. Use `spatialToThree` / `DEFAULT_CELL_SIZE` (3 m) for world scale.
 - **`commitSpatialEdit(proposal, { confirmRouteDisplacement })`** returns `Result<DesignDocumentV2>`. `needs-confirmation` fails with `route-displacement` unless confirmed.
 - **UI flow:** **Cancel** sends nothing. **Move anyway and recalculate** sends `set-node-geometry` with `confirmRouteDisplacement: true`. Relationships are kept, routes are recalculated, and edges may become unresolved. No silent reroute.

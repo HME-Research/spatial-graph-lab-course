@@ -126,7 +126,7 @@ function settle(port: DesignPort, nodeId: string, mode: GizmoMode, draft: RoomGe
         feedback: {
           tone: 'warning',
           text:
-            `${capitalise(name)} would take the connector cells of ${relationships(proposal.displacedRoutes)}. ` +
+            `${capitalise(name)} would take the connector cells of ${relationships(port.doc, proposal.displacedRoutes)}. ` +
             'Relationships are kept; their connectors are recalculated and may become unresolved.',
         },
       };
@@ -169,8 +169,19 @@ function rejectionText(doc: DesignDocumentV2, name: string, proposal: Extract<Sp
   return `${capitalise(name)} cannot go there: ${reason}. Restored.`;
 }
 
-const relationships = (ids: readonly string[]) =>
-  `relationship${ids.length === 1 ? '' : 's'} ${list(ids.map((id) => `"${id}"`))}`;
+/** "relationship 04 ↔ 07" — readable room labels, never raw edge ids (phase 07, O08). */
+const relationships = (doc: DesignDocumentV2, ids: readonly string[]) =>
+  `relationship${ids.length === 1 ? '' : 's'} ${list(ids.map((id) => relationshipName(doc, id)))}`;
+
+function relationshipName(doc: DesignDocumentV2, edgeId: string): string {
+  const edge = doc.edges.find((e) => e.id === edgeId);
+  if (!edge) return edgeId;
+  const label = (id: string) => {
+    const node = roomOf(doc, id);
+    return node ? nodeLabel(node) : id;
+  };
+  return `${label(edge.source)} ↔ ${label(edge.target)}`;
+}
 
 const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 

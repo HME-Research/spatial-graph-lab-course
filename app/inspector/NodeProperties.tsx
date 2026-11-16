@@ -86,6 +86,9 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
     if (plan.kind === 'reject') {
       setPending(null);
       showIssues(plan.issues);
+      // The fields show the authoritative stored geometry again; the message says what was refused
+      // (phase 07, O09: a refused value must not look applied).
+      setResetKey((k) => k + 1);
       return 'refused';
     }
     if (plan.kind === 'confirm') {
