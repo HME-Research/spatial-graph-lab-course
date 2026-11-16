@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createLocalStorageExportMarks,
+  createMemoryExportMarks,
   createMemoryProjectStore,
   createRecordProjectStore,
+  exportMarkOf,
   readProjectFile,
   serializeProjectFile,
   type MemoryProjectStore,
@@ -10,9 +13,10 @@ import {
 } from '@app/project';
 import { currentDocument } from './documentSession';
 import { canUndo } from './history';
-import { activeDesign, activeSession, type OpenProject } from './projectStore';
+import { activeDesign, activeSession, isExported, type OpenProject } from './projectStore';
 import { fileOf } from './projectStore.fixtures';
 import {
+  BUSY_MESSAGE,
   CONFLICT_MESSAGE,
   createProjectController,
   hasUnsavedLocalChanges,
@@ -636,5 +640,185 @@ describe('export and per-scenario undo through the controller', () => {
     await c.open(fileOf(), created);
     const r = c.deleteScenario(project(c).activeScenarioId);
     expect(r.ok).toBe(false);
+  });
+});
+
+// ── Audit repairs (I1): transitions are atomic w.r.t. edits; "exported" survives a restore ──────
+
+/** A store whose `load(id)` waits while `id` is gated. */
+function loadGatedStore() {
+  const inner = createMemoryProjectStore();
+  const waiting: Array<() => void> = [];
+  let gatedId: string | null = null;
+  const store: MemoryProjectStore = {
+    ...inner,
+    load: async (id) => {
+      if (id === gatedId) await new Promise<void>((r) => waiting.push(r));
+      return inner.load(id);
+    },
+  };
+  return {
+    store,
+    gate: (id: string) => void (gatedId = id),
+    release: async () => {
+      gatedId = null;
+      while (waiting.length) waiting.shift()!();
+      await tick();
+    },
+  };
+}
+
+describe('leaving a project is atomic with respect to edits (I1 audit repair)', () => {
+  it('an edit while restore() waits for store.load is refused, never accepted and lost (audit probe)', async () => {
+    const g = loadGatedStore();
+    const { c } = makeController(g.store);
+    await c.open(fileOf(), created);
+    await c.flush();
+    const other = project(c).meta.projectId;
+    await c.open(fileOf(), created);
+    await c.flush();
+    const left = project(c).meta.projectId;
+    const before = serializeProjectFile(stored(g.store, left));
+
+    g.gate(other);
+    const restoring = c.restore(other);
+    await tick();
+    const r = c.command({ type: 'set-node-geometry', nodeId: 'c', grid: [6, 9, 0] });
+    expect(r.ok).toBe(false);
+    expect(r.ok === false && r.issues[0]!.message).toBe(BUSY_MESSAGE);
+    expect(c.renameProject('Late').ok).toBe(false);
+    expect(c.undo()).toBe(false);
+    // A second transition meanwhile is refused too (nothing changes).
+    expect(await c.restore(left)).toMatchObject({ ok: false, status: 'busy' });
+    expect(await c.close()).toBe(false);
+    await g.release();
+    expect((await restoring).ok).toBe(true);
+    expect(project(c).meta.projectId).toBe(other);
+    await c.flush();
+    // Either persisted for the left project or refused: here refused, and the left record is unchanged.
+    expect(serializeProjectFile(stored(g.store, left))).toBe(before);
+    expect(c.hasPendingWork()).toBe(false);
+    // After the transition editing works again.
+    move(c, 'c', [6, 7, 0]);
+    expect(gridOf(c, 'c')).toEqual([6, 7, 0]);
+  });
+
+  it('an edit while open() checks the stored id is refused', async () => {
+    const g = loadGatedStore();
+    const { c } = makeController(g.store);
+    await c.open(fileOf(), created);
+    await c.flush();
+    const file = fileOf();
+    g.gate(file.projectId);
+    const opening = c.open(file, created);
+    await tick();
+    expect(c.command({ type: 'set-node-geometry', nodeId: 'c', grid: [6, 9, 0] }).ok).toBe(false);
+    await g.release();
+    expect((await opening).ok).toBe(true);
+    expect(gridOf(c, 'c')).toEqual([6, 6, 0]);
+  });
+
+  it('Save As copies the state at commit time; edits while it waits are refused', async () => {
+    const g = gatedStore();
+    const { c, timers } = makeController(g.store);
+    await c.open(fileOf(), created);
+    await c.flush();
+    const original = project(c).meta.projectId;
+    g.gate();
+    move(c, 'c', [6, 7, 0]);
+    timers.run();
+    await tick(); // a write of the original is running
+    const saving = c.saveAs('Copy');
+    expect(c.command({ type: 'set-node-geometry', nodeId: 'c', grid: [6, 9, 0] }).ok).toBe(false);
+    await g.release();
+    const copy = await saving;
+    if (!copy.ok) throw new Error(copy.message);
+    expect(project(c).meta.projectId).not.toBe(original);
+    expect(gridOf(c, 'c')).toEqual([6, 7, 0]);
+    await c.flush();
+    expect(stored(g.store, project(c).meta.projectId).scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 7, 0]);
+  });
+});
+
+describe('"exported" is remembered beside the stored record (I1 audit repair)', () => {
+  function controllerWith(store: MemoryProjectStore, marks: ReturnType<typeof createMemoryExportMarks>) {
+    return createProjectController({
+      store,
+      scheduler: manualScheduler().scheduler,
+      locks: null,
+      now: clock,
+      newProjectId: () => `project-e${++seq}`,
+      newScenarioId: () => `scenario-e${++seq}`,
+      exportMarks: marks,
+    });
+  }
+
+  it('export → close → restore keeps isExported until the next edit; the exported file is unchanged', async () => {
+    const store = createMemoryProjectStore();
+    const marks = createMemoryExportMarks();
+    const c = controllerWith(store, marks);
+    await c.open(fileOf(), created);
+    move(c, 'c', [6, 7, 0]);
+    await c.flush();
+    const id = project(c).meta.projectId;
+    expect(isExported(project(c))).toBe(false);
+    const out = c.exportFile();
+    if (!out.ok) throw new Error(out.message);
+    c.markExported(out.value.signature);
+    expect(isExported(project(c))).toBe(true);
+    // Nothing about exporting is in the file or the stored record.
+    const again = c.exportFile();
+    if (!again.ok) throw new Error(again.message);
+    expect(again.value.text.replace(/"updatedAt": "[^"]*"/, '')).toBe(out.value.text.replace(/"updatedAt": "[^"]*"/, ''));
+    expect(String(store.records.get(id))).not.toContain('export');
+    expect(marks.marks.has(id)).toBe(true);
+    expect(await c.close()).toBe(true);
+
+    // A new controller (a reload) with the same browser storage.
+    const d = controllerWith(store, marks);
+    const r = await d.restore(id);
+    expect(r.ok).toBe(true);
+    expect(isExported(project(d))).toBe(true);
+    move(d, 'b', [2, 1, 0]);
+    expect(isExported(project(d))).toBe(false);
+    await d.flush();
+    await d.close();
+    // The stale mark does not match the edited content.
+    await d.restore(id);
+    expect(isExported(project(d))).toBe(false);
+  });
+
+  it('a project opened from a file stays "exported" after a restore; Save As copies are not', async () => {
+    const store = createMemoryProjectStore();
+    const marks = createMemoryExportMarks();
+    const c = controllerWith(store, marks);
+    await c.open(fileOf(), { kind: 'opened-file', label: 'a.json' }, { exported: true });
+    await c.flush();
+    const id = project(c).meta.projectId;
+    await c.close();
+    await c.restore(id);
+    expect(isExported(project(c))).toBe(true);
+    const copy = await c.saveAs('Copy');
+    if (!copy.ok) throw new Error(copy.message);
+    expect(isExported(project(c))).toBe(false);
+  });
+
+  it('localStorage marks are best effort and never throw', () => {
+    const failing = createLocalStorageExportMarks({
+      getItem: () => {
+        throw new Error('denied');
+      },
+      setItem: () => {
+        throw new Error('denied');
+      },
+    });
+    expect(failing.get('p')).toBeNull();
+    expect(() => failing.set('p', 'm')).not.toThrow();
+    const map = new Map<string, string>();
+    const ok = createLocalStorageExportMarks({ getItem: (k) => map.get(k) ?? null, setItem: (k, v) => void map.set(k, v) });
+    ok.set('p', exportMarkOf('x'));
+    expect(ok.get('p')).toBe(exportMarkOf('x'));
+    expect(exportMarkOf('x')).not.toBe(exportMarkOf('y'));
+    expect([...map.keys()]).toEqual(['sgl-exported:p']);
   });
 });

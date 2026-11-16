@@ -612,8 +612,8 @@ export function App() {
               </label>
             )}
             {openProject && (
-              <button type="button" disabled={!doc} onClick={exportDesign} title="Download the active scenario’s design as schema-v2 JSON (Project → Export Project saves every scenario)">
-                Export JSON
+              <button type="button" disabled={!doc} onClick={exportDesign} title="Download only the current scenario’s design as schema-v2 JSON. This does not mark the project exported; Project → Export Project keeps every scenario.">
+                Export design JSON (current scenario)
               </button>
             )}
           </div>

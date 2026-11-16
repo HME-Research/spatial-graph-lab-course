@@ -54,9 +54,15 @@ export function createProjectCameraStore(controller: ProjectController): SavedCa
         if (!isAppCamera(c) || ids.has(c.id)) return false;
         ids.add(c.id);
       }
-      const kept = slot.cameras.filter((c) => !isAppCamera(c) && !ids.has(c.id));
+      // Cameras of view modes this app does not show are always kept; a camera may never take one
+      // of their ids (that would drop or duplicate it), so such a list is refused.
+      const kept = slot.cameras.filter((c) => !isAppCamera(c));
+      if (kept.some((c) => ids.has(c.id))) return false;
       controller.setCameras(scenarioId, Object.freeze([...cameras, ...kept]));
       return true;
+    },
+    usedIds(scenarioId) {
+      return slotOf(controller.getState().project, scenarioId)?.cameras.map((c) => c.id) ?? [];
     },
     subscribe: (listener) => controller.subscribe(listener),
   };

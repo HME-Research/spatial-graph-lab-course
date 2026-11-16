@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createMemoryProjectStore, readProjectFile, type MemoryProjectStore, type ProjectFileV1 } from '@app/project';
 import { DEFAULT_DISPLAY } from '@app/display/contracts';
 import type { AppSavedCamera } from '@app/camera/savedCamera';
+import { addCameraFor } from '@app/camera/savedCameras';
 import { canUndo } from './history';
 import { activeSession } from './projectStore';
 import { fileOf } from './projectStore.fixtures';
@@ -81,6 +82,37 @@ describe('cameras and display bound to the project file (I1)', () => {
     expect(cameras.set(id, [{ ...camera('camera-1', 'A'), viewMode: 'graph2d' } as unknown as AppSavedCamera])).toBe(false);
     expect(cameras.set('no-such-scenario', [camera('camera-1', 'A')])).toBe(false);
     expect(cameras.get(id)).toEqual([]);
+  });
+
+  it('a new camera id avoids cameras of unknown view modes, which are never dropped (audit probe)', async () => {
+    const store = createMemoryProjectStore();
+    const c = makeController(store);
+    const base = fileOf();
+    const future = { ...camera('camera-1', 'Future'), viewMode: 'future-mode' };
+    const file = { ...base, scenarios: base.scenarios.map((s, i) => (i === 0 ? { ...s, cameras: [future] } : s)) } as ProjectFileV1;
+    const opened = await c.open(file, created);
+    if (!opened.ok) throw new Error(opened.message);
+    const cameras = createProjectCameraStore(c);
+    const id = c.getState().project!.activeScenarioId;
+    expect(cameras.get(id)).toEqual([]);
+    expect(cameras.usedIds!(id)).toEqual(['camera-1']);
+
+    const added = addCameraFor(cameras, id, { name: '', viewMode: 'architecture', pose: camera('x', 'x').pose });
+    if (!added.ok) throw new Error(added.message);
+    expect(added.cameras[0]!.id).not.toBe('camera-1');
+    expect(cameras.set(id, added.cameras)).toBe(true);
+    const all = c.getState().project!.scenarios.find((s) => s.id === id)!.cameras;
+    expect(all.map((x) => [x.id, x.viewMode])).toEqual([
+      [added.cameras[0]!.id, 'architecture'],
+      ['camera-1', 'future-mode'],
+    ]);
+
+    // A list that would take the kept camera's id is refused; nothing is dropped.
+    expect(cameras.set(id, [camera('camera-1', 'Clash')])).toBe(false);
+    expect(c.getState().project!.scenarios.find((s) => s.id === id)!.cameras).toBe(all);
+    await c.flush();
+    const saved = stored(store, c.getState().project!.meta.projectId).scenarios.find((s) => s.id === id)!.cameras;
+    expect(saved.map((x) => x.id).sort()).toEqual([added.cameras[0]!.id, 'camera-1'].sort());
   });
 
   it('display overrides are per scenario and defaults are project settings, both in the file', async () => {

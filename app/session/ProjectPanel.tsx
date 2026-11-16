@@ -115,13 +115,18 @@ export function ProjectPanel({
           </label>
         )}
         <div className="sgl-buttons">
-          <button type="button" onClick={onOpenFile} title="Open a design JSON file (schema v1 or v2) from your computer">
+          <button type="button" onClick={onOpenFile} title="Open a project file, or a design JSON file (schema v1 or v2), as a new local project">
             Open JSON…
           </button>
-          <button type="button" disabled={!docLoaded} onClick={onExport} title="Download the open design as schema-v2 JSON">
-            Export JSON
+          <button
+            type="button"
+            disabled={!docLoaded}
+            onClick={onExport}
+            title="Download only the current scenario’s design as schema-v2 JSON. This does not mark the project exported; use Export Project to keep every scenario."
+          >
+            Export design JSON (current scenario)
           </button>
-          <button type="button" onClick={onLoadExample} title="Replace the open design with the built-in two-storey example">
+          <button type="button" onClick={onLoadExample} title="Create a new local project from the built-in two-storey example">
             Load example
           </button>
         </div>

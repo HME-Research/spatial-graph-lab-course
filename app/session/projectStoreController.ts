@@ -1,12 +1,15 @@
 import type { DesignDocumentV2 } from '@app/document/v2';
 import type { DisplayDefaults, DisplayOverrides } from '@app/display/contracts';
 import {
+  createLocalStorageExportMarks,
+  exportMarkOf,
   formatProjectIssues,
   newProjectId as defaultProjectId,
   newScenarioId as defaultScenarioId,
   nowIso,
   serializeProjectFile,
   type DiscardResult,
+  type ExportMarks,
   type ProjectFileV1,
   type ProjectStore,
   type ProjectSummary,
@@ -98,6 +101,8 @@ export interface ProjectControllerOptions {
   readonly scheduler?: Scheduler;
   /** Default: `navigator.locks` when available; null = no cross-tab lock. */
   readonly locks?: LockManagerLike | null;
+  /** Where "exported" is remembered beside the stored records. Default: `localStorage` (best effort). */
+  readonly exportMarks?: ExportMarks;
 }
 
 /**
@@ -116,7 +121,8 @@ export type OpenOutcome =
 
 export type RestoreOutcome =
   | { readonly ok: true; readonly project: OpenProject }
-  | { readonly ok: false; readonly status: 'missing' | 'unreadable' | 'unavailable' | 'needs-confirmation'; readonly message: string };
+  /** `busy`: another open/restore/close/Save As is still in progress (nothing changed). */
+  | { readonly ok: false; readonly status: 'missing' | 'unreadable' | 'unavailable' | 'needs-confirmation' | 'busy'; readonly message: string };
 
 /** Projects stored in this browser, or why they cannot be listed. */
 export type RecentList =
@@ -227,6 +233,12 @@ interface Book {
   timer: unknown;
 }
 
+/**
+ * A change requested while the shown project is being left (open, restore, close, Save As): it is
+ * refused, never applied to a project that is about to be dropped.
+ */
+export const BUSY_MESSAGE = 'Not changed: a project is being opened, copied or closed. Try again in a moment.';
+
 export const CONFLICT_MESSAGE =
   'Not saved: this project was saved from another tab or window after it was opened here. To keep that work, saving here has stopped. Use “Save As New Project” to keep this version separately, or “Overwrite” to replace the stored copy.';
 
@@ -241,12 +253,48 @@ export function createProjectController(options: ProjectControllerOptions): Proj
   const newScenarioId = options.newScenarioId ?? defaultScenarioId;
   const scheduler = options.scheduler ?? defaultScheduler;
   const locks = options.locks === undefined ? defaultLocks() : options.locks;
+  const exportMarks = options.exportMarks ?? createLocalStorageExportMarks();
+
+  /** Remember that `project` was exported (or opened from a file) in its current exported state. */
+  const rememberExport = (project: OpenProject): void => {
+    if (project.exportedSignature !== null) exportMarks.set(project.meta.projectId, exportMarkOf(project.exportedSignature));
+  };
+  /** A restored project is "exported" when this browser remembers exporting exactly its content. */
+  const withExportMark = (project: OpenProject): OpenProject => {
+    const mark = exportMarks.get(project.meta.projectId);
+    if (mark === null) return project;
+    const signature = contentSignature(project);
+    return mark === exportMarkOf(signature) ? markProjectExported(project, signature) : project;
+  };
 
   let state: ControllerState = { project: null, save: { local: 'saved', at: '' }, notice: null };
   /** The book of the project shown, or null (Welcome). */
   let book: Book | null = null;
   const listeners = new Set<() => void>();
   let disposed = false;
+  /**
+   * An open/restore/close/Save As is in progress. Leaving a project spans awaits (writing it,
+   * loading the next one); every change requested meanwhile is refused with `BUSY_MESSAGE`, so no
+   * edit is accepted into a book that is then dropped, and Save As copies exactly what is shown.
+   */
+  let transitioning = false;
+
+  async function transition<T>(busy: T, run: () => Promise<T>): Promise<T> {
+    if (transitioning) return busy;
+    transitioning = true;
+    try {
+      return await run();
+    } finally {
+      transitioning = false;
+    }
+  }
+
+  /** Refuse a change while transitioning (tells the user once, through the notice). */
+  const refusedWhileBusy = (): boolean => {
+    if (!transitioning) return false;
+    if (state.notice !== BUSY_MESSAGE) setState({ notice: BUSY_MESSAGE });
+    return true;
+  };
 
   const emit = () => {
     for (const l of [...listeners]) l();
@@ -389,16 +437,18 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     const status: LocalSaveState = known === null ? { local: 'pending' } : { local: 'saved', at: project.meta.updatedAt };
     const b: Book = { projectId: project.meta.projectId, latest: project, known, savedChanges: known === null ? -1 : project.changes, status, writing: null, again: false, overwrite: false, timer: null };
     book = b;
+    rememberExport(project);
     setState({ project, save: status, notice: null });
     if (known === null) schedule(b, 0);
   }
 
   const mutate = (fn: (p: OpenProject) => OpenProject) => {
-    if (state.project) update(fn(state.project));
+    if (state.project && !refusedWhileBusy()) update(fn(state.project));
   };
 
   const mutateOutcome = <T>(fn: (p: OpenProject) => Outcome<OpenProject>, value: (p: OpenProject) => T): Outcome<T> => {
     if (!state.project) return { ok: false, message: 'No project is open.' };
+    if (refusedWhileBusy()) return { ok: false, message: BUSY_MESSAGE };
     const result = fn(state.project);
     if (!result.ok) return result;
     update(result.value);
@@ -412,7 +462,7 @@ export function createProjectController(options: ProjectControllerOptions): Proj
       return () => listeners.delete(listener);
     },
 
-    async open(file, origin, opts = {}) {
+    open: (file, origin, opts = {}) => transition<OpenOutcome>({ ok: false, message: BUSY_MESSAGE }, async () => {
       const blocked = await leave(opts);
       if (blocked) return { ok: false, message: blocked, needsConfirmation: true };
       // An id used by the shown project or by a stored record is taken.
@@ -429,9 +479,9 @@ export function createProjectController(options: ProjectControllerOptions): Proj
         });
       }
       return { ok: true, project };
-    },
+    }),
 
-    async restore(projectId, opts = {}) {
+    restore: (projectId, opts = {}) => transition<RestoreOutcome>({ ok: false, status: 'busy', message: BUSY_MESSAGE }, async () => {
       // The shown project's writes land first (also when it is this very project).
       const blocked = await leave(opts);
       if (blocked) return { ok: false, status: 'needs-confirmation', message: blocked };
@@ -445,12 +495,12 @@ export function createProjectController(options: ProjectControllerOptions): Proj
           message: `The stored copy cannot be read (${formatProjectIssues(loaded.issues)}).${loaded.quarantineKey ? ` A copy is kept under “${loaded.quarantineKey}”.` : ''}`,
         };
       }
-      const project = openProject(loaded.file, { kind: 'restored', label: 'this browser' });
+      const project = withExportMark(openProject(loaded.file, { kind: 'restored', label: 'this browser' }));
       activate(project, serializeProjectFile(loaded.file));
       return { ok: true, project };
-    },
+    }),
 
-    async close(opts = {}) {
+    close: (opts = {}) => transition(false, async () => {
       const b = book;
       if (!b) return true;
       if ((await leave(opts)) !== null) return false;
@@ -459,7 +509,7 @@ export function createProjectController(options: ProjectControllerOptions): Proj
       book = null;
       setState({ project: null, save: { local: 'saved', at: '' }, notice: null });
       return true;
-    },
+    }),
 
     async listRecent() {
       let items: readonly ProjectSummary[] = [];
@@ -485,6 +535,7 @@ export function createProjectController(options: ProjectControllerOptions): Proj
 
     command(command) {
       if (!state.project) return { ok: false, issues: [{ path: [], code: 'not-found', message: 'no project is open' }] };
+      if (refusedWhileBusy()) return { ok: false, issues: [{ path: [], code: 'not-found', message: BUSY_MESSAGE }] };
       const result = applyActiveCommand(state.project, command);
       if (result.ok) update(result.project);
       return result;
@@ -546,26 +597,30 @@ export function createProjectController(options: ProjectControllerOptions): Proj
       return { ok: true, value: { file: file.value, text: serializeProjectFile(file.value), signature: contentSignature(project) } };
     },
     markExported(signature) {
-      // Export bookkeeping only: not a change to save.
+      // Export bookkeeping only: not a change to save. Remembered in this browser beside the
+      // stored record (never inside the project file), so a restored project still shows it.
       if (!state.project || !book) return;
       book.latest = markProjectExported(state.project, signature);
+      rememberExport(book.latest);
       setState({ project: book.latest });
     },
 
-    async saveAs(name) {
-      const project = state.project;
-      if (!project) return { ok: false, message: 'No project is open.' };
-      const copy = saveProjectAs(project, name, { now, newId: newProjectId, newScenarioId });
-      if (!copy.ok) return copy;
-      // A write of the original already running finishes first; later changes live in the copy.
+    saveAs: (name) => transition<Outcome<OpenProject>>({ ok: false, message: BUSY_MESSAGE }, async () => {
+      if (!state.project) return { ok: false, message: 'No project is open.' };
+      // A write of the original already running finishes first. No change can arrive meanwhile
+      // (transition), and the copy is built from the state shown NOW, after the wait.
       const original = book;
       if (original) {
         cancelTimer(original);
         await settle(original);
       }
+      const project = state.project;
+      if (!project) return { ok: false, message: 'No project is open.' };
+      const copy = saveProjectAs(project, name, { now, newId: newProjectId, newScenarioId });
+      if (!copy.ok) return copy;
       activate(copy.value, null);
       return copy;
-    },
+    }),
 
     async flush() {
       if (book) await flushBook(book);

@@ -170,7 +170,7 @@ async function selectNodeInGraph(id) {
 let downloads = 0;
 async function download() {
   const before = new Set(readdirSync(downloadDir));
-  if ((await evaluate(`__wf.click('Export JSON')`)) !== 'clicked') throw new Error('Export JSON not clickable');
+  if ((await evaluate(`__wf.click('Export design JSON')`)) !== 'clicked') throw new Error('Export design JSON not clickable');
   for (const end = Date.now() + 8000; Date.now() < end; ) {
     const name = readdirSync(downloadDir).find((x) => !before.has(x) && x.endsWith('.json'));
     if (name) {

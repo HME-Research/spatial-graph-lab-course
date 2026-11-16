@@ -455,8 +455,8 @@ if (wants('export')) {
   await check('export/json', async () => {
     await browser.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir, eventsEnabled: true });
     const existing = new Set(readdirSync(downloadDir));
-    const clicked = await clickButton('Export JSON');
-    if (clicked !== 'clicked') return fail(`Export JSON button ${clicked}`);
+    const clicked = await clickButton('Export design JSON');
+    if (clicked !== 'clicked') return fail(`Export design JSON button ${clicked}`);
     let name = null;
     for (const end = Date.now() + opts.timeout; name === null && Date.now() < end; ) {
       name = readdirSync(downloadDir).find((x) => !existing.has(x) && x.endsWith('.json')) ?? null;

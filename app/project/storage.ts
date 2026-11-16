@@ -214,6 +214,73 @@ export function createRecordProjectStore(backend: RecordBackend, options: Record
 }
 
 // ---------------------------------------------------------------------------------------------
+// Export marks (additive, I1 audit repair): local bookkeeping beside the stored records
+
+/**
+ * "This project was exported in this state", remembered in this browser beside the stored record
+ * so that a restored project still knows it. Never part of a project file (exporting does not
+ * change what is exported). A mark is a digest of the exported content signature: it only counts
+ * while the project's content still has that signature (any later edit makes it stale).
+ * Both operations are best effort and never throw.
+ */
+export interface ExportMarks {
+  get(projectId: string): string | null;
+  set(projectId: string, mark: string): void;
+}
+
+/** Digest of a content signature (two 53-bit string hashes + length; the signature itself may be large). */
+export function exportMarkOf(signature: string): string {
+  const hash = (seed: number): number => {
+    let h1 = 0xdeadbeef ^ seed;
+    let h2 = 0x41c6ce57 ^ seed;
+    for (let i = 0; i < signature.length; i++) {
+      const ch = signature.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+  };
+  return `v1:${signature.length}:${hash(1).toString(36)}:${hash(2).toString(36)}`;
+}
+
+export const EXPORT_MARK_PREFIX = 'sgl-exported:';
+
+export function createMemoryExportMarks(): ExportMarks & { readonly marks: Map<string, string> } {
+  const marks = new Map<string, string>();
+  return { marks, get: (id) => marks.get(id) ?? null, set: (id, mark) => void marks.set(id, mark) };
+}
+
+/** Export marks in `localStorage` (default: the browser's; absent or failing → no marks, nothing thrown). */
+export function createLocalStorageExportMarks(storage?: Pick<Storage, 'getItem' | 'setItem'> | null): ExportMarks {
+  const target = (): Pick<Storage, 'getItem' | 'setItem'> | null => {
+    if (storage !== undefined) return storage;
+    try {
+      return (globalThis as { localStorage?: Storage }).localStorage ?? null;
+    } catch {
+      return null;
+    }
+  };
+  return {
+    get(id) {
+      try {
+        return target()?.getItem(`${EXPORT_MARK_PREFIX}${id}`) ?? null;
+      } catch {
+        return null;
+      }
+    },
+    set(id, mark) {
+      try {
+        target()?.setItem(`${EXPORT_MARK_PREFIX}${id}`, mark);
+      } catch {
+        // best effort: the project simply shows "not exported" after a restore
+      }
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
 // In-memory store (tests)
 
 export interface MemoryProjectStoreOptions extends RecordStoreOptions {

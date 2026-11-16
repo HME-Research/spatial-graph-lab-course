@@ -40,7 +40,7 @@ Unit tests for the harness helpers: `node --test scripts/smoke/lib.test.mjs`.
 | `analysis/run`, `analysis/stale-after-edit` | Runs the first graph analysis, which must show rows. After an edit, the stale warning must appear. |
 | `import/invalid-json-message` | Error clarity: the heading names the file, the message says whether the design was kept, it lists 1–5 issue lines, and the design is unchanged. |
 | `import/valid-example` | Imports the example design. |
-| `export/json` | Downloads Export JSON and parses it. It must have nodes and edges, and with `--feature v2` it must have `schemaVersion: 2`. |
+| `export/json` | Downloads Export design JSON (current scenario) and parses it. It must have nodes and edges, and with `--feature v2` it must have `schemaVersion: 2`. |
 | `components/*` | **Dev server only.** `fixtures/components.html` renders the Stage 07 components in isolation. Checked: real Tab focus shows the tooltip (`aria-describedby` matches), Enter opens "More details", Escape closes, hover works, all four view legends share identical status entries with only Routed (long dashes) and Unresolved (short dashes) dashed, and the analysis legend marks stale results and Clear removes it. |
 | `project-store/*` | **Dev server only.** `fixtures/project-store.html` runs `app/project/storage.ts` against the browser's real IndexedDB in a fresh database (deleted afterwards): save, list order, load round trip, missing, corrupt record quarantined (once), save over it refused, explicit discard then save (copy kept), quota (put throws the browser's own `QuotaExceededError`) and no IndexedDB. |
 | `scenarios/*` | Workstream B, on the real IndexedDB of the private browser profile. From a fresh example project: create two scenarios, rename one, delete one (with confirmation); the header names the active scenario and has no switcher. Drag a different node in each scenario; Undo/Redo act only on the active scenario. Wait for "Saved in this browser", reload: Welcome again (no auto-resume), restore the project from Recent and check both scenarios and their edits. Export Project, re-import the file (opened as a separate copy) and check both scenarios. With IndexedDB `put` made to throw a real `QuotaExceededError`, an edit must show "Not saved" and opening another file must ask (confirm dialog) before the unsaved changes are discarded. Finally Scenarios panel and Welcome at 1280×720 without page scroll. |
@@ -68,7 +68,7 @@ Use `--only viewports,select,...` to run selected groups. The groups are `viewpo
 4. Drag a node in the diagram: Undo puts it back and Redo moves it again.
 5. Algorithms → run an analysis: values appear. Edit the design: an out-of-date warning appears.
 6. Open an invalid JSON file: the message names the file, says the design was kept, and lists a short reason.
-7. Export JSON downloads a file that opens as valid JSON.
+7. Export design JSON (current scenario) downloads a file that opens as valid JSON.
 8. After integration: Tab to a "?" help button, and a one-sentence tooltip appears. Enter shows "More details" and Escape closes it.
 9. After integration: Direct is a solid neutral line, Routed long-dashed neutral and Unresolved short-dashed muted red in every view; Access is thin and Open heavy; each view's legend says "Unresolved" in the same way.
 

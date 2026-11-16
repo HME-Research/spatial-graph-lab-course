@@ -235,6 +235,8 @@ export default defineSpatialAlgorithm({
 
 Graph algorithms see only ids and endpoints, so they have no `ctx.metrics`.
 
+`ctx.metrics` is a **required** member of the spatial algorithm context (type `MetricReader` from `@student-api`). If you write your own test context for a spatial algorithm, it must provide `metrics` too; the Student API has no helper for this, so give it a small object with `list()` and `value(metricId, id)` that returns the values your test needs.
+
 ## 5. Parameters
 
 Algorithms may declare `parameters` using the same kinds as attributes. For example, `parameters: { start: { kind: 'text', default: 'entry-gallery' } }` is read as `ctx.params.start`. Values are checked before `run` is called.

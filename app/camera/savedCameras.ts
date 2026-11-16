@@ -102,6 +102,12 @@ export interface SavedCameraStore {
   get(scenarioId: string): readonly AppSavedCamera[];
   /** Replaces one scenario's cameras; refused (false, nothing changed) unless every camera is valid and ids are unique. */
   set(scenarioId: string, cameras: readonly AppSavedCamera[]): boolean;
+  /**
+   * Every camera id the scenario already uses, including cameras `get` does not offer (e.g. of view
+   * modes this app does not show, kept in the project file). New ids must avoid all of them.
+   * Optional: without it, only the ids of `get` are used.
+   */
+  usedIds?(scenarioId: string): readonly string[];
   subscribe(listener: () => void): () => void;
 }
 
@@ -129,6 +135,20 @@ export function createMemorySavedCameraStore(initial: Readonly<Record<string, re
       };
     },
   };
+}
+
+/**
+ * The list of `scenarioId` with one more camera, whose id avoids every id the scenario uses
+ * (`usedIds`, including cameras the panel does not offer). Not yet stored: pass it to `store.set`.
+ */
+export function addCameraFor(
+  store: SavedCameraStore,
+  scenarioId: string,
+  input: { readonly name: string; readonly viewMode: CameraViewMode; readonly pose: CameraPose },
+): CameraListResult {
+  const current = store.get(scenarioId);
+  const used = [...current.map((c) => c.id), ...(store.usedIds?.(scenarioId) ?? [])];
+  return addSavedCamera(current, input, newCameraId(used.map((id) => ({ id }))));
 }
 
 interface SavedCamerasBinding {
@@ -174,7 +194,7 @@ export function useSavedCameras(): SavedCamerasApi {
     () => ({
       scenarioId,
       cameras,
-      save: (input) => commit(addSavedCamera(store.get(scenarioId), input)),
+      save: (input) => commit(addCameraFor(store, scenarioId, input)),
       rename: (id, name) => commit(renameSavedCamera(store.get(scenarioId), id, name)),
       remove: (id) => commit(deleteSavedCamera(store.get(scenarioId), id)),
     }),
