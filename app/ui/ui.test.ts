@@ -24,7 +24,7 @@ describe('beginner vocabulary', () => {
   });
 
   it('names the sidebar sections Properties, Algorithms, Designer in that order', () => {
-    expect(SIDEBAR_SECTIONS.map((s) => SIDEBAR_LABELS[s])).toEqual(['Properties', 'Algorithms', 'Designer']);
+    expect(SIDEBAR_SECTIONS.map((s) => SIDEBAR_LABELS[s])).toEqual(['Properties', 'Attributes', 'Algorithms', 'Designer']);
   });
 
   it('describes every spatial status; unresolved is a warning with a reason', () => {
@@ -139,7 +139,7 @@ describe('shell components (static markup)', () => {
     for (const label of ['Properties', 'Algorithms', 'Designer']) expect(html).toContain(`>${label}</span>`);
     // Every panel is in the DOM (drafts and algorithm results survive switching); only one is visible.
     for (const id of SIDEBAR_SECTIONS) expect(html).toContain(`content of ${id}`);
-    expect(html.match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(2);
+    expect(html.match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(SIDEBAR_SECTIONS.length - 1);
     expect(html).toMatch(/id="sidebar-tab-algorithms"[^>]*aria-selected="true"/);
     expect(html).toMatch(/id="sidebar-tab-algorithms"[^>]*tabindex="0"/);
     expect(html).toMatch(/id="sidebar-tab-properties"[^>]*tabindex="-1"/);
@@ -150,7 +150,7 @@ describe('shell components (static markup)', () => {
     expect(html).toContain('aria-label="Properties (opens the sidebar)"');
     expect(html).toContain('title="properties"');
     expect(html).toContain('aria-label="Show the sidebar"');
-    expect(html.match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(3);
+    expect(html.match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(SIDEBAR_SECTIONS.length);
   });
 
   it('shows "Building" in the view selector', () => {

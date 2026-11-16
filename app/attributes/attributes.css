@@ -1,0 +1,108 @@
+/* Project attribute manager and the custom-attribute part of Properties (phase 03). */
+.sgl-attributes {
+  display: grid;
+  gap: 8px;
+}
+.sgl-attr-status {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--sgl-surface-muted, #f2f4f7);
+}
+.sgl-attr-status-error {
+  background: #fdecec;
+  color: #8a1c1c;
+}
+.sgl-attr-tabs {
+  justify-self: start;
+}
+.sgl-field-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.sgl-field-card {
+  border: 1px solid var(--sgl-border, #d9dee5);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.sgl-field-card summary {
+  cursor: pointer;
+  padding: 4px 0;
+}
+.sgl-field-body {
+  display: grid;
+  gap: 6px;
+  padding: 4px 0 8px;
+}
+.sgl-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.sgl-form-row > input,
+.sgl-form-row > select,
+.sgl-form-row label > input,
+.sgl-form-row label > select {
+  min-width: 0;
+  flex: 1 1 8em;
+}
+.sgl-form-row input[type='number'] {
+  max-width: 7em;
+}
+.sgl-type-defaults {
+  border: 1px dashed var(--sgl-border, #d9dee5);
+  border-radius: 4px;
+  padding: 4px 8px 8px;
+  display: grid;
+  gap: 4px;
+}
+.sgl-confirm {
+  border: 1px solid #c94a4a;
+  border-radius: 6px;
+  padding: 8px;
+  background: #fff7f7;
+}
+.sgl-add-field {
+  display: grid;
+  gap: 6px;
+}
+
+/* Properties: one row per project field */
+.sgl-custom-attributes .sgl-field {
+  display: grid;
+  gap: 2px;
+  padding: 4px 0;
+  border-top: 1px solid var(--sgl-border-faint, #eef0f3);
+}
+.sgl-field-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+}
+.sgl-chip-src-set {
+  background: #e3effd;
+  color: #1d4f91;
+}
+.sgl-chip-src-inherited {
+  background: #eef3ea;
+  color: #3c5a2a;
+}
+.sgl-chip-src-none {
+  background: #f1f1f1;
+  color: #555;
+}
+.sgl-chip-src-warning {
+  background: #fff1d6;
+  color: #7a4b00;
+}
+.sgl-outside summary {
+  cursor: pointer;
+  font-size: 12px;
+}

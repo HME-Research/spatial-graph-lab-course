@@ -12,6 +12,7 @@ export { nextTabIndex } from './navigation';
 export { RouteConfirm } from './RouteConfirm';
 export {
   AlgorithmsIcon,
+  AttributesIcon,
   DesignerIcon,
   PropertiesIcon,
   SidebarNav,

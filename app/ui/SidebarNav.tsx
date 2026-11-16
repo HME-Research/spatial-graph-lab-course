@@ -147,6 +147,14 @@ export const PropertiesIcon = () => (
   </svg>
 );
 
+/** Tag with lines: custom attribute fields. */
+export const AttributesIcon = () => (
+  <svg {...ICON_PROPS}>
+    <path d="M3 4h7l7 7-6 6-7-7z" />
+    <circle cx="6.5" cy="7.5" r="1.2" />
+  </svg>
+);
+
 /** Small graph being transformed: algorithms. */
 export const AlgorithmsIcon = () => (
   <svg {...ICON_PROPS}>

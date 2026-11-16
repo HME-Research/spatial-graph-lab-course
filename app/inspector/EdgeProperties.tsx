@@ -11,6 +11,9 @@ import {
   UNDO_HINT,
 } from '@app/ui';
 import { selectNode } from '@core/viewer/selection';
+import { useContext } from 'react';
+import { CustomAttributes } from '@app/attributes/CustomAttributes';
+import { OpenAttributesContext } from '@app/attributes/navigation';
 import { StoredData } from './AttributeEditors';
 import { messageContextFor, useCommands, type PanelProps } from './panelSupport';
 
@@ -31,8 +34,9 @@ function RemoveConnection({ onRemove }: { readonly onRemove: () => void }) {
 }
 
 function EdgePropertiesV2(props: PanelProps & { readonly edgeId: string }) {
-  const { design, onSelect, edgeId } = props;
-  const { issues, clearIssues, runShared, runV2 } = useCommands(props);
+  const { design, onSelect, edgeId, project } = props;
+  const { issues, clearIssues, showIssues, runShared, runV2 } = useCommands(props);
+  const openAttributes = useContext(OpenAttributesContext);
   const edge = design?.doc.edges.find((e) => e.id === edgeId);
   if (!design || !edge) return null;
   const rooms = [edge.source, edge.target].map((id) => design.doc.nodes.find((n) => n.id === id));
@@ -136,6 +140,17 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: string }) {
             used only when a corridor is generated.
           </p>
         )
+      )}
+
+      {project && (
+        <CustomAttributes
+          collection="edges"
+          item={edge}
+          schema={project.attributes}
+          run={runV2}
+          onError={(message) => showIssues([{ path: ['attributes'], code: 'schema', message }])}
+          {...(openAttributes && { onManage: () => openAttributes('edges') })}
+        />
       )}
 
       <RemoveConnection onRemove={() => runShared({ type: 'remove-edge', edgeId })} />

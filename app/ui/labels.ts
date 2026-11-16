@@ -30,17 +30,19 @@ export const VIEW_OPTIONS: readonly { readonly mode: ViewMode; readonly label: s
 );
 
 /** Sidebar sections, in display order (top to bottom of the vertical navigation). */
-export const SIDEBAR_SECTIONS = ['properties', 'algorithms', 'designer'] as const;
+export const SIDEBAR_SECTIONS = ['properties', 'attributes', 'algorithms', 'designer'] as const;
 export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number];
 
 export const SIDEBAR_LABELS: Readonly<Record<SidebarSection, string>> = {
   properties: 'Properties',
+  attributes: 'Attributes',
   algorithms: 'Algorithms',
   designer: 'Designer',
 };
 
 export const SIDEBAR_DESCRIPTIONS: Readonly<Record<SidebarSection, string>> = {
   properties: 'Properties of the selected room or relationship',
+  attributes: 'Custom fields of every room and relationship in this project',
   algorithms: 'Run the project’s algorithms on this design',
   designer: 'Appearance settings per room type',
 };

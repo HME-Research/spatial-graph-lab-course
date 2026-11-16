@@ -1,5 +1,7 @@
 import { HelpTip } from '@app/ui/help';
-import { useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import { CustomAttributes } from '@app/attributes/CustomAttributes';
+import { OpenAttributesContext } from '@app/attributes/navigation';
 import type { EdgeKind, GraphNode } from '@app/document';
 import { MAX_ROOM_SIZE, nodeLabel, type RoomNode } from '@app/document/v2';
 import { findNodeType } from '@app/extensions';
@@ -48,6 +50,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
   const [pending, setPending] = useState<PendingConfirmation | null>(null);
   /** Bumped to reset the geometry drafts after Cancel. */
   const [resetKey, setResetKey] = useState(0);
+  const openAttributes = useContext(OpenAttributesContext);
 
   const v2Node: RoomNode | undefined = design?.doc.nodes.find((n) => n.id === nodeId);
   const v1Node: GraphNode | undefined = doc.nodes.find((n) => n.id === nodeId);
@@ -148,6 +151,9 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
           onChange={(typeId) => runShared({ type: 'set-node-type', nodeId, typeId })}
         />
         <TypeStatusNote status={typeStatus} typeId={node.typeId} projectId={active?.id ?? null} />
+        {design && project && (
+          <p className="sgl-help">Changing the type keeps every value set on this room; values that come from a type default follow the new type.</p>
+        )}
       </section>
       <NodeChecks checks={checks} />
 
@@ -199,7 +205,16 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
         />
       )}
 
-      {specs ? (
+      {design && v2Node && project ? (
+        <CustomAttributes
+          collection="nodes"
+          item={v2Node}
+          schema={project.attributes}
+          run={runV2}
+          onError={(message) => showIssues([{ path: ['attributes'], code: 'schema', message }])}
+          {...(openAttributes && { onManage: () => openAttributes('nodes') })}
+        />
+      ) : specs ? (
         <>
           <TypedAttributesForm
             node={node}

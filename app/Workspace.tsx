@@ -1,4 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
+import { OpenAttributesContext } from '@app/attributes/navigation';
+import type { AttributeCollection } from '@app/extensions';
 import { AnalysisOverlayContext } from '@app/views/analysisOverlay';
 import type { ViewMode, ViewProps } from '@app/views/contracts';
 import { createPanelMemory, PanelMemoryContext, type PanelMemory } from '@app/views/panelMemory';
@@ -7,6 +9,7 @@ import { AnalysisLegend } from '@app/views/presentation/LegendViews';
 import { VIEW_COMPONENTS } from '@app/views/registry';
 import {
   AlgorithmsIcon,
+  AttributesIcon,
   DesignerIcon,
   DesignerPlaceholder,
   PropertiesIcon,
@@ -19,7 +22,7 @@ import {
 } from '@app/ui';
 import { PropertiesPanel } from './inspector/Inspector';
 
-const SIDEBAR_ICONS = { properties: <PropertiesIcon />, algorithms: <AlgorithmsIcon />, designer: <DesignerIcon /> } as const;
+const SIDEBAR_ICONS = { properties: <PropertiesIcon />, attributes: <AttributesIcon />, algorithms: <AlgorithmsIcon />, designer: <DesignerIcon /> } as const;
 
 export interface WorkspaceProps extends ViewProps {
   readonly algorithms?: ReactNode;
@@ -28,6 +31,8 @@ export interface WorkspaceProps extends ViewProps {
   /** Analysis values shown on the model (Stage 07 overlay), or null. Never part of the document. */
   readonly analysis?: AnalysisPresentation | null;
   readonly onClearAnalysis?: () => void;
+  /** The project Attributes manager, given the shown sub-list (Nodes/Edges) and a setter. */
+  readonly attributes?: (collection: AttributeCollection, onCollection: (c: AttributeCollection) => void) => ReactNode;
 }
 
 /**
@@ -40,12 +45,18 @@ export interface WorkspaceProps extends ViewProps {
  * layout change. All sidebar sections stay mounted (SidebarNav hides inactive ones), so switching
  * sections or collapsing the sidebar keeps drafts and algorithm results.
  */
-export function Workspace({ algorithms, designer, analysis = null, onClearAnalysis, ...props }: WorkspaceProps) {
+export function Workspace({ algorithms, designer, analysis = null, onClearAnalysis, attributes, ...props }: WorkspaceProps) {
   const [split, setSplit] = useState(true);
   const [modes, setModes] = useState<readonly [ViewMode, ViewMode]>(['graph2d', 'architecture']);
   const [memories] = useState<readonly [PanelMemory, PanelMemory]>(() => [createPanelMemory(), createPanelMemory()]);
   const [tab, setTab] = useState<SidebarSection>('properties');
   const [collapsed, setCollapsed] = useState(false);
+  const [attributeCollection, setAttributeCollection] = useState<AttributeCollection>('nodes');
+  const openAttributes = useCallback((collection: AttributeCollection) => {
+    setAttributeCollection(collection);
+    setTab('attributes');
+    setCollapsed(false);
+  }, []);
 
   const setMode = (index: 0 | 1, mode: ViewMode) => setModes((m) => (index === 0 ? [mode, m[1]] : [m[0], mode]));
   const panels: readonly (0 | 1)[] = split ? [0, 1] : [0];
@@ -58,6 +69,7 @@ export function Workspace({ algorithms, designer, analysis = null, onClearAnalys
   );
 
   return (
+    <OpenAttributesContext.Provider value={attributes ? openAttributes : null}>
     <AnalysisOverlayContext.Provider value={analysis}>
       <section className={collapsed ? 'workspace sidebar-collapsed' : 'workspace'} aria-label="Workspace">
         <div className={split ? 'panels split' : 'panels'}>
@@ -86,12 +98,19 @@ export function Workspace({ algorithms, designer, analysis = null, onClearAnalys
             description: SIDEBAR_DESCRIPTIONS[id],
             icon: SIDEBAR_ICONS[id],
             content:
-              id === 'properties' ? <PropertiesPanel {...props} /> : id === 'algorithms' ? algorithmsSection : (designer ?? <DesignerPlaceholder />),
+              id === 'properties'
+                ? <PropertiesPanel {...props} />
+                : id === 'attributes'
+                  ? (attributes?.(attributeCollection, setAttributeCollection) ?? <p className="meta">No active project.</p>)
+                  : id === 'algorithms'
+                    ? algorithmsSection
+                    : (designer ?? <DesignerPlaceholder />),
             ...(id === 'designer' && designer === undefined && { badge: 'soon' }),
           }))}
         />
       </section>
     </AnalysisOverlayContext.Provider>
+    </OpenAttributesContext.Provider>
   );
 }
 

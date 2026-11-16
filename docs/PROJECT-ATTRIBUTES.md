@@ -1,6 +1,6 @@
 # Project-wide custom attributes — contract
 
-Status: contract and persistence (programme phase 01). The effective values are used by the app and the Student API from phase 02; the editor UI arrives in phase 03.
+Status: implemented. Contract and persistence (phase 01); one resolver used by the app and the Student API (phase 02); the **Attributes** manager (Nodes / Edges lists: add, edit, rename, change kind, delete with impact preview, type defaults, own Undo/Redo, export/import, merge/reset) and the schema-driven *Custom attributes* section of Properties for rooms and relationships (phase 03).
 
 ## Ownership
 - The **project** owns the attribute schema: one list of custom **node fields** and a separate list of custom **edge fields**. Every node of every design in the project has the same node fields; every edge has the same edge fields. Access and Open edges have the same fields.

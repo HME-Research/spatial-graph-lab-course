@@ -8,6 +8,7 @@ import type { CommandOutcome, GraphCommandHandler } from '@app/views/contracts';
 import { conciseIssues, presentAnalysis, type AnalysisPresentation } from '@app/views/presentation';
 import { buildProjectViewContext, projectFacadeProvider } from '@app/views/project';
 import { NO_SELECTION, reconcileSelection, selectEdge, type Selection } from '@core/viewer/selection';
+import { AttributesPanel } from './attributes/AttributesPanel';
 import { DesignerPanel } from './designer';
 import { AlgorithmPanel } from './session/AlgorithmPanel';
 import { applyPreviewV2, isStale, type AlgorithmRunV2, type ApplyOutcome } from './session/algorithmSession';
@@ -443,6 +444,18 @@ export function App() {
                 {...(attributesVersion && { attributes: attributesVersion })}
               />
             }
+            attributes={(collection, onCollection) => (
+              <AttributesPanel
+                session={attributes}
+                project={project}
+                doc={doc}
+                source={current?.source ?? null}
+                onChange={(next) => setAttributes(next)}
+                saveError={attributeSaveError}
+                collection={collection}
+                onCollection={onCollection}
+              />
+            )}
             designer={
               <DesignerPanel
                 design={port}
