@@ -20,6 +20,8 @@ import { buildEdgeItems, framingFor } from '../three/sceneModel';
 import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
 import { lineOf, RelationshipTube, useUnitCylinder, ViewRelationshipLegend } from '../three/v2Scene';
 import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
+import { presetColour, useRoofsDisplay, useViewDisplay, type SceneDisplay } from '../three/viewDisplay';
+import { StoreyLabels } from '../three/StoreyLabels';
 import type { DesignPort } from '@app/spatial';
 import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
 import { NO_SELECTION, type Selection } from '@core/viewer/selection';
@@ -57,10 +59,10 @@ const COLORS = {
   connectorPost: '#7d7466',
 } as const;
 
-function elementColor(e: ArchitecturalElement): string {
+function elementColor(e: ArchitecturalElement, display: SceneDisplay | null): string {
   switch (e.part) {
     case 'wall':
-      if (e.condition === 'exterior') return typeColor(e.ownerTypeId);
+      if (e.condition === 'exterior') return presetColour(typeColor(e.ownerTypeId), display);
       return e.condition === 'door' ? COLORS.doorWall : COLORS.internalWall;
     case 'glazing':
       return COLORS.glazing;
@@ -113,9 +115,9 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
   const grid = useMemo(() => groundGridFor(bounds), [bounds]);
   const camera = useRemembered<CameraState>('camera:architecture');
   const viewportCamera = useViewportCamera();
-  // v1: open-top by default. v2: roofs follow the Designer's rules, so they are shown; the checkbox
-  // is only a view cutaway and never changes the design.
-  const [showRoofs, setShowRoofs] = useState(design !== undefined);
+  // Roof visibility is the Display setting (per scenario and view mode; default shown) when the app provides
+  // one; without a provider: v1 open-top, v2 shown. Either way it is a view cutaway only.
+  const [showRoofs, setShowRoofs] = useRoofsDisplay(design !== undefined);
   const [fitRequest, setFitRequest] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
@@ -180,6 +182,7 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
       }
     >
       <Scene elements={visible} connectors={visibleConnectors} selection={selection} pick={pick} setHovered={setHovered} />
+      <StoreyLabels nodes={v2Doc?.nodes ?? doc.nodes} bounds={bounds} />
       {unresolved.map((e) => {
         const line = lineOf(design, e.id);
         if (!line) return null;
@@ -217,6 +220,7 @@ function Scene({
   readonly pick: (target: Selection) => void;
   readonly setHovered: (hovered: boolean) => void;
 }) {
+  const display = useViewDisplay();
   // One shared unit box, scaled per element: no per-element geometry allocation.
   const unitBox = useMemo(() => new BoxGeometry(1, 1, 1), []);
   useEffect(() => () => unitBox.dispose(), [unitBox]);
@@ -228,7 +232,7 @@ function Scene({
           position={e.position}
           size={e.size}
           target={e.target}
-          color={elementColor(e)}
+          color={elementColor(e, display)}
           kind={e.part === 'glazing' ? 'glass' : e.part === 'circulation-marker' ? 'marker' : 'solid'}
           geometry={unitBox}
           highlighted={isElementHighlighted(e, selection)}

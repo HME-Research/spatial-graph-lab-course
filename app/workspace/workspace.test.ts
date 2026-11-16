@@ -66,13 +66,19 @@ describe('panel slots through WorkspaceServices', () => {
   const mount = (id: (typeof SLOT_DESTINATIONS)[number], value: WorkspaceServices) =>
     renderToStaticMarkup(createElement(WorkspaceServicesContext.Provider, { value }, createElement(DESTINATION_PANELS[id])));
 
-  it('mounts every placeholder through the registry with a services provider, without fake controls', () => {
+  it('mounts every slot through the registry with a services provider; placeholders have no fake controls', () => {
+    // Camera and Display are implemented (wave 1, workstream E); the remaining slots are placeholders.
+    const implemented = new Set<string>(['camera', 'display']);
     for (const id of SLOT_DESTINATIONS) {
       const html = mount(id, services());
+      if (implemented.has(id)) {
+        expect(html, id).not.toContain('data-placeholder=');
+        expect(html, id).toContain(`aria-label="${id === 'camera' ? 'Camera' : 'Display'}"`);
+        continue;
+      }
       expect(html, id).toContain(`data-placeholder="${id}"`);
       expect(html, id).toMatch(/not available yet/);
-      // Superseded for Camera only (F-D): its one real control is the explicit target-viewport selector.
-      expect(html, id).not.toMatch(id === 'camera' ? /<(button|input)\b/ : /<(button|input|select)\b/);
+      expect(html, id).not.toMatch(/<(button|input|select)\b/);
     }
   });
 
@@ -105,7 +111,9 @@ describe('five view modes', () => {
     for (const mode of VIEW_MODES) {
       expect(VIEW_DESCRIPTIONS[mode], mode).toMatch(/\S/);
       expect(VIEW_CAPTIONS[mode], mode).toMatch(/\S/);
-      expect(VIEW_COMPONENTS[mode], mode).toBeTypeOf('function');
+      // Function components, or lazy (React.lazy objects) for the 3D views.
+      expect(['function', 'object'], mode).toContain(typeof VIEW_COMPONENTS[mode]);
+      expect(VIEW_COMPONENTS[mode], mode).toBeTruthy();
     }
   });
 });

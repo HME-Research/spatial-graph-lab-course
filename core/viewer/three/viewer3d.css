@@ -228,3 +228,47 @@
   place-self: center;
   color: var(--muted, #66665f);
 }
+
+/* Display: the scene options can hide every overlay legend (appearance only). */
+.viewer3d-overlay[data-legend='off'] .viewer3d-legend {
+  display: none;
+}
+
+/*
+ * Projection toggle directly below the navigation cube (the cube is drawn in the canvas HUD, its
+ * centre 46 px from the right edge and 14 px above the vertical centre; VIEW_CUBE in ViewCube.tsx).
+ * Kept at the right edge, away from the centre where the selected room and its gizmo usually are.
+ * It sits BELOW the overlay layer (z-index 19 < 20): in very short canvases a tall overlay panel
+ * (room editor) stays on top and is never covered by it.
+ */
+.viewer3d-nav {
+  position: absolute;
+  right: 22px;
+  top: calc(50% + 24px);
+  z-index: 19;
+  display: flex;
+  justify-content: center;
+  width: 48px;
+}
+.viewer3d-nav.no-cube {
+  top: calc(50% - 11px);
+}
+.viewer3d-projection {
+  font: 600 0.72rem system-ui, sans-serif;
+  padding: 1px 6px;
+  min-height: 22px;
+  border-radius: 4px;
+  border: 1px solid var(--line, #d9d9d2);
+  background: rgba(255, 255, 255, 0.92);
+  color: #44443f;
+  cursor: pointer;
+}
+.viewer3d-projection[aria-pressed='true'] {
+  background: #e3ebf8;
+  border-color: #8aa6d6;
+}
+/* A room gizmo is shown: the projection toggle steps back like the cube (faded, click-through). */
+.viewer3d-nav.passive {
+  opacity: 0.3;
+  pointer-events: none;
+}
