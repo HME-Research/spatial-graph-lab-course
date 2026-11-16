@@ -11,9 +11,11 @@ import type {
   SpatialAlgorithmContext,
   SpatialNode,
 } from '@student-api';
+import type { SpatialResolution } from '@app/spatial';
 import type { ActiveProject } from './activate';
 import { checkValue, effectiveAttributes } from './attributes';
 import { diagnostic, type ExtensionDiagnostic } from './diagnostics';
+import { createMetricReader } from './metricReader';
 import { EMPTY_ATTRIBUTE_SCHEMA, fieldForKey, type AttributeField, type ProjectAttributeSchema } from './projectAttributes';
 import { effectiveEdgeValues, effectiveNodeValues } from './resolveAttributes';
 
@@ -68,13 +70,17 @@ export function buildSpatialContext<P extends AttributeSpecs>(
   return buildSpatialContextV2(migrateV1toV2(doc), project, algorithmId, params);
 }
 
-/** Spatial context for a VALIDATED schema-v2 document. */
+/**
+ * Spatial context for a VALIDATED schema-v2 document. `spatial` is the host's resolution of `doc`
+ * (with the scenario's face preferences) for `ctx.metrics`; omitted, it is `resolveRelationships(doc)`.
+ */
 export function buildSpatialContextV2<P extends AttributeSpecs>(
   doc: DesignDocumentV2,
   project: ActiveProject,
   algorithmId: string,
   params: AttributesOf<P>,
   schema: ProjectAttributeSchema = project.attributeBaseline?.schema ?? EMPTY_ATTRIBUTE_SCHEMA,
+  spatial?: SpatialResolution,
 ): SpatialAlgorithmContext<P> {
   const design = freezeDeep({
     policy: { ...SPATIAL_GRAPH_POLICY },
@@ -88,7 +94,7 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
   const pairs = new Set(doc.edges.map((e) => unorderedPairKey(e.source, e.target)));
   const isId = (v: unknown): v is string => typeof v === 'string';
   const subject = { kind: 'algorithm', id: algorithmId } as const;
-  const runError = (code: 'type-not-registered' | 'broken-node-type' | 'type-mismatch' | 'unknown-node-reference', message: string) =>
+  const runError = (code: 'type-not-registered' | 'broken-node-type' | 'type-mismatch' | 'unknown-node-reference' | 'unknown-metric', message: string) =>
     new ExtensionRunError(diagnostic(code, 'error', subject, message));
   // The same resolver as the app's views and Properties (docs/PROJECT-ATTRIBUTES.md).
   const fieldInfo = (f: AttributeField) => ({
@@ -107,6 +113,7 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
     design,
     params: freezeDeep(structuredClone(params)),
     attributeFields,
+    metrics: createMetricReader(doc, spatial, runError),
     nodeAttributes: (nodeId: string) => {
       const node = isId(nodeId) ? rooms.get(nodeId) : undefined;
       if (!node) throw runError('unknown-node-reference', `nodeAttributes: there is no node "${String(nodeId)}"`);

@@ -32,7 +32,7 @@ const LABEL_LIMIT = 150;
 
 export function Graph3DView({ doc, selection, onSelect, design, project }: ViewProps) {
   const source = useSceneSource(doc, design);
-  const s = useSpatialScene(source, selection, project?.attributes);
+  const s = useSpatialScene(source, selection, project?.attributes, design);
   const analysis = useAnalysisOverlay();
   const labelOf = useMemo(() => new Map((design?.doc.nodes ?? []).map((n) => [n.id, nodeLabel(n)] as const)), [design]);
   const camera = useRemembered<CameraState>('camera:graph3d');
@@ -56,7 +56,7 @@ export function Graph3DView({ doc, selection, onSelect, design, project }: ViewP
       overlay={
         <>
           <ControlBar>
-            <ColorBySelect mode={s.colorMode} attributeKeys={s.attributeKeys} onChange={s.setColorMode} />
+            <ColorBySelect mode={s.colorMode} attributeKeys={s.attributeKeys} metrics={s.metricOptions} onChange={s.setColorMode} />
             <LevelSelect levels={s.levels} maxLevel={s.maxLevel} onChange={s.setMaxLevel} />
             <label>
               <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.currentTarget.checked)} /> Labels

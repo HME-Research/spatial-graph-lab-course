@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { attributeValueSchema, type AttributeValue, type DesignDocument } from '@app/document';
 import type { DesignDocumentV2 } from '@app/document/v2';
+import type { SpatialResolution } from '@app/spatial';
 import type { AnalysisResult, AttributeSpecs, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
 import type { ActiveProject } from './activate';
 import { checkValue, describeSpec, specFor } from './attributes';
@@ -95,13 +96,26 @@ function invalidResult(algorithmId: string, messages: readonly string[]): Extens
 
 /** How one document schema plugs into the shared run pipeline. */
 interface RunAdapter<D extends GraphSource, Preview> {
-  spatialContext<P extends AttributeSpecs>(doc: D, project: ActiveProject, algorithmId: string, params: never, schema: ProjectAttributeSchema): SpatialAlgorithmContext<P>;
+  spatialContext<P extends AttributeSpecs>(
+    doc: D,
+    project: ActiveProject,
+    algorithmId: string,
+    params: never,
+    schema: ProjectAttributeSchema,
+    spatial: SpatialResolution | undefined,
+  ): SpatialAlgorithmContext<P>;
   apply(doc: D, project: ActiveProject, operations: readonly SpatialOperation[], summary: string | undefined, schema: ProjectAttributeSchema): ExtensionResult<Preview>;
 }
 
 export interface RunOptions {
   /** The project attribute schema in use (default: the project files' baseline). */
   readonly attributes?: ProjectAttributeSchema;
+  /**
+   * The host's spatial resolution of the run's (v2) document, with the scenario's face
+   * preferences, so `ctx.metrics` matches what the views show. Omitted: `resolveRelationships(doc)`.
+   * Ignored for schema-v1 runs (their context reads a migrated copy).
+   */
+  readonly spatial?: SpatialResolution;
 }
 
 function runWith<D extends GraphSource, Preview>(
@@ -128,7 +142,7 @@ function runWith<D extends GraphSource, Preview>(
     raw =
       algorithm.scope === 'graph'
         ? algorithm.run(buildGraphContext(doc, parameters.value))
-        : algorithm.run(adapter.spatialContext(doc, project, algorithmId, parameters.value as never, schema));
+        : algorithm.run(adapter.spatialContext(doc, project, algorithmId, parameters.value as never, schema, options.spatial));
   } catch (error) {
     if (error instanceof ExtensionRunError) return fail([error.diagnostic]);
     const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
@@ -171,7 +185,7 @@ const V1_ADAPTER: RunAdapter<DesignDocument, TransformationPreview> = {
 };
 
 const V2_ADAPTER: RunAdapter<DesignDocumentV2, TransformationPreviewV2> = {
-  spatialContext: (doc, project, id, params, schema) => buildSpatialContextV2(doc, project, id, params, schema),
+  spatialContext: (doc, project, id, params, schema, spatial) => buildSpatialContextV2(doc, project, id, params, schema, spatial),
   apply: (doc, project, operations, summary, schema) => applyTransformationV2(doc, project, operations, summary, schema),
 };
 

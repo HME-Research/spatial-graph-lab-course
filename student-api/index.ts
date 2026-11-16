@@ -49,6 +49,8 @@ export {
   type AttributeFieldInfo,
   type GraphAlgorithm,
   type GraphAlgorithmContext,
+  type MetricInfo,
+  type MetricReader,
   type GraphAlgorithmDefinition,
   type SpatialAlgorithm,
   type SpatialAlgorithmContext,

@@ -7,11 +7,14 @@ import type {
   RoomNode,
   RoomSize as DocumentRoomSize,
 } from '@app/document/v2';
+import type { ComputedMetric, MetricValue, MetricValueKind } from '@app/metrics';
 import type {
   AttributeValue,
   ConnectorStyle,
   FacadeParameters,
   GridCoord,
+  MetricInfo,
+  MetricReader,
   RelationshipKind,
   RoomSize,
   SpatialEdge,
@@ -42,4 +45,7 @@ export const contractGuards = {
   edgeKeys: true satisfies Equals<keyof SpatialEdge, keyof RelationshipEdge>,
   nodeAssignable: true satisfies (RoomNode extends SpatialNode ? true : false),
   edgeAssignable: true satisfies (RelationshipEdge extends SpatialEdge ? true : false),
+  metricCollection: true satisfies Equals<MetricInfo['collection'], ComputedMetric['collection']>,
+  metricValueKind: true satisfies Equals<MetricInfo['valueKind'], MetricValueKind>,
+  metricValue: true satisfies Equals<ReturnType<MetricReader['value']>, MetricValue | null>,
 } as const;

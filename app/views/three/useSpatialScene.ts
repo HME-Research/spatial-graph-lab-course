@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SceneSource } from './v2Scene';
 import { displayKeys, viewAttributes, type ProjectAttributeSchema } from '@app/extensions';
+import { defaultMetricEvaluator, DEFAULT_ENABLED_METRICS, type EnabledMetricIds, type MetricContext } from '@app/metrics';
 import { selectionEmphasis, type Selection } from '@core/viewer/selection';
 import type { Hover } from '@core/viewer/three/picking';
 import {
   attributeKeys,
   DEFAULT_COLOR_MODE,
   effectiveColorMode,
+  metricColorSource,
   resolveColoring,
   type ColorMode,
 } from './colorBy';
@@ -18,7 +20,14 @@ import { accessGroups, buildEdgeItems, buildNodeItems, cellBounds, framingFor, g
  * (colour-by, level cut, hover, camera fit requests). Derived data is memoised on the
  * document's node/edge arrays, so selection changes never rebuild scene data.
  */
-export function useSpatialScene(doc: SceneSource, selection: Selection, attributeSchema?: ProjectAttributeSchema) {
+export function useSpatialScene(
+  doc: SceneSource,
+  selection: Selection,
+  attributeSchema?: ProjectAttributeSchema,
+  /** The v2 document and its resolution (the design port): enables colour-by calculated values. */
+  design?: MetricContext,
+  enabledMetricIds: EnabledMetricIds = DEFAULT_ENABLED_METRICS,
+) {
   const { nodes, edges } = doc;
   // Colour-by reads EFFECTIVE values of the project's node fields (the shared resolver), so a type
   // default colours a room exactly as Properties and Graph 2D show it.
@@ -36,15 +45,25 @@ export function useSpatialScene(doc: SceneSource, selection: Selection, attribut
   const groups = useMemo(() => accessGroups(nodes, edges), [nodes, edges]);
   const emphasis = useMemo(() => selectionEmphasis(selection, edges), [selection, edges]);
 
+  // Calculated values are derived on read for the current document and resolution (never stored).
+  const metricDoc = design?.doc;
+  const metricSpatial = design?.spatial;
+  const metricSource = useMemo(
+    () => (metricDoc && metricSpatial ? metricColorSource(defaultMetricEvaluator, { doc: metricDoc, spatial: metricSpatial }, enabledMetricIds) : undefined),
+    [metricDoc, metricSpatial, enabledMetricIds],
+  );
+  const metricOptions = useMemo(() => metricSource?.metrics ?? [], [metricSource]);
+  const metricIds = useMemo(() => metricOptions.map((m) => m.id), [metricOptions]);
+
   const [chosenColorMode, setColorMode] = useState<ColorMode>(DEFAULT_COLOR_MODE);
-  const colorMode = effectiveColorMode(chosenColorMode, keys);
-  // Display colour preset (voxels): `neutral` replaces the function (type) colours only; attribute
-  // and access-group colourings are explicit choices in the view and stay as chosen.
+  const colorMode = effectiveColorMode(chosenColorMode, keys, metricIds);
+  // Display colour preset (voxels): `neutral` replaces the function (type) colours only; attribute,
+  // calculated-value and access-group colourings are explicit choices in the view and stay as chosen.
   const neutral = isNeutral(useViewDisplay()) && colorMode.kind === 'type';
   const coloring = useMemo(() => {
-    const resolved = resolveColoring(valued, edges, colorMode);
+    const resolved = resolveColoring(valued, edges, colorMode, metricSource);
     return neutral ? neutralColoring(resolved) : resolved;
-  }, [valued, edges, colorMode, neutral]);
+  }, [valued, edges, colorMode, metricSource, neutral]);
 
   const [maxLevel, setMaxLevel] = useState<number | null>(null);
   const isLevelHidden = useCallback((level: number) => maxLevel !== null && level > maxLevel, [maxLevel]);
@@ -79,6 +98,7 @@ export function useSpatialScene(doc: SceneSource, selection: Selection, attribut
     fitRequest,
     refit,
     attributeKeys: keys,
+    metricOptions,
     groups,
     emphasis,
     colorMode,

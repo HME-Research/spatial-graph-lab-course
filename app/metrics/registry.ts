@@ -1,41 +1,12 @@
-import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
 import type { DesignDocumentV2 } from '@app/document/v2';
 import type { SpatialResolution } from '@app/spatial';
+import { METRIC_CATALOGUE } from './catalogue';
 import { METRIC_DEPENDENCIES, type ComputedMetric, type MetricContext, type MetricDependency, type MetricEvaluator, type MetricRegistry, type MetricValue } from './contracts';
 
-/** Node footprint (plan) area in m²: size x × size y cells at the central cell size (3 m). */
-export const areaMetric: ComputedMetric = {
-  id: 'area',
-  label: 'Area',
-  collection: 'nodes',
-  valueKind: 'number',
-  unit: 'm²',
-  dependsOn: ['geometry'],
-  compute: ({ doc }, nodeId) => {
-    const node = doc.nodes.find((n) => n.id === nodeId);
-    if (!node) return null;
-    const side = DEFAULT_CELL_SIZE.horizontal;
-    return node.size[0] * node.size[1] * side * side;
-  },
-};
+export { areaMetric, degreeMetric } from './catalogue';
 
-/** Number of relationships incident to the node (a self-loop would count twice). */
-export const degreeMetric: ComputedMetric = {
-  id: 'degree',
-  label: 'Degree',
-  collection: 'nodes',
-  valueKind: 'number',
-  dependsOn: ['topology'],
-  compute: ({ doc }, nodeId) => {
-    if (!doc.nodes.some((n) => n.id === nodeId)) return null;
-    let degree = 0;
-    for (const e of doc.edges) degree += (e.source === nodeId ? 1 : 0) + (e.target === nodeId ? 1 : 0);
-    return degree;
-  },
-};
-
-/** Representative metrics at Gate F; the rest of the catalogue belongs to workstream M. */
-export const BUILT_IN_METRICS: MetricRegistry = Object.freeze([areaMetric, degreeMetric]);
+/** The built-in catalogue (workstream M), in display order: see `METRIC_CATALOGUE` in `catalogue.ts`. */
+export const BUILT_IN_METRICS: MetricRegistry = METRIC_CATALOGUE;
 
 type DocumentDependency = Exclude<MetricDependency, 'resolution'>;
 const signatureCache = new WeakMap<DesignDocumentV2, Partial<Record<DocumentDependency, string>>>();

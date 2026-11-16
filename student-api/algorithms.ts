@@ -88,6 +88,36 @@ export interface SpatialAlgorithmContext<P extends AttributeSpecs = AttributeSpe
   nodeAttributes(nodeId: string): { readonly [key: string]: AttributeValue };
   /** Effective values of every project edge field for the edge `edgeId` (as `nodeAttributes`). */
   edgeAttributes(edgeId: string): { readonly [key: string]: AttributeValue };
+  /**
+   * The app's calculated values (read-only): the same values Properties and colour-by show, for
+   * the design as it was when the run started. Your operations do not change them during the run.
+   */
+  readonly metrics: MetricReader;
+}
+
+/** A calculated value the app offers (e.g. `area`, `volume`, `exposed-facade-length`). */
+export interface MetricInfo {
+  readonly id: string;
+  readonly label: string;
+  /** Whether the value belongs to rooms (`nodes`) or relationships (`edges`). */
+  readonly collection: 'nodes' | 'edges';
+  readonly valueKind: 'number' | 'boolean' | 'text';
+  /** e.g. `m²`, `m³`, `m`; absent for counts and text. */
+  readonly unit?: string;
+  /** What exactly is counted or measured. */
+  readonly definition: string;
+}
+
+/** Read-only access to calculated values. Values are never stored in the design. */
+export interface MetricReader {
+  /** Every calculated value on offer, in a fixed order (room values first). */
+  list(): readonly MetricInfo[];
+  /**
+   * Value of metric `metricId` for the node or edge `itemId` (of the metric's collection), or
+   * `null` when it has no value (e.g. `route-length` of an unresolved relationship). The run
+   * fails with a diagnostic for an unknown metric id or an id that is not in that collection.
+   */
+  value(metricId: string, itemId: string): number | boolean | string | null;
 }
 
 /** One project-wide custom field, as algorithms see it. */

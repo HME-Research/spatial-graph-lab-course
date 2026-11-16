@@ -1,5 +1,6 @@
 import type { AttributeValue, GraphEdge, GraphNode } from '@app/document';
 import { typeColor } from '@core/viewer/appearance';
+import { formatMetricValue, formatNumber, type ComputedMetric, type MetricContext, type MetricEvaluator, type MetricValue } from '@app/metrics';
 import { accessGroups } from './sceneModel';
 
 /**
@@ -7,12 +8,36 @@ import { accessGroups } from './sceneModel';
  *  - `type`: node function (typeId) using the shared `typeColor`, identical to Graph 2D.
  *  - `group`: access group = connected component over explicit edges.
  *  - `attribute`: a node attribute key; numeric keys get a sequential scale, others are categorical.
+ *  - `metric`: a calculated node value (`@app/metrics`): numbers get the sequential scale, booleans
+ *    yes/no colours, text is categorical. Values come from a `MetricColorSource` computed on read
+ *    from the current document and resolution, so they follow every graph/geometry change.
  * Nodes without a usable value (attribute absent or null) get MISSING_COLOR and are listed in the legend.
  */
 export type ColorMode =
   | { readonly kind: 'type' }
   | { readonly kind: 'group' }
-  | { readonly kind: 'attribute'; readonly key: string };
+  | { readonly kind: 'attribute'; readonly key: string }
+  | { readonly kind: 'metric'; readonly metricId: string };
+
+/**
+ * Calculated node values available to colour-by: the node metrics on offer (e.g. the project's
+ * enabled ones) and their current values. Build it with `metricColorSource`.
+ */
+export interface MetricColorSource {
+  readonly metrics: readonly Pick<ComputedMetric, 'id' | 'label' | 'unit' | 'valueKind'>[];
+  values(metricId: string): ReadonlyMap<string, MetricValue | null>;
+}
+
+/**
+ * Colour source over the NODE metrics among `metricIds` (default: every node metric of the
+ * evaluator) for one (document, resolution) context. Values are read lazily through the
+ * evaluator's cache; nothing is stored on the document.
+ */
+export function metricColorSource(evaluator: MetricEvaluator, ctx: MetricContext, metricIds?: readonly string[]): MetricColorSource {
+  const wanted = metricIds ? new Set(metricIds) : null;
+  const metrics = evaluator.metrics.filter((m) => m.collection === 'nodes' && (wanted === null || wanted.has(m.id)));
+  return { metrics, values: (metricId) => evaluator.values(ctx, metricId) };
+}
 
 export const DEFAULT_COLOR_MODE: ColorMode = Object.freeze({ kind: 'type' });
 
@@ -32,6 +57,9 @@ export const CATEGORY_PALETTE = [
   '#9c755f',
   '#3b3b98',
 ] as const;
+
+/** Calculated yes/no values: the same pair as boolean analysis results. */
+export const BOOLEAN_COLORS = Object.freeze({ true: '#2e7d4f', false: '#b9c4cf' } as const);
 
 /** Sequential scale end points for numeric attributes (light → dark). */
 export const NUMERIC_LOW = '#f6e3a1';
@@ -66,26 +94,39 @@ export function attributeKeys(nodes: readonly GraphNode[]): string[] {
   return [...keys].sort();
 }
 
-/** Falls back to `type` when the chosen attribute no longer exists in the document. */
-export function effectiveColorMode(mode: ColorMode, keys: readonly string[]): ColorMode {
-  return mode.kind === 'attribute' && !keys.includes(mode.key) ? DEFAULT_COLOR_MODE : mode;
+/**
+ * Falls back to `type` when the chosen attribute no longer exists in the document, or the chosen
+ * metric is not on offer (`metricIds`: ids of the available metrics, e.g. from `source.metrics`).
+ */
+export function effectiveColorMode(mode: ColorMode, keys: readonly string[], metricIds: readonly string[] = []): ColorMode {
+  if (mode.kind === 'attribute' && !keys.includes(mode.key)) return DEFAULT_COLOR_MODE;
+  if (mode.kind === 'metric' && !metricIds.includes(mode.metricId)) return DEFAULT_COLOR_MODE;
+  return mode;
 }
 
 /** `<select>` value encoding. */
 export function colorModeToValue(mode: ColorMode): string {
-  return mode.kind === 'attribute' ? `attr:${mode.key}` : mode.kind;
+  if (mode.kind === 'attribute') return `attr:${mode.key}`;
+  if (mode.kind === 'metric') return `metric:${mode.metricId}`;
+  return mode.kind;
 }
 
 export function colorModeFromValue(value: string): ColorMode {
   if (value === 'group') return { kind: 'group' };
   if (value.startsWith('attr:')) return { kind: 'attribute', key: value.slice(5) };
+  if (value.startsWith('metric:')) return { kind: 'metric', metricId: value.slice(7) };
   return DEFAULT_COLOR_MODE;
 }
 
+/**
+ * Colours for every node. `metrics` is needed for a `metric` mode; without it, or for a metric
+ * it does not offer, the colouring falls back to type (as `effectiveColorMode` would).
+ */
 export function resolveColoring(
   nodes: readonly GraphNode[],
   edges: readonly GraphEdge[],
   mode: ColorMode,
+  metrics?: MetricColorSource,
 ): Coloring {
   switch (mode.kind) {
     case 'type':
@@ -94,6 +135,10 @@ export function resolveColoring(
       return byGroup(nodes, edges);
     case 'attribute':
       return byAttribute(nodes, mode.key);
+    case 'metric': {
+      const metric = metrics?.metrics.find((m) => m.id === mode.metricId);
+      return metrics && metric ? byMetric(nodes, metric, metrics.values(metric.id)) : byType(nodes);
+    }
   }
 }
 
@@ -126,10 +171,48 @@ function byGroup(nodes: readonly GraphNode[], edges: readonly GraphEdge[]): Colo
 }
 
 function byAttribute(nodes: readonly GraphNode[], key: string): Coloring {
+  return byValues(nodes, (n) => (Object.hasOwn(n.attributes, key) ? n.attributes[key] : undefined), `Attribute “${key}”`, {
+    label: String,
+    booleans: false,
+  });
+}
+
+/** Missing: no value, or a number that is not finite (a calculation without a usable result). */
+function byMetric(
+  nodes: readonly GraphNode[],
+  metric: Pick<ComputedMetric, 'id' | 'label' | 'unit' | 'valueKind'>,
+  values: ReadonlyMap<string, MetricValue | null>,
+): Coloring {
+  return byValues(
+    nodes,
+    (n) => {
+      const v = values.get(n.id);
+      return typeof v === 'number' && !Number.isFinite(v) ? null : v;
+    },
+    metric.unit ? `${metric.label} (${metric.unit})` : metric.label,
+    { label: (v) => formatMetricValue(metric, v), booleans: true, round: true },
+  );
+}
+
+interface ValueOptions {
+  /** Legend text of a numeric value. */
+  readonly label: (v: number) => string;
+  /** Booleans-only values use the yes/no pair (`BOOLEAN_COLORS`) instead of the palette. */
+  readonly booleans: boolean;
+  /** Round the gradient's end labels to two decimals (calculated values). */
+  readonly round?: boolean;
+}
+
+function byValues(
+  nodes: readonly GraphNode[],
+  valueOf: (n: GraphNode) => AttributeValue | undefined,
+  title: string,
+  options: ValueOptions,
+): Coloring {
   const missing = new Set<string>();
   const present: { id: string; value: Exclude<AttributeValue, null> }[] = [];
   for (const n of nodes) {
-    const v = Object.hasOwn(n.attributes, key) ? n.attributes[key] : undefined;
+    const v = valueOf(n);
     if (v === undefined || v === null) missing.add(n.id);
     else present.push({ id: n.id, value: v });
   }
@@ -137,7 +220,6 @@ function byAttribute(nodes: readonly GraphNode[], key: string): Coloring {
     ? [{ label: 'no value (missing or null)', color: MISSING_COLOR, count: missing.size, missing: true }]
     : [];
   const colorOf = new Map<string, string>([...missing].map((id) => [id, MISSING_COLOR] as const));
-  const title = `Attribute “${key}”`;
 
   const numbers = present.every((p) => typeof p.value === 'number');
   if (numbers && present.length > 0) {
@@ -155,13 +237,29 @@ function byAttribute(nodes: readonly GraphNode[], key: string): Coloring {
       missing,
       legend: [
         ...shown.map((v) => ({
-          label: distinct.length <= MAX_NUMERIC_LEGEND ? String(v) : `${v === min ? 'min' : 'max'} ${v}`,
+          label: distinct.length <= MAX_NUMERIC_LEGEND ? options.label(v) : `${v === min ? 'min' : 'max'} ${options.label(v)}`,
           color: at(v),
           count: counts.get(v)!,
         })),
         ...missingEntry,
       ],
-      ...(min !== max && { scale: { min, max } }),
+      ...(min !== max && { scale: options.round ? { min: Number(formatNumber(min)), max: Number(formatNumber(max)) } : { min, max } }),
+    };
+  }
+
+  if (options.booleans && present.length > 0 && present.every((p) => typeof p.value === 'boolean')) {
+    for (const p of present) colorOf.set(p.id, BOOLEAN_COLORS[String(p.value) as 'true' | 'false']);
+    const counts = countBy(present, (p) => p.value as boolean);
+    return {
+      title,
+      colorOf,
+      missing,
+      legend: [
+        ...([true, false] as const)
+          .filter((b) => counts.has(b))
+          .map((b) => ({ label: b ? 'yes' : 'no', color: BOOLEAN_COLORS[String(b) as 'true' | 'false'], count: counts.get(b)! })),
+        ...missingEntry,
+      ],
     };
   }
 
