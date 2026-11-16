@@ -43,10 +43,21 @@ export const attributeValueSchema = z.union(
   { error: 'attribute values must be a string, number, boolean or null' },
 );
 
-export const attributesSchema = z.record(
-  z.string().min(1, { error: 'attribute names must not be empty' }),
-  attributeValueSchema,
-);
+/**
+ * Attribute maps. A key literally named "__proto__" cannot be stored safely in a JavaScript object
+ * and Zod would drop it silently, so it is refused with an explicit message instead (programme
+ * phase 09): an import never loses a value without saying so.
+ */
+export const attributesSchema = z
+  .custom<unknown>((v) => !(typeof v === 'object' && v !== null && Object.prototype.hasOwnProperty.call(v, '__proto__')), {
+    error: 'the attribute name "__proto__" is not allowed (it cannot be stored safely); rename it',
+  })
+  .pipe(
+    z.record(
+      z.string().min(1, { error: 'attribute names must not be empty' }),
+      attributeValueSchema,
+    ),
+  );
 
 export const edgeKindSchema = z.enum(EDGE_KINDS, {
   error: `edge kind must be one of: ${EDGE_KINDS.join(', ')}`,

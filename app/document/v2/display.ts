@@ -23,3 +23,18 @@ export function nextDisplayId(doc: Pick<DesignDocumentV2, 'nodes'>): string {
   while (used.has(formatDisplayId(n))) n++;
   return formatDisplayId(n);
 }
+
+/**
+ * "01 ↔ 04": readable label of a relationship from its rooms' labels (the stored edge id stays the
+ * identity; messages never show raw ids). Unknown edge ids are returned unchanged. The one helper
+ * used by Properties, the 3D editor, Undo/Redo labels and algorithm previews.
+ */
+export function relationshipLabel(doc: Pick<DesignDocumentV2, 'nodes' | 'edges'>, edgeId: string): string {
+  const edge = doc.edges.find((e) => e.id === edgeId);
+  if (!edge) return edgeId;
+  const room = (id: string) => {
+    const node = doc.nodes.find((n) => n.id === id);
+    return node ? nodeLabel(node) : id;
+  };
+  return `${room(edge.source)} ↔ ${room(edge.target)}`;
+}

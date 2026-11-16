@@ -1,5 +1,5 @@
 import type { GizmoAxis, GizmoMode, GizmoTone } from '@core/viewer/three/gizmoMath';
-import { nodeLabel, type DesignDocumentV2 } from '@app/document/v2';
+import { nodeLabel, type DesignDocumentV2, relationshipLabel } from '@app/document/v2';
 import type { DesignPort, SpatialEditProposal } from '@app/spatial';
 import { applyAxisSteps, formatGrid, formatSize, sameGeometry, type RoomGeometry } from './roomGeometry';
 
@@ -171,17 +171,8 @@ function rejectionText(doc: DesignDocumentV2, name: string, proposal: Extract<Sp
 
 /** "relationship 04 ↔ 07" — readable room labels, never raw edge ids (phase 07, O08). */
 const relationships = (doc: DesignDocumentV2, ids: readonly string[]) =>
-  `relationship${ids.length === 1 ? '' : 's'} ${list(ids.map((id) => relationshipName(doc, id)))}`;
+  `relationship${ids.length === 1 ? '' : 's'} ${list(ids.map((id) => relationshipLabel(doc, id)))}`;
 
-function relationshipName(doc: DesignDocumentV2, edgeId: string): string {
-  const edge = doc.edges.find((e) => e.id === edgeId);
-  if (!edge) return edgeId;
-  const label = (id: string) => {
-    const node = roomOf(doc, id);
-    return node ? nodeLabel(node) : id;
-  };
-  return `${label(edge.source)} ↔ ${label(edge.target)}`;
-}
 
 const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 

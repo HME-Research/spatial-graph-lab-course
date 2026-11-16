@@ -1,5 +1,7 @@
 import type { AttributeValue, Attributes, DesignDocument, GridCoord } from '@app/document';
-import type { DesignDocumentV2 } from '@app/document/v2';
+import { relationshipLabel, type DesignDocumentV2 } from '@app/document/v2';
+
+export { relationshipLabel };
 import {
   runAlgorithm,
   runAlgorithmV2,
@@ -261,15 +263,6 @@ export function applyPreview(current: DocumentVersion | null, preview: Transform
   return { ok: true, doc: preview.after };
 }
 
-/** "01 ↔ 04" for a relationship id of `doc` (readable messages; ids stay the stored identity). */
-export function relationshipLabel(doc: DesignDocumentV2, edgeId: string): string {
-  const edge = doc.edges.find((e) => e.id === edgeId);
-  const room = (id: string) => {
-    const n = doc.nodes.find((x) => x.id === id);
-    return n ? (n.displayId ?? n.id) : id;
-  };
-  return edge ? `${room(edge.source)} ↔ ${room(edge.target)}` : edgeId;
-}
 
 export const formatValue = (value: AttributeValue | undefined): string => (value === undefined ? '—' : JSON.stringify(value));
 

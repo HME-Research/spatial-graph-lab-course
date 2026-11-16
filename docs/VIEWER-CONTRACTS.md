@@ -16,9 +16,10 @@ Each workstream **replaces the body of its placeholder file**, keeping the expor
 
 ```
 App (owns DesignDocument + Selection)
- └─ Workspace (layout: single/split, panel modes, panel memories, sidebar tab)
-     ├─ ViewPanel ×1–2 (header picks a ViewMode) → VIEW_COMPONENTS[mode](ViewProps)
-     └─ Sidebar tabs: Inspector(ViewProps) | AlgorithmPanel
+ └─ Workspace (layout: single/split, panel modes, panel memories; rail state owned by App)
+     ├─ LEFT rail: Project | Attributes (Nodes/Edges) | Designer | AlgorithmPanel
+     ├─ ViewPanel ×1–2 (header picks a ViewMode, one-line caption) → VIEW_COMPONENTS[mode](ViewProps)
+     └─ RIGHT: Properties(ViewProps) only
 Views ──onSelect(Selection)──▶ App
 Views ──onCommand(GraphCommand)──▶ App: applyGraphCommand(doc, cmd) → validated doc or issues
 ```

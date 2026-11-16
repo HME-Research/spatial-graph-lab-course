@@ -1,5 +1,5 @@
 import type { GraphIssue } from '@app/document';
-import { nodeLabel, type DesignDocumentV2 } from '@app/document/v2';
+import { nodeLabel, type DesignDocumentV2, relationshipLabel } from '@app/document/v2';
 import type { ActiveProject } from '@app/extensions';
 import type { SpatialEditProposal } from '@app/spatial';
 import { nodeTypeStatus, type NodeTypeStatus } from '@app/views/project';
@@ -137,9 +137,7 @@ export function roomLabelIn(doc: DesignDocumentV2): (nodeId: string) => string {
 
 /** "01 ↔ 03" for a v2 relationship, else its id. */
 export function relationshipLabelIn(doc: DesignDocumentV2): (edgeId: string) => string {
-  const room = roomLabelIn(doc);
-  const byId = new Map(doc.edges.map((e) => [e.id, `${room(e.source)} ↔ ${room(e.target)}`]));
-  return (id) => byId.get(id) ?? id;
+  return (id) => relationshipLabel(doc, id);
 }
 
 /**

@@ -22,3 +22,17 @@ Evidence (bounded, headless Edge, fresh profile per load): one cold server alone
 Fix: `vite.config.ts` keys `cacheDir` by the dev-server port (`node_modules/.vite/port-<port>`, `port-default` without `--port`). Servers on different ports never share a cache. No retry was added.
 
 Practice: give every dev server its own `--port` (e.g. 5173 for teaching, 5180–5189 for checks and agents). Two servers started without `--port` would both use `port-default`.
+
+## Browser checks (headless Edge/Chromium, no extra dependency)
+
+Build, serve the production preview on its own port, then run the repository harnesses (they never start or stop servers):
+
+```
+npm run build
+npm run preview -- --port 4302 --strictPort
+node scripts/smoke/smoke.mjs --url http://localhost:4302/ --feature all
+node scripts/smoke/workflow.mjs --url http://localhost:4302/ --viewport 1366x768
+node scripts/smoke/workflow.mjs --url http://localhost:4302/ --viewport 1280x720
+```
+
+The smoke run against the preview skips the component fixture (served only by `npm run dev -- --port <n>`). Stop only the servers you started. Hover feedback on 3D handles, touch, pen and OS-level mouse input are not covered by these scripts and need a manual check.

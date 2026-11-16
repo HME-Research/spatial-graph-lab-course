@@ -1,5 +1,5 @@
 import { applyGraphCommand, type DesignDocument, type GraphCommand, type GraphIssue } from '@app/document';
-import { nextDisplayId, nodeLabel, type DesignDocumentV2 } from '@app/document/v2';
+import { nextDisplayId, nodeLabel, relationshipLabel, type DesignDocumentV2 } from '@app/document/v2';
 import { applyDesignCommand, type DesignCommand } from '@app/spatial';
 import { createHistory, record, redo, undo, type History } from './history';
 
@@ -171,10 +171,7 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
     return `room ${node ? nodeLabel(node) : id}`;
   };
   /** "01 ↔ 04" for a relationship id (phase 07, O08); the raw id only if it is unknown. */
-  const connection = (edgeId: string) => {
-    const edge = doc.edges?.find((e) => e.id === edgeId);
-    return edge ? `${room(edge.source).slice(5)} ↔ ${room(edge.target).slice(5)}` : edgeId;
-  };
+  const connection = (edgeId: string) => (doc.edges ? relationshipLabel({ nodes: doc.nodes, edges: doc.edges }, edgeId) : edgeId);
   switch (command.type) {
     case 'add-node':
       // The command assigns `nextDisplayId(doc)` when no display id is given.
