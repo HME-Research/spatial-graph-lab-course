@@ -96,3 +96,9 @@ Contracts: `docs/CONTRACTS-V3.md`.
 - **Invalid connections are removed only explicitly**, with `remove-edges` (selected unresolved edges, one undo step). Moving geometry never removes edges.
 - **Computed metrics** are derived on read, read-only, never stored or exported. Level is system-backed (`grid[2]`).
 - **D04 promoted:** façade-only 3DM import (Repeat/Stretch) is in scope, subject to a licensing and dependency spike. Binary assets are **not** in project JSON until an asset policy is decided (BLOCKED-DECISION).
+
+## Programme 2026-11 — Integration gate I2: wall ↔ graph (16 November 2026)
+Contracts: `docs/CONTRACTS-V3.md` §1 (`PlanWallView`, `PlanView.activeWall`) and §4 (`DesignPort.onScenarioCommand`, wave 2 D UI semantics).
+- **Wall click semantics:** a shared wall between two rooms is the only interactive wall, in the Building and the Plan alike. Clicking it opens a wall panel. Add creates an Access (door on the clicked wall) or Open relationship in the one authoritative graph, in one undo step. A related wall offers change / move door here / remove, never a second edge.
+- **Room selection on wall click:** the click also selects. A wall of two related rooms selects their relationship. Any other shared wall selects its owner room, as wall clicks did before the panel. This keeps the room editor available; an I2 audit had found that the panel cleared the selection. After "Remove relationship" the owner room is selected, so no stale edge selection remains. With that room selected, its editor handles can take the pointer over the same wall; close the panel or deselect to click the wall again.
+- **Explicit removal UI:** unresolved relationships are removed only through Graph 2D "Remove invalid connections". It lists them, checked by default, the student can uncheck rows, and confirming is one `remove-edges` undo step. Geometry edits never remove edges.

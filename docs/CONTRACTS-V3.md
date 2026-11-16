@@ -11,6 +11,8 @@ Additive to `docs/CONTRACTS-V2.md`. The v2 design schema (`app/document/v2/schem
   - Properties auto-opens on selection unless the user deliberately collapsed it.
 - **Views:**
   - `VIEW_MODES = graph2d, graph3d, voxels, architecture, plan`. Plan (workstream C, merged at I1) draws one storey as SVG from the shared face layout (`buildPlan`); its drawing surface is `svg[data-view-surface="plan"]`.
+  - The registry maps `plan` to `PlanWallView` (`app/views/three/wallInteraction/PlanWallView.tsx`, wave 2 D, accepted at I2). It wraps C's `PlanView` and adds the shared-wall panel through `PlanView`'s `onWallTarget` hook. It contains no Three.js, so the Plan stays in the main chunk.
+  - `PlanViewProps.activeWall?: string | null` is optional and additive: the face id of the wall whose panel is open, drawn highlighted. Absent means none.
   - Graph 3D, Voxels and Building are `React.lazy` in the registry, under `<Suspense key={mode}>` in `Workspace` (workstream E).
   - Graph 3D stays read-only.
   - Viewports are `viewport-1…4`, with layout 1 | 2 | 4 (default 2) and default modes `[graph2d, architecture, graph3d, plan]`.
@@ -69,6 +71,31 @@ Additive to `docs/CONTRACTS-V2.md`. The v2 design schema (`app/document/v2/schem
   - A preference that no longer lies on the two rooms' shared wall makes the edge `unresolved` with reason `preferred-face-unavailable`. The edge is kept, the door is never placed on another face, and the edge reserves no route.
   - `resolveWithPreferences(doc, {})` equals `resolveRelationships(doc)`.
 - **`applyScenarioCommand(ScenarioContent, ScenarioCommand)`** accepts every `DesignCommand` plus `set-face-preference` and `add-edge-at-face`. `add-edge-at-face` adds the edge and its preference in one step. Removing edges or nodes prunes orphaned preferences in the same step. A move or resize never removes an edge.
+- **`DesignPort.onScenarioCommand?(command: ScenarioCommand): DesignCommandOutcome`** (`app/spatial/port.ts`, wave 2 D, accepted at I2) is optional and additive.
+  - App supplies it. It routes through the project controller's `command`, the same path as `onCommand`: runtime validation, refusal while an open/restore/Save As is in progress (busy guard), and exactly one history step of the active scenario on success. A refusal changes nothing.
+  - App's `onCommand` delegates to it.
+  - When it is absent, the host cannot store face preferences, and the views disable "door on this wall" actions.
+
+### Wave 2 D wall ↔ graph UI semantics (accepted at I2)
+- **Eligibility:** only a wall face that `wallAction` reports as `add` or `existing` is interactive, in both the Building and the Plan (one pure model, `wallPanelModel`). Hover highlights it. Exterior, slab, route and interior faces are never offered.
+- **Click:** a click opens the wall panel and also sets the selection (`wallClickSelection`):
+  - if the two rooms have a relationship, that edge is selected;
+  - otherwise the face's owner room is selected, as wall clicks did before the panel. The room editor therefore stays available.
+  - The open wall is view-local UI state, not a `Selection` kind. Any other pick or a background click closes it.
+- **Free wall:** the panel offers "Add relationship…":
+  - **Access** sends one `add-edge-at-face` with the clicked face as the preference.
+  - **Open** sends one plain `add-edge`.
+  - The new id comes from `nextFreeId('edge', …)`, and the new edge is selected.
+- **Related wall:** the panel shows the kind, the status and where the opening is (this wall / another shared wall / nowhere), and offers:
+  - "Put the door on this wall" (access only), one `set-face-preference`;
+  - "Change to …", one `change-edge-kind`. Changing Open to Access uses the default face, and the door then moves with "Put the door on this wall", so it takes two steps;
+  - "Remove relationship", one `remove-edge`. The owner room then becomes the selection, so the removed edge is not left selected.
+  - It never offers Add, so the panel never creates a duplicate edge.
+- **Moved geometry:** the edge is kept and becomes `unresolved` / `preferred-face-unavailable`; the door is never relocated.
+- **Graph 2D "Remove invalid connections":**
+  - The toolbar button appears only while unresolved edges exist. The canvas menu always offers the action and explains when there is nothing to remove.
+  - The review list has every row checked by default and previews the checked edges with halos in the diagram.
+  - Confirming sends one `remove-edges` for the checked rows, which is one undo step. The action is never automatic.
 
 ## 5. Camera, display, metrics
 - **Camera:**
