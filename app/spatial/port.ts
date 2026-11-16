@@ -2,6 +2,7 @@ import type { GraphIssue } from '@app/document';
 import type { DesignDocumentV2 } from '@app/document/v2';
 import type { DesignCommand } from './commands';
 import type { SpatialEditProposal, SpatialEditRequest, SpatialResolution } from './contracts';
+import type { ScenarioCommand } from './scenario';
 
 /**
  * Cross-layer v2 port — FROZEN Gate 0. Offered to views as the OPTIONAL `ViewProps.design`.
@@ -22,4 +23,11 @@ export interface DesignPort {
   readonly onCommand: (command: DesignCommand) => DesignCommandOutcome;
   /** Pure preview for move/resize UIs (gizmo, Properties); commit with a `set-node-geometry` command. */
   readonly proposeEdit: (request: SpatialEditRequest) => SpatialEditProposal;
+  /**
+   * Wave 2 (D), additive and OPTIONAL: apply a scenario command (every `DesignCommand` plus
+   * `set-face-preference` and `add-edge-at-face`) to the active scenario's content (design + face
+   * preferences). Synchronous; one history step on success, no change on refusal. Absent: the host
+   * cannot store face preferences, and views disable "door on this wall" actions.
+   */
+  readonly onScenarioCommand?: (command: ScenarioCommand) => DesignCommandOutcome;
 }

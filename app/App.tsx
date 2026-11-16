@@ -11,7 +11,7 @@ import {
   type TransformationPreviewV2,
 } from '@app/extensions';
 import { createIndexedDbProjectStore, type ProjectIssue } from '@app/project';
-import { proposeSpatialEdit, resolveWithPreferences, type DesignCommand, type DesignPort } from '@app/spatial';
+import { proposeSpatialEdit, resolveWithPreferences, type DesignCommand, type DesignPort, type ScenarioCommand } from '@app/spatial';
 import type { CommandOutcome, GraphCommandHandler } from '@app/views/contracts';
 import { conciseIssues, presentAnalysis, type AnalysisPresentation } from '@app/views/presentation';
 import { buildProjectViewContext, projectFacadeProvider } from '@app/views/project';
@@ -399,15 +399,19 @@ export function App() {
     if (closed) setWelcomeMode({ startWith: 'create', definitionId: definition });
   };
 
-  /** Validate and apply one v2 command to the active scenario; one history step, a no-op none. */
-  const onDesignCommand = useCallback(
-    (command: DesignCommand): CommandOutcome => {
+  /**
+   * Validate and apply one command to the active scenario; one history step, a no-op none. Design
+   * commands and (wave 2, D) scenario commands such as `add-edge-at-face` take the same path.
+   */
+  const onScenarioCommand = useCallback(
+    (command: ScenarioCommand): CommandOutcome => {
       if (!controller.getState().project) return { ok: false, issues: [noDesign] };
       const outcome = controller.command(command);
       return outcome.ok ? { ok: true } : { ok: false, issues: outcome.issues };
     },
     [controller],
   );
+  const onDesignCommand = useCallback((command: DesignCommand): CommandOutcome => onScenarioCommand(command), [onScenarioCommand]);
 
   /** Frozen v1 command handler: translated to the v2 command, so it edits the same stored document. */
   const onCommand = useCallback<GraphCommandHandler>((command) => onDesignCommand(designCommandFromLegacy(command)), [onDesignCommand]);
@@ -424,8 +428,11 @@ export function App() {
 
   /** The one live port shared by Graph 2D, Graph 3D, Voxels, Building, Properties and Designer. */
   const port = useMemo<DesignPort | undefined>(
-    () => (content ? { doc: content.design, spatial: resolveWithPreferences(content.design, content.facePreferences), onCommand: onDesignCommand, proposeEdit } : undefined),
-    [content, onDesignCommand, proposeEdit],
+    () =>
+      content
+        ? { doc: content.design, spatial: resolveWithPreferences(content.design, content.facePreferences), onCommand: onDesignCommand, onScenarioCommand, proposeEdit }
+        : undefined,
+    [content, onDesignCommand, onScenarioCommand, proposeEdit],
   );
 
   /** Services for destination panels (Scenarios, Camera, Display): read through `useWorkspaceServices()`. */
