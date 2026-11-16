@@ -201,6 +201,8 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       return `Remove connection ${command.edgeId}`;
     case 'change-edge-kind':
       return `Change connection ${command.edgeId} to ${command.kind === 'open' ? 'Open' : 'Access'}`;
+    case 'set-edge-attributes':
+      return `Edit the attributes of connection ${command.edgeId}`;
     case 'set-connector-style':
       return `Change the connector style of ${command.edgeId}`;
     case 'set-type-appearance':

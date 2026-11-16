@@ -14,8 +14,7 @@ import {
   type AlgorithmEntry,
   type AlgorithmRunV2,
   type ApplyOutcome,
-  type ParameterDrafts,
-} from './algorithmSession';
+  type ParameterDrafts, type AttributesVersion } from './algorithmSession';
 import type { DocumentVersion } from './documentSession';
 
 /**
@@ -31,6 +30,7 @@ export function AlgorithmPanel({
   onSelect,
   shownAnalysis = null,
   onShowAnalysis,
+  attributes,
 }: {
   readonly project: ActiveProject | null;
   /** The current (schema-v2) document and its revision; results are bound to it. */
@@ -39,12 +39,14 @@ export function AlgorithmPanel({
    * Apply a preview to the current design (atomic, stale-checked). `confirmed`: the user chose
    * "Move anyway and recalculate" for corridors displaced by new rooms.
    */
-  readonly onApply: (preview: TransformationPreviewV2, ranAt: number, label: string, confirmed: boolean) => ApplyOutcome<DesignDocumentV2>;
+  readonly onApply: (preview: TransformationPreviewV2, ranAt: number, label: string, confirmed: boolean, attributesRevision?: number) => ApplyOutcome<DesignDocumentV2>;
   readonly onSelect: SelectionHandler;
   /** The analysis run currently shown on the model (owned by the shell), if any. */
   readonly shownAnalysis?: AlgorithmRunV2 | null;
   /** Show an analysis run's values on the model, or clear the overlay (null). */
   readonly onShowAnalysis?: (run: AlgorithmRunV2 | null) => void;
+  /** The project attribute schema in use; a result is stale once it changes. */
+  readonly attributes?: AttributesVersion;
 }) {
   const algorithms = listAlgorithms(project);
   // Selected by file: ids may collide (duplicate definitions are listed separately, both disabled).
@@ -70,7 +72,7 @@ export function AlgorithmPanel({
     e.preventDefault();
     if (!selected || !selected.enabled || !version) return;
     setNotice(null);
-    const next = runEntryV2(version, project, selected, entryDrafts);
+    const next = runEntryV2(version, project, selected, entryDrafts, attributes);
     setRun(next);
     // An analysis is shown on the model straight away (temporary colours; "Hide" / Clear remove them).
     if (next.outcome.ok && next.outcome.value.kind === 'analysis') onShowAnalysis?.(next);
@@ -79,7 +81,7 @@ export function AlgorithmPanel({
 
   const apply = (preview: TransformationPreviewV2, confirmed: boolean) => {
     if (!run) return;
-    const outcome = onApply(preview, run.revision, run.label, confirmed);
+    const outcome = onApply(preview, run.revision, run.label, confirmed, run.attributesRevision);
     if (outcome.ok) {
       setRun(null);
       setNotice({ tone: 'ok', text: `Applied “${run.label}”: ${preview.operations.length} operation(s). Undo reverts it in one step.` });
@@ -155,6 +157,7 @@ export function AlgorithmPanel({
         <RunResult
           run={run}
           version={version}
+          {...(attributes && { attributesRevision: attributes.revision })}
           onApply={apply}
           onDiscard={() => {
             if (shownAnalysis === run) onShowAnalysis?.(null);
@@ -239,7 +242,9 @@ function RunResult({
   onSelect,
   shown,
   onShow,
+  attributesRevision,
 }: {
+  readonly attributesRevision?: number;
   readonly run: AlgorithmRunV2;
   readonly version: DocumentVersion<DesignDocumentV2> | null;
   readonly onApply: (preview: TransformationPreviewV2, confirmed: boolean) => void;
@@ -249,7 +254,7 @@ function RunResult({
   readonly onShow?: (show: boolean) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
-  const stale = isStale(run, version);
+  const stale = isStale(run, version, attributesRevision);
   const doc = version?.doc ?? null;
   const nodeButton = (id: string, enabled = true) =>
     enabled ? (
@@ -369,6 +374,18 @@ function RunResult({
                 {summary.attributeChanges.map((c) => (
                   <li key={`${c.nodeId}.${c.key}`}>
                     {nodeButton(c.nodeId)}.{c.key}: {formatValue(c.from)} → {formatValue(c.to)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {summary.edgeAttributeChanges.length > 0 && (
+            <>
+              <h4>Changed connection attributes</h4>
+              <ul className="sgl-list">
+                {summary.edgeAttributeChanges.map((c) => (
+                  <li key={`${c.edgeId}.${c.key}`}>
+                    <code>{c.edgeId}</code>.{c.key}: {formatValue(c.from)} → {formatValue(c.to)}
                   </li>
                 ))}
               </ul>

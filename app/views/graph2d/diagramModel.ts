@@ -1,6 +1,7 @@
 import type { Attributes, DesignDocument, DiagramPosition, EdgeKind, GraphCommand, GridCoord } from '@app/document';
 import { nodeLabel, type DesignDocumentV2, type RelationshipKind, type RoomSize } from '@app/document/v2';
 import type { DesignCommand, EdgeResolution, SpatialResolution } from '@app/spatial';
+import { EMPTY_ATTRIBUTE_SCHEMA, viewAttributes, type ProjectAttributeSchema } from '@app/extensions';
 import {
   defaultV1ConnectionKind,
   formatGrid,
@@ -28,6 +29,11 @@ export interface DiagramNode {
   readonly grid: GridCoord;
   /** Room size in cells; v1 rooms are always one cell. */
   readonly size: RoomSize;
+  /**
+   * What the circle and popover show: EFFECTIVE values of the project's node fields (shared
+   * resolver: stored value, type default, field default), then stored values outside the schema.
+   * Display data only; commands never write it back.
+   */
   readonly attributes: Attributes;
 }
 
@@ -67,14 +73,14 @@ export function modelFromV1(doc: DesignDocument): DiagramModel {
   return { version: 1, doc, nodes, edges, byNode: new Map(nodes.map((n) => [n.id, n])), diagram: doc.diagram };
 }
 
-export function modelFromV2(doc: DesignDocumentV2, spatial: SpatialResolution): DiagramModel {
+export function modelFromV2(doc: DesignDocumentV2, spatial: SpatialResolution, schema: ProjectAttributeSchema = EMPTY_ATTRIBUTE_SCHEMA): DiagramModel {
   const nodes = doc.nodes.map<DiagramNode>((n) => ({
     id: n.id,
     label: nodeLabel(n),
     typeId: n.typeId,
     grid: n.grid,
     size: n.size,
-    attributes: n.attributes,
+    attributes: viewAttributes(schema, 'nodes', n),
   }));
   const edges = doc.edges.map<DiagramEdge>((e) => {
     const resolution = spatial.byEdge.get(e.id);

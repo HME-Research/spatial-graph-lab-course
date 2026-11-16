@@ -123,7 +123,8 @@ type DesignCommand =
   | { type: 'remove-edge'; edgeId }
   | { type: 'change-edge-kind'; edgeId; kind: 'access' | 'open' }
   | { type: 'set-connector-style'; edgeId; style: ConnectorStyle | null }   // null → default
-  | { type: 'set-type-appearance'; typeId; patch: { windowFraction?: number | null; roof?: RoofStyle | null } }; // null → inherit
+  | { type: 'set-type-appearance'; typeId; patch: { windowFraction?: number | null; roof?: RoofStyle | null } } // null → inherit
+  | { type: 'set-edge-attributes'; edgeId; attributes };   // additive (project attributes, docs/PROJECT-ATTRIBUTES.md)
 ```
 
 One successful command that changes content = **one** history step (existing Stage 4B history; integration wires it). A gizmo drag or a Properties field sends exactly one command, on release, Enter or blur.

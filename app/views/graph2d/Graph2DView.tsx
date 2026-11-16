@@ -42,6 +42,7 @@ import { presentEdge, relationshipLegend, UNRESOLVED_REASON_TEXT, RELATIONSHIP_K
 import './graph2d.css';
 import { IssueList } from './IssueList';
 import { menuItems, NodeContextMenu, type MenuAction, type MenuTarget } from './NodeContextMenu';
+import { displayKeys } from '@app/extensions';
 import { attributeKeysOf, NodeDisplayControl, nodeLines, sanitizeDisplay, type DisplaySettings } from './NodeDisplay';
 import { NodePopover, popoverRows } from './NodePopover';
 import { RelationEdge, type RelationFlowEdge } from './RelationEdge';
@@ -104,9 +105,10 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
 
   const designDoc = design?.doc;
   const designSpatial = design?.spatial;
+  const attributeSchema = project?.attributes;
   const model = useMemo<DiagramModel>(
-    () => (designDoc && designSpatial ? modelFromV2(designDoc, designSpatial) : modelFromV1(doc)),
-    [designDoc, designSpatial, doc],
+    () => (designDoc && designSpatial ? modelFromV2(designDoc, designSpatial, attributeSchema) : modelFromV1(doc)),
+    [designDoc, designSpatial, doc, attributeSchema],
   );
 
   /** Send a command to the document it was built for; show issues on rejection. */
@@ -367,7 +369,11 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
   const connectSource = connectFrom ? model.byNode.get(connectFrom) : undefined;
   // A "created" notice disappears with its edge (undo, delete elsewhere).
   const shownNotice = notice?.kind === 'created' && !model.edges.some((e) => e.id === notice.edgeId) ? null : notice;
-  const attributeKeys = useMemo(() => attributeKeysOf(model), [model]);
+  // Every project node field is offered (the same list for every node), then other stored keys.
+  const attributeKeys = useMemo(
+    () => (attributeSchema && designDoc ? displayKeys(attributeSchema, 'nodes', designDoc.nodes) : attributeKeysOf(model)),
+    [attributeSchema, designDoc, model],
+  );
 
   return (
     <div ref={containerRef} className="sgl-graph2d" onKeyDown={onKeyDown} tabIndex={-1}>

@@ -10,6 +10,7 @@ import {
   type AttributeSpec,
   type ExtensionDiagnostic,
   type ExtensionResult,
+  type ProjectAttributeSchema,
   type RunOutcome,
   type TransformationPreview,
 } from '@app/extensions';
@@ -90,7 +91,15 @@ export interface AlgorithmRun<D extends object = DesignDocument, O = RunOutcome>
   readonly doc: D;
   /** The document revision it ran at (see `DocumentSession.revision`). */
   readonly revision: number;
+  /** The project attribute schema revision it ran with (absent: not tracked). */
+  readonly attributesRevision?: number;
   readonly outcome: ExtensionResult<O>;
+}
+
+/** The project attribute schema in use and its revision (app/session/projectAttributeStore.ts). */
+export interface AttributesVersion {
+  readonly schema: ProjectAttributeSchema;
+  readonly revision: number;
 }
 
 /** A run against the stored schema-v2 document (the app after Gate 1). */
@@ -114,6 +123,7 @@ export function runEntryV2(
   project: ActiveProject,
   entry: AlgorithmEntry,
   drafts: ParameterDrafts,
+  attributes?: AttributesVersion,
 ): AlgorithmRunV2 {
   const { doc, revision } = version;
   return {
@@ -121,7 +131,8 @@ export function runEntryV2(
     label: entry.label,
     doc,
     revision,
-    outcome: runAlgorithmV2(doc, project, entry.id, draftsToParameters(entry, drafts)),
+    ...(attributes && { attributesRevision: attributes.revision }),
+    outcome: runAlgorithmV2(doc, project, entry.id, draftsToParameters(entry, drafts), attributes ? { attributes: attributes.schema } : {}),
   };
 }
 
@@ -130,8 +141,16 @@ export function runEntryV2(
  * load changes the revision, so a result never becomes current again by returning to an equivalent
  * (or the very same) document.
  */
-export const isStale = (run: Pick<AlgorithmRun<object, unknown>, 'doc' | 'revision'>, current: DocumentVersion<object> | null): boolean =>
-  current === null || run.doc !== current.doc || run.revision !== current.revision;
+export const isStale = (
+  run: Pick<AlgorithmRun<object, unknown>, 'doc' | 'revision' | 'attributesRevision'>,
+  current: DocumentVersion<object> | null,
+  attributesRevision?: number,
+): boolean =>
+  current === null ||
+  run.doc !== current.doc ||
+  run.revision !== current.revision ||
+  // A project attribute change (fields, defaults) can change what the algorithm read.
+  (attributesRevision !== undefined && run.attributesRevision !== undefined && run.attributesRevision !== attributesRevision);
 
 export interface AnalysisRow {
   readonly nodeId: string;
@@ -160,6 +179,13 @@ export interface PreviewSummary {
     readonly from: AttributeValue | undefined;
     readonly to: AttributeValue;
   }[];
+  /** Edge attribute values the transformation sets (schema v2 only). */
+  readonly edgeAttributeChanges: readonly {
+    readonly edgeId: string;
+    readonly key: string;
+    readonly from: AttributeValue | undefined;
+    readonly to: AttributeValue;
+  }[];
   /** Every node added, connected or changed (sorted). */
   readonly affectedNodeIds: readonly string[];
 }
@@ -167,10 +193,15 @@ export interface PreviewSummary {
 /** What a validated preview changes, read from its operations and its before/after documents. */
 export function describePreview(
   preview: Pick<TransformationPreview | TransformationPreviewV2, 'operations'> & {
-    readonly before: { readonly nodes: readonly { readonly id: string; readonly attributes: Attributes }[] };
+    readonly before: {
+      readonly nodes: readonly { readonly id: string; readonly attributes: Attributes }[];
+      readonly edges?: readonly { readonly id: string; readonly source: string; readonly target: string; readonly attributes: Attributes }[];
+    };
   },
 ): PreviewSummary {
   const before = new Map(preview.before.nodes.map((n) => [n.id, n] as const));
+  const beforeEdges = new Map((preview.before.edges ?? []).map((e) => [e.id, e] as const));
+  const edgeChanges = new Map<string, PreviewSummary['edgeAttributeChanges'][number]>();
   const addedNodes: PreviewSummary['addedNodes'][number][] = [];
   const addedEdges: PreviewSummary['addedEdges'][number][] = [];
   const changes = new Map<string, PreviewSummary['attributeChanges'][number]>();
@@ -182,6 +213,13 @@ export function describePreview(
     } else if (op.op === 'add-edge') {
       addedEdges.push({ id: op.id, source: op.source, target: op.target, kind: op.kind });
       affected.add(op.source).add(op.target);
+    } else if (op.op === 'set-edge-attribute') {
+      const edge = beforeEdges.get(op.edgeId);
+      if (!edge) continue; // attribute of an edge added by this transformation
+      affected.add(edge.source).add(edge.target);
+      const stored = edge.attributes;
+      const from = Object.prototype.hasOwnProperty.call(stored, op.key) ? stored[op.key] : undefined;
+      edgeChanges.set(`${op.edgeId}\u0000${op.key}`, { edgeId: op.edgeId, key: op.key, from, to: op.value });
     } else {
       affected.add(op.nodeId);
       if (!before.has(op.nodeId)) continue; // attribute of a node added by this transformation
@@ -196,6 +234,7 @@ export function describePreview(
     addedEdges,
     // Only real changes (an operation may write the value already stored).
     attributeChanges: [...changes.values()].filter((c) => c.from !== c.to),
+    edgeAttributeChanges: [...edgeChanges.values()].filter((c) => c.from !== c.to),
     affectedNodeIds: [...affected].sort(),
   };
 }

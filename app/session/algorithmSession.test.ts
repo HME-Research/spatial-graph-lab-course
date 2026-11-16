@@ -134,6 +134,7 @@ describe('spatial transformation preview', () => {
       addedNodes: [],
       addedEdges: [],
       attributeChanges: [{ nodeId: 'entry-gallery', key: 'daylight', from: 'high', to: 'medium' }],
+      edgeAttributeChanges: [],
       affectedNodeIds: ['entry-gallery'],
     });
     // The preview never touched the current document.

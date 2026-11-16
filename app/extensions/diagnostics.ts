@@ -57,6 +57,7 @@ export type ExtensionIssueCode =
   | 'undeclared-attribute-write'
   | 'unknown-edge-kind'
   | 'missing-node'
+  | 'missing-edge'
   | 'self-edge'
   | 'duplicate-relationship'
   | 'invalid-edge-geometry'

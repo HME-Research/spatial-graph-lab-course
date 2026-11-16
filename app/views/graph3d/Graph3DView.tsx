@@ -29,9 +29,9 @@ const NODE_RADIUS = 0.36;
 /** Above this, per-node HTML labels are switched off by default (DOM cost). */
 const LABEL_LIMIT = 150;
 
-export function Graph3DView({ doc, selection, onSelect, design }: ViewProps) {
+export function Graph3DView({ doc, selection, onSelect, design, project }: ViewProps) {
   const source = useSceneSource(doc, design);
-  const s = useSpatialScene(source, selection);
+  const s = useSpatialScene(source, selection, project?.attributes);
   const analysis = useAnalysisOverlay();
   const labelOf = useMemo(() => new Map((design?.doc.nodes ?? []).map((n) => [n.id, nodeLabel(n)] as const)), [design]);
   const camera = useRemembered<CameraState>('camera:graph3d');

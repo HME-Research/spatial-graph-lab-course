@@ -27,6 +27,13 @@ import { canRedo, canUndo, redoLabel, undoLabel } from './session/history';
 import { designCommandFromLegacy, legacyProjection } from './session/legacyBridge';
 import { ProjectBar } from './session/ProjectBar';
 import {
+  currentSchema,
+  loadAttributeSession,
+  persistAttributeSession,
+  type AttributeSession,
+  type KeyValueStorage,
+} from './session/projectAttributeStore';
+import {
   activeProjectOf,
   DISCARD_PROMPT,
   readProjectRequest,
@@ -99,6 +106,15 @@ function downloadDesign(doc: Doc): void {
 
 const APPLE = typeof navigator !== 'undefined' && isApplePlatform(navigator.platform);
 
+/** Browser storage for the project attribute schema, or null when the browser refuses access. */
+function browserStorage(): KeyValueStorage | null {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * A design that could not be opened (Stage 07 concise feedback): one headline naming the file and
  * whether the current design was kept, at most three beginner lines, and the exact validator
@@ -137,6 +153,19 @@ export function App() {
   const [rawSelection, setSelection] = useState<Selection>(NO_SELECTION);
   /** The analysis run whose values are shown on the model (never part of the document). */
   const [shownAnalysis, setShownAnalysis] = useState<AlgorithmRunV2 | null>(null);
+  /**
+   * The active project's attribute schema in use (docs/PROJECT-ATTRIBUTES.md): project-scoped,
+   * persisted in browser storage on every change, with its own undo history. null without project.
+   */
+  const [attributes, setAttributesRaw] = useState<AttributeSession | null>(null);
+  const attributesRef = useRef(attributes);
+  /** Last failure to save the schema (shown persistently), or null. */
+  const [attributeSaveError, setAttributeSaveError] = useState<string | null>(null);
+  const setAttributes = useCallback((next: AttributeSession | null, persist = true) => {
+    attributesRef.current = next;
+    setAttributesRaw(next);
+    if (next && persist) setAttributeSaveError(persistAttributeSession(browserStorage(), next));
+  }, []);
   // Mirror of the latest state so command handlers can validate synchronously against it. Every
   // transition is computed here, outside React's updater functions, and handed to React as a
   // value: nothing runs twice under StrictMode and no updater has side effects.
@@ -156,13 +185,19 @@ export function App() {
   const selection = viewDoc ? reconcileSelection(rawSelection, viewDoc) : NO_SELECTION;
   const project = activeProjectOf(session);
   const facade = useMemo(() => projectFacadeProvider(project), [project]);
-  const projectContext = useMemo(() => (doc ? buildProjectViewContext(project, doc, facade) : undefined), [project, doc, facade]);
+  const schema = attributes && project && attributes.projectId === project.id ? currentSchema(attributes) : undefined;
+  const projectContext = useMemo(() => (doc ? buildProjectViewContext(project, doc, facade, schema) : undefined), [project, doc, facade, schema]);
+  const attributesVersion = useMemo(() => (attributes && schema ? { schema, revision: attributes.revision } : undefined), [attributes, schema]);
   const modified = isModified(current);
 
   /** Show an activation outcome: its design (or none), replacing the current one. Never runs algorithms. */
   const showStart = useCallback(
     (start: ProjectStart) => {
       setSession(start.session);
+      const active = activeProjectOf(start.session);
+      // Loading never writes: an untouched project leaves no stored record.
+      setAttributes(active ? loadAttributeSession(browserStorage(), active) : null, false);
+      setAttributeSaveError(null);
       setGeneration((g) => g + 1);
       setState((prev) => ({
         current: start.startup.doc ? openDocument(start.startup.doc, start.startup.source, prev.current) : null,
@@ -171,7 +206,7 @@ export function App() {
       setSelection(NO_SELECTION);
       setShownAnalysis(null);
     },
-    [setState],
+    [setState, setAttributes],
   );
 
   // Activate the project selected by `?project=` / VITE_SGL_PROJECT once, at startup.
@@ -243,8 +278,16 @@ export function App() {
 
   /** Apply an already-validated preview as one state replacement and one history step, unless stale or unconfirmed. */
   const onApplyPreview = useCallback(
-    (preview: TransformationPreviewV2, ranAt: number, label: string, confirmed: boolean): ApplyOutcome<Doc> => {
+    (preview: TransformationPreviewV2, ranAt: number, label: string, confirmed: boolean, attributesRevision?: number): ApplyOutcome<Doc> => {
       const open = stateRef.current.current;
+      const schemaNow = attributesRef.current;
+      if (attributesRevision !== undefined && schemaNow && schemaNow.revision !== attributesRevision) {
+        return {
+          ok: false,
+          reason: 'stale',
+          message: 'The project attributes have changed since this preview was computed, so it was not applied. Run the algorithm again.',
+        };
+      }
       const outcome = applyPreviewV2(open && versionOf(open), preview, ranAt, { confirmRouteDisplacement: confirmed });
       if (outcome.ok && open) setState((prev) => ({ ...prev, current: commitDocument(open, outcome.doc, `Apply “${label}”`) }));
       return outcome;
@@ -361,6 +404,19 @@ export function App() {
           onSelect={setSelection}
         />
 
+        {attributes && (attributes.diagnostics.length > 0 || attributeSaveError) && (
+          <section className="issues sgl-attribute-problems" role="alert" aria-label="Project attribute problems">
+            <ul>
+              {attributes.diagnostics.map((d) => (
+                <li key={d.id}>
+                  {d.severity === 'error' ? '✖' : '⚠'} {d.message}
+                </li>
+              ))}
+              {attributeSaveError && <li>✖ Project attributes were not saved: {attributeSaveError}</li>}
+            </ul>
+          </section>
+        )}
+
         {failure && (
           <LoadFailure failure={failure} kept={current !== null} onDismiss={() => setState((s) => ({ ...s, failure: null }))} />
         )}
@@ -384,6 +440,7 @@ export function App() {
                 onSelect={setSelection}
                 shownAnalysis={shownAnalysis}
                 onShowAnalysis={setShownAnalysis}
+                {...(attributesVersion && { attributes: attributesVersion })}
               />
             }
             designer={

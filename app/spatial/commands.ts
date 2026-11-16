@@ -70,6 +70,8 @@ export type DesignCommand =
   | { readonly type: 'add-edge'; readonly edge: NewRelationship }
   | { readonly type: 'remove-edge'; readonly edgeId: string }
   | { readonly type: 'change-edge-kind'; readonly edgeId: string; readonly kind: RelationshipKind }
+  /** Replaces the edge's stored custom attributes (additive after Gate 0; see docs/PROJECT-ATTRIBUTES.md). */
+  | { readonly type: 'set-edge-attributes'; readonly edgeId: string; readonly attributes: Attributes }
   /** `null` removes the explicit style (default `enclosed` applies). */
   | { readonly type: 'set-connector-style'; readonly edgeId: string; readonly style: ConnectorStyle | null }
   | { readonly type: 'set-type-appearance'; readonly typeId: string; readonly patch: TypeAppearancePatch };
@@ -190,6 +192,8 @@ export function applyDesignCommand(
       return validate({ ...doc, edges: doc.edges.filter((e) => e.id !== command.edgeId) });
     case 'change-edge-kind':
       return mapEdge(command.edgeId, (e) => ({ ...e, kind: command.kind }));
+    case 'set-edge-attributes':
+      return mapEdge(command.edgeId, (e) => ({ ...e, attributes: { ...command.attributes } }));
     case 'set-connector-style':
       return mapEdge(command.edgeId, (e) => {
         const { connectorStyle: _old, ...rest } = e;

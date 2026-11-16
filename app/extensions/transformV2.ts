@@ -25,7 +25,9 @@ import type { SpatialOperation } from '@student-api';
 import type { ActiveProject } from './activate';
 import { checkConformance, findRegressions } from './conformance';
 import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionResult } from './diagnostics';
-import { checkAttributeWrite, opError, writableType } from './transform';
+import { describeField, checkFieldValue, fieldForKey, EMPTY_ATTRIBUTE_SCHEMA, type AttributeCollection, type AttributeField, type ProjectAttributeSchema } from './projectAttributes';
+import { writeFieldValue } from './resolveAttributes';
+import { opError, writableType } from './transform';
 
 /**
  * Atomic application of Student API operations to a schema-v2 document. Same pipeline as the
@@ -53,9 +55,12 @@ export interface TransformationPreviewV2 {
 }
 
 interface DraftV2 {
+  /** The project attribute schema in use: the fields every node / edge may be given values for. */
+  readonly schema: ProjectAttributeSchema;
   readonly nodes: RoomNode[];
   readonly edges: DesignDocumentV2['edges'];
   readonly byId: Map<string, RoomNode>;
+  readonly edgeById: Map<string, DesignDocumentV2['edges'][number]>;
   readonly cells: Map<string, string>;
   readonly edgeIds: Set<string>;
   readonly pairs: Set<string>;
@@ -72,6 +77,28 @@ export function relationshipKindOf(kind: string): RelationshipKind | undefined {
   return Object.prototype.hasOwnProperty.call(V1_KIND_TO_RELATIONSHIP, kind)
     ? V1_KIND_TO_RELATIONSHIP[kind as keyof typeof V1_KIND_TO_RELATIONSHIP]
     : undefined;
+}
+
+/**
+ * The project field `key` names (current or former key) and a check of `value` against it. Every
+ * node — whatever its type — has the same node fields; every edge the same edge fields.
+ */
+function fieldWrite(
+  schema: ProjectAttributeSchema,
+  collection: AttributeCollection,
+  key: string,
+  value: AttributeValue,
+  i: number,
+  what: string,
+  projectId: string,
+): AttributeField | ExtensionDiagnostic {
+  const field = fieldForKey(schema, collection, key);
+  const kind = collection === 'nodes' ? 'node' : 'edge';
+  if (!field) return opError(i, 'undeclared-attribute-write', `${what}: "${key}" is not a ${kind} field of project "${projectId}"`, key);
+  if (value !== null && checkFieldValue(field, value) !== 'ok') {
+    return opError(i, 'invalid-attribute-value', `${what}: attribute "${field.key}" must be ${describeField(field)} or null, not ${JSON.stringify(value)}`, key);
+  }
+  return field;
 }
 
 function addNode(draft: DraftV2, project: ActiveProject, op: Extract<SpatialOperation, { op: 'add-node' }>, i: number): Check {
@@ -97,11 +124,11 @@ function addNode(draft: DraftV2, project: ActiveProject, op: Extract<SpatialOper
   }
   const type = writableType(project, op.typeId, i, what);
   if ('code' in type) return type;
-  const attributes: Record<string, AttributeValue> = {};
+  let attributes: Record<string, AttributeValue> = {};
   for (const [key, value] of Object.entries(op.attributes ?? {})) {
-    const problem = checkAttributeWrite(type, key, value, i, what);
-    if (problem) return problem;
-    attributes[key] = value;
+    const field = fieldWrite(draft.schema, 'nodes', key, value, i, what, project.id);
+    if ('code' in field) return field;
+    attributes = writeFieldValue(field, attributes, value);
   }
   const node: RoomNode = { id: op.id, displayId: nextDisplayId({ nodes: draft.nodes }), ...room, typeId: op.typeId, attributes };
   draft.nodes.push(node);
@@ -131,7 +158,9 @@ function addEdge(draft: DraftV2, op: Extract<SpatialOperation, { op: 'add-edge' 
   if (draft.pairs.has(unorderedPairKey(op.source, op.target))) {
     return opError(i, 'duplicate-relationship', `${what}: "${op.source}" and "${op.target}" are already connected`);
   }
-  draft.edges.push({ id: op.id, source: op.source, target: op.target, kind, attributes: {} });
+  const edge = { id: op.id, source: op.source, target: op.target, kind, attributes: {} };
+  draft.edges.push(edge);
+  draft.edgeById.set(edge.id, edge);
   draft.edgeIds.add(op.id);
   draft.pairs.add(unorderedPairKey(op.source, op.target));
   return null;
@@ -141,11 +170,19 @@ function setNodeAttribute(draft: DraftV2, project: ActiveProject, op: Extract<Sp
   const what = `set-node-attribute "${op.nodeId}.${op.key}"`;
   const node = draft.byId.get(op.nodeId);
   if (!node) return opError(i, 'missing-node', `${what}: node "${op.nodeId}" does not exist`);
-  const type = writableType(project, node.typeId, i, what);
-  if ('code' in type) return type;
-  const problem = checkAttributeWrite(type, op.key, op.value, i, what);
-  if (problem) return problem;
-  node.attributes = { ...node.attributes, [op.key]: op.value };
+  const field = fieldWrite(draft.schema, 'nodes', op.key, op.value, i, what, project.id);
+  if ('code' in field) return field;
+  node.attributes = writeFieldValue(field, node.attributes, op.value);
+  return null;
+}
+
+function setEdgeAttribute(draft: DraftV2, project: ActiveProject, op: Extract<SpatialOperation, { op: 'set-edge-attribute' }>, i: number): Check {
+  const what = `set-edge-attribute "${op.edgeId}.${op.key}"`;
+  const edge = draft.edgeById.get(op.edgeId);
+  if (!edge) return opError(i, 'missing-edge', `${what}: edge "${op.edgeId}" does not exist`);
+  const field = fieldWrite(draft.schema, 'edges', op.key, op.value, i, what, project.id);
+  if ('code' in field) return field;
+  edge.attributes = writeFieldValue(field, edge.attributes, op.value);
   return null;
 }
 
@@ -155,12 +192,15 @@ export function applyTransformationV2(
   project: ActiveProject,
   operations: readonly SpatialOperation[],
   summary?: string,
+  schema: ProjectAttributeSchema = project.attributeBaseline?.schema ?? EMPTY_ATTRIBUTE_SCHEMA,
 ): ExtensionResult<TransformationPreviewV2> {
   const copy = structuredClone(doc);
   const draft: DraftV2 = {
+    schema,
     nodes: copy.nodes,
     edges: copy.edges,
     byId: new Map(copy.nodes.map((n) => [n.id, n] as const)),
+    edgeById: new Map(copy.edges.map((e) => [e.id, e] as const)),
     cells: new Map(copy.nodes.flatMap((n) => footprintCells(n).map((c) => [gridKey(c), n.id] as const))),
     edgeIds: new Set(copy.edges.map((e) => e.id)),
     pairs: new Set(copy.edges.map((e) => unorderedPairKey(e.source, e.target))),
@@ -173,7 +213,9 @@ export function applyTransformationV2(
         ? addNode(draft, project, op, i)
         : op.op === 'add-edge'
           ? addEdge(draft, op, i)
-          : setNodeAttribute(draft, project, op, i);
+          : op.op === 'set-node-attribute'
+            ? setNodeAttribute(draft, project, op, i)
+            : setEdgeAttribute(draft, project, op, i);
     if (problem) return fail([problem]);
   }
 
@@ -192,8 +234,8 @@ export function applyTransformationV2(
     );
   }
 
-  const before = checkConformance(doc, project);
-  const after = checkConformance(validated.value, project);
+  const before = checkConformance(doc, project, schema);
+  const after = checkConformance(validated.value, project, schema);
   const regressions = findRegressions(before, after);
   if (regressions.length > 0) {
     return fail(

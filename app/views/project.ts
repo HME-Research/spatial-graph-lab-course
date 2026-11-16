@@ -6,10 +6,12 @@ import type { DesignDocumentV2 } from '@app/document/v2';
 type TypedNodes = Pick<DesignDocument, 'nodes'> | Pick<DesignDocumentV2, 'nodes'>;
 import {
   checkConformance,
+  EMPTY_ATTRIBUTE_SCHEMA,
   findNodeType,
   typeAppearance,
   type ActiveProject,
   type ExtensionDiagnostic,
+  type ProjectAttributeSchema,
 } from '@app/extensions';
 
 /**
@@ -23,6 +25,12 @@ export interface ProjectViewContext {
   readonly conformance: readonly ExtensionDiagnostic[];
   /** Exterior façade per node type (see `projectFacadeProvider`). */
   readonly facade: FacadeProvider;
+  /**
+   * The project's attribute schema IN USE (docs/PROJECT-ATTRIBUTES.md): the same custom node
+   * fields for every node and edge fields for every edge. Views read custom values only through
+   * the shared resolver with this schema. Empty without a project.
+   */
+  readonly attributes: ProjectAttributeSchema;
 }
 
 /**
@@ -53,10 +61,11 @@ export function projectFacadeProvider(project: ActiveProject | null): FacadeProv
 /** Context for `doc`. Pass the project's `facade` provider to keep it stable across document edits. */
 export function buildProjectViewContext(
   project: ActiveProject | null,
-  doc: TypedNodes,
+  doc: TypedNodes & { readonly edges?: readonly { readonly id: string; readonly attributes: { readonly [key: string]: string | number | boolean | null } }[] },
   facade: FacadeProvider = projectFacadeProvider(project),
+  attributes: ProjectAttributeSchema = project?.attributeBaseline.schema ?? EMPTY_ATTRIBUTE_SCHEMA,
 ): ProjectViewContext {
-  return { project, conformance: checkConformance(doc, project), facade };
+  return { project, conformance: checkConformance(doc, project, attributes), facade, attributes };
 }
 
 /**

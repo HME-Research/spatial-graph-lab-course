@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SceneSource } from './v2Scene';
+import { displayKeys, viewAttributes, type ProjectAttributeSchema } from '@app/extensions';
 import { selectionEmphasis, type Selection } from '@core/viewer/selection';
 import type { Hover } from '@core/viewer/three/picking';
 import {
@@ -16,21 +17,27 @@ import { accessGroups, buildEdgeItems, buildNodeItems, cellBounds, framingFor, g
  * (colour-by, level cut, hover, camera fit requests). Derived data is memoised on the
  * document's node/edge arrays, so selection changes never rebuild scene data.
  */
-export function useSpatialScene(doc: SceneSource, selection: Selection) {
+export function useSpatialScene(doc: SceneSource, selection: Selection, attributeSchema?: ProjectAttributeSchema) {
   const { nodes, edges } = doc;
+  // Colour-by reads EFFECTIVE values of the project's node fields (the shared resolver), so a type
+  // default colours a room exactly as Properties and Graph 2D show it.
+  const valued = useMemo(
+    () => (attributeSchema ? nodes.map((n) => ({ ...n, attributes: viewAttributes(attributeSchema, 'nodes', n) })) : nodes),
+    [nodes, attributeSchema],
+  );
   const nodeItems = useMemo(() => buildNodeItems(nodes), [nodes]);
   const edgeItems = useMemo(() => buildEdgeItems(nodes, edges), [nodes, edges]);
   const levels = useMemo(() => storeyLevels(nodes), [nodes]);
   const bounds = useMemo(() => cellBounds(nodes), [nodes]);
   const grid = useMemo(() => groundGrid(nodes), [nodes]);
   const framing = useMemo(() => framingFor(bounds), [bounds]);
-  const keys = useMemo(() => attributeKeys(nodes), [nodes]);
+  const keys = useMemo(() => (attributeSchema ? displayKeys(attributeSchema, 'nodes', nodes) : attributeKeys(nodes)), [nodes, attributeSchema]);
   const groups = useMemo(() => accessGroups(nodes, edges), [nodes, edges]);
   const emphasis = useMemo(() => selectionEmphasis(selection, edges), [selection, edges]);
 
   const [chosenColorMode, setColorMode] = useState<ColorMode>(DEFAULT_COLOR_MODE);
   const colorMode = effectiveColorMode(chosenColorMode, keys);
-  const coloring = useMemo(() => resolveColoring(nodes, edges, colorMode), [nodes, edges, colorMode]);
+  const coloring = useMemo(() => resolveColoring(valued, edges, colorMode), [valued, edges, colorMode]);
 
   const [maxLevel, setMaxLevel] = useState<number | null>(null);
   const isLevelHidden = useCallback((level: number) => maxLevel !== null && level > maxLevel, [maxLevel]);

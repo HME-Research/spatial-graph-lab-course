@@ -1,12 +1,22 @@
 import { exampleFacadeProvider, type FacadeSpec } from '@app/building';
-import type { DesignDocument } from '@app/document';
+import type { AttributeValue, DesignDocument } from '@app/document';
 import type { DesignDocumentV2 } from '@app/document/v2';
 import { typeColor } from '@core/viewer/appearance';
 import type { ActiveProject, RegisteredNodeType } from './activate';
-import { checkValue, describeSpec, specFor } from './attributes';
 import { diagnostic, isBlocking, type ExtensionDiagnostic } from './diagnostics';
+import { describeField, type ProjectAttributeSchema } from './projectAttributes';
+import { attributesOutsideSchema, resolveEdgeAttributes, resolveNodeAttributes, type EffectiveAttribute } from './resolveAttributes';
 
 /**
+ * Since the project-wide attribute schema (docs/PROJECT-ATTRIBUTES.md), custom values are checked
+ * against the project's fields — the same for every node (or edge) whatever its type — through
+ * the shared resolver. The table below lists the node cases; edges have the attribute rows.
+ *
+ * | stored value not valid for its field          | warning | invalid-attribute-value|<kind>:<id>|<key> |
+ * | value stored under a field's former key       | info    | legacy-attribute-key|<kind>:<id>|<old>  |
+ * | stored attribute that is not a project field  | info    | undeclared-attribute|<kind>:<id>|<key>   |
+ *
+ * Original Stage 3 description (type rows still apply):
  * Conformance of a valid schema-v1 document to the active project's node types. Never blocks
  * loading a document and never changes it: stored values (including invalid and undeclared ones)
  * are preserved; defaults are resolved on read only.
@@ -23,9 +33,78 @@ import { diagnostic, isBlocking, type ExtensionDiagnostic } from './diagnostics'
 export const findNodeType = (project: ActiveProject, typeId: string): RegisteredNodeType | undefined =>
   project.nodeTypes.find((t) => t.id === typeId);
 
-/** Works on schema-v1 and schema-v2 documents (only node ids, types and attributes are read). */
-export function checkConformance(doc: Pick<DesignDocument, 'nodes'> | Pick<DesignDocumentV2, 'nodes'>, project: ActiveProject | null): ExtensionDiagnostic[] {
+type CheckedDocument = (Pick<DesignDocument, 'nodes'> | Pick<DesignDocumentV2, 'nodes'>) & {
+  readonly edges?: readonly { readonly id: string; readonly attributes: { readonly [key: string]: AttributeValue } }[];
+};
+
+/** Attribute diagnostics of one node or edge against the project's fields (one shared resolver). */
+function attributeChecks(
+  resolved: readonly EffectiveAttribute[],
+  outside: { readonly [key: string]: AttributeValue },
+  subject: { readonly kind: 'node' | 'edge'; readonly id: string },
+  projectId: string,
+): ExtensionDiagnostic[] {
+  const out: ExtensionDiagnostic[] = [];
+  const name = `${subject.kind} "${subject.id}"`;
+  for (const r of resolved) {
+    const { field } = r;
+    if (r.stored === 'invalid') {
+      const fallback = r.value !== undefined && r.value !== null ? `; ${r.source === 'type-default' ? 'the type default' : 'the default'} ${JSON.stringify(r.value)} is used` : '';
+      out.push(
+        diagnostic(
+          'invalid-attribute-value',
+          'warning',
+          subject,
+          `${name}: attribute "${field.key}" is ${JSON.stringify(r.storedValue)} but must be ${describeField(field)}${fallback} (the stored value is kept)`,
+          { attribute: field.key },
+        ),
+      );
+    }
+    for (const hidden of r.shadowedKeys ?? []) {
+      out.push(
+        diagnostic(
+          'legacy-attribute-key',
+          'info',
+          subject,
+          `${name} also stores a different value under "${hidden}", a former name of "${field.key}"; the value under "${r.storedKey}" is used and the other is kept unchanged`,
+          { attribute: hidden },
+        ),
+      );
+    }
+    if (r.storedKey !== undefined && r.storedKey !== field.key) {
+      out.push(
+        diagnostic(
+          'legacy-attribute-key',
+          'info',
+          subject,
+          `${name} stores "${field.key}" under its former name "${r.storedKey}"; it is read as "${field.key}" and saved under the new name when edited`,
+          { attribute: r.storedKey },
+        ),
+      );
+    }
+  }
+  for (const key of Object.keys(outside)) {
+    out.push(
+      diagnostic(
+        'undeclared-attribute',
+        'info',
+        subject,
+        `${name} has attribute "${key}", which is not a ${subject.kind} field of project "${projectId}" (kept unchanged)`,
+        { attribute: key },
+      ),
+    );
+  }
+  return out;
+}
+
+/**
+ * Works on schema-v1 and schema-v2 documents. Node types are checked against the project's
+ * types; custom values of nodes AND edges against the project's attribute schema in use
+ * (`schema`; default: the project files' baseline). Never changes the document.
+ */
+export function checkConformance(doc: CheckedDocument, project: ActiveProject | null, schema?: ProjectAttributeSchema): ExtensionDiagnostic[] {
   if (!project) return [];
+  const fields = schema ?? project.attributeBaseline.schema;
   const projectDefinesTypes = project.nodeTypes.length > 0;
   const out: ExtensionDiagnostic[] = [];
   for (const node of doc.nodes) {
@@ -37,33 +116,16 @@ export function checkConformance(doc: Pick<DesignDocument, 'nodes'> | Pick<Desig
           diagnostic('unknown-node-type', 'warning', subject, `node "${node.id}" has type "${node.typeId}", which project "${project.id}" does not define`),
         );
       }
-      continue;
-    }
-    if (!type.status.ok) {
+    } else if (!type.status.ok) {
       out.push(
-        diagnostic('broken-node-type', 'error', subject, `node "${node.id}" uses type "${node.typeId}", whose definition (${type.file}) is invalid; its attributes cannot be checked`),
+        diagnostic('broken-node-type', 'error', subject, `node "${node.id}" uses type "${node.typeId}", whose definition (${type.file}) is invalid`),
       );
-      continue;
     }
-    const specs = type.definition.attributes ?? {};
-    for (const [key, value] of Object.entries(node.attributes)) {
-      const spec = specFor(specs, key);
-      if (!spec) {
-        out.push(
-          diagnostic('undeclared-attribute', 'info', subject, `node "${node.id}" has attribute "${key}", which type "${type.id}" does not declare (kept unchanged)`, { attribute: key }),
-        );
-      } else if (checkValue(spec, value) === 'invalid') {
-        out.push(
-          diagnostic(
-            'invalid-attribute-value',
-            'warning',
-            subject,
-            `node "${node.id}": attribute "${key}" is ${JSON.stringify(value)} but must be ${describeSpec(spec)}${spec.default !== undefined ? `; the default ${JSON.stringify(spec.default)} is used` : ''}`,
-            { attribute: key },
-          ),
-        );
-      }
-    }
+    out.push(...attributeChecks(resolveNodeAttributes(fields, node), attributesOutsideSchema(fields, 'nodes', node.attributes), subject, project.id));
+  }
+  for (const edge of doc.edges ?? []) {
+    const subject = { kind: 'edge', id: edge.id } as const;
+    out.push(...attributeChecks(resolveEdgeAttributes(fields, edge), attributesOutsideSchema(fields, 'edges', edge.attributes), subject, project.id));
   }
   return out;
 }

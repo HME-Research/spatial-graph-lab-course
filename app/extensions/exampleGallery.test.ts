@@ -71,8 +71,9 @@ describe('projects/example-gallery', () => {
     expect(buildArchitecture(resolveFaces(builtIn), { facade })).toEqual(buildArchitecture(resolveFaces(builtIn)));
   });
 
-  it('the example design conforms, except the documented undeclared store.daylight (information only)', () => {
-    expect(checkConformance(builtIn, project).map((d) => [d.id, d.severity])).toEqual([['undeclared-attribute|node:store|daylight', 'info']]);
+  it('the example design conforms fully: store.daylight is a project-wide node field since phase 02', () => {
+    expect(checkConformance(builtIn, project).map((d) => [d.id, d.severity])).toEqual([]);
+    expect(project.attributeBaseline.schema.nodes.map((f) => f.key)).toEqual(['daylight', 'public', 'occupancy']);
   });
 });
 

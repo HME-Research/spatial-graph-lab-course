@@ -37,6 +37,8 @@ describe('conformance', () => {
       ['invalid-attribute-value|node:g2|daylight', 'warning'],
       ['undeclared-attribute|node:g2|legacy', 'info'],
       ['unknown-node-type|node:k1', 'warning'],
+      // Phase 02: edges are checked against the project's edge fields (the lab project has none).
+      ['undeclared-attribute|edge:e1|width', 'info'],
     ]);
   });
 
@@ -59,7 +61,10 @@ describe('conformance', () => {
   it('does not warn about unknown types when the project defines no types, or without a project', async () => {
     const project = await labProject({ 'projects/lab/types/gallery.ts': undefined, 'projects/lab/types/studio.ts': undefined });
     expect(project.nodeTypes).toEqual([]);
-    expect(checkConformance(labDoc(), project)).toEqual([]);
+    // Phase 02: values outside the (here empty) project schema are reported as information only.
+    const ds = checkConformance(labDoc(), project);
+    expect(ds.filter((d) => d.severity !== 'info')).toEqual([]);
+    expect(ds.every((d) => d.code === 'undeclared-attribute')).toBe(true);
     expect(checkConformance(labDoc(), null)).toEqual([]);
   });
 

@@ -40,9 +40,9 @@ import {
 const GAP = DEFAULT_CELL_SIZE.horizontal * 0.06;
 const BASE_OPACITY = 0.38;
 
-export function VoxelView({ doc, selection, onSelect, design }: ViewProps) {
+export function VoxelView({ doc, selection, onSelect, design, project }: ViewProps) {
   const source = useSceneSource(doc, design);
-  const s = useSpatialScene(source, selection);
+  const s = useSpatialScene(source, selection, project?.attributes);
   const camera = useRemembered<CameraState>('camera:voxels');
   const [opacity, setOpacity] = useState(BASE_OPACITY);
   const geo = useVoxelGeometry();

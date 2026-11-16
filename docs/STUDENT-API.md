@@ -131,16 +131,20 @@ A spatial algorithm gets the design's own records and a few helpers:
 | `touches(a, b)` | whether rooms `a` and `b` share a wall or floor, so a relationship between them is built directly |
 | `canRelate(a, b)` | whether a relationship between rooms `a` and `b` may be created: both exist, are different and aren't related yet. **They don't need to touch** |
 | `canConnect(kind, a, b)` | *Deprecated.* The schema-v1 rule: whether that v1 kind (`door`, `open`, `atrium`, `vertical-access`) may join two **cells**. Use `touches` or `canRelate` |
-| `attributesOf(node, type)` | typed attribute values, with defaults applied; `type` is imported from your `types/` folder |
+| `nodeAttributes(nodeId)` | the room's value for **every project node field**: the stored value, else its type's default, else the field default (the same values the app shows). `null` = explicitly "no value"; fields without any value are absent |
+| `edgeAttributes(edgeId)` | the same for a relationship's project edge fields (Access and Open have the same fields) |
+| `attributeFields` | `{ nodes, edges }`: the project's fields (`key`, `label`, `kind`, `values`, `min`, `max`, `default`) |
+| `attributesOf(node, type)` | typed values of the attributes `type` declares (read through the project fields); `type` is imported from your `types/` folder |
 | `params` | your parameters, already checked, with defaults applied |
 
 It returns a list of **operations**:
 
 | Operation | Rules |
 |---|---|
-| `{ op: 'add-node', id, grid, size?, typeId, attributes? }` | New unique id, an integer minimum corner, an optional `size` of positive integers (default `[1, 1, 1]`), a box that overlaps no other room, a valid type of your project, and only declared attributes with valid values. A display id is given automatically |
+| `{ op: 'add-node', id, grid, size?, typeId, attributes? }` | New unique id, an integer minimum corner, an optional `size` of positive integers (default `[1, 1, 1]`), a box that overlaps no other room, a valid type of your project, and only project node fields with valid values. A display id is given automatically |
 | `{ op: 'add-edge', id, source, target, kind }` | New unique id, existing different rooms, not already related. `kind` is `access` or `open`; the old kinds still work (`door`/`vertical-access` → `access`, `open`/`atrium` → `open`). The rooms **don't need to touch** |
-| `{ op: 'set-node-attribute', nodeId, key, value }` | The attribute must be declared by the node's (valid) type; the value must be valid, or `null` |
+| `{ op: 'set-node-attribute', nodeId, key, value }` | `key` must be a project node field (any room may have any node field, whatever its type); the value must be valid, or `null` |
+| `{ op: 'set-edge-attribute', edgeId, key, value }` | `key` must be a project edge field; the value must be valid, or `null` |
 
 **Relationships and space.** A relationship says what you want (`access` = people can pass, `open` = no separating element). Whether it can be built is worked out afterwards and is never an error:
 - the rooms **touch**: a door or a removed wall, or an opening in the floor between stacked rooms;

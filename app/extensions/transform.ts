@@ -190,7 +190,9 @@ export function applyTransformation(
         ? addNode(draft, project, op, i)
         : op.op === 'add-edge'
           ? addEdge(draft, op, i)
-          : setNodeAttribute(draft, project, op, i);
+          : op.op === 'set-node-attribute'
+            ? setNodeAttribute(draft, project, op, i)
+            : opError(i, 'undeclared-attribute-write', `set-edge-attribute "${op.edgeId}.${op.key}": edge attributes can only be set on schema-v2 designs`, op.key);
     if (problem) return fail([problem]);
   }
 

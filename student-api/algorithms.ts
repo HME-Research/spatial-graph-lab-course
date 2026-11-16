@@ -70,10 +70,38 @@ export interface SpatialAlgorithmContext<P extends AttributeSpecs = AttributeSpe
   canConnect(kind: SpatialEdgeKind, a: GridCoord, b: GridCoord): boolean;
   /**
    * Effective typed attributes of `node` for its type definition `type` (imported from the
-   * project's `types/` folder). The run fails with a diagnostic if `type` is not a valid,
-   * registered definition of this project or is not the node's type.
+   * project's `types/` folder): only the attributes that type declares. Values come from the
+   * project's fields (the same values the app shows): the stored value, else the type default,
+   * else the field default. A value explicitly cleared to "no value" reads as `undefined`. The run
+   * fails with a diagnostic if `type` is not a valid, registered definition of this project or is
+   * not the node's type. Prefer `nodeAttributes` for project-wide fields.
    */
   attributesOf<A extends AttributeSpecs>(node: SpatialNode, type: NodeTypeDefinition<A>): AttributesOf<A>;
+  /** The project's custom fields: the same list for every node, and one list for every edge. */
+  readonly attributeFields: { readonly nodes: readonly AttributeFieldInfo[]; readonly edges: readonly AttributeFieldInfo[] };
+  /**
+   * Effective values of every project node field for the node `nodeId`: the stored value, else
+   * the node type's default, else the field default. Fields without any value are absent; `null`
+   * means the value was explicitly set to "no value". The run fails for an unknown id.
+   */
+  nodeAttributes(nodeId: string): { readonly [key: string]: AttributeValue };
+  /** Effective values of every project edge field for the edge `edgeId` (as `nodeAttributes`). */
+  edgeAttributes(edgeId: string): { readonly [key: string]: AttributeValue };
+}
+
+/** One project-wide custom field, as algorithms see it. */
+export interface AttributeFieldInfo {
+  /** The attribute name in `attributes` and in `set-node-attribute` / `set-edge-attribute`. */
+  readonly key: string;
+  readonly label: string;
+  readonly kind: 'text' | 'number' | 'boolean' | 'enum';
+  /** Choices of an `enum` field. */
+  readonly values?: readonly string[];
+  readonly min?: number;
+  readonly max?: number;
+  /** The field default (node types may have their own defaults; `nodeAttributes` applies them). */
+  readonly default?: string | number | boolean;
+  readonly description?: string;
 }
 
 /**
@@ -90,7 +118,7 @@ export type SpatialOperation =
       readonly size?: RoomSize;
       /** Must be a valid node type of the active project. */
       readonly typeId: string;
-      /** Only attributes declared by the type, with valid values (or null). Defaults are not written. */
+      /** Only project node fields, with valid values (or null). Defaults are not written. */
       readonly attributes?: { readonly [key: string]: AttributeValue };
     }
   | {
@@ -107,9 +135,17 @@ export type SpatialOperation =
   | {
       readonly op: 'set-node-attribute';
       readonly nodeId: string;
-      /** Must be declared by the node's (valid) type. */
+      /** A project node field (every node has the same fields, whatever its type). */
       readonly key: string;
-      /** Valid for the declared attribute, or null for "no value". */
+      /** Valid for the field, or null for "no value". */
+      readonly value: AttributeValue;
+    }
+  | {
+      readonly op: 'set-edge-attribute';
+      readonly edgeId: string;
+      /** A project edge field (Access and Open edges have the same fields). */
+      readonly key: string;
+      /** Valid for the field, or null for "no value". */
       readonly value: AttributeValue;
     };
 

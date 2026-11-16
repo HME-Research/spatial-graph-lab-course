@@ -4,7 +4,9 @@ import type { DesignDocumentV2 } from '@app/document/v2';
 import type { AnalysisResult, AttributeSpecs, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
 import type { ActiveProject } from './activate';
 import { checkValue, describeSpec, specFor } from './attributes';
-import { buildGraphContext, buildSpatialContext, buildSpatialContextV2, ExtensionRunError, type GraphSource } from './context';
+import { migrateV1toV2 } from '@app/document/v2';
+import { buildGraphContext, buildSpatialContextV2, ExtensionRunError, type GraphSource } from './context';
+import { EMPTY_ATTRIBUTE_SCHEMA, type ProjectAttributeSchema } from './projectAttributes';
 import { zodMessages } from './definitions';
 import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionResult } from './diagnostics';
 import { applyTransformation, type TransformationPreview } from './transform';
@@ -45,8 +47,9 @@ const operationSchema = z.discriminatedUnion(
     }),
     z.strictObject({ op: z.literal('add-edge'), id: z.string(), source: z.string(), target: z.string(), kind: z.string() }),
     z.strictObject({ op: z.literal('set-node-attribute'), nodeId: z.string(), key: z.string().min(1), value: attributeValueSchema }),
+    z.strictObject({ op: z.literal('set-edge-attribute'), edgeId: z.string(), key: z.string().min(1), value: attributeValueSchema }),
   ],
-  { error: 'op must be "add-node", "add-edge" or "set-node-attribute"' },
+  { error: 'op must be "add-node", "add-edge", "set-node-attribute" or "set-edge-attribute"' },
 );
 
 const transformationSchema = z.strictObject({
@@ -92,8 +95,13 @@ function invalidResult(algorithmId: string, messages: readonly string[]): Extens
 
 /** How one document schema plugs into the shared run pipeline. */
 interface RunAdapter<D extends GraphSource, Preview> {
-  spatialContext<P extends AttributeSpecs>(doc: D, project: ActiveProject, algorithmId: string, params: never): SpatialAlgorithmContext<P>;
-  apply(doc: D, project: ActiveProject, operations: readonly SpatialOperation[], summary?: string): ExtensionResult<Preview>;
+  spatialContext<P extends AttributeSpecs>(doc: D, project: ActiveProject, algorithmId: string, params: never, schema: ProjectAttributeSchema): SpatialAlgorithmContext<P>;
+  apply(doc: D, project: ActiveProject, operations: readonly SpatialOperation[], summary: string | undefined, schema: ProjectAttributeSchema): ExtensionResult<Preview>;
+}
+
+export interface RunOptions {
+  /** The project attribute schema in use (default: the project files' baseline). */
+  readonly attributes?: ProjectAttributeSchema;
 }
 
 function runWith<D extends GraphSource, Preview>(
@@ -102,7 +110,9 @@ function runWith<D extends GraphSource, Preview>(
   project: ActiveProject,
   algorithmId: string,
   params: unknown,
+  options: RunOptions = {},
 ): ExtensionResult<{ readonly kind: 'analysis'; readonly result: AnalysisResult } | { readonly kind: 'transformation'; readonly preview: Preview }> {
+  const schema = options.attributes ?? project.attributeBaseline?.schema ?? EMPTY_ATTRIBUTE_SCHEMA;
   const subject = { kind: 'algorithm', id: algorithmId } as const;
   const entry = project.algorithms.find((a) => a.id === algorithmId);
   if (!entry) return fail([diagnostic('unknown-algorithm', 'error', subject, `project "${project.id}" has no algorithm "${algorithmId}"`)]);
@@ -118,7 +128,7 @@ function runWith<D extends GraphSource, Preview>(
     raw =
       algorithm.scope === 'graph'
         ? algorithm.run(buildGraphContext(doc, parameters.value))
-        : algorithm.run(adapter.spatialContext(doc, project, algorithmId, parameters.value as never));
+        : algorithm.run(adapter.spatialContext(doc, project, algorithmId, parameters.value as never, schema));
   } catch (error) {
     if (error instanceof ExtensionRunError) return fail([error.diagnostic]);
     const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
@@ -151,18 +161,18 @@ function runWith<D extends GraphSource, Preview>(
   if (!parsed.success) return invalidResult(algorithmId, zodMessages(parsed.error.issues));
   // Zod's output is a fresh copy: later changes by the algorithm to its own objects have no effect.
   const operations = parsed.data.operations as readonly SpatialOperation[];
-  const preview = adapter.apply(doc, project, operations, parsed.data.summary);
+  const preview = adapter.apply(doc, project, operations, parsed.data.summary, schema);
   return preview.ok ? ok({ kind: 'transformation', preview: preview.value }) : preview;
 }
 
 const V1_ADAPTER: RunAdapter<DesignDocument, TransformationPreview> = {
-  spatialContext: (doc, project, id, params) => buildSpatialContext(doc, project, id, params),
-  apply: applyTransformation,
+  spatialContext: (doc, project, id, params, schema) => buildSpatialContextV2(migrateV1toV2(doc), project, id, params, schema),
+  apply: (doc, project, operations, summary) => applyTransformation(doc, project, operations, summary),
 };
 
 const V2_ADAPTER: RunAdapter<DesignDocumentV2, TransformationPreviewV2> = {
-  spatialContext: (doc, project, id, params) => buildSpatialContextV2(doc, project, id, params),
-  apply: applyTransformationV2,
+  spatialContext: (doc, project, id, params, schema) => buildSpatialContextV2(doc, project, id, params, schema),
+  apply: (doc, project, operations, summary, schema) => applyTransformationV2(doc, project, operations, summary, schema),
 };
 
 /** Run an algorithm against the schema-v1 document (today's app; see `runAlgorithmV2`). */
@@ -179,6 +189,12 @@ export type RunOutcomeV2 =
  * transformation preview's `after` is a validated v2 document (`validateDocumentV2`), and
  * `displacedRoutes` must be confirmed by the user before it is applied.
  */
-export function runAlgorithmV2(doc: DesignDocumentV2, project: ActiveProject, algorithmId: string, params?: unknown): ExtensionResult<RunOutcomeV2> {
-  return runWith(V2_ADAPTER, doc, project, algorithmId, params);
+export function runAlgorithmV2(
+  doc: DesignDocumentV2,
+  project: ActiveProject,
+  algorithmId: string,
+  params?: unknown,
+  options: RunOptions = {},
+): ExtensionResult<RunOutcomeV2> {
+  return runWith(V2_ADAPTER, doc, project, algorithmId, params, options);
 }

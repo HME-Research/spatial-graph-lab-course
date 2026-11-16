@@ -1,4 +1,4 @@
-import { EDGE_KINDS, gridKey, isEdgeGeometryValid, SPATIAL_GRAPH_POLICY, unorderedPairKey, type DesignDocument, type EdgeKind } from '@app/document';
+import { EDGE_KINDS, gridKey, isEdgeGeometryValid, SPATIAL_GRAPH_POLICY, unorderedPairKey, type AttributeValue, type DesignDocument, type EdgeKind } from '@app/document';
 import { footprintCells, migrateV1toV2, roomContact, type DesignDocumentV2, type RoomNode } from '@app/document/v2';
 import type {
   AttributeSpecs,
@@ -12,8 +12,10 @@ import type {
   SpatialNode,
 } from '@student-api';
 import type { ActiveProject } from './activate';
-import { effectiveAttributes } from './attributes';
+import { checkValue, effectiveAttributes } from './attributes';
 import { diagnostic, type ExtensionDiagnostic } from './diagnostics';
+import { EMPTY_ATTRIBUTE_SCHEMA, fieldForKey, type AttributeField, type ProjectAttributeSchema } from './projectAttributes';
+import { effectiveEdgeValues, effectiveNodeValues } from './resolveAttributes';
 
 /**
  * Builds algorithm contexts from a document. Safety comes from copying: every context holds a
@@ -72,6 +74,7 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
   project: ActiveProject,
   algorithmId: string,
   params: AttributesOf<P>,
+  schema: ProjectAttributeSchema = project.attributeBaseline?.schema ?? EMPTY_ATTRIBUTE_SCHEMA,
 ): SpatialAlgorithmContext<P> {
   const design = freezeDeep({
     policy: { ...SPATIAL_GRAPH_POLICY },
@@ -81,15 +84,39 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
   const occupant = new Map<string, string>();
   for (const n of doc.nodes) for (const cell of footprintCells(n)) occupant.set(gridKey(cell), n.id);
   const rooms = new Map<string, RoomNode>(structuredClone(doc.nodes).map((n) => [n.id, n] as const));
+  const links = new Map(structuredClone(doc.edges).map((e) => [e.id, e] as const));
   const pairs = new Set(doc.edges.map((e) => unorderedPairKey(e.source, e.target)));
   const isId = (v: unknown): v is string => typeof v === 'string';
   const subject = { kind: 'algorithm', id: algorithmId } as const;
-  const runError = (code: 'type-not-registered' | 'broken-node-type' | 'type-mismatch', message: string) =>
+  const runError = (code: 'type-not-registered' | 'broken-node-type' | 'type-mismatch' | 'unknown-node-reference', message: string) =>
     new ExtensionRunError(diagnostic(code, 'error', subject, message));
+  // The same resolver as the app's views and Properties (docs/PROJECT-ATTRIBUTES.md).
+  const fieldInfo = (f: AttributeField) => ({
+    key: f.key,
+    label: f.label,
+    kind: f.kind,
+    ...(f.values !== undefined && { values: [...f.values] }),
+    ...(f.min !== undefined && { min: f.min }),
+    ...(f.max !== undefined && { max: f.max }),
+    ...(f.default !== undefined && { default: f.default }),
+    ...(f.description !== undefined && { description: f.description }),
+  });
+  const attributeFields = freezeDeep({ nodes: schema.nodes.map(fieldInfo), edges: schema.edges.map(fieldInfo) });
 
   return Object.freeze({
     design,
     params: freezeDeep(structuredClone(params)),
+    attributeFields,
+    nodeAttributes: (nodeId: string) => {
+      const node = isId(nodeId) ? rooms.get(nodeId) : undefined;
+      if (!node) throw runError('unknown-node-reference', `nodeAttributes: there is no node "${String(nodeId)}"`);
+      return freezeDeep(effectiveNodeValues(schema, node));
+    },
+    edgeAttributes: (edgeId: string) => {
+      const edge = isId(edgeId) ? links.get(edgeId) : undefined;
+      if (!edge) throw runError('unknown-node-reference', `edgeAttributes: there is no edge "${String(edgeId)}"`);
+      return freezeDeep(effectiveEdgeValues(schema, edge));
+    },
     nodeAt: (cell: GridCoord) => (isGrid(cell) ? occupant.get(gridKey([cell[0], cell[1], cell[2]])) : undefined),
     touches: (a: string, b: string) => {
       const ra = isId(a) ? rooms.get(a) : undefined;
@@ -115,7 +142,20 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
       if (node?.typeId !== entry.id) {
         throw runError('type-mismatch', `attributesOf: node "${node?.id}" has type "${node?.typeId}", not "${entry.id}"`);
       }
-      return freezeDeep(effectiveAttributes(entry.definition.attributes ?? {}, node.attributes)) as AttributesOf<A>;
+      // The type's declared keys, read through the project fields (same values as the app). A key
+      // the project schema no longer has keeps the Stage 3 per-type reading. Explicit "no value"
+      // (null) and values that do not fit the type's own declaration read as the type default.
+      const specs = entry.definition.attributes ?? {};
+      const projectValues = effectiveNodeValues(schema, node);
+      const legacy = effectiveAttributes(specs, node.attributes);
+      const out: Record<string, AttributeValue> = {};
+      for (const [key, spec] of Object.entries(specs)) {
+        const field = fieldForKey(schema, 'nodes', key);
+        const value = field ? projectValues[field.key] : legacy[key];
+        const usable = value !== undefined && value !== null && checkValue(spec, value) === 'ok' ? value : spec.default;
+        if (usable !== undefined) out[key] = usable;
+      }
+      return freezeDeep(out) as AttributesOf<A>;
     },
   });
 }
