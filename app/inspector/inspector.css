@@ -1,149 +1,177 @@
-/* Editing inspector (workstream A). Scoped with the `sgl-` prefix. */
+/*
+ * Panel content shared by Properties, Project, Attributes and Algorithms (class `sgl-inspector`).
+ * Tokens from app.css; hit areas come from the shell-chrome rules there (`.sgl-sidenav-panel`).
+ */
 
 .sgl-inspector {
-  font-size: 13px;
-  overflow-y: auto;
+  font-size: var(--text-md, 14px);
+  line-height: var(--leading, 1.4);
 }
 
 .sgl-panel {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
 }
 
+/* Title of the selected item (under the panel heading). */
 .sgl-title {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
   align-items: center;
-  font-weight: 600;
-  word-break: break-all;
+  margin: 0 0 var(--space-2, 8px);
+  font-size: var(--text-lg, 16px);
+  font-weight: 650;
+  word-break: break-word;
 }
 
 .sgl-swatch {
   flex: none;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
 }
 
+.sgl-title .sgl-id {
+  font-weight: 400;
+  font-size: var(--text-xs, 12px);
+  color: var(--muted, #62625c);
+}
+
+/* Plain (non-collapsible) section inside a panel or a collapsible section. */
 .sgl-section {
   margin: 0;
-  padding: 8px 0;
-  border-top: 1px solid var(--line, #d9d9d2);
+  padding: var(--space-2, 8px) 0;
+  border-top: 1px solid var(--line, #e1e1dc);
+}
+
+.sgl-csection-body > .sgl-section:first-child,
+.sgl-csection-body > fieldset.sgl-section:first-child {
+  border-top: none;
+  padding-top: 0;
 }
 
 .sgl-section h4 {
-  margin: 0 0 6px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted, #66665f);
+  margin: 0 0 var(--space-1, 4px);
+  font-size: var(--text-sm, 13px);
+  font-weight: 650;
+  color: var(--fg, #1f1f1d);
 }
 
 .sgl-row,
 .sgl-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-2, 8px);
   align-items: flex-end;
 }
 
-.sgl-inspector input,
-.sgl-inspector select,
-.sgl-inspector button {
-  font: inherit;
-  font-size: 13px;
-}
-
-.sgl-inspector input,
-.sgl-inspector select {
-  min-width: 0;
-  padding: 3px 5px;
-  border: 1px solid var(--line, #d9d9d2);
-  border-radius: 4px;
+.sgl-buttons {
+  align-items: center;
+  margin-top: var(--space-1, 4px);
 }
 
 .sgl-row > input {
   flex: 1;
 }
 
-.sgl-inspector button {
-  padding: 3px 9px;
+.sgl-inspector input,
+.sgl-inspector select {
+  min-width: 0;
 }
 
-.sgl-inspector button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+/* Long option texts must not widen the panel. */
+.sgl-inspector select {
+  max-width: 100%;
 }
 
 .sgl-axis {
   display: flex;
   flex-direction: column;
-  font-size: 11px;
-  color: var(--muted, #66665f);
+  gap: 2px;
+  font-size: var(--text-xs, 12px);
+  color: var(--muted, #62625c);
 }
 
 .sgl-axis input {
-  width: 56px;
+  width: 64px;
 }
 
 .sgl-attr {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1fr) auto;
-  gap: 4px;
-  margin-bottom: 4px;
+  gap: var(--space-1, 4px);
+  margin-bottom: var(--space-1, 4px);
 }
 
 .sgl-inspector button.sgl-icon {
+  min-width: var(--hit-compact, 32px);
   padding: 0 6px;
 }
 
 .sgl-list {
   margin: 0;
-  padding-left: 16px;
+  padding-left: 18px;
 }
 
 .sgl-list li {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1, 4px);
 }
 
+/* Secondary text: still readable (13 px), muted. */
 .sgl-help {
-  margin: 4px 0 0;
-  font-size: 11px;
-  color: var(--muted, #66665f);
+  margin: var(--space-1, 4px) 0 0;
+  font-size: var(--text-sm, 13px);
+  color: var(--muted, #62625c);
 }
 
 .sgl-error {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: #8a3b3b;
+  margin: var(--space-1, 4px) 0 0;
+  font-size: var(--text-sm, 13px);
+  color: var(--error-fg, #8a3030);
 }
 
-.sgl-inspector button.sgl-danger {
-  color: #8a3b3b;
-  border-color: #d27373;
+.sgl-warning {
+  margin: var(--space-1, 4px) 0 0;
+  font-size: var(--text-sm, 13px);
+  color: var(--warning-fg, #6b4e0f);
 }
 
-.sgl-inspector button.sgl-link {
+/* Destructive action: outlined in the error tone; never the primary style. */
+.sgl-inspector button.sgl-danger,
+button.sgl-danger {
+  color: var(--error-fg, #8a3030);
+  border-color: var(--error-line, #e0aaaa);
+}
+
+/* Link-style buttons: inline text, no button chrome, no minimum height. */
+button.sgl-link,
+button.link-button {
+  min-height: 0;
   padding: 0;
   border: none;
   background: none;
   color: var(--accent, #2c5d8f);
+  font: inherit;
   text-decoration: underline;
+  text-underline-offset: 2px;
   cursor: pointer;
+  display: inline;
 }
 
-.sgl-warning {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: #7a5a12;
+button.sgl-link:hover:not(:disabled),
+button.link-button:hover:not(:disabled) {
+  background: none;
+  color: var(--accent-hover, #234b74);
 }
 
 .sgl-checks {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 12px;
+  font-size: var(--text-sm, 13px);
 }
 
 .sgl-checks li {
@@ -151,15 +179,15 @@
 }
 
 .sgl-check-error {
-  color: #8a3b3b;
+  color: var(--error-fg, #8a3030);
 }
 
 .sgl-check-warning {
-  color: #7a5a12;
+  color: var(--warning-fg, #6b4e0f);
 }
 
 .sgl-check-info {
-  color: var(--muted, #66665f);
+  color: var(--muted, #62625c);
 }
 
 /* One generated control per declared attribute. */
@@ -167,11 +195,11 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2, 8px);
 }
 
 .sgl-typed-label .sgl-help {
-  margin-left: 4px;
+  margin-left: var(--space-1, 4px);
 }
 
 .sgl-typed > select {
@@ -181,19 +209,17 @@
 /* Read-only stored record of the selected item, collapsed by default. */
 .sgl-data summary {
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--text-sm, 13px);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted, #66665f);
+  color: var(--muted, #62625c);
 }
 
 .sgl-data pre {
   margin: 6px 0 0;
   padding: 6px;
-  background: #f5f5f1;
-  border-radius: 4px;
-  font-size: 11px;
+  background: var(--surface-muted, #f7f7f5);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 11.5px;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -203,7 +229,7 @@
   font-weight: 600;
 }
 
-/* ── Stage 05: Properties ─────────────────────────────────────────────────────────────────── */
+/* ── Properties ──────────────────────────────────────────────────────────────────────────── */
 
 .sgl-properties fieldset.sgl-section {
   min-width: 0;
@@ -215,17 +241,22 @@
 .sgl-properties fieldset.sgl-section > legend {
   float: left;
   width: 100%;
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-1, 4px);
   padding: 0;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted, #66665f);
+  font-size: var(--text-sm, 13px);
+  font-weight: 650;
+  color: var(--fg, #1f1f1d);
 }
 
 .sgl-properties fieldset.sgl-section > legend + * {
   clear: left;
+}
+
+/* Legend with an `i` button: keep them on one line. */
+.sgl-legend-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
 }
 
 .sgl-info {
@@ -245,39 +276,26 @@
   vertical-align: 1px;
 }
 
-.sgl-visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.sgl-axis input {
-  width: 64px;
-}
-
 .sgl-inspector input.sgl-edited {
   border-color: var(--accent, #2c5d8f);
-  background: #f3f7fc;
+  background: var(--accent-soft, #edf2f8);
 }
 
 .sgl-inspector input[aria-invalid='true'] {
-  border-color: #d27373;
-  background: #fdf3f3;
+  border-color: var(--error-line, #e0aaaa);
+  background: var(--error-bg, #fbeeee);
 }
 
 .sgl-hint {
-  margin: 4px 0 0;
-  font-size: 11px;
+  margin: var(--space-1, 4px) 0 0;
+  font-size: var(--text-xs, 12px);
   color: var(--accent, #2c5d8f);
 }
 
 .sgl-type-select {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1, 4px);
 }
 
 .sgl-type-select select {
@@ -288,31 +306,25 @@
   font-variant-numeric: tabular-nums;
 }
 
-.sgl-title .sgl-id {
-  font-weight: 400;
-  font-size: 11px;
-  color: var(--muted, #66665f);
-}
-
 .sgl-empty {
-  margin: 0 0 4px;
-  color: var(--muted, #66665f);
+  margin: 0 0 var(--space-2, 8px);
+  color: var(--muted, #62625c);
 }
 
 .sgl-chip {
   display: inline-block;
   margin-left: 6px;
-  padding: 0 6px;
-  border-radius: 8px;
-  font-size: 11px;
-  line-height: 16px;
+  padding: 0 7px;
+  border-radius: 9px;
+  font-size: var(--text-xs, 12px);
+  line-height: 18px;
   white-space: nowrap;
 }
 
 .sgl-chip-ok {
   margin-left: 0;
-  background: #e6f0e4;
-  color: #2f5a28;
+  background: #e8f0e5;
+  color: var(--ok-fg, #2f5a2a);
 }
 
 .sgl-relations .sgl-chip-ok {
@@ -320,8 +332,17 @@
 }
 
 .sgl-chip-warning {
-  background: #fbeede;
-  color: #8a4b12;
+  background: var(--warning-bg, #fbf5e6);
+  color: var(--warning-fg, #6b4e0f);
+}
+
+/* "Read-only" marker of calculated values and system fields. */
+.sgl-chip-readonly {
+  margin-left: 0;
+  background: var(--calc-bg, #f5f4ef);
+  border: 1px solid var(--calc-line, #dedccf);
+  color: var(--calc-fg, #4a4940);
+  line-height: 16px;
 }
 
 .sgl-status {
@@ -336,26 +357,28 @@
 .sgl-segmented label {
   display: inline-flex;
   align-items: center;
-  padding: 3px 14px;
-  border: 1px solid var(--line, #d9d9d2);
+  min-height: var(--hit, 36px);
+  padding: 0 var(--space-4, 16px);
+  border: 1px solid var(--line-strong, #c9c9c2);
   background: var(--panel, #fff);
   cursor: pointer;
   user-select: none;
 }
 
 .sgl-segmented label:first-child {
-  border-radius: 5px 0 0 5px;
+  border-radius: var(--radius, 6px) 0 0 var(--radius, 6px);
 }
 
 .sgl-segmented label:last-child {
-  border-radius: 0 5px 5px 0;
+  border-radius: 0 var(--radius, 6px) var(--radius, 6px) 0;
   margin-left: -1px;
 }
 
 .sgl-segmented label.checked {
   position: relative;
   border-color: var(--accent, #2c5d8f);
-  background: #eef3f9;
+  background: var(--accent-soft, #edf2f8);
+  color: var(--accent, #2c5d8f);
   font-weight: 600;
 }
 
@@ -372,26 +395,55 @@
 }
 
 .sgl-connect {
-  margin-top: 6px;
+  margin-top: var(--space-2, 8px);
 }
 
 .sgl-connect select {
   flex: 1;
 }
 
-/* Long option texts must not widen the panel. */
-.sgl-inspector select {
-  max-width: 100%;
-}
-
-/* Stage 07 help tips placed next to Properties headings and fields (Gate 1). */
+/* Stage 07 help tips placed next to headings and fields. */
 .sgl-help-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1, 4px) var(--space-2, 8px);
   flex-wrap: wrap;
 }
 
 .sgl-help-row h4 {
   margin: 0;
+}
+
+/* Read-only values (identity facts, calculated values): a definition list, not inputs. */
+.sgl-readonly-list {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: var(--space-1, 4px) var(--space-3, 12px);
+  margin: 0;
+}
+
+.sgl-readonly-list dt {
+  color: var(--muted, #62625c);
+}
+
+.sgl-readonly-list dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.sgl-calculated .sgl-readonly-list dd {
+  color: var(--calc-fg, #4a4940);
+}
+
+.sgl-calculated-note {
+  margin: var(--space-2, 8px) 0 0;
+  font-size: var(--text-xs, 12px);
+  color: var(--muted, #62625c);
+}
+
+/* "Manage attributes" link next to a section heading. */
+.sgl-manage-link {
+  font-size: var(--text-sm, 13px);
+  white-space: nowrap;
 }

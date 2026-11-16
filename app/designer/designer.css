@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--text-md, 14px);
   overflow-y: auto;
 }
 
@@ -180,4 +180,40 @@
 
 .sgl-designer-relationship p {
   margin: 0 0 4px;
+}
+
+/* Wave 1 (A): Defaults / Function-Specific sections. */
+.sgl-designer {
+  gap: var(--space-2, 8px);
+}
+.sgl-designer-intro {
+  margin: 0;
+}
+.sgl-designer-defaults {
+  margin: var(--space-2, 8px) 0;
+}
+.sgl-designer-defaults dd {
+  font-weight: 400;
+}
+/* Narrow left pane (≈ 200 px of content): the label sits above slider and value. */
+.sgl-designer-field {
+  flex-wrap: wrap;
+}
+.sgl-designer-field label {
+  flex: 1 0 100%;
+  width: auto;
+}
+.sgl-designer-type-name {
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+.sgl-designer-type {
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  min-width: 0;
+}
+.sgl-designer-reset {
+  font-size: var(--text-sm, 13px);
+}
+.sgl-designer-defaults dd {
+  white-space: nowrap;
 }

@@ -1,6 +1,6 @@
-/* Stage 05 application-shell components (app/ui). Scoped with the `sgl-` prefix. */
+/* Application-shell components (app/ui). Scoped with the `sgl-` prefix; tokens from app.css. */
 
-/* ── Vertical sidebar navigation ─────────────────────────────────────────────────────────── */
+/* ── Side panels and the destination rail ───────────────────────────────────────────────── */
 
 .sgl-sidenav {
   display: flex;
@@ -8,8 +8,8 @@
   min-height: 0;
   height: 100%;
   background: var(--panel, #fff);
-  border: 1px solid var(--line, #d9d9d2);
-  border-radius: 8px;
+  border: 1px solid var(--line, #e1e1dc);
+  border-radius: var(--radius-lg, 8px);
   overflow: hidden;
 }
 
@@ -31,23 +31,39 @@
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 8px 12px 12px;
+  padding: var(--space-3, 12px) var(--space-3, 12px) var(--space-4, 16px);
+  font-size: var(--text-md, 14px);
 }
 
 .sgl-sidenav-heading {
-  margin: 0 0 6px;
-  font-size: 0.95rem;
+  margin: 0 0 var(--space-3, 12px);
+  font-size: var(--text-xl, 18px);
   font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+/* Single panel (Properties): title row with its collapse button. */
+.sgl-sidenav-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  margin: 0 0 var(--space-2, 8px);
+}
+
+.sgl-sidenav-panel-head .sgl-sidenav-heading {
+  margin: 0;
 }
 
 .sgl-sidenav-strip {
   flex: none;
-  width: var(--rail-width, 68px);
+  width: var(--rail-width, 76px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border-left: 1px solid var(--line, #d9d9d2);
-  background: #f2f2ee;
+  border-left: 1px solid var(--line, #e1e1dc);
+  background: var(--surface-muted, #f7f7f5);
 }
 
 .sgl-sidenav.collapsed .sgl-sidenav-strip {
@@ -59,17 +75,13 @@
 /* Left rail: the strip is on the outer (left) edge; the active marker faces the content. */
 .sgl-sidenav.side-left .sgl-sidenav-strip {
   border-left: none;
-  border-right: 1px solid var(--line, #d9d9d2);
-}
-.sgl-sidenav.side-left .sgl-sidenav-tab.active::before {
-  left: auto;
-  right: 0;
-  border-radius: 2px 0 0 2px;
+  border-right: 1px solid var(--line, #e1e1dc);
 }
 
 .sgl-sidenav-tabs {
   display: flex;
   flex-direction: column;
+  padding: var(--space-1, 4px) 0;
 }
 
 .sgl-sidenav-tab,
@@ -78,27 +90,31 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 9px 2px 7px;
+  justify-content: center;
+  gap: 3px;
+  min-height: 52px;
+  padding: 6px 4px;
   border: none;
   border-radius: 0;
   background: none;
-  color: var(--muted, #66665f);
-  font-size: 0.72rem;
+  color: var(--muted, #62625c);
+  font-size: var(--text-xs, 12px);
   line-height: 1.15;
+  text-align: center;
   cursor: pointer;
 }
 
 .sgl-sidenav-tab:hover,
 .sgl-sidenav-toggle:hover {
-  color: var(--fg, #1d1d1b);
-  background: #e8e8e2;
+  color: var(--fg, #1f1f1d);
+  background: var(--surface-hover, #efefec);
 }
 
 .sgl-sidenav-tab:focus-visible,
 .sgl-sidenav-toggle:focus-visible {
   outline: 2px solid var(--accent, #2c5d8f);
   outline-offset: -2px;
+  box-shadow: none;
 }
 
 .sgl-sidenav-tab.active {
@@ -112,30 +128,46 @@
   content: '';
   position: absolute;
   left: 0;
-  top: 6px;
-  bottom: 6px;
+  top: 8px;
+  bottom: 8px;
   width: 3px;
   border-radius: 0 2px 2px 0;
   background: var(--accent, #2c5d8f);
+}
+
+.sgl-sidenav.side-left .sgl-sidenav-tab.active::before {
+  left: auto;
+  right: 0;
+  border-radius: 2px 0 0 2px;
 }
 
 .sgl-sidenav-icon {
   display: inline-flex;
 }
 
+.sgl-sidenav-label {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* Collapsed single panel: one tall labelled button that opens it again. */
+.sgl-sidenav-single .sgl-sidenav-strip .sgl-sidenav-tab {
+  min-height: 96px;
+}
+
+.sgl-sidenav-expand {
+  color: var(--muted, #62625c);
+}
+
 .sgl-sidenav-badge {
-  font-size: 0.62rem;
+  font-size: 10.5px;
   font-weight: 500;
   padding: 0 4px;
   border-radius: 6px;
-  background: #e2e2da;
-  color: var(--muted, #66665f);
+  background: var(--line, #e1e1dc);
+  color: var(--muted, #62625c);
 }
 
-/*
- * Collapsed: the rail keeps its icons AND short labels (the rail is wide enough), so the
- * destinations stay discoverable; only badges are hidden visually (still announced).
- */
 .sgl-sidenav.collapsed .sgl-sidenav-badge {
   position: absolute;
   width: 1px;
@@ -146,36 +178,405 @@
 }
 
 .sgl-sidenav-toggle {
-  border-top: 1px solid var(--line, #d9d9d2);
-  font-size: 0.72rem;
+  border-top: 1px solid var(--line, #e1e1dc);
+  min-height: 44px;
+}
+
+/* Short windows: a denser rail so all seven destinations stay visible without scrolling. */
+@media (max-height: 760px) {
+  .sgl-sidenav-tab {
+    min-height: 46px;
+    padding: 4px;
+    gap: 2px;
+  }
+}
+
+/* Small square icon button (36 × 36) with a tooltip; used for collapse and close actions. */
+.sgl-icon-button,
+:where(.toolbar, .sgl-sidenav-panel) .sgl-icon-button {
+  flex: none;
+  width: var(--hit, 36px);
+  min-width: var(--hit, 36px);
+  height: var(--hit, 36px);
+  min-height: var(--hit, 36px);
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius, 6px);
+  background: none;
+  color: var(--muted, #62625c);
+}
+
+.sgl-icon-button:hover:not(:disabled) {
+  color: var(--fg, #1f1f1d);
+  background: var(--surface-hover, #efefec);
+}
+
+/* ── Collapsible sections ────────────────────────────────────────────────────────────────── */
+
+.sgl-csection {
+  border-top: 1px solid var(--line, #e1e1dc);
+}
+
+.sgl-csection:first-child {
+  border-top: none;
+}
+
+.sgl-csection-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  min-height: 40px;
+}
+
+.sgl-csection-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-md, 14px);
+  font-weight: 650;
+}
+
+.sgl-csection-l4 .sgl-csection-title {
+  font-size: var(--text-sm, 13px);
+  font-weight: 600;
+}
+
+.sgl-csection-toggle,
+:where(.toolbar, .sgl-sidenav-panel) .sgl-csection-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2, 8px);
+  width: 100%;
+  min-height: var(--hit, 36px);
+  padding: 0 var(--space-1, 4px) 0 0;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.sgl-csection-toggle:hover:not(:disabled) {
+  background: none;
+  color: var(--accent, #2c5d8f);
+}
+
+.sgl-csection-chevron {
+  flex: none;
+  color: var(--muted, #62625c);
+  transition: transform 120ms ease;
+}
+
+.sgl-csection.open > .sgl-csection-head .sgl-csection-chevron {
+  transform: rotate(90deg);
+}
+
+.sgl-csection-text {
+  min-width: 0;
+}
+
+.sgl-csection-meta {
+  color: var(--muted, #62625c);
+  font-weight: 400;
+  font-size: var(--text-sm, 13px);
+}
+
+.sgl-csection-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+}
+
+.sgl-csection-body {
+  padding: 0 0 var(--space-3, 12px);
+}
+
+.sgl-csection-body[hidden] {
+  display: none;
+}
+
+/* Nested sections sit inside their parent without a second strong divider. */
+.sgl-csection-l4 {
+  border-top-color: var(--line, #e1e1dc);
+}
+
+.sgl-csection-l4 .sgl-csection-head {
+  min-height: 36px;
+}
+
+/* Read-only calculated values: quiet tint, distinct from editable fields. */
+.sgl-csection-calculated > .sgl-csection-body {
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  margin-bottom: var(--space-3, 12px);
+  background: var(--calc-bg, #f5f4ef);
+  border: 1px solid var(--calc-line, #dedccf);
+  border-radius: var(--radius, 6px);
+  color: var(--calc-fg, #4a4940);
+}
+
+.sgl-csection-advanced .sgl-csection-title {
+  color: var(--muted, #62625c);
+  font-weight: 600;
+}
+
+/* ── Horizontal tabs (Attributes: Node | Edge) ───────────────────────────────────────────── */
+
+.sgl-htabs-list {
+  display: flex;
+  gap: var(--space-1, 4px);
+  border-bottom: 1px solid var(--line, #e1e1dc);
+  margin-bottom: var(--space-3, 12px);
+}
+
+.sgl-htab,
+:where(.toolbar, .sgl-sidenav-panel) .sgl-htab {
+  min-height: var(--hit, 36px);
+  padding: 0 var(--space-3, 12px);
+  margin-bottom: -1px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--muted, #62625c);
+  font-weight: 600;
+}
+
+.sgl-htab:hover:not(:disabled) {
+  background: none;
+  color: var(--fg, #1f1f1d);
+}
+
+.sgl-htab.active {
+  color: var(--accent, #2c5d8f);
+  border-bottom-color: var(--accent, #2c5d8f);
+}
+
+.sgl-htab:focus-visible {
+  outline: 2px solid var(--accent, #2c5d8f);
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
+/* ── `i` concept buttons and dialogs ─────────────────────────────────────────────────────── */
+
+.sgl-info-button,
+:where(.toolbar, .sgl-sidenav-panel) .sgl-info-button {
+  position: relative;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  border: 1px solid var(--line-strong, #c9c9c2);
+  border-radius: 50%;
+  background: var(--panel, #fff);
+  color: var(--accent, #2c5d8f);
+  font: italic 700 12px/1 Georgia, 'Times New Roman', serif;
+  vertical-align: middle;
+}
+
+/* 36 × 36 hit area around the small visual circle. */
+.sgl-info-button::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.sgl-info-button:hover:not(:disabled) {
+  border-color: var(--accent, #2c5d8f);
+  background: var(--accent-soft, #edf2f8);
+}
+
+.sgl-concept-dialog {
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  padding: 0;
+  border: 1px solid var(--line-strong, #c9c9c2);
+  border-radius: var(--radius-lg, 8px);
+  background: var(--panel, #fff);
+  color: var(--fg, #1f1f1d);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
+  font-size: var(--text-md, 14px);
+  line-height: var(--leading, 1.4);
+}
+
+.sgl-concept-dialog::backdrop {
+  background: rgb(20 20 18 / 0.28);
+}
+
+.sgl-concept-box {
+  padding: var(--space-4, 16px) var(--space-4, 16px) var(--space-3, 12px);
+}
+
+.sgl-concept-title {
+  margin: 0 0 var(--space-1, 4px);
+  font-size: var(--text-xl, 18px);
+  font-weight: 650;
+}
+
+.sgl-concept-lead {
+  margin: 0 0 var(--space-3, 12px);
+  color: var(--muted, #62625c);
+}
+
+.sgl-concept-parts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3, 12px);
+  margin-top: var(--space-3, 12px);
+}
+
+.sgl-concept-part h3 {
+  margin: 0 0 2px;
+  font-size: var(--text-md, 14px);
+  font-weight: 650;
+}
+
+.sgl-concept-part p {
+  margin: 0;
+  font-size: var(--text-sm, 13px);
+  color: var(--muted, #62625c);
+}
+
+.sgl-concept-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4, 16px);
+}
+
+.sgl-concept-actions .sgl-button {
+  min-height: var(--hit, 36px);
+  padding: 0 var(--space-4, 16px);
+}
+
+/* Diagrams: neutral strokes, one accent for the meaningful element. */
+.sgl-dg {
+  display: block;
+  width: 100%;
+  height: auto;
+  padding: var(--space-2, 8px);
+  background: var(--surface-muted, #f7f7f5);
+  border: 1px solid var(--line, #e1e1dc);
+  border-radius: var(--radius, 6px);
+}
+
+.sgl-dg-room {
+  fill: var(--panel, #fff);
+  stroke: var(--fg, #1f1f1d);
+  stroke-width: 2.5;
+}
+
+.sgl-dg-room-merged {
+  fill: var(--accent-soft, #edf2f8);
+}
+
+.sgl-dg-wall {
+  stroke: var(--fg, #1f1f1d);
+  stroke-width: 2.5;
+}
+
+.sgl-dg-door {
+  fill: none;
+  stroke: var(--accent, #2c5d8f);
+  stroke-width: 1.5;
+}
+
+.sgl-dg-removed {
+  stroke: var(--muted, #62625c);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+.sgl-dg-caption,
+.sgl-dg-small {
+  font-size: 11px;
+  fill: var(--muted, #62625c);
+}
+
+.sgl-dg-label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--fg, #1f1f1d);
+}
+
+.sgl-dg-frame {
+  fill: var(--panel, #fff);
+  stroke: var(--line-strong, #c9c9c2);
+}
+
+.sgl-dg-card {
+  fill: var(--surface-muted, #f7f7f5);
+  stroke: var(--line-strong, #c9c9c2);
+}
+
+.sgl-dg-card-active {
+  fill: var(--accent-soft, #edf2f8);
+  stroke: var(--accent, #2c5d8f);
+}
+
+.sgl-dg-input {
+  fill: var(--panel, #fff);
+  stroke: var(--line-strong, #c9c9c2);
+}
+
+.sgl-dg-calc {
+  fill: var(--calc-bg, #f5f4ef);
+  stroke: var(--calc-line, #dedccf);
+  stroke-dasharray: 4 3;
+}
+
+.sgl-dg-arrow {
+  fill: none;
+  stroke: var(--accent, #2c5d8f);
+  stroke-width: 1.5;
+}
+
+.sgl-dg-module {
+  fill: var(--panel, #fff);
+  stroke: var(--fg, #1f1f1d);
+  stroke-width: 1.2;
+}
+
+.sgl-dg-glass {
+  fill: var(--accent-soft, #edf2f8);
+  stroke: var(--accent, #2c5d8f);
+  stroke-width: 1;
 }
 
 /* ── Feedback (message first, technical details on demand) ───────────────────────────────── */
 
 .sgl-feedback {
-  margin: 6px 0;
-  padding: 7px 8px;
+  margin: var(--space-2, 8px) 0;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
   border: 1px solid;
-  border-radius: 6px;
-  font-size: 12.5px;
-  line-height: 1.35;
+  border-radius: var(--radius, 6px);
+  font-size: var(--text-sm, 13px);
+  line-height: 1.4;
 }
 
 .sgl-feedback-error {
-  background: #fdecec;
-  border-color: #e3a5a5;
-  color: #6f2626;
+  background: var(--error-bg, #fbeeee);
+  border-color: var(--error-line, #e0aaaa);
+  color: var(--error-fg, #8a3030);
 }
 
 .sgl-feedback-warning {
-  background: #fdf6e3;
-  border-color: #e3cd8a;
-  color: #5e4510;
+  background: var(--warning-bg, #fbf5e6);
+  border-color: var(--warning-line, #e6d39f);
+  color: var(--warning-fg, #6b4e0f);
 }
 
 .sgl-feedback-info {
-  background: #eef3f9;
-  border-color: #b7cbe0;
+  background: var(--accent-soft, #edf2f8);
+  border-color: var(--accent-line, #b9cbe0);
   color: #24496f;
 }
 
@@ -187,7 +588,7 @@
 
 .sgl-feedback-icon {
   flex: none;
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 .sgl-feedback-text {
@@ -214,12 +615,12 @@
 }
 
 .sgl-feedback-details {
-  margin-top: 4px;
+  margin-top: var(--space-1, 4px);
 }
 
 .sgl-feedback-details summary {
   cursor: pointer;
-  font-size: 11.5px;
+  font-size: var(--text-xs, 12px);
   opacity: 0.85;
 }
 
@@ -227,40 +628,42 @@
   margin: 4px 0 0;
   padding: 5px;
   background: rgb(255 255 255 / 0.6);
-  border-radius: 4px;
+  border-radius: var(--radius-sm, 4px);
   font-size: 11px;
   white-space: pre-wrap;
   word-break: break-word;
-  color: var(--fg, #1d1d1b);
+  color: var(--fg, #1f1f1d);
 }
 
-.sgl-feedback-dismiss {
+.sgl-feedback-dismiss,
+:where(.toolbar, .sgl-sidenav-panel) .sgl-feedback-dismiss {
   flex: none;
-  padding: 0 6px !important;
-  border: none !important;
-  background: none !important;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
   color: inherit;
-  font-size: 15px !important;
-  line-height: 1.2;
+  font-size: 16px;
+  line-height: 1;
 }
 
 .sgl-feedback-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 7px;
+  margin-top: var(--space-2, 8px);
 }
 
 .sgl-feedback-actions button {
   font: inherit;
-  padding: 3px 10px;
-  border: 1px solid var(--line, #d9d9d2);
-  border-radius: 5px;
+  padding: 0 var(--space-3, 12px);
+  border: 1px solid var(--line-strong, #c9c9c2);
+  border-radius: var(--radius, 6px);
   background: var(--panel, #fff);
 }
 
-.sgl-feedback-actions button.sgl-primary,
-.sgl-primary {
+.sgl-feedback-actions button.sgl-primary {
   background: var(--accent, #2c5d8f);
   border-color: var(--accent, #2c5d8f);
   color: #fff;
@@ -270,12 +673,12 @@
 
 .sgl-placeholder p {
   margin: 0 0 6px;
-  font-size: 13px;
+  font-size: var(--text-md, 14px);
 }
 
 .sgl-placeholder .sgl-help {
-  font-size: 12px;
-  color: var(--muted, #66665f);
+  font-size: var(--text-sm, 13px);
+  color: var(--muted, #62625c);
 }
 
 .sgl-load-failure {
@@ -287,5 +690,45 @@
 
 .sgl-load-failure .sgl-feedback {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm, 13px);
+}
+
+/* Algorithms list (presentation): group headings, sublabels and effect tags. */
+.sgl-algo-group {
+  margin: 0 0 var(--space-3, 12px);
+}
+
+.sgl-algo-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2, 8px);
+  margin: 0 0 var(--space-1, 4px);
+}
+
+.sgl-algo-group-head h3 {
+  margin: 0;
+  font-size: var(--text-md, 14px);
+  font-weight: 650;
+}
+
+.sgl-algo-group-head p {
+  margin: 0;
+  font-size: var(--text-xs, 12px);
+  color: var(--muted, #62625c);
+}
+
+.sgl-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Group heading above its one-line description (narrow panels). */
+.sgl-algo-group-head {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
 }

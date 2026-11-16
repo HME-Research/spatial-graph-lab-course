@@ -36,6 +36,8 @@ import {
   type AttributeSession,
 } from '@app/session/projectAttributeStore';
 import { formatFieldValue, KIND_HELP, parseChoices, parseValueDraft, typeChoices } from './attributesModel';
+import { BUILT_IN_METRICS } from '@app/metrics/registry';
+import { CollapsibleSection, HorizontalTabs, InfoButton } from '@app/ui';
 import { HelpTip } from '@app/ui/help';
 import './attributes.css';
 
@@ -144,10 +146,12 @@ export function AttributesPanel({
 
   return (
     <div className="sgl-attributes sgl-inspector">
-      <p className="sgl-help">
-        Fields of project <strong>{project.definition.name}</strong>. Every {collection === 'nodes' ? 'room' : 'relationship'} in every design of this project has the same fields; designs store only values that differ from the defaults.
-      </p>
-      <HelpTip topicId="project-attributes" />
+      <div className="sgl-help-row">
+        <p className="sgl-help sgl-attr-intro">
+          Attributes of project <strong>{project.definition.name}</strong>, shared by every design. Values are set per item in Properties.
+        </p>
+        <HelpTip topicId="project-attributes" />
+      </div>
       <div className={`sgl-attr-status sgl-attr-status-${status.tone}`} role="status">
         {status.text}
       </div>
@@ -158,13 +162,6 @@ export function AttributesPanel({
         <button type="button" disabled={!canRedoAttributes(session)} onClick={() => onChange(redoAttributes(session))} title={canRedoAttributes(session) ? `Redo: ${attributeRedoLabel(session)}` : 'Nothing to redo in the project fields'}>
           ↷ Redo
         </button>
-        <button type="button" onClick={exportFile} title="Download the project's fields as a file (keep or share it)">
-          Export fields…
-        </button>
-        <button type="button" onClick={() => fileInput.current?.click()} title="Replace the fields with an exported attribute file">
-          Import fields…
-        </button>
-        <input ref={fileInput} type="file" accept=".json,application/json" hidden onChange={(e) => void importFile(e)} aria-label="Attribute file to import" />
       </div>
       {session.saveBlocked && (
         <div className="sgl-warning" role="alert">
@@ -195,40 +192,62 @@ export function AttributesPanel({
         </p>
       )}
 
-      <div className="segmented sgl-attr-tabs" role="group" aria-label="Field list">
-        {(['nodes', 'edges'] as const).map((c) => (
-          <button key={c} type="button" aria-pressed={collection === c} onClick={() => setCollection(c)} title={c === 'nodes' ? 'Fields of every room (node)' : 'Fields of every relationship (edge), Access and Open alike'}>
-            {c === 'nodes' ? 'Nodes' : 'Edges'} ({schema[c].length})
+      <HorizontalTabs
+        label="Attributes of"
+        active={collection}
+        onActive={setCollection}
+        tabs={(['nodes', 'edges'] as const).map((c) => ({
+          id: c,
+          label: (
+            <>
+              {c === 'nodes' ? 'Node' : 'Edge'} <span className="sgl-htab-count">({schema[c].length})</span>
+            </>
+          ),
+          description: c === 'nodes' ? 'Attributes of every room (node)' : 'Attributes of every relationship (edge), Access and Open alike',
+        }))}
+      >
+        <CollapsibleSection title="System fields" sectionId="system-fields" meta={<span className="sgl-chip sgl-chip-readonly">required</span>}>
+          <SystemFields collection={collection} />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Custom attributes" sectionId="custom-attributes" meta={String(fields.length)}>
+          {fields.length === 0 && <p className="meta">No {what} attributes yet.</p>}
+          <ul className="sgl-field-list">
+            {fields.map((field, index) => (
+              <FieldEditor
+                key={`${field.id}:${field.key}:${field.kind}`}
+                token={`${session.revision}:${refusals}`}
+                field={field}
+                index={index}
+                count={fields.length}
+                collection={collection}
+                nodeTypeDefaults={collection === 'nodes' ? Object.entries(schema.nodeTypeDefaults).flatMap(([t, d]) => (Object.prototype.hasOwnProperty.call(d, field.id) ? [[t, d[field.id]!] as const] : [])) : []}
+                types={typeChoices(project, doc?.nodes.map((n) => n.typeId) ?? [])}
+                usage={fieldUsage(field, collection, usage)}
+                references={algorithmReferences(project, fieldKeys(field))}
+                apply={apply}
+                onError={(text) => setNotice({ tone: 'error', text })}
+              />
+            ))}
+          </ul>
+          <AddField collection={collection} apply={apply} onError={(text) => setNotice({ tone: 'error', text })} />
+        </CollapsibleSection>
+
+        <CalculatedCatalogue collection={collection} />
+      </HorizontalTabs>
+
+      <CollapsibleSection title="Advanced" sectionId="attributes-advanced" defaultOpen={false} variant="advanced">
+        <div className="sgl-buttons">
+          <button type="button" onClick={exportFile} title="Download the project's fields as a file (keep or share it)">
+            Export fields…
           </button>
-        ))}
-      </div>
-
-      {fields.length === 0 && <p className="meta">No {what} fields yet.</p>}
-      <ul className="sgl-field-list">
-        {fields.map((field, index) => (
-          <FieldEditor
-            key={`${field.id}:${field.key}:${field.kind}`}
-            token={`${session.revision}:${refusals}`}
-            field={field}
-            index={index}
-            count={fields.length}
-            collection={collection}
-            nodeTypeDefaults={collection === 'nodes' ? Object.entries(schema.nodeTypeDefaults).flatMap(([t, d]) => (Object.prototype.hasOwnProperty.call(d, field.id) ? [[t, d[field.id]!] as const] : [])) : []}
-            types={typeChoices(project, doc?.nodes.map((n) => n.typeId) ?? [])}
-            usage={fieldUsage(field, collection, usage)}
-            references={algorithmReferences(project, fieldKeys(field))}
-            apply={apply}
-            onError={(text) => setNotice({ tone: 'error', text })}
-          />
-        ))}
-      </ul>
-
-      <AddField collection={collection} apply={apply} onError={(text) => setNotice({ tone: 'error', text })} />
-
-      <details className="sgl-section">
-        <summary>More</summary>
+          <button type="button" onClick={() => fileInput.current?.click()} title="Replace the fields with an exported attribute file">
+            Import fields…
+          </button>
+          <input ref={fileInput} type="file" accept=".json,application/json" hidden onChange={(e) => void importFile(e)} aria-label="Attribute file to import" />
+        </div>
         <p className="sgl-help">
-          Built-in properties (id, label, type, position, size, connection kind and corridor style) are always shown in Properties and are not custom fields. The Designer’s appearance settings are separate.
+          Built-in properties (id, label, type, position, size, connection kind and corridor style) are always shown in Properties and are not custom fields. Building Designer settings are separate.
         </p>
         <button
           type="button"
@@ -240,8 +259,60 @@ export function AttributesPanel({
         >
           Reset fields to the project files
         </button>
-      </details>
+      </CollapsibleSection>
     </div>
+  );
+}
+
+/**
+ * System-backed fields every item has (read-only here): they are edited through their own
+ * controls in Properties, never as free custom attributes.
+ */
+const SYSTEM_FIELDS: Readonly<Record<AttributeCollection, readonly { readonly label: string; readonly detail: string }[]>> = {
+  nodes: [
+    { label: 'Function', detail: 'The room type. Required; chosen from the project’s functions.' },
+    { label: 'Level', detail: 'The storey: the room’s z position. Change it with the position in Properties.' },
+  ],
+  edges: [{ label: 'Kind', detail: 'Access or Open. Required; chosen in Properties.' }],
+};
+
+function SystemFields({ collection }: { readonly collection: AttributeCollection }) {
+  return (
+    <dl className="sgl-readonly-list sgl-system-fields">
+      {SYSTEM_FIELDS[collection].map((f) => (
+        <div key={f.label} style={{ display: 'contents' }}>
+          <dt>{f.label}</dt>
+          <dd>{f.detail}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** The calculated values Properties shows for this kind of item (read-only catalogue from `app/metrics`). */
+function CalculatedCatalogue({ collection }: { readonly collection: AttributeCollection }) {
+  const metrics = BUILT_IN_METRICS.filter((m) => m.collection === collection);
+  return (
+    <CollapsibleSection
+      title="Calculated"
+      sectionId="calculated-catalogue"
+      variant="calculated"
+      meta={<span className="sgl-chip sgl-chip-readonly">read-only</span>}
+      actions={<InfoButton concept="calculated-values" />}
+    >
+      {metrics.length === 0 ? (
+        <p className="meta">No calculated values for {collection === 'nodes' ? 'rooms' : 'relationships'} yet.</p>
+      ) : (
+        <dl className="sgl-readonly-list">
+          {metrics.map((m) => (
+            <div key={m.id} style={{ display: 'contents' }}>
+              <dt>{m.label}</dt>
+              <dd>{m.unit ? `in ${m.unit}` : 'number'}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </CollapsibleSection>
   );
 }
 

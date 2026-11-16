@@ -1,19 +1,20 @@
-/* Header identity, Project section and algorithm panel (application shell). */
+/* Header identity, Project panel and Algorithms panel (application shell). Tokens from app.css. */
 
-/* One-line identity in the header: project / design, modified state, problem count. */
+/* One-line identity in the header: project / design, edit state, problem count. */
 .sgl-identity {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   overflow: hidden;
   white-space: nowrap;
-  font-size: 0.9rem;
+  font-size: var(--text-md);
 }
 
-.sgl-identity-project {
-  padding: 2px 6px;
+.toolbar .sgl-identity-project {
+  min-width: 0;
+  padding: 0 var(--space-2);
   border: 1px solid transparent;
   background: none;
   font-weight: 650;
@@ -21,83 +22,126 @@
   text-overflow: ellipsis;
 }
 
-.sgl-identity-project:hover {
+.toolbar .sgl-identity-project:hover {
   border-color: var(--line);
+  background: var(--surface-muted);
 }
 
 .sgl-identity-design {
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--muted);
+  color: var(--fg);
 }
 
 .sgl-identity-sep {
   color: var(--muted);
 }
 
-.sgl-problem-badge {
-  padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 0.8rem;
+/* Header: a quiet edit-state marker, never an alarm (decisions: no alarming permanent warning). */
+.toolbar .modified-badge {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: var(--text-sm);
+}
+
+.toolbar .sgl-problem-badge {
+  min-height: 28px;
+  padding: 0 var(--space-2);
+  border-radius: 14px;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
 .sgl-problem-badge.error {
   background: var(--error-bg);
   border-color: var(--error-line);
-  color: #8a3b3b;
+  color: var(--error-fg);
 }
 
 .sgl-problem-badge.warning {
-  background: #fdf6e3;
-  border-color: #e3cd8a;
-  color: #6e4f0f;
+  background: var(--warning-bg);
+  border-color: var(--warning-line);
+  color: var(--warning-fg);
 }
 
+/* Undo/Redo in the application header */
+.history-actions {
+  display: flex;
+  gap: var(--space-1);
+  padding-right: var(--space-2);
+  margin-right: var(--space-1);
+  border-right: 1px solid var(--line);
+}
+
+/* ── Project panel ───────────────────────────────────────────────────────────────────────── */
+
 .sgl-project-name {
-  margin: 4px 0;
+  margin: 0;
 }
 
 .sgl-source code {
   word-break: break-all;
 }
 
-.modified-badge {
-  color: #8a5a12;
-  font-weight: 600;
+.sgl-form-row.sgl-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-3);
 }
 
-.project-detail {
-  margin: 6px 0 0;
+.sgl-form-row.sgl-stacked > span {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.sgl-form-row.sgl-stacked > select {
+  flex: none;
+  width: 100%;
+}
+
+.sgl-project .sgl-readonly-list {
+  margin-bottom: var(--space-2);
+}
+
+.sgl-project .sgl-readonly-list dd {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.modified-badge {
+  color: var(--muted);
 }
 
 .project-problems,
 .project-checks {
-  margin-top: 6px;
+  margin-top: var(--space-2);
 }
 
 .project-problems summary,
 .project-checks summary {
   cursor: pointer;
   font-weight: 600;
+  font-size: var(--text-sm);
+  min-height: 28px;
 }
 
 .diagnostic-list {
-  margin: 6px 0 0;
+  margin: var(--space-1) 0 0;
   padding-left: 18px;
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
 }
 
 .diagnostic-list li {
-  margin-bottom: 3px;
+  margin-bottom: var(--space-1);
 }
 
 .diagnostic-error {
-  color: #8a3b3b;
+  color: var(--error-fg);
 }
 
 .diagnostic-warning {
-  color: #7a5a12;
+  color: var(--warning-fg);
 }
 
 .diagnostic-info {
@@ -108,30 +152,25 @@
   color: var(--muted);
 }
 
-.link-button {
-  padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  color: var(--accent, #2c5d8f);
-  text-decoration: underline;
-  cursor: pointer;
-}
+/* ── Algorithms panel ────────────────────────────────────────────────────────────────────── */
 
-/* Algorithm panel: the content of the sidebar's Algorithms tab. */
 .algorithms {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .algorithm-list {
   margin: 0;
   padding: 0;
-  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+}
+
+.algorithms .sgl-algo-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .algorithms .algorithm-item {
@@ -139,96 +178,132 @@
   width: 100%;
   justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: var(--space-1) var(--space-3);
   text-align: left;
-  background: transparent;
-  border: 1px solid var(--line, #d9d9d2);
-  border-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
+.algorithms .algorithm-item:hover:not(:disabled) {
+  background: var(--surface-muted);
+  border-color: var(--line-strong);
+}
+
 .algorithms .algorithm-item.selected {
-  border-color: var(--accent, #2c5d8f);
-  background: #eef3f9;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.algorithm-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .algorithm-label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.algorithm-term {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: var(--text-xs);
 }
 
 .algorithm-tag {
   flex: none;
-  padding: 0 5px;
-  border-radius: 3px;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: 10px;
+  border: 1px solid;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Read-only vs modifying: neutral outline vs the accent fill (one accent). */
+.algorithm-tag.effect-read-only {
+  border-color: var(--line-strong);
+  color: var(--muted);
+  background: var(--panel);
+}
+
+.algorithm-tag.effect-modifies {
+  border-color: var(--accent);
   color: #fff;
+  background: var(--accent);
 }
 
-.algorithm-tag.graph {
-  background: #4b6c8f;
+.algorithm-tag.effect-unavailable {
+  border-color: var(--error-line);
+  color: var(--error-fg);
+  background: var(--error-bg);
 }
 
-.algorithm-tag.spatial {
-  background: #6b5b8f;
-}
-
-.algorithm-tag.disabled,
-.algorithm-tag.unknown {
-  background: #b54a4a;
+.algorithm-source code {
+  font-size: var(--text-xs);
 }
 
 .algorithm-result p {
-  margin: 4px 0;
+  margin: var(--space-1) 0;
 }
 
 .algorithm-table {
-  font-size: 12px;
+  font-size: var(--text-sm);
+  border-collapse: collapse;
 }
 
 .algorithm-table th,
 .algorithm-table td {
-  padding: 2px 6px;
+  padding: 3px var(--space-2);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
 }
 
 .algorithm-notice {
   margin: 0;
-  font-size: 12px;
-  color: #3f6f48;
-}
-
-.algorithms button.apply-button {
-  font-weight: 600;
-}
-
-/* Undo/Redo in the application header */
-.history-actions {
-  display: flex;
-  gap: 4px;
-  padding-right: 6px;
-  margin-right: 2px;
-  border-right: 1px solid var(--line);
-}
-
-.history-actions button:disabled {
-  cursor: default;
-  opacity: 0.45;
-}
-
-.history-actions button:disabled:hover {
-  border-color: var(--line);
+  font-size: var(--text-sm);
+  color: var(--ok-fg);
 }
 
 .algorithm-result-header {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .algorithm-result-header h4 {
   margin: 0;
+}
+
+/* Item: name on the first line; graph-theory term and the read-only / changes-design tag below. */
+.algorithms .algorithm-item {
+  flex-direction: column;
+  align-items: stretch;
+  padding: var(--space-2) var(--space-3);
+}
+
+.algorithm-text {
+  gap: 2px;
+}
+
+.algorithm-label {
+  white-space: normal;
+}
+
+.algorithm-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
 }

@@ -3,7 +3,9 @@ import { EDGE_KINDS, isEdgeGeometryValid, type EdgeKind } from '@app/document';
 import { connectorStyleOf, nodeLabel, type ConnectorStyle, type RelationshipKind } from '@app/document/v2';
 import { EDGE_KIND_LABELS, EDGE_STYLES, formatGrid, orientationOf } from '@app/views/graph2d/diagram';
 import {
+  CollapsibleSection,
   CONNECTOR_STYLE_CHOICES,
+  InfoButton,
   describeResolution,
   Feedback,
   IssueFeedback,
@@ -12,9 +14,10 @@ import {
 } from '@app/ui';
 import { selectNode } from '@core/viewer/selection';
 import { useContext } from 'react';
-import { CustomAttributes } from '@app/attributes/CustomAttributes';
+import { CustomAttributes, ManageAttributesLink } from '@app/attributes/CustomAttributes';
 import { OpenAttributesContext } from '@app/attributes/navigation';
 import { StoredData } from './AttributeEditors';
+import { CalculatedValues } from './CalculatedValues';
 import { messageContextFor, useCommands, type PanelProps } from './panelSupport';
 
 /** Properties of one relationship. v2 (with the design port): Access/Open, status, connector. */
@@ -65,93 +68,109 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: string }) {
 
       <IssueFeedback issues={issues} context={messageContextFor(props)} onDismiss={clearIssues} />
 
-      <section className="sgl-section">
-        <h4>Connects</h4>
-        <ul className="sgl-list">
-          {rooms.map(
-            (n, i) =>
-              n && (
-                <li key={i}>
-                  <button type="button" className="sgl-link" onClick={() => onSelect(selectNode(n.id))} title="Show this room">
-                    room {nodeLabel(n)}
-                  </button>{' '}
-                  <span className="meta">
-                    {n.typeId} · at {formatGrid(n.grid)}
-                  </span>
-                </li>
-              ),
-          )}
-        </ul>
-      </section>
+      <CollapsibleSection title="Identity" sectionId="identity">
+        <section className="sgl-section">
+          <h4>Connects</h4>
+          <ul className="sgl-list">
+            {rooms.map(
+              (n, i) =>
+                n && (
+                  <li key={i}>
+                    <button type="button" className="sgl-link" onClick={() => onSelect(selectNode(n.id))} title="Show this room">
+                      room {nodeLabel(n)}
+                    </button>{' '}
+                    <span className="meta">
+                      {n.typeId} · at {formatGrid(n.grid)}
+                    </span>
+                  </li>
+                ),
+            )}
+          </ul>
+        </section>
 
-      <fieldset className="sgl-section">
-        <legend>Kind</legend>
-        <HelpTip topicId="access-open" />
-        <div className="sgl-segmented" role="radiogroup" aria-label="Relationship kind">
-          {RELATIONSHIP_KIND_CHOICES.map((c) => (
-            <label key={c.value} className={edge.kind === c.value ? 'checked' : undefined} title={c.description}>
-              <input type="radio" name={`kind-${edgeId}`} value={c.value} checked={edge.kind === c.value} onChange={() => setKind(c.value)} />
-              {c.label}
-            </label>
-          ))}
-        </div>
-        {kindChoice && <p className="sgl-help">{kindChoice.description}</p>}
-      </fieldset>
+        <fieldset className="sgl-section">
+          <legend>
+            <span className="sgl-legend-row">
+              Kind <InfoButton concept="access-open" />
+            </span>
+          </legend>
+          <div className="sgl-segmented" role="radiogroup" aria-label="Relationship kind">
+            {RELATIONSHIP_KIND_CHOICES.map((c) => (
+              <label key={c.value} className={edge.kind === c.value ? 'checked' : undefined} title={c.description}>
+                <input type="radio" name={`kind-${edgeId}`} value={c.value} checked={edge.kind === c.value} onChange={() => setKind(c.value)} />
+                {c.label}
+              </label>
+            ))}
+          </div>
+          {kindChoice && <p className="sgl-help">{kindChoice.description}</p>}
+        </fieldset>
+      </CollapsibleSection>
 
-      <section className="sgl-section" aria-live="polite">
-        <div className="sgl-help-row">
-          <h4>In the building</h4> <HelpTip topicId={resolution?.status === 'unresolved' ? 'unresolved' : 'relationship-status'} />
-        </div>
-        {status && resolution ? (
-          status.tone === 'warning' && resolution.status === 'unresolved' ? (
-            <Feedback
-              tone="warning"
-              title="Unresolved: nothing can be built yet. The relationship is kept."
-              messages={[{ text: status.detail, technical: `${resolution.reason} · ${resolution.message}` }]}
-            />
+      <CollapsibleSection title="Geometry" sectionId="geometry">
+        <section className="sgl-section" aria-live="polite">
+          <div className="sgl-help-row">
+            <h4>In the building</h4> <HelpTip topicId={resolution?.status === 'unresolved' ? 'unresolved' : 'relationship-status'} />
+          </div>
+          {status && resolution ? (
+            status.tone === 'warning' && resolution.status === 'unresolved' ? (
+              <Feedback
+                tone="warning"
+                title="Unresolved: nothing can be built yet. The relationship is kept."
+                messages={[{ text: status.detail, technical: `${resolution.reason} · ${resolution.message}` }]}
+              />
+            ) : (
+              <p className="sgl-status">
+                <span className="sgl-chip sgl-chip-ok">{status.title}</span> {status.detail}
+              </p>
+            )
           ) : (
-            <p className="sgl-status">
-              <span className="sgl-chip sgl-chip-ok">{status.title}</span> {status.detail}
+            <p className="meta">No spatial status available.</p>
+          )}
+          <p className="sgl-help">A relationship says how rooms connect. It is not a guarantee of a designed stair or corridor.</p>
+        </section>
+
+        {resolution?.status === 'routed' ? (
+          <fieldset className="sgl-section">
+            <legend>Corridor style</legend>
+            <HelpTip topicId="connector-style" />
+            <select value={style} aria-label="Corridor style" onChange={(e) => setStyle(e.currentTarget.value as ConnectorStyle)}>
+              {CONNECTOR_STYLE_CHOICES.map((c) => (
+                <option key={c.value} value={c.value} title={c.description}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <p className="sgl-help">{CONNECTOR_STYLE_CHOICES.find((c) => c.value === style)?.description}</p>
+          </fieldset>
+        ) : (
+          edge.connectorStyle !== undefined && (
+            <p className="sgl-help">
+              Corridor style “{CONNECTOR_STYLE_CHOICES.find((c) => c.value === edge.connectorStyle)?.label}” is stored. It is
+              used only when a corridor is generated.
             </p>
           )
-        ) : (
-          <p className="meta">No spatial status available.</p>
         )}
-        <p className="sgl-help">A relationship says how rooms connect. It is not a guarantee of a designed stair or corridor.</p>
-      </section>
-
-      {resolution?.status === 'routed' ? (
-        <fieldset className="sgl-section">
-          <legend>Corridor style</legend>
-          <HelpTip topicId="connector-style" />
-          <select value={style} aria-label="Corridor style" onChange={(e) => setStyle(e.currentTarget.value as ConnectorStyle)}>
-            {CONNECTOR_STYLE_CHOICES.map((c) => (
-              <option key={c.value} value={c.value} title={c.description}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-          <p className="sgl-help">{CONNECTOR_STYLE_CHOICES.find((c) => c.value === style)?.description}</p>
-        </fieldset>
-      ) : (
-        edge.connectorStyle !== undefined && (
-          <p className="sgl-help">
-            Corridor style “{CONNECTOR_STYLE_CHOICES.find((c) => c.value === edge.connectorStyle)?.label}” is stored. It is
-            used only when a corridor is generated.
-          </p>
-        )
-      )}
+      </CollapsibleSection>
 
       {project && (
-        <CustomAttributes
-          collection="edges"
-          item={edge}
-          schema={project.attributes}
-          run={runV2}
-          onError={(message) => showIssues([{ path: ['attributes'], code: 'schema', message }])}
-          {...(openAttributes && { onManage: () => openAttributes('edges') })}
-        />
+        <CollapsibleSection
+          title="Attributes"
+          sectionId="attributes"
+          actions={openAttributes ? <ManageAttributesLink onManage={() => openAttributes('edges')} /> : undefined}
+        >
+          <CustomAttributes
+            collection="edges"
+            item={edge}
+            schema={project.attributes}
+            run={runV2}
+            onError={(message) => showIssues([{ path: ['attributes'], code: 'schema', message }])}
+            showHeader={false}
+            {...(openAttributes && { onManage: () => openAttributes('edges') })}
+          />
+        </CollapsibleSection>
       )}
+
+      <CalculatedValues design={design} collection="edges" itemId={edgeId} />
 
       <RemoveConnection onRemove={() => runShared({ type: 'remove-edge', edgeId })} />
       <StoredData record={edge} />

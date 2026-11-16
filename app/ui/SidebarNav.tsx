@@ -20,26 +20,111 @@ export interface SidebarNavProps {
   readonly tabs: readonly SidebarNavTab[];
   readonly active: string;
   readonly onActive: (id: string) => void;
-  /** Collapsed: only the icon strip is shown (icons keep their tooltip and accessible name). */
+  /** Collapsed: only the rail is shown (destinations keep their icon and visible label). */
   readonly collapsed: boolean;
   readonly onCollapsedChange: (collapsed: boolean) => void;
   /** Accessible name of the whole sidebar. */
   readonly label?: string;
   /** Which window edge the rail sits on (default right). The rail is always on the outer edge. */
   readonly side?: 'left' | 'right';
+  /**
+   * Show a collapse button in the rail. Default: only on the right. The LEFT pane is collapsed by
+   * the host's centred chevron (Workspace), so a second Show/Hide control there would duplicate it.
+   */
+  readonly collapseToggle?: boolean;
 }
 
 /**
- * Right-hand sidebar with VERTICAL section navigation (Properties / Algorithms / Designer).
+ * Sidebar with VERTICAL destination navigation (Gate F rail) or, with exactly one tab, a single
+ * titled panel without a tab strip (Properties: no redundant tab).
  *
- * - The strip sits on the outer (right) edge; labels are horizontal and fully readable.
- * - Every panel stays mounted while hidden, so switching sections or collapsing the sidebar keeps
- *   drafts, algorithm results and persistent diagnostics.
- * - Keyboard: Tab focuses the active section; ArrowUp/ArrowDown/Home/End move between sections.
+ * - Several tabs: the rail sits on the outer edge; every destination has an icon and an
+ *   always-visible label. Keyboard: Tab focuses the active destination; ArrowUp/ArrowDown/Home/End
+ *   move between destinations.
+ * - One tab: the panel shows its title and a collapse button; collapsed, a slim strip keeps one
+ *   labelled button that opens it again (`#sidebar-tab-<id>`).
+ * - Every panel stays mounted while hidden, so switching or collapsing keeps drafts, algorithm
+ *   results and diagnostics.
  *
- * Layout only; the host (Workspace) decides its grid width with `--sidebar-width`.
+ * Layout only; the host (Workspace) decides the grid width.
  */
-export function SidebarNav({ tabs, active, onActive, collapsed, onCollapsedChange, label = 'Sidebar', side = 'right' }: SidebarNavProps) {
+export function SidebarNav(props: SidebarNavProps) {
+  return props.tabs.length === 1 ? <SinglePanel {...props} tab={props.tabs[0]!} /> : <TabbedRail {...props} />;
+}
+
+const CHEVRON_PROPS = {
+  width: 16,
+  height: 16,
+  viewBox: '0 0 16 16',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.7,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+} as const;
+
+/** Chevron pointing `towards` the direction the pane will move. */
+export function ChevronIcon({ towards }: { readonly towards: 'left' | 'right' }) {
+  return (
+    <svg {...CHEVRON_PROPS} aria-hidden="true">
+      <path d={towards === 'left' ? 'M10 3.5 5.5 8l4.5 4.5' : 'M6 3.5 10.5 8 6 12.5'} />
+    </svg>
+  );
+}
+
+function SinglePanel({ tab, collapsed, onCollapsedChange, label = 'Sidebar', side = 'right' }: SidebarNavProps & { readonly tab: SidebarNavTab }) {
+  const outward = side === 'right' ? 'right' : 'left';
+  const inward = side === 'right' ? 'left' : 'right';
+  return (
+    <aside className={`sgl-sidenav sgl-sidenav-single side-${side}${collapsed ? ' collapsed' : ''}`} aria-label={label}>
+      {collapsed && (
+        <div className="sgl-sidenav-strip">
+          <button
+            type="button"
+            id={`sidebar-tab-${tab.id}`}
+            className="sgl-sidenav-tab"
+            aria-expanded={false}
+            aria-controls={`sidebar-panel-${tab.id}`}
+            aria-label={`Show ${tab.label}`}
+            title={`Show ${tab.label}: ${tab.description}`}
+            onClick={() => onCollapsedChange(false)}
+          >
+            <span className="sgl-sidenav-icon" aria-hidden="true">
+              {tab.icon}
+            </span>
+            <span className="sgl-sidenav-label">{tab.label}</span>
+            <span className="sgl-sidenav-icon sgl-sidenav-expand" aria-hidden="true">
+              <ChevronIcon towards={inward} />
+            </span>
+          </button>
+        </div>
+      )}
+      <div className="sgl-sidenav-panels" hidden={collapsed}>
+        <div role="region" id={`sidebar-panel-${tab.id}`} aria-labelledby={`sidebar-heading-${tab.id}`} className="sgl-sidenav-panel" hidden={collapsed}>
+          <div className="sgl-sidenav-panel-head">
+            <h2 id={`sidebar-heading-${tab.id}`} className="sgl-sidenav-heading">
+              {tab.label}
+            </h2>
+            <button
+              type="button"
+              className="sgl-icon-button"
+              aria-expanded={!collapsed}
+              aria-controls={`sidebar-panel-${tab.id}`}
+              aria-label={`Hide ${tab.label}`}
+              title={`Hide ${tab.label} to give the views more room`}
+              onClick={() => onCollapsedChange(true)}
+            >
+              <ChevronIcon towards={outward} />
+            </button>
+          </div>
+          {tab.content}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function TabbedRail({ tabs, active, onActive, collapsed, onCollapsedChange, label = 'Sidebar', side = 'right', collapseToggle = side === 'right' }: SidebarNavProps) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const activeIndex = Math.max(
     0,
@@ -61,57 +146,58 @@ export function SidebarNav({ tabs, active, onActive, collapsed, onCollapsedChang
   };
 
   const panels = (
-      <div className="sgl-sidenav-panels" hidden={collapsed}>
-        {tabs.map((tab, i) => (
-          <div
-            key={tab.id}
-            role="tabpanel"
-            id={`sidebar-panel-${tab.id}`}
-            aria-labelledby={`sidebar-tab-${tab.id}`}
-            className="sgl-sidenav-panel"
-            hidden={collapsed || i !== activeIndex}
-          >
-            <h2 className="sgl-sidenav-heading">{tab.label}</h2>
-            {tab.content}
-          </div>
-        ))}
-      </div>
+    <div className="sgl-sidenav-panels" hidden={collapsed}>
+      {tabs.map((tab, i) => (
+        <div
+          key={tab.id}
+          role="tabpanel"
+          id={`sidebar-panel-${tab.id}`}
+          aria-labelledby={`sidebar-tab-${tab.id}`}
+          className="sgl-sidenav-panel"
+          hidden={collapsed || i !== activeIndex}
+        >
+          <h2 className="sgl-sidenav-heading">{tab.label}</h2>
+          {tab.content}
+        </div>
+      ))}
+    </div>
   );
   const strip = (
-      <nav className="sgl-sidenav-strip" aria-label={`${label} sections`}>
-        <div role="tablist" aria-orientation="vertical" aria-label={`${label} sections`} className="sgl-sidenav-tabs">
-          {tabs.map((tab, i) => {
-            const selected = i === activeIndex;
-            return (
-              <button
-                key={tab.id}
-                ref={(el) => {
-                  buttons.current[i] = el;
-                }}
-                type="button"
-                role="tab"
-                id={`sidebar-tab-${tab.id}`}
-                aria-selected={selected && !collapsed}
-                aria-controls={`sidebar-panel-${tab.id}`}
-                aria-label={collapsed ? `${tab.label} (opens the sidebar)` : tab.label}
-                tabIndex={selected ? 0 : -1}
-                title={tab.description}
-                className={selected && !collapsed ? 'sgl-sidenav-tab active' : 'sgl-sidenav-tab'}
-                onKeyDown={(e) => onKeyDown(e, i)}
-                onClick={() => {
-                  onActive(tab.id);
-                  if (collapsed) onCollapsedChange(false);
-                }}
-              >
-                <span className="sgl-sidenav-icon" aria-hidden="true">
-                  {tab.icon}
-                </span>
-                <span className="sgl-sidenav-label">{tab.label}</span>
-                {tab.badge !== undefined && <span className="sgl-sidenav-badge">{tab.badge}</span>}
-              </button>
-            );
-          })}
-        </div>
+    <nav className="sgl-sidenav-strip" aria-label={`${label} sections`}>
+      <div role="tablist" aria-orientation="vertical" aria-label={`${label} sections`} className="sgl-sidenav-tabs">
+        {tabs.map((tab, i) => {
+          const selected = i === activeIndex;
+          return (
+            <button
+              key={tab.id}
+              ref={(el) => {
+                buttons.current[i] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`sidebar-tab-${tab.id}`}
+              aria-selected={selected && !collapsed}
+              aria-controls={`sidebar-panel-${tab.id}`}
+              aria-label={collapsed ? `${tab.label} (opens the panel)` : tab.label}
+              tabIndex={selected ? 0 : -1}
+              title={tab.description}
+              className={selected && !collapsed ? 'sgl-sidenav-tab active' : 'sgl-sidenav-tab'}
+              onKeyDown={(e) => onKeyDown(e, i)}
+              onClick={() => {
+                onActive(tab.id);
+                if (collapsed) onCollapsedChange(false);
+              }}
+            >
+              <span className="sgl-sidenav-icon" aria-hidden="true">
+                {tab.icon}
+              </span>
+              <span className="sgl-sidenav-label">{tab.label}</span>
+              {tab.badge !== undefined && <span className="sgl-sidenav-badge">{tab.badge}</span>}
+            </button>
+          );
+        })}
+      </div>
+      {collapseToggle && (
         <button
           type="button"
           className="sgl-sidenav-toggle"
@@ -120,10 +206,10 @@ export function SidebarNav({ tabs, active, onActive, collapsed, onCollapsedChang
           aria-label={collapsed ? `Show ${label}` : `Hide ${label}`}
           onClick={() => onCollapsedChange(!collapsed)}
         >
-          <span aria-hidden="true">{(side === 'right') === collapsed ? '«' : '»'}</span>
-          <span className="sgl-sidenav-label">{collapsed ? 'Show' : 'Hide'}</span>
+          <ChevronIcon towards={(side === 'right') === collapsed ? 'left' : 'right'} />
         </button>
-      </nav>
+      )}
+    </nav>
   );
   return (
     <aside className={`sgl-sidenav side-${side}${collapsed ? ' collapsed' : ''}`} aria-label={label}>
