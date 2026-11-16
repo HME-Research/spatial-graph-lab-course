@@ -207,10 +207,15 @@ for (let i = 1; i <= 3; i++) {
   await step(`load/fresh-${i}`, async () => {
     const errorsBefore = consoleErrors.length;
     await page.send('Page.navigate', { url });
+    // Welcome is always shown at startup (workstream B): open the example as a new local project.
+    await waitFor(`!!document.querySelector('.sgl-welcome')`, 'the Welcome screen', 20000);
+    await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try Example'))?.click(); true`);
     await waitFor(`document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node').length > 0`, 'the design', 20000);
     await helpers();
-    const bar = await evaluate(`document.querySelector('.project-bar')?.innerText ?? ''`);
-    expect(/Example gallery/.test(bar), `project bar: ${bar.slice(0, 120)}`);
+    // The code project (types, algorithms) of the local project is activated.
+    await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the code project to activate', 20000);
+    const bar = await evaluate(`document.querySelector('.sgl-identity-project')?.title ?? ''`);
+    expect(/types from example-gallery/.test(bar), `project identity: ${bar.slice(0, 120)}`);
     expect(consoleErrors.length === errorsBefore, `console errors: ${consoleErrors.slice(errorsBefore).join(' | ')}`);
     return `project active, ${(await evaluate('__wf.nodes()')).length} rooms, no console errors`;
   });
@@ -504,6 +509,7 @@ await step('fail/unknown-type-import', async () => {
 
 // ── 3. coordination across the four views ────────────────────────────────────────────────────
 await step('views/coordinated-selection', async () => {
+  await evaluate(`__wf.tab('project'); true`);
   await evaluate(`__wf.click('Load example'); true`);
   await waitFor(`__wf.nodes().length === 6`, 'the example');
   await selectNodeInGraph('store');
