@@ -635,11 +635,14 @@
   color: var(--fg, #1f1f1d);
 }
 
-.sgl-feedback-dismiss,
-:where(.toolbar, .sgl-sidenav-panel) .sgl-feedback-dismiss {
+/* 36 × 36 hit area; the negative margin keeps the message box compact. */
+.sgl-feedback-dismiss {
   flex: none;
-  min-width: 28px;
-  min-height: 28px;
+  width: var(--hit, 36px);
+  min-width: var(--hit, 36px);
+  height: var(--hit, 36px);
+  min-height: var(--hit, 36px);
+  margin: -8px -10px -8px 0;
   padding: 0;
   border: none;
   background: none;

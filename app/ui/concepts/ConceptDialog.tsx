@@ -1,6 +1,6 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { FOCUSABLE_SELECTOR, trappedFocusIndex } from '../navigation';
+import { domFocusScope, handleDialogKeyDown } from './dialogKeys';
 import { ConceptDiagram } from './ConceptDiagrams';
 import { CONCEPTS, type Concept, type ConceptId } from './concepts';
 import '../ui.css';
@@ -41,6 +41,8 @@ export function ConceptContent({ concept, titleId, descriptionId }: { readonly c
 export function ConceptDialog({ concept, onClose }: { readonly concept: Concept; readonly onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const id = useId();
   const titleId = `${id}-title`;
   const descriptionId = `${id}-lead`;
@@ -51,25 +53,15 @@ export function ConceptDialog({ concept, onClose }: { readonly concept: Concept;
     if (typeof el.showModal === 'function' && !el.open) el.showModal();
     else el.setAttribute('open', '');
     close.current?.focus();
+    // A NATIVE listener on the dialog element: it stops every key before it can bubble to the
+    // window-level shortcuts (React's own listener sits higher up, on the portal container).
+    const onKeyDown = (event: KeyboardEvent) => handleDialogKeyDown(event, () => domFocusScope(el), () => onCloseRef.current());
+    el.addEventListener('keydown', onKeyDown);
     return () => {
+      el.removeEventListener('keydown', onKeyDown);
       if (el.open && typeof el.close === 'function') el.close();
     };
   }, []);
-
-  const onKeyDown = (event: KeyboardEvent<HTMLDialogElement>) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      onClose();
-      return;
-    }
-    if (event.key !== 'Tab' || !dialog.current) return;
-    const focusable = [...dialog.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)];
-    const next = trappedFocusIndex(focusable.indexOf(document.activeElement as HTMLElement), focusable.length, event.shiftKey);
-    if (next === null) return;
-    event.preventDefault();
-    focusable[next]?.focus();
-  };
 
   // A click on the backdrop targets the <dialog> element itself (its content is in the inner box).
   const onClick = (event: MouseEvent<HTMLDialogElement>) => {
@@ -83,7 +75,6 @@ export function ConceptDialog({ concept, onClose }: { readonly concept: Concept;
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
       aria-modal="true"
-      onKeyDown={onKeyDown}
       onClick={onClick}
       onCancel={(event) => {
         event.preventDefault();

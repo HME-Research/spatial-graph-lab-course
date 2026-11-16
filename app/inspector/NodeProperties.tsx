@@ -295,7 +295,6 @@ function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { rea
 
   return (
     <section className="sgl-section">
-
       {incident.length === 0 && <p className="meta">No relationships yet.</p>}
       <ul className="sgl-list sgl-relations">
         {incident.map((e) => {
@@ -351,7 +350,6 @@ function ConnectionsV1({ doc, onSelect, nodeId, runV1 }: PanelProps & { readonly
   };
   return (
     <section className="sgl-section">
-
       {incident.length === 0 && <p className="meta">No relationships yet.</p>}
       <ul className="sgl-list">
         {incident.map((e) => {

@@ -32,13 +32,11 @@ export function HorizontalTabs<T extends string>({
   const tabId = (id: T) => `${base}-tab-${id}`;
   const panelId = `${base}-panel`;
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const next = nextTabIndex(event.key, index, tabs.map(() => false), 'horizontal');
-    if (next === null) return;
+    const target = tabKeyTarget(event.key, index, tabs.map((t) => t.id));
+    if (!target) return;
     event.preventDefault();
-    const tab = tabs[next];
-    if (!tab) return;
-    onActive(tab.id);
-    buttons.current[next]?.focus();
+    onActive(target.id);
+    buttons.current[target.index]?.focus();
   };
   return (
     <div className="sgl-htabs">
@@ -72,4 +70,15 @@ export function HorizontalTabs<T extends string>({
       </div>
     </div>
   );
+}
+
+/**
+ * Keyboard behaviour of the horizontal tabs (pure): which tab an arrow, Home or End key activates
+ * and focuses, or null when the key is not a tab-list key (Tab, ArrowUp, letters …).
+ */
+export function tabKeyTarget<T extends string>(key: string, index: number, ids: readonly T[]): { readonly id: T; readonly index: number } | null {
+  const next = nextTabIndex(key, index, ids.map(() => false), 'horizontal');
+  if (next === null) return null;
+  const id = ids[next];
+  return id === undefined ? null : { id, index: next };
 }

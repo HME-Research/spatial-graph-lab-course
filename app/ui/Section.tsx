@@ -20,6 +20,9 @@ export interface CollapsibleSectionProps {
   readonly sectionId?: string;
 }
 
+/** The toggle button press (pure): collapse an open section, open a collapsed one. */
+export const toggleSection = (open: boolean): boolean => !open;
+
 /**
  * Collapsible section (WAI-ARIA disclosure pattern): the heading contains one button with
  * `aria-expanded` / `aria-controls`; the body stays MOUNTED while collapsed (`hidden`), so drafts
@@ -47,7 +50,7 @@ export function CollapsibleSection({
     <section className={classes} data-section={sectionId}>
       <div className="sgl-csection-head">
         <Heading className="sgl-csection-title">
-          <button type="button" className="sgl-csection-toggle" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((o) => !o)}>
+          <button type="button" className="sgl-csection-toggle" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen(toggleSection)}>
             <svg className="sgl-csection-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
               <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

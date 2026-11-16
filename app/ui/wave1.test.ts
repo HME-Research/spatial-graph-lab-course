@@ -2,12 +2,13 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { groupAlgorithms, KNOWN_ALGORITHMS, presentAlgorithm, type AlgorithmPresentationInput } from './algorithmGroups';
-import { CONCEPT_IDS, CONCEPTS, conceptOf, ConceptContent, InfoButton } from './concepts';
+import { historyShortcut } from '@app/session/shortcuts';
+import { CONCEPT_IDS, CONCEPTS, conceptOf, ConceptContent, handleDialogKeyDown, InfoButton, type DialogFocusScope } from './concepts';
 import { PROPERTIES_DESCRIPTION, PROPERTIES_LABEL } from './labels';
 import { nextTabIndex, trappedFocusIndex } from './navigation';
-import { CollapsibleSection } from './Section';
+import { CollapsibleSection, toggleSection } from './Section';
 import { PropertiesIcon, SidebarNav } from './SidebarNav';
-import { HorizontalTabs } from './Tabs';
+import { HorizontalTabs, tabKeyTarget } from './Tabs';
 
 describe('collapsible sections', () => {
   it('is a disclosure whose heading button controls the body', () => {
@@ -168,5 +169,97 @@ describe('Algorithms grouping (Explore / Analyse / Generate)', () => {
     expect(groups.map((g) => g.group)).toEqual(['explore', 'analyse', 'generate']);
     expect(groups.map((g) => g.items.map((i) => i.index))).toEqual([[2], [1], [0]]);
     expect(groupAlgorithms([entry('a', 'graph')]).map((g) => g.group)).toEqual(['analyse']);
+  });
+});
+
+// ── Behaviour (audit repairs) ─────────────────────────────────────────────────────────────────
+// The vitest environment is `node` with no DOM library (adding jsdom would be a new dependency),
+// so interaction is tested through the pure handlers the components call, driven by small fakes
+// that follow DOM event semantics. The real browser flow (Escape, Tab trap, focus return, no
+// undo while the dialog is open) is additionally scripted in the CDP browser check.
+
+/** A keydown on the dialog that bubbles to a window listener unless propagation is stopped. */
+function dispatchThroughDialog(init: { key: string; shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean }, scope: () => DialogFocusScope, onClose: () => void) {
+  const log = { stopped: false, prevented: false, windowSaw: null as string | null };
+  const event = {
+    key: init.key,
+    shiftKey: init.shiftKey ?? false,
+    ctrlKey: init.ctrlKey ?? false,
+    metaKey: init.metaKey ?? false,
+    altKey: false,
+    isComposing: false,
+    get defaultPrevented() {
+      return log.prevented;
+    },
+    preventDefault: () => void (log.prevented = true),
+    stopPropagation: () => void (log.stopped = true),
+  };
+  handleDialogKeyDown(event, scope, onClose); // target phase: the <dialog> element
+  if (!log.stopped) log.windowSaw = historyShortcut(event, null); // App's window listener
+  return log;
+}
+
+const focusables = (n: number, active: number) => {
+  const focused: number[] = [];
+  const scope = (): DialogFocusScope => ({ focusable: Array.from({ length: n }, (_, i) => ({ focus: () => void focused.push(i) })), activeIndex: active });
+  return { scope, focused };
+};
+
+describe('concept dialog keyboard behaviour', () => {
+  it('Escape closes the dialog and does not reach the page', () => {
+    let closed = 0;
+    const { scope } = focusables(1, 0);
+    const log = dispatchThroughDialog({ key: 'Escape' }, scope, () => void closed++);
+    expect(closed).toBe(1);
+    expect(log).toMatchObject({ stopped: true, prevented: true, windowSaw: null });
+  });
+
+  it('Tab and Shift+Tab wrap inside the dialog', () => {
+    const last = focusables(3, 2);
+    dispatchThroughDialog({ key: 'Tab' }, last.scope, () => {});
+    expect(last.focused).toEqual([0]);
+    const first = focusables(3, 0);
+    expect(dispatchThroughDialog({ key: 'Tab', shiftKey: true }, first.scope, () => {}).prevented).toBe(true);
+    expect(first.focused).toEqual([2]);
+    const outside = focusables(2, -1);
+    dispatchThroughDialog({ key: 'Tab' }, outside.scope, () => {});
+    expect(outside.focused).toEqual([0]);
+  });
+
+  it('keeps Ctrl+Z, Ctrl+Y and Cmd+Shift+Z away from the window undo listener while open', () => {
+    let closed = 0;
+    for (const init of [{ key: 'z', ctrlKey: true }, { key: 'y', ctrlKey: true }, { key: 'Z', metaKey: true, shiftKey: true }]) {
+      const log = dispatchThroughDialog(init, focusables(1, 0).scope, () => void closed++);
+      expect(log.stopped, init.key).toBe(true);
+      expect(log.windowSaw, init.key).toBeNull();
+    }
+    expect(closed).toBe(0);
+    // Control: the same event without the dialog would undo.
+    expect(historyShortcut({ key: 'z', ctrlKey: true, metaKey: false, shiftKey: false, altKey: false, isComposing: false, defaultPrevented: false }, null)).toBe('undo');
+  });
+
+  it('other keys (Enter on Close) are not prevented, so the button still activates', () => {
+    const log = dispatchThroughDialog({ key: 'Enter' }, focusables(1, 0).scope, () => {});
+    expect(log).toMatchObject({ stopped: true, prevented: false });
+  });
+});
+
+describe('section toggle and tab keys', () => {
+  it('a toggle press opens a collapsed section and collapses an open one', () => {
+    expect(toggleSection(true)).toBe(false);
+    expect(toggleSection(toggleSection(true))).toBe(true);
+    const closed = renderToStaticMarkup(createElement(CollapsibleSection, { title: 'S', defaultOpen: toggleSection(true), children: 'x' }));
+    expect(closed).toMatch(/aria-expanded="false"[\s\S]*hidden=""/);
+  });
+
+  it('ArrowLeft/ArrowRight/Home/End activate and focus the target tab; other keys do nothing', () => {
+    const ids = ['nodes', 'edges'] as const;
+    expect(tabKeyTarget('ArrowRight', 0, ids)).toEqual({ id: 'edges', index: 1 });
+    expect(tabKeyTarget('ArrowRight', 1, ids)).toEqual({ id: 'nodes', index: 0 });
+    expect(tabKeyTarget('ArrowLeft', 0, ids)).toEqual({ id: 'edges', index: 1 });
+    expect(tabKeyTarget('End', 0, ids)).toEqual({ id: 'edges', index: 1 });
+    expect(tabKeyTarget('Home', 1, ids)).toEqual({ id: 'nodes', index: 0 });
+    for (const key of ['ArrowDown', 'ArrowUp', 'Tab', 'Enter', 'a']) expect(tabKeyTarget(key, 0, ids)).toBeNull();
+    expect(tabKeyTarget('ArrowRight', 0, [])).toBeNull();
   });
 });

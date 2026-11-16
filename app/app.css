@@ -16,7 +16,6 @@
   --accent-hover: #234b74;
   --accent-soft: #edf2f8;
   --accent-line: #b9cbe0;
-  --focus-ring: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent);
   /* Read-only calculated values: a quiet tint, never the accent. */
   --calc-bg: #f5f4ef;
   --calc-line: #dedccf;
@@ -123,35 +122,53 @@ body {
 
 /* ── Controls ────────────────────────────────────────────────────────────────────────────── */
 
-/* Base look of every button (views keep their own sizes). */
+/*
+ * Base look of every button: exactly the Gate F global rule, so view-owned controls (Graph 2D,
+ * React Flow, 3D overlays, room editor) keep the styles they were built against.
+ */
 button,
 .file-button {
   font: inherit;
   padding: 6px 12px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
-  color: var(--fg);
   cursor: pointer;
 }
 
-button:hover:not(:disabled),
+button:hover,
 .file-button:hover {
-  background: var(--surface-hover);
+  border-color: var(--accent);
 }
 
 /*
- * Shell chrome (header, side panels): 36 px hit areas and 14 px text. `:where()` keeps the
- * specificity at zero, so link-style and icon buttons (any class rule) opt out easily.
+ * Shell chrome only (A-owned containers: header, side panels and rail, viewport headers, concept
+ * dialogs). The container is wrapped in `:where()` so each rule has the specificity of a bare
+ * `button` (0,0,1) or `button:pseudo` (0,1,1): later than the base rule, it wins over it, but ANY
+ * class rule (`.sgl-sidenav-tab.active`, `.sgl-link`, `.sgl-icon-button` …) still wins over it.
  */
-:where(.toolbar, .sgl-sidenav-panel) :where(button, .file-button) {
+:where(.toolbar, .sgl-sidenav-panel, .sgl-concept-dialog) button,
+:where(.toolbar) .file-button {
   min-height: var(--hit);
   padding: 0 var(--space-3);
+  border-color: var(--line-strong);
+  color: var(--fg);
   font-size: var(--text-md);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
+}
+
+:where(.toolbar, .sgl-sidenav, .panel-header, .sgl-concept-dialog) button:where(:hover:not(:disabled)) {
+  border-color: var(--line-strong);
+  background: var(--surface-hover);
+}
+
+:where(.toolbar, .sgl-sidenav, .panel-header, .sgl-concept-dialog) button:where(:disabled) {
+  border-color: var(--line);
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 :where(.sgl-sidenav-panel) :where(select, input:not([type='checkbox']):not([type='radio']):not([type='range'])) {
@@ -163,19 +180,14 @@ button:hover:not(:disabled),
   font-size: var(--text-md);
 }
 
-button:focus-visible,
-.file-button:focus-within,
-select:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-summary:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+/*
+ * Focus ring of shell controls: an outline drawn INSIDE the control's box edge (offset -2px), so a
+ * parent with `overflow: hidden` (viewport panels, scrolling side panels) never clips it.
+ */
+:where(.toolbar, .sgl-sidenav, .panel-header, .left-pane, .sgl-concept-dialog) :where(button, select, input, textarea, summary):focus-visible,
+:where(.toolbar) .file-button:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 /* The one primary action of a group. */
@@ -188,6 +200,7 @@ button.sgl-primary {
 
 button.sgl-primary:hover:not(:disabled) {
   background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .file-button input {
@@ -519,4 +532,9 @@ main {
   .sgl-sidenav-panel {
     max-height: 70vh;
   }
+}
+
+/* A disabled shell button does not react to hover (beats the base `button:hover`). */
+:where(.toolbar, .sgl-sidenav, .panel-header, .sgl-concept-dialog) button:disabled:hover {
+  border-color: var(--line);
 }

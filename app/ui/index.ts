@@ -11,8 +11,8 @@ export * from './messages';
 export * from './algorithmGroups';
 export * from './concepts';
 export { FOCUSABLE_SELECTOR, nextTabIndex, trappedFocusIndex } from './navigation';
-export { CollapsibleSection, type CollapsibleSectionProps } from './Section';
-export { HorizontalTabs, type TabItem } from './Tabs';
+export { CollapsibleSection, toggleSection, type CollapsibleSectionProps } from './Section';
+export { HorizontalTabs, tabKeyTarget, type TabItem } from './Tabs';
 export { RouteConfirm } from './RouteConfirm';
 export {
   AlgorithmsIcon,

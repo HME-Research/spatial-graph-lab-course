@@ -102,40 +102,42 @@ export function AlgorithmPanel({
           Project “{project.id}” has no algorithms. Add one in <code>projects/{project.id}/algorithms/</code>.
         </p>
       ) : (
-        <div className="algorithm-list" role="listbox" aria-label="Algorithms">
+        <div className="algorithm-list" aria-label="Algorithms" role="region">
           {groupAlgorithms(algorithms).map(({ group, items }) => (
-            <div key={group} role="group" aria-labelledby={`algorithm-group-${group}`} className="sgl-algo-group" data-group={group}>
+            <section key={group} aria-labelledby={`algorithm-group-${group}`} className="sgl-algo-group" data-group={group}>
               <div className="sgl-algo-group-head">
                 <h3 id={`algorithm-group-${group}`}>{ALGORITHM_GROUP_LABELS[group].label}</h3>
                 <p>{ALGORITHM_GROUP_LABELS[group].description}</p>
               </div>
-              {items.map(({ entry: a, index: i, presentation }) => (
-                <button
-                  key={a.file}
-                  type="button"
-                  role="option"
-                  aria-selected={i === selectedIndex}
-                  className={i === selectedIndex ? 'algorithm-item selected' : 'algorithm-item'}
-                  title={EFFECT_LABELS[presentation.effect].description}
-                  onClick={() => {
-                    setSelectedFile(a.file);
-                    setRun(null);
-                    setNotice(null);
-                  }}
-                >
-                  <span className="algorithm-text">
-                    <span className="algorithm-label">{a.label}</span>
-                    <span className="algorithm-meta">
-                      <span className="algorithm-term">{presentation.term}</span>
-                      <span className={`algorithm-tag effect-${presentation.effect}`}>
-                        {EFFECT_LABELS[presentation.effect].tag}
-                        <span className="sgl-visually-hidden">{EFFECT_LABELS[presentation.effect].spoken}</span>
+              <ul className="sgl-algo-items">
+                {items.map(({ entry: a, index: i, presentation }) => (
+                  <li key={a.file}>
+                    <button
+                      type="button"
+                      aria-pressed={i === selectedIndex}
+                      className={i === selectedIndex ? 'algorithm-item selected' : 'algorithm-item'}
+                      title={EFFECT_LABELS[presentation.effect].description}
+                      onClick={() => {
+                        setSelectedFile(a.file);
+                        setRun(null);
+                        setNotice(null);
+                      }}
+                    >
+                      <span className="algorithm-text">
+                        <span className="algorithm-label">{a.label}</span>
+                        <span className="algorithm-meta">
+                          <span className="algorithm-term">{presentation.term}</span>
+                          <span className={`algorithm-tag effect-${presentation.effect}`}>
+                            {EFFECT_LABELS[presentation.effect].tag}
+                            <span className="sgl-visually-hidden">{EFFECT_LABELS[presentation.effect].spoken}</span>
+                          </span>
+                        </span>
                       </span>
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
         </div>
       )}

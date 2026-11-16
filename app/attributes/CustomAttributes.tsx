@@ -27,6 +27,15 @@ import './attributes.css';
 
 type Stored = { readonly [key: string]: AttributeValue };
 
+/** Link from Properties to the project's attribute manager (Attributes destination, Node or Edge tab). */
+export function ManageAttributesLink({ onManage }: { readonly onManage: () => void }) {
+  return (
+    <button type="button" className="sgl-link sgl-manage-link" onClick={onManage} title="Add, rename or delete this project's attributes">
+      Manage attributes
+    </button>
+  );
+}
+
 /**
  * Properties section for the custom attributes of ONE node or edge (docs/PROJECT-ATTRIBUTES.md).
  *
@@ -38,15 +47,6 @@ type Stored = { readonly [key: string]: AttributeValue };
  * - "No value" stores an explicit empty value that overrides any default.
  * Values stored under a field's former name and values outside the schema are kept unchanged.
  */
-/** Link from Properties to the project's attribute manager (Attributes destination, Node or Edge tab). */
-export function ManageAttributesLink({ onManage }: { readonly onManage: () => void }) {
-  return (
-    <button type="button" className="sgl-link sgl-manage-link" onClick={onManage} title="Add, rename or delete this project's attributes">
-      Manage attributes
-    </button>
-  );
-}
-
 export function CustomAttributes({
   collection,
   item,
