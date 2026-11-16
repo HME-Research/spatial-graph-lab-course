@@ -29,7 +29,7 @@ Additive to `docs/CONTRACTS-V2.md`. The v2 design schema (`app/document/v2/schem
   - `assets: {policy: 'none'}`.
 - **Scenario** = `{id, name, design (DesignDocumentV2, read with readDesign), facePreferences, cameras: SavedCamera[], display: DisplayOverrides}`. A scenario is a complete design alternative.
 - **Reading and writing:**
-  - `readProjectFile` validates the whole file, and nothing replaces state on failure.
+  - `readProjectFile` validates the whole file, and nothing replaces state on failure. Face preferences must name an existing **access** edge and one of that edge's two rooms (`unknown-preference-edge`, `invalid-preference`); an out-of-range offset is accepted and resolves as unresolved `preferred-face-unavailable`.
   - `serializeProjectFile` is canonical.
   - `projectFromLegacyDesign` turns a v1 or v2 design file into a project with one scenario.
   - `saveAsNewProject` makes a deep copy with a new project id and new scenario ids.

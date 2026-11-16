@@ -170,6 +170,23 @@ describe('project file v1', () => {
     expect(!r.ok && r.issues[0]!.path.slice(0, 3)).toEqual(['scenarios', 1, 'design']);
   });
 
+  it('rejects a preference naming a room that is not one of the edge’s rooms, or on a non-access edge (final audit MINOR-1)', () => {
+    const file = rawFile();
+    const index = file.scenarios.findIndex((s: { design: { edges: unknown[] } }) => s.design.edges.length > 0);
+    expect(index).toBeGreaterThanOrEqual(0);
+    const edge = file.scenarios[index].design.edges[0];
+    file.scenarios[index].facePreferences = { [edge.id]: { nodeId: 'not-an-endpoint', offset: [0, 0, 0], direction: '+x' } };
+    const r = readProjectFile(file);
+    expect(codes(r)).toEqual(['invalid-preference']);
+    expect(!r.ok && r.issues[0]!.path).toEqual(['scenarios', index, 'facePreferences', edge.id, 'nodeId']);
+
+    const open = rawFile();
+    const openEdge = open.scenarios[index].design.edges[0];
+    openEdge.kind = 'open';
+    open.scenarios[index].facePreferences = { [openEdge.id]: { nodeId: openEdge.source, offset: [0, 0, 0], direction: '+x' } };
+    expect(codes(readProjectFile(open))).toEqual(['invalid-preference']);
+  });
+
   it('rejects preferences of missing edges, duplicate camera ids, bad cameras and display', () => {
     const pref = rawFile();
     pref.scenarios[1].facePreferences = { ghost: { nodeId: 'a', offset: [0, 0, 0], direction: '+x' } };

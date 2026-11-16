@@ -92,6 +92,7 @@ export type ProjectIssueCode =
   | 'unknown-active-scenario'
   | 'invalid-design'
   | 'unknown-preference-edge'
+  | 'invalid-preference'
   | 'duplicate-camera-id'
   | 'invalid-attributes';
 
@@ -196,10 +197,17 @@ export function readProjectFile(input: unknown): ProjectResult<ProjectFileV1> {
       for (const i of design.issues) issues.push(projectIssue(['scenarios', index, 'design', ...i.path], 'invalid-design', i.message));
       return;
     }
-    const edgeIds = new Set(design.value.doc.edges.map((e) => e.id));
-    for (const edgeId of Object.keys(s.facePreferences)) {
-      if (!edgeIds.has(edgeId)) {
-        issues.push(projectIssue(['scenarios', index, 'facePreferences', edgeId], 'unknown-preference-edge', `face preference for edge "${edgeId}", which is not in the scenario's design`));
+    const edgesById = new Map(design.value.doc.edges.map((e) => [e.id, e] as const));
+    for (const [edgeId, preference] of Object.entries(s.facePreferences)) {
+      const edge = edgesById.get(edgeId);
+      const path = ['scenarios', index, 'facePreferences', edgeId];
+      if (!edge) {
+        issues.push(projectIssue(path, 'unknown-preference-edge', `face preference for edge "${edgeId}", which is not in the scenario's design`));
+      } else if (preference.nodeId !== edge.source && preference.nodeId !== edge.target) {
+        // A preference names a face of one of the edge's own rooms (CONTRACTS-V3 §4); anything else is corrupt input.
+        issues.push(projectIssue([...path, 'nodeId'], 'invalid-preference', `face preference for edge "${edgeId}" names room "${preference.nodeId}", which is not one of its two rooms`));
+      } else if (edge.kind !== 'access') {
+        issues.push(projectIssue(path, 'invalid-preference', `face preference for edge "${edgeId}", but preferred walls apply to Access relationships only`));
       }
     }
     const cameraIds = new Set<string>();
