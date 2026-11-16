@@ -23,7 +23,9 @@ export type MenuAction =
   | { readonly type: 'remove-node'; readonly nodeId: string }
   | { readonly type: 'remove-edge'; readonly edgeId: string }
   | { readonly type: 'set-relationship-kind'; readonly edgeId: string; readonly kind: RelationshipKind }
-  | { readonly type: 'set-v1-kind'; readonly edgeId: string; readonly kind: EdgeKind };
+  | { readonly type: 'set-v1-kind'; readonly edgeId: string; readonly kind: EdgeKind }
+  /** Open the "Remove invalid connections" review (or explain that there is nothing to remove). */
+  | { readonly type: 'remove-invalid' };
 
 export interface MenuItem {
   readonly label: string;
@@ -36,7 +38,20 @@ export interface MenuItem {
 
 /** Items for a target, or [] when it no longer exists. Pure. */
 export function menuItems(model: DiagramModel, target: MenuTarget): readonly MenuItem[] {
-  if (target.kind === 'pane') return [{ label: 'Add node here', action: { type: 'add-node' } }];
+  if (target.kind === 'pane') {
+    const add: MenuItem = { label: 'Add node here', action: { type: 'add-node' } };
+    if (model.version !== 2) return [add];
+    const invalid = model.edges.filter((e) => e.resolution?.status === 'unresolved').length;
+    return [
+      add,
+      {
+        label: invalid > 0 ? `Remove invalid connections (${invalid})…` : 'Remove invalid connections…',
+        action: { type: 'remove-invalid' },
+        separated: true,
+        title: invalid > 0 ? 'Review the relationships that cannot be built' : 'There are no invalid connections',
+      },
+    ];
+  }
   if (target.kind === 'node') {
     const node = model.byNode.get(target.id);
     if (!node) return [];

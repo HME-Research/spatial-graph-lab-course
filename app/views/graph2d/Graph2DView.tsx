@@ -41,6 +41,9 @@ import {
 import { presentEdge, relationshipLegend, UNRESOLVED_REASON_TEXT, RELATIONSHIP_KIND_LABELS, type LegendRow } from './edgePresentation';
 import './graph2d.css';
 import { IssueList } from './IssueList';
+import { invalidConnectionRows, NO_INVALID_CONNECTIONS, removeInvalidCommand } from './invalidConnections';
+import { DIAGRAM_FIT_PADDING, legendStartsOpen } from './legendPlacement';
+import { RemoveInvalidDialog } from './RemoveInvalidDialog';
 import { menuItems, NodeContextMenu, type MenuAction, type MenuTarget } from './NodeContextMenu';
 import { displayKeys } from '@app/extensions';
 import { useAnalysisOverlay } from '../analysisOverlay';
@@ -95,6 +98,13 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
   const [popoverNode, setPopoverNode] = useState<string | null>(null);
   const [menu, setMenu] = useState<OpenMenu | null>(null);
   const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  /** "Remove invalid connections" review: open, and the rows the student unchecked (rows start checked). */
+  const [reviewInvalid, setReviewInvalid] = useState(false);
+  const [keepInvalid, setKeepInvalid] = useState<ReadonlySet<string>>(() => new Set());
+  /** Panel size (CSS px), so the legend starts folded in small (split / 4-viewport) panels. */
+  const [panelSize, setPanelSize] = useState<{ readonly width: number; readonly height: number } | null>(null);
+  /** Legend open state chosen by the user; null = automatic (open only in a large panel). */
+  const [legendChoice, setLegendChoice] = useState<boolean | null>(null);
   // The diagram viewport (pan/zoom) and display options are remembered by the hosting panel.
   const viewportMemory = useRemembered<Viewport>('viewport:graph2d');
   const [initialViewport] = useState(() => viewportMemory?.load());
@@ -117,11 +127,12 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
     const observer = new ResizeObserver(([entry]) => {
       const size = entry ? `${Math.round(entry.contentRect.width)}x${Math.round(entry.contentRect.height)}` : '';
       if (size === last) return;
+      if (entry) setPanelSize({ width: Math.round(entry.contentRect.width), height: Math.round(entry.contentRect.height) });
       const first = last === '';
       last = size;
       if (first || !autoFit.current) return;
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => void flow.fitView({ padding: 0.25, maxZoom: 1.5 }));
+      frame = requestAnimationFrame(() => void flow.fitView({ padding: DIAGRAM_FIT_PADDING, maxZoom: 1.5 }));
     });
     observer.observe(element);
     return () => {
@@ -155,7 +166,7 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
     previousIds.current = ids;
     if (!before || ids.size === 0 || !autoFit.current) return;
     if ([...ids].some((id) => before.has(id))) return;
-    const frame = requestAnimationFrame(() => void flow.fitView({ padding: 0.25, maxZoom: 1.5 }));
+    const frame = requestAnimationFrame(() => void flow.fitView({ padding: DIAGRAM_FIT_PADDING, maxZoom: 1.5 }));
     return () => cancelAnimationFrame(frame);
   }, [model, flow]);
 
@@ -242,6 +253,22 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
     [model, positions, overlay, selection, emphasised, typeStatus, lines, display, unresolvedCount, connectFrom, analysis],
   );
 
+  const invalidRows = useMemo(() => invalidConnectionRows(model), [model]);
+  const reviewing = reviewInvalid && invalidRows.length > 0;
+  /** Preview while reviewing: the checked (to be removed) relationships are marked in the diagram. */
+  const removePreview = useMemo(
+    () => (reviewing ? new Set(invalidRows.filter((r) => !keepInvalid.has(r.edgeId)).map((r) => r.edgeId)) : null),
+    [reviewing, invalidRows, keepInvalid],
+  );
+  // The review closes for good when nothing is left to remove (e.g. an edit elsewhere resolved it),
+  // so it never pops up again by itself later.
+  useEffect(() => {
+    if (reviewInvalid && invalidRows.length === 0) {
+      setReviewInvalid(false);
+      setKeepInvalid(new Set());
+    }
+  }, [reviewInvalid, invalidRows]);
+
   const edges = useMemo<RelationFlowEdge[]>(
     () =>
       model.edges.map((edge) => ({
@@ -249,10 +276,10 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
         source: edge.source,
         target: edge.target,
         type: 'relation',
-        data: { presentation: presentEdge(model, edge) },
+        data: { presentation: presentEdge(model, edge), ...(removePreview?.has(edge.id) && { removePreview: true }) },
         selected: selection.kind === 'edge' && selection.id === edge.id,
       })),
-    [model, selection],
+    [model, selection, removePreview],
   );
 
   // Only measurements and drag positions are kept locally; selection/removal changes are ignored
@@ -329,8 +356,41 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
     else if (selection.kind === 'edge') run(removeEdgeCommand(model, selection.id));
   };
 
+  /** Open the review list, or say explicitly why there is nothing to remove. */
+  const openInvalidReview = () => {
+    setMenu(null);
+    setPopoverNode(null);
+    setConnectFrom(null);
+    if (invalidRows.length === 0) {
+      setReviewInvalid(false);
+      setNotice({ kind: 'message', text: NO_INVALID_CONNECTIONS });
+      return;
+    }
+    setNotice(null);
+    setKeepInvalid(new Set());
+    setReviewInvalid(true);
+  };
+  const closeInvalidReview = () => {
+    setReviewInvalid(false);
+    setKeepInvalid(new Set());
+    containerRef.current?.focus();
+  };
+  /** ONE `remove-edges` command for the checked rows = one undo step. */
+  const confirmInvalidReview = () => {
+    const command = removeInvalidCommand(invalidRows, keepInvalid);
+    if (!command || command.type !== 'remove-edges') return;
+    if (!run({ version: 2, command })) return;
+    const removed = new Set(command.edgeIds);
+    if (selection.kind === 'edge' && removed.has(selection.id)) onSelect(NO_SELECTION);
+    const n = command.edgeIds.length;
+    closeInvalidReview();
+    setNotice({ kind: 'message', text: `Removed ${n} invalid connection${n === 1 ? '' : 's'}. Ctrl/⌘+Z restores ${n === 1 ? 'it' : 'them'}.` });
+  };
+
   const onMenuAction = (action: MenuAction) => {
     switch (action.type) {
+      case 'remove-invalid':
+        return openInvalidReview();
       case 'inspect':
         onSelect(selectNode(action.nodeId));
         setPopoverNode(action.nodeId);
@@ -382,8 +442,8 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
     if (target.closest('input, select, textarea, button, .sgl-menu, .sgl-popover')) return;
-    // An open menu or popover closes itself on Escape (document listener).
-    if (menu || popoverNode) return;
+    // An open menu, popover or review list closes itself on Escape.
+    if (menu || popoverNode || reviewing) return;
     const focusedNode = target.closest('.react-flow__node')?.getAttribute('data-id') ?? null;
     if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
@@ -419,6 +479,7 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
     if (c.source !== c.target) connect(c.source, c.target);
   };
 
+  const legendOpen = legendChoice ?? (panelSize === null ? false : legendStartsOpen(panelSize));
   const popover = popoverNode && selection.kind === 'node' && selection.id === popoverNode ? model.byNode.get(popoverNode) : undefined;
   const menuList = menu ? menuItems(model, menu.target) : [];
   const connectSource = connectFrom ? model.byNode.get(connectFrom) : undefined;
@@ -486,7 +547,7 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
           if (event) setAutoFit(false);
         }}
         onMoveEnd={(_event, viewport) => viewportMemory?.save(viewport)}
-        fitViewOptions={{ padding: 0.25, maxZoom: 1.5 }}
+        fitViewOptions={{ padding: DIAGRAM_FIT_PADDING, maxZoom: 1.5 }}
         minZoom={0.2}
         attributionPosition="top-right"
       >
@@ -518,6 +579,19 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
           >
             Delete {selection.kind === 'edge' ? 'relationship' : 'node'}
           </button>
+          {invalidRows.length > 0 && (
+            // Contextual: offered only while some relationship cannot be built (never automatic).
+            <button
+              type="button"
+              className="sgl-invalid-button"
+              onClick={() => (reviewing ? closeInvalidReview() : openInvalidReview())}
+              aria-pressed={reviewing}
+              aria-haspopup="dialog"
+              title="Review the relationships that cannot be built and remove the ones you choose (one undo step)"
+            >
+              Remove invalid connections ({invalidRows.length})…
+            </button>
+          )}
           <span className="sgl-hint">Click: select · double-click: summary · right-click: actions · drag the dot under a node onto another node to connect</span>
           {analysis && (
             <span className="sgl-analysis-note" title="Shown from the Algorithms section; clear it there">
@@ -559,9 +633,16 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
         </Panel>
 
         {display.showLegend && (
-          // Collapsible, and click-through when open, so it never blocks nodes underneath.
+          // Collapsible, and click-through when open, so it never blocks nodes underneath. It starts
+          // folded in small panels (split / 4-viewport layouts) so it does not hide nodes there.
           <Panel position="bottom-right" className="sgl-legend" aria-label="Relationship legend">
-            <details open>
+            <details
+              open={legendOpen}
+              onToggle={(e) => {
+                // React also fires `toggle` when it applies `open`: only a different state is the user's choice.
+                if (e.currentTarget.open !== legendOpen) setLegendChoice(e.currentTarget.open);
+              }}
+            >
               <summary>Relationships</summary>
               {model.version === 2 ? <V2Legend /> : <V1Legend />}
             </details>
@@ -582,6 +663,23 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
             attributeKeys: display.attributeKeys,
           })}
           node={popover}
+        />
+      )}
+
+      {reviewing && (
+        <RemoveInvalidDialog
+          rows={invalidRows}
+          unchecked={keepInvalid}
+          onToggle={(edgeId, checked) =>
+            setKeepInvalid((prev) => {
+              const next = new Set(prev);
+              if (checked) next.delete(edgeId);
+              else next.add(edgeId);
+              return next;
+            })
+          }
+          onConfirm={confirmInvalidReview}
+          onCancel={closeInvalidReview}
         />
       )}
 
