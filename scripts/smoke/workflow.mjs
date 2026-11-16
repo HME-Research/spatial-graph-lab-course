@@ -162,7 +162,8 @@ async function selectNodeInGraph(id) {
   const c = await nodeCenter(id);
   if (!c) throw new Error(`node ${id} not in Graph 2D`);
   await clickAt(c.x, c.y);
-  await evaluate(`document.querySelector('.react-flow__pane')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true`);
+  // Since phase 06 a click only selects (the summary opens on double-click); close one if open.
+  await evaluate(`document.querySelector('.view-panel[data-panel="0"] .sgl-popover button[aria-label="Close details"]')?.click(); true`);
   await evaluate(`__wf.tab('properties'); true`);
   await waitFor(`__wf.field('Position (lowest corner)', 'x') !== null`, `Properties of ${id}`);
 }

@@ -440,13 +440,22 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
         onNodesChange={onNodesChange}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
+        // A click selects (Properties shows the room). The quick summary opens on double-click,
+        // "Inspect" in the context menu or Enter, so it never covers a neighbouring circle that the
+        // student wants to click next (phase 06, G01).
         onNodeClick={(_e, node) => {
           if (connectFrom && connectFrom !== node.id) return connect(connectFrom, node.id);
           setConnectFrom(null);
           setNotice(null);
           onSelect(selectNode(node.id));
+          setPopoverNode((open) => (open === node.id ? open : null));
+        }}
+        onNodeDoubleClick={(_e, node) => {
+          if (connectFrom) return;
+          onSelect(selectNode(node.id));
           setPopoverNode(node.id);
         }}
+        zoomOnDoubleClick={false}
         onEdgeClick={(_e, edge) => {
           setConnectFrom(null);
           setNotice(null);
@@ -509,7 +518,7 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
           >
             Delete {selection.kind === 'edge' ? 'relationship' : 'node'}
           </button>
-          <span className="sgl-hint">Click a node for details · right-click for actions</span>
+          <span className="sgl-hint">Click: select · double-click: summary · right-click: actions · drag the dot under a node onto another node to connect</span>
           {analysis && (
             <span className="sgl-analysis-note" title="Shown from the Algorithms section; clear it there">
               Colours: analysis “{analysis.title}”{analysis.stale ? ' (out of date)' : ''}

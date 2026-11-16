@@ -139,18 +139,40 @@
   outline-offset: 4px;
 }
 
+/* The connect dot (phase 06, O01): always faintly visible, larger, with a generous hit area. */
 .sgl-graph2d .react-flow__handle.sgl-handle {
-  width: 10px;
-  height: 10px;
-  bottom: -5px;
+  /* Scaled with the zoom like the labels, so it stays about 12 px on screen. */
+  width: calc(14px * var(--sgl-label-scale, 1));
+  height: calc(14px * var(--sgl-label-scale, 1));
+  bottom: calc(-7px * var(--sgl-label-scale, 1));
   background: #2c5d8f;
   border: 2px solid #ffffff;
   cursor: crosshair;
-  opacity: 0;
+  opacity: 0.4;
   transition: opacity 0.1s;
 }
+.sgl-graph2d .react-flow__handle.sgl-handle::after {
+  content: '';
+  position: absolute;
+  /* Generous, but never reaching the circle's centre: a click on the middle always selects. */
+  inset: calc(-4px * var(--sgl-label-scale, 1));
+  border-radius: 50%;
+}
 
-/* The connect handle appears on hover/selection only, keeping the canvas quiet. */
+/* During a connection drag, the whole target circle accepts the drop. */
+.sgl-graph2d .react-flow__handle.sgl-drop-target {
+  position: absolute;
+  inset: -3px;
+  width: auto;
+  height: auto;
+  transform: none;
+  border-radius: 50%;
+  border: 2px dashed #2c5d8f;
+  background: rgba(44, 93, 143, 0.08);
+  opacity: 1;
+}
+
+/* Full strength on hover/selection. */
 .sgl-graph2d .react-flow__node:hover .sgl-handle,
 .sgl-graph2d .react-flow__node.selected .sgl-handle,
 .sgl-graph2d .react-flow__node:focus-visible .sgl-handle {

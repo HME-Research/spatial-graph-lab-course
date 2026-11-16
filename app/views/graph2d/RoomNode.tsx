@@ -1,4 +1,4 @@
-import { Handle, Position, useStore, type Node, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useConnection, useStore, type Node, type NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import { SELECTION_COLOR, typeColor } from '@core/viewer/appearance';
 
@@ -30,7 +30,11 @@ export type RoomFlowNode = Node<RoomNodeData, 'room'>;
  * centre. The diagram position is independent of the room's spatial cell. One small handle for
  * drag-to-connect; dragging the circle itself only moves the diagram node.
  */
-export const RoomNode = memo(function RoomNode({ data, selected }: NodeProps<RoomFlowNode>) {
+export const RoomNode = memo(function RoomNode({ id, data, selected }: NodeProps<RoomFlowNode>) {
+  // While a connection is dragged from another node, this whole circle is a drop target (phase 06,
+  // O01: dropping on the top half used to create nothing because only the bottom dot was a target).
+  const connection = useConnection();
+  const dropTarget = connection.inProgress && connection.fromNode.id !== id;
   const { lines, hidden, diameter, typeId, emphasised, brokenType, connectSource, unresolved, analysis } = data;
   const color = typeColor(typeId);
   // Counter-scale text against the diagram zoom so labels stay readable on screen (audit m4):
@@ -79,7 +83,8 @@ export const RoomNode = memo(function RoomNode({ data, selected }: NodeProps<Roo
           {analysis.value}
         </span>
       )}
-      <Handle type="source" position={Position.Bottom} className="sgl-handle" title="Drag onto another node to connect" />
+      <Handle type="source" position={Position.Bottom} className="sgl-handle" title="Drag onto another node to connect (or use “Add connection…”)" />
+      {dropTarget && <Handle type="target" position={Position.Top} className="sgl-drop-target" isConnectableStart={false} />}
     </div>
   );
 });
