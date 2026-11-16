@@ -1,4 +1,4 @@
-import { createElement, useContext, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import { createElement, Suspense, useContext, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { AnalysisOverlayContext } from '@app/views/analysisOverlay';
 import type { ViewMode, ViewProps } from '@app/views/contracts';
 import { createPanelMemory, PanelMemoryContext, type PanelMemory } from '@app/views/panelMemory';
@@ -7,6 +7,7 @@ import { AnalysisLegend } from '@app/views/presentation/LegendViews';
 import { VIEW_COMPONENTS } from '@app/views/registry';
 import { EditPanelOwnerContext, PanelIndexContext } from '@app/views/three/editing/editPanelOwner';
 import { ViewportCameraContext, type ViewportCamera } from '@app/views/viewportCamera';
+import { ViewportDisplay } from '@app/display/DisplayProvider';
 import { PROPERTIES_DESCRIPTION, PROPERTIES_LABEL, PropertiesIcon, SidebarNav, VIEW_CAPTIONS, ViewModeSelect, type SidebarSection } from '@app/ui';
 import { DESTINATIONS } from '@app/workspace/destinations';
 import { clampLeftWidth, keyboardResize, LEFT_WIDTH_MAX, LEFT_WIDTH_MIN } from '@app/workspace/panes';
@@ -155,6 +156,7 @@ export function Workspace({
                   <PanelMemoryContext.Provider key={index} value={memories[index]!}>
                     <PanelIndexContext.Provider value={index}>
                       <ViewportCameraContext.Provider value={viewportCameras[index] ?? null}>
+                      <ViewportDisplay mode={info.mode}>
                         <ViewPanel
                           onInteract={() => setLastPanel(index)}
                           {...view}
@@ -169,6 +171,7 @@ export function Workspace({
                           }
                           layout={index === 0 ? <LayoutSelect layout={viewports.layout} onLayout={(l) => onViewports((s) => setViewportLayout(s, l))} /> : null}
                         />
+                      </ViewportDisplay>
                       </ViewportCameraContext.Provider>
                     </PanelIndexContext.Provider>
                   </PanelMemoryContext.Provider>
@@ -325,7 +328,10 @@ function ViewPanel({
         {maximise}
       </div>
       <div className="view-body">
-        <View {...props} />
+        {/* Keyed by mode: a mode switch never keeps the previous view mounted-but-hidden while the next one loads. */}
+        <Suspense key={mode} fallback={<p className="meta view-loading">Loading the 3D view…</p>}>
+          <View {...props} />
+        </Suspense>
       </div>
     </div>
   );

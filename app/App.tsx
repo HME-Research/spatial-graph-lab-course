@@ -66,6 +66,8 @@ import {
   type RightPaneState,
 } from '@app/workspace/panes';
 import { WorkspaceServicesContext, type WorkspaceServices } from '@app/workspace/services';
+import { SavedCamerasProvider, UNBOUND_SCENARIO_ID } from '@app/camera/savedCameras';
+import { DisplayProvider } from '@app/display/DisplayProvider';
 import { DEFAULT_VIEWPORT_STATE, deriveViewports, type ViewportState } from '@app/workspace/viewports';
 
 /**
@@ -509,6 +511,9 @@ export function App() {
         )}
 
         <WorkspaceServicesContext.Provider value={services}>
+        {/* Saved cameras and Display (workstream E): in-memory per App until I1 binds them to the active scenario of the project file. */}
+        <SavedCamerasProvider scenarioId={UNBOUND_SCENARIO_ID}>
+        <DisplayProvider scenarioId={UNBOUND_SCENARIO_ID}>
         <OpenAttributesContext.Provider value={project ? openAttributes : null}>
           <Workspace
             view={
@@ -595,6 +600,8 @@ export function App() {
             }}
           />
         </OpenAttributesContext.Provider>
+        </DisplayProvider>
+        </SavedCamerasProvider>
         </WorkspaceServicesContext.Provider>
       </main>
     </div>
