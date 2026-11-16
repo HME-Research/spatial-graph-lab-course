@@ -16,6 +16,7 @@ import { ColorBySelect, Legend, LevelSelect } from '../three/SpatialControls';
 import { framingFor, includeBoxes } from '../three/sceneModel';
 import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
 import { useAnalysisOverlay } from '../analysisOverlay';
+import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
 import { analysisNodeStyle } from '../presentation/analysis';
 import {
   ConnectorCells,
@@ -58,6 +59,20 @@ export function VoxelView({ doc, selection, onSelect, design, project }: ViewPro
   );
   const hoveredEdge = s.hovered?.kind === 'edge' ? s.hovered.id : null;
   const editingId = editing.state.phase !== 'idle' ? editing.nodeId : null;
+  // Narrow panels (laptop split view): options and legend start folded so the model and the gizmo
+  // handles stay visible (audit M1, V05); wide panels show them open.
+  const { probe, width, compact } = useOverlayWidth();
+  const [legendOpen, setLegendOpen] = useDefaultOpen(compact, width !== null);
+  const options = (
+    <>
+      <ColorBySelect mode={s.colorMode} attributeKeys={s.attributeKeys} onChange={s.setColorMode} />
+      <LevelSelect levels={s.levels} maxLevel={s.maxLevel} onChange={s.setMaxLevel} />
+      <label title="Voxel opacity">
+        Opacity{' '}
+        <input type="range" min={0.15} max={0.9} step={0.05} value={opacity} onChange={(e) => setOpacity(Number(e.currentTarget.value))} />
+      </label>
+    </>
+  );
 
   return (
     <SceneCanvas
@@ -70,21 +85,17 @@ export function VoxelView({ doc, selection, onSelect, design, project }: ViewPro
       onBackgroundClick={() => onSelect(NO_SELECTION)}
       overlay={
         <>
+          {probe}
           <ControlBar>
-            <ColorBySelect mode={s.colorMode} attributeKeys={s.attributeKeys} onChange={s.setColorMode} />
-            <LevelSelect levels={s.levels} maxLevel={s.maxLevel} onChange={s.setMaxLevel} />
-            <label title="Voxel opacity">
-              Opacity{' '}
-              <input
-                type="range"
-                min={0.15}
-                max={0.9}
-                step={0.05}
-                value={opacity}
-                onChange={(e) => setOpacity(Number(e.currentTarget.value))}
-              />
-            </label>
-            <button type="button" onClick={s.refit}>
+            {compact ? (
+              <details className="viewer3d-options">
+                <summary title="Colour by, levels and opacity">View options</summary>
+                <div className="viewer3d-options-body">{options}</div>
+              </details>
+            ) : (
+              options
+            )}
+            <button type="button" onClick={s.refit} title="Frame the whole model again (also after you orbit or zoom)">
               Fit view
             </button>
           </ControlBar>
@@ -97,15 +108,16 @@ export function VoxelView({ doc, selection, onSelect, design, project }: ViewPro
             </div>
           </InfoPanel>
           <RoomEditPanel editing={editing} />
-          <Legend coloring={s.coloring}>
+          <Legend coloring={s.coloring} open={legendOpen} onOpenChange={setLegendOpen}>
             {s.emphasis.secondaryNodes.size > 0 && <div className="viewer3d-count">Selected edge: endpoints outlined</div>}
             {analysis && <div className="viewer3d-count">Fill: analysis “{analysis.title}”{analysis.stale ? ' (out of date)' : ''}</div>}
             {design && <ViewRelationshipLegend view="voxels" design={design} />}
           </Legend>
           {doc.nodes.length === 0 ? (
             <div className="viewer3d-empty">No nodes in this design.</div>
-          ) : (
-            <div className="viewer3d-hint">{editing.active ? `${editing.hint} · ${NAVIGATION_HINT}` : NAVIGATION_HINT}</div>
+          ) : editing.active && compact ? null : (
+            // Narrow panel while editing: the room editor already shows the snap and Esc hints.
+            <div className={editing.active ? 'viewer3d-hint beside-edit' : 'viewer3d-hint'}>{NAVIGATION_HINT}</div>
           )}
         </>
       }

@@ -1,4 +1,4 @@
-import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useStore, type Node, type NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import { SELECTION_COLOR, typeColor } from '@core/viewer/appearance';
 
@@ -19,6 +19,8 @@ export type RoomNodeData = {
   readonly connectSource?: boolean;
   /** Number of this node's relationships that cannot be built yet (v2 only). */
   readonly unresolved?: number;
+  /** Analysis shown on the model (audit M4): fill colour and value label; never part of the document. */
+  readonly analysis?: { readonly fill: string; readonly value: string; readonly stale: boolean };
 };
 
 export type RoomFlowNode = Node<RoomNodeData, 'room'>;
@@ -29,8 +31,13 @@ export type RoomFlowNode = Node<RoomNodeData, 'room'>;
  * drag-to-connect; dragging the circle itself only moves the diagram node.
  */
 export const RoomNode = memo(function RoomNode({ data, selected }: NodeProps<RoomFlowNode>) {
-  const { lines, hidden, diameter, typeId, emphasised, brokenType, connectSource, unresolved } = data;
+  const { lines, hidden, diameter, typeId, emphasised, brokenType, connectSource, unresolved, analysis } = data;
   const color = typeColor(typeId);
+  // Counter-scale text against the diagram zoom so labels stay readable on screen (audit m4):
+  // the id at least ~11 px, captions at least ~10 px, capped so a zoomed-out diagram stays tidy.
+  const zoom = useStore((s) => s.transform[2]);
+  const scale = Math.min(1.7, Math.max(1, 0.85 / zoom));
+  const [first, ...rest] = lines;
   const ring = selected
     ? `0 0 0 3px #ffffff, 0 0 0 6px ${SELECTION_COLOR}`
     : emphasised || connectSource
@@ -38,19 +45,25 @@ export const RoomNode = memo(function RoomNode({ data, selected }: NodeProps<Roo
       : undefined;
   return (
     <div
-      className={connectSource ? 'sgl-circle sgl-connect-source' : 'sgl-circle'}
-      style={{ width: diameter, height: diameter, borderColor: color, boxShadow: ring }}
+      className={['sgl-circle', connectSource && 'sgl-connect-source', analysis && 'sgl-has-analysis'].filter(Boolean).join(' ')}
+      style={{ width: diameter, height: diameter, borderColor: color, boxShadow: ring, ['--sgl-label-scale' as string]: scale }}
       title={data.tooltip}
     >
-      <div className="sgl-circle-fill" style={{ background: color }} />
+      {/* The border keeps the type colour; while an analysis is shown the fill carries its colour. */}
+      <div className={analysis ? 'sgl-circle-fill sgl-analysis-fill' : 'sgl-circle-fill'} style={{ background: analysis ? analysis.fill : color }} />
       <div className="sgl-circle-text">
-        {lines.map((line, i) => (
-          <span key={i} className={i === 0 ? 'sgl-circle-line sgl-circle-primary' : 'sgl-circle-line'}>
-            {line}
-          </span>
-        ))}
-        {hidden > 0 && <span className="sgl-circle-more">+{hidden}</span>}
+        {first !== undefined && <span className="sgl-circle-line sgl-circle-primary">{first}</span>}
       </div>
+      {(rest.length > 0 || hidden > 0) && (
+        <div className="sgl-circle-caption">
+          {rest.map((line, i) => (
+            <span key={i} className="sgl-circle-line">
+              {line}
+            </span>
+          ))}
+          {hidden > 0 && <span className="sgl-circle-more">+{hidden} more (see the popover)</span>}
+        </div>
+      )}
       {brokenType && (
         <span className="sgl-badge sgl-badge-warning" aria-label="Invalid type definition">
           !
@@ -59,6 +72,11 @@ export const RoomNode = memo(function RoomNode({ data, selected }: NodeProps<Roo
       {!brokenType && !!unresolved && (
         <span className="sgl-badge sgl-badge-unresolved" aria-label={`${unresolved} relationship(s) not buildable yet`}>
           {unresolved}
+        </span>
+      )}
+      {analysis && (
+        <span className={analysis.stale ? 'sgl-analysis-value stale' : 'sgl-analysis-value'} aria-label={`Analysis value ${analysis.value}`}>
+          {analysis.value}
         </span>
       )}
       <Handle type="source" position={Position.Bottom} className="sgl-handle" title="Drag onto another node to connect" />

@@ -18,6 +18,8 @@ import { useRemembered } from '../panelMemory';
 import { buildEdgeItems, framingFor } from '../three/sceneModel';
 import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
 import { lineOf, RelationshipTube, useUnitCylinder, ViewRelationshipLegend } from '../three/v2Scene';
+import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
+import type { DesignPort } from '@app/spatial';
 import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
 import { NO_SELECTION, type Selection } from '@core/viewer/selection';
 import { isDeliberateObjectClick } from '@core/viewer/three/interaction';
@@ -166,10 +168,11 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
             v2={design !== undefined}
             connectors={connectors.length > 0}
             roofsHiddenByDesigner={roofsHiddenByDesigner}
-            hint={editing.active ? `${editing.hint} · ${NAVIGATION_HINT}` : NAVIGATION_HINT}
+            hint={NAVIGATION_HINT}
+            besideEditor={editing.active}
+            design={design}
           />
           <RoomEditPanel editing={editing} />
-          {design && <ViewRelationshipLegend view="architecture" design={design} standalone />}
         </>
       }
     >
@@ -288,13 +291,15 @@ const BoxMesh = memo(function BoxMesh({
       onPointerOut={() => setHovered(false)}
     >
       <meshStandardMaterial
-        color={highlighted ? SELECTION_COLOR : color}
+        // Selection TINTS the element (keeps doors, glazing and walls readable while editing) instead
+        // of painting it solid magenta (audit O8 note; recorded as the reconciled "eighth" minor finding).
+        color={color}
         transparent={glass || marker}
         opacity={glass ? (highlighted ? 0.75 : 0.45) : marker ? 0.85 : 1}
         depthWrite={!glass}
         roughness={glass ? 0.1 : 0.85}
         emissive={highlighted ? SELECTION_COLOR : '#000000'}
-        emissiveIntensity={highlighted ? 0.25 : 0}
+        emissiveIntensity={highlighted ? 0.55 : 0}
       />
     </mesh>
   );
@@ -338,7 +343,13 @@ function Overlay({
   connectors,
   roofsHiddenByDesigner,
   hint,
+  besideEditor,
+  design,
 }: {
+  /** The room editor occupies the bottom-right cell. */
+  readonly besideEditor: boolean;
+  /** v2 port: its relationship legend ("what gets built") is part of the one Legend disclosure. */
+  readonly design: DesignPort | undefined;
   readonly empty: boolean;
   /** Node types of this design whose project definition is broken. */
   readonly brokenTypes: readonly string[];
@@ -350,6 +361,8 @@ function Overlay({
   readonly roofsHiddenByDesigner: boolean;
   readonly hint: string;
 }) {
+  const { probe, width, compact } = useOverlayWidth();
+  const [legendOpen, setLegendOpen] = useDefaultOpen(compact, width !== null);
   return (
     <>
       <ControlBar>
@@ -373,8 +386,12 @@ function Overlay({
           )}
         </InfoPanel>
       )}
-      {/* Collapsible and click-through, so it never blocks picking the building behind it. */}
-      <details open className="viewer3d-panel viewer3d-legend viewer3d-passthrough">
+      {probe}
+      {/*
+        ONE legend (materials + "what gets built"), audit M3: it starts closed in narrow panels so it
+        never hides the building, is open on wide screens, and scrolls when taller than its space.
+      */}
+      <details open={legendOpen} onToggle={(e) => setLegendOpen(e.currentTarget.open)} className="viewer3d-panel viewer3d-legend viewer3d-legend-collapsible">
         <summary className="viewer3d-legend-title">Legend</summary>
         <ul>
           {LEGEND.map(([label, color]) => (
@@ -391,8 +408,14 @@ function Overlay({
               </li>
             ))}
         </ul>
+        {design && <ViewRelationshipLegend view="architecture" design={design} />}
       </details>
-      {empty ? <div className="viewer3d-empty">No occupied cells to interpret yet.</div> : <div className="viewer3d-hint">{hint}</div>}
+      {empty ? (
+        <div className="viewer3d-empty">No occupied cells to interpret yet.</div>
+      ) : besideEditor && compact ? null : (
+        // Narrow panel while editing: the room editor already shows the snap and Esc hints.
+        <div className={besideEditor ? 'viewer3d-hint beside-edit' : 'viewer3d-hint'}>{hint}</div>
+      )}
     </>
   );
 }

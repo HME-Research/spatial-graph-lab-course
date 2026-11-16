@@ -1,14 +1,43 @@
-/* Room editing overlay (Voxels / Building). Lives in the .viewer3d-overlay grid, right column, middle row. */
+/*
+ * Room editing overlay (Voxels / Building), docked in the BOTTOM-RIGHT cell of the .viewer3d-overlay
+ * grid (programme phase 05, audit M1): away from the centre where the selected room and its gizmo
+ * handles are, compact (title and mode on one row), and capped so messages scroll inside it.
+ */
 .room-edit {
   grid-column: 3;
-  grid-row: 2;
+  grid-row: 3;
   justify-self: end;
-  align-self: start;
-  width: 236px;
-  max-width: 236px;
+  align-self: end;
+  width: 244px;
+  max-width: 100%;
+  overflow: auto;
   display: flex;
   flex-direction: column;
+  gap: 4px;
+}
+
+.room-edit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 6px;
+}
+
+.room-edit-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-edit-head .room-edit-modes {
+  flex: none;
+}
+
+.room-edit-head .room-edit-modes button {
+  flex: none;
+  padding: 0 6px;
+  min-height: 22px;
 }
 
 .room-edit button {

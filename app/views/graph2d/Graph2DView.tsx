@@ -43,6 +43,8 @@ import './graph2d.css';
 import { IssueList } from './IssueList';
 import { menuItems, NodeContextMenu, type MenuAction, type MenuTarget } from './NodeContextMenu';
 import { displayKeys } from '@app/extensions';
+import { useAnalysisOverlay } from '../analysisOverlay';
+import { analysisNodeStyle } from '../presentation/analysis';
 import { attributeKeysOf, NodeDisplayControl, nodeLines, sanitizeDisplay, type DisplaySettings } from './NodeDisplay';
 import { NodePopover, popoverRows } from './NodePopover';
 import { RelationEdge, type RelationFlowEdge } from './RelationEdge';
@@ -137,6 +139,8 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
   const designDoc = design?.doc;
   const designSpatial = design?.spatial;
   const attributeSchema = project?.attributes;
+  /** Analysis values shown on the model (Algorithms tab "Show on the model"); audit M4. */
+  const analysis = useAnalysisOverlay();
   const model = useMemo<DiagramModel>(
     () => (designDoc && designSpatial ? modelFromV2(designDoc, designSpatial, attributeSchema) : modelFromV1(doc)),
     [designDoc, designSpatial, doc, attributeSchema],
@@ -223,12 +227,19 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
             brokenType: broken,
             connectSource: connectFrom === node.id,
             unresolved,
+            ...(analysis && {
+              analysis: {
+                fill: analysisNodeStyle(node.id, analysis, NO_SELECTION).fill ?? '#cccccc',
+                value: analysis.valueLabelOf.get(node.id) ?? '–',
+                stale: analysis.stale,
+              },
+            }),
           },
           selected: selection.kind === 'node' && selection.id === node.id,
           ...(o?.measured ? { measured: o.measured } : {}),
         };
       }),
-    [model, positions, overlay, selection, emphasised, typeStatus, lines, display, unresolvedCount, connectFrom],
+    [model, positions, overlay, selection, emphasised, typeStatus, lines, display, unresolvedCount, connectFrom, analysis],
   );
 
   const edges = useMemo<RelationFlowEdge[]>(
@@ -468,6 +479,7 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
         onMoveEnd={(_event, viewport) => viewportMemory?.save(viewport)}
         fitViewOptions={{ padding: 0.25, maxZoom: 1.5 }}
         minZoom={0.2}
+        attributionPosition="top-right"
       >
         <Background gap={20} />
         <Controls showInteractive={false} onFitView={() => setAutoFit(true)} />
@@ -498,6 +510,26 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
             Delete {selection.kind === 'edge' ? 'relationship' : 'node'}
           </button>
           <span className="sgl-hint">Click a node for details · right-click for actions</span>
+          {analysis && (
+            <span className="sgl-analysis-note" title="Shown from the Algorithms section; clear it there">
+              Colours: analysis “{analysis.title}”{analysis.stale ? ' (out of date)' : ''}
+            </span>
+          )}
+          {/* Notices sit BELOW the toolbar inside the same panel, so they never cover its buttons (audit V02). */}
+          {(connectSource || shownNotice) && (
+            <div className="sgl-status" aria-live="polite">
+              {connectSource ? (
+                <>
+                  Connecting from <strong>{connectSource.label}</strong>: click the node to connect to.{' '}
+                  <button type="button" className="sgl-link" onClick={() => setConnectFrom(null)}>
+                    Cancel (Esc)
+                  </button>
+                </>
+              ) : shownNotice ? (
+                <NoticeLine notice={shownNotice} model={model} onRemove={(id) => run(removeEdgeCommand(model, id))} onDismiss={() => setNotice(null)} />
+              ) : null}
+            </div>
+          )}
         </Panel>
 
         {model.nodes.length === 0 && (
@@ -506,20 +538,6 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
           </Panel>
         )}
 
-        {(connectSource || shownNotice) && (
-          <Panel position="top-center" className="sgl-status" aria-live="polite">
-            {connectSource ? (
-              <>
-                Connecting from <strong>{connectSource.label}</strong>: click the node to connect to.{' '}
-                <button type="button" className="sgl-link" onClick={() => setConnectFrom(null)}>
-                  Cancel (Esc)
-                </button>
-              </>
-            ) : shownNotice ? (
-              <NoticeLine notice={shownNotice} model={model} onRemove={(id) => run(removeEdgeCommand(model, id))} onDismiss={() => setNotice(null)} />
-            ) : null}
-          </Panel>
-        )}
 
         {issues.length > 0 && (
           <Panel position="top-right" className="sgl-issues-panel">

@@ -5,6 +5,7 @@ import { createPanelMemory, PanelMemoryContext, type PanelMemory } from '@app/vi
 import type { AnalysisPresentation } from '@app/views/presentation';
 import { AnalysisLegend } from '@app/views/presentation/LegendViews';
 import { VIEW_COMPONENTS } from '@app/views/registry';
+import { EditPanelOwnerContext, PanelIndexContext } from '@app/views/three/editing/editPanelOwner';
 import {
   AlgorithmsIcon,
   AttributesIcon,
@@ -23,6 +24,9 @@ import {
 import { PropertiesPanel } from './inspector/Inspector';
 
 const SECTION_ICONS = { project: <ProjectIcon />, attributes: <AttributesIcon />, designer: <DesignerIcon />, algorithms: <AlgorithmsIcon /> } as const;
+
+/** View modes that show the room editor (snapped gizmo + edit panel). */
+const EDITING_MODES: ReadonlySet<ViewMode> = new Set(['voxels', 'architecture']);
 
 /** Viewport width below which the left content starts collapsed (rail only), keeping the canvas wide. */
 export const LEFT_AUTO_COLLAPSE_BELOW = 1600;
@@ -73,9 +77,12 @@ export function Workspace({
   const [split, setSplit] = useState(true);
   const [modes, setModes] = useState<readonly [ViewMode, ViewMode]>(['graph2d', 'architecture']);
   const [memories] = useState<readonly [PanelMemory, PanelMemory]>(() => [createPanelMemory(), createPanelMemory()]);
+  /** The panel last interacted with; decides which of two editing views shows the room editor. */
+  const [lastPanel, setLastPanel] = useState<0 | 1>(1);
 
   const setMode = (index: 0 | 1, mode: ViewMode) => setModes((m) => (index === 0 ? [mode, m[1]] : [m[0], mode]));
   const panels: readonly (0 | 1)[] = split ? [0, 1] : [0];
+  const editOwner = split && EDITING_MODES.has(modes[0]) && EDITING_MODES.has(modes[1]) ? lastPanel : null;
 
   const content = (id: SidebarSection): ReactNode =>
     id === 'algorithms' ? (
@@ -109,19 +116,24 @@ export function Workspace({
         />
 
         {view ? (
+          <EditPanelOwnerContext.Provider value={editOwner}>
           <div className={split ? 'panels split' : 'panels'}>
             {panels.map((index) => (
               <PanelMemoryContext.Provider key={index} value={memories[index]}>
+                <PanelIndexContext.Provider value={index}>
                 <ViewPanel
+                  onInteract={() => setLastPanel(index)}
                   {...view}
                   index={index}
                   mode={modes[index]}
                   onMode={(mode) => setMode(index, mode)}
                   layout={index === 0 ? <LayoutToggle split={split} onSplit={setSplit} /> : null}
                 />
+                </PanelIndexContext.Provider>
               </PanelMemoryContext.Provider>
             ))}
           </div>
+          </EditPanelOwnerContext.Provider>
         ) : (
           <div className="panels panels-empty">{empty ?? <p className="meta">No design is open.</p>}</div>
         )}
@@ -166,8 +178,11 @@ function ViewPanel({
   mode,
   onMode,
   layout,
+  onInteract,
   ...props
 }: ViewProps & {
+  /** Any pointer press inside the panel (makes it the panel that shows the room editor). */
+  readonly onInteract: () => void;
   readonly index: 0 | 1;
   readonly mode: ViewMode;
   readonly onMode: (mode: ViewMode) => void;
@@ -176,7 +191,7 @@ function ViewPanel({
 }) {
   const View = VIEW_COMPONENTS[mode];
   return (
-    <div className="view-panel" data-panel={index} data-view={mode}>
+    <div className="view-panel" data-panel={index} data-view={mode} onPointerDownCapture={onInteract}>
       <div className="panel-header">
         <ViewModeSelect mode={mode} onMode={onMode} panel={index + 1} />
         <span className="panel-header-spacer" />

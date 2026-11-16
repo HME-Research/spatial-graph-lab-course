@@ -10,7 +10,13 @@ import type { RoomEditing } from './useRoomEditing';
 export function RoomEditGizmo({ editing }: { readonly editing: RoomEditing }) {
   const { active, box, geometry } = editing;
   if (!active || !box || !geometry) return null;
-  const top: [number, number, number] = [box.center[0], box.center[1] + box.size[1] / 2 + 0.35 * editing.cell.vertical, box.center[2]];
+  // At the room's top front-left corner: every gizmo arrow and cube sits on a face CENTRE line, so
+  // the corner never covers a handle (audit M2). The label is also click-through.
+  const top: [number, number, number] = [
+    box.center[0] - box.size[0] / 2,
+    box.center[1] + box.size[1] / 2 + 0.12 * editing.cell.vertical,
+    box.center[2] + box.size[2] / 2,
+  ];
   return (
     <>
       <SnappedGizmo box={box} mode={editing.mode} cell={editing.cell} tone={editing.tone} {...editing.gizmo} />

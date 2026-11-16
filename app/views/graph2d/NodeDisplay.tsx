@@ -42,7 +42,7 @@ export interface NodeLines {
 const MAX_VALUE_CHARS = 10;
 
 export function formatAttributeValue(value: AttributeValue | undefined): string {
-  if (value === undefined) return '–';
+  if (value === undefined || value === null) return '–';
   const text = typeof value === 'string' ? value : String(value);
   return text.length > MAX_VALUE_CHARS ? `${text.slice(0, MAX_VALUE_CHARS - 1)}…` : text;
 }
@@ -60,7 +60,9 @@ export function nodeLines(node: DiagramNode, settings: DisplaySettings): NodeLin
   }
   const lines = requested.slice(0, MAX_NODE_LINES);
   const hidden = requested.length - lines.length;
-  const diameter = Math.min(MAX_NODE_DIAMETER, BASE_NODE_DIAMETER + Math.max(0, lines.length - 1) * LINE_GROWTH);
+  // Since phase 05 (audit m4) only the first line is drawn inside the circle; the others form a
+  // caption under it, so the circle keeps its size and text stays readable.
+  const diameter = BASE_NODE_DIAMETER;
   return { lines, hidden, diameter };
 }
 

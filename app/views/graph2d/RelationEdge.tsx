@@ -33,7 +33,9 @@ export const RelationEdge = memo(function RelationEdge({ id, source, target, dat
   return (
     <>
       {selected && (
-        <path d={path} fill="none" stroke={SELECTION_COLOR} strokeOpacity={0.35} strokeWidth={p.strokeWidth + 8} strokeLinecap="round" />
+        // The halo scales with the kind's own weight, so a selected Open (heavier) still reads heavier
+        // than a selected Access (audit m7); the kind stroke itself is drawn on top unchanged.
+        <path d={path} fill="none" stroke={SELECTION_COLOR} strokeOpacity={0.3} strokeWidth={p.strokeWidth * 3 + 3} strokeLinecap="round" />
       )}
       <path
         id={id}

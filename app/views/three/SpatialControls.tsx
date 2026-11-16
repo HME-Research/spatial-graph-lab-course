@@ -66,10 +66,44 @@ export function LevelSelect({
   );
 }
 
-export function Legend({ coloring, showEdges, children }: { readonly coloring: Coloring; readonly showEdges?: boolean; readonly children?: ReactNode }) {
+/**
+ * Colour legend of a 3D view. With `open`/`onOpenChange` it is a disclosure (title always visible)
+ * so a narrow panel can keep it closed until wanted (programme phase 05, audit V05); open, it is
+ * capped and scrolls.
+ */
+export function Legend({
+  coloring,
+  showEdges,
+  children,
+  open,
+  onOpenChange,
+}: {
+  readonly coloring: Coloring;
+  readonly showEdges?: boolean;
+  readonly children?: ReactNode;
+  readonly open?: boolean;
+  readonly onOpenChange?: (open: boolean) => void;
+}) {
+  const body = <LegendBody coloring={coloring} {...(showEdges !== undefined && { showEdges })}>{children}</LegendBody>;
+  if (open !== undefined && onOpenChange) {
+    return (
+      <details className="viewer3d-panel viewer3d-legend viewer3d-legend-collapsible" open={open} onToggle={(e) => onOpenChange(e.currentTarget.open)}>
+        <summary className="viewer3d-legend-title">{coloring.title}</summary>
+        {body}
+      </details>
+    );
+  }
   return (
     <div className="viewer3d-panel viewer3d-legend">
       <div className="viewer3d-legend-title">{coloring.title}</div>
+      {body}
+    </div>
+  );
+}
+
+function LegendBody({ coloring, showEdges, children }: { readonly coloring: Coloring; readonly showEdges?: boolean; readonly children?: ReactNode }) {
+  return (
+    <>
       {coloring.scale && (
         <div className="viewer3d-scale">
           <span>{coloring.scale.min}</span>
@@ -110,6 +144,6 @@ export function Legend({ coloring, showEdges, children }: { readonly coloring: C
         <span className="viewer3d-swatch" style={{ background: SELECTION_COLOR }} /> selected
       </div>
       {children}
-    </div>
+    </>
   );
 }

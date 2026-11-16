@@ -223,7 +223,7 @@ function AfterFirstFrame({ children }: { readonly children: ReactNode }) {
 /** Small text label anchored in 3D. Not pickable. */
 export function SceneLabel({ position, text, strong }: { readonly position: WorldPoint; readonly text: string; readonly strong?: boolean }) {
   return (
-    <Html position={[...position]} center zIndexRange={[4, 0]} pointerEvents="none">
+    <Html position={[...position]} center zIndexRange={[4, 0]} pointerEvents="none" wrapperClass="viewer3d-label-wrap">
       <span className={strong ? 'viewer3d-label strong' : 'viewer3d-label'}>{text}</span>
     </Html>
   );

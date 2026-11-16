@@ -28,6 +28,32 @@
   pointer-events: none;
 }
 
+/* Analysis shown on the model (audit M4): a strong fill; text stays readable on any colour. */
+.sgl-circle-fill.sgl-analysis-fill {
+  opacity: 0.85;
+}
+.sgl-has-analysis .sgl-circle-text {
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff;
+}
+.sgl-analysis-value {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translate(4px, -50%);
+  padding: 0 4px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #b9b9b0;
+  font-size: 10px;
+  line-height: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.sgl-analysis-value.stale {
+  border-style: dashed;
+  color: #7a5a12;
+}
+
 .sgl-circle-text {
   position: relative;
   display: flex;
@@ -50,8 +76,31 @@
 
 .sgl-circle-primary {
   font-family: ui-monospace, Consolas, monospace;
-  font-size: 13px;
+  font-size: calc(13px * var(--sgl-label-scale, 1));
   font-weight: 700;
+}
+
+/* Type and attribute lines under the circle (audit m4), scaled with the id. */
+.sgl-circle-caption {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  line-height: 1.2;
+  pointer-events: none;
+}
+.sgl-circle-caption .sgl-circle-line {
+  max-width: 14em;
+  font-size: calc(10px * var(--sgl-label-scale, 1));
+}
+.sgl-circle-caption .sgl-circle-more {
+  font-size: calc(9px * var(--sgl-label-scale, 1));
 }
 
 .sgl-circle-more {
@@ -186,11 +235,24 @@
   font-size: 13px;
 }
 
+/* Inside the toolbar panel, below the buttons (audit V02): it can never cover them. */
 .sgl-status {
-  max-width: min(520px, calc(100% - 40px));
-  margin-top: 76px;
+  flex-basis: 100%;
+  max-width: min(520px, 100%);
   font-size: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sgl-analysis-note {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: #3c4a5a;
+}
+
+/* The Display options and the relationship legend share the bottom edge: while Display is open the
+   legend steps aside (audit V03). */
+.sgl-graph2d:has(.sgl-display[open]) .sgl-legend {
+  display: none;
 }
 
 .sgl-unresolved-text {

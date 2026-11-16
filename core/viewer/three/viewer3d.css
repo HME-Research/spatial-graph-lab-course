@@ -75,6 +75,40 @@
   padding: 2px 6px;
 }
 
+/* Invisible box measuring the overlay width (app/views/three/overlayWidth.tsx). */
+.viewer3d-probe {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Folded option group in narrow panels. */
+.viewer3d-options > summary {
+  cursor: pointer;
+}
+.viewer3d-options-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* Collapsible legend: the title row toggles; open, it is capped and scrolls. */
+.viewer3d-legend-collapsible > summary {
+  cursor: pointer;
+}
+.viewer3d-legend-collapsible[open] {
+  max-height: 45%;
+  overflow: auto;
+}
+
+/* The room editor occupies the bottom-right cell; the navigation hint stays in the middle column. */
+.viewer3d-hint.beside-edit {
+  grid-column: 2;
+}
+
 /* A panel that never blocks picking behind it; only its <summary> toggle is interactive. */
 .viewer3d-panel.viewer3d-passthrough {
   pointer-events: none;
@@ -163,6 +197,16 @@
 
 .viewer3d-level.faded {
   opacity: 0.4;
+}
+
+/*
+ * Labels are information only: neither the drei wrapper nor the text may ever take a pointer
+ * press (programme phase 05, audit M2: the room label intercepted the Z arrow of the gizmo).
+ */
+.viewer3d-label-wrap,
+.viewer3d-label-wrap *,
+.viewer3d-label {
+  pointer-events: none !important;
 }
 
 .viewer3d-label {

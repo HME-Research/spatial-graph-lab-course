@@ -2,6 +2,8 @@ import { AXIS_COLORS } from '@core/viewer/three/SnappedGizmo';
 import { GIZMO_AXES, type GizmoMode } from '@core/viewer/three/gizmoMath';
 import { formatGrid, formatSize } from './roomGeometry';
 import type { RoomEditing } from './useRoomEditing';
+import { useContext, useEffect } from 'react';
+import { EditPanelOwnerContext, PanelIndexContext } from './editPanelOwner';
 import './editing.css';
 
 /**
@@ -10,16 +12,32 @@ import './editing.css';
  * (Cancel / Move anyway and recalculate) and keyboard-accessible one-cell step buttons.
  * Renders nothing while editing is inactive and there is no message to show.
  */
+/** How long an information or warning message stays (errors stay until dismissed). */
+export const FEEDBACK_LIFETIME_MS = 5000;
+
 export function RoomEditPanel({ editing }: { readonly editing: RoomEditing }) {
   const { active, geometry, state, feedback } = editing;
+  const owner = useContext(EditPanelOwnerContext);
+  const index = useContext(PanelIndexContext);
+  // Information and warnings disappear on their own after a few seconds (errors stay until dismissed),
+  // so a message never keeps the panel enlarged over the handles.
+  const { dismissFeedback } = editing;
+  useEffect(() => {
+    if (!feedback || feedback.tone === 'error' || state.phase === 'confirm') return;
+    const timer = setTimeout(dismissFeedback, FEEDBACK_LIFETIME_MS);
+    return () => clearTimeout(timer);
+  }, [feedback, state.phase, dismissFeedback]);
   if (!active && !feedback) return null;
+  // Voxels + Building: only the panel last interacted with shows the editor (never hidden mid-edit).
+  if (owner !== null && index !== null && owner !== index && state.phase === 'idle') return null;
   const busy = state.phase !== 'idle';
   const confirming = state.phase === 'confirm';
   return (
     <div className="viewer3d-panel room-edit" role="group" aria-label="Edit selected room">
       {active && geometry && (
         <>
-          <div className="room-edit-title">
+          <div className="room-edit-head">
+          <div className="room-edit-title" title={`${formatSize(geometry.size)} at ${formatGrid(geometry.grid)}`}>
             <strong>Room {editing.label}</strong>{' '}
             <span>
               {formatSize(geometry.size)} at {formatGrid(geometry.grid)}
@@ -39,6 +57,7 @@ export function RoomEditPanel({ editing }: { readonly editing: RoomEditing }) {
                 {m === 'move' ? 'Move' : 'Resize'}
               </button>
             ))}
+          </div>
           </div>
           <div className="room-edit-steps" aria-label={editing.mode === 'move' ? 'Move one cell' : 'Resize by one cell'}>
             {GIZMO_AXES.map((axis) => (
