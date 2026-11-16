@@ -46,7 +46,7 @@ describe('colour by a calculated value', () => {
   it('numeric metric: sequential ramp from min to max, legend with units', () => {
     const ctx = lab();
     const c = resolveColoring(ctx.doc.nodes, [], { kind: 'metric', metricId: 'exposed-facade-length' }, sourceFor(ctx));
-    expect(c.title).toBe('Calculated “Exposed façade length” (m)');
+    expect(c.title).toBe('Exposed façade length (m)');
     expect(c.scale).toEqual({ min: 6, max: 45 });
     expect(c.colorOf.get('shop')).toBe(NUMERIC_LOW);
     expect(c.colorOf.get('hall')).toBe(NUMERIC_HIGH);

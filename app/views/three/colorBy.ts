@@ -189,7 +189,7 @@ function byMetric(
       const v = values.get(n.id);
       return typeof v === 'number' && !Number.isFinite(v) ? null : v;
     },
-    `Calculated “${metric.label}”${metric.unit ? ` (${metric.unit})` : ''}`,
+    metric.unit ? `${metric.label} (${metric.unit})` : metric.label,
     { label: (v) => formatMetricValue(metric, v), booleans: true, round: true },
   );
 }
