@@ -801,6 +801,33 @@ if (wants('scenarios')) {
     return pass(`exported ${name} (2 scenarios) and re-imported it as a separate local copy with both scenarios intact`, data);
   });
 
+  await check('scenarios/blocked-save-then-open', async () => {
+    // Simulate a full disk: IndexedDB put throws the browser's own QuotaExceededError (restored below).
+    await evaluate(`(() => { window.__sglPut = IDBObjectStore.prototype.put;
+      IDBObjectStore.prototype.put = function () { throw new DOMException('simulated quota', 'QuotaExceededError'); }; return true; })()`);
+    try {
+      const n = await nodeCenter(0);
+      await drag(n.x, n.y, 40, 25);
+      const state = await waitFor(
+        `(() => { const s = document.querySelector('.sgl-save-status'); return s?.getAttribute('data-save-state') === 'blocked' ? s.textContent + ' | ' + s.title : null; })()`,
+        'the save to be reported as blocked',
+        15000,
+      );
+      const shot = await screenshot('blocked-save-1366x768');
+      const before = dialogs.length;
+      await setFile('.toolbar input[type="file"]', EXAMPLE_DESIGN);
+      let asked = null;
+      for (const end = Date.now() + opts.timeout; asked === null && Date.now() < end; await delay(100)) if (dialogs.length > before) asked = dialogs[dialogs.length - 1];
+      if (!asked) return fail('opening another file while the save was blocked did not ask before discarding the unsaved changes', { state, screenshot: shot });
+      if (!/could not be saved/i.test(asked)) return fail(`unexpected dialog: ${asked}`, { state });
+      // The harness accepts dialogs, i.e. the user chose to discard: the other file opens.
+      await waitFor(`document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length > 0 && document.querySelector('.sgl-identity-project')?.textContent !== null`, 'the opened file after confirming');
+      return pass(`blocked save shown ("${state.split(' | ')[0].trim()}"); opening another file asked first: "${asked.slice(0, 90)}…"`, { state, dialog: asked, screenshot: shot });
+    } finally {
+      await evaluate(`(() => { if (window.__sglPut) IDBObjectStore.prototype.put = window.__sglPut; return true; })()`);
+    }
+  });
+
   await check('scenarios/1280x720', async () => {
     await setViewport(VIEWPORTS[0]);
     await openTab('scenarios');

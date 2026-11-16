@@ -39,15 +39,15 @@ import {
   type KeyValueStorage,
 } from './session/projectAttributeStore';
 import { activeProjectOf, readProjectRequest, startProject, type ProjectSession } from './session/projectSession';
-import { activeSession, activeSlot } from './session/projectStore';
-import { createProjectController, hasUnsavedLocalChanges, showsWelcome } from './session/projectStoreController';
+import { activeSession, activeSlot, isExported } from './session/projectStore';
+import { createProjectController, showsWelcome, type LeaveOptions } from './session/projectStoreController';
 import { ProjectControllerContext, useProjectControllerState } from './session/projectStoreContext';
 import { historyButtonTitle, historyShortcut, isApplePlatform, type HistoryShortcut } from './session/shortcuts';
 import './session/session.css';
 import { ProjectFiles, ProjectNameField } from './welcome/ProjectFiles';
 import { Welcome } from './welcome/Welcome';
 import { createProject, openProjectText, tryExample, type FlowOutcome, type WelcomeHost } from './welcome/welcomeFlow';
-import type { RecentState } from './welcome/welcomeModel';
+import { recentStateOf, type RecentState } from './welcome/welcomeModel';
 import { Workspace } from './Workspace';
 import { DESTINATION_PANELS } from '@app/workspace/panelSlots';
 import {
@@ -119,6 +119,15 @@ const APPLE = typeof navigator !== 'undefined' && isApplePlatform(navigator.plat
  * Local projects carry their attribute record in their own project file instead.
  */
 const NO_STORAGE: KeyValueStorage = { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
+
+/** The browser's localStorage, used READ-ONLY to seed new projects from pre-project attribute schemas. */
+function legacyBrowserStorage(): KeyValueStorage | null {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Project-file issues share the `{path, code, message}` shape; unknown codes get the generic hint. */
 const asGraphIssues = (issues: readonly ProjectIssue[]): readonly GraphIssue[] => issues as unknown as readonly GraphIssue[];
@@ -273,18 +282,18 @@ export function App() {
     if (!welcome) return;
     let cancelled = false;
     setRecent({ status: 'loading' });
-    void controller.listRecent().then((items) => {
-      if (!cancelled) setRecent({ status: 'ready', items });
+    void controller.listRecent().then((list) => {
+      if (!cancelled) setRecent(recentStateOf(list));
     });
     return () => {
       cancelled = true;
     };
   }, [welcome, controller]);
 
-  // Leaving the page: write pending changes; warn when local changes are not yet stored.
+  // Leaving the page: write pending changes; warn while any change is unstored or a write runs.
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!hasUnsavedLocalChanges(controller.getState())) return;
+      if (!controller.hasPendingWork()) return;
       void controller.flush();
       event.preventDefault();
     };
@@ -321,6 +330,8 @@ export function App() {
     () => ({
       controller,
       defaultDefinitionId: definitions.defaultId,
+      // Read only: attribute schemas saved before local projects existed seed NEW projects once.
+      legacyAttributes: legacyBrowserStorage(),
       startingDesign: async (id) => {
         const start = await startProject(PROJECT_GLOBS, { query: id, env: null }, builtInExample());
         if (start.startup.doc) return { ok: true, doc: start.startup.doc, source: start.startup.source };
@@ -330,11 +341,20 @@ export function App() {
     [controller, definitions.defaultId],
   );
 
-  /** Run a Welcome / Project Files action; failures are shown and never replace the open project. */
-  const runFlow = async (label: string, action: () => Promise<FlowOutcome>) => {
+  /**
+   * Run a Welcome / Project Files action; failures are shown and never replace the open project.
+   * If the open project has changes that could not be stored, the user decides before they are
+   * discarded (the action is repeated with `discard`).
+   */
+  const runFlow = async (label: string, action: (options: LeaveOptions) => Promise<FlowOutcome>) => {
     setBusy(label);
     try {
-      const outcome = await action();
+      let outcome = await action({});
+      if (!outcome.ok && outcome.needsConfirmation) {
+        const discard = window.confirm(`${outcome.message}\n\nContinue and lose those changes? (Cancel keeps this project open; Save As New Project keeps them.)`);
+        if (!discard) return;
+        outcome = await action({ discard: true });
+      }
       if (outcome.ok) {
         setFailure(null);
         setWelcomeMode(null);
@@ -350,11 +370,11 @@ export function App() {
   };
 
   const openFile = (file: File) =>
-    void runFlow('Opening…', async () => {
+    void runFlow('Opening…', async (options) => {
       const text = await file.text();
-      return openProjectText(host, text, file.name);
+      return openProjectText(host, text, file.name, options);
     });
-  const startExample = () => void runFlow('Opening the example…', () => tryExample(host, builtInExample().doc, EXAMPLE_LABEL));
+  const startExample = () => void runFlow('Opening the example…', (options) => tryExample(host, builtInExample().doc, EXAMPLE_LABEL, options));
   /** Close the project (its changes are written first) and show Welcome's Create form. */
   const backToWelcome = async (definition: string | null = definitions.defaultId) => {
     let closed = await controller.close();
@@ -606,18 +626,17 @@ export function App() {
               recent={recent}
               busy={busy}
               error={failureView}
-              onCreate={(name, id) => void runFlow('Creating the project…', () => createProject(host, name, id))}
+              onCreate={(name, id) => void runFlow('Creating the project…', (options) => createProject(host, name, id, options))}
               onOpenFile={openFile}
               onTryExample={startExample}
               onRestore={(id) =>
-                void runFlow('Opening…', async () => {
-                  const r = await controller.restore(id);
-                  return r.ok ? { ok: true, projectId: id } : { ok: false, source: 'the stored project', message: r.message, issues: [] };
+                void runFlow('Opening…', async (options) => {
+                  const r = await controller.restore(id, options);
+                  if (r.ok) return { ok: true, projectId: id };
+                  return { ok: false, source: 'the stored project', message: r.message, issues: [], ...(r.status === 'needs-confirmation' && { needsConfirmation: true as const }) };
                 })
               }
-              onDiscardUnreadable={(id) =>
-                void controller.discardUnreadable(id).then(async () => setRecent({ status: 'ready', items: await controller.listRecent() }))
-              }
+              onDiscardUnreadable={(id) => void controller.discardUnreadable(id).then(async () => setRecent(recentStateOf(await controller.listRecent())))}
             />
           ) : (
             <>
@@ -658,8 +677,8 @@ export function App() {
                             docLoaded={doc !== null}
                             source={current?.source ?? null}
                             designName={doc?.metadata.name ?? null}
-                            // Never claims "saved" while the local save is pending or blocked.
-                            modified={cstate.save.local !== 'saved'}
+                            // EXPORT state only ("not exported" ≠ "unsaved"); local saving is shown by SaveStatus.
+                            modified={openProject !== null && !isExported(openProject)}
                             conformance={conformance}
                             attributeProblems={attributeProblems}
                             onSwitchProject={(id) => void backToWelcome(id)}
