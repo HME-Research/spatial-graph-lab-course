@@ -135,6 +135,7 @@ A spatial algorithm gets the design's own records and a few helpers:
 | `edgeAttributes(edgeId)` | the same for a relationship's project edge fields (Access and Open have the same fields) |
 | `attributeFields` | `{ nodes, edges }`: the project's fields (`key`, `label`, `kind`, `values`, `min`, `max`, `default`) |
 | `attributesOf(node, type)` | typed values of the attributes `type` declares (read through the project fields); `type` is imported from your `types/` folder |
+| `metrics.list()` / `metrics.value(metricId, id)` | the app's **calculated values** (area, volume, façade length, …), read-only; see [Calculated values](#calculated-values) |
 | `params` | your parameters, already checked, with defaults applied |
 
 It returns a list of **operations**:
@@ -189,6 +190,51 @@ export default defineSpatialAlgorithm({
 
 When you create several items in one run, pass the ids you've already chosen to `uniqueId(graph, prefix, taken)`.
 
+### Calculated values
+
+`ctx.metrics` gives spatial algorithms the same calculated values the app shows in Properties and in *Colour by*. They are worked out from the design when you ask; you can't set them, and they are never saved in the design or the project file.
+
+- `ctx.metrics.list()`: every value on offer, as `{ id, label, collection, valueKind, unit?, definition }` (`collection` is `nodes` for rooms or `edges` for relationships).
+- `ctx.metrics.value(metricId, id)`: the value for one room or relationship: a number, `true`/`false`, a text, or `null` when there is no value. An unknown metric id, or an id that is not a room (or relationship, for edge values), stops the run with an error.
+- Values describe the design **as it was when the run started**. Your operations don't change them during the run.
+
+| `metricId` | For | Value |
+|---|---|---|
+| `area` | rooms | plan area in m²: cells along x × y × 3 m × 3 m (not summed over storeys) |
+| `volume` | rooms | m³: cells along x × y × z × 27 m³ |
+| `degree` | rooms | number of relationships of the room, built or not |
+| `has-exterior-facade` | rooms | `true` if at least one wall faces an empty cell (roofs and floors don't count) |
+| `exposed-facade-length` | rooms | m: exterior unit walls × 3 m, summed over the room's storeys. Walls shared with another room or touching a generated connector are not exterior |
+| `exposed-facade-area` | rooms | m²: exterior unit walls × 9 m² |
+| `unresolved-connections` | rooms | number of the room's relationships that can't be built (unresolved) |
+| `resolution-status` | relationships | `"direct"`, `"routed"` or `"unresolved"` |
+| `route-length` | relationships | m: generated connector cells × 3 m; `0` when the rooms touch; `null` when unresolved |
+
+`Function` (the room's `typeId`) and `Level` (`grid[2]`) are not calculated values: read them from `ctx.design.nodes`.
+
+Example: rate each gallery's daylight from its exposed façade.
+
+```ts
+import { defineSpatialAlgorithm, type SpatialOperation } from '@student-api';
+import gallery from '../types/gallery';
+
+export default defineSpatialAlgorithm({
+  id: 'daylight-from-facade',
+  label: 'Daylight from façade length',
+  run(ctx) {
+    const operations: SpatialOperation[] = [];
+    for (const room of ctx.design.nodes.filter((n) => n.typeId === gallery.id)) {
+      const metres = ctx.metrics.value('exposed-facade-length', room.id) as number;
+      const daylight = metres >= 24 ? 'high' : metres >= 12 ? 'medium' : 'low';
+      operations.push({ op: 'set-node-attribute', nodeId: room.id, key: 'daylight', value: daylight });
+    }
+    return { kind: 'transformation', summary: `${operations.length} galleries rated`, operations };
+  },
+});
+```
+
+Graph algorithms see only ids and endpoints, so they have no `ctx.metrics`.
+
 ## 5. Parameters
 
 Algorithms may declare `parameters` using the same kinds as attributes. For example, `parameters: { start: { kind: 'text', default: 'entry-gallery' } }` is read as `ctx.params.start`. Values are checked before `run` is called.
@@ -206,6 +252,6 @@ Exports of `@student-api`:
 - **Definitions:** `defineProject`, `defineNodeType`, `defineGraphAlgorithm`, `defineSpatialAlgorithm`
 - **Graph helpers:** `neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite`, `uniqueId`
 - **Grid helpers:** `FACE_DIRECTIONS`, `neighbourCell`, `roomCells` (every cell of a room's box)
-- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ProjectDefinition`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `ConnectorStyle`, `SpatialEdgeKind` (the old v1 kinds), `SpatialOperation`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`
+- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ProjectDefinition`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `ConnectorStyle`, `SpatialEdgeKind` (the old v1 kinds), `SpatialOperation`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
 
 **Changes with schema v2.** Existing algorithms keep compiling and running. What you read changed: edges now have kind `access` or `open` (not `door`, `atrium`, …), and rooms have `size` and `displayId`. Code that compared `edge.kind === 'door'` should compare with `'access'`. `add-edge` still accepts the old kinds, and `canConnect` still works, but is deprecated.

@@ -47,6 +47,7 @@ export type ExtensionIssueCode =
   | 'type-mismatch'
   | 'invalid-result'
   | 'unknown-node-reference'
+  | 'unknown-metric'
   // transformation operations
   | 'invalid-id'
   | 'duplicate-node-id'
