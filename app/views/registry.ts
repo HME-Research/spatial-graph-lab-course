@@ -1,7 +1,8 @@
 import { lazy } from 'react';
 import type { ViewComponent, ViewMode } from './contracts';
 import { Graph2DView } from './graph2d/Graph2DView';
-import { PlanView } from './plan/PlanView';
+// Plan with the shared-wall interaction (wave 2, D): workstream C's PlanView + its onWallTarget hook.
+import { PlanWallView } from './three/wallInteraction/PlanWallView';
 
 /*
  * The three 3D views are lazy-loaded (wave 1, workstream E): Three.js, React Three Fiber and drei
@@ -18,5 +19,5 @@ export const VIEW_COMPONENTS: Readonly<Record<ViewMode, ViewComponent>> = {
   graph3d: Graph3DView,
   voxels: VoxelView,
   architecture: ArchitectureView,
-  plan: PlanView,
+  plan: PlanWallView,
 };

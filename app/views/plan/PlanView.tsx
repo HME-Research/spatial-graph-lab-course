@@ -31,7 +31,7 @@ import type { ViewProps } from '../contracts';
 import { projectFacadeProvider } from '../project';
 import { useRemembered } from '../panelMemory';
 import { centreLinePath, crossedRectPath, doorSwingPath, grow, windowPath } from './planShapes';
-import { effectiveLevel, fitViewport, panBy, viewBoxOf, wheelFactor, zoomAt, type PlanViewport, type ScreenSize } from './planViewport';
+import { effectiveLevel, fitViewport, panBy, staleWallHover, viewBoxOf, wheelFactor, wheelPixels, zoomAt, type PlanViewport, type ScreenSize } from './planViewport';
 import './plan.css';
 
 /**
@@ -57,6 +57,8 @@ export type PlanWallEvent =
 export interface PlanViewProps extends ViewProps {
   /** Optional data hook (workstream D). Without it, wall targets are not drawn or interactive. */
   readonly onWallTarget?: (event: PlanWallEvent) => void;
+  /** Wave 2 (D): the wall whose panel is open, drawn highlighted (view-local, not a Selection). */
+  readonly activeWall?: string | null;
 }
 
 interface RememberedPlan {
@@ -72,7 +74,7 @@ const DRAG_THRESHOLD = 4;
 
 export const levelName = (level: number) => `Level ${level}`;
 
-export function PlanView({ selection, onSelect, project, design, onWallTarget }: PlanViewProps) {
+export function PlanView({ selection, onSelect, project, design, onWallTarget, activeWall = null }: PlanViewProps) {
   if (!design) {
     return (
       <div className="sgl-plan sgl-plan-message">
@@ -87,6 +89,7 @@ export function PlanView({ selection, onSelect, project, design, onWallTarget }:
       onSelect={onSelect}
       facade={project?.facade ?? NO_PROJECT_FACADE}
       onWallTarget={onWallTarget}
+      activeWall={activeWall}
     />
   );
 }
@@ -104,12 +107,14 @@ function PlanCanvas({
   onSelect,
   facade,
   onWallTarget,
+  activeWall,
 }: {
   readonly design: DesignPort;
   readonly selection: Selection;
   readonly onSelect: SelectionHandler;
   readonly facade: FacadeProvider;
   readonly onWallTarget: PlanViewProps['onWallTarget'];
+  readonly activeWall: string | null;
 }) {
   const { doc, spatial } = design;
   // Geometry depends on the document, its resolution and the project façades only.
@@ -156,7 +161,8 @@ function PlanCanvas({
       e.preventDefault();
       const r = svg.getBoundingClientRect();
       const { viewport: v, size: s } = live.current;
-      setManual(zoomAt(v, s, wheelFactor(e.deltaY), e.clientX - r.left, e.clientY - r.top));
+      // Line / page wheels (e.g. Firefox, some mice) report deltaY in lines or pages, not pixels.
+      setManual(zoomAt(v, s, wheelFactor(wheelPixels(e.deltaY, e.deltaMode, s.height)), e.clientX - r.left, e.clientY - r.top));
     };
     svg.addEventListener('wheel', onWheel, { passive: false });
     return () => svg.removeEventListener('wheel', onWheel);
@@ -223,6 +229,17 @@ function PlanCanvas({
 
   const [hoveredWall, setHoveredWall] = useState<string | null>(null);
   const wallModel = useMemo(() => ({ faces: source.layouts.map((l) => l.face) }), [source]);
+  // A storey switch or a design change can remove the hovered wall without a pointerleave: forget
+  // it and tell the host, so no stale hover survives (wave 2, D).
+  const hoverLevel = useRef(level);
+  useEffect(() => {
+    const levelChanged = hoverLevel.current !== level;
+    hoverLevel.current = level;
+    if (hoveredWall === null) return;
+    if (!staleWallHover(hoveredWall, levelChanged, plan?.wallTargets ?? [])) return;
+    setHoveredWall(null);
+    onWallTarget?.({ type: 'leave', faceId: hoveredWall });
+  }, [level, plan, hoveredWall, onWallTarget]);
   const wallEvent = (type: 'hover' | 'click', target: PlanWallTarget) => {
     onWallTarget?.({ type, target, action: wallAction(target.faceId, wallModel, doc, spatial) });
   };
@@ -240,6 +257,7 @@ function PlanCanvas({
         activate={activate}
         wallTargets={onWallTarget ? plan.wallTargets : []}
         hoveredWall={hoveredWall}
+        activeWall={activeWall}
         onWallHover={(t) => {
           if (t) {
             setHoveredWall(t.faceId);
@@ -333,6 +351,7 @@ export function PlanDrawing({
   activate,
   wallTargets = [],
   hoveredWall = null,
+  activeWall = null,
   onWallHover,
   onWallClick,
 }: {
@@ -343,6 +362,7 @@ export function PlanDrawing({
   readonly activate: (s: Selection) => Partial<Activation>;
   readonly wallTargets?: readonly PlanWallTarget[];
   readonly hoveredWall?: string | null;
+  readonly activeWall?: string | null;
   readonly onWallHover?: (t: PlanWallTarget | null) => void;
   readonly onWallClick?: (t: PlanWallTarget) => void;
 }) {
@@ -408,7 +428,7 @@ export function PlanDrawing({
           {wallTargets.map((t) => (
             <line
               key={t.faceId}
-              className={t.faceId === hoveredWall ? 'sgl-plan-wall-target hovered' : 'sgl-plan-wall-target'}
+              className={`sgl-plan-wall-target${t.faceId === hoveredWall ? ' hovered' : ''}${t.faceId === activeWall ? ' active' : ''}`}
               data-face-id={t.faceId}
               x1={t.line.x0}
               y1={t.line.y0}

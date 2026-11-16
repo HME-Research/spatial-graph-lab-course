@@ -55,6 +55,32 @@ export function panBy(v: PlanViewport, dx: number, dy: number): PlanViewport {
   return { cx: v.cx - dx * v.scale, cy: v.cy - dy * v.scale, scale: v.scale };
 }
 
+/** `WheelEvent.deltaMode` values. */
+export const WHEEL_DELTA_PIXEL = 0;
+export const WHEEL_DELTA_LINE = 1;
+export const WHEEL_DELTA_PAGE = 2;
+/** One wheel line ≈ a third of a 100 px notch (a line-mode notch usually reports 3 lines). */
+export const WHEEL_LINE_PIXELS = 100 / 3;
+
+/**
+ * A wheel delta in pixels whatever its `deltaMode` (wave 2, D): line-mode wheels (Firefox, some
+ * mice) report small line counts that would otherwise zoom almost nothing; page mode uses the
+ * panel height. Unknown modes are treated as pixels.
+ */
+export function wheelPixels(delta: number, deltaMode: number, pageHeight: number): number {
+  if (deltaMode === WHEEL_DELTA_LINE) return delta * WHEEL_LINE_PIXELS;
+  if (deltaMode === WHEEL_DELTA_PAGE) return delta * (pageHeight > 0 ? pageHeight : 800);
+  return delta;
+}
+
+/**
+ * Is the hovered wall stale (wave 2, D)? After a storey switch it always is (the pointer is over a
+ * different drawing); after a design change only when the wall is no longer a target.
+ */
+export function staleWallHover(faceId: string, levelChanged: boolean, targets: readonly { readonly faceId: string }[]): boolean {
+  return levelChanged || !targets.some((t) => t.faceId === faceId);
+}
+
 /** Wheel delta (pixels) → zoom factor; one notch (100 px) ≈ 1.2×. */
 export const wheelFactor = (deltaY: number): number => Math.pow(1.2, -Math.max(-5, Math.min(5, deltaY / 100)));
 

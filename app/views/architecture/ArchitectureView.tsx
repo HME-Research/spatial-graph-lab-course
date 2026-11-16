@@ -22,9 +22,11 @@ import { lineOf, RelationshipTube, useUnitCylinder, ViewRelationshipLegend } fro
 import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
 import { presetColour, useRoofsDisplay, useViewDisplay, type SceneDisplay } from '../three/viewDisplay';
 import { StoreyLabels } from '../three/StoreyLabels';
+import { eligibleWallFaces, faceIndex, wallActionOf, wallPanelModel } from '../three/wallInteraction/wallPanelModel';
+import { WallActionPanel } from '../three/wallInteraction/WallActionPanel';
 import type { DesignPort } from '@app/spatial';
 import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
-import { NO_SELECTION, type Selection } from '@core/viewer/selection';
+import { NO_SELECTION, selectEdge, type Selection } from '@core/viewer/selection';
 import { isDeliberateObjectClick } from '@core/viewer/three/interaction';
 import { pickHandlers } from '@core/viewer/three/picking';
 import { SceneCanvas } from '@core/viewer/three/SceneCanvas';
@@ -93,6 +95,7 @@ function connectorColor(c: ConnectorElement): string {
 /** Façades without a project: exactly the example façades (stable reference for memoisation). */
 const NO_PROJECT_FACADE = projectFacadeProvider(null);
 const NO_CONNECTORS: readonly ConnectorElement[] = [];
+const NO_FACES: ReadonlySet<string> = new Set();
 
 const LIGHTING = (
   <>
@@ -140,12 +143,42 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
     [v2Doc],
   );
 
+  // Shared-wall interaction (wave 2, D): hover highlights an eligible shared wall, a click opens the
+  // wall panel. Which wall is open is view-local state (not a Selection kind). Schema v2 only.
+  const faces = useMemo(() => (v2 ? faceIndex(v2.faces) : null), [v2]);
+  const eligible = useMemo(
+    () => (v2 && v2Doc && v2Spatial ? eligibleWallFaces(v2.faces, v2Doc, v2Spatial) : NO_FACES),
+    [v2, v2Doc, v2Spatial],
+  );
+  const [hoveredWall, setHoveredWall] = useState<string | null>(null);
+  const [activeWall, setActiveWall] = useState<string | null>(null);
+  const shownHover = hoveredWall !== null && eligible.has(hoveredWall) ? hoveredWall : null;
+  const hoverPanel = useMemo(
+    () => (shownHover && faces && v2Doc && v2Spatial ? wallPanelModel(shownHover, faces, v2Doc, v2Spatial) : null),
+    [shownHover, faces, v2Doc, v2Spatial],
+  );
+
   // Stable pick callback so memoised meshes do not re-render when the app passes a new onSelect.
   const onSelectRef = useRef(onSelect);
   useEffect(() => {
     onSelectRef.current = onSelect;
   }, [onSelect]);
-  const pick = useCallback((target: Selection) => onSelectRef.current(target), []);
+  const pick = useCallback((target: Selection) => {
+    setActiveWall(null);
+    onSelectRef.current(target);
+  }, []);
+  const latestWall = useRef({ faces, v2Doc, v2Spatial });
+  latestWall.current = { faces, v2Doc, v2Spatial };
+  const clickWall = useCallback((faceId: string) => {
+    const { faces: f, v2Doc: d, v2Spatial: s } = latestWall.current;
+    if (!f || !d || !s) return;
+    const action = wallActionOf(faceId, f, d, s);
+    if (action.kind === 'not-eligible') return;
+    setActiveWall(faceId);
+    // An existing relationship is selected (Properties shows it); a new wall clears the selection.
+    onSelectRef.current(action.kind === 'existing' ? selectEdge(action.edgeId) : NO_SELECTION);
+  }, []);
+  const hoverWall = useCallback((faceId: string | null) => setHoveredWall(faceId), []);
 
   return (
     <SceneCanvas
@@ -173,15 +206,41 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
             v2={design !== undefined}
             connectors={connectors.length > 0}
             roofsHiddenByDesigner={roofsHiddenByDesigner}
-            hint={NAVIGATION_HINT}
+            hint={
+              hoverPanel && hoverPanel.kind !== 'unavailable'
+                ? `Wall between ${hoverPanel.rooms[0].label} and ${hoverPanel.rooms[1].label}: click for ${hoverPanel.kind === 'add' ? 'Add relationship' : 'its relationship'}`
+                : NAVIGATION_HINT
+            }
+            hintWall={shownHover}
             besideEditor={editing.active}
             design={design}
           />
           <RoomEditPanel editing={editing} />
+          {design && faces && activeWall !== null && (
+            <WallActionPanel
+              className="in-building"
+              design={design}
+              faceId={activeWall}
+              faces={faces}
+              onSelect={onSelect}
+              onClose={() => setActiveWall(null)}
+            />
+          )}
         </>
       }
     >
-      <Scene elements={visible} connectors={visibleConnectors} selection={selection} pick={pick} setHovered={setHovered} />
+      <Scene
+        elements={visible}
+        connectors={visibleConnectors}
+        selection={selection}
+        pick={pick}
+        setHovered={setHovered}
+        eligibleWalls={eligible}
+        hoveredWall={shownHover}
+        activeWall={activeWall}
+        onWallHover={hoverWall}
+        onWallClick={clickWall}
+      />
       <StoreyLabels nodes={v2Doc?.nodes ?? doc.nodes} bounds={bounds} />
       {unresolved.map((e) => {
         const line = lineOf(design, e.id);
@@ -213,12 +272,23 @@ function Scene({
   selection,
   pick,
   setHovered,
+  eligibleWalls,
+  hoveredWall,
+  activeWall,
+  onWallHover,
+  onWallClick,
 }: {
   readonly elements: readonly ArchitecturalElement[];
   readonly connectors: readonly ConnectorElement[];
   readonly selection: Selection;
   readonly pick: (target: Selection) => void;
   readonly setHovered: (hovered: boolean) => void;
+  /** Faces of shared walls between two distinct rooms (`wallAction` eligible). */
+  readonly eligibleWalls: ReadonlySet<string>;
+  readonly hoveredWall: string | null;
+  readonly activeWall: string | null;
+  readonly onWallHover: (faceId: string | null) => void;
+  readonly onWallClick: (faceId: string) => void;
 }) {
   const display = useViewDisplay();
   // One shared unit box, scaled per element: no per-element geometry allocation.
@@ -238,6 +308,12 @@ function Scene({
           highlighted={isElementHighlighted(e, selection)}
           pick={pick}
           setHovered={setHovered}
+          {...(eligibleWalls.has(e.faceId) && {
+            wall: e.faceId === activeWall ? 'active' : e.faceId === hoveredWall ? 'hover' : 'eligible',
+            faceId: e.faceId,
+            onWallHover,
+            onWallClick,
+          })}
         />
       ))}
       {connectors.map((c) => (
@@ -268,6 +344,10 @@ const BoxMesh = memo(function BoxMesh({
   highlighted,
   pick,
   setHovered,
+  wall,
+  faceId,
+  onWallHover,
+  onWallClick,
 }: {
   readonly position: readonly [number, number, number];
   readonly size: readonly [number, number, number];
@@ -278,9 +358,16 @@ const BoxMesh = memo(function BoxMesh({
   readonly highlighted: boolean;
   readonly pick: (target: Selection) => void;
   readonly setHovered: (hovered: boolean) => void;
+  /** Part of an eligible shared wall (wave 2, D): hover / click open the wall panel instead of selecting. */
+  readonly wall?: 'eligible' | 'hover' | 'active';
+  readonly faceId?: string;
+  readonly onWallHover?: (faceId: string | null) => void;
+  readonly onWallClick?: (faceId: string) => void;
 }) {
   const glass = kind === 'glass';
   const marker = kind === 'marker';
+  const wallTint = wall === 'active' ? 0.6 : wall === 'hover' ? 0.35 : 0;
+  const emphasis = Math.max(highlighted ? 0.55 : 0, wallTint);
   return (
     <mesh
       geometry={geometry}
@@ -289,13 +376,19 @@ const BoxMesh = memo(function BoxMesh({
       onClick={(e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         // Orbit/pan drags and right-clicks keep the selection.
-        if (isDeliberateObjectClick(e.delta, e.nativeEvent)) pick(target);
+        if (!isDeliberateObjectClick(e.delta, e.nativeEvent)) return;
+        if (wall && faceId !== undefined && onWallClick) onWallClick(faceId);
+        else pick(target);
       }}
       onPointerOver={(e: ThreeEvent<PointerEvent>) => {
         e.stopPropagation();
         setHovered(true);
+        onWallHover?.(faceId ?? null);
       }}
-      onPointerOut={() => setHovered(false)}
+      onPointerOut={() => {
+        setHovered(false);
+        onWallHover?.(null);
+      }}
     >
       <meshStandardMaterial
         // Selection TINTS the element (keeps doors, glazing and walls readable while editing) instead
@@ -305,8 +398,8 @@ const BoxMesh = memo(function BoxMesh({
         opacity={glass ? (highlighted ? 0.75 : 0.45) : marker ? 0.85 : 1}
         depthWrite={!glass}
         roughness={glass ? 0.1 : 0.85}
-        emissive={highlighted ? SELECTION_COLOR : '#000000'}
-        emissiveIntensity={highlighted ? 0.55 : 0}
+        emissive={emphasis > 0 ? SELECTION_COLOR : '#000000'}
+        emissiveIntensity={emphasis}
       />
     </mesh>
   );
@@ -350,9 +443,12 @@ function Overlay({
   connectors,
   roofsHiddenByDesigner,
   hint,
+  hintWall,
   besideEditor,
   design,
 }: {
+  /** The hovered shared wall (its face id), shown in the hint line. */
+  readonly hintWall: string | null;
   /** The room editor occupies the bottom-right cell. */
   readonly besideEditor: boolean;
   /** v2 port: its relationship legend ("what gets built") is part of the one Legend disclosure. */
@@ -421,7 +517,9 @@ function Overlay({
         <div className="viewer3d-empty">No occupied cells to interpret yet.</div>
       ) : besideEditor && compact ? null : (
         // Narrow panel while editing: the room editor already shows the snap and Esc hints.
-        <div className={besideEditor ? 'viewer3d-hint beside-edit' : 'viewer3d-hint'}>{hint}</div>
+        <div className={besideEditor ? 'viewer3d-hint beside-edit' : 'viewer3d-hint'} data-wall-hover={hintWall ?? undefined}>
+          {hint}
+        </div>
       )}
     </>
   );

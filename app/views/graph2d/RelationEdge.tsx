@@ -5,7 +5,11 @@ import { circleSegment, type Circle } from './diagram';
 import type { EdgePresentation } from './edgePresentation';
 import { BASE_NODE_DIAMETER } from './NodeDisplay';
 
-export type RelationEdgeData = { readonly presentation: EdgePresentation };
+export type RelationEdgeData = {
+  readonly presentation: EdgePresentation;
+  /** "Remove invalid connections" preview: this relationship is checked for removal. */
+  readonly removePreview?: boolean;
+};
 export type RelationFlowEdge = Edge<RelationEdgeData, 'relation'>;
 
 /** Width of the invisible stroke that receives clicks and hover. */
@@ -32,6 +36,18 @@ export const RelationEdge = memo(function RelationEdge({ id, source, target, dat
   const p = data.presentation;
   return (
     <>
+      {data.removePreview && (
+        <path
+          className="sgl-edge-remove-preview"
+          d={path}
+          fill="none"
+          stroke={p.stroke}
+          strokeOpacity={0.22}
+          strokeWidth={p.strokeWidth * 4 + 8}
+          strokeLinecap="round"
+          data-remove-preview={id}
+        />
+      )}
       {selected && (
         // The halo scales with the kind's own weight, so a selected Open (heavier) still reads heavier
         // than a selected Access (audit m7); the kind stroke itself is drawn on top unchanged.

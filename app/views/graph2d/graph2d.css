@@ -488,3 +488,74 @@ button.sgl-icon-button {
   margin-top: 4px;
   border-top: 1px solid #e4e4dd;
 }
+
+/* ── Remove invalid connections (wave 2, D) ──────────────────────────────────── */
+
+.sgl-invalid-button {
+  color: #8f4449;
+}
+
+/* Docked at the top-right so the diagram (and the marked edges) stay visible beside it. */
+.sgl-invalid-dialog {
+  position: absolute;
+  z-index: 12;
+  top: 8px;
+  right: 8px;
+  width: 272px;
+  max-width: calc(100% - 16px);
+  max-height: calc(100% - 16px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid #d0d0c8;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  font-size: 12px;
+}
+
+.sgl-invalid-dialog h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.sgl-invalid-dialog p {
+  margin: 0 0 6px;
+}
+
+.sgl-invalid-list {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.sgl-invalid-list label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px;
+  align-items: start;
+  cursor: pointer;
+}
+
+.sgl-invalid-reason {
+  display: block;
+  color: #8f4449;
+}
+
+.sgl-invalid-summary {
+  font-weight: 600;
+}
+
+.sgl-invalid-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.sgl-invalid-actions .sgl-danger:not(:disabled) {
+  color: #ffffff;
+  background: #a2464c;
+  border-color: #a2464c;
+}

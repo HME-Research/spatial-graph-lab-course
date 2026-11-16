@@ -98,3 +98,14 @@ Items (each PASS only when all its checks pass; `gate-i1.json` and screenshots g
 3. Enable "Exposed façade area" in Attributes → Calculated → Properties shows it read-only (no inputs, Level shown once) → Voxels "Colour by" offers and uses it → a move refreshes the value and the legend, undo restores it; still enabled after reload.
 4. Layout 4 with Graph 2D, Building, Voxels/Graph 3D and Plan, with and without a selected room, maximise/restore of each viewport, layouts 1 and 2: no page scroll, panels inside the workspace, header controls not clipped, the projection toggle never covering an overlay, one visible layout selector.
 5. Camera: explicit target viewport 2 (Building), a saved view in one scenario only, kept target across scenario switches, exact recall; after reload the target and the saved view are back and recall gives the saved pose.
+
+## Wave 2 D wall ↔ graph check (`walls.mjs`)
+
+Real pointer checks of the shared-wall interaction and "Remove invalid connections". Same safety rules as `smoke.mjs`; it opens the example with Try Example in a private browser profile.
+
+```powershell
+node scripts/smoke/walls.mjs --url http://localhost:5306/ --viewport 1280x720
+node scripts/smoke/walls.mjs --url http://localhost:5306/ --viewport 1366x768
+```
+
+Checks: Building (roofs off, orbit, hover until the wall reports itself) → click the reading gallery | store wall → Add relationship → Access → Graph 2D gains the edge, the Building legend counts one more Direct, the wall panel reports the door on this wall and the Plan draws the door on the same face id; one Undo removes it everywhere. The same from the Plan (wall line hover/click), with the Building panel confirming the door and offering change/remove only (no duplicate). Three unresolved relationships → Graph 2D review list (all checked) → uncheck one → only the two checked are removed (Graph 2D, Building, Graph 3D, Voxels legends, Plan note) → one Undo restores both. With nothing unresolved the canvas menu explains it. Layout 4: the Graph 2D legend starts folded with no node under it. No console errors.
