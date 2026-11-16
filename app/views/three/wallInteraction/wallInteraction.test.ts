@@ -4,13 +4,21 @@ import { describe, expect, it } from 'vitest';
 import { buildPlan, planSourceV2, resolveBuildingFaces } from '@app/building';
 import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
 import { applyScenarioCommand, resolveWithPreferences, type DesignPort } from '@app/spatial';
-import { addRelationshipCommand, eligibleWallFaces, faceIndex, wallPanelModel } from './wallPanelModel';
+import {
+  addRelationshipCommand,
+  eligibleWallFaces,
+  faceIndex,
+  selectionAfterRemove,
+  wallActionOf,
+  wallClickSelection,
+  wallPanelModel,
+} from './wallPanelModel';
 import { WallActionPanel } from './WallActionPanel';
 import { PlanWallView } from './PlanWallView';
 import exampleJson from '../../../document/examples/two-storey-example.json';
 import { validateDocument } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
-import { NO_SELECTION } from '@core/viewer/selection';
+import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 
 /*
  * Pure wall-panel model tests (wave 2, D). The one-undo-step and same-graph tests through the
@@ -154,6 +162,39 @@ describe('wall panel for a related wall', () => {
     const { onScenarioCommand: _omit, ...plain } = port;
     const noScenario = renderToStaticMarkup(createElement(WallActionPanel, { design: plain, faceId: FACE_NORTH, faces: index, onSelect: () => {}, onClose: () => {} }));
     expect(noScenario).toMatch(/disabled=""[^>]*>Put the door on this wall/);
+  });
+});
+
+describe('what a wall click selects (integration I2)', () => {
+  it('an unrelated shared wall selects its owner room (as before the wall panel), not nothing', () => {
+    const d = doc();
+    const spatial = resolveWithPreferences(d, {});
+    const index = faceIndex(resolveBuildingFaces(d, spatial));
+    for (const face of [FACE_SOUTH, FACE_NORTH]) {
+      const action = wallActionOf(face, index, d, spatial);
+      expect(action.kind).toBe('add');
+      expect(wallClickSelection(face, index, action)).toEqual(selectNode('a'));
+    }
+    // A non-eligible face selects nothing (the views do not even open the panel for it).
+    expect(wallClickSelection('a:0.0.0:-x', index, wallActionOf('a:0.0.0:-x', index, d, spatial))).toEqual(NO_SELECTION);
+  });
+
+  it('a wall of two related rooms selects the relationship, on the door wall and on the other shared wall', () => {
+    const added = applyScenarioCommand(
+      { design: doc(), facePreferences: {} },
+      { type: 'add-edge-at-face', edge: { id: 'edge-1', source: 'a', target: 'b', kind: 'access' }, preference: { nodeId: 'a', offset: [0, 0, 0], direction: '+x' } },
+    );
+    if (!added.ok) throw new Error('add-edge-at-face refused');
+    const { design: d2, facePreferences } = added.value;
+    const spatial = resolveWithPreferences(d2, facePreferences);
+    const index = faceIndex(resolveBuildingFaces(d2, spatial));
+    expect(index.get(FACE_SOUTH)?.edgeId).toBe('edge-1');
+    expect(wallClickSelection(FACE_SOUTH, index, wallActionOf(FACE_SOUTH, index, d2, spatial))).toEqual(selectEdge('edge-1'));
+    expect(wallClickSelection(FACE_NORTH, index, wallActionOf(FACE_NORTH, index, d2, spatial))).toEqual(selectEdge('edge-1'));
+    // After "Remove relationship" the removed edge is not left selected: the owner room is, as a fresh click would.
+    const panel = wallPanelModel(FACE_SOUTH, index, d2, spatial);
+    if (panel.kind !== 'existing') throw new Error('expected an existing relationship');
+    expect(selectionAfterRemove(panel)).toEqual(selectNode('a'));
   });
 });
 

@@ -10,6 +10,7 @@ import {
 } from '@app/spatial';
 import { STATUS_PRESENTATION, unresolvedReasonText } from '../../presentation/vocabulary';
 import { nextFreeId } from '../../graph2d/diagram';
+import { NO_SELECTION, selectEdge, selectNode, type Selection } from '@core/viewer/selection';
 
 /**
  * Shared-wall interaction (wave 2, D) for the Building and Plan views. PURE: given a building face
@@ -96,6 +97,26 @@ function roomOf(doc: DesignDocumentV2, id: string): WallRoom {
   const n = doc.nodes.find((x) => x.id === id);
   return { id, label: n ? nodeLabel(n) : id, typeId: n?.typeId ?? '' };
 }
+
+/**
+ * What clicking an eligible shared wall SELECTS (integration I2), besides opening the wall panel.
+ * A wall whose rooms have a relationship selects that relationship (Properties shows it, the same
+ * edge the panel describes); any other shared wall selects its owner room, exactly as a wall click
+ * did before the wall panel existed (`faceSelectionTarget`), so the room editor stays available.
+ * A non-eligible or unknown face selects nothing.
+ */
+export function wallClickSelection(faceId: string, faces: ReadonlyMap<string, BuildingFace>, action: WallAction): Selection {
+  if (action.kind === 'existing') return selectEdge(action.edgeId);
+  const face = faces.get(faceId);
+  if (action.kind === 'not-eligible' || !face) return NO_SELECTION;
+  return face.edgeId !== null ? selectEdge(face.edgeId) : selectNode(face.ownerNodeId);
+}
+
+/**
+ * Selection after "Remove relationship" succeeded (integration I2): the removed edge must not stay
+ * selected, and the wall is now unrelated, so it selects what a fresh click on it would: its owner room.
+ */
+export const selectionAfterRemove = (panel: Extract<WallPanel, { kind: 'existing' }>): Selection => selectNode(panel.rooms[0].id);
 
 /** What the wall panel shows for `faceId` in the current design. */
 export function wallPanelModel(

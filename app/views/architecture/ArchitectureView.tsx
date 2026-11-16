@@ -22,11 +22,11 @@ import { lineOf, RelationshipTube, useUnitCylinder, ViewRelationshipLegend } fro
 import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
 import { presetColour, useRoofsDisplay, useViewDisplay, type SceneDisplay } from '../three/viewDisplay';
 import { StoreyLabels } from '../three/StoreyLabels';
-import { eligibleWallFaces, faceIndex, wallActionOf, wallPanelModel } from '../three/wallInteraction/wallPanelModel';
+import { eligibleWallFaces, faceIndex, wallActionOf, wallClickSelection, wallPanelModel } from '../three/wallInteraction/wallPanelModel';
 import { WallActionPanel } from '../three/wallInteraction/WallActionPanel';
 import type { DesignPort } from '@app/spatial';
 import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
-import { NO_SELECTION, selectEdge, type Selection } from '@core/viewer/selection';
+import { NO_SELECTION, type Selection } from '@core/viewer/selection';
 import { isDeliberateObjectClick } from '@core/viewer/three/interaction';
 import { pickHandlers } from '@core/viewer/three/picking';
 import { SceneCanvas } from '@core/viewer/three/SceneCanvas';
@@ -175,8 +175,9 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
     const action = wallActionOf(faceId, f, d, s);
     if (action.kind === 'not-eligible') return;
     setActiveWall(faceId);
-    // An existing relationship is selected (Properties shows it); a new wall clears the selection.
-    onSelectRef.current(action.kind === 'existing' ? selectEdge(action.edgeId) : NO_SELECTION);
+    // An existing relationship is selected (Properties shows it); any other shared wall selects its owner
+    // room, as before the wall panel (I2), so the room editor stays available.
+    onSelectRef.current(wallClickSelection(faceId, f, action));
   }, []);
   const hoverWall = useCallback((faceId: string | null) => setHoveredWall(faceId), []);
 
@@ -358,7 +359,7 @@ const BoxMesh = memo(function BoxMesh({
   readonly highlighted: boolean;
   readonly pick: (target: Selection) => void;
   readonly setHovered: (hovered: boolean) => void;
-  /** Part of an eligible shared wall (wave 2, D): hover / click open the wall panel instead of selecting. */
+  /** Part of an eligible shared wall (wave 2, D): a click opens the wall panel and selects per `wallClickSelection` (I2). */
   readonly wall?: 'eligible' | 'hover' | 'active';
   readonly faceId?: string;
   readonly onWallHover?: (faceId: string | null) => void;

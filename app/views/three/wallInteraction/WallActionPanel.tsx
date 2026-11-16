@@ -9,6 +9,7 @@ import {
   changeKindCommand,
   moveDoorHereCommand,
   removeRelationshipCommand,
+  selectionAfterRemove,
   wallPanelModel,
   type WallCommand,
   type WallPanel,
@@ -181,7 +182,15 @@ function ExistingBody({
         <button type="button" onClick={() => send(changeKindCommand(panel, other))} title={`Change this relationship to ${other === 'open' ? 'Open' : 'Access'}`}>
           Change to {other === 'open' ? 'Open' : 'Access'}
         </button>
-        <button type="button" className="sgl-wall-danger" onClick={() => send(removeRelationshipCommand(panel))} title="Remove this relationship (Ctrl/⌘+Z undoes it)">
+        <button
+          type="button"
+          className="sgl-wall-danger"
+          onClick={() => {
+            // The removed edge must not stay selected (I2): select the owner room, as a click on this now-free wall would.
+            if (send(removeRelationshipCommand(panel))) onSelect(selectionAfterRemove(panel));
+          }}
+          title="Remove this relationship (Ctrl/⌘+Z undoes it)"
+        >
           Remove relationship
         </button>
       </div>

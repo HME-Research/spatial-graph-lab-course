@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { resolveBuildingFaces } from '@app/building';
-import { NO_SELECTION, selectEdge, type Selection } from '@core/viewer/selection';
+import { NO_SELECTION, type Selection } from '@core/viewer/selection';
 import type { ViewProps } from '../../contracts';
 import { PlanView, type PlanWallEvent } from '../../plan/PlanView';
-import { faceIndex } from './wallPanelModel';
+import { faceIndex, wallClickSelection } from './wallPanelModel';
 import { WallActionPanel } from './WallActionPanel';
 
 /**
@@ -29,10 +29,10 @@ export function PlanWallView(props: ViewProps) {
     (event: PlanWallEvent) => {
       if (event.type !== 'click') return;
       setActiveWall(event.target.faceId);
-      // An existing relationship is selected (Properties shows it); a new wall clears the selection.
-      onSelect(event.action.kind === 'existing' ? selectEdge(event.action.edgeId) : NO_SELECTION);
+      // Same rule as the Building view (I2): an existing relationship is selected, any other shared wall selects its owner room.
+      onSelect(faces ? wallClickSelection(event.target.faceId, faces, event.action) : NO_SELECTION);
     },
-    [onSelect],
+    [onSelect, faces],
   );
 
   return (

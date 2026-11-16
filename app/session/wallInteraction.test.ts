@@ -206,6 +206,25 @@ describe('wall interaction through the project controller', () => {
     expect(openingsOf(c, 'edge-1').planOpenings).toEqual([{ faceId: FACE_NORTH, kind: 'door' }]);
   });
 
+  it('a preferred-face-unavailable edge is listed (checked) by Remove invalid connections and removed in one undo step (I2)', async () => {
+    const c = await opened();
+    addAt(c, FACE_NORTH, 'access');
+    expect(c.command({ type: 'set-node-geometry', nodeId: 'b', grid: [1, 0, 0] }).ok).toBe(true);
+    const port = portOf(c);
+    const rows = invalidConnectionRows(modelFromV2(port.doc, port.spatial));
+    const row = rows.find((r) => r.edgeId === 'edge-1');
+    expect(row).toMatchObject({ label: '01 ↔ 02', kindLabel: 'Access', reason: 'preferred-face-unavailable', reasonText: expect.stringMatching(/no longer shared/) });
+    // Checked by default: the one command removes it together with the other unresolved edges.
+    const command = removeInvalidCommand(rows, new Set());
+    expect(command).toEqual({ type: 'remove-edges', edgeIds: ['cd', 'ce', 'edge-1'] });
+    const before = activeContent(project(c));
+    expect(c.command(command!).ok).toBe(true);
+    expect(activeContent(project(c)).design.edges).toEqual([]);
+    expect(c.undo()).toBe(true);
+    expect(activeContent(project(c))).toEqual(before);
+    expect(portOf(c).spatial.byEdge.get('edge-1')).toMatchObject({ status: 'unresolved', reason: 'preferred-face-unavailable' });
+  });
+
   it('Remove invalid connections: only the checked unresolved edges, in ONE undo step', async () => {
     const c = await opened();
     const port = portOf(c);

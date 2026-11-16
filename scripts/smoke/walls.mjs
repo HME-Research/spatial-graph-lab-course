@@ -13,6 +13,11 @@
 //   remove-invalid        Make three relationships unresolved, open Graph 2D "Remove invalid connections",
 //                         uncheck one, confirm: only the checked ones are removed (Graph 2D, Building,
 //                         Graph 3D, Voxels legends and the Plan note agree); ONE Undo restores both.
+//   i2/*                  Integration gate I2: a free-wall click (Building and Plan) selects the owner room and
+//                         opens the panel; "Remove relationship" leaves no edge selected; five-view sync of one
+//                         wall-added Access edge (Graph 2D, Graph 3D and Voxels selection highlight, Building
+//                         door, Plan door on the same face) through Undo, a room move (kept, unresolved /
+//                         preferred-face-unavailable), Remove invalid connections and one Undo.
 //
 // Same safety rules as smoke.mjs: never starts/stops Node or Vite, never writes into the repository
 // (output defaults to the OS temp dir), only closes the private browser it launched.
@@ -445,6 +450,188 @@ await step('no-invalid-explained', async () => {
   const text = await waitFor(`${P(1)}.querySelector('.sgl-status')?.textContent`, 'the explanation');
   expect(/no invalid connections/.test(text), `notice: ${text}`);
   return `no button without unresolved relationships; menu explains: "${text.replace(/\s+/g, ' ').replace(/×$/, '').trim()}"`;
+});
+
+// ── Integration gate I2 ──────────────────────────────────────────────────────────────────────
+/** Pixels of the selection colour (#ff2d95, shaded) in panel `panel`'s canvas. */
+async function selectionPixels(panel) {
+  await delay(500);
+  const rect = await evaluate(`__w.canvasRect(${panel})`);
+  const { data } = await page.send('Page.captureScreenshot', { format: 'png', clip: { ...rect, scale: 1 } });
+  return evaluate(`(async () => {
+    const img = new Image(); img.src = 'data:image/png;base64,${data}'; await img.decode();
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+    const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+    const px = g.getImageData(0, 0, c.width, c.height).data; let n = 0;
+    for (let i = 0; i < px.length; i += 4) { const r = px[i], gr = px[i + 1], b = px[i + 2]; if (r > 120 && r > 1.8 * gr + 20 && b > 1.4 * gr + 10 && r > b) n++; }
+    return n;
+  })()`);
+}
+const edgeSelected = (id) => evaluate(`!!document.querySelector('.view-panel[data-panel="0"] .react-flow__edge.selected[data-id="${id}"]')`);
+const edgeDashed = (id) =>
+  evaluate(`(() => { const p = document.querySelector('.view-panel[data-panel="0"] .react-flow__edge[data-id="${id}"] path.react-flow__edge-path'); return p ? (p.style.strokeDasharray || '') : null; })()`);
+const roomSelected = (id) => `__w.field('Position (lowest corner)', 'x') !== null && /${id}/.test(__w.props())`;
+async function redo() {
+  await clickElement(`document.querySelectorAll('.history-actions button')[1]`, 'the Redo button');
+}
+/** Click the Graph 2D background: nothing selected. */
+async function clearSelection() {
+  const pane = await evaluate(`(() => { const b = ${P(1)}.querySelector('.react-flow__pane').getBoundingClientRect(); return { x: b.x + b.width - 40, y: b.y + b.height - 60 }; })()`);
+  await clickAt(pane.x, pane.y);
+}
+/** Status counts of the three 3D views' legends (panel 2 cycles through them). */
+async function legends(status) {
+  const out = {};
+  for (const mode of ['architecture', 'graph3d', 'voxels']) {
+    await setMode(2, mode);
+    out[mode] = await evaluate(`__w.legendCount(2, 'status:${status}')`);
+  }
+  return out;
+}
+const sameCounts = (a, b, d = 0) => Object.keys(a).every((k) => b[k] === a[k] + d);
+async function openWallInBuilding() {
+  await setMode(2, 'architecture');
+  const at = await findWall(2, WALL, 1.5, -3);
+  await clickAt(at.x, at.y);
+  return waitFor(`(() => { const p = __w.wallPanel(2); return p && p.face === ${JSON.stringify(WALL)} ? p : null; })()`, 'the Building wall panel');
+}
+const wallButton = (text) => buttonIn(`${P(2)}.querySelector('.sgl-wall-panel')`, text);
+
+await step('i2/wall-click-selects-owner-room', async () => {
+  await clearSelection();
+  const panel = await openWallInBuilding();
+  expect(panel.state === 'add', `wall panel ${panel.state}: ${panel.text}`);
+  await waitFor(roomSelected('reading-gallery'), 'the owner room (reading-gallery) selected in Properties');
+  await waitFor(`${P(2)}.querySelector('.room-edit') ? true : null`, 'the room editor beside the wall panel');
+  await screenshot('10-i2-wall-and-room', await panelRect(2));
+  await clickElement(`${P(2)}.querySelector('.sgl-wall-close')`, 'close the wall panel');
+  // Plan: the same rule.
+  await clearSelection();
+  await setMode(2, 'plan');
+  const line = `${P(2)}.querySelector('.sgl-plan-wall-target[data-face-id="${WALL}"]')`;
+  const c = await waitFor(`(() => { const b = ${line}?.getBoundingClientRect(); return b && b.width + b.height > 4 ? { x: b.x + b.width / 2, y: b.y + b.height * 0.25 } : null; })()`, 'the wall line in the Plan');
+  await clickAt(c.x, c.y);
+  const p2 = await waitFor(`(() => { const p = __w.wallPanel(2); return p && p.face === ${JSON.stringify(WALL)} ? p : null; })()`, 'the Plan wall panel');
+  await waitFor(roomSelected('reading-gallery'), 'the owner room selected from the Plan');
+  await clickElement(`${P(2)}.querySelector('.sgl-wall-close')`, 'close the wall panel');
+  return `free wall ${WALL}: Building panel "${panel.state}" + owner room reading-gallery selected + room editor shown; Plan panel "${p2.state}" + same room selected`;
+});
+
+await step('i2/remove-from-wall-panel-clears-edge-selection', async () => {
+  const before = await evaluate(`__w.edgeIds()`);
+  // With the owner room selected its room-edit gizmo handles take the pointer over that wall: start unselected.
+  await clearSelection();
+  await openWallInBuilding();
+  await clickElement(wallButton('Add relationship'), 'Add relationship…');
+  await clickElement(wallButton('Access'), 'Access');
+  const added = await waitFor(`(() => { const p = __w.wallPanel(2); return p && p.state === 'existing' ? p : null; })()`, 'the new relationship');
+  await waitFor(`!!document.querySelector('.view-panel[data-panel="0"] .react-flow__edge.selected[data-id="${added.edge}"]')`, 'the new edge selected in Graph 2D');
+  await clickElement(wallButton('Remove relationship'), 'Remove relationship');
+  await waitFor(`__w.edgeIds().length === ${before.length}`, 'the edge removed');
+  const p = await waitFor(`(() => { const p = __w.wallPanel(2); return p && p.state === 'add' ? p : null; })()`, 'the panel to offer Add again');
+  await waitFor(roomSelected('reading-gallery'), 'the owner room selected after the removal');
+  expect(!(await evaluate(`!!document.querySelector('.view-panel[data-panel="0"] .react-flow__edge.selected')`)), 'an edge is still selected in Graph 2D');
+  // One Undo restores the edge; the selection was replaced (room), not left pointing at the removed edge.
+  await undo();
+  await waitFor(`__w.edgeIds().includes(${JSON.stringify(added.edge)})`, 'the edge back after Undo');
+  const reselected = await edgeSelected(added.edge);
+  await undo();
+  await waitFor(`__w.edgeIds().length === ${before.length}`, 'the add undone');
+  await clickElement(`${P(2)}.querySelector('.sgl-wall-close')`, 'close the wall panel');
+  return `${added.edge} added then removed from the wall panel → panel "${p.state}", Properties = room reading-gallery, no edge selected in Graph 2D; Undo restored ${added.edge} (re-selected: ${reselected}); history back to base`;
+});
+
+await step('i2/five-view-sync', async () => {
+  const log = [];
+  await clearSelection();
+  const edges0 = await evaluate(`__w.edgeIds()`);
+  const direct0 = await legends('direct');
+  const unresolved0 = await legends('unresolved');
+  await setMode(2, 'graph3d');
+  const g3None = await selectionPixels(2);
+  await setMode(2, 'voxels');
+  const voxNone = await selectionPixels(2);
+  // 1. Add Access by a Building wall click.
+  await openWallInBuilding();
+  await clickElement(wallButton('Add relationship'), 'Add relationship…');
+  await clickElement(wallButton('Access'), 'Access');
+  const b = await waitFor(`(() => { const p = __w.wallPanel(2); return p && p.state === 'existing' ? p : null; })()`, 'the new relationship');
+  const E = b.edge;
+  expect(b.opening === 'here', `Building: door ${b.opening}`);
+  await clickElement(`${P(2)}.querySelector('.sgl-wall-close')`, 'close the wall panel');
+  const g2 = await evaluate(`__w.edgeIds()`);
+  const sel = await edgeSelected(E);
+  expect(g2.length === edges0.length + 1 && g2.includes(E) && sel, `Graph 2D: ${g2} (selected ${E}: ${sel})`);
+  expect(/Access/.test(await evaluate(`__w.props()`)), 'Properties does not show the relationship');
+  const direct1 = await legends('direct');
+  expect(sameCounts(direct0, direct1, 1), `direct legends ${JSON.stringify(direct0)} → ${JSON.stringify(direct1)}`);
+  const vox1 = await selectionPixels(2);
+  await screenshot('11-i2-voxels-selected', await panelRect(2));
+  await setMode(2, 'graph3d');
+  const g31 = await selectionPixels(2);
+  await screenshot('12-i2-graph3d-selected', await panelRect(2));
+  expect(g31 > g3None + 30, `Graph 3D selection pixels ${g3None} → ${g31}`);
+  expect(vox1 > voxNone + 30, `Voxels selection pixels ${voxNone} → ${vox1}`);
+  await setMode(2, 'plan');
+  const door = (await evaluate(`__w.planOpenings(2)`)).filter((o) => o.edge === E);
+  expect(door.length === 1 && door[0].face === WALL && /door/.test(door[0].cls), `Plan: ${JSON.stringify(door)}`);
+  log.push(`add ${E}: Graph 2D +1 (selected), Building door on ${WALL}, Plan door on ${door[0].face}, direct legends ${Object.values(direct0).join('/')} → ${Object.values(direct1).join('/')}, selection px Graph 3D ${g3None}→${g31}, Voxels ${voxNone}→${vox1}`);
+  // 2. One Undo removes it everywhere.
+  await undo();
+  await waitFor(`!__w.edgeIds().includes(${JSON.stringify(E)})`, 'the edge removed by Undo');
+  expect(!(await evaluate(`__w.planOpenings(2)`)).some((o) => o.edge === E), 'Plan door survived Undo');
+  const directU = await legends('direct');
+  expect(sameCounts(direct0, directU), `direct after Undo ${JSON.stringify(directU)}`);
+  const voxU = await selectionPixels(2);
+  await setMode(2, 'graph3d');
+  const g3U = await selectionPixels(2);
+  expect(g3U < g31 - 30 && voxU < vox1 - 30, `selection highlight after Undo: Graph 3D ${g3U}, Voxels ${voxU}`);
+  log.push(`one Undo: gone from Graph 2D/Plan, direct ${Object.values(directU).join('/')}, highlight px Graph 3D ${g3U} Voxels ${voxU}`);
+  // 3. Redo, then move a room away: the edge stays, unresolved everywhere.
+  await redo();
+  await waitFor(`__w.edgeIds().includes(${JSON.stringify(E)})`, 'the edge back after Redo');
+  await moveRoom('store', [3, 3, 0]);
+  expect((await evaluate(`__w.edgeIds()`)).includes(E), 'the edge was removed by moving a room');
+  const dash = await edgeDashed(E);
+  expect(dash, `Graph 2D: ${E} is not drawn as unresolved (dash ${JSON.stringify(dash)})`);
+  const unresolved2 = await legends('unresolved');
+  expect(Object.keys(unresolved0).every((k) => unresolved2[k] >= unresolved0[k] + 1), `unresolved legends ${JSON.stringify(unresolved0)} → ${JSON.stringify(unresolved2)}`);
+  await setMode(2, 'plan');
+  expect(!(await evaluate(`__w.planOpenings(2)`)).some((o) => o.edge === E), 'Plan still draws a door for the unresolved edge');
+  log.push(`store moved to [3,3,0]: ${E} kept, dashed in Graph 2D (${dash}), unresolved legends ${Object.values(unresolved0).join('/')} → ${Object.values(unresolved2).join('/')}, no Plan opening`);
+  // 4. Remove invalid connections lists it (preferred-face-unavailable), checked; remove only it.
+  await clickElement(buttonIn(P(1), 'Remove invalid connections'), 'Remove invalid connections');
+  const dialog = `${P(1)}.querySelector('.sgl-invalid-dialog')`;
+  const rows = await waitFor(`(() => { const d = ${dialog}; return d ? [...d.querySelectorAll('label[data-edge-id]')].map((l) => ({ id: l.dataset.edgeId, checked: l.querySelector('input').checked, text: l.innerText })) : null; })()`, 'the review list');
+  const row = rows.find((r) => r.id === E);
+  expect(row && row.checked && /no longer shared/.test(row.text), `row for ${E}: ${JSON.stringify(row)} of ${JSON.stringify(rows)}`);
+  for (const r of rows.filter((x) => x.id !== E)) {
+    await clickElement(`${dialog}.querySelector('label[data-edge-id="${r.id}"] input')`, `uncheck ${r.id}`);
+  }
+  await screenshot('13-i2-remove-review');
+  await clickElement(buttonIn(dialog, 'Remove 1 selected'), 'Remove 1 selected');
+  await waitFor(`!__w.edgeIds().includes(${JSON.stringify(E)})`, 'the edge removed');
+  const left = await evaluate(`__w.edgeIds()`);
+  expect(rows.filter((x) => x.id !== E).every((x) => left.includes(x.id)), `unchecked rows removed too: ${left}`);
+  const removeTitle = await evaluate(`__w.undoTitle()`);
+  const unresolved3 = await legends('unresolved');
+  expect(sameCounts(unresolved2, unresolved3, -1), `unresolved after removal ${JSON.stringify(unresolved3)}`);
+  await setMode(2, 'plan');
+  expect(!(await evaluate(`__w.planOpenings(2)`)).some((o) => o.edge === E), 'Plan');
+  log.push(`review list: ${rows.length} row(s), ${E} checked "${row.text.replace(/\s+/g, ' ').trim()}"; removed only ${E} ("${removeTitle}"), unresolved ${Object.values(unresolved3).join('/')}`);
+  // 5. One Undo restores it, still unresolved.
+  await undo();
+  await waitFor(`__w.edgeIds().includes(${JSON.stringify(E)})`, 'the edge back after one Undo');
+  expect(JSON.stringify(await evaluate(`__w.edgeIds()`)) === JSON.stringify([...left, E].sort()), 'edge ids after Undo');
+  const unresolved4 = await legends('unresolved');
+  expect(sameCounts(unresolved2, unresolved4), `unresolved after Undo ${JSON.stringify(unresolved4)}`);
+  log.push(`one Undo: ${E} back, unresolved ${Object.values(unresolved4).join('/')}`);
+  // Back to the base state: undo the move and the add.
+  await undo();
+  await undo();
+  await waitFor(`__w.edgeIds().length === ${edges0.length}`, 'the base state');
+  await setMode(2, 'architecture');
+  return log.join('; ');
 });
 
 await step('graph2d-legend-4-viewports', async () => {
