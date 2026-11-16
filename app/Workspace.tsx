@@ -192,7 +192,7 @@ function ViewPanel({
 }) {
   const View = VIEW_COMPONENTS[mode];
   return (
-    <div className="view-panel" data-panel={index} data-view={mode} onPointerDownCapture={onInteract}>
+    <div className="view-panel" data-panel={index} data-view={mode} onPointerDownCapture={onInteract} onFocusCapture={onInteract}>
       <div className="panel-header">
         <ViewModeSelect mode={mode} onMode={onMode} panel={index + 1} />
         <span className="panel-caption" title={VIEW_CAPTIONS[mode]}>

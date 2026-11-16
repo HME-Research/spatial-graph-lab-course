@@ -32,7 +32,7 @@ export type FieldKind = (typeof FIELD_KINDS)[number];
 export type DefaultValue = Exclude<AttributeValue, null>;
 
 export interface AttributeField {
-  /** Permanent identity; never changes, never reused within the collection. */
+  /** Permanent identity; never changes while the field exists; unique in its collection (a deleted field's id may be reused — nothing persistent refers to it). */
   readonly id: string;
   /** JSON attribute name in designs (unique in the collection, ignoring case). */
   readonly key: string;

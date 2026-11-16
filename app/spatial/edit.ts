@@ -66,7 +66,10 @@ export function proposeSpatialEdit(
   });
   const own = new Set(doc.edges.filter((e) => e.source === node.id || e.target === node.id).map((e) => e.id));
   const ownBreaks = [...own].some((id) => after.byEdge.get(id)?.status === 'unresolved' && before.byEdge.get(id)?.status !== 'unresolved');
-  const needsConfirmation = [...displaced].some((id) => !own.has(id)) || (ownBreaks && [...displaced].some((id) => own.has(id)));
+  // A relationship the student is NOT editing that would become unresolved is never changed silently either.
+  const otherBreaks = impacted.some((i) => !own.has(i.edgeId) && i.after === 'unresolved' && i.before !== 'unresolved');
+  const needsConfirmation =
+    [...displaced].some((id) => !own.has(id)) || (ownBreaks && [...displaced].some((id) => own.has(id))) || (otherBreaks && displaced.size > 0);
   return needsConfirmation
     ? { status: 'needs-confirmation', next, displacedRoutes: [...displaced].sort(), impacted }
     : { status: 'ok', next, impacted };

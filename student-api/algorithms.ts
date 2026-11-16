@@ -72,7 +72,8 @@ export interface SpatialAlgorithmContext<P extends AttributeSpecs = AttributeSpe
    * Effective typed attributes of `node` for its type definition `type` (imported from the
    * project's `types/` folder): only the attributes that type declares. Values come from the
    * project's fields (the same values the app shows): the stored value, else the type default,
-   * else the field default. A value explicitly cleared to "no value" reads as `undefined`. The run
+   * else the field default. A value explicitly set to "no value" (null), or one that does not fit the
+   * type's own declaration, reads as the type's declared default (or `undefined` without one). The run
    * fails with a diagnostic if `type` is not a valid, registered definition of this project or is
    * not the node's type. Prefer `nodeAttributes` for project-wide fields.
    */

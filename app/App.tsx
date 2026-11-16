@@ -30,6 +30,7 @@ import { ProjectPanel, projectStatus } from './session/ProjectPanel';
 import { OpenAttributesContext } from './attributes/navigation';
 import type { SidebarSection } from '@app/ui';
 import {
+  attributeDiagnostics,
   currentSchema,
   loadAttributeSession,
   persistAttributeSession,
@@ -367,10 +368,10 @@ export function App() {
       nodeValues: outcome.nodeValues,
       ranOnNodeIds: shownAnalysis.doc.nodes.map((n) => n.id),
       currentNodeIds: doc.nodes.map((n) => n.id),
-      stale: isStale(shownAnalysis, version),
+      stale: isStale(shownAnalysis, version, attributes?.revision),
       labelOf: new Map(doc.nodes.map((n) => [n.id, n.displayId ?? n.id] as const)),
     });
-  }, [shownAnalysis, doc, version]);
+  }, [shownAnalysis, doc, version, attributes?.revision]);
 
   const undoable = current !== null && canUndo(current.history);
   const redoable = current !== null && canRedo(current.history);
@@ -379,7 +380,7 @@ export function App() {
 
   const conformance = projectContext?.conformance ?? [];
   const attributeProblems: readonly ExtensionDiagnostic[] = [
-    ...(attributes?.diagnostics ?? []),
+    ...(attributes ? attributeDiagnostics(attributes) : []),
     ...(attributeSaveError
       ? [{ id: 'attribute-save', code: 'attribute-schema-storage', severity: 'error', subject: { kind: 'project', id: project?.id ?? '' }, message: `project attributes were not saved: ${attributeSaveError}` } as const]
       : []),

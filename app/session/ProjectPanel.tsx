@@ -143,7 +143,7 @@ export function ProjectPanel({
         <h4>Checks</h4>
         {problems.length === 0 && conformance.length === 0 && <p className="meta">No problems.</p>}
         {problems.length > 0 && (
-          <details className="project-problems" open={errors > 0}>
+          <details className="project-problems" open={problems.some((d) => d.severity !== 'info')}>
             <summary>
               Project problems ({problems.length}){errors > 0 ? ` — ${errors} error${errors === 1 ? '' : 's'}` : ''}
             </summary>

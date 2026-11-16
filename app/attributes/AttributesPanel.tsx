@@ -71,6 +71,8 @@ export function AttributesPanel({
   const setCollection = onCollection ?? setOwnCollection;
   const [notice, setNotice] = useState<{ readonly tone: 'ok' | 'error'; readonly text: string } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  /** Bumped on every refused edit: field inputs re-key, so a refused draft never looks applied. */
+  const [refusals, setRefusals] = useState(0);
   const usage = useMemo(() => designSamples(project, doc && source ? { doc, source } : null), [project, doc, source]);
 
   if (!session || !project) {
@@ -88,6 +90,7 @@ export function AttributesPanel({
     const result = editAttributes(session, edit, { usage });
     if (!result.ok) {
       setNotice({ tone: 'error', text: result.reason });
+      setRefusals((n) => n + 1); // refused drafts are replaced by the stored values again
       return false;
     }
     onChange(result.session);
@@ -204,7 +207,8 @@ export function AttributesPanel({
       <ul className="sgl-field-list">
         {fields.map((field, index) => (
           <FieldEditor
-            key={`${field.id}`}
+            key={`${field.id}:${field.key}:${field.kind}`}
+            token={`${session.revision}:${refusals}`}
             field={field}
             index={index}
             count={fields.length}
@@ -245,6 +249,7 @@ type UsageInfo = ReturnType<typeof fieldUsage>;
 
 function FieldEditor({
   field,
+  token,
   index,
   count,
   collection,
@@ -256,6 +261,8 @@ function FieldEditor({
   onError,
 }: {
   readonly field: AttributeField;
+  /** Changes on every schema revision and refusal; re-keys the uncontrolled inputs. */
+  readonly token: string;
   readonly index: number;
   readonly count: number;
   readonly collection: AttributeCollection;
@@ -295,7 +302,7 @@ function FieldEditor({
           </p>
           <label className="sgl-form-row">
             Label
-            <input defaultValue={field.label} key={field.label} onBlur={(e) => e.currentTarget.value.trim() !== field.label && apply({ type: 'update-field', ...base, patch: { label: e.currentTarget.value } })} onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
+            <input defaultValue={field.label} key={`${field.label}:${token}`} onBlur={(e) => e.currentTarget.value.trim() !== field.label && apply({ type: 'update-field', ...base, patch: { label: e.currentTarget.value } })} onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
           </label>
           <label className="sgl-form-row">
             Default
@@ -313,7 +320,7 @@ function FieldEditor({
                 type={field.kind === 'number' ? 'number' : 'text'}
                 step="any"
                 defaultValue={field.default === undefined ? '' : String(field.default)}
-                key={String(field.default)}
+                key={`${String(field.default)}:${token}`}
                 placeholder="no default"
                 onBlur={(e) => commitDefault(e.currentTarget.value)}
                 onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
@@ -325,7 +332,7 @@ function FieldEditor({
               Choices
               <input
                 defaultValue={(field.values ?? []).join(', ')}
-                key={(field.values ?? []).join('|')}
+                key={`${(field.values ?? []).join('|')}:${token}`}
                 onBlur={(e) => {
                   const values = parseChoices(e.currentTarget.value);
                   if (values.join('|') !== (field.values ?? []).join('|')) apply({ type: 'update-field', ...base, patch: { values } });
@@ -341,7 +348,7 @@ function FieldEditor({
               Range
               {(['min', 'max'] as const).map((bound) => (
                 <input
-                  key={`${bound}:${String(field[bound])}`}
+                  key={`${bound}:${String(field[bound])}:${token}`}
                   type="number"
                   step="any"
                   aria-label={`${field.label} ${bound === 'min' ? 'smallest' : 'largest'} value`}
@@ -358,7 +365,7 @@ function FieldEditor({
           )}
 
           {collection === 'nodes' && (
-            <TypeDefaults field={field} types={types} defaults={nodeTypeDefaults} apply={apply} onError={onError} />
+            <TypeDefaults field={field} types={types} defaults={nodeTypeDefaults} apply={apply} onError={onError} token={token} />
           )}
 
           <form
@@ -461,12 +468,14 @@ function TypeDefaults({
   defaults,
   apply,
   onError,
+  token,
 }: {
   readonly field: AttributeField;
   readonly types: readonly { readonly id: string; readonly label: string }[];
   readonly defaults: readonly (readonly [string, DefaultValue])[];
   readonly apply: (edit: SchemaEdit) => boolean;
   readonly onError: (message: string) => void;
+  readonly token: string;
 }) {
   const own = new Map(defaults);
   if (types.length === 0) return null;
@@ -500,7 +509,7 @@ function TypeDefaults({
             ) : (
               <input
                 aria-label={label}
-                key={String(value)}
+                key={`${String(value)}:${token}`}
                 type={field.kind === 'number' ? 'number' : 'text'}
                 step="any"
                 placeholder={`field default ${formatFieldValue(field.default)}`}

@@ -73,6 +73,19 @@ export interface AttributeSession {
 }
 
 export const currentSchema = (session: AttributeSession): ProjectAttributeSchema => session.history.present.schema;
+
+/**
+ * The problems to show NOW: a load-time "could not be read" error disappears once saving is no
+ * longer blocked (import, reset, discard), and "project files changed" once the files are merged
+ * or reset (phase 10 audit). Storage-unavailable warnings stay.
+ */
+export function attributeDiagnostics(session: AttributeSession): readonly ExtensionDiagnostic[] {
+  return session.diagnostics.filter((d) => {
+    if (d.code === 'attribute-schema-storage' && d.severity === 'error') return session.saveBlocked !== undefined;
+    if (d.code === 'attribute-baseline-changed') return session.history.present.recordBaseline !== session.filesSignature;
+    return true;
+  });
+}
 export const currentRecordBaseline = (session: AttributeSession): string => session.history.present.recordBaseline;
 
 const sameState = (a: AttributeState, b: AttributeState) =>
@@ -116,11 +129,13 @@ export function loadAttributeSession(storage: KeyValueStorage | null, project: A
   if (!read.ok) {
     // Keep every unreadable copy: never overwrite an earlier backup.
     let backup = unreadableStorageKey(project.id);
+    let backedUp = false;
     try {
       for (let n = 2; storage?.getItem(backup) !== null && storage?.getItem(backup) !== stored.value; n++) backup = `${unreadableStorageKey(project.id)}-${n}`;
       storage?.setItem(backup, stored.value);
+      backedUp = true;
     } catch {
-      // Best effort: the original also stays under its own key, because saving is blocked.
+      // The original stays under its own key while saving is blocked; the message says so.
     }
     const newer = read.issues.some((i) => i.code === 'attribute-schema-version');
     const reason = `${newer ? 'the saved project attributes were written by a different app version' : 'the saved project attributes could not be read'} (${read.issues.map((i) => i.message).join('; ')})`;
@@ -129,7 +144,7 @@ export function loadAttributeSession(storage: KeyValueStorage | null, project: A
         'attribute-schema-storage',
         'error',
         subject,
-        `${reason}. The fields from the project files are shown. Changes are NOT saved until you import an attribute file, reset to the project files or discard the saved copy; a copy is kept in browser storage under "${backup}"`,
+        `${reason}. The fields from the project files are shown. Changes are NOT saved until you import an attribute file, reset to the project files or discard the saved copy; ${backedUp ? `a copy is kept in browser storage under "${backup}"` : "NO backup copy could be written, so discarding loses the saved record for good"}`,
       ),
     );
     return fromFiles(reason);

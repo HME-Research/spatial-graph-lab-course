@@ -14,6 +14,7 @@ import {
   isAttributeSchemaModified,
   loadAttributeSession,
   markAttributesExported,
+  attributeDiagnostics,
   discardUnreadableRecord,
   filesChangedSinceSaved,
   mergeFilesIntoSession,
@@ -96,6 +97,25 @@ describe('audit regressions (phase 01 review)', () => {
     const file = exportAttributeFile({ ...addCapacity(loadAttributeSession(null, project)), projectId: 'other' });
     const imported = importAttributeFile(loadAttributeSession(null, project), file, { allowOtherProject: true });
     expect(imported.ok && filesChangedSinceSaved(imported.session)).toBe(false);
+  });
+});
+
+describe('phase 10 audit: shown problems follow the session', () => {
+  it('the unreadable-record error disappears once saving is unblocked; files-changed once merged', async () => {
+    const storage = memoryStorage();
+    storage.setItem(attributeStorageKey('lab'), '{ broken');
+    const project = await projectNamed('lab', 'Lab');
+    const blocked = loadAttributeSession(storage, project);
+    expect(attributeDiagnostics(blocked).map((d) => d.severity)).toEqual(['error']);
+    expect(attributeDiagnostics(discardUnreadableRecord(blocked))).toEqual([]);
+    expect(attributeDiagnostics(resetToFiles(blocked, project))).toEqual([]);
+
+    const fresh = memoryStorage();
+    persistAttributeSession(fresh, addCapacity(loadAttributeSession(fresh, project)));
+    const changed = await projectNamed('lab', 'Lab', { 'projects/lab/types/kiosk.ts': { default: { id: 'kiosk', label: 'Kiosk', attributes: { open24h: { kind: 'boolean' } } } } });
+    const session = loadAttributeSession(fresh, changed);
+    expect(attributeDiagnostics(session).map((d) => d.code)).toEqual(['attribute-baseline-changed']);
+    expect(attributeDiagnostics(mergeFilesIntoSession(session, changed).session)).toEqual([]);
   });
 });
 
