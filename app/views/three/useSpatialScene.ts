@@ -10,6 +10,7 @@ import {
   resolveColoring,
   type ColorMode,
 } from './colorBy';
+import { isNeutral, neutralColoring, useViewDisplay } from './viewDisplay';
 import { accessGroups, buildEdgeItems, buildNodeItems, cellBounds, framingFor, groundGrid, storeyLevels } from './sceneModel';
 
 /**
@@ -37,7 +38,13 @@ export function useSpatialScene(doc: SceneSource, selection: Selection, attribut
 
   const [chosenColorMode, setColorMode] = useState<ColorMode>(DEFAULT_COLOR_MODE);
   const colorMode = effectiveColorMode(chosenColorMode, keys);
-  const coloring = useMemo(() => resolveColoring(valued, edges, colorMode), [valued, edges, colorMode]);
+  // Display colour preset (voxels): `neutral` replaces the function (type) colours only; attribute
+  // and access-group colourings are explicit choices in the view and stay as chosen.
+  const neutral = isNeutral(useViewDisplay()) && colorMode.kind === 'type';
+  const coloring = useMemo(() => {
+    const resolved = resolveColoring(valued, edges, colorMode);
+    return neutral ? neutralColoring(resolved) : resolved;
+  }, [valued, edges, colorMode, neutral]);
 
   const [maxLevel, setMaxLevel] = useState<number | null>(null);
   const isLevelHidden = useCallback((level: number) => maxLevel !== null && level > maxLevel, [maxLevel]);

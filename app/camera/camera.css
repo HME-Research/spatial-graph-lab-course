@@ -1,0 +1,145 @@
+/* Camera and Display destinations (workstream E). Neutral, fine dividers, one accent. */
+.sgl-camera,
+.sgl-display {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.sgl-camera-section,
+.sgl-display-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line, #d9d9d2);
+}
+.sgl-camera-section:last-child,
+.sgl-display-section:last-child {
+  border-bottom: none;
+}
+
+.sgl-camera h3,
+.sgl-display h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.sgl-camera .meta,
+.sgl-display .meta {
+  margin: 0;
+}
+.sgl-camera .warning,
+.sgl-display .warning {
+  color: #8a3b3b;
+}
+
+.sgl-camera-field,
+.sgl-display-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+}
+.sgl-camera-field select,
+.sgl-display-field select {
+  flex: 1;
+  min-width: 0;
+  max-width: 190px;
+  font: inherit;
+  min-height: 28px;
+}
+
+.sgl-camera-row {
+  display: flex;
+  gap: 6px;
+}
+.sgl-camera-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sgl-camera input[type='text'] {
+  font: inherit;
+  min-height: 28px;
+  padding: 2px 6px;
+}
+
+.sgl-camera button,
+.sgl-display button {
+  font: inherit;
+  min-height: 28px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.sgl-camera button:disabled,
+.sgl-display button:disabled {
+  cursor: default;
+}
+.sgl-camera button.danger {
+  color: #8a3b3b;
+}
+
+.sgl-camera-message {
+  padding: 6px 8px;
+  border-left: 3px solid var(--accent, #2c5d8f);
+  background: rgba(44, 93, 143, 0.06);
+}
+.sgl-camera-message.warning {
+  border-left-color: #b46a5a;
+  background: rgba(180, 106, 90, 0.08);
+}
+
+.sgl-camera-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sgl-camera-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line, #d9d9d2);
+}
+.sgl-camera-item:first-child {
+  border-top: none;
+}
+.sgl-camera-name {
+  display: flex;
+  flex-direction: column;
+}
+.sgl-camera-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sgl-display-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.sgl-display-modes button {
+  border: 1px solid var(--line, #d9d9d2);
+  background: #fff;
+  border-radius: 4px;
+}
+.sgl-display-modes button[aria-pressed='true'] {
+  border-color: var(--accent, #2c5d8f);
+  color: var(--accent, #2c5d8f);
+  font-weight: 600;
+}
+.sgl-display-field input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+}
+.sgl-display-override {
+  font-size: 12px;
+  color: var(--accent, #2c5d8f);
+}

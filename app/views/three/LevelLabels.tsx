@@ -1,8 +1,9 @@
 import { Html } from '@react-three/drei';
 import type { WorldPoint } from '@core/viewer/coordinates';
+import { useSceneOptions } from '@core/viewer/three/sceneOptions';
 import type { Bounds } from '@core/viewer/three/viewport';
 
-/** "L0", "L1", … labels beside the scene, one per occupied storey. Not pickable. */
+/** "L0", "L1", … labels beside the scene, one per occupied storey. Not pickable. Hidden when the Display turns labels off. */
 export function LevelLabels({
   levels,
   bounds,
@@ -14,7 +15,8 @@ export function LevelLabels({
   readonly levelCentreY: (level: number) => number;
   readonly hidden?: (level: number) => boolean;
 }) {
-  if (!bounds || levels.length === 0) return null;
+  const { labels } = useSceneOptions();
+  if (!labels || !bounds || levels.length === 0) return null;
   return (
     <>
       {levels.map((level) => {

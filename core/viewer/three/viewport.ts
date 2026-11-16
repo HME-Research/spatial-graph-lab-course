@@ -37,6 +37,12 @@ export interface CameraState {
   readonly position: WorldPoint;
   readonly target: WorldPoint;
   readonly fitted: boolean;
+  /** Optional (additive, workstream E): projection of the saved pose; omitted = perspective. */
+  readonly projection?: 'perspective' | 'orthographic' | undefined;
+  /** Optional: perspective vertical field of view in degrees (kept after a camera-bus apply). */
+  readonly fov?: number | undefined;
+  /** Optional: orthographic visible world height in metres. */
+  readonly orthoHeight?: number | undefined;
 }
 
 /** Where a canvas keeps its camera state between mounts. Plain synchronous storage, no React state. */

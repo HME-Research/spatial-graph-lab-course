@@ -2,6 +2,7 @@ import { useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BoxGeometry, EdgesGeometry } from 'three';
 import { SELECTION_COLOR } from '../appearance';
+import { useManipulatorPresence } from './manipulators';
 import { DEFAULT_CELL_SIZE, type CellSize, type WorldPoint } from '../coordinates';
 import {
   axisParameter,
@@ -118,6 +119,8 @@ export function SnappedGizmo({
   onDragEnd,
   onDragCancel,
 }: SnappedGizmoProps) {
+  // While shown, the canvas's view cube and projection toggle step back (they never cover a handle).
+  useManipulatorPresence();
   const controls = useThree((s) => s.controls) as unknown as OrbitLike | null;
   const canvas = useThree((s) => s.gl.domElement);
   const invalidate = useThree((s) => s.invalidate);
