@@ -11,3 +11,5 @@ export * from './roofGeometry';
 export * from './faceLayout';
 export * from './faceInteraction';
 export * from './wallRuns';
+// Workstream C: the floor plan of one storey, from the same FaceLayout.
+export * from './plan';
