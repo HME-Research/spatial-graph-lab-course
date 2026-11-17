@@ -156,7 +156,13 @@ interface TypeRowProps {
   readonly onReset: () => void;
 }
 
+/**
+ * One function's card. Collapsed by default: the header (a disclosure button) shows the function,
+ * a one-line summary of its rules, a warning mark and a small façade preview; the controls stay
+ * mounted while collapsed, so drafts survive.
+ */
 function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRowProps) {
+  const [open, setOpen] = useState(false);
   const effectivePercent = formatPercent(row.effective.windowFraction);
   // Drafts while dragging/typing; a command is sent only on release, Enter or blur.
   const [slider, setSlider] = useState<number | null>(null);
@@ -193,16 +199,38 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRo
 
   return (
     <article className={`sgl-designer-type${row.warning ? ' sgl-designer-type--warn' : ''}`} aria-labelledby={`${idBase}-name`}>
-      <div className="sgl-designer-type-head">
-        <span className="sgl-designer-swatch" style={{ background: typeColor(row.typeId) }} aria-hidden="true" />
-        <span id={`${idBase}-name`} className="sgl-designer-type-name">
-          {row.name}
-        </span>
-        <span className="sgl-designer-count" title="Rooms of this type in this design">
-          {row.nodeCount} {row.nodeCount === 1 ? 'room' : 'rooms'}
-        </span>
-        <FacadePreview fraction={shownFraction} layout={row.effective.windowLayout} roof={row.effective.roof} />
-      </div>
+      <h4 className="sgl-designer-type-title">
+        <button
+          type="button"
+          className="sgl-designer-type-head"
+          aria-expanded={open}
+          aria-controls={`${idBase}-body`}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <svg className="sgl-designer-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="sgl-designer-swatch" style={{ background: typeColor(row.typeId) }} aria-hidden="true" />
+          <span className="sgl-designer-type-text">
+            <span id={`${idBase}-name`} className="sgl-designer-type-name">
+              {row.name}
+            </span>
+            <span className="sgl-designer-summary">
+              {formatPercent(shownFraction)} % · {WINDOW_LAYOUT_LABELS[row.effective.windowLayout]} · {ROOF_LABELS[row.effective.roof]} roof ·{' '}
+              {row.nodeCount} {row.nodeCount === 1 ? 'room' : 'rooms'}
+              {row.hasOverride ? ' · changed' : ''}
+            </span>
+          </span>
+          {row.warning && (
+            <span className="sgl-designer-warn-mark" role="img" aria-label="Has a warning" title={row.warning}>
+              ⚠
+            </span>
+          )}
+          <FacadePreview fraction={shownFraction} layout={row.effective.windowLayout} roof={row.effective.roof} />
+        </button>
+      </h4>
+
+      <div id={`${idBase}-body`} className="sgl-designer-type-body" hidden={!open}>
 
       {row.warning && (
         <p className="sgl-designer-warning" role="note">
@@ -253,7 +281,7 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRo
             <label
               key={layout}
               className={row.effective.windowLayout === layout ? 'checked' : undefined}
-              title={layout === 'repeat' ? 'One window per bay, repeated along the wall' : 'One continuous window band along the wall'}
+              title={layout === 'repeat' ? 'One window per bay, repeated along the wall' : 'One single window over the whole façade of each room'}
             >
               <input
                 type="radio"
@@ -285,26 +313,28 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRo
       <button type="button" className="sgl-designer-reset" disabled={!row.hasOverride} onClick={onReset}>
         Reset to project default
       </button>
+      </div>
     </article>
   );
 }
 
 /**
- * Schematic exterior wall of two bays: `fraction` of the wall area glazed, as one window per bay
- * (Repeat) or one band across both (Stretch); a line for a flat roof.
+ * Schematic exterior façade of two bays: `fraction` of the wall area glazed, as one window per bay
+ * (Repeat) or one window over the whole façade (Stretch); a line for a flat roof.
  */
 function FacadePreview({ fraction, layout, roof }: { fraction: number; layout: string; roof: string }) {
   const f = Math.min(1, Math.max(0, fraction));
   const bay = 18;
   const side = Math.sqrt(f) * bay;
-  const band = f * 20;
+  const sw = Math.sqrt(f) * 36;
+  const sh = Math.sqrt(f) * 21;
   return (
     <svg className="sgl-designer-preview" viewBox="0 0 38 26" width={38} height={26} aria-hidden="true">
       {roof === 'flat' && <rect x={0} y={0} width={38} height={3} className="sgl-designer-preview-roof" />}
       <rect x={1} y={4} width={36} height={21} className="sgl-designer-preview-wall" />
       {f > 0 &&
         (layout === 'stretch' ? (
-          <rect x={1} y={14.5 - band / 2} width={36} height={band} className="sgl-designer-preview-glass" />
+          <rect x={19 - sw / 2} y={14.5 - sh / 2} width={sw} height={sh} className="sgl-designer-preview-glass" />
         ) : (
           [10, 28].map((cx) => <rect key={cx} x={cx - side / 2} y={14.5 - side / 2} width={side} height={side} className="sgl-designer-preview-glass" />)
         ))}

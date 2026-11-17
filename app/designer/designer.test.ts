@@ -198,15 +198,16 @@ describe('window layout per function', () => {
     expect(apply(both, resetTypeEdit(both, 'gallery')).settings.typeAppearance).toEqual({});
   });
 
-  it('the Building draws Stretch windows as full-bay bands for that function only', () => {
-    const doc = labDocV2({ gallery: { windowLayout: 'stretch', windowFraction: 0.5 }, studio: { windowFraction: 0.5 } });
-    const glazing = buildBuildingV2(doc, { facade: exampleFacadeProvider }).elements.filter((e) => e.part === 'glazing');
-    const widthOf = (e: (typeof glazing)[number]) => Math.max(e.size[0], e.size[2]);
-    const gallery = glazing.filter((e) => e.ownerTypeId === 'gallery');
-    const studio = glazing.filter((e) => e.ownerTypeId === 'studio');
-    expect(gallery.length).toBeGreaterThan(0);
-    expect(studio.length).toBeGreaterThan(0);
-    expect(Math.min(...gallery.map(widthOf))).toBeGreaterThan(Math.max(...studio.map(widthOf)));
+  it('the Building changes the windows of the Stretch function only', () => {
+    const glass = (typeAppearance: Record<string, unknown>, typeId: string) =>
+      buildBuildingV2(labDocV2(typeAppearance), { facade: exampleFacadeProvider })
+        .elements.filter((e) => e.part === 'glazing' && e.ownerTypeId === typeId)
+        .map((e) => `${e.position.join(',')}|${e.size.join(',')}`)
+        .sort();
+    const base = { gallery: { windowFraction: 0.5 }, studio: { windowFraction: 0.5 } };
+    const stretched = { gallery: { windowFraction: 0.5, windowLayout: 'stretch' }, studio: { windowFraction: 0.5 } };
+    expect(glass(stretched, 'gallery').length).toBeGreaterThan(0);
+    expect(glass(stretched, 'studio')).toEqual(glass(base, 'studio'));
   });
 });
 
@@ -278,6 +279,16 @@ describe('DesignerPanel (static render)', () => {
     expect(galleryStretch).not.toContain('checked');
     expect(html).toMatch(/aria-haspopup="dialog"[^>]*>How it works<\/button>/);
     expect(html).not.toContain('data-help-topic="designer-windows"');
+  });
+
+  it('every function card is collapsed by default, with a one-line summary in its header', () => {
+    const doc = labDocV2({ studio: { windowLayout: 'stretch', windowFraction: 0.4 } });
+    const html = renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(doc) }));
+    const heads = html.match(/<button type="button" class="sgl-designer-type-head"[^>]*>/g) ?? [];
+    expect(heads.length).toBeGreaterThanOrEqual(3);
+    for (const head of heads) expect(head).toContain('aria-expanded="false"');
+    expect(html).toMatch(/id="sgl-designer-studio-body" class="sgl-designer-type-body" hidden=""/);
+    expect(html).toMatch(/40 % · Stretch · Flat roof · 1 room · changed/);
   });
 
   it('the guide has a clear order: title, lead, numbered Windows / Layout / Roof, then defaults', () => {

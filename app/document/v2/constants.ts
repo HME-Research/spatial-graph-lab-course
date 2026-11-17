@@ -40,7 +40,7 @@ export const DEFAULT_ROOF_STYLE: RoofStyle = 'flat';
  * How a node type's exterior windows are placed along its walls (per design, per type; additive
  * 2026-11-17). Both glaze the same share of the wall (`windowFraction`):
  * - `repeat` (default): one window per cell bay, keeping the wall's proportions, repeated along the wall;
- * - `stretch`: a continuous window band, full bay width, so neighbouring bays join along the wall.
+ * - `stretch`: ONE window per façade (a room's exterior walls on one side, all bays and storeys), centred.
  */
 export const WINDOW_LAYOUTS = ['repeat', 'stretch'] as const;
 export type WindowLayout = (typeof WINDOW_LAYOUTS)[number];
