@@ -277,12 +277,23 @@ export function createProjectController(options: ProjectControllerOptions): Proj
   const exportMarks = options.exportMarks ?? createLocalStorageExportMarks();
   const keptMarks = options.keptMarks ?? createLocalStorageKeptMarks();
 
-  /** Projects stored before saved-locally marks existed are adopted as saved (never removed). */
-  const adoptEarlierProjects = (items: readonly ProjectSummary[], except: string | null): void => {
-    if (keptMarks.initialised()) return;
-    for (const s of items) if (s.status === 'ok' && s.projectId !== except) keptMarks.add(s.projectId);
+  /**
+   * One-time reset (per browser): forget every saved-locally mark and remove every readable stored
+   * project except `keep` (the last session). Earlier projects, including ones the first version of
+   * the marks adopted as saved, are cleared. Unreadable records are never touched. Returns the
+   * summaries still stored. Best effort: a failed removal leaves that record in place.
+   */
+  async function resetOnce(items: readonly ProjectSummary[], keep: string | null): Promise<readonly ProjectSummary[]> {
+    if (keptMarks.initialised()) return items;
+    keptMarks.clear();
+    const left: ProjectSummary[] = [];
+    for (const s of items) {
+      if (s.status === 'ok' && s.projectId !== keep && (await store.remove(s.projectId)).status === 'removed') continue;
+      left.push(s);
+    }
     keptMarks.setInitialised();
-  };
+    return left;
+  }
 
   /**
    * Only the last session is kept without asking: remove every other READABLE stored project the
@@ -297,7 +308,7 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     } catch {
       return;
     }
-    adoptEarlierProjects(items, current);
+    items = await resetOnce(items, current);
     for (const s of items) {
       if (s.status !== 'ok' || s.projectId === current || keptMarks.has(s.projectId)) continue;
       await store.remove(s.projectId);
@@ -575,7 +586,8 @@ export function createProjectController(options: ProjectControllerOptions): Proj
         if (probe.status === 'unavailable') return { status: 'unavailable', message: probe.message };
       }
       if (!keptMarks.available()) return { status: 'ok', items, unsaved: [] };
-      adoptEarlierProjects(items, book?.projectId ?? null);
+      // The last session: the shown project, otherwise the most recently saved one (list is newest first).
+      items = await resetOnce(items, book?.projectId ?? items.find((s) => s.status === 'ok')?.projectId ?? null);
       return { status: 'ok', items, unsaved: items.filter((s) => s.status === 'ok' && !keptMarks.has(s.projectId)).map((s) => s.projectId) };
     },
 

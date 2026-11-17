@@ -276,29 +276,47 @@ export const EXPORT_MARK_PREFIX = 'sgl-exported:';
 /**
  * Only the LAST session is autosaved without asking; any other project stays in this browser only
  * once the user saved it locally (Save locally, or Save as new project). These marks remember that
- * choice beside the stored records (never in a project file). Projects stored before the marks
- * existed are adopted as saved on first use (`initialised`), so nothing stored earlier is removed.
- * When the marks cannot be used (`available()` false), nothing is ever removed.
+ * choice beside the stored records (never in a project file). On first use (`initialised` false)
+ * the controller runs a one-time reset: every mark is cleared (`clear`) and every readable stored
+ * project except the last session is removed, so earlier projects (including ones adopted as saved
+ * by the first version of these marks) no longer pile up. When the marks cannot be used
+ * (`available()` false), nothing is ever removed.
  */
 export interface KeptMarks {
   available(): boolean;
+  /** The one-time reset has run in this browser. */
   initialised(): boolean;
   setInitialised(): void;
   has(projectId: string): boolean;
   add(projectId: string): void;
+  /** Forget every saved-locally mark (used only by the one-time reset). */
+  clear(): void;
 }
 
 export const KEPT_MARK_PREFIX = 'sgl-kept:';
-export const KEPT_MARKS_INITIALISED = 'sgl-kept-initialised';
+/** Set once the one-time reset ran. A new key, so browsers that adopted earlier projects are reset too. */
+export const KEPT_MARKS_INITIALISED = 'sgl-kept-reset-1';
+/** The first version's marker (earlier projects were adopted as saved); removed by `clear`. */
+const LEGACY_KEPT_MARKS_INITIALISED = 'sgl-kept-initialised';
 
 export function createMemoryKeptMarks(initialised = true): KeptMarks & { readonly kept: Set<string> } {
   const kept = new Set<string>();
   let init = initialised;
-  return { kept, available: () => true, initialised: () => init, setInitialised: () => void (init = true), has: (id) => kept.has(id), add: (id) => void kept.add(id) };
+  return {
+    kept,
+    available: () => true,
+    initialised: () => init,
+    setInitialised: () => void (init = true),
+    has: (id) => kept.has(id),
+    add: (id) => void kept.add(id),
+    clear: () => kept.clear(),
+  };
 }
 
-export function createLocalStorageKeptMarks(storage?: Pick<Storage, 'getItem' | 'setItem'> | null): KeptMarks {
-  const target = (): Pick<Storage, 'getItem' | 'setItem'> | null => {
+type MarkStorage = Pick<Storage, 'getItem' | 'setItem'> & Partial<Pick<Storage, 'removeItem' | 'key' | 'length'>>;
+
+export function createLocalStorageKeptMarks(storage?: MarkStorage | null): KeptMarks {
+  const target = (): MarkStorage | null => {
     if (storage !== undefined) return storage;
     try {
       return (globalThis as { localStorage?: Storage }).localStorage ?? null;
@@ -329,6 +347,20 @@ export function createLocalStorageKeptMarks(storage?: Pick<Storage, 'getItem' | 
     setInitialised: () => void set(KEPT_MARKS_INITIALISED),
     has: (id) => get(`${KEPT_MARK_PREFIX}${id}`) === '1',
     add: (id) => void set(`${KEPT_MARK_PREFIX}${id}`),
+    clear: () => {
+      try {
+        const t = target();
+        if (!t?.removeItem || !t.key || t.length === undefined) return;
+        const keys: string[] = [];
+        for (let i = 0; i < t.length; i++) {
+          const k = t.key(i);
+          if (k !== null && (k.startsWith(KEPT_MARK_PREFIX) || k === LEGACY_KEPT_MARKS_INITIALISED)) keys.push(k);
+        }
+        for (const k of keys) t.removeItem(k);
+      } catch {
+        // Best effort: a mark that cannot be removed only keeps that project stored.
+      }
+    },
   };
 }
 

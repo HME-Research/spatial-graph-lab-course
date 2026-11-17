@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { readDesign, serializeDesignV2 } from '@app/document/v2';
 import { makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
-import { createMemoryKeptMarks, createMemoryProjectStore, readProjectFile, serializeProjectFile } from '@app/project';
+import { createLocalStorageKeptMarks, createMemoryKeptMarks, createMemoryProjectStore, readProjectFile, serializeProjectFile } from '@app/project';
 import { attributeStorageKey } from '@app/session/projectAttributeStore';
 import { readLegacyAttributeRecord } from './legacyAttributes';
 import { fileOf, twoRooms } from '@app/session/projectStore.fixtures';
@@ -112,20 +112,55 @@ describe('Welcome flow', () => {
     expect(recent.status === 'ok' && recent.items.map((s) => s.projectId)).toEqual([b.projectId]);
   });
 
-  it('projects stored before saved-locally marks existed are adopted as saved, never removed', async () => {
+  it('a one-time reset clears earlier stored projects and marks, keeping only the last session', async () => {
     const store = createMemoryProjectStore();
-    const old = createProjectController({ store, locks: null, debounceMs: 0, keptMarks: createMemoryKeptMarks() });
+    const oldMarks = createMemoryKeptMarks();
+    const old = createProjectController({ store, locks: null, debounceMs: 0, keptMarks: oldMarks });
     const earlier = await old.open(fileOf(), { kind: 'opened-file', label: 'x' });
     await old.flush();
     if (!earlier.ok) throw new Error('not opened');
-    const marks = createMemoryKeptMarks(false); // a browser that has never used marks
+    expect((await old.saveLocally()).ok).toBe(true);
+    const last = await old.open(fileOf(), { kind: 'opened-file', label: 'y' }, { discard: true });
+    await old.flush();
+    if (!last.ok) throw new Error('not opened');
+    expect((await old.listRecent()).status === 'ok').toBe(true);
+    // A browser where the reset has not run yet (marks carried over, including the saved one).
+    const marks = createMemoryKeptMarks(false);
+    marks.add(earlier.project.meta.projectId);
     const h = host(store, marks);
-    await tryExample(h, example(), 'example.json');
-    await h.controller.flush();
     const recent = await h.controller.listRecent();
-    expect(recent.status === 'ok' && recent.items.length).toBe(2);
-    expect(marks.has(earlier.project.meta.projectId)).toBe(true);
-    expect(recent.status === 'ok' && recent.unsaved).toHaveLength(1);
+    expect(recent.status === 'ok' && recent.items.map((s) => s.projectId)).toEqual([last.project.meta.projectId]);
+    expect(recent.status === 'ok' && recent.unsaved).toEqual([last.project.meta.projectId]);
+    expect(marks.kept.size).toBe(0);
+    expect(marks.initialised()).toBe(true);
+    // It runs once: a project saved locally afterwards stays.
+    await tryExample(h, example(), 'example.json');
+    expect((await h.controller.saveLocally()).ok).toBe(true);
+    await h.controller.flush();
+    const after = await h.controller.listRecent();
+    expect(after.status === 'ok' && after.items).toHaveLength(1);
+  });
+
+  it('localStorage kept marks: clear removes every mark and the legacy marker only', () => {
+    const data = new Map<string, string>([['sgl-kept:a', '1'], ['sgl-kept-initialised', '1'], ['sgl-ui:x', '1']]);
+    const storage = {
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => void data.set(k, v),
+      removeItem: (k: string) => void data.delete(k),
+      key: (i: number) => [...data.keys()][i] ?? null,
+      get length() {
+        return data.size;
+      },
+    };
+    const marks = createLocalStorageKeptMarks(storage);
+    expect(marks.initialised()).toBe(false);
+    marks.add('b');
+    marks.clear();
+    expect(marks.has('a') || marks.has('b')).toBe(false);
+    expect(data.has('sgl-kept-initialised')).toBe(false);
+    expect(data.get('sgl-ui:x')).toBe('1');
+    marks.setInitialised();
+    expect(marks.initialised()).toBe(true);
   });
 
   it('Save as new project keeps the copy saved', async () => {
