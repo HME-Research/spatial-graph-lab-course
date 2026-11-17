@@ -1,4 +1,4 @@
-import type { GizmoAxis, GizmoMode, GizmoTone } from '@core/viewer/three/gizmoMath';
+import type { GizmoAxis, GizmoMode, GizmoSide, GizmoTone } from '@core/viewer/three/gizmoMath';
 import { nodeLabel, type DesignDocumentV2, relationshipLabel } from '@app/document/v2';
 import type { DesignPort, SpatialEditProposal } from '@app/spatial';
 import { applyAxisSteps, formatGrid, formatSize, sameGeometry, type RoomGeometry } from './roomGeometry';
@@ -24,6 +24,8 @@ export type RoomEditState =
       readonly nodeId: string;
       readonly mode: GizmoMode;
       readonly axis: GizmoAxis;
+      /** Face being resized (+1 maximum, −1 minimum); irrelevant for move. */
+      readonly side: GizmoSide;
       readonly start: RoomGeometry;
       readonly draft: RoomGeometry;
       /** Preview of `draft`; null while the draft equals the start. */
@@ -64,17 +66,23 @@ function list(items: readonly string[]): string {
 }
 
 /** Start a gesture on the room's current stored geometry. Idle if the room does not exist. */
-export function beginDrag(port: DesignPort, nodeId: string, mode: GizmoMode, axis: GizmoAxis): RoomEditState {
+export function beginDrag(
+  port: DesignPort,
+  nodeId: string,
+  mode: GizmoMode,
+  axis: GizmoAxis,
+  side: GizmoSide = 1,
+): RoomEditState {
   const node = roomOf(port.doc, nodeId);
   if (!node) return IDLE;
   const start: RoomGeometry = { grid: node.grid, size: node.size };
-  return { phase: 'dragging', nodeId, mode, axis, start, draft: start, proposal: null };
+  return { phase: 'dragging', nodeId, mode, axis, side, start, draft: start, proposal: null };
 }
 
 /** New snapped step count during a drag: preview only, never a command. */
 export function updateDrag(port: DesignPort, state: RoomEditState, steps: number): RoomEditState {
   if (state.phase !== 'dragging') return state;
-  const draft = applyAxisSteps(state.start, state.mode, state.axis, steps);
+  const draft = applyAxisSteps(state.start, state.mode, state.axis, steps, state.side);
   if (sameGeometry(draft, state.draft)) return state;
   const proposal = sameGeometry(draft, state.start)
     ? null

@@ -11,7 +11,9 @@ import {
   gridAxisDirection,
   snapToSteps,
   type GizmoAxis,
+  type GizmoHandles,
   type GizmoMode,
+  type GizmoSide,
   type GizmoTone,
 } from './gizmoMath';
 
@@ -19,7 +21,10 @@ import {
  * Generic grid-snapped manipulator for one axis-aligned box (generic: knows nothing about rooms or
  * documents). Drawn inside a SceneCanvas.
  *
- * - `move`: one arrow per grid axis; `resize`: one cube on each POSITIVE face (minimum-corner anchor).
+ * - `move`: one arrow per grid axis; `resize`: one cube per face; `gumball`: both at once, the resize
+ *   cube next to the face and the arrow beyond it. `sides` chooses the faces (default the POSITIVE
+ *   face only; with −1 the minimum face too). Every drag callback reports which handle (kind, side)
+ *   was grabbed; steps are always counted along the positive axis.
  * - A drag is constrained to one grid axis and reported only as whole cell `steps` since the drag
  *   started (`onDragSteps`, called when the value changes). The caller draws the preview by passing
  *   an updated `box`; the gizmo stores no transform of its own.
@@ -30,7 +35,7 @@ import {
  * - Handle clicks never reach the scene background, so a drag never clears the selection.
  */
 
-export type { GizmoMode, GizmoTone } from './gizmoMath';
+export type { GizmoHandles, GizmoMode, GizmoSide, GizmoTone } from './gizmoMath';
 
 /** Axis-aligned box in Three.js world space. */
 export interface GizmoBox {
@@ -41,17 +46,20 @@ export interface GizmoBox {
 
 export interface SnappedGizmoProps {
   readonly box: GizmoBox;
-  readonly mode: GizmoMode;
+  readonly mode: GizmoHandles;
   /** Cell size that defines one step (default DEFAULT_CELL_SIZE). */
   readonly cell?: CellSize;
   /** Axes to offer (default x, y, z). */
   readonly axes?: readonly GizmoAxis[];
+  /** Faces with handles (default [1]: the positive face only). */
+  readonly sides?: readonly GizmoSide[];
   readonly tone?: GizmoTone;
   /** Draw the box outline (default true). */
   readonly showBox?: boolean;
-  readonly onDragStart?: (axis: GizmoAxis) => void;
-  readonly onDragSteps: (axis: GizmoAxis, steps: number) => void;
-  readonly onDragEnd: (axis: GizmoAxis) => void;
+  /** `mode` is the kind of handle grabbed (always the gizmo's mode unless it is `gumball`); `side` its face. */
+  readonly onDragStart?: (axis: GizmoAxis, mode: GizmoMode, side: GizmoSide) => void;
+  readonly onDragSteps: (axis: GizmoAxis, steps: number, mode: GizmoMode, side: GizmoSide) => void;
+  readonly onDragEnd: (axis: GizmoAxis, mode: GizmoMode, side: GizmoSide) => void;
   readonly onDragCancel: () => void;
 }
 
@@ -86,8 +94,19 @@ interface HandleHandlers {
   onPointerOut(): void;
 }
 
+/** One grabbable handle: an axis, the kind of edit it makes and the face it sits on. */
+interface HandleId {
+  readonly axis: GizmoAxis;
+  readonly mode: GizmoMode;
+  readonly side: GizmoSide;
+}
+const sameHandle = (a: HandleId | null, b: HandleId) =>
+  a !== null && a.axis === b.axis && a.mode === b.mode && a.side === b.side;
+
 interface ActiveDrag {
   readonly axis: GizmoAxis;
+  readonly mode: GizmoMode;
+  readonly side: GizmoSide;
   readonly pointerId: number;
   readonly origin: WorldPoint;
   readonly startT: number;
@@ -95,23 +114,26 @@ interface ActiveDrag {
   readonly release: () => void;
 }
 
-/** Rotation turning a +Y-aligned primitive (cylinder, cone) to the world direction of `axis`. */
-function rotationFor(axis: GizmoAxis): [number, number, number] {
+/** Rotation turning a +Y-aligned primitive (cylinder, cone) to the world direction of `side`·`axis`. */
+function rotationFor(axis: GizmoAxis, side: GizmoSide): [number, number, number] {
   switch (axis) {
     case 'x':
-      return [0, 0, -Math.PI / 2];
+      return [0, 0, (-side * Math.PI) / 2];
     case 'y':
-      return [-Math.PI / 2, 0, 0]; // +Y → −Z (grid +y)
+      return [(-side * Math.PI) / 2, 0, 0]; // +Y → −Z (grid +y)
     case 'z':
-      return [0, 0, 0];
+      return side === 1 ? [0, 0, 0] : [Math.PI, 0, 0];
   }
 }
+
+const POSITIVE_ONLY: readonly GizmoSide[] = [1];
 
 export function SnappedGizmo({
   box,
   mode,
   cell = DEFAULT_CELL_SIZE,
   axes = GIZMO_AXES,
+  sides = POSITIVE_ONLY,
   tone = 'normal',
   showBox = true,
   onDragStart,
@@ -128,8 +150,8 @@ export function SnappedGizmo({
   callbacks.current = { onDragStart, onDragSteps, onDragEnd, onDragCancel };
 
   const drag = useRef<ActiveDrag | null>(null);
-  const [activeAxis, setActiveAxis] = useState<GizmoAxis | null>(null);
-  const [hoverAxis, setHoverAxis] = useState<GizmoAxis | null>(null);
+  const [active, setActive] = useState<HandleId | null>(null);
+  const [hover, setHover] = useState<HandleId | null>(null);
 
   // Pointers currently pressed anywhere (window capture phase runs before R3F and OrbitControls).
   const pressed = useRef(new Set<number>());
@@ -151,16 +173,17 @@ export function SnappedGizmo({
     if (!d) return;
     drag.current = null;
     d.release();
-    setActiveAxis(null);
+    setActive(null);
     canvas.style.cursor = '';
     if (cancelled) callbacks.current.onDragCancel();
-    else callbacks.current.onDragEnd(d.axis);
+    else callbacks.current.onDragEnd(d.axis, d.mode, d.side);
     invalidate();
   };
 
   // Escape cancels a drag; captured so the app's own Escape handling does not also run.
+  const dragging = active !== null;
   useEffect(() => {
-    if (activeAxis === null) return;
+    if (!dragging) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       e.preventDefault();
@@ -169,12 +192,14 @@ export function SnappedGizmo({
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [activeAxis]);
+  }, [dragging]);
 
   // Unmount mid-drag (view hidden, selection removed): cancel and give the camera back.
   useEffect(() => () => finish(true), []);
 
-  const handlersFor = (axis: GizmoAxis): HandleHandlers => ({
+  const handlersFor = (handle: HandleId): HandleHandlers => {
+    const { axis, mode: handleMode, side } = handle;
+    return {
     onPointerDown: (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation();
       if (e.button !== 0 || drag.current || pressed.current.size > 1) return;
@@ -197,6 +222,8 @@ export function SnappedGizmo({
       const pointerId = e.pointerId;
       drag.current = {
         axis,
+        mode: handleMode,
+        side,
         pointerId,
         origin,
         startT: t,
@@ -210,13 +237,13 @@ export function SnappedGizmo({
           }
         },
       };
-      setActiveAxis(axis);
+      setActive(handle);
       canvas.style.cursor = 'grabbing';
-      callbacks.current.onDragStart?.(axis);
+      callbacks.current.onDragStart?.(axis, handleMode, side);
     },
     onPointerMove: (e: ThreeEvent<PointerEvent>) => {
       const d = drag.current;
-      if (!d || d.axis !== axis || e.pointerId !== d.pointerId) return;
+      if (!d || !sameHandle(d, handle) || e.pointerId !== d.pointerId) return;
       e.stopPropagation();
       const t = axisParameter(
         { origin: [e.ray.origin.x, e.ray.origin.y, e.ray.origin.z], direction: [e.ray.direction.x, e.ray.direction.y, e.ray.direction.z] },
@@ -227,7 +254,7 @@ export function SnappedGizmo({
       const steps = snapToSteps(t - d.startT, gridAxisCellLength(axis, cell));
       if (steps !== d.steps) {
         d.steps = steps;
-        callbacks.current.onDragSteps(axis, steps);
+        callbacks.current.onDragSteps(axis, steps, handleMode, side);
         invalidate();
       }
     },
@@ -242,41 +269,52 @@ export function SnappedGizmo({
     onClick: (e: ThreeEvent<MouseEvent>) => e.stopPropagation(),
     onPointerOver: (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation();
-      setHoverAxis(axis);
+      setHover(handle);
       if (!drag.current) canvas.style.cursor = 'grab';
     },
     onPointerOut: () => {
-      setHoverAxis((h) => (h === axis ? null : h));
+      setHover((h) => (sameHandle(h, handle) ? null : h));
       if (!drag.current) canvas.style.cursor = '';
     },
-  });
+    };
+  };
 
+  const modes: readonly GizmoMode[] = mode === 'gumball' ? ['resize', 'move'] : [mode];
   return (
     <group>
       {showBox && <BoxOutline box={box} color={TONE_COLORS[tone]} />}
-      {axes.map((axis) => {
-        const color = activeAxis === axis || (activeAxis === null && hoverAxis === axis) ? ACTIVE_COLOR : AXIS_COLORS[axis];
-        const dimmed = activeAxis !== null && activeAxis !== axis;
-        return (
-          <Handle
-            key={axis}
-            axis={axis}
-            mode={mode}
-            box={box}
-            cell={cell}
-            color={color}
-            opacity={dimmed ? 0.3 : 1}
-            handlers={handlersFor(axis)}
-          />
-        );
-      })}
+      {axes.flatMap((axis) =>
+        sides.flatMap((side) =>
+          modes.map((handleMode) => {
+          const handle: HandleId = { axis, mode: handleMode, side };
+          const color = sameHandle(active, handle) || (active === null && sameHandle(hover, handle)) ? ACTIVE_COLOR : AXIS_COLORS[axis];
+          const dimmed = active !== null && !sameHandle(active, handle);
+          return (
+            <Handle
+              key={`${handleMode}:${axis}:${side}`}
+              axis={axis}
+              side={side}
+              mode={handleMode}
+              gumball={mode === 'gumball'}
+              box={box}
+              cell={cell}
+              color={color}
+              opacity={dimmed ? 0.3 : 1}
+              handlers={handlersFor(handle)}
+            />
+          );
+          }),
+        ),
+      )}
     </group>
   );
 }
 
 function Handle({
   axis,
+  side,
   mode,
+  gumball,
   box,
   cell,
   color,
@@ -284,7 +322,10 @@ function Handle({
   handlers,
 }: {
   readonly axis: GizmoAxis;
+  readonly side: GizmoSide;
   readonly mode: GizmoMode;
+  /** Shown together with the other kind: the arrow starts beyond the resize cube. */
+  readonly gumball: boolean;
   readonly box: GizmoBox;
   readonly cell: CellSize;
   readonly color: string;
@@ -292,7 +333,9 @@ function Handle({
   readonly handlers: HandleHandlers;
 }) {
   const unit = cell.horizontal;
-  const dir = gridAxisDirection(axis);
+  const axisDir = gridAxisDirection(axis);
+  // Handles on the minimum face point the other way.
+  const dir: WorldPoint = [axisDir[0] * side, axisDir[1] * side, axisDir[2] * side];
   // Half extent of the box along this axis (world index of the axis direction).
   const worldIndex = axis === 'x' ? 0 : axis === 'y' ? 2 : 1;
   const half = box.size[worldIndex] / 2;
@@ -303,10 +346,10 @@ function Handle({
     box.center[1] + dir[1] * distance,
     box.center[2] + dir[2] * distance,
   ];
-  const rotation = rotationFor(axis);
+  const rotation = rotationFor(axis, side);
+  const s = 0.24 * unit;
 
   if (mode === 'resize') {
-    const s = 0.28 * unit;
     return (
       <group position={at(half + gap + s / 2)} rotation={rotation}>
         <mesh renderOrder={RENDER_ORDER}>
@@ -322,20 +365,23 @@ function Handle({
     );
   }
 
-  const shaft = 0.45 * unit;
-  const cone = 0.18 * unit;
+  // Compact arrows (shaft + cone ≈ 0.4 cell).
+  const shaft = 0.28 * unit;
+  const cone = 0.12 * unit;
+  // Gumball: the arrow starts beyond the resize cube, clear of its (larger) hit target.
+  const start = gumball ? half + gap + s + 0.12 * unit : half + gap;
   return (
-    <group position={at(half + gap)} rotation={rotation}>
+    <group position={at(start)} rotation={rotation}>
       <mesh position={[0, shaft / 2, 0]} renderOrder={RENDER_ORDER}>
-        <cylinderGeometry args={[0.025 * unit, 0.025 * unit, shaft, 10]} />
+        <cylinderGeometry args={[0.018 * unit, 0.018 * unit, shaft, 10]} />
         <meshBasicMaterial {...material} />
       </mesh>
       <mesh position={[0, shaft + cone / 2, 0]} renderOrder={RENDER_ORDER}>
-        <coneGeometry args={[0.07 * unit, cone, 16]} />
+        <coneGeometry args={[0.05 * unit, cone, 16]} />
         <meshBasicMaterial {...material} />
       </mesh>
       <mesh position={[0, (shaft + cone) / 2, 0]} {...handlers}>
-        <cylinderGeometry args={[0.13 * unit, 0.13 * unit, shaft + cone, 10]} />
+        <cylinderGeometry args={[0.1 * unit, 0.1 * unit, shaft + cone, 10]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>

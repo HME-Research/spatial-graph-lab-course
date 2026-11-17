@@ -53,15 +53,15 @@ function labelTexture(text: string): CanvasTexture {
   return texture;
 }
 
-/** Cube edge (px), distance of its centre from the right edge (px), and how far (px) it sits above the vertical centre (room for the projection toggle below it). */
-export const VIEW_CUBE = { size: 46, margin: 46, lift: 14 } as const;
+/** Cube edge (px) and distance (px) of its centre from the top and right edges of the canvas (top-right corner; the projection toggle sits below it). */
+export const VIEW_CUBE = { size: 46, margin: 46 } as const;
 
 /**
  * `passive` (a room gizmo is shown): the cube fades and ignores the pointer, so it never covers a
  * gizmo handle that reaches the canvas edge.
  */
 export function ViewCube({ onOrient, passive = false }: { readonly onOrient: (direction: CameraVector) => void; readonly passive?: boolean }) {
-  const { size, margin, lift } = VIEW_CUBE;
+  const { size, margin } = VIEW_CUBE;
   const textures = useMemo(() => FACE_LABELS.map(labelTexture), []);
   const geometry = useMemo(() => new BoxGeometry(1, 1, 1), []);
   useEffect(
@@ -104,8 +104,8 @@ export function ViewCube({ onOrient, passive = false }: { readonly onOrient: (di
   );
 
   return (
-    <GizmoHelper alignment="center-right" margin={[margin, 0]}>
-      <group position={[0, lift, 0]} scale={size} name="view-cube">
+    <GizmoHelper alignment="top-right" margin={[margin, margin]}>
+      <group scale={size} name="view-cube">
         {passive ? (
           // Faded and not pickable: presses reach the room gizmo underneath.
           <mesh geometry={geometry} raycast={() => null}>

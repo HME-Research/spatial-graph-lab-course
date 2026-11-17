@@ -1,7 +1,11 @@
 import { SceneLabel } from '@core/viewer/three/SceneCanvas';
 import { SnappedGizmo } from '@core/viewer/three/SnappedGizmo';
 import { formatSize } from './roomGeometry';
+import type { GizmoSide } from '@core/viewer/three/gizmoMath';
 import type { RoomEditing } from './useRoomEditing';
+
+/** Handles on both faces of every axis: either face of a room can be dragged. */
+const BOTH_SIDES: readonly GizmoSide[] = [1, -1];
 
 /**
  * In-canvas part of room editing: the snapped manipulator, the preview box and the room label.
@@ -19,7 +23,7 @@ export function RoomEditGizmo({ editing }: { readonly editing: RoomEditing }) {
   ];
   return (
     <>
-      <SnappedGizmo box={box} mode={editing.mode} cell={editing.cell} tone={editing.tone} {...editing.gizmo} />
+      <SnappedGizmo box={box} mode="gumball" sides={BOTH_SIDES} cell={editing.cell} tone={editing.tone} {...editing.gizmo} />
       <SceneLabel position={top} text={`${editing.label} · ${formatSize(geometry.size)}`} strong />
     </>
   );

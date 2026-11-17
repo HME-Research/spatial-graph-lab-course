@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_CELL_SIZE, type CellSize } from '@core/viewer/coordinates';
 import type { Selection } from '@core/viewer/selection';
-import { snapHint, type GizmoAxis, type GizmoMode, type GizmoTone } from '@core/viewer/three/gizmoMath';
+import { snapHint, type GizmoAxis, type GizmoMode, type GizmoSide, type GizmoTone } from '@core/viewer/three/gizmoMath';
 import type { GizmoBox } from '@core/viewer/three/SnappedGizmo';
 import { nodeLabel } from '@app/document/v2';
 import type { DesignPort } from '@app/spatial';
@@ -36,6 +36,7 @@ export interface RoomEditing {
   readonly nodeId: string | null;
   /** Display label of the selected room ("01"). */
   readonly label: string;
+  /** What the panel's −/+ step buttons do (the in-canvas gizmo offers both at once). */
   readonly mode: GizmoMode;
   readonly setMode: (mode: GizmoMode) => void;
   readonly state: RoomEditState;
@@ -52,7 +53,7 @@ export interface RoomEditing {
   readonly dismissFeedback: () => void;
   /** Callbacks for `SnappedGizmo`. */
   readonly gizmo: {
-    readonly onDragStart: (axis: GizmoAxis) => void;
+    readonly onDragStart: (axis: GizmoAxis, mode: GizmoMode, side: GizmoSide) => void;
     readonly onDragSteps: (axis: GizmoAxis, steps: number) => void;
     readonly onDragEnd: (axis: GizmoAxis) => void;
     readonly onDragCancel: () => void;
@@ -105,11 +106,12 @@ export function useRoomEditing(
 
   const gizmo = useMemo(
     () => ({
-      onDragStart: (axis: GizmoAxis) => {
-        const { design: d, nodeId: id, mode: m } = live.current;
+      // The grabbed handle decides move or resize (the gizmo shows both, gumball-style).
+      onDragStart: (axis: GizmoAxis, m: GizmoMode, side: GizmoSide) => {
+        const { design: d, nodeId: id } = live.current;
         if (!d || id === null) return;
         setFeedback(null);
-        setState(beginDrag(d, id, m, axis));
+        setState(beginDrag(d, id, m, axis, side));
       },
       onDragSteps: (_axis: GizmoAxis, steps: number) => {
         const { design: d, state: s } = live.current;

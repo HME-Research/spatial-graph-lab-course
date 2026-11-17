@@ -115,6 +115,18 @@ describe('room geometry', () => {
     expect(applyAxisSteps(start, 'resize', 'z', 999).size[2]).toBe(MAX_ROOM_SIZE);
   });
 
+  it('resizes from the minimum face with the maximum face anchored', () => {
+    // Dragging the −x cube 2 cells towards −x grows the room and shifts its minimum corner.
+    expect(applyAxisSteps(start, 'resize', 'x', -2, -1)).toEqual({ grid: [-2, 0, 0], size: [4, 3, 1] });
+    // Towards +y shrinks it; the maximum y face (0 + 3) stays put.
+    expect(applyAxisSteps(start, 'resize', 'y', 2, -1)).toEqual({ grid: [0, 2, 0], size: [2, 1, 1] });
+    // Never below one cell: the minimum face stops one cell short of the maximum face.
+    expect(applyAxisSteps(start, 'resize', 'y', 9, -1)).toEqual({ grid: [0, 2, 0], size: [2, 1, 1] });
+    expect(applyAxisSteps(start, 'resize', 'z', -999, -1).size[2]).toBe(MAX_ROOM_SIZE);
+    // Side never changes a move.
+    expect(applyAxisSteps(start, 'move', 'x', 2, -1)).toEqual(applyAxisSteps(start, 'move', 'x', 2, 1));
+  });
+
   it('zero steps is a no-op', () => {
     expect(sameGeometry(applyAxisSteps(start, 'move', 'x', 0), start)).toBe(true);
     expect(sameGeometry(applyAxisSteps(start, 'resize', 'z', 0), start)).toBe(true);

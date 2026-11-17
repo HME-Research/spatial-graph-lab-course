@@ -4,9 +4,10 @@ Owner: `04-3d-gizmo`. Generic parts: `core/viewer/three/gizmoMath.ts` and `Snapp
 
 ## Behaviour
 
-- Select a room in Voxels or Building. The manipulator shows on the selected room.
-  - **Move** shows one arrow per grid axis.
-  - **Resize** shows one cube on each positive face. The minimum corner stays fixed.
+- Select a room in Voxels or Building. A gumball-style manipulator shows on the selected room, with both kinds of handle on BOTH faces of every axis:
+  - a **resize** cube next to each face; dragging it moves that face and the opposite face stays fixed;
+  - a small **move** arrow beyond each cube, pointing out along the same grid axis.
+  - The grabbed handle decides whether the drag moves or resizes. There is no rotation: rooms are axis-aligned grid boxes.
 - A drag follows one grid axis and snaps to whole cells. Step length comes from `CellSize`, which defaults to `DEFAULT_CELL_SIZE` (3 m). It uses the same mapping as `spatialToThree`.
 - While you drag, only a preview box moves.
   - The box is drawn in the selection colour when the move is valid, red when it would be blocked, and amber when it needs confirmation.
@@ -25,7 +26,7 @@ Owner: `04-3d-gizmo`. Generic parts: `core/viewer/three/gizmoMath.ts` and `Snapp
 - Orbit controls are disabled during a handle drag and re-enabled afterwards, including on unmount.
 - A handle press is ignored while another pointer is down (an orbit, pan or pinch in progress).
 - Handle clicks stop propagation. Drags are longer than the click tolerance, so they never select or clear selection.
-- The overlay has Move/Resize buttons and −/+ buttons for one cell per axis. These are the keyboard alternative, and each button press counts as one gesture.
+- The overlay has −/+ buttons for one cell per axis, and Move/Resize buttons choosing what they do. These are the keyboard alternative, and each button press counts as one gesture.
 - The hint "Snaps to 3 m grid" shows only while a room is selected.
 - Feature gate: nothing renders unless `ViewProps.design` is present.
 

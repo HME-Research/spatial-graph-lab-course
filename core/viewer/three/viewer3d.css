@@ -235,23 +235,30 @@
 }
 
 /*
- * Projection toggle directly below the navigation cube (the cube is drawn in the canvas HUD, its
- * centre 46 px from the right edge and 14 px above the vertical centre; VIEW_CUBE in ViewCube.tsx).
- * Kept at the right edge, away from the centre where the selected room and its gizmo usually are.
+ * Projection toggle directly below the navigation cube (the cube is drawn in the canvas HUD in the
+ * top-right corner, its centre 46 px from the top and right edges; VIEW_CUBE in ViewCube.tsx).
  * It sits BELOW the overlay layer (z-index 19 < 20): in very short canvases a tall overlay panel
  * (room editor) stays on top and is never covered by it.
  */
 .viewer3d-nav {
   position: absolute;
   right: 22px;
-  top: calc(50% + 24px);
+  top: 84px;
   z-index: 19;
   display: flex;
   justify-content: center;
   width: 48px;
 }
 .viewer3d-nav.no-cube {
-  top: calc(50% - 11px);
+  top: 8px;
+}
+
+/* The info panel moves down out of the top-right corner, below the cube and projection toggle. */
+.viewer3d-overlay[data-nav='cube'] .viewer3d-info {
+  margin-top: 104px;
+}
+.viewer3d-overlay[data-nav='toggle'] .viewer3d-info {
+  margin-top: 30px;
 }
 .viewer3d-projection {
   font: 600 0.72rem system-ui, sans-serif;

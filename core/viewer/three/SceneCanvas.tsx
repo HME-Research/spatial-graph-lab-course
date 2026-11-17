@@ -169,7 +169,11 @@ export function SceneCanvas({
         <AfterFirstFrame>{children}</AfterFirstFrame>
       </Canvas>
       </ManipulatorContext.Provider>
-      <div className="viewer3d-overlay" data-legend={options.legend ? 'on' : 'off'}>
+      <div
+        className="viewer3d-overlay"
+        data-legend={options.legend ? 'on' : 'off'}
+        data-nav={!navRoom ? 'none' : options.navigationCube ? 'cube' : options.orthographic ? 'toggle' : 'none'}
+      >
         {overlay}
       </div>
       {navRoom && options.orthographic && (

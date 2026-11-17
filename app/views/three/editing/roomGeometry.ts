@@ -1,6 +1,6 @@
 import type { GridCoord } from '@core/spatial';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize } from '@core/viewer/coordinates';
-import { AXIS_INDEX, type GizmoAxis, type GizmoMode } from '@core/viewer/three/gizmoMath';
+import { AXIS_INDEX, type GizmoAxis, type GizmoMode, type GizmoSide } from '@core/viewer/three/gizmoMath';
 import { MAX_ROOM_SIZE, type RoomSize } from '@app/document/v2';
 
 /**
@@ -15,19 +15,34 @@ export interface RoomGeometry {
 /**
  * Geometry after `steps` whole cells along one grid axis.
  * - move: the minimum corner shifts; size unchanged.
- * - resize: the size changes, clamped to 1…MAX_ROOM_SIZE; the minimum corner never moves.
+ * - resize, side +1: the maximum face follows `steps`; the minimum corner never moves.
+ * - resize, side −1: the minimum face follows `steps` (positive = towards +axis, shrinking); the
+ *   maximum face never moves.
+ * Sizes are clamped to 1…MAX_ROOM_SIZE.
  */
-export function applyAxisSteps(start: RoomGeometry, mode: GizmoMode, axis: GizmoAxis, steps: number): RoomGeometry {
+export function applyAxisSteps(
+  start: RoomGeometry,
+  mode: GizmoMode,
+  axis: GizmoAxis,
+  steps: number,
+  side: GizmoSide = 1,
+): RoomGeometry {
   const i = AXIS_INDEX[axis];
   const step = Math.trunc(steps) + 0;
+  const grid = [...start.grid] as [number, number, number];
   if (mode === 'move') {
-    const grid = [...start.grid] as [number, number, number];
     grid[i] = grid[i] + step;
     return { grid, size: start.size };
   }
   const size = [...start.size] as [number, number, number];
-  size[i] = Math.min(MAX_ROOM_SIZE, Math.max(1, size[i] + step));
-  return { grid: start.grid, size };
+  const clamp = (n: number) => Math.min(MAX_ROOM_SIZE, Math.max(1, n));
+  if (side === 1) {
+    size[i] = clamp(size[i] + step);
+    return { grid: start.grid, size };
+  }
+  size[i] = clamp(start.size[i] - step);
+  grid[i] = start.grid[i] + (start.size[i] - size[i]);
+  return { grid, size };
 }
 
 export const sameGeometry = (a: RoomGeometry, b: RoomGeometry): boolean =>

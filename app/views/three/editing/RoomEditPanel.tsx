@@ -43,7 +43,7 @@ export function RoomEditPanel({ editing }: { readonly editing: RoomEditing }) {
               {formatSize(geometry.size)} at {formatGrid(geometry.grid)}
             </span>
           </div>
-          <div className="room-edit-modes" role="radiogroup" aria-label="Gizmo mode">
+          <div className="room-edit-modes" role="radiogroup" aria-label="Step buttons mode">
             {(['move', 'resize'] as const satisfies readonly GizmoMode[]).map((m) => (
               <button
                 key={m}
@@ -53,7 +53,7 @@ export function RoomEditPanel({ editing }: { readonly editing: RoomEditing }) {
                 className={editing.mode === m ? 'active' : undefined}
                 disabled={busy}
                 onClick={() => editing.setMode(m)}
-                title={m === 'move' ? 'Arrows move the room by whole cells' : 'Cubes resize the room by whole cells (its lowest corner stays)'}
+                title={m === 'move' ? 'The −/+ buttons move the room by whole cells' : 'The −/+ buttons resize the room by whole cells (its lowest corner stays)'}
               >
                 {m === 'move' ? 'Move' : 'Resize'}
               </button>
@@ -76,8 +76,7 @@ export function RoomEditPanel({ editing }: { readonly editing: RoomEditing }) {
             ))}
           </div>
           <div className="room-edit-hint">
-            {editing.hint}
-            {editing.mode === 'resize' ? ' · minimum corner stays' : ''} · Esc cancels a drag
+            {editing.hint} · Arrows move, cubes resize (minimum corner stays) · Esc cancels a drag
           </div>
           {editing.status && (
             <div className={`room-edit-status tone-${editing.tone}`} aria-live="polite">

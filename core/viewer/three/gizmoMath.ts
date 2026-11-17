@@ -15,6 +15,13 @@ export const GIZMO_AXES: readonly GizmoAxis[] = Object.freeze(['x', 'y', 'z']);
 
 /** `move`: translate by whole cells; `resize`: change whole-cell size, minimum corner anchored. */
 export type GizmoMode = 'move' | 'resize';
+/** Handles a gizmo shows: one mode's, or `gumball` (move arrows and resize cubes together, Rhino-style). */
+export type GizmoHandles = GizmoMode | 'gumball';
+/**
+ * Face a handle sits on: +1 the maximum face, −1 the minimum face of the axis. A drag is still
+ * measured along the POSITIVE axis; for resize the side says which face follows it.
+ */
+export type GizmoSide = 1 | -1;
 /** Preview tone: normal, blocked (would be refused) or warning (needs confirmation). */
 export type GizmoTone = 'normal' | 'blocked' | 'warning';
 
