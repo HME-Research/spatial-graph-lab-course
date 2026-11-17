@@ -108,3 +108,31 @@
   position: absolute;
   inset: 0;
 }
+
+/*
+ * Panel pinned beside the clicked wall: in the Building by a 3D anchor (drei Html, follows the
+ * camera), in the Plan at the click point. Both are kept inside the view by `placeBeside`.
+ */
+.sgl-wall-panel.anchored {
+  width: 250px;
+  max-height: min(60vh, 360px);
+}
+
+.sgl-wall-anchor {
+  pointer-events: none;
+}
+
+.sgl-wall-anchor .sgl-wall-panel {
+  pointer-events: auto;
+}
+
+.sgl-wall-plan-anchor {
+  position: absolute;
+  z-index: 6;
+}
+
+/* Before the first measurement (one frame) or without a click point: docked top-right as before. */
+.sgl-wall-plan-anchor.docked {
+  top: 48px;
+  right: 8px;
+}

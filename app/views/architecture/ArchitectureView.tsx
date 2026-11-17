@@ -24,6 +24,7 @@ import { presetColour, useRoofsDisplay, useViewDisplay, type SceneDisplay } from
 import { StoreyLabels } from '../three/StoreyLabels';
 import { eligibleWallFaces, faceIndex, wallActionOf, wallClickSelection, wallPanelModel } from '../three/wallInteraction/wallPanelModel';
 import { WallActionPanel } from '../three/wallInteraction/WallActionPanel';
+import { WallPanelAnchor } from '../three/wallInteraction/WallPanelAnchor';
 import type { DesignPort } from '@app/spatial';
 import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
 import { NO_SELECTION, type Selection } from '@core/viewer/selection';
@@ -217,16 +218,6 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
             design={design}
           />
           <RoomEditPanel editing={editing} />
-          {design && faces && activeWall !== null && (
-            <WallActionPanel
-              className="in-building"
-              design={design}
-              faceId={activeWall}
-              faces={faces}
-              onSelect={onSelect}
-              onClose={() => setActiveWall(null)}
-            />
-          )}
         </>
       }
     >
@@ -243,6 +234,19 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
         onWallClick={clickWall}
       />
       <StoreyLabels nodes={v2Doc?.nodes ?? doc.nodes} bounds={bounds} />
+      {design && faces && activeWall !== null && faces.get(activeWall) && (
+        // Pinned beside the clicked wall (follows it when the camera moves), not docked over the view.
+        <WallPanelAnchor face={faces.get(activeWall)!}>
+          <WallActionPanel
+            className="anchored"
+            design={design}
+            faceId={activeWall}
+            faces={faces}
+            onSelect={onSelect}
+            onClose={() => setActiveWall(null)}
+          />
+        </WallPanelAnchor>
+      )}
       {unresolved.map((e) => {
         const line = lineOf(design, e.id);
         if (!line) return null;
@@ -304,7 +308,7 @@ function Scene({
           size={e.size}
           target={e.target}
           color={elementColor(e, display)}
-          kind={e.part === 'glazing' ? 'glass' : e.part === 'circulation-marker' ? 'marker' : 'solid'}
+          kind={e.part === 'glazing' ? 'glass' : e.part === 'circulation-marker' ? 'marker' : e.part === 'threshold' ? 'hidden' : 'solid'}
           geometry={unitBox}
           highlighted={isElementHighlighted(e, selection)}
           pick={pick}
@@ -354,7 +358,8 @@ const BoxMesh = memo(function BoxMesh({
   readonly size: readonly [number, number, number];
   readonly target: Selection;
   readonly color: string;
-  readonly kind: 'solid' | 'glass' | 'marker';
+  /** `hidden`: an invisible pick target (the Open threshold), shown faintly only when hovered or selected. */
+  readonly kind: 'solid' | 'glass' | 'marker' | 'hidden';
   readonly geometry: BoxGeometry;
   readonly highlighted: boolean;
   readonly pick: (target: Selection) => void;
@@ -367,6 +372,7 @@ const BoxMesh = memo(function BoxMesh({
 }) {
   const glass = kind === 'glass';
   const marker = kind === 'marker';
+  const hidden = kind === 'hidden';
   const wallTint = wall === 'active' ? 0.6 : wall === 'hover' ? 0.35 : 0;
   const emphasis = Math.max(highlighted ? 0.55 : 0, wallTint);
   return (
@@ -395,9 +401,9 @@ const BoxMesh = memo(function BoxMesh({
         // Selection TINTS the element (keeps doors, glazing and walls readable while editing) instead
         // of painting it solid magenta (audit O8 note; recorded as the reconciled "eighth" minor finding).
         color={color}
-        transparent={glass || marker}
-        opacity={glass ? (highlighted ? 0.75 : 0.45) : marker ? 0.85 : 1}
-        depthWrite={!glass}
+        transparent={glass || marker || hidden}
+        opacity={glass ? (highlighted ? 0.75 : 0.45) : marker ? 0.85 : hidden ? (emphasis > 0 ? 0.35 : 0) : 1}
+        depthWrite={!glass && !hidden}
         roughness={glass ? 0.1 : 0.85}
         emissive={emphasis > 0 ? SELECTION_COLOR : '#000000'}
         emissiveIntensity={emphasis}
@@ -422,7 +428,6 @@ const LEGEND: readonly (readonly [label: string, color: string])[] = [
   ['Glazing (Designer: window coverage)', COLORS.glazing],
   ['Internal solid wall', COLORS.internalWall],
   ['Door wall', COLORS.doorWall],
-  ['Open: no wall (threshold)', COLORS.threshold],
   ['Slab / atrium void', COLORS.slab],
   ['Roof (exposed tops)', COLORS.roof],
   ['Vertical access (symbolic)', COLORS.marker],
