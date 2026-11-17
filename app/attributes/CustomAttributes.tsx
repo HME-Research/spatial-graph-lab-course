@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import type { AttributeValue } from '@app/document';
 import {
   attributesOutsideSchema,
@@ -55,6 +55,8 @@ export function CustomAttributes({
   onError,
   onManage,
   showHeader = true,
+  before,
+  after,
 }: {
   readonly collection: AttributeCollection;
   readonly item: { readonly id: string; readonly typeId?: string; readonly attributes: Stored };
@@ -66,6 +68,10 @@ export function CustomAttributes({
   readonly onManage?: () => void;
   /** Own heading and Manage link (default). Off when the host's section header shows them (Properties). */
   readonly showHeader?: boolean;
+  /** Rows listed before the custom ones (Properties: the required attributes, Function and Level). */
+  readonly before?: ReactNode;
+  /** Rows listed after the custom ones (Properties: the calculated attributes). */
+  readonly after?: ReactNode;
 }) {
   const resolved =
     collection === 'nodes' ? resolveNodeAttributes(schema, { typeId: item.typeId ?? '', attributes: item.attributes }) : resolveEdgeAttributes(schema, item);
@@ -81,7 +87,7 @@ export function CustomAttributes({
   const what = collection === 'nodes' ? 'room' : 'relationship';
 
   return (
-    <section className="sgl-section sgl-custom-attributes" aria-label="Custom attributes">
+    <section className="sgl-section sgl-custom-attributes" aria-label={before !== undefined ? 'Attributes' : 'Custom attributes'}>
       {showHeader && (
         <div className="sgl-help-row">
           <h4>Custom attributes</h4>
@@ -89,16 +95,16 @@ export function CustomAttributes({
           {onManage && <ManageAttributesLink onManage={onManage} />}
         </div>
       )}
-      {resolved.length === 0 ? (
+      {before}
+      {resolved.length === 0 && before === undefined ? (
         <p className="meta">
           The project has no custom {collection === 'nodes' ? 'node' : 'edge'} attributes yet.{onManage ? ' Use “Manage attributes” to add one.' : ''}
         </p>
-      ) : (
-        <p className="sgl-help">A value set here applies to this {what} only; “Use default” returns to the inherited value.</p>
-      )}
+      ) : null}
       {resolved.map((r) => (
         <FieldValue key={`${r.field.id}:${JSON.stringify(r.storedValue)}:${r.storedKey ?? ''}`} r={r} typeId={item.typeId} send={(v) => send(r, v)} onError={onError} />
       ))}
+      {after}
       {Object.keys(outside).length > 0 && (
         <details className="sgl-outside">
           <summary>Not in the project attributes ({Object.keys(outside).length})</summary>
@@ -179,17 +185,22 @@ function FieldValue({
   }
 
   return (
-    <div className={`sgl-field sgl-field-${source.tone}`}>
-      <label className="sgl-field-label" htmlFor={field.kind === 'enum' || field.kind === 'boolean' ? id : undefined}>
-        <span title={`Identifier: ${field.key}`}>{field.label}</span>
-        <span id={`${id}-src`} className={`sgl-chip sgl-chip-src-${source.tone}`} title={`Effective value: ${formatFieldValue(r.value)}`}>
+    <div className={`sgl-field sgl-field-${source.tone}`} data-attribute={field.id} data-attribute-kind="custom">
+      <label
+        className="sgl-field-label"
+        htmlFor={field.kind === 'enum' || field.kind === 'boolean' ? id : undefined}
+        title={field.description ? `${field.description}
+Identifier: ${field.key}` : `Identifier: ${field.key}`}
+      >
+        {field.label}
+      </label>
+      <div className="sgl-field-control">{control}</div>
+      <div className="sgl-field-meta">
+        <span id={`${id}-src`} className={`sgl-field-src sgl-field-src-${source.tone}`} title={`Effective value: ${formatFieldValue(r.value)}`}>
           {source.chip}
         </span>
-      </label>
-      <div className="sgl-row">
-        {control}
         {own && (
-          <button type="button" onClick={() => send(undefined)} title={`Remove this value; ${inherit} applies again`}>
+          <button type="button" className="sgl-link" onClick={() => send(undefined)} title={`Remove this value; ${inherit} applies again`}>
             Use default
           </button>
         )}
@@ -199,7 +210,6 @@ function FieldValue({
           </button>
         )}
       </div>
-      {field.description && <p className="sgl-help">{field.description}</p>}
       {r.stored === 'invalid' && (
         <p className="sgl-warning">
           ⚠ Stored value {JSON.stringify(r.storedValue)} is not {describeField(field)}. It is kept until you change it; meanwhile the {inherit} is used.

@@ -27,9 +27,9 @@ import {
 } from '@app/ui';
 import { typeColor } from '@core/viewer/appearance';
 import { selectEdge, selectNode } from '@core/viewer/selection';
-import { CalculatedValues } from './CalculatedValues';
+import { CalculatedRows, FieldRow } from './CalculatedValues';
 import { AttributesForm, NodeChecks, StoredData, TypedAttributesForm, TypeStatusNote } from './AttributeEditors';
-import { TripleField, TypeSelect, type CommitOutcome } from './fields';
+import { CommitInput, TripleField, TypeSelect, type CommitOutcome } from './fields';
 import { messageContextFor, useCommands, type PanelProps } from './panelSupport';
 import { planGeometryEdit, POSITION_BOUNDS, tripleKey, typeMenu, type Triple, type TripleBounds } from './propertiesModel';
 
@@ -45,7 +45,7 @@ interface PendingConfirmation {
 
 const toCoord = (t: Triple): [number, number, number] => [t[0], t[1], t[2]];
 
-/** Properties of one room: type, position (and v2 size), attributes, relationships. */
+/** Properties of one room: one attribute list (Function, Level, custom, calculated), geometry, relationships. */
 export function NodeProperties(props: PanelProps & { readonly nodeId: string }) {
   const { doc, design, project, nodeId } = props;
   const { issues, showIssues, clearIssues, runShared, runV1, runV2 } = useCommands(props);
@@ -132,10 +132,49 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
   const moveTo = (grid: Triple): CommitOutcome =>
     design ? editGeometry({ grid }, 'move') : runV1({ type: 'move-node', nodeId, grid: toCoord(grid) }) ? 'applied' : 'refused';
 
-  const confirmation = (action: 'move' | 'resize') =>
-    pending?.action === action ? (
-      <RouteConfirm relationships={pending.relationships} action={action} onCancel={cancelPending} onConfirm={confirmPending} />
-    ) : null;
+  /** Level is the room's z (storey): editing it moves the room up or down, like Position z. */
+  const commitLevel = (draft: string): boolean => {
+    const z = Number(draft);
+    if (draft.trim() === '' || !Number.isInteger(z)) {
+      showIssues([{ path: ['grid', 2], code: 'schema', message: 'Level must be a whole number.' }]);
+      return false;
+    }
+    return moveTo([node.grid[0], node.grid[1], z]) !== 'refused';
+  };
+
+  const functionName = typeStatus.kind === 'registered' ? typeStatus.label : node.typeId;
+  const requiredRows = (
+    <>
+      <FieldRow
+        attributeId="function"
+        kind="required"
+        label="Function"
+        title="What the room is used for. Every room has one."
+        control={
+          /* Re-keyed on the stored value so the menu resets after any change (or undo). */
+          <TypeSelect key={node.typeId} current={node.typeId} menu={menu} onChange={(typeId) => runShared({ type: 'set-node-type', nodeId, typeId })} />
+        }
+        meta={
+          manageFunctions && (
+            <button type="button" className="sgl-link" onClick={manageFunctions} title="Add or remove the functions this project offers">
+              Edit functions
+            </button>
+          )
+        }
+      >
+        <TypeStatusNote status={typeStatus} typeId={node.typeId} projectId={active?.id ?? null} />
+        <NodeChecks checks={checks} />
+      </FieldRow>
+      <FieldRow
+        attributeId="level"
+        kind="required"
+        label="Level"
+        title="The storey the room stands on (its z position). Changing it moves the room."
+        control={<CommitInput key={`level:${node.grid[2]}:${resetKey}`} label="Level" type="number" stored={String(node.grid[2])} placeholder="" onCommit={commitLevel} />}
+      />
+    </>
+  );
+  const calculatedRows = design ? <CalculatedRows design={design} collection="nodes" itemId={nodeId} /> : undefined;
 
   return (
     <div className="sgl-panel">
@@ -146,39 +185,51 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
       </div>
 
       <IssueFeedback issues={issues} context={context} onDismiss={clearIssues} />
+      {pending && <RouteConfirm relationships={pending.relationships} action={pending.action} onCancel={cancelPending} onConfirm={confirmPending} />}
 
-      <CollapsibleSection title="Identity" sectionId="identity">
-        <section className="sgl-section">
-          <div className="sgl-help-row">
-            <h4>Function</h4>
-            {manageFunctions && (
-              <button type="button" className="sgl-link sgl-manage-link" onClick={manageFunctions} title="Add or remove the functions this project offers">
-                Edit functions…
-              </button>
-            )}
-          </div>
-          {/* Re-keyed on the stored value so the menu resets after any change (or undo). */}
-          <TypeSelect
-            key={node.typeId}
-            current={node.typeId}
-            menu={menu}
-            onChange={(typeId) => runShared({ type: 'set-node-type', nodeId, typeId })}
+      <CollapsibleSection
+        title="Attributes"
+        sectionId="attributes"
+        defaultOpen={false}
+        meta={functionName}
+        actions={design && v2Node && project && openAttributes ? <ManageAttributesLink onManage={() => openAttributes('nodes')} /> : undefined}
+      >
+        {design && v2Node && project ? (
+          <CustomAttributes
+            collection="nodes"
+            item={v2Node}
+            schema={project.attributes}
+            run={runV2}
+            onError={(message) => showIssues([{ path: ['attributes'], code: 'schema', message }])}
+            showHeader={false}
+            before={requiredRows}
+            after={calculatedRows}
+            {...(openAttributes && { onManage: () => openAttributes('nodes') })}
           />
-          <TypeStatusNote status={typeStatus} typeId={node.typeId} projectId={active?.id ?? null} />
-          {design && project && <p className="sgl-help">Values set on this room are kept when its function changes.</p>}
-        </section>
-        <dl className="sgl-readonly-list sgl-identity-facts" aria-label="Fixed identity (read-only)">
-          <dt>Id</dt>
-          <dd>
-            <code>{node.id}</code>
-          </dd>
-          <dt>Level</dt>
-          <dd title="The storey is the room's z position; change it under Geometry.">{node.grid[2]}</dd>
-        </dl>
-        <NodeChecks checks={checks} />
+        ) : (
+          <>
+            <section className="sgl-section sgl-custom-attributes" aria-label="Attributes">
+              {requiredRows}
+              {calculatedRows}
+            </section>
+            {specs ? (
+              <>
+                <TypedAttributesForm node={node} specs={specs} label={functionName} run={runShared} onLocalError={showIssues} />
+                <AttributesForm key={`other:${JSON.stringify(node.attributes)}`} node={node} specs={specs} run={runShared} onLocalError={showIssues} />
+              </>
+            ) : (
+              <AttributesForm key={JSON.stringify(node.attributes)} node={node} specs={null} run={runShared} onLocalError={showIssues} />
+            )}
+          </>
+        )}
       </CollapsibleSection>
 
-      <CollapsibleSection title="Geometry" sectionId="geometry">
+      <CollapsibleSection
+        title="Geometry"
+        sectionId="geometry"
+        defaultOpen={false}
+        meta={`at ${formatGrid(node.grid)}${v2Node ? ` · ${v2Node.size.join('×')}` : ''}`}
+      >
         <TripleField
           key={`grid:${tripleKey(node.grid)}:${resetKey}`}
           legend={design ? 'Position (lowest corner)' : 'Position (cell)'}
@@ -191,16 +242,10 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
             if (pending?.action === 'move') cancelPending();
           }}
           footer={
-            <>
-              {confirmation('move')}
-              <div className="sgl-help-row">
-                <span className="sgl-help">
-                  {POSITION_HELP}
-                  {design ? '' : ' The target cell must be empty and every relationship must keep touching.'}
-                </span>
-                <HelpTip topicId="graph-vs-grid" />
-              </div>
-            </>
+            <div className="sgl-help-row sgl-field-help">
+              {!design && <span className="sgl-help">The target cell must be empty and every relationship must keep touching.</span>}
+              <HelpTip topicId="graph-vs-grid" />
+            </div>
           }
         />
 
@@ -217,61 +262,27 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
               if (pending?.action === 'resize') cancelPending();
             }}
             footer={
-              <>
-                {confirmation('resize')}
-                <div className="sgl-help-row">
-                  <span className="sgl-help">Whole cells, 1 to {MAX_ROOM_SIZE}. The room grows from its position.</span> <HelpTip topicId="room-size" />
-                </div>
-              </>
+              <div className="sgl-help-row sgl-field-help">
+                <HelpTip topicId="room-size" />
+              </div>
             }
           />
         )}
       </CollapsibleSection>
 
-      <CollapsibleSection
-        title="Attributes"
-        sectionId="attributes"
-        actions={design && v2Node && project && openAttributes ? <ManageAttributesLink onManage={() => openAttributes('nodes')} /> : undefined}
-      >
-        {design && v2Node && project ? (
-          <CustomAttributes
-            collection="nodes"
-            item={v2Node}
-            schema={project.attributes}
-            run={runV2}
-            onError={(message) => showIssues([{ path: ['attributes'], code: 'schema', message }])}
-            showHeader={false}
-            {...(openAttributes && { onManage: () => openAttributes('nodes') })}
-          />
-        ) : specs ? (
-          <>
-            <TypedAttributesForm
-              node={node}
-              specs={specs}
-              label={typeStatus.kind === 'registered' ? typeStatus.label : node.typeId}
-              run={runShared}
-              onLocalError={showIssues}
-            />
-            <AttributesForm key={`other:${JSON.stringify(node.attributes)}`} node={node} specs={specs} run={runShared} onLocalError={showIssues} />
-          </>
-        ) : (
-          <AttributesForm key={JSON.stringify(node.attributes)} node={node} specs={null} run={runShared} onLocalError={showIssues} />
-        )}
-      </CollapsibleSection>
-
-      {design && <CalculatedValues design={design} collection="nodes" itemId={nodeId} />}
-
-      <CollapsibleSection title="Relationships" sectionId="relationships">
+      <CollapsibleSection title="Relationships" sectionId="relationships" defaultOpen={false} meta={String(incidentCount(props, nodeId))}>
         {design ? <RelationshipsV2 {...props} nodeId={nodeId} runV2={runV2} /> : <ConnectionsV1 {...props} nodeId={nodeId} runV1={runV1} />}
       </CollapsibleSection>
 
-      <section className="sgl-section">
-        <button type="button" className="sgl-danger" onClick={() => runShared({ type: 'remove-node', nodeId })}>
+      <section className="sgl-section sgl-panel-actions">
+        <button
+          type="button"
+          className="sgl-danger"
+          onClick={() => runShared({ type: 'remove-node', nodeId })}
+          title={`Also removes its ${incidentCount(props, nodeId)} relationship(s) and its diagram position. ${UNDO_HINT}`}
+        >
           Delete room
         </button>
-        <p className="sgl-help">
-          Also removes its {incidentCount(props, nodeId)} relationship(s) and its diagram position. {UNDO_HINT}
-        </p>
       </section>
 
       <StoredData record={node} diagramPosition={(design ? design.doc : doc).diagram.positions[nodeId] ?? null} />
@@ -342,7 +353,6 @@ function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { rea
           </button>
         </div>
       )}
-      <p className="sgl-help">Rooms do not need to touch to be related. If a relationship cannot be built yet, it is kept and marked “Unresolved”.</p>
     </section>
   );
 }

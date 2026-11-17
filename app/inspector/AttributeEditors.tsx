@@ -33,9 +33,8 @@ const localIssue = (path: GraphIssue['path'], message: string): GraphIssue => ({
 export function TypeStatusNote({ status, typeId }: { status: NodeTypeStatus; typeId: string; projectId?: string | null }) {
   switch (status.kind) {
     case 'no-project':
-      return <p className="sgl-help">No project is active, so any type id can be used.</p>;
     case 'registered':
-      return <p className="sgl-help">{status.file === 'project functions' ? 'Added in this project (Edit functions).' : 'Defined by the course.'}</p>;
+      return null;
     case 'undefined-type':
       return (
         <p className="sgl-warning">

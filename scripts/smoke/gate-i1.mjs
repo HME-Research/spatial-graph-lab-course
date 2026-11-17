@@ -356,12 +356,12 @@ await step(3, 'enable-calculated-value', async () => {
 });
 
 await step(3, 'properties-readonly-and-colour-by-and-refresh', async () => {
-  const cell = `document.querySelector('#sidebar-panel-properties [data-section="calculated"] [data-metric="exposed-facade-area"] dd')`;
+  const cell = `document.querySelector('#sidebar-panel-properties [data-attribute-kind="calculated"][data-metric="exposed-facade-area"] .sgl-field-value')`;
   await selectNode('store');
   const v1 = await waitFor(`${cell}?.textContent`, 'the calculated row in Properties');
-  const inputs = await evaluate(`document.querySelectorAll('#sidebar-panel-properties [data-section="calculated"] input, #sidebar-panel-properties [data-section="calculated"] select, #sidebar-panel-properties [data-section="calculated"] textarea').length`);
-  expect(inputs === 0, 'the Calculated group has inputs');
-  const levelRows = await evaluate(`[...document.querySelectorAll('#sidebar-panel-properties dt')].filter((d) => d.textContent.trim() === 'Level').length`);
+  const inputs = await evaluate(`document.querySelectorAll('#sidebar-panel-properties [data-attribute-kind="calculated"] input, #sidebar-panel-properties [data-attribute-kind="calculated"] select, #sidebar-panel-properties [data-attribute-kind="calculated"] textarea').length`);
+  expect(inputs === 0, 'a calculated row has inputs');
+  const levelRows = await evaluate(`document.querySelectorAll('#sidebar-panel-properties [data-attribute="level"]').length`);
   expect(levelRows === 1, `Level shown ${levelRows} times in Properties`);
   // Colour by (Voxels in panel 2).
   await evaluate(`__g.panelMode(2, 'voxels'); true`);
@@ -486,7 +486,7 @@ await step(3, 'calculated-field-persisted', async () => {
   const on = await evaluate(`document.querySelector('#sidebar-panel-attributes [data-metric="exposed-facade-area"] input[type="checkbox"]')?.checked`);
   expect(on === true, 'the enabled calculated value was not restored');
   await selectNode('store');
-  const v = await waitFor(`document.querySelector('#sidebar-panel-properties [data-section="calculated"] [data-metric="exposed-facade-area"] dd')?.textContent`, 'the calculated row after reload');
+  const v = await waitFor(`document.querySelector('#sidebar-panel-properties [data-attribute-kind="calculated"][data-metric="exposed-facade-area"] .sgl-field-value')?.textContent`, 'the calculated row after reload');
   return `still enabled after reload; store shows ${v}`;
 });
 

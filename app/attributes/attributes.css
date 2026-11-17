@@ -378,3 +378,70 @@ button.sgl-attr-add {
   width: auto;
   flex: none;
 }
+
+/* Properties (minimal): label | control on one row, source and actions on a muted line below. */
+.sgl-custom-attributes .sgl-field {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: center;
+  column-gap: var(--space-2, 8px);
+  row-gap: 0;
+  padding: 6px 0;
+  border-top: none;
+}
+.sgl-custom-attributes .sgl-field + .sgl-field {
+  border-top: 1px solid var(--line, #e1e1dc);
+}
+.sgl-custom-attributes .sgl-field-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg, #1f1f1d);
+}
+.sgl-field-control > input,
+.sgl-field-control > select,
+.sgl-field-control input,
+.sgl-field-control select {
+  width: 100%;
+}
+.sgl-field-meta {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-2, 8px);
+  font-size: var(--text-xs, 12px);
+  color: var(--muted, #62625c);
+}
+.sgl-field-meta button.sgl-link {
+  font-size: inherit;
+}
+.sgl-field-src-set {
+  color: var(--accent, #2c5d8f);
+}
+.sgl-field-src-warning {
+  color: var(--warning-fg, #6b4e0f);
+}
+.sgl-custom-attributes .sgl-field > .sgl-warning,
+.sgl-custom-attributes .sgl-field > .sgl-help {
+  grid-column: 1 / -1;
+}
+/* Unified list in Properties: required rows (Function, Level, Relationship) and calculated rows. */
+.sgl-custom-attributes .sgl-field-required .sgl-field-label {
+  font-weight: 600;
+}
+.sgl-custom-attributes .sgl-field > .sgl-section {
+  grid-column: 1 / -1;
+  border-top: none;
+  padding: 2px 0 0;
+}
+.sgl-field-calculated .sgl-field-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--calc-fg, #4a4940);
+}
+.sgl-field-calculated .sgl-field-meta {
+  font-style: italic;
+}
+.sgl-custom-attributes .sgl-segmented label {
+  min-height: var(--hit-compact, 32px);
+  padding: 0 var(--space-3, 12px);
+}

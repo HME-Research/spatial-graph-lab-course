@@ -447,3 +447,19 @@ button.link-button:hover:not(:disabled) {
   font-size: var(--text-sm, 13px);
   white-space: nowrap;
 }
+
+/* Minimal Properties: collapsed groups carry a one-line summary; quiet field help; spaced actions. */
+.sgl-properties .sgl-csection-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sgl-field-help {
+  margin-top: var(--space-1, 4px);
+}
+
+.sgl-panel-actions {
+  padding-top: var(--space-3, 12px);
+}

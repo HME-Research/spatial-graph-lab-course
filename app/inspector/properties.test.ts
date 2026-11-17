@@ -145,27 +145,42 @@ describe('Properties grouping (wave 1)', () => {
     return html.slice(start, next < 0 ? undefined : next);
   };
 
-  it('a room shows Identity, Geometry, Attributes, Calculated and Relationships in that order', () => {
+  /** The data-attribute ids of the unified list, in order. */
+  const attributeIds = (html: string): string[] => [...sectionBody(html, 'attributes').matchAll(/data-attribute="([^"]+)"/g)].map((m) => m[1]!);
+  const rowOf = (html: string, id: string): string => {
+    const body = sectionBody(html, 'attributes');
+    const start = body.indexOf(`data-attribute="${id}"`);
+    expect(start, `row ${id}`).toBeGreaterThanOrEqual(0);
+    const next = body.indexOf('data-attribute="', start + 1);
+    return body.slice(start, next < 0 ? undefined : next);
+  };
+
+  it('a room shows Attributes first, then Geometry and Relationships, all collapsed', () => {
     const html = render({ doc: v1(), design: fakePort(), selection: selectNode('a') });
-    const order = ['identity', 'geometry', 'attributes', 'calculated', 'relationships'].map((id) => html.indexOf(`data-section="${id}"`));
+    const order = ['attributes', 'geometry', 'relationships'].map((id) => html.indexOf(`data-section="${id}"`));
     expect(order.every((i) => i >= 0)).toBe(true);
     expect([...order].sort((x, y) => x - y)).toEqual(order);
-    // Each group is a disclosure: a heading button that controls a mounted body.
-    expect(html).toMatch(/<h3 class="sgl-csection-title"><button type="button" class="sgl-csection-toggle" aria-expanded="true" aria-controls="[^"]+"/);
+    expect(html).not.toContain('data-section="identity"');
+    expect(html).not.toContain('data-section="calculated"');
+    // Each group is a disclosure, collapsed by default: a heading button that controls a mounted body.
+    expect(html).toMatch(/<h3 class="sgl-csection-title"><button type="button" class="sgl-csection-toggle" aria-expanded="false" aria-controls="[^"]+"/);
+    expect(html).not.toMatch(/sgl-csection-toggle" aria-expanded="true"/);
   });
 
-  it('calculated values are read-only text from the metric registry, visually distinct', () => {
+  it('one attribute list: Function and Level first, then calculated values (read-only text)', () => {
     const html = render({ doc: v1(), design: fakePort(), selection: selectNode('a') });
-    const calculated = sectionBody(html, 'calculated');
-    expect(html).toMatch(/class="[^"]*sgl-csection-calculated[^"]*" data-section="calculated"/);
-    expect(calculated).toContain('read-only');
-    expect(calculated).toMatch(/<dt[^>]*>Area<\/dt>/);
-    expect(calculated).toMatch(/<dt[^>]*>Degree<\/dt><dd>\d+<\/dd>/);
-    // Level is a system field (identity), never a duplicated calculated row.
-    expect(calculated).not.toContain('>Level<');
-    expect(calculated).toMatch(/<dd>\d+(\.\d+)? m²<\/dd>/);
-    expect(calculated).not.toMatch(/<input|<select|<textarea/);
-    expect(calculated).toContain('aria-label="About Calculated values"');
+    const ids = attributeIds(html);
+    expect(ids.slice(0, 2)).toEqual(['function', 'level']);
+    expect(ids).toContain('area');
+    expect(ids).toContain('degree');
+    expect(ids.indexOf('area')).toBeGreaterThan(1);
+    const area = rowOf(html, 'area');
+    expect(area).toContain('data-attribute-kind="calculated"');
+    expect(area).toMatch(/sgl-field-value">\d+(\.\d+)? m²</);
+    expect(area).not.toMatch(/<input|<select|<textarea/);
+    expect(rowOf(html, 'degree')).toMatch(/sgl-field-value">\d+</);
+    // Level is a required attribute, never a duplicated calculated row.
+    expect(ids.filter((id) => id === 'level')).toHaveLength(1);
     // Geometry stays editable.
     expect(sectionBody(html, 'geometry')).toContain('<input');
   });
@@ -179,19 +194,19 @@ describe('Properties grouping (wave 1)', () => {
           createElement(Inspector, { onSelect: () => {}, onCommand: noop, doc: v1(), design: fakePort(), selection: selectNode('a') }),
         ),
       );
-    const calculated = sectionBody(withIds(['volume', 'has-exterior-facade']), 'calculated');
-    expect(calculated).toMatch(/data-metric="volume"/);
-    expect(calculated).toMatch(/data-metric="has-exterior-facade"[^]*<dd>(yes|no)<\/dd>/);
-    expect(calculated).not.toMatch(/data-metric="area"|data-metric="degree"/);
-    expect(withIds([])).not.toContain('data-section="calculated"');
+    const html = withIds(['volume', 'has-exterior-facade']);
+    expect(attributeIds(html)).toEqual(['function', 'level', 'volume', 'has-exterior-facade']);
+    expect(rowOf(html, 'has-exterior-facade')).toMatch(/sgl-field-value">(yes|no)</);
+    expect(withIds([])).not.toContain('data-attribute-kind="calculated"');
   });
 
-  it('shows the room id and its Level (= z) as read-only identity facts', () => {
+  it('Function and Level are editable in the attribute list (Level = z)', () => {
     const design = fakePort();
     const node = design.doc.nodes.find((n) => n.id === 'a')!;
-    const identity = sectionBody(render({ doc: v1(), design, selection: selectNode('a') }), 'identity');
-    expect(identity).toContain('<dt>Level</dt>');
-    expect(identity).toContain(`>${node.grid[2]}</dd>`);
+    const html = render({ doc: v1(), design, selection: selectNode('a') });
+    expect(rowOf(html, 'function')).toContain('aria-label="Room type"');
+    const level = rowOf(html, 'level');
+    expect(level).toMatch(new RegExp(`<input aria-label="Level" type="number"[^>]*value="${node.grid[2]}"`));
   });
 
   it('offers "Manage attributes" in the Attributes group header when a project is active', async () => {
@@ -212,9 +227,10 @@ describe('Properties grouping (wave 1)', () => {
 
   it('a relationship explains Access/Open with an `i` concept dialog instead of a tooltip', () => {
     const html = render({ doc: v1(), design: fakePort(), selection: selectEdge('ab') });
-    const identity = sectionBody(html, 'identity');
-    expect(identity).toContain('aria-label="About Access and Open"');
-    expect(identity).toContain('aria-haspopup="dialog"');
-    expect(identity).not.toContain('data-help-topic="access-open"');
+    const row = rowOf(html, 'relationship');
+    expect(attributeIds(html)[0]).toBe('relationship');
+    expect(row).toContain('aria-label="About Access and Open"');
+    expect(row).toContain('aria-haspopup="dialog"');
+    expect(row).not.toContain('data-help-topic="access-open"');
   });
 });

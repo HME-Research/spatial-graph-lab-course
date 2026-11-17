@@ -48,7 +48,7 @@ export interface RequiredAttribute {
 export const REQUIRED_ATTRIBUTES: Readonly<Record<AttributeCollection, readonly RequiredAttribute[]>> = {
   nodes: [
     { id: 'function', name: 'Function', typeText: 'Choice', info: 'What the room is used for. Every node has one; choose it in Properties. Add more functions here.' },
-    { id: 'level', name: 'Level', typeText: 'Number', info: 'The storey the room stands on. Change it by moving the room.' },
+    { id: 'level', name: 'Level', typeText: 'Number', info: 'The storey the room stands on. Edit it in Properties, or move the room.' },
   ],
   edges: [{ id: 'relationship', name: 'Relationship', typeText: 'Choice', info: 'Access (a door or floor opening) or Open (no wall between the rooms). Choose it in Properties.' }],
 };
