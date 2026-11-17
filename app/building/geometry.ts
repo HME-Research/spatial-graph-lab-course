@@ -8,6 +8,7 @@ import {
   axisIndex,
   faceRectBox,
   layoutFaces,
+  type WindowLayoutProvider,
 } from './faceLayout';
 
 // Re-exported for existing callers; the definitions now live in faceLayout.ts (Gate F, F-C).
@@ -62,6 +63,8 @@ export interface ArchitecturalElement {
 export interface ArchitectureOptions {
   readonly cell?: CellSize;
   readonly facade?: FacadeProvider;
+  /** Window placement per node type (see `FaceLayoutOptions.windowLayout`). */
+  readonly windowLayout?: WindowLayoutProvider;
   readonly wallThickness?: number;
   readonly slabThickness?: number;
 }

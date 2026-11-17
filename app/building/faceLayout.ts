@@ -61,9 +61,14 @@ export interface FaceLayout<F extends ResolvedFace = ResolvedFace> {
   readonly openings: readonly FaceOpening[];
 }
 
+/** How a node type's windows are placed along its walls (default: `repeat`). */
+export type WindowLayoutProvider = (typeId: string) => 'repeat' | 'stretch';
+
 export interface FaceLayoutOptions {
   readonly cell?: CellSize;
   readonly facade?: FacadeProvider;
+  /** Window placement per node type (absent: every type repeats one window per bay). */
+  readonly windowLayout?: WindowLayoutProvider;
   readonly wallThickness?: number;
 }
 
@@ -155,10 +160,20 @@ export function rectsAroundHole(panel: FaceRect, hole: FaceRect): FaceRect[] {
   return parts.filter((r) => r.u1 - r.u0 > EPS && r.v1 - r.v0 > EPS);
 }
 
-/** Centred window whose area is `fraction` of the cell's wall area (same proportions as the wall). */
-export function windowRect(cell: CellSize, fraction: number): FaceRect | null {
+/**
+ * Window of one cell bay whose area is `fraction` of the bay's wall area.
+ * - `repeat` (default): centred, with the wall's proportions, so each bay gets its own window;
+ * - `stretch`: full bay width and `fraction` of its height, centred vertically, so neighbouring
+ *   bays of a wall join into one continuous band.
+ */
+export function windowRect(cell: CellSize, fraction: number, layout: 'repeat' | 'stretch' = 'repeat'): FaceRect | null {
   const f = clampWindowFraction(fraction);
   if (f <= 0) return null;
+  if (layout === 'stretch') {
+    const half = cell.horizontal / 2;
+    const h = (cell.vertical * f) / 2;
+    return { u0: -half, u1: half, v0: -h, v1: h };
+  }
   const s = Math.sqrt(f);
   const w = (cell.horizontal * s) / 2;
   const h = (cell.vertical * s) / 2;
@@ -215,7 +230,7 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
   if (face.orientation === 'wall') {
     switch (face.condition) {
       case 'exterior': {
-        const hole = windowRect(cell, facade(face.ownerTypeId).windowFraction);
+        const hole = windowRect(cell, facade(face.ownerTypeId).windowFraction, options.windowLayout?.(face.ownerTypeId));
         if (hole === null) solids.push(panel);
         else {
           solids.push(...rectsAroundHole(panel, hole));

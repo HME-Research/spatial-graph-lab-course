@@ -1,8 +1,7 @@
-import { CollapsibleSection, InfoButton } from '@app/ui';
-import { HelpTip } from '@app/ui/help';
+import { CollapsibleSection } from '@app/ui';
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { exampleFacadeProvider } from '@app/building';
-import { ROOF_STYLES } from '@app/document/v2';
+import { ROOF_STYLES, WINDOW_LAYOUTS } from '@app/document/v2';
 import type { DesignPort } from '@app/spatial';
 import type { ProjectViewContext } from '@app/views/project';
 import { typeColor } from '@core/viewer/appearance';
@@ -17,9 +16,12 @@ import {
   selectedRelationship,
   setRoofEdit,
   setWindowFractionEdit,
+  setWindowLayoutEdit,
+  WINDOW_LAYOUT_LABELS,
   type DesignerEdit,
   type DesignerTypeRow,
 } from './designerModel';
+import { DesignerGuideButton } from './DesignerGuide';
 import './designer.css';
 
 /**
@@ -75,9 +77,10 @@ export function DesignerPanel({ design, project, selection, onShowRelationship }
 
   return (
     <div className="sgl-designer" aria-label="Building Designer">
-      <p className="sgl-help sgl-designer-intro">
-        Building rules of this design: windows and roofs per function. Colours, materials and lighting are in Display.
-      </p>
+      <div className="sgl-designer-intro">
+        <p className="sgl-help">Windows and roofs per function, for this scenario. Colours and lighting are in Display.</p>
+        <DesignerGuideButton />
+      </div>
 
       {error && (
         <p className="sgl-designer-error" role="alert">
@@ -115,7 +118,7 @@ export function DesignerPanel({ design, project, selection, onShowRelationship }
         )}
       </CollapsibleSection>
 
-      <CollapsibleSection title="Function-Specific" sectionId="designer-functions" meta={String(rows.length)} actions={<HelpTip topicId="designer-windows" />}>
+      <CollapsibleSection title="Function-Specific" sectionId="designer-functions" meta={String(rows.length)}>
         {rows.length === 0 ? (
           <p className="sgl-designer-notice">No functions yet: add a room or define a type in your project.</p>
         ) : (
@@ -128,6 +131,7 @@ export function DesignerPanel({ design, project, selection, onShowRelationship }
                     send(setWindowFractionEdit(doc, row.typeId, fraction, row.projectDefault.windowFraction))
                   }
                   onInvalid={setError}
+                  onLayout={(layout) => send(setWindowLayoutEdit(doc, row.typeId, layout))}
                   onRoof={(roof) => send(setRoofEdit(doc, row.typeId, roof))}
                   onReset={() => send(resetTypeEdit(doc, row.typeId))}
                 />
@@ -135,7 +139,7 @@ export function DesignerPanel({ design, project, selection, onShowRelationship }
             ))}
           </ul>
         )}
-        <CollapsibleSection title="Imported façade (3DM)" level={4} defaultOpen={false} sectionId="designer-imported-facade" actions={<InfoButton concept="repeat-stretch" />}>
+        <CollapsibleSection title="Imported façade (3DM)" level={4} defaultOpen={false} sectionId="designer-imported-facade">
           <p className="sgl-help">Not available yet. A later version lets a function use an imported façade module, fitted to each wall by Repeat or Stretch.</p>
         </CollapsibleSection>
       </CollapsibleSection>
@@ -147,11 +151,12 @@ interface TypeRowProps {
   readonly row: DesignerTypeRow;
   readonly onWindow: (fraction: number) => void;
   readonly onInvalid: (message: string) => void;
+  readonly onLayout: (layout: string) => void;
   readonly onRoof: (roof: string) => void;
   readonly onReset: () => void;
 }
 
-function TypeRow({ row, onWindow, onInvalid, onRoof, onReset }: TypeRowProps) {
+function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRowProps) {
   const effectivePercent = formatPercent(row.effective.windowFraction);
   // Drafts while dragging/typing; a command is sent only on release, Enter or blur.
   const [slider, setSlider] = useState<number | null>(null);
@@ -196,7 +201,7 @@ function TypeRow({ row, onWindow, onInvalid, onRoof, onReset }: TypeRowProps) {
         <span className="sgl-designer-count" title="Rooms of this type in this design">
           {row.nodeCount} {row.nodeCount === 1 ? 'room' : 'rooms'}
         </span>
-        <FacadePreview fraction={shownFraction} roof={row.effective.roof} />
+        <FacadePreview fraction={shownFraction} layout={row.effective.windowLayout} roof={row.effective.roof} />
       </div>
 
       {row.warning && (
@@ -239,6 +244,30 @@ function TypeRow({ row, onWindow, onInvalid, onRoof, onReset }: TypeRowProps) {
         {inherited ? `Uses the project default (${defaultText})` : `Changed from the project default (${defaultText})`}
       </p>
 
+      <div className="sgl-designer-field sgl-designer-layout">
+        <span className="sgl-designer-label" id={`${idBase}-layout`} title="How the windows are placed along each exterior wall">
+          Layout
+        </span>
+        <div className="sgl-segmented sgl-segmented-sm" role="radiogroup" aria-labelledby={`${idBase}-layout`}>
+          {WINDOW_LAYOUTS.map((layout) => (
+            <label
+              key={layout}
+              className={row.effective.windowLayout === layout ? 'checked' : undefined}
+              title={layout === 'repeat' ? 'One window per bay, repeated along the wall' : 'One continuous window band along the wall'}
+            >
+              <input
+                type="radio"
+                name={`${idBase}-layout`}
+                value={layout}
+                checked={row.effective.windowLayout === layout}
+                onChange={() => onLayout(layout)}
+              />
+              {WINDOW_LAYOUT_LABELS[layout]}
+            </label>
+          ))}
+        </div>
+      </div>
+
       <div className="sgl-designer-field">
         <label htmlFor={`${idBase}-roof`} title="Roof on the exposed tops of rooms of this type. Pitched roofs are not available yet.">
           Roof
@@ -260,14 +289,25 @@ function TypeRow({ row, onWindow, onInvalid, onRoof, onReset }: TypeRowProps) {
   );
 }
 
-/** Schematic exterior wall: a window covering `fraction` of the wall area; a line for a flat roof. */
-function FacadePreview({ fraction, roof }: { fraction: number; roof: string }) {
-  const side = Math.sqrt(Math.min(1, Math.max(0, fraction))) * 20;
+/**
+ * Schematic exterior wall of two bays: `fraction` of the wall area glazed, as one window per bay
+ * (Repeat) or one band across both (Stretch); a line for a flat roof.
+ */
+function FacadePreview({ fraction, layout, roof }: { fraction: number; layout: string; roof: string }) {
+  const f = Math.min(1, Math.max(0, fraction));
+  const bay = 18;
+  const side = Math.sqrt(f) * bay;
+  const band = f * 20;
   return (
-    <svg className="sgl-designer-preview" viewBox="0 0 24 26" width={24} height={26} aria-hidden="true">
-      {roof === 'flat' && <rect x={0} y={0} width={24} height={3} className="sgl-designer-preview-roof" />}
-      <rect x={1} y={4} width={22} height={21} className="sgl-designer-preview-wall" />
-      {side > 0 && <rect x={12 - side / 2} y={14.5 - side / 2} width={side} height={side} className="sgl-designer-preview-glass" />}
+    <svg className="sgl-designer-preview" viewBox="0 0 38 26" width={38} height={26} aria-hidden="true">
+      {roof === 'flat' && <rect x={0} y={0} width={38} height={3} className="sgl-designer-preview-roof" />}
+      <rect x={1} y={4} width={36} height={21} className="sgl-designer-preview-wall" />
+      {f > 0 &&
+        (layout === 'stretch' ? (
+          <rect x={1} y={14.5 - band / 2} width={36} height={band} className="sgl-designer-preview-glass" />
+        ) : (
+          [10, 28].map((cx) => <rect key={cx} x={cx - side / 2} y={14.5 - side / 2} width={side} height={side} className="sgl-designer-preview-glass" />)
+        ))}
     </svg>
   );
 }

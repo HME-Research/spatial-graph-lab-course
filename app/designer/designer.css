@@ -217,3 +217,87 @@
 .sgl-designer-defaults dd {
   white-space: nowrap;
 }
+
+/* Intro line with the "How it works" guide button. */
+.sgl-designer-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--space-2, 8px);
+}
+.sgl-designer-intro .sgl-help {
+  margin: 0;
+}
+.sgl-designer-guide-button {
+  font-size: var(--text-sm, 13px);
+  white-space: nowrap;
+}
+
+/* Window layout: a compact Repeat | Stretch toggle aligned with the other field labels. */
+.sgl-designer-label {
+  flex: none;
+  width: 92px;
+}
+.sgl-segmented-sm label {
+  min-height: 26px;
+  padding: 0 var(--space-3, 12px);
+  font-size: var(--text-sm, 13px);
+}
+
+/* Building Designer guide (modal): numbered steps in the order of the controls on each card. */
+.sgl-designer-guide-dialog {
+  width: min(520px, calc(100vw - 32px));
+}
+.sgl-designer-guide-dialog .sgl-concept-box {
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+.sgl-designer-guide-step {
+  padding: var(--space-3, 12px) 0;
+  border-top: 1px solid var(--line, #e1e1dc);
+}
+.sgl-designer-guide-step h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin: 0 0 var(--space-1, 4px);
+  font-size: var(--text-md, 14px);
+  font-weight: 650;
+}
+.sgl-designer-guide-step > p {
+  margin: 0 0 var(--space-2, 8px);
+  font-size: var(--text-sm, 13px);
+  color: var(--muted, #62625c);
+}
+.sgl-designer-guide-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-soft, #edf2f8);
+  color: var(--accent, #2c5d8f);
+  font-size: 12px;
+  font-weight: 700;
+}
+.sgl-designer-guide-step .sgl-concept-part h4 {
+  margin: 0 0 2px;
+  font-size: var(--text-sm, 13px);
+  font-weight: 650;
+}
+.sgl-designer-guide-step .sgl-concept-parts {
+  margin-top: var(--space-2, 8px);
+}
+.sgl-designer-guide-note {
+  padding-bottom: 0;
+}
+.sgl-designer-guide-note h3 {
+  color: var(--muted, #62625c);
+}
+@media (max-width: 420px) {
+  .sgl-designer-guide-step .sgl-concept-parts {
+    grid-template-columns: 1fr;
+  }
+}

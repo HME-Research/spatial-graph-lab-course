@@ -155,9 +155,10 @@ export interface PlanSourceOptions extends PlanOptions {
  * be the resolution of `doc` (`DesignPort.spatial`).
  */
 export function planSourceV2(doc: DesignDocumentV2, spatial: SpatialResolution, options: PlanSourceOptions = {}): PlanSource {
-  const { faces, facade } = buildingFacesV2(doc, spatial, options.facade);
+  const { faces, facade, windowLayout } = buildingFacesV2(doc, spatial, options.facade);
   const layouts = layoutFaces(faces, {
     facade,
+    windowLayout,
     ...(options.cell ? { cell: options.cell } : {}),
     ...(options.wallThickness !== undefined ? { wallThickness: options.wallThickness } : {}),
   });

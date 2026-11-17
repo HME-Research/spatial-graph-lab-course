@@ -36,6 +36,16 @@ export const ROOF_STYLES = ['flat', 'none'] as const;
 export type RoofStyle = (typeof ROOF_STYLES)[number];
 export const DEFAULT_ROOF_STYLE: RoofStyle = 'flat';
 
+/**
+ * How a node type's exterior windows are placed along its walls (per design, per type; additive
+ * 2026-11-17). Both glaze the same share of the wall (`windowFraction`):
+ * - `repeat` (default): one window per cell bay, keeping the wall's proportions, repeated along the wall;
+ * - `stretch`: a continuous window band, full bay width, so neighbouring bays join along the wall.
+ */
+export const WINDOW_LAYOUTS = ['repeat', 'stretch'] as const;
+export type WindowLayout = (typeof WINDOW_LAYOUTS)[number];
+export const DEFAULT_WINDOW_LAYOUT: WindowLayout = 'repeat';
+
 /** Room size per axis in cells. Rooms are axis-aligned boxes anchored at their minimum corner. */
 export const DEFAULT_ROOM_SIZE = [1, 1, 1] as const;
 export const MAX_ROOM_SIZE = 32;

@@ -13,6 +13,7 @@ import {
   type RoomSize,
   type TypeAppearance,
   type ValidationOptionsV2,
+  type WindowLayout,
 } from '@app/document/v2';
 import { commitSpatialEdit, proposeSpatialEdit, type SpatialEditOptions } from './edit';
 import { resolveRelationships } from './resolve';
@@ -48,6 +49,7 @@ export interface NewRelationship {
 /** Per-type override patch: a value sets the override, `null` removes it (inherit again). */
 export interface TypeAppearancePatch {
   readonly windowFraction?: number | null;
+  readonly windowLayout?: WindowLayout | null;
   readonly roof?: RoofStyle | null;
 }
 
@@ -233,10 +235,12 @@ export function applyDesignCommand(
       const current: TypeAppearance = Object.prototype.hasOwnProperty.call(doc.settings.typeAppearance, command.typeId)
         ? doc.settings.typeAppearance[command.typeId]!
         : {};
-      const merged: { windowFraction?: number; roof?: RoofStyle } = {};
+      const merged: { windowFraction?: number; windowLayout?: WindowLayout; roof?: RoofStyle } = {};
       const wf = command.patch.windowFraction === undefined ? current.windowFraction : command.patch.windowFraction;
       const roof = command.patch.roof === undefined ? current.roof : command.patch.roof;
       if (wf !== null && wf !== undefined) merged.windowFraction = wf;
+      const layout = command.patch.windowLayout === undefined ? current.windowLayout : command.patch.windowLayout;
+      if (layout !== null && layout !== undefined) merged.windowLayout = layout;
       if (roof !== null && roof !== undefined) merged.roof = roof;
       const rest = withoutKey(doc.settings.typeAppearance, command.typeId);
       const typeAppearance = Object.keys(merged).length === 0 ? rest : { ...rest, [command.typeId]: merged };

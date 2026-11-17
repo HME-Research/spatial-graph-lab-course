@@ -57,10 +57,10 @@ export const CONCEPTS: Readonly<Record<ConceptId, Concept>> = {
   'repeat-stretch': {
     id: 'repeat-stretch',
     title: 'Repeat and Stretch',
-    lead: 'Two ways to fit one façade module to walls of different lengths.',
+    lead: 'Two ways to place a function’s windows along its walls. Both use the same amount of glass.',
     parts: [
-      { heading: 'Repeat', text: 'The module keeps its size and is placed again and again along the wall.' },
-      { heading: 'Stretch', text: 'One module is scaled to cover the whole wall.' },
+      { heading: 'Repeat', text: 'One window per 3 m bay, keeping its proportions, placed again and again along the wall.' },
+      { heading: 'Stretch', text: 'One continuous window band stretched along the whole wall.' },
     ],
     diagramLabel: 'A wall with four identical window modules (Repeat) above a wall with one wide stretched module (Stretch).',
   },

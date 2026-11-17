@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { domFocusScope, handleDialogKeyDown } from './dialogKeys';
 import { ConceptDiagram } from './ConceptDiagrams';
@@ -39,6 +39,27 @@ export function ConceptContent({ concept, titleId, descriptionId }: { readonly c
  * opened from inside headings, legends and scrolling panels.
  */
 export function ConceptDialog({ concept, onClose }: { readonly concept: Concept; readonly onClose: () => void }) {
+  return (
+    <ModalDialog onClose={onClose}>
+      {(titleId, descriptionId) => <ConceptContent concept={concept} titleId={titleId} descriptionId={descriptionId} />}
+    </ModalDialog>
+  );
+}
+
+/**
+ * The modal shell shared by concept dialogs and longer guides: native `<dialog>` with
+ * `showModal()`, portal into `document.body`, focus on Close, trapped Tab, Escape / backdrop close.
+ * `children` receives the ids its title (`h2`) and lead paragraph must use.
+ */
+export function ModalDialog({
+  onClose,
+  className,
+  children,
+}: {
+  readonly onClose: () => void;
+  readonly className?: string;
+  readonly children: (titleId: string, descriptionId: string) => ReactNode;
+}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
@@ -71,7 +92,7 @@ export function ConceptDialog({ concept, onClose }: { readonly concept: Concept;
   return createPortal(
     <dialog
       ref={dialog}
-      className="sgl-concept-dialog"
+      className={className ? `sgl-concept-dialog ${className}` : 'sgl-concept-dialog'}
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
       aria-modal="true"
@@ -82,7 +103,7 @@ export function ConceptDialog({ concept, onClose }: { readonly concept: Concept;
       }}
     >
       <div className="sgl-concept-box">
-        <ConceptContent concept={concept} titleId={titleId} descriptionId={descriptionId} />
+        {children(titleId, descriptionId)}
         <div className="sgl-concept-actions">
           <button ref={close} type="button" className="sgl-button" onClick={onClose}>
             Close

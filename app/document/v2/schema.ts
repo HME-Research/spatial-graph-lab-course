@@ -13,6 +13,7 @@ import {
   MAX_ROOM_SIZE,
   RELATIONSHIP_KINDS,
   ROOF_STYLES,
+  WINDOW_LAYOUTS,
   SCHEMA_VERSION_V2,
 } from './constants';
 
@@ -55,6 +56,8 @@ export const connectorStyleSchema = z.enum(CONNECTOR_STYLES, {
   error: `connectorStyle must be one of: ${CONNECTOR_STYLES.join(', ')}`,
 });
 
+export const windowLayoutSchema = z.enum(WINDOW_LAYOUTS, { error: `windowLayout must be one of: ${WINDOW_LAYOUTS.join(', ')}` });
+
 export const roofStyleSchema = z.enum(ROOF_STYLES, { error: `roof must be one of: ${ROOF_STYLES.join(', ')}` });
 
 export const windowFractionSchema = z
@@ -83,6 +86,7 @@ export const relationshipEdgeSchema = z.strictObject({
 
 export const typeAppearanceSchema = z.strictObject({
   windowFraction: windowFractionSchema.optional(),
+  windowLayout: windowLayoutSchema.optional(),
   roof: roofStyleSchema.optional(),
 });
 

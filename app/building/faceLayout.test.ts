@@ -55,6 +55,21 @@ describe('layoutFaces', () => {
     expect(open.openings).toEqual([{ kind: 'open', rect: { u0: -open.frame.width / 2, u1: open.frame.width / 2, v0: -H / 2, v1: H / 2 }, edgeId: 'e2' }]);
   });
 
+  it('window layout: Repeat is one centred window per bay; Stretch is a full-width band of the same area', () => {
+    const repeat = layoutFace(face('+y', 'exterior', 'g'), { facade: () => ({ windowFraction: 0.25 }) }).openings[0]!.rect;
+    const stretch = layoutFace(face('+y', 'exterior', 'g'), { facade: () => ({ windowFraction: 0.25 }), windowLayout: () => 'stretch' }).openings[0]!.rect;
+    expect(area(repeat)).toBeCloseTo(0.25 * W * H);
+    expect(area(stretch)).toBeCloseTo(0.25 * W * H);
+    expect(repeat.u1 - repeat.u0).toBeCloseTo(W / 2);
+    // Stretch spans the whole bay, so neighbouring bays join into one band.
+    expect(stretch).toMatchObject({ u0: -W / 2, u1: W / 2 });
+    expect(stretch.v1 - stretch.v0).toBeCloseTo(0.25 * H);
+    // Per type: other types keep Repeat; no window at 0 % either way.
+    const other = layoutFace(face('+y', 'exterior', 'h'), { facade: () => ({ windowFraction: 0.25 }), windowLayout: (t) => (t === 'g' ? 'stretch' : 'repeat') });
+    expect(other.openings[0]!.rect).toEqual(repeat);
+    expect(layoutFace(face('+y', 'exterior', 'g'), { facade: () => ({ windowFraction: 0 }), windowLayout: () => 'stretch' }).openings).toHaveLength(0);
+  });
+
   it('a closed façade, solid partitions and exterior slabs are one solid panel with no openings', () => {
     const closed = layoutFace(face('+y', 'exterior', 'x'), { facade: () => ({ windowFraction: 0 }) });
     expect(closed.solids).toHaveLength(1);

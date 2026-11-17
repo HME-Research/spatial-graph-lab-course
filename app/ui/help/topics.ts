@@ -76,9 +76,9 @@ const topics = [
   {
     id: 'designer-windows',
     title: 'Designer: windows and roofs',
-    summary: 'Window amount and flat roof are set per room type for this design, not per individual room.',
+    summary: 'Window amount, window layout and roof are set per function for this design, not per individual room.',
     details:
-      'Window coverage is the fraction of each exterior wall that is glazed (0 = none, 1 = fully glazed). ' +
+      'Window coverage is the fraction of each exterior wall that is glazed (0 = none, 1 = fully glazed). Repeat places one window per bay; Stretch makes one continuous band. ' +
       'A flat roof is drawn only on room tops that are exposed to the sky, not between stacked storeys. Project defaults apply until you change them.',
   },
   {

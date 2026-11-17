@@ -1,14 +1,16 @@
-import type { FacadeProvider } from '@app/building';
+import type { FacadeProvider, FacadeSpec } from '@app/building';
 import {
   connectorStyleOf,
   effectiveTypeAppearance,
   nodeLabel,
   ROOF_STYLES,
   windowFractionSchema,
+  WINDOW_LAYOUTS,
   type ConnectorStyle,
   type DesignDocumentV2,
   type EffectiveTypeAppearance,
   type RoofStyle,
+  type WindowLayout,
 } from '@app/document/v2';
 import { findNodeType, type ActiveProject } from '@app/extensions';
 import type { DesignCommand, SpatialResolution } from '@app/spatial';
@@ -187,22 +189,42 @@ export function setRoofEdit(doc: DesignDocumentV2, typeId: string, roof: string)
   };
 }
 
+/** Set this design's window placement (Repeat or Stretch) for every room of `typeId`. */
+export function setWindowLayoutEdit(doc: DesignDocumentV2, typeId: string, layout: string): DesignerEdit {
+  if (!(WINDOW_LAYOUTS as readonly string[]).includes(layout)) {
+    return { kind: 'invalid', message: `Window layout must be one of: ${WINDOW_LAYOUTS.join(', ')}.` };
+  }
+  const stored = current(doc, typeId).windowLayout;
+  const effective = effectiveTypeAppearance(doc, typeId, { windowFraction: 0 }).windowLayout;
+  if (stored !== undefined ? stored === layout : effective === layout) return UNCHANGED;
+  return {
+    kind: 'command',
+    command: { type: 'set-type-appearance', typeId, patch: { windowLayout: layout as WindowLayout } },
+    label: `Set ${typeId} windows to ${WINDOW_LAYOUT_LABELS[layout as WindowLayout]}`,
+  };
+}
+
 /** Remove this design's overrides for `typeId` (one field or all), restoring project defaults. */
 export function resetTypeEdit(
   doc: DesignDocumentV2,
   typeId: string,
-  field: 'windowFraction' | 'roof' | 'all' = 'all',
+  field: 'windowFraction' | 'windowLayout' | 'roof' | 'all' = 'all',
 ): DesignerEdit {
   const own = current(doc, typeId);
   const clearWindow = (field === 'all' || field === 'windowFraction') && own.windowFraction !== undefined;
+  const clearLayout = (field === 'all' || field === 'windowLayout') && own.windowLayout !== undefined;
   const clearRoof = (field === 'all' || field === 'roof') && own.roof !== undefined;
-  if (!clearWindow && !clearRoof) return UNCHANGED;
+  if (!clearWindow && !clearLayout && !clearRoof) return UNCHANGED;
   return {
     kind: 'command',
     command: {
       type: 'set-type-appearance',
       typeId,
-      patch: { ...(clearWindow ? { windowFraction: null } : {}), ...(clearRoof ? { roof: null } : {}) },
+      patch: {
+        ...(clearWindow ? { windowFraction: null } : {}),
+        ...(clearLayout ? { windowLayout: null } : {}),
+        ...(clearRoof ? { roof: null } : {}),
+      },
     },
     label: `Reset ${typeId} appearance to project default`,
   };
@@ -214,7 +236,7 @@ export function resetTypeEdit(
  * so every room of a type gets the effective window coverage.
  */
 export function designFacadeProvider(doc: Pick<DesignDocumentV2, 'settings'>, project: FacadeProvider): FacadeProvider {
-  const cache = new Map<string, { windowFraction: number }>();
+  const cache = new Map<string, FacadeSpec>();
   return (typeId) => {
     let spec = cache.get(typeId);
     if (!spec) {
@@ -228,6 +250,11 @@ export function designFacadeProvider(doc: Pick<DesignDocumentV2, 'settings'>, pr
 /** Integration adapter: effective roof of a type in this design (`flat` unless overridden). */
 export const designRoofOf = (doc: Pick<DesignDocumentV2, 'settings'>, typeId: string): RoofStyle =>
   effectiveTypeAppearance(doc, typeId, { windowFraction: 0 }).roof;
+
+export const WINDOW_LAYOUT_LABELS: Readonly<Record<WindowLayout, string>> = {
+  repeat: 'Repeat',
+  stretch: 'Stretch',
+};
 
 export const ROOF_LABELS: Readonly<Record<RoofStyle, string>> = {
   flat: 'Flat',

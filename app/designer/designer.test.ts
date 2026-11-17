@@ -24,8 +24,11 @@ import {
   selectedRelationship,
   setRoofEdit,
   setWindowFractionEdit,
+  setWindowLayoutEdit,
   type DesignerEdit,
 } from './designerModel';
+import { buildBuildingV2 } from '@app/building';
+import { DesignerGuideContent } from './DesignerGuide';
 
 /** g1, g2 (gallery), s1 (studio), k1 (kiosk: not defined by the lab project), touching g1–g2. */
 function labDocV2(typeAppearance: Record<string, unknown> = {}): DesignDocumentV2 {
@@ -180,6 +183,33 @@ describe('designer edits', () => {
   });
 });
 
+describe('window layout per function', () => {
+  it('Stretch is stored per type, reset restores Repeat, and unchanged choices send nothing', () => {
+    const doc = labDocV2();
+    expect(setWindowLayoutEdit(doc, 'gallery', 'repeat').kind).toBe('unchanged');
+    expect(setWindowLayoutEdit(doc, 'gallery', 'scatter').kind).toBe('invalid');
+    const edit = setWindowLayoutEdit(doc, 'gallery', 'stretch');
+    expect(edit.kind === 'command' && edit.label).toBe('Set gallery windows to Stretch');
+    const stretched = apply(doc, edit);
+    expect(stretched.settings.typeAppearance).toEqual({ gallery: { windowLayout: 'stretch' } });
+    expect(setWindowLayoutEdit(stretched, 'gallery', 'stretch').kind).toBe('unchanged');
+    const both = apply(stretched, setWindowFractionEdit(stretched, 'gallery', 0.4, 0.6));
+    expect(apply(both, resetTypeEdit(both, 'gallery', 'windowLayout')).settings.typeAppearance).toEqual({ gallery: { windowFraction: 0.4 } });
+    expect(apply(both, resetTypeEdit(both, 'gallery')).settings.typeAppearance).toEqual({});
+  });
+
+  it('the Building draws Stretch windows as full-bay bands for that function only', () => {
+    const doc = labDocV2({ gallery: { windowLayout: 'stretch', windowFraction: 0.5 }, studio: { windowFraction: 0.5 } });
+    const glazing = buildBuildingV2(doc, { facade: exampleFacadeProvider }).elements.filter((e) => e.part === 'glazing');
+    const widthOf = (e: (typeof glazing)[number]) => Math.max(e.size[0], e.size[2]);
+    const gallery = glazing.filter((e) => e.ownerTypeId === 'gallery');
+    const studio = glazing.filter((e) => e.ownerTypeId === 'studio');
+    expect(gallery.length).toBeGreaterThan(0);
+    expect(studio.length).toBeGreaterThan(0);
+    expect(Math.min(...gallery.map(widthOf))).toBeGreaterThan(Math.max(...studio.map(widthOf)));
+  });
+});
+
 describe('designer persistence and history', () => {
   it('v2 export/import preserves overrides and does not materialise defaults', () => {
     let doc = labDocV2();
@@ -236,6 +266,27 @@ describe('DesignerPanel (static render)', () => {
       proposeEdit: (request) => proposeSpatialEdit(doc, request),
     };
   }
+
+  it('each function card has a Repeat | Stretch layout choice, and the guide opens from "How it works"', () => {
+    const doc = labDocV2({ studio: { windowLayout: 'stretch' } });
+    const html = renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(doc) }));
+    expect(html).toMatch(/role="radiogroup" aria-labelledby="sgl-designer-gallery-layout"/);
+    const studioStretch = html.match(/<input[^>]*name="sgl-designer-studio-layout"[^>]*value="stretch"[^>]*>/)?.[0] ?? '';
+    const galleryStretch = html.match(/<input[^>]*name="sgl-designer-gallery-layout"[^>]*value="stretch"[^>]*>/)?.[0] ?? '';
+    expect(studioStretch).toContain('checked');
+    expect(galleryStretch).not.toBe('');
+    expect(galleryStretch).not.toContain('checked');
+    expect(html).toMatch(/aria-haspopup="dialog"[^>]*>How it works<\/button>/);
+    expect(html).not.toContain('data-help-topic="designer-windows"');
+  });
+
+  it('the guide has a clear order: title, lead, numbered Windows / Layout / Roof, then defaults', () => {
+    const html = renderToStaticMarkup(createElement(DesignerGuideContent, { titleId: 't', descriptionId: 'd' }));
+    const order = ['<h2 id="t"', '<p id="d"', '>1</span> Windows', '>2</span> Layout: Repeat or Stretch', '>3</span> Roof', 'Defaults and reset'].map((x) => html.indexOf(x));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(html).toContain('data-diagram="repeat-stretch"');
+  });
 
   it('explains that it is unavailable without a v2 port', () => {
     const html = renderToStaticMarkup(createElement(DesignerPanel, {}));

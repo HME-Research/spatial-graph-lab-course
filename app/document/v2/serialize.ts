@@ -92,6 +92,7 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
           typeId,
           {
             ...(a.windowFraction === undefined ? {} : { windowFraction: a.windowFraction }),
+            ...(a.windowLayout === undefined ? {} : { windowLayout: a.windowLayout }),
             ...(a.roof === undefined ? {} : { roof: a.roof }),
           },
         ]),

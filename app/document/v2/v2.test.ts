@@ -190,12 +190,31 @@ describe('display ids and appearance settings', () => {
     const doc: DesignDocumentV2 = expectOk(validateDocumentV2(raw));
     expect(effectiveTypeAppearance(doc, 'gallery', { windowFraction: 0.7 })).toEqual({
       windowFraction: 0.3,
+      windowLayout: 'repeat',
       roof: 'flat',
-      source: { windowFraction: 'design', roof: 'default' },
+      source: { windowFraction: 'design', windowLayout: 'default', roof: 'default' },
     });
     expect(effectiveTypeAppearance(doc, 'studio', { windowFraction: 0.25 }).windowFraction).toBe(0.25);
     expect(effectiveTypeAppearance(doc, 'constructor', { windowFraction: 0.1 }).windowFraction).toBe(0.1);
     expect(connectorStyleOf(doc.edges[0]!)).toBe('enclosed');
+  });
+
+  it('window layout is stored per type (default repeat), round-trips, and unknown layouts are rejected', () => {
+    const raw = v2Raw();
+    raw.settings = { typeAppearance: { gallery: { windowLayout: 'stretch' } } };
+    const doc: DesignDocumentV2 = expectOk(validateDocumentV2(raw));
+    expect(effectiveTypeAppearance(doc, 'gallery', { windowFraction: 0.7 })).toMatchObject({
+      windowFraction: 0.7,
+      windowLayout: 'stretch',
+      source: { windowFraction: 'project', windowLayout: 'design' },
+    });
+    expect(effectiveTypeAppearance(doc, 'studio', { windowFraction: 0.25 }).windowLayout).toBe('repeat');
+    const text = serializeDesignV2(doc);
+    expect(text).toContain('"windowLayout": "stretch"');
+    expect(expectOk(readDesignJson(text)).doc.settings.typeAppearance).toEqual({ gallery: { windowLayout: 'stretch' } });
+    const bad = v2Raw();
+    bad.settings = { typeAppearance: { gallery: { windowLayout: 'scatter' } } };
+    expectIssue(validateDocumentV2(bad), 'schema', ['settings', 'typeAppearance', 'gallery', 'windowLayout']);
   });
 
   it('rejects window fractions outside [0, 1]', () => {
