@@ -29,6 +29,11 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
   // `globalThis.process`: the config runs in Node; no @types/node dependency is needed for this.
   cacheDir: `node_modules/.vite/port-${portOf((globalThis as { process?: { argv?: readonly string[] } }).process?.argv ?? []).replace(/[^0-9a-z-]/gi, '')}`,
+  build: {
+    // rhino3dm (3DM façade import, loaded lazily) contains `require("ws")` inside its Node-only
+    // Emscripten branch. Browsers never execute it, but the bundler would try to resolve it and fail.
+    rolldownOptions: { external: ['ws'] },
+  },
   test: {
     environment: 'node',
     include: ['core/**/*.test.ts', 'app/**/*.test.ts', 'student-api/**/*.test.ts'],

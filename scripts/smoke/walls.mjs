@@ -502,7 +502,8 @@ await step('i2/wall-click-selects-owner-room', async () => {
   const panel = await openWallInBuilding();
   expect(panel.state === 'add', `wall panel ${panel.state}: ${panel.text}`);
   await waitFor(roomSelected('reading-gallery'), 'the owner room (reading-gallery) selected in Properties');
-  await waitFor(`${P(2)}.querySelector('.room-edit') ? true : null`, 'the room editor beside the wall panel');
+  // No Move/Resize step panel for a selected room (removed 2026-11-17: the gizmo and Properties do it).
+  expect(!(await evaluate(`!!${P(2)}.querySelector('[aria-label$="plus one cell"]')`)), 'the Move/Resize step buttons are back');
   await screenshot('10-i2-wall-and-room', await panelRect(2));
   await clickElement(`${P(2)}.querySelector('.sgl-wall-close')`, 'close the wall panel');
   // Plan: the same rule.

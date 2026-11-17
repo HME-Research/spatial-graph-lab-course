@@ -1,5 +1,8 @@
 import type { FacadeProvider, FacadeSpec } from '@app/building';
+import { distortedModules, type FacadeModuleInstance } from '@app/assets';
 import {
+  canonicalFacadeModule,
+  sameFacadeModule,
   connectorStyleOf,
   effectiveTypeAppearance,
   nodeLabel,
@@ -10,6 +13,8 @@ import {
   type ConnectorStyle,
   type DesignDocumentV2,
   type EffectiveTypeAppearance,
+  type FacadeModule,
+  type FacadePlacement,
   type RoofStyle,
   type WindowLayout,
   type WallStyle,
@@ -225,14 +230,15 @@ export function setWallsEdit(doc: DesignDocumentV2, typeId: string, walls: strin
 export function resetTypeEdit(
   doc: DesignDocumentV2,
   typeId: string,
-  field: 'windowFraction' | 'windowLayout' | 'walls' | 'roof' | 'all' = 'all',
+  field: 'windowFraction' | 'windowLayout' | 'walls' | 'roof' | 'facade' | 'all' = 'all',
 ): DesignerEdit {
   const own = current(doc, typeId);
   const clearWindow = (field === 'all' || field === 'windowFraction') && own.windowFraction !== undefined;
   const clearLayout = (field === 'all' || field === 'windowLayout') && own.windowLayout !== undefined;
   const clearWalls = (field === 'all' || field === 'walls') && own.walls !== undefined;
   const clearRoof = (field === 'all' || field === 'roof') && own.roof !== undefined;
-  if (!clearWindow && !clearLayout && !clearWalls && !clearRoof) return UNCHANGED;
+  const clearFacade = (field === 'all' || field === 'facade') && own.facade !== undefined;
+  if (!clearWindow && !clearLayout && !clearWalls && !clearRoof && !clearFacade) return UNCHANGED;
   return {
     kind: 'command',
     command: {
@@ -243,10 +249,95 @@ export function resetTypeEdit(
         ...(clearLayout ? { windowLayout: null } : {}),
         ...(clearWalls ? { walls: null } : {}),
         ...(clearRoof ? { roof: null } : {}),
+        ...(clearFacade ? { facade: null } : {}),
       },
     },
     label: `Reset ${typeId} appearance to project default`,
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Imported façades (3DM modules, 2026-11-17)
+
+/** A function's façade in the Designer: none, or an imported module (no design-wide default). */
+export type FacadeChoice = { readonly kind: 'none' } | { readonly kind: 'module'; readonly module: FacadeModule };
+
+/** The stored choice of `typeId` (what the menu shows). */
+export function facadeChoiceOf(doc: DesignDocumentV2, typeId: string): FacadeChoice {
+  const own = current(doc, typeId).facade;
+  return own === undefined ? { kind: 'none' } : { kind: 'module', module: own };
+}
+
+const sameModule = sameFacadeModule;
+
+/** Set (or clear, `none`) the façade of `typeId`. */
+export function setFacadeEdit(doc: DesignDocumentV2, typeId: string, choice: FacadeChoice, assetName?: string): DesignerEdit {
+  const stored = facadeChoiceOf(doc, typeId);
+  if (choice.kind === stored.kind && (choice.kind !== 'module' || (stored.kind === 'module' && sameModule(choice.module, stored.module)))) return UNCHANGED;
+  const patch = choice.kind === 'none' ? null : canonicalFacadeModule(choice.module);
+  const what = choice.kind === 'none' ? 'no imported façade' : `${assetName ?? 'an imported façade'} (${FACADE_PLACEMENT_LABELS[choice.module.placement]})`;
+  return { kind: 'command', command: { type: 'set-type-appearance', typeId, patch: { facade: patch } }, label: `Set ${typeId} to ${what}` };
+}
+
+/**
+ * Façade geometry of a function (owner 2026-11-17), one control over two stored fields:
+ * - `open`: no exterior walls (`walls: 'open'`);
+ * - `automatic`: enclosed walls with the Designer's windows (no imported façade);
+ * - `import`: enclosed walls replaced by an imported 3DM module (`facade`).
+ */
+export type FacadeMode = 'open' | 'automatic' | 'import';
+export const FACADE_MODES: readonly FacadeMode[] = ['open', 'automatic', 'import'];
+export const FACADE_MODE_LABELS: Readonly<Record<FacadeMode, string>> = { open: 'Open', automatic: 'Automatic', import: 'Import' };
+export const FACADE_MODE_HELP: Readonly<Record<FacadeMode, string>> = {
+  open: 'No exterior walls (pavilion, pergola, terrace); walls shared with other rooms stay',
+  automatic: 'Exterior walls with windows set here (coverage and layout)',
+  import: 'Exterior walls replaced by a façade module imported from Rhino (.3dm)',
+};
+
+/** The stored mode of `typeId`. */
+export function facadeModeOf(doc: DesignDocumentV2, typeId: string): FacadeMode {
+  const effective = effectiveTypeAppearance(doc, typeId, { windowFraction: 0 });
+  if (effective.walls === 'open') return 'open';
+  return effective.facade ? 'import' : 'automatic';
+}
+
+/**
+ * Switch the façade geometry in ONE command (one undo step). `import` needs the module to use
+ * (`module`); leaving `import` removes the function's module, so no hidden choice is kept.
+ */
+export function setFacadeModeEdit(doc: DesignDocumentV2, typeId: string, mode: FacadeMode, module?: FacadeModule, assetName?: string): DesignerEdit {
+  const own = current(doc, typeId);
+  if (mode === 'import' && !module) return { kind: 'invalid', message: 'Choose or import a façade first.' };
+  const walls: WallStyle | null = mode === 'open' ? 'open' : null;
+  const facade = mode === 'import' ? canonicalFacadeModule(module!) : null;
+  const sameWalls = (own.walls ?? null) === walls || (walls === null && own.walls === 'enclosed');
+  if (sameWalls && sameModule(own.facade ?? null, facade)) return UNCHANGED;
+  const label =
+    mode === 'import' ? `Set ${typeId} façade to ${assetName ?? 'an imported façade'}` : mode === 'open' ? `Set ${typeId} to open sides` : `Set ${typeId} to automatic façade`;
+  return { kind: 'command', command: { type: 'set-type-appearance', typeId, patch: { walls, facade } }, label };
+}
+
+
+export const FACADE_PLACEMENT_LABELS: Readonly<Record<FacadePlacement, string>> = {
+  repeat: 'Repeat',
+  stretch: 'Stretch',
+};
+
+export const FACADE_PLACEMENT_HELP: Readonly<Record<FacadePlacement, string>> = {
+  repeat: 'One module per 3 m bay of every exterior wall, fitted to the bay (draw the module 3 m wide and one storey high).',
+  stretch: 'One module across each wall run: the contiguous exterior bays of a room on one storey (draw it at the run’s length).',
+};
+
+/** One sentence for a function's fit warning, or null (≤ 5 % scaling everywhere). */
+export function distortionMessage(instances: readonly FacadeModuleInstance[], typeId: string): string | null {
+  const d = distortedModules(instances, typeId);
+  if (!d) return null;
+  const range = (lo: number, hi: number) => (Math.abs(hi - lo) < 0.005 ? `×${lo.toFixed(2)}` : `×${lo.toFixed(2)}–${hi.toFixed(2)}`);
+  const parts = [
+    Math.abs(d.minAlong - 1) > 0.05 || Math.abs(d.maxAlong - 1) > 0.05 ? `${range(d.minAlong, d.maxAlong)} along the wall` : '',
+    Math.abs(d.minUp - 1) > 0.05 || Math.abs(d.maxUp - 1) > 0.05 ? `${range(d.minUp, d.maxUp)} upward` : '',
+  ].filter(Boolean);
+  return `${d.count} ${d.count === 1 ? 'module is' : 'modules are'} stretched ${parts.join(' and ')} to fit. Draw the module at the size it is used, or switch Repeat / Stretch.`;
 }
 
 /**

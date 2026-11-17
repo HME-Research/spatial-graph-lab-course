@@ -35,7 +35,10 @@ export function ProjectPanel({
   conformance,
   attributeProblems,
   onSelect,
+  library,
 }: {
+  /** Project-level libraries supplied by the shell (Imported façades), after the overview. */
+  readonly library?: ReactNode;
   /** null while the course project is being activated. */
   readonly session: ProjectSession | null;
   readonly overview: ReactNode;
@@ -58,6 +61,8 @@ export function ProjectPanel({
   return (
     <div className={`sgl-project sgl-inspector${headline ? ` tone-${headline.tone}` : ''}`} aria-busy={session === null ? 'true' : undefined}>
       {overview}
+
+      {library}
 
       {headline?.tone === 'error' && (
         <p className="sgl-warning" role="alert">

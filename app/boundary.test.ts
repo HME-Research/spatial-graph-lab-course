@@ -12,13 +12,17 @@ import { describe, expect, it } from 'vitest';
  * - `metrics/` (computed metrics, F-D): pure; may import `document/`, `spatial/`, `building/` (face
  *   resolution for façade metrics), core/graph,
  *   core/spatial and the pure core/viewer helpers (coordinates, selection); never React or Three.js.
+ * - `assets/` (imported 3DM façade modules, 2026-11-17): pure; may import document, spatial,
+ *   building, metrics, core/graph, core/spatial and the pure core/viewer helpers (coordinates,
+ *   selection, axes — the one Z-up adapter). rhino3dm is reached only through a dynamic import.
  * - `extensions/` (project loading, definition validation, conformance, algorithm execution):
  *   pure; may import document, building, pure core modules and `@student-api`. It is the only
  *   app module that may import `@student-api` or glob `projects/` (`import.meta.glob`).
  * - `project/` (project file envelope and local storage, F-B): pure (its IndexedDB adapter uses
  *   only an injected `IDBFactory`); may import document, spatial, extensions (the attribute
- *   record reader), `display/contracts` (only that pure file of the shell-level `display/`),
- *   core/graph, core/spatial and the pure camera contract `core/viewer/three/camera`.
+ *   record reader), `assets/` (embedded façade validation), `display/contracts` (only that pure
+ *   file of the shell-level `display/`), core/graph, core/spatial and the pure camera contract
+ *   `core/viewer/three/camera`.
  * - `views/` (application visualisations): may import document, building, extensions and any core module.
  * - shell (`App`, `Workspace`, `main`, `inspector/`): composes everything.
  *
@@ -32,20 +36,20 @@ const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"]([^'"]+)
 const GLOB_CALL = /import\.meta\.glob\s*(?:<[^>]*>)?\s*\(\s*(\[[^\]]*\]|'[^']*'|"[^"]*")/g;
 const STRING = /['"]([^'"]+)['"]/g;
 
-type Layer = 'document' | 'spatial' | 'building' | 'metrics' | 'extensions' | 'project' | 'views' | 'shell';
-const RANK: Readonly<Record<Layer, number>> = { document: 0, spatial: 1, building: 2, metrics: 3, extensions: 4, project: 5, views: 6, shell: 7 };
+type Layer = 'document' | 'spatial' | 'building' | 'metrics' | 'assets' | 'extensions' | 'project' | 'views' | 'shell';
+const RANK: Readonly<Record<Layer, number>> = { document: 0, spatial: 1, building: 2, metrics: 3, assets: 4, extensions: 5, project: 6, views: 7, shell: 8 };
 
 const UI_PACKAGE = /^(react|react-dom|three)(\/|$)|^@react-three\/|^@xyflow\//;
 
 function layerOf(path: string): Layer {
-  for (const layer of ['document', 'spatial', 'building', 'metrics', 'extensions', 'project', 'views'] as const) {
+  for (const layer of ['document', 'spatial', 'building', 'metrics', 'assets', 'extensions', 'project', 'views'] as const) {
     if (path.startsWith(`./${layer}/`) || path === `./${layer}`) return layer;
   }
   return 'shell';
 }
 
 const isPure = (layer: Layer) =>
-  layer === 'document' || layer === 'spatial' || layer === 'building' || layer === 'metrics' || layer === 'extensions' || layer === 'project';
+  layer === 'document' || layer === 'spatial' || layer === 'building' || layer === 'metrics' || layer === 'assets' || layer === 'extensions' || layer === 'project';
 
 /** Resolve a relative specifier against a glob key such as './views/three/x.ts'. */
 function resolveRelative(file: string, specifier: string): string {
@@ -71,6 +75,8 @@ function violation(file: string, specifier: string): string | null {
       return `${from} may only use core/graph and core/spatial`;
     if ((from === 'building' || from === 'metrics') && !/^@core\/(graph|spatial|viewer\/(coordinates|selection))$/.test(specifier))
       return `${from} may only use pure core modules`;
+    if (from === 'assets' && !/^@core\/(graph|spatial|viewer\/(coordinates|selection|axes))$/.test(specifier))
+      return 'assets may only use pure core modules (and the Z-up adapter core/viewer/axes)';
     if (from === 'extensions' && !/^@core\/(graph|spatial|viewer\/(appearance|coordinates|selection))$/.test(specifier))
       return 'extensions may only use pure core modules';
     if (from === 'project' && !/^@core\/(graph|spatial|viewer\/three\/camera)$/.test(specifier))
@@ -113,7 +119,7 @@ const globPatterns = (text: string): string[] =>
 describe('application layering', () => {
   it('finds source files in every layer', () => {
     const keys = Object.keys(sources);
-    for (const dir of ['./document/', './spatial/', './building/', './metrics/', './extensions/', './project/', './views/', './inspector/']) {
+    for (const dir of ['./document/', './spatial/', './building/', './metrics/', './assets/', './extensions/', './project/', './views/', './inspector/']) {
       expect(keys.some((k) => k.startsWith(dir))).toBe(true);
     }
     expect(keys).toContain('./App.tsx');
@@ -172,6 +178,17 @@ describe('application layering', () => {
     expect(violation('./project/x.ts', 'react')).not.toBeNull();
     expect(violation('./project/x.ts', '@app/views/contracts')).not.toBeNull();
     expect(violation('./extensions/x.ts', '@app/project')).not.toBeNull();
+    // assets (imported 3DM façades): pure, below extensions/project/views.
+    expect(violation('./assets/x.ts', '@app/building')).toBeNull();
+    expect(violation('./assets/x.ts', '@core/viewer/axes')).toBeNull();
+    expect(violation('./assets/x.ts', 'rhino3dm')).toBeNull();
+    expect(violation('./assets/x.ts', 'three')).not.toBeNull();
+    expect(violation('./assets/x.ts', 'react')).not.toBeNull();
+    expect(violation('./assets/x.ts', '@app/project')).not.toBeNull();
+    expect(violation('./assets/x.ts', '@app/views/contracts')).not.toBeNull();
+    expect(violation('./assets/x.ts', '@core/viewer/three/SceneCanvas')).not.toBeNull();
+    expect(violation('./project/x.ts', '@app/assets')).toBeNull();
+    expect(violation('./building/x.ts', '@app/assets')).not.toBeNull();
   });
 
   it('flags globs into projects/ outside extensions and globs leaving app/ (self-check)', () => {

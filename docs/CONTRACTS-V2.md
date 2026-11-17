@@ -32,6 +32,7 @@ Shared interfaces for the seven parallel MVP branches (`01-graph-ui` … `07-tea
 | `kind` | `RelationshipKind = 'access' \| 'open'`; `DEFAULT_RELATIONSHIP_KIND = 'access'`. **No adjacency requirement.** |
 | `connectorStyle` | Optional `'enclosed' \| 'covered' \| 'deck'`; read with `connectorStyleOf(edge)` (default `deck` since 2026-11-17; was `enclosed`). Used only when the edge is routed. |
 | `settings.typeAppearance[typeId]` | Per-design, per-type overrides `{ windowFraction?: [0,1], windowLayout?: 'repeat' | 'stretch', walls?: 'enclosed' | 'open', roof?: 'flat' | 'pergola' | 'none' }` (`walls: 'open'` and `roof: 'pergola'` additive 2026-11-17: open leaves out the room's exterior walls and windows, keeping walls shared with other rooms, with slim posts at bay edges under a roof; pergola is a roof of open slats)| 'stretch', roof?: 'flat' | 'none' }` (`windowLayout` additive 2026-11-17; absent = `repeat`, one window per bay; `stretch` = one window per façade, i.e. per room side over all its bays and storeys, inset from the façade outline by an even frame, same glazed share). No per-node overrides.\| 'none' }`. No per-node overrides. Unknown types are tolerated (no validation error). |
+| `settings.typeAppearance[typeId].facade` | Optional imported façade (additive 2026-11-17): `{ assetId, placement: 'repeat' \| 'stretch', flip?: true, door?: { assetId, flip?: true }, open?: { assetId, flip?: true } }`; `flip` turns the module round (its +Y side outside). `door` / `open` (optional, each independent) replace the façade bays with a door / an Open relationship on the outside of the room (the `outside` endpoint faces of open-air connectors), one module per bay; without them those bays keep the automatic geometry. Interior doors and open sides never get a module. Absent = no imported façade (there is no design-wide default). Written only when set, so older designs stay byte-identical; types with `walls: 'open'` never get one. `assetId` (`facade-` + 16 hex) names an asset of the PROJECT file (`ProjectFileV1.assets`, CONTRACTS-V3 §2); a design never embeds geometry and an unknown id is not a validation error (the Building draws nothing for it; the Designer warns). |
 
 Types: `DesignDocumentV2`, `RoomNode`, `RelationshipEdge`, `RoomSize`, `TypeAppearance`, `DesignSettings`, `RelationshipKind`, `ConnectorStyle`, `RoofStyle`.
 
@@ -124,7 +125,7 @@ type DesignCommand =
   | { type: 'remove-edge'; edgeId }
   | { type: 'change-edge-kind'; edgeId; kind: 'access' | 'open' }
   | { type: 'set-connector-style'; edgeId; style: ConnectorStyle | null }   // null → default
-  | { type: 'set-type-appearance'; typeId; patch: { windowFraction?: number | null; windowLayout?: WindowLayout | null; walls?: WallStyle | null; roof?: RoofStyle | null } } // null → inherit
+  | { type: 'set-type-appearance'; typeId; patch: { windowFraction?: number | null; windowLayout?: WindowLayout | null; walls?: WallStyle | null; roof?: RoofStyle | null; facade?: FacadeModule | null } } // null → inherit
   | { type: 'set-edge-attributes'; edgeId; attributes };   // additive (project attributes, docs/PROJECT-ATTRIBUTES.md)
 ```
 

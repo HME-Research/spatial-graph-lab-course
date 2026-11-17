@@ -2,7 +2,9 @@ import type { GraphIssue } from '@app/document';
 import { readDesign, relationshipLabel, type DesignDocumentV2 } from '@app/document/v2';
 import type { DisplayDefaults, DisplayOverrides } from '@app/display/contracts';
 import {
+  facadeAssetsOf,
   formatProjectIssues,
+  projectAssetsOf,
   projectFileFromState,
   projectFromLegacyDesign,
   readProjectFile,
@@ -17,6 +19,20 @@ import {
   type SaveBlockReason,
 } from '@app/project';
 import { applyScenarioCommand, nextPreferences, type ScenarioCommand, type ScenarioContent } from '@app/spatial';
+import {
+  canonicalFacadeAsset,
+  FACADE_LIMITS,
+  facadeAssetIdsOf,
+  facadeAssetsBytes,
+  finishOf,
+  formatBytes,
+  typesUsingFacade,
+  withFinish,
+  withoutFacadeAsset,
+  type FacadeAssetV1,
+  type FacadeMaterial,
+  type FacadeRole,
+} from '@app/assets';
 import type { SavedCamera } from '@core/viewer/three/camera';
 import {
   commitDocument,
@@ -442,6 +458,117 @@ export function setProjectFunctions(project: OpenProject, functions: readonly Pr
   if (sameFunctions && sameHidden) return project;
   const settings = { ...project.meta.settings, functions: functions.map((f) => ({ id: f.id, label: f.label })), hiddenFunctions: [...hidden] };
   return changed(project, { meta: { ...project.meta, settings } });
+}
+
+/**
+ * Imported façades (`assets`, owner decision D4): project-level, shared by every scenario, not
+ * undoable, autosaved and exported with the project. Adding an asset already present (same content
+ * id) changes nothing. The per-project limits are enforced here and again when the file is read.
+ */
+export function addFacadeAsset(project: OpenProject, asset: FacadeAssetV1): Outcome<OpenProject> {
+  const current = facadeAssetsOf(project.meta.assets);
+  if (current.some((a) => a.id === asset.id)) return accept(project);
+  if (current.length >= FACADE_LIMITS.maxAssets) return refuse(`A project can hold at most ${FACADE_LIMITS.maxAssets} imported façades. Remove one first.`);
+  const total = facadeAssetsBytes([...current, asset]);
+  if (total > FACADE_LIMITS.maxTotalBytes) {
+    return refuse(`Imported façades would take ${formatBytes(total)}; a project can hold ${formatBytes(FACADE_LIMITS.maxTotalBytes)}. Simplify the mesh in Rhino or remove another façade.`);
+  }
+  return accept(changed(project, { meta: { ...project.meta, assets: projectAssetsOf([...current, asset]) } }));
+}
+
+/** Scenario names whose CURRENT design uses the imported façade `assetId` (default or a function). */
+export function scenariosUsingFacade(project: OpenProject, assetId: string): string[] {
+  return project.scenarios.filter((s) => facadeAssetIdsOf(currentDocument(s.session).design).includes(assetId)).map((s) => s.name);
+}
+
+/** Where the imported façade `assetId` is used: per scenario (in order), the type ids using it (as façade or bay). */
+export interface FacadeUse {
+  readonly scenarioId: string;
+  readonly scenario: string;
+  readonly typeIds: readonly string[];
+}
+
+export function facadeUses(project: OpenProject, assetId: string): FacadeUse[] {
+  return project.scenarios.flatMap((s) => {
+    const typeIds = typesUsingFacade(currentDocument(s.session).design, assetId);
+    return typeIds.length > 0 ? [{ scenarioId: s.id, scenario: s.name, typeIds }] : [];
+  });
+}
+
+/**
+ * Remove an imported façade. While a scenario uses it, removal is refused unless `replaceUses`
+ * (owner 2026-11-17: the student confirmed): then every use in every scenario becomes the automatic
+ * geometry first (`withoutFacadeAsset`), recorded as ONE undo step per affected scenario. An undo
+ * can bring back a design that refers to the removed façade: the Building then draws nothing for
+ * it and the Designer says it is missing.
+ */
+export function removeFacadeAsset(project: OpenProject, assetId: string, options: { readonly replaceUses?: boolean } = {}): Outcome<OpenProject> {
+  const current = facadeAssetsOf(project.meta.assets);
+  const asset = current.find((a) => a.id === assetId);
+  if (!asset) return refuse('That imported façade is not in this project.');
+  const users = scenariosUsingFacade(project, assetId);
+  if (users.length > 0 && !options.replaceUses) {
+    return refuse(`This façade is used in ${users.length === 1 ? 'scenario' : 'scenarios'} ${users.map((n) => `“${n}”`).join(', ')}. Choose another façade there first.`);
+  }
+  let revision = project.revision;
+  const scenarios = project.scenarios.map((s) => {
+    const content = currentDocument(s.session);
+    const design = withoutFacadeAsset(content.design, assetId);
+    if (design === content.design) return s;
+    const session = commitDocument(s.session, { ...content, design }, `Remove façade ${asset.name} (now Automatic)`);
+    revision = Math.max(revision, session.revision);
+    return { ...s, session };
+  });
+  return accept(changed(project, { scenarios, revision, meta: { ...project.meta, assets: projectAssetsOf(current.filter((a) => a.id !== assetId)) } }));
+}
+
+/** Rename an imported façade (display name only; its id and geometry never change). */
+export function renameFacadeAsset(project: OpenProject, assetId: string, raw: string): Outcome<OpenProject> {
+  const current = facadeAssetsOf(project.meta.assets);
+  const asset = current.find((a) => a.id === assetId);
+  if (!asset) return refuse('That imported façade is not in this project.');
+  const name = raw.trim();
+  if (name.length === 0) return refuse('A façade name must not be empty.');
+  if (name.length > FACADE_LIMITS.maxNameLength) return refuse(`A façade name can have at most ${FACADE_LIMITS.maxNameLength} characters.`);
+  if (name === asset.name) return accept(project);
+  return accept(changed(project, { meta: { ...project.meta, assets: projectAssetsOf(current.map((a) => (a.id === assetId ? { ...a, name } : a))) } }));
+}
+
+/** One material group of an imported façade, as the student sets it (Materials dialog). */
+export type { FacadeMaterial };
+
+/**
+ * Change the colour and finish (solid / glass / open) of an imported façade's material groups
+ * for one use (owner 2026-11-17): `wall` (the façade; the groups' own materials) or a Door / Open
+ * bay (`bayMaterials`; `null` = the same as the façade). Project-level like the façade itself
+ * (every scenario using it sees the change; not undoable). The mesh, and so the asset id, is
+ * unchanged; `materials` has one entry per group, in order.
+ */
+export function setFacadeAssetMaterials(
+  project: OpenProject,
+  assetId: string,
+  materials: readonly FacadeMaterial[] | null,
+  role: FacadeRole = 'wall',
+): Outcome<OpenProject> {
+  const current = facadeAssetsOf(project.meta.assets);
+  const asset = current.find((a) => a.id === assetId);
+  if (!asset) return refuse('That imported façade is not in this project.');
+  if (materials === null && role === 'wall') return refuse('The façade needs its materials.');
+  if (materials && materials.length !== asset.groups.length) return refuse('The materials do not match the parts of this façade.');
+  const colour = /^#[0-9a-f]{6}$/;
+  if (materials?.some((m) => !colour.test(m.color.toLowerCase()))) return refuse('A colour must be #rrggbb.');
+  const clean = materials?.map((m) => withFinish(m.color.toLowerCase(), finishOf(m))) ?? null;
+  let next: FacadeAssetV1;
+  if (role === 'wall') {
+    next = { ...asset, groups: asset.groups.map((g, i) => ({ name: g.name, ...clean![i]!, start: g.start, count: g.count })) };
+  } else {
+    const { [role]: _old, ...others } = asset.bayMaterials ?? {};
+    const bay = clean ? { ...others, [role]: clean } : others;
+    const { bayMaterials: _bay, ...rest } = asset;
+    next = Object.keys(bay).length > 0 ? { ...rest, bayMaterials: bay } : rest;
+  }
+  if (JSON.stringify(canonicalFacadeAsset(next)) === JSON.stringify(canonicalFacadeAsset(asset))) return accept(project);
+  return accept(changed(project, { meta: { ...project.meta, assets: projectAssetsOf(current.map((a) => (a.id === assetId ? next : a))) } }));
 }
 
 /** The project attribute record (`exportAttributeFile` shape) or null (= the project files' schema). */

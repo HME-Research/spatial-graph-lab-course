@@ -5,3 +5,4 @@
  */
 export * from './designerModel';
 export { DesignerPanel, type DesignerPanelProps } from './DesignerPanel';
+export { FacadeImport, FacadeAssetDetails, FacadeLibraryFooter, FacadeLibrarySection, type DesignerFacades } from './FacadeLibraryPanel';

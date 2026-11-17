@@ -15,6 +15,7 @@ import { createHistory, record, redo, undo } from '@app/session/history';
 import { buildProjectViewContext, projectFacadeProvider } from '@app/views/project';
 import { selectEdge, selectNode } from '@core/viewer/selection';
 import { DesignerPanel } from './DesignerPanel';
+import { setFacadeModeEdit as modeEdit } from './designerModel';
 import {
   designerTypeRows,
   designFacadeProvider,
@@ -30,6 +31,9 @@ import {
 } from './designerModel';
 import { buildBuildingV2 } from '@app/building';
 import { DesignerGuideContent } from './DesignerGuide';
+import type { FacadeAssetV1 } from '@app/assets';
+import { confirmAndRemoveFacade, FacadeLibrarySection, removeFacadeQuestion } from './FacadeLibraryPanel';
+import { FacadeMaterialsDialog } from './FacadeMaterialsDialog';
 
 /** g1, g2 (gallery), s1 (studio), k1 (kiosk: not defined by the lab project), touching g1–g2. */
 function labDocV2(typeAppearance: Record<string, unknown> = {}): DesignDocumentV2 {
@@ -324,9 +328,9 @@ describe('DesignerPanel (static render)', () => {
     expect(html).toMatch(/40 % · Stretch · Flat roof · 1 room · changed/);
   });
 
-  it('the guide has a clear order: title, lead, numbered Walls / Windows / Layout / Roof, then defaults', () => {
+  it('the guide has a clear order: title, lead, numbered Façade geometry / Windows / Layout / Roof, then defaults', () => {
     const html = renderToStaticMarkup(createElement(DesignerGuideContent, { titleId: 't', descriptionId: 'd' }));
-    const order = ['<h2 id="t"', '<p id="d"', '>1</span> Walls', '>2</span> Windows', '>3</span> Layout: Repeat or Stretch', '>4</span> Roof', 'Defaults and reset'].map((x) => html.indexOf(x));
+    const order = ['<h2 id="t"', '<p id="d"', '>1</span> Façade geometry', '>2</span> Windows', '>3</span> Layout: Repeat or Stretch', '>4</span> Roof', 'Defaults and reset'].map((x) => html.indexOf(x));
     expect(order.every((i) => i >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(html).toContain('data-diagram="repeat-stretch"');
@@ -355,7 +359,141 @@ describe('DesignerPanel (static render)', () => {
     expect(html).toContain("Changed from the project default (60 %)"); // phase 08 (O06) wording
     expect(html).toMatch(/Reset to project default/);
     expect(html).toMatch(/None \(open top\)/);
-    expect(html).toMatch(/Edit in Properties/);
-    expect(html).toMatch(/Deck/);
+    // No Defaults section (owner 2026-11-17): only Function-Specific.
+    expect(html).not.toContain('data-section="designer-defaults"');
+    expect(html).not.toMatch(/Edit in Properties/);
+    // Without a façade library there is no 3DM import.
+    expect(html).not.toMatch(/Import \.3dm/);
+  });
+
+  it('each function card has Façade and Roof subsections; façade geometry Open / Automatic / Import (Automatic by default)', async () => {
+    const project = await labProject();
+    const v1Placeholder = { schemaVersion: 1 as const, metadata: { name: 'x' }, nodes: [], edges: [], diagram: { positions: {} } };
+    const context = buildProjectViewContext(project, v1Placeholder);
+    const facades = { assets: [], add: () => ({ ok: true as const }), remove: () => ({ ok: true as const }), rename: () => ({ ok: true as const }), setMaterials: () => ({ ok: true as const }) };
+    const html = renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(labDocV2({ studio: { walls: 'open' } })), project: context, facades }));
+    const cards = html.split('<article').length - 1;
+    // Two collapsible subsections per card (open by default): Façade (geometry: Open / Automatic / Import) and Roof.
+    expect(html.split('>Façade</button></h5>').length - 1).toBe(cards);
+    expect(html.split('>Roof</button></h5>').length - 1).toBe(cards);
+    expect(html.split('class="sgl-designer-subsection-toggle" aria-expanded="true"').length - 1).toBe(2 * cards);
+    expect(html.split('>Geometry<').length - 1).toBe(cards);
+    expect(html).not.toMatch(/>Walls</);
+    for (const m of ['open', 'automatic', 'import']) expect(html.split(`value="${m}"`).length - 1).toBe(cards);
+    // Automatic shows the window controls; Open does not; Import controls only in Import mode.
+    expect(html).toMatch(/checked="" value="automatic"/);
+    expect(html).toMatch(/checked="" value="open"/);
+    expect(html).not.toMatch(/Import \.3dm/);
+    expect(modeEdit(labDocV2({}), 'gallery', 'open')).toMatchObject({ kind: 'command', command: { patch: { walls: 'open', facade: null } } });
+    expect(modeEdit(labDocV2({}), 'gallery', 'automatic').kind).toBe('unchanged');
+    expect(modeEdit(labDocV2({}), 'gallery', 'import').kind).toBe('invalid');
+    const module = { assetId: 'facade-0123456789abcdef', placement: 'stretch' as const, flip: true as const };
+    expect(modeEdit(labDocV2({ gallery: { walls: 'open' } }), 'gallery', 'import', module)).toMatchObject({ command: { patch: { walls: null, facade: module } } });
+    // Door / open bay variants are part of the module: adding one is a change, the same module is not.
+    const withDoor = { ...module, door: { assetId: 'facade-00000000000000aa' } };
+    expect(modeEdit(labDocV2({ gallery: { facade: module } }), 'gallery', 'import', module).kind).toBe('unchanged');
+    expect(modeEdit(labDocV2({ gallery: { facade: module } }), 'gallery', 'import', withDoor)).toMatchObject({ command: { patch: { facade: withDoor } } });
+    expect(modeEdit(labDocV2({ gallery: { facade: withDoor } }), 'gallery', 'import', module)).toMatchObject({ command: { patch: { facade: module } } });
+  });
+
+  it('Import layout: façade menu and Import .3dm… on one row; Outside and Placement on one row; optional Door / Open bays', async () => {
+    const project = await labProject();
+    const v1Placeholder = { schemaVersion: 1 as const, metadata: { name: 'x' }, nodes: [], edges: [], diagram: { positions: {} } };
+    const context = buildProjectViewContext(project, v1Placeholder);
+    const A = 'facade-0123456789abcdef';
+    const D = 'facade-00000000000000aa';
+    const asset = (id: string, name: string) =>
+      ({ id, name, size: [3, 3, 0.2], mesh: { triangles: 12 }, source: { fileName: `${name}.3dm`, unit: 'm', unitAssumed: false }, warnings: [], groups: [] }) as unknown as FacadeAssetV1;
+    const ok = () => ({ ok: true as const });
+    const facades = { assets: [asset(A, 'Bay'), asset(D, 'Door bay module')], add: ok, remove: ok, rename: ok, setMaterials: ok };
+    const doc = labDocV2({ gallery: { facade: { assetId: A, placement: 'repeat', door: { assetId: D } } } });
+    const html = renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(doc), project: context, facades }));
+    const gallery = html.slice(html.indexOf('id="sgl-designer-gallery-facade"') - 400);
+    // One import row per module slot (wall, door, open): the menu sits before its Import button in the same row.
+    const rows = gallery.split('<div class="sgl-designer-import">').slice(1, 4);
+    expect(rows).toHaveLength(3);
+    for (const row of rows) expect(row.indexOf('<select')).toBeLessThan(row.indexOf('Import .3dm'));
+    // Materials… sits between the menu and Import (façade and the set Door bay; not the Automatic Open bay).
+    for (const row of rows.slice(0, 2)) {
+      const at = row.indexOf('>Materials…<');
+      expect(at).toBeGreaterThan(row.indexOf('<select'));
+      expect(at).toBeLessThan(row.indexOf('Import .3dm'));
+    }
+    expect(rows[2]!.slice(0, rows[2]!.indexOf('Import .3dm'))).not.toContain('Materials…');
+    // Outside and Placement together in one row.
+    const pair = gallery.slice(gallery.indexOf('class="sgl-designer-pair"'));
+    expect(pair.indexOf('>Outside<')).toBeLessThan(pair.indexOf('>Placement<'));
+    expect(pair.indexOf('>Placement<')).toBeLessThan(pair.indexOf('One module per 3 m bay'));
+    // Door bay set (with its own Outside), Open bay left Automatic; the summary mentions the door.
+    expect(gallery).toContain('Door bay <small>(optional)</small>');
+    expect(gallery).toContain('Open bay <small>(optional)</small>');
+    expect(gallery.split('>Outside<').length - 1).toBe(2);
+    expect(html).toMatch(/Bay \(Repeat\) \+ door/);
+    // The Door bay (set) has its own Materials…; Open bay (Automatic) has none.
+    expect(gallery.split('>Materials…<').length - 1).toBe(2);
+
+    // Project → Imported façades: collapsible, lists every façade with Materials… and Remove, and imports.
+    const library = renderToStaticMarkup(createElement(FacadeLibrarySection, { facades }));
+    expect(library).toContain('data-section="project-facades"');
+    expect(library).toContain('aria-expanded="false"');
+    expect(library).toContain('Import .3dm');
+    expect(library.split('>Remove<').length - 1).toBe(4); // a Remove button per façade, and Remove beside Rename in its details
+    expect(library.split('>Materials…<').length - 1).toBe(2);
+  });
+
+});
+
+describe('removing a used façade (confirmation) and the Materials dialog', () => {
+  const asset = { id: 'facade-0123456789abcdef', name: 'Bay' } as unknown as FacadeAssetV1;
+  const library = (uses: { scenario: string; typeIds: string[] }[]) => {
+    const calls: unknown[] = [];
+    const facades = {
+      assets: [asset],
+      add: () => ({ ok: true as const }),
+      remove: (id: string, options?: { replaceUses?: boolean }) => (calls.push([id, options]), { ok: true as const }),
+      rename: () => ({ ok: true as const }),
+      setMaterials: () => ({ ok: true as const }),
+      uses: () => uses,
+    };
+    return { facades, calls };
+  };
+
+  it('an unused façade is removed without asking', () => {
+    const { facades, calls } = library([]);
+    let asked = false;
+    expect(confirmAndRemoveFacade(facades, asset, () => ((asked = true), true))).toBe('Removed “Bay”.');
+    expect(asked).toBe(false);
+    expect(calls).toEqual([[asset.id, { replaceUses: false }]]);
+  });
+
+  it('a used façade asks first, names where it is used; Cancel keeps it, OK replaces its uses with Automatic', () => {
+    const uses = [{ scenario: 'Scenario 1', typeIds: ['gallery', 'studio'] }, { scenario: 'Option B', typeIds: ['gallery'] }];
+    const question = removeFacadeQuestion(asset, uses);
+    expect(question).toContain('Scenario 1: gallery, studio');
+    expect(question).toContain('Option B: gallery');
+    expect(question).toMatch(/go back to Automatic/);
+    const cancelled = library(uses);
+    expect(confirmAndRemoveFacade(cancelled.facades, asset, () => false)).toBeNull();
+    expect(cancelled.calls).toEqual([]);
+    const confirmed = library(uses);
+    expect(confirmAndRemoveFacade(confirmed.facades, asset, () => true)).toBe('Removed “Bay”; 3 functions are Automatic again.');
+    expect(confirmed.calls).toEqual([[asset.id, { replaceUses: true }]]);
+  });
+
+  it('the Materials dialog shows a 3D preview, use tabs and Solid / Glass / Open per part (names select the part)', () => {
+    const groups = [
+      { name: 'Frame', color: '#333333', glass: false, start: 0, count: 1 },
+      { name: 'Pane', color: '#88aacc', glass: true, start: 1, count: 1 },
+    ];
+    // No valid mesh: the preview frame says so instead of failing; the list stays usable.
+    const withGroups = { ...asset, size: [3, 3, 0.2], groups } as unknown as FacadeAssetV1;
+    const { facades } = library([]);
+    const html = renderToStaticMarkup(createElement(FacadeMaterialsDialog, { asset: withGroups, facades, onClose: () => {}, role: 'door' }));
+    expect(html).toContain('class="sgl-designer-materials-preview"');
+    expect(html).toContain('The 3D preview is not available');
+    for (const tab of ['>Façade<', '>Door bay<', '>Open bay<']) expect(html).toContain(tab);
+    expect(html).toContain('Same as Façade');
+    expect(html.split('>Open</label>').length - 1).toBe(2);
+    expect(html.split('class="sgl-link sgl-designer-materials-name"').length - 1).toBe(2);
   });
 });

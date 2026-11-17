@@ -12,7 +12,10 @@ import {
   type ConnectorElement,
 } from '@app/building';
 import { SELECTION_COLOR, typeColor } from '@core/viewer/appearance';
+import { EMPTY_FACADE_MODULES, layoutFacadeModules } from '@app/assets';
 import type { ViewProps } from '../contracts';
+import { useFacadeLibrary } from '../three/facadeLibrary';
+import { FacadeModules } from './FacadeModules';
 import { brokenTypeIds, projectFacadeProvider } from '../project';
 import { useRemembered } from '../panelMemory';
 import { useViewportCamera } from '../viewportCamera';
@@ -56,7 +59,6 @@ const COLORS = {
   slab: '#b8b8b8',
   roof: '#8c8c8c',
   threshold: '#6f8f6f',
-  marker: '#e8a33d',
   connectorFloor: '#a9a294',
   connectorWall: '#cfc6b3',
   connectorPost: '#7d7466',
@@ -75,8 +77,6 @@ function elementColor(e: ArchitecturalElement, display: SceneDisplay | null): st
       return COLORS.roof;
     case 'threshold':
       return COLORS.threshold;
-    case 'circulation-marker':
-      return COLORS.marker;
   }
 }
 
@@ -113,6 +113,12 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
   const v2 = useMemo(() => (v2Doc && v2Spatial ? buildBuildingV2(v2Doc, { spatial: v2Spatial, facade }) : null), [v2Doc, v2Spatial, facade]);
   const elements = useMemo(() => (v2 ? v2.elements : buildArchitecture(resolveFaces(doc), { facade })), [v2, doc, facade]);
   const connectors = v2?.connectors ?? NO_CONNECTORS;
+  // Imported façade modules: an extra layer on exterior walls (the elements above are unchanged).
+  const library = useFacadeLibrary();
+  const modules = useMemo(
+    () => (v2 && v2Doc ? layoutFacadeModules(v2.faces, v2Doc, library.sizeOf) : EMPTY_FACADE_MODULES),
+    [v2, v2Doc, library],
+  );
   const broken = useMemo(() => brokenTypeIds(project?.project ?? null, v2Doc ?? doc), [project, v2Doc, doc]);
   const bounds = useMemo(() => elementBounds([...elements, ...connectors]), [elements, connectors]);
   const framing = useMemo(() => framingFor(bounds), [bounds]);
@@ -125,7 +131,13 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
   const [fitRequest, setFitRequest] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
-  const visible = useMemo(() => (showRoofs ? elements : elements.filter((e) => e.part !== 'roof')), [elements, showRoofs]);
+  // A façade module replaces its wall (owner 2026-11-17): the wall and Designer windows of every face
+  // a module covers are not drawn. The Building model itself (and the Plan) is unchanged.
+  const covered = useMemo(() => new Set(modules.instances.flatMap((i) => i.faceIds)), [modules]);
+  const visible = useMemo(
+    () => elements.filter((e) => (showRoofs || e.part !== 'roof') && !(covered.has(e.faceId) && (e.part === 'wall' || e.part === 'glazing'))),
+    [elements, showRoofs, covered],
+  );
   const visibleConnectors = useMemo(
     () => (showRoofs ? connectors : connectors.filter((c) => c.part !== 'connector-roof')),
     [connectors, showRoofs],
@@ -216,6 +228,8 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
             hintWall={shownHover}
             besideEditor={editing.active}
             design={design}
+            facadeModules={modules.instances.length > 0}
+            missingFacades={modules.missingAssets}
           />
           <RoomEditPanel editing={editing} />
         </>
@@ -233,6 +247,9 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
         onWallHover={hoverWall}
         onWallClick={clickWall}
       />
+      {modules.instances.length > 0 && (
+        <FacadeModules instances={modules.instances} assets={library.byId} selection={selection} pick={pick} setHovered={setHovered} />
+      )}
       <StoreyLabels nodes={v2Doc?.nodes ?? doc.nodes} bounds={bounds} />
       {design && faces && activeWall !== null && faces.get(activeWall) && (
         // Pinned beside the clicked wall (follows it when the camera moves), not docked over the view.
@@ -308,7 +325,7 @@ function Scene({
           size={e.size}
           target={e.target}
           color={elementColor(e, display)}
-          kind={e.part === 'glazing' ? 'glass' : e.part === 'circulation-marker' ? 'marker' : e.part === 'threshold' ? 'hidden' : 'solid'}
+          kind={e.part === 'glazing' ? 'glass' : e.part === 'threshold' ? 'hidden' : 'solid'}
           geometry={unitBox}
           highlighted={isElementHighlighted(e, selection)}
           pick={pick}
@@ -359,7 +376,7 @@ const BoxMesh = memo(function BoxMesh({
   readonly target: Selection;
   readonly color: string;
   /** `hidden`: an invisible pick target (the Open threshold), shown faintly only when hovered or selected. */
-  readonly kind: 'solid' | 'glass' | 'marker' | 'hidden';
+  readonly kind: 'solid' | 'glass' | 'hidden';
   readonly geometry: BoxGeometry;
   readonly highlighted: boolean;
   readonly pick: (target: Selection) => void;
@@ -371,7 +388,6 @@ const BoxMesh = memo(function BoxMesh({
   readonly onWallClick?: (faceId: string) => void;
 }) {
   const glass = kind === 'glass';
-  const marker = kind === 'marker';
   const hidden = kind === 'hidden';
   const wallTint = wall === 'active' ? 0.6 : wall === 'hover' ? 0.35 : 0;
   const emphasis = Math.max(highlighted ? 0.55 : 0, wallTint);
@@ -401,8 +417,8 @@ const BoxMesh = memo(function BoxMesh({
         // Selection TINTS the element (keeps doors, glazing and walls readable while editing) instead
         // of painting it solid magenta (audit O8 note; recorded as the reconciled "eighth" minor finding).
         color={color}
-        transparent={glass || marker || hidden}
-        opacity={glass ? (highlighted ? 0.75 : 0.45) : marker ? 0.85 : hidden ? (emphasis > 0 ? 0.35 : 0) : 1}
+        transparent={glass || hidden}
+        opacity={glass ? (highlighted ? 0.75 : 0.45) : hidden ? (emphasis > 0 ? 0.35 : 0) : 1}
         depthWrite={!glass && !hidden}
         roughness={glass ? 0.1 : 0.85}
         emissive={emphasis > 0 ? SELECTION_COLOR : '#000000'}
@@ -430,7 +446,6 @@ const LEGEND: readonly (readonly [label: string, color: string])[] = [
   ['Door wall', COLORS.doorWall],
   ['Slab / atrium void', COLORS.slab],
   ['Roof (exposed tops)', COLORS.roof],
-  ['Vertical access (symbolic)', COLORS.marker],
 ];
 
 const CONNECTOR_LEGEND: readonly (readonly [label: string, color: string])[] = [
@@ -452,7 +467,13 @@ function Overlay({
   hintWall,
   besideEditor,
   design,
+  facadeModules,
+  missingFacades,
 }: {
+  /** Imported façade modules are drawn (legend entry). */
+  readonly facadeModules: boolean;
+  /** Imported façade ids the design uses that the project does not have. */
+  readonly missingFacades: readonly string[];
   /** The hovered shared wall (its face id), shown in the hint line. */
   readonly hintWall: string | null;
   /** The room editor occupies the bottom-right cell. */
@@ -482,8 +503,14 @@ function Overlay({
           Fit view
         </button>
       </ControlBar>
-      {(brokenTypes.length > 0 || (v2 && roofsHiddenByDesigner && showRoofs)) && (
+      {(brokenTypes.length > 0 || missingFacades.length > 0 || (v2 && roofsHiddenByDesigner && showRoofs)) && (
         <InfoPanel>
+          {missingFacades.length > 0 && (
+            <div role="status" className="viewer3d-notice">
+              <strong>Imported façade missing:</strong> this scenario uses {missingFacades.length === 1 ? 'a façade' : `${missingFacades.length} façades`} that the
+              project no longer has. Those walls are shown without it; choose another façade in the Building Designer.
+            </div>
+          )}
           {brokenTypes.length > 0 && (
             <div role="status" className="viewer3d-notice">
               <strong>Invalid type definition:</strong> {brokenTypes.join(', ')}. These rooms are shown with closed exterior walls
@@ -509,6 +536,12 @@ function Overlay({
               {label}
             </li>
           ))}
+          {facadeModules && (
+            <li>
+              <span className="viewer3d-swatch" style={{ background: 'repeating-linear-gradient(90deg, #8a8378 0 3px, #c8c2b8 3px 6px)' }} />
+              Imported façade (Designer, 3DM)
+            </li>
+          )}
           {connectors &&
             CONNECTOR_LEGEND.map(([label, color]) => (
               <li key={label}>

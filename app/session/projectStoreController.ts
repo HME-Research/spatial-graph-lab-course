@@ -19,7 +19,9 @@ import {
 } from '@app/project';
 import type { ScenarioCommand } from '@app/spatial';
 import type { SavedCamera } from '@core/viewer/three/camera';
+import type { FacadeAssetV1, FacadeRole } from '@app/assets';
 import {
+  addFacadeAsset,
   applyActiveCommand,
   commitActiveDesign,
   contentSignature,
@@ -31,6 +33,10 @@ import {
   openProject,
   projectFileOf,
   redoActive,
+  removeFacadeAsset,
+  facadeUses,
+  renameFacadeAsset,
+  setFacadeAssetMaterials,
   renameProject,
   renameScenario,
   saveProjectAs,
@@ -45,6 +51,8 @@ import {
   switchScenario,
   undoActive,
   type CommandResult,
+  type FacadeMaterial,
+  type FacadeUse,
   type LocalSaveState,
   type NewScenarioRequest,
   type OpenProject,
@@ -188,6 +196,23 @@ export interface ProjectController {
   /** Project `settings.functions` (node types added in the browser). Not undoable; autosaved. */
   setFunctions(functions: readonly ProjectFunction[], hiddenFunctions: readonly string[]): void;
   setAttributeRecord(record: unknown | null): void;
+  /** Add an imported façade (project `assets`). Not undoable; autosaved and exported. Same id twice: no change. */
+  addFacadeAsset(asset: FacadeAssetV1): Outcome<void>;
+  /**
+   * Remove an imported façade. Refused while any scenario uses it, unless `replaceUses` (confirmed
+   * by the student): then those uses become Automatic first (one undo step per affected scenario).
+   * The asset removal itself is not undoable.
+   */
+  removeFacadeAsset(assetId: string, options?: { readonly replaceUses?: boolean }): Outcome<void>;
+  /** Where an imported façade is used (scenario names and type ids), for the confirmation. */
+  facadeUses(assetId: string): readonly FacadeUse[];
+  /** Rename an imported façade (display name only). Not undoable. */
+  renameFacadeAsset(assetId: string, name: string): Outcome<void>;
+  /**
+   * Colour and finish (solid / glass / open) per material group of an imported façade for one use
+   * (`wall` default; a Door / Open bay, where `null` = same as the façade). Project-level, not undoable.
+   */
+  setFacadeAssetMaterials(assetId: string, materials: readonly FacadeMaterial[] | null, role?: FacadeRole): Outcome<void>;
 
   // Files
   /** The project file to export now, and its text. Call `markExported(signature)` once the download started. */
@@ -656,6 +681,11 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     setAttributeRecord(record) {
       mutate((p) => setAttributeRecord(p, record));
     },
+    addFacadeAsset: (asset) => mutateOutcome((p) => addFacadeAsset(p, asset), () => undefined),
+    removeFacadeAsset: (assetId, options) => mutateOutcome((p) => removeFacadeAsset(p, assetId, options), () => undefined),
+    facadeUses: (assetId) => (state.project ? facadeUses(state.project, assetId) : []),
+    renameFacadeAsset: (assetId, name) => mutateOutcome((p) => renameFacadeAsset(p, assetId, name), () => undefined),
+    setFacadeAssetMaterials: (assetId, materials, role) => mutateOutcome((p) => setFacadeAssetMaterials(p, assetId, materials, role), () => undefined),
 
     exportFile() {
       const project = state.project;

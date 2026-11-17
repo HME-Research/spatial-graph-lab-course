@@ -2529,31 +2529,6 @@
       ]
     },
     {
-      "id": "m:0.2.0:+z:circulation-marker:4",
-      "faceId": "m:0.2.0:+z",
-      "part": "circulation-marker",
-      "condition": "vertical-access",
-      "orientation": "slab",
-      "ownerNodeId": "m",
-      "ownerTypeId": "gallery",
-      "neighbourNodeId": "p",
-      "edgeId": "mp",
-      "target": {
-        "kind": "edge",
-        "id": "mp"
-      },
-      "position": [
-        0.75,
-        3,
-        -6
-      ],
-      "size": [
-        0.1200000000000001,
-        3,
-        0.12
-      ]
-    },
-    {
       "id": "m:0.2.0:-z:slab:0",
       "faceId": "m:0.2.0:-z",
       "part": "slab",
@@ -6247,8 +6222,7 @@
         "m:0.2.0:+z:slab:0",
         "m:0.2.0:+z:slab:1",
         "m:0.2.0:+z:slab:2",
-        "m:0.2.0:+z:slab:3",
-        "m:0.2.0:+z:circulation-marker:4"
+        "m:0.2.0:+z:slab:3"
       ]
     },
     {

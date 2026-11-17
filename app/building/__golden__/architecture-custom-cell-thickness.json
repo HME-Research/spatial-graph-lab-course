@@ -450,31 +450,6 @@
     ]
   },
   {
-    "id": "entry-gallery:+z:circulation-marker:4",
-    "faceId": "entry-gallery:+z",
-    "part": "circulation-marker",
-    "condition": "vertical-access",
-    "orientation": "slab",
-    "ownerNodeId": "entry-gallery",
-    "ownerTypeId": "gallery",
-    "neighbourNodeId": "studio-upper",
-    "edgeId": "entry-up",
-    "target": {
-      "kind": "edge",
-      "id": "entry-up"
-    },
-    "position": [
-      1,
-      3.5,
-      0
-    ],
-    "size": [
-      0.1200000000000001,
-      3.5,
-      0.12
-    ]
-  },
-  {
     "id": "entry-gallery:-z:slab:0",
     "faceId": "entry-gallery:-z",
     "part": "slab",

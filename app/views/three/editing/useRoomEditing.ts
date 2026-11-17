@@ -36,7 +36,7 @@ export interface RoomEditing {
   readonly nodeId: string | null;
   /** Display label of the selected room ("01"). */
   readonly label: string;
-  /** What the panel's −/+ step buttons do (the in-canvas gizmo offers both at once). */
+  /** Move or resize for `nudge` (no UI uses it since the step panel was removed, 2026-11-17; the gizmo offers both at once). */
   readonly mode: GizmoMode;
   readonly setMode: (mode: GizmoMode) => void;
   readonly state: RoomEditState;

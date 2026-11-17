@@ -853,31 +853,6 @@
       ]
     },
     {
-      "id": "entry-gallery:+z:circulation-marker:4",
-      "faceId": "entry-gallery:+z",
-      "part": "circulation-marker",
-      "condition": "vertical-access",
-      "orientation": "slab",
-      "ownerNodeId": "entry-gallery",
-      "ownerTypeId": "gallery",
-      "neighbourNodeId": "studio-upper",
-      "edgeId": "entry-up",
-      "target": {
-        "kind": "edge",
-        "id": "entry-up"
-      },
-      "position": [
-        0.75,
-        3,
-        0
-      ],
-      "size": [
-        0.1200000000000001,
-        3,
-        0.12
-      ]
-    },
-    {
       "id": "entry-gallery:-z:slab:0",
       "faceId": "entry-gallery:-z",
       "part": "slab",
@@ -2791,8 +2766,7 @@
         "entry-gallery:+z:slab:0",
         "entry-gallery:+z:slab:1",
         "entry-gallery:+z:slab:2",
-        "entry-gallery:+z:slab:3",
-        "entry-gallery:+z:circulation-marker:4"
+        "entry-gallery:+z:slab:3"
       ]
     },
     {

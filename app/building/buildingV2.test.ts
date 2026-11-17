@@ -232,18 +232,17 @@ describe('direct openings between multi-cell rooms', () => {
     expect(shared.map((e) => e.part)).toEqual(['threshold', 'threshold']);
   });
 
-  it('vertical access: one slab opening and one symbolic marker (no stair); vertical open voids every shared slab', () => {
+  it('vertical access: one slab opening and no vertical marker (no stair, no shaft); vertical open voids every shared slab', () => {
     const stacked: N[] = [
       { id: 'a', grid: [0, 0, 0], size: [2, 2, 1] },
       { id: 'c', grid: [0, 0, 1], size: [2, 2, 1] },
     ];
     const access = buildBuildingV2(v2(stacked, [{ id: 'ac', source: 'a', target: 'c' }])).elements;
-    expect(count(access, 'circulation-marker')).toBe(1);
+    expect(access.filter((e) => e.condition === 'vertical-access').every((e) => e.part === 'slab')).toBe(true);
     expect(new Set(access.filter((e) => e.condition === 'vertical-access').map((e) => e.faceId)).size).toBe(1);
     expect(access.filter((e) => e.neighbourNodeId === 'c' && e.condition === 'solid')).toHaveLength(3);
 
     const open = buildBuildingV2(v2(stacked, [{ id: 'ac', source: 'a', target: 'c', kind: 'open' }])).elements;
-    expect(count(open, 'circulation-marker')).toBe(0);
     expect(new Set(open.filter((e) => e.condition === 'atrium').map((e) => e.faceId)).size).toBe(4);
   });
 

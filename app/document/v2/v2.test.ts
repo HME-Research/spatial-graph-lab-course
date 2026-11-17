@@ -92,6 +92,20 @@ describe('reading and writing (compatibility policy)', () => {
     expect(back.edges[0]!.connectorStyle).toBe('deck');
   });
 
+  it('round-trips an imported façade with door / open bay variants in canonical order', () => {
+    const raw = v2Raw();
+    const facade = { open: { flip: true, assetId: 'facade-00000000000000bb' }, door: { assetId: 'facade-00000000000000aa' }, placement: 'stretch', assetId: 'facade-0123456789abcdef' };
+    raw.settings = { typeAppearance: { gallery: { facade } } } as typeof raw.settings;
+    const doc = expectOk(readDesign(raw)).doc;
+    const text = serializeDesignV2(doc);
+    const back = expectOk(readDesignJson(text)).doc;
+    expect(back).toEqual(doc);
+    expect(JSON.stringify(back.settings.typeAppearance.gallery!.facade)).toBe(
+      '{"assetId":"facade-0123456789abcdef","placement":"stretch","door":{"assetId":"facade-00000000000000aa"},"open":{"assetId":"facade-00000000000000bb","flip":true}}',
+    );
+    expect(text.indexOf('"door"')).toBeLessThan(text.indexOf('"open"'));
+  });
+
   it('reports invalid v1 input with the unchanged v1 issues', () => {
     const raw = threeRoomsRaw();
     raw.edges[0]!.target = 'ghost';
@@ -193,7 +207,8 @@ describe('display ids and appearance settings', () => {
       windowLayout: 'repeat',
       walls: 'enclosed',
       roof: 'flat',
-      source: { windowFraction: 'design', windowLayout: 'default', walls: 'default', roof: 'default' },
+      facade: null,
+      source: { windowFraction: 'design', windowLayout: 'default', walls: 'default', roof: 'default', facade: 'default' },
     });
     expect(effectiveTypeAppearance(doc, 'studio', { windowFraction: 0.25 }).windowFraction).toBe(0.25);
     expect(effectiveTypeAppearance(doc, 'constructor', { windowFraction: 0.1 }).windowFraction).toBe(0.1);

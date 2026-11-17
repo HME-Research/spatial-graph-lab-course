@@ -12,7 +12,7 @@ import {
   type ExtensionDiagnostic,
   type TransformationPreviewV2,
 } from '@app/extensions';
-import { createIndexedDbProjectStore, type ProjectIssue } from '@app/project';
+import { createIndexedDbProjectStore, facadeAssetsOf, type ProjectIssue } from '@app/project';
 import { proposeSpatialEdit, resolveWithPreferences, type DesignCommand, type DesignPort, type ScenarioCommand } from '@app/spatial';
 import type { CommandOutcome, GraphCommandHandler } from '@app/views/contracts';
 import { conciseIssues, presentAnalysis, type AnalysisPresentation } from '@app/views/presentation';
@@ -20,7 +20,7 @@ import { buildProjectViewContext, projectFacadeProvider } from '@app/views/proje
 import { NO_SELECTION, reconcileSelection, selectEdge, type Selection } from '@core/viewer/selection';
 import { createCameraBus } from '@core/viewer/three/camera';
 import { AttributesPanel } from './attributes/AttributesPanel';
-import { DesignerPanel } from './designer';
+import { DesignerPanel, FacadeLibrarySection, type DesignerFacades } from './designer';
 import { SaveStatus } from './scenarios/SaveStatus';
 import { AlgorithmPanel } from './session/AlgorithmPanel';
 import { applyPreviewV2, isStale, type AlgorithmRunV2, type ApplyOutcome } from './session/algorithmSession';
@@ -53,7 +53,7 @@ import { FunctionsDialog } from './attributes/FunctionsDialog';
 import { ManageFunctionsContext } from './attributes/navigation';
 import { SIDEBAR_LABELS, SIDEBAR_SECTIONS } from '@app/ui/labels';
 import { createProject, openProjectText, tryExample, type FlowOutcome, type WelcomeHost } from './welcome/welcomeFlow';
-import { courseLabel, recentStateOf, type RecentState } from './welcome/welcomeModel';
+import { DEFAULT_PROJECT_NAME, recentStateOf, type RecentState } from './welcome/welcomeModel';
 import { Workspace } from './Workspace';
 import { DESTINATION_PANELS } from '@app/workspace/panelSlots';
 import {
@@ -74,6 +74,7 @@ import { SavedCamerasProvider } from '@app/camera/savedCameras';
 import { DisplayProvider } from '@app/display/DisplayProvider';
 import { sanitizeEnabledMetrics } from '@app/metrics';
 import { EnabledMetricsContext } from '@app/views/three/enabledMetrics';
+import { EMPTY_FACADE_LIBRARY, facadeLibraryOf, FacadeLibraryContext } from '@app/views/three/facadeLibrary';
 import { DEFAULT_VIEWPORT_STATE, deriveViewports, type ViewportState } from '@app/workspace/viewports';
 
 /**
@@ -174,8 +175,6 @@ export function App() {
   const [displayStore] = useState(() => createProjectDisplayStore(controller));
   const openProject = cstate.project;
   const [failure, setFailure] = useState<LoadFailureState | null>(null);
-  /** Welcome: shown whenever no project is open; `create` opens with the Create form. */
-  const [welcomeMode, setWelcomeMode] = useState<{ readonly startWith: 'choices' | 'create'; readonly definitionId: string | null } | null>(null);
   const [recent, setRecent] = useState<RecentState>({ status: 'loading' });
   const [busy, setBusy] = useState<string | null>(null);
   const [definitions] = useState(definitionChoices);
@@ -212,6 +211,20 @@ export function App() {
   /** The project's calculated values (`settings.calculatedFields`), validated at runtime; absent = defaults. */
   const storedCalculatedFields = openProject?.meta.settings.calculatedFields;
   const calculatedFields = useMemo(() => sanitizeEnabledMetrics(storedCalculatedFields).enabled, [storedCalculatedFields]);
+  /** The project's imported façades (`assets`): drawn by the Building, managed in the Designer. */
+  const storedAssets = openProject?.meta.assets;
+  const facadeLibrary = useMemo(() => (storedAssets ? facadeLibraryOf(facadeAssetsOf(storedAssets)) : EMPTY_FACADE_LIBRARY), [storedAssets]);
+  const designerFacades = useMemo<DesignerFacades>(
+    () => ({
+      assets: facadeLibrary.assets,
+      add: (asset) => controller.addFacadeAsset(asset),
+      remove: (assetId, options) => controller.removeFacadeAsset(assetId, options),
+      uses: (assetId) => controller.facadeUses(assetId),
+      rename: (assetId, name) => controller.renameFacadeAsset(assetId, name),
+      setMaterials: (assetId, materials, role) => controller.setFacadeAssetMaterials(assetId, materials, role),
+    }),
+    [facadeLibrary, controller],
+  );
 
   /**
    * A user change of the schema: carried in the LOCAL project file (autosaved with the project),
@@ -382,7 +395,6 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
       }
       if (outcome.ok) {
         setFailure(null);
-        setWelcomeMode(null);
       } else {
         setFailure({
           source: outcome.source,
@@ -400,24 +412,13 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
       return openProjectText(host, text, file.name, options);
     });
   const startExample = () => void runFlow('Opening the example…', (options) => tryExample(host, builtInExample().doc, EXAMPLE_LABEL, options));
-  /** Close the project (its changes are written first) and show Welcome's Create form. */
-  const backToWelcome = async (definition: string | null = definitions.defaultId) => {
-    const shown = controller.getState();
-    if (shown.project && shown.kept !== true && shown.project.changes > 0) {
-      if (!window.confirm(`“${shown.project.meta.name}” is not saved in this browser. Starting a new project replaces it.
-
-Continue? (Cancel keeps it open: use Save locally, or Export project.)`)) return;
-    }
-    let closed = await controller.close();
-    if (!closed) {
-      const reason = controller.getState().save;
-      const why = reason.local === 'blocked' ? `\n\n${reason.message}` : '';
-      // Never dropped silently: the user decides (Save as new project keeps them instead).
-      if (!window.confirm(`The latest changes of this project could not be saved in this browser.${why}\n\nClose it anyway and lose them?`)) return;
-      closed = await controller.close({ discard: true });
-    }
-    if (closed) setWelcomeMode({ startWith: 'create', definitionId: definition });
-  };
+  /**
+   * Create project (Welcome) and New project (Project panel): a clean project straight away, named
+   * "Untitled project" (rename it in Project) with the default course; no form in between (owner
+   * 2026-11-17). Leaving an open project with unsaved changes is asked in `runFlow`.
+   */
+  const startNewProject = () =>
+    void runFlow('Creating the project…', (options) => createProject(host, DEFAULT_PROJECT_NAME, definitions.defaultId, options));
 
   /**
    * Validate and apply one command to the active scenario; one history step, a no-op none. Design
@@ -620,14 +621,10 @@ Continue? (Cancel keeps it open: use Save locally, or Export project.)`)) return
             {/* Welcome is a modal overlay on a neutral, inert shell: nothing is created or saved to draw it. */}
             <EmptyShell labels={SIDEBAR_SECTIONS.map((s) => SIDEBAR_LABELS[s])} />
             <Welcome
-              key={welcomeMode ? `${welcomeMode.startWith}:${welcomeMode.definitionId ?? ''}` : 'start'}
-              definitions={definitions.ids.map((id) => ({ id, label: courseLabel(id) }))}
-              defaultDefinitionId={welcomeMode?.definitionId ?? definitions.defaultId}
-              startWith={welcomeMode?.startWith ?? 'choices'}
               recent={recent}
               busy={busy}
               error={failureView}
-              onCreate={(name, id) => void runFlow('Creating the project…', (options) => createProject(host, name, id, options))}
+              onCreate={startNewProject}
               onOpenFile={openFile}
               onTryExample={startExample}
               onRestore={(id) =>
@@ -648,6 +645,7 @@ Continue? (Cancel keeps it open: use Save locally, or Export project.)`)) return
                 <SavedCamerasProvider scenarioId={scenarioId ?? ''} store={cameraStore}>
                 <DisplayProvider scenarioId={scenarioId ?? ''} store={displayStore}>
                 <EnabledMetricsContext.Provider value={calculatedFields}>
+                <FacadeLibraryContext.Provider value={facadeLibrary}>
                 <OpenAttributesContext.Provider value={project ? openAttributes : null}>
                 <ManageFunctionsContext.Provider value={project ? () => setFunctionsOpen(true) : null}>
                   <Workspace
@@ -673,13 +671,14 @@ Continue? (Cancel keeps it open: use Save locally, or Export project.)`)) return
                       project: (
                           <ProjectPanel
                             // Keyed by project: no draft name or Save As dialog carries over to another project.
-                            overview={<ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} onNew={() => void backToWelcome()} onOpenFile={openFile} />}
+                            overview={<ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} onNew={startNewProject} onOpenFile={openFile} />}
                             session={session}
                             docLoaded={doc !== null}
                             source={current?.source ?? null}
                             conformance={conformance}
                             attributeProblems={attributeProblems}
                             onSelect={select}
+                            {...(openProject && { library: <FacadeLibrarySection facades={designerFacades} /> })}
                           />
                       ),
                       attributes: (
@@ -703,6 +702,7 @@ Continue? (Cancel keeps it open: use Save locally, or Export project.)`)) return
                           design={port}
                           {...(projectContext && { project: projectContext })}
                           selection={selection}
+                          facades={designerFacades}
                           onShowRelationship={(edgeId) => {
                             setSelection(selectEdge(edgeId));
                             setRightCollapsedByUser(false);
@@ -732,6 +732,7 @@ Continue? (Cancel keeps it open: use Save locally, or Export project.)`)) return
                   />
                 </ManageFunctionsContext.Provider>
                 </OpenAttributesContext.Provider>
+                </FacadeLibraryContext.Provider>
                 </EnabledMetricsContext.Provider>
                 </DisplayProvider>
                 </SavedCamerasProvider>

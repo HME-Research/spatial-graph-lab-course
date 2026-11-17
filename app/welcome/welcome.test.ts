@@ -37,11 +37,6 @@ function host(store = createMemoryProjectStore(), kept = createMemoryKeptMarks()
 
 const noop = () => undefined;
 const props = (over: Partial<WelcomeProps> = {}): WelcomeProps => ({
-  definitions: [
-    { id: 'example-gallery', label: 'Example gallery' },
-    { id: 'starter-template', label: 'Starter template' },
-  ],
-  defaultDefinitionId: 'example-gallery',
   recent: { status: 'ready', items: [] },
   onCreate: noop,
   onOpenFile: noop,
@@ -333,10 +328,12 @@ describe('Welcome screen', () => {
     expect(rows[1]).toMatchObject({ kind: 'unreadable', quarantined: true });
   });
 
-  it('shows the create form with the code-project choice', () => {
-    const html = renderToStaticMarkup(createElement(Welcome, props({ startWith: 'create' })));
-    expect(html).toContain('Project name');
-    expect(html).toContain('Starter template');
+  it('Create project starts a project at once: no name or template form', () => {
+    const html = renderToStaticMarkup(createElement(Welcome, props()));
+    expect(html).toContain('Create project');
+    expect(html).not.toContain('Project name');
+    expect(html).not.toContain('<form');
+    expect(html).not.toContain('Course');
   });
 
   it('disables actions while busy and shows loading', () => {

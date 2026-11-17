@@ -57,6 +57,30 @@ export const WALL_STYLES = ['enclosed', 'open'] as const;
 export type WallStyle = (typeof WALL_STYLES)[number];
 export const DEFAULT_WALL_STYLE: WallStyle = 'enclosed';
 
+/**
+ * How an imported façade module (3DM) is placed on a room's EXTERIOR walls (additive 2026-11-17,
+ * CONTRACTS-V2 §1, owner decision D7):
+ * - `repeat`: one module fitted to each 3 m bay (cell width × storey height) of every exterior wall;
+ * - `stretch`: one module fitted across each wall run (contiguous, coplanar exterior bays of one
+ *   room on one storey, `groupWallRuns`).
+ * Width and height are fitted exactly; depth is never scaled. Independent of `WINDOW_LAYOUTS`.
+ */
+export const FACADE_PLACEMENTS = ['repeat', 'stretch'] as const;
+export type FacadePlacement = (typeof FACADE_PLACEMENTS)[number];
+
+/**
+ * Optional extra modules of an imported façade for the façade bays that are not plain walls
+ * (additive 2026-11-17): `door` for a bay with a door, `open` for a bay with an Open relationship,
+ * on the outside of the room (the end of an open-air connector). Each is optional: a condition
+ * without its module keeps the automatic geometry (door frame / glass door, open threshold).
+ * Always one module per bay (no placement choice).
+ */
+export const FACADE_VARIANTS = ['door', 'open'] as const;
+export type FacadeVariantKind = (typeof FACADE_VARIANTS)[number];
+
+/** Imported façade asset ids are project-level (`ProjectFileV1.assets`): `facade-` + 16 hex digits. */
+export const FACADE_ASSET_REF_PATTERN = /^facade-[0-9a-f]{16}$/;
+
 /** Room size per axis in cells. Rooms are axis-aligned boxes anchored at their minimum corner. */
 export const DEFAULT_ROOM_SIZE = [1, 1, 1] as const;
 export const MAX_ROOM_SIZE = 32;

@@ -3,9 +3,13 @@ import { DEFAULT_CELL_SIZE, type CellSize } from '@core/viewer/coordinates';
 import { DEFAULT_WALL_THICKNESS, type FaceFrame, type Vec3 } from '@app/building/faceLayout';
 
 /**
- * SPIKE (wave2-G): typed adapter prototype from façade geometry read out of a Rhino .3dm file
- * into the app's face-layout frames. Pure; no rhino3dm, React or Three.js import. A future reader
- * (rhino3dm, loaded lazily) only has to hand over plain triangle meshes in source units, Z-up.
+ * Façade adapter: façade geometry read out of a Rhino .3dm file → the app's face-layout frames.
+ * Pure; no rhino3dm, React or Three.js import. The reader (`./rhino/reader.ts`, rhino3dm loaded
+ * lazily) hands over plain triangle meshes in source units, Z-up.
+ *
+ * Provenance: promoted unchanged in behaviour from the wave2-G 3DM spike prototype
+ * (`app/assets/3dm-spike/facadeAdapter.ts`, commit efe62a3); material groups were added for the
+ * imported-façade implementation (2026-11-17).
  *
  * Source convention (the one a student uses when drawing a panel in Rhino's Front view):
  *   x = along the façade, z = up, y = depth; the exterior side faces −y by default (`outward`).
@@ -49,13 +53,38 @@ export function unitFromRhinoName(name: string): SourceUnit | 'unitless' | 'unsu
 export interface SourceMesh {
   readonly positions: ArrayLike<number>;
   readonly indices: ArrayLike<number>;
+  /** Index into `FacadeSource.groups` (default 0). */
+  readonly group?: number;
 }
+
+/** A material group: what the meshes of one Rhino layer / colour / glass class look like. */
+export interface SourceGroup {
+  /** Readable name, e.g. the Rhino layer path ("Frame", "Glass"). */
+  readonly name: string;
+  /** `#rrggbb`. */
+  readonly color: string;
+  /** Rendered translucent (glazing). */
+  readonly glass: boolean;
+}
+
+/** Group used when a source declares none. */
+export const DEFAULT_SOURCE_GROUP: SourceGroup = Object.freeze({ name: 'Default', color: '#c8c2b8', glass: false });
 
 export interface FacadeSource {
   readonly unit: SourceUnit | 'unitless';
   readonly meshes: readonly SourceMesh[];
+  /** Material groups referenced by `SourceMesh.group` (default: one `DEFAULT_SOURCE_GROUP`). */
+  readonly groups?: readonly SourceGroup[];
   /** Which source side is the exterior (default '-y', Rhino Front view). */
   readonly outward?: SourceOutward;
+}
+
+/** A material group of a normalised component: triangles `start .. start + count - 1`. */
+export interface ComponentGroup extends SourceGroup {
+  /** First triangle (not index) of the group. */
+  readonly start: number;
+  /** Number of triangles. */
+  readonly count: number;
 }
 
 export interface NormaliseOptions {
@@ -78,7 +107,10 @@ export interface Diagnostic {
 export interface FacadeComponent {
   /** Panel-local (a, b, c) triplets in metres; see the module comment. */
   readonly positions: Float64Array;
+  /** Triangle vertex indices, ordered by group (see `groups`). */
   readonly indices: Uint32Array;
+  /** Non-empty groups in source group order; together they cover every triangle exactly once. */
+  readonly groups: readonly ComponentGroup[];
   readonly width: number;
   readonly height: number;
   readonly depth: number;
@@ -87,6 +119,9 @@ export interface FacadeComponent {
   /** Source bounding box in source units, Z-up (for diagnostics and UI). */
   readonly sourceBounds: { readonly min: Vec3; readonly max: Vec3 };
 }
+
+/** What placement needs of a component: its panel-frame extent along the façade and upward. */
+export type ComponentSize = Pick<FacadeComponent, 'width' | 'height'> & { readonly depth?: number };
 
 export type NormaliseResult =
   | { readonly ok: true; readonly component: FacadeComponent; readonly diagnostics: readonly Diagnostic[] }
@@ -120,10 +155,13 @@ export function normaliseFacadeSource(source: FacadeSource, options: NormaliseOp
   const scale = METRES_PER_UNIT[unit];
 
   if (source.meshes.length === 0) return { ok: false, diagnostics: [error('no-geometry', 'No mesh geometry to import (Breps need render meshes saved in the file).')] };
+  const sourceGroups = source.groups && source.groups.length > 0 ? source.groups : [DEFAULT_SOURCE_GROUP];
 
   let vertexCount = 0;
   let triangleCount = 0;
   for (const [m, mesh] of source.meshes.entries()) {
+    const group = mesh.group ?? 0;
+    if (!Number.isInteger(group) || group < 0 || group >= sourceGroups.length) return { ok: false, diagnostics: [error('invalid-mesh', `Mesh ${m}: unknown material group ${group}.`)] };
     const nv = mesh.positions.length / 3;
     if (!Number.isInteger(nv) || nv === 0) return { ok: false, diagnostics: [error('invalid-mesh', `Mesh ${m}: positions are not xyz triplets.`)] };
     if (mesh.indices.length % 3 !== 0 || mesh.indices.length === 0) return { ok: false, diagnostics: [error('invalid-mesh', `Mesh ${m}: indices are not triangles.`)] };
@@ -147,8 +185,11 @@ export function normaliseFacadeSource(source: FacadeSource, options: NormaliseOp
   const max = [-Infinity, -Infinity, -Infinity];
   let pv = 0;
   let pi = 0;
+  // Vertices keep source order; triangles are emitted group by group (stable within a group).
+  const triangleRanges: { readonly mesh: SourceMesh; readonly base: number }[] = [];
   for (const mesh of source.meshes) {
     const base = pv / 3;
+    triangleRanges.push({ mesh, base });
     for (let i = 0; i < mesh.positions.length; i += 3) {
       const p: [number, number, number] = [mesh.positions[i]!, mesh.positions[i + 1]!, mesh.positions[i + 2]!];
       for (let k = 0; k < 3; k++) {
@@ -165,8 +206,17 @@ export function normaliseFacadeSource(source: FacadeSource, options: NormaliseOp
       }
       pv += 3;
     }
-    for (let i = 0; i < mesh.indices.length; i++) indices[pi++] = mesh.indices[i]! + base;
   }
+  const groups: ComponentGroup[] = [];
+  sourceGroups.forEach((group, g) => {
+    const start = pi / 3;
+    for (const { mesh, base } of triangleRanges) {
+      if ((mesh.group ?? 0) !== g) continue;
+      for (let i = 0; i < mesh.indices.length; i++) indices[pi++] = mesh.indices[i]! + base;
+    }
+    const count = pi / 3 - start;
+    if (count > 0) groups.push({ name: group.name, color: group.color, glass: group.glass, start, count });
+  });
   for (let i = 0; i < positions.length; i++) positions[i] = positions[i]! - min[i % 3]! + 0;
 
   const width = max[0]! - min[0]!;
@@ -183,6 +233,7 @@ export function normaliseFacadeSource(source: FacadeSource, options: NormaliseOp
     component: {
       positions,
       indices,
+      groups,
       width,
       height,
       depth,
@@ -249,6 +300,11 @@ export function targetFromWallRun(frames: readonly FaceFrame[], cell: CellSize =
 export interface PlacementOptions {
   /** Distance from the wall centre plane to the component's back (default half the wall thickness). */
   readonly mountOffset?: number;
+  /**
+   * Turn the component round (180° about its vertical centre line): its back becomes the outside.
+   * A rotation, never a mirror; the back stays against the building. Needs `component.depth`.
+   */
+  readonly flip?: boolean;
 }
 
 export interface Placement {
@@ -263,7 +319,7 @@ export interface Placement {
  * Fit a component into a target: the bounding box is scaled to exactly target width × height
  * (non-uniform), depth kept, back face set `mountOffset` outside the wall centre plane.
  */
-export function placeComponent(component: FacadeComponent, target: PanelTarget, options: PlacementOptions = {}): Placement {
+export function placeComponent(component: ComponentSize, target: PanelTarget, options: PlacementOptions = {}): Placement {
   const mount = options.mountOffset ?? DEFAULT_WALL_THICKNESS / 2;
   const sa = target.width / component.width;
   const sb = target.height / component.height;
@@ -273,6 +329,19 @@ export function placeComponent(component: FacadeComponent, target: PanelTarget, 
     o[1] - r[1] * (target.width / 2) - u[1] * (target.height / 2) + n[1] * mount,
     o[2] - r[2] * (target.width / 2) - u[2] * (target.height / 2) + n[2] * mount,
   ];
+  if (options.flip) {
+    // (a, b, c) → (width − a, b, depth − c): the world point of (a, b, c) on the turned component.
+    const d = component.depth ?? 0;
+    const w = target.width;
+    // prettier-ignore
+    const matrix = new Float64Array([
+      -r[0] * sa, -r[1] * sa, -r[2] * sa, 0,
+      u[0] * sb, u[1] * sb, u[2] * sb, 0,
+      -n[0], -n[1], -n[2], 0,
+      t[0] + r[0] * w + n[0] * d, t[1] + r[1] * w + n[1] * d, t[2] + r[2] * w + n[2] * d, 1,
+    ]).map((x) => x + 0);
+    return { matrix, scaleAlong: sa, scaleUp: sb };
+  }
   // prettier-ignore
   const matrix = new Float64Array([
     r[0] * sa, r[1] * sa, r[2] * sa, 0,
@@ -284,12 +353,12 @@ export function placeComponent(component: FacadeComponent, target: PanelTarget, 
 }
 
 /** Repeat unit bays: one fitted instance per wall face (bay), in the given face order. */
-export function repeatPlacements(component: FacadeComponent, frames: readonly FaceFrame[], cell: CellSize = DEFAULT_CELL_SIZE, options: PlacementOptions = {}): Placement[] {
+export function repeatPlacements(component: ComponentSize, frames: readonly FaceFrame[], cell: CellSize = DEFAULT_CELL_SIZE, options: PlacementOptions = {}): Placement[] {
   return frames.map((frame) => placeComponent(component, targetFromFaceFrame(frame, cell), options));
 }
 
 /** Stretch wall run: ONE instance fitted across the whole run. */
-export function stretchPlacement(component: FacadeComponent, runFrames: readonly FaceFrame[], cell: CellSize = DEFAULT_CELL_SIZE, options: PlacementOptions = {}): Placement {
+export function stretchPlacement(component: ComponentSize, runFrames: readonly FaceFrame[], cell: CellSize = DEFAULT_CELL_SIZE, options: PlacementOptions = {}): Placement {
   return placeComponent(component, targetFromWallRun(runFrames, cell), options);
 }
 

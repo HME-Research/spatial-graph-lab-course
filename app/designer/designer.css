@@ -243,6 +243,32 @@
   padding: 0 var(--space-3, 12px);
   font-size: var(--text-sm, 13px);
 }
+/*
+ * Toggles in the narrow card fill the row and share it equally, so every option stays visible
+ * (Open | Automatic | Import, Repeat | Stretch, −Y | +Y). Without this the field-label rule above
+ * (\`flex: 1 0 100%\`) made each option a full row wide and clipped all but the first.
+ */
+.sgl-designer-field .sgl-segmented {
+  display: flex;
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.sgl-designer-field .sgl-segmented label {
+  flex: 1 1 auto;
+  justify-content: center;
+  min-width: 0;
+  width: auto;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sgl-designer-field .sgl-segmented label + label {
+  margin-left: -1px;
+}
+.sgl-designer-field .sgl-segmented label:not(:first-child):not(:last-child) {
+  border-radius: 0;
+}
 
 /* Building Designer guide (modal): numbered steps in the order of the controls on each card. */
 .sgl-designer-guide-dialog {
@@ -356,4 +382,273 @@
 }
 .sgl-designer-type-body[hidden] {
   display: none;
+}
+
+/* Collapsible subsection heading: a disclosure button styled as the small uppercase title. */
+.sgl-designer-subsection .sgl-designer-subsection-toggle,
+:where(.toolbar, .sgl-sidenav-panel) .sgl-designer-subsection .sgl-designer-subsection-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sgl-designer-subsection .sgl-designer-subsection-toggle:hover:not(:disabled) {
+  background: none;
+}
+.sgl-designer-subsection-toggle[aria-expanded='true'] .sgl-designer-chevron {
+  transform: rotate(90deg);
+}
+.sgl-designer-subsection-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+.sgl-designer-subsection-body[hidden] {
+  display: none;
+}
+
+/* Imported façade: menu and Import button on one row; Outside and Placement side by side. */
+.sgl-designer-facade-import .sgl-designer-import {
+  flex-wrap: nowrap;
+}
+.sgl-designer-import .sgl-designer-facade-select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.sgl-designer-import button {
+  flex: none;
+  white-space: nowrap;
+}
+.sgl-designer-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1, 4px) var(--space-3, 12px);
+}
+.sgl-designer-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sgl-designer-stacked .sgl-designer-label {
+  width: auto;
+}
+/* Optional Door / Open bay modules below the wall module. */
+.sgl-designer-variant {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: var(--space-1, 4px);
+  border-top: 1px dashed var(--line, #dedbd3);
+}
+.sgl-designer-variant > .sgl-designer-label {
+  width: auto;
+}
+.sgl-designer-variant small {
+  color: var(--muted, #6b665c);
+  font-weight: 400;
+}
+
+/* A function card's subsections: Façade, Roof. */
+.sgl-designer-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+  margin-top: var(--space-2, 8px);
+}
+
+.sgl-designer-subsection-title {
+  margin: 0;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--line, #dedbd3);
+  font-size: var(--text-sm, 12px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted, #6b665c);
+}
+
+/* Imported façade (3DM) inside a function's card; library footer below the functions. */
+.sgl-designer-facade {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+
+.sgl-designer-facade-import {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+
+.sgl-designer-facade-footer {
+  margin-top: var(--space-2, 6px);
+}
+
+.sgl-designer-materials-button {
+  align-self: flex-start;
+}
+
+/* Materials dialog: a small modal over the app. */
+.sgl-designer-materials {
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(88vh, 780px);
+  padding: var(--space-3, 12px);
+  border: 1px solid var(--line, #dedbd3);
+  border-radius: 6px;
+  background: var(--panel, #fff);
+  color: inherit;
+}
+
+.sgl-designer-materials::backdrop {
+  background: rgb(0 0 0 / 0.25);
+}
+
+.sgl-designer-materials h3 {
+  margin: 0 0 var(--space-1, 4px);
+  font-size: var(--text-md, 14px);
+  overflow-wrap: anywhere;
+}
+
+.sgl-designer-materials-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+  margin: var(--space-2, 8px) 0;
+  padding: 0;
+  max-height: 34vh;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.sgl-designer-materials-list li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2, 6px);
+}
+
+.sgl-designer-materials-list input[type='color'] {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--line, #dedbd3);
+  background: none;
+}
+
+/* Project → Imported façades. */
+.sgl-project-facades-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sgl-project-facades-list > li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: var(--space-1, 4px);
+  border-top: 1px solid var(--line, #dedbd3);
+}
+.sgl-project-facades-name {
+  overflow-wrap: anywhere;
+}
+
+/* Materials dialog: 3D preview with pickable parts; the selected part's row is highlighted. */
+.sgl-designer-materials-preview {
+  height: 220px;
+  margin-top: var(--space-2, 8px);
+  border: 1px solid var(--line, #dedbd3);
+  border-radius: 4px;
+  background: var(--canvas, #f4f2ee);
+  overflow: hidden;
+  touch-action: none;
+}
+.sgl-designer-materials-list li.selected {
+  outline: 2px solid var(--accent, #c2185b);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+.sgl-designer-materials-list .sgl-designer-materials-name {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sgl-designer-materials-roles {
+  margin-top: var(--space-1, 4px);
+}
+
+.sgl-designer-materials-same {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--space-1, 4px);
+  font-size: var(--text-sm, 12px);
+}
+
+.sgl-designer-materials-name {
+  overflow: hidden;
+  font-size: var(--text-sm, 12px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sgl-designer-import {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2, 6px);
+}
+
+.sgl-designer-unit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+
+.sgl-designer-library-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+.sgl-designer-library-rename {
+  font: inherit;
+  font-size: var(--text-sm, 12px);
+}
+
+.sgl-designer-facade-warnings {
+  margin: 2px 0 0;
+  padding-left: 16px;
+  font-size: 12px;
+}
+
+.sgl-designer-facade-details summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--warning-fg, #8a3a1a);
+}
+
+/* Façade menus list asset names of any length: never wider than the card. */
+.sgl-designer-field select {
+  max-width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
 }

@@ -26,7 +26,7 @@ Owner: `04-3d-gizmo`. Generic parts: `core/viewer/three/gizmoMath.ts` and `Snapp
 - Orbit controls are disabled during a handle drag and re-enabled afterwards, including on unmount.
 - A handle press is ignored while another pointer is down (an orbit, pan or pinch in progress).
 - Handle clicks stop propagation. Drags are longer than the click tolerance, so they never select or clear selection.
-- The overlay has −/+ buttons for one cell per axis, and Move/Resize buttons choosing what they do. These are the keyboard alternative, and each button press counts as one gesture.
+- The overlay shows only the live status during a drag, outcome messages and the corridor confirmation. There are no Move/Resize or −/+ step buttons (removed 2026-11-17): the keyboard alternative is the room's position and size fields in Properties.
 - The hint "Snaps to 3 m grid" shows only while a room is selected.
 - Feature gate: nothing renders unless `ViewProps.design` is present.
 

@@ -296,13 +296,13 @@ await step('workflow/resize-via-properties', async () => {
   return undoLabels.at(-1);
 });
 
-await step('workflow/gizmo-step-buttons-voxels', async () => {
+await step('workflow/move-in-properties-voxels', async () => {
   await evaluate(`__wf.panel2('voxels'); true`);
-  await waitFor(`document.querySelector('.room-edit') !== null`, 'the room edit panel in Voxels');
-  // Move +y one cell with the gizmo's keyboard alternative (one gesture = one command).
+  // The Move/Resize step panel was removed (2026-11-17); the keyboard alternative to the gizmo is
+  // the room's Position in Properties (one change = one command).
+  expect(!(await evaluate(`!!document.querySelector('[aria-label$="plus one cell"]')`)), 'the Move/Resize step buttons are back');
   const before = await evaluate(`__wf.triple('Position (lowest corner)')`);
-  const ok = await evaluate(`(() => { const p = document.querySelector('.room-edit'); const btn = [...p.querySelectorAll('button')].find((b) => /y/.test(b.getAttribute('aria-label') ?? '') && /\\+|more|increase|plus/i.test((b.getAttribute('aria-label') ?? '') + b.textContent)); if (!btn) return [...p.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') + '|' + b.textContent).join(';'); btn.click(); return 'ok'; })()`);
-  expect(ok === 'ok', `no +y step button: ${ok}`);
+  await evaluate(`__wf.setTriple('Position (lowest corner)', [${before[0]}, ${before[1] + 1}, ${before[2]}]); true`);
   await waitFor(`__wf.triple('Position (lowest corner)')[1] === ${before[1] + 1}`, 'the gizmo move');
   const label = await evaluate('__wf.undoTitle()');
   expect(/Move room/.test(label), label);
@@ -520,12 +520,13 @@ await step('fail/unknown-type-import', async () => {
 
 // ── 3. coordination across the four views ────────────────────────────────────────────────────
 await step('views/coordinated-selection', async () => {
-  // No design-level "Load example": New project → back to Welcome → Try example (a fresh example project).
-  await evaluate(`__wf.tab('project'); true`);
-  await evaluate(`__wf.click('New project'); true`);
-  await waitFor(`!!document.querySelector('.sgl-welcome')`, 'the Welcome screen');
-  await evaluate(`__wf.click('Cancel', document.querySelector('.sgl-welcome')); true`);
+  // A fresh example project: reload (Welcome shows at every startup) → Try example. (New project
+  // opens a clean project directly since 2026-11-17, so it no longer leads back to Welcome.)
+  await page.send('Page.navigate', { url });
+  await waitFor(`!!document.querySelector('.sgl-welcome')`, 'the Welcome screen', 20000);
   await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try example'))?.click(); true`);
+  await waitFor(`document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node').length > 0`, 'the design', 20000);
+  await helpers();
   await waitFor(`__wf.nodes().length === 6`, 'the example');
   await selectNodeInGraph('store');
   const out = [];

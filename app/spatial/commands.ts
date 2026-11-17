@@ -2,12 +2,14 @@ import { removeNode as graphRemoveNode } from '@core/graph';
 import type { GridCoord } from '@core/spatial';
 import { fail, issue, SPATIAL_GRAPH_POLICY, type Attributes, type DiagramPosition, type Result } from '@app/document';
 import {
+  canonicalFacadeModule,
   DEFAULT_RELATIONSHIP_KIND,
   footprintCells,
   nextDisplayId,
   validateDocumentV2,
   type ConnectorStyle,
   type DesignDocumentV2,
+  type FacadeModule,
   type RelationshipKind,
   type RoofStyle,
   type RoomSize,
@@ -53,6 +55,8 @@ export interface TypeAppearancePatch {
   readonly windowLayout?: WindowLayout | null;
   readonly walls?: WallStyle | null;
   readonly roof?: RoofStyle | null;
+  /** Imported façade: a module, `'none'` (opt out of the design default), or `null` (inherit again). */
+  readonly facade?: FacadeModule | null;
 }
 
 export type DesignCommand =
@@ -237,7 +241,7 @@ export function applyDesignCommand(
       const current: TypeAppearance = Object.prototype.hasOwnProperty.call(doc.settings.typeAppearance, command.typeId)
         ? doc.settings.typeAppearance[command.typeId]!
         : {};
-      const merged: { windowFraction?: number; windowLayout?: WindowLayout; walls?: WallStyle; roof?: RoofStyle } = {};
+      const merged: { windowFraction?: number; windowLayout?: WindowLayout; walls?: WallStyle; roof?: RoofStyle; facade?: FacadeModule } = {};
       const wf = command.patch.windowFraction === undefined ? current.windowFraction : command.patch.windowFraction;
       const roof = command.patch.roof === undefined ? current.roof : command.patch.roof;
       if (wf !== null && wf !== undefined) merged.windowFraction = wf;
@@ -246,6 +250,9 @@ export function applyDesignCommand(
       const walls = command.patch.walls === undefined ? current.walls : command.patch.walls;
       if (walls !== null && walls !== undefined) merged.walls = walls;
       if (roof !== null && roof !== undefined) merged.roof = roof;
+      const facade = command.patch.facade === undefined ? current.facade : command.patch.facade;
+      // The whole module, door / open bay variants included (they were dropped here before).
+      if (facade !== null && facade !== undefined) merged.facade = canonicalFacadeModule(facade);
       const rest = withoutKey(doc.settings.typeAppearance, command.typeId);
       const typeAppearance = Object.keys(merged).length === 0 ? rest : { ...rest, [command.typeId]: merged };
       return validate({ ...doc, settings: { ...doc.settings, typeAppearance } });

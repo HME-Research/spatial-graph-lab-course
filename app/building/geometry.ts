@@ -39,9 +39,7 @@ export type ElementPart =
   /** Exterior top face. The view is open-top by default and hides these. */
   | 'roof'
   /** Flat floor strip marking an `open` boundary that has no wall. */
-  | 'threshold'
-  /** Abstract vertical marker for `vertical-access`. Symbolic only: not a staircase. */
-  | 'circulation-marker';
+  | 'threshold';
 
 export interface ArchitecturalElement {
   /** Unique and deterministic: `${faceId}:${part}:${index}`. */
@@ -151,10 +149,9 @@ export function buildArchitecture(faces: readonly ResolvedFace[], options: Archi
 
     // Slabs: an exposed top is a roof; every other slab part (including openings' frames) is a slab.
     const solidPart: ElementPart = face.condition === 'exterior' && face.direction === '+z' ? 'roof' : 'slab';
+    // A vertical-access slab is only its opening (the frame around it): no vertical marker box in
+    // the Building (owner 2026-11-17). The Plan still draws its `access-marker` symbol.
     for (const r of layout.solids) emit(solidPart, faceRectBox(frame, r, slabT));
-    for (const opening of layout.openings) {
-      if (opening.kind === 'access-marker') emit('circulation-marker', faceRectBox(frame, opening.rect, cell.vertical));
-    }
   }
   return out;
 }

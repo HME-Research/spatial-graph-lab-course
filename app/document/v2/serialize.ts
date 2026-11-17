@@ -2,7 +2,7 @@ import { fail, issue, ok, type Result } from '../errors';
 import { validateDocument } from '../validate';
 import { SCHEMA_VERSION_V2 } from './constants';
 import { migrateV1toV2 } from './migrate';
-import type { DesignDocumentV2 } from './schema';
+import { canonicalFacadeModule, type DesignDocumentV2 } from './schema';
 import { validateDocumentV2, type ValidationOptionsV2 } from './validate';
 
 /**
@@ -95,6 +95,7 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
             ...(a.windowLayout === undefined ? {} : { windowLayout: a.windowLayout }),
             ...(a.walls === undefined ? {} : { walls: a.walls }),
             ...(a.roof === undefined ? {} : { roof: a.roof }),
+            ...(a.facade === undefined ? {} : { facade: canonicalFacadeModule(a.facade) }),
           },
         ]),
       ),

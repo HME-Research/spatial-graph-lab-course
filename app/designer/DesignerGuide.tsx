@@ -20,11 +20,14 @@ export function DesignerGuideContent({ titleId, descriptionId }: { readonly titl
 
       <section className="sgl-designer-guide-step">
         <h3>
-          <span className="sgl-designer-guide-num">1</span> Walls
+          <span className="sgl-designer-guide-num">1</span> Façade geometry: Open, Automatic or Import
         </h3>
         <p>
-          Enclosed rooms have exterior walls with windows. Open rooms have none: combine with the roof for a pavilion (Flat), a pergola
-          (Pergola) or an open terrace (None). Walls shared with another room always stay.
+          Automatic gives exterior walls with the windows set below. Open has none: combine with the roof for a pavilion (Flat), a pergola
+          (Pergola) or an open terrace (None). Import replaces the exterior walls with a façade module drawn in Rhino (.3dm, one 3 m bay ×
+          one storey, Front view outside): choose which side faces out, Repeat or Stretch, and Materials… for solid, glass and colours.
+          Optionally import a Door bay and an Open bay module for where an open-air connector meets the room; without them those bays stay automatic.
+          Walls shared with another room always stay.
         </p>
       </section>
 
@@ -64,7 +67,7 @@ export function DesignerGuideContent({ titleId, descriptionId }: { readonly titl
       <section className="sgl-designer-guide-step sgl-designer-guide-note">
         <h3>Defaults and reset</h3>
         <p>
-          Each function starts from its project default (listed under Defaults). A change applies to this scenario only and is one undo step.
+          Each function starts from its project default. A change applies to this scenario only and is one undo step.
           “Reset to project default” removes your changes for that function.
         </p>
       </section>

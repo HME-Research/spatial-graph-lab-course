@@ -10,6 +10,8 @@ import {
 import {
   CONNECTOR_STYLES,
   DEFAULT_ROOM_SIZE,
+  FACADE_ASSET_REF_PATTERN,
+  FACADE_PLACEMENTS,
   MAX_ROOM_SIZE,
   RELATIONSHIP_KINDS,
   ROOF_STYLES,
@@ -87,11 +89,37 @@ export const relationshipEdgeSchema = z.strictObject({
   attributes: attributesSchema.default({}),
 });
 
+/**
+ * An imported façade module (additive 2026-11-17): a project asset id (the asset itself lives in
+ * the project file, never in the design) and how it is placed on exterior walls.
+ */
+const facadeAssetRefSchema = z.string().regex(FACADE_ASSET_REF_PATTERN, { error: 'assetId must be "facade-" followed by 16 hex digits' });
+
+/** The module of one bay condition (`FACADE_VARIANTS`): always one per bay, so no placement. */
+export const facadeVariantSchema = z.strictObject({
+  assetId: facadeAssetRefSchema,
+  /** Turned round: the model's +Y side faces outside. */
+  flip: z.literal(true).optional(),
+});
+
+export const facadeModuleSchema = z.strictObject({
+  assetId: facadeAssetRefSchema,
+  placement: z.enum(FACADE_PLACEMENTS, { error: `placement must be one of: ${FACADE_PLACEMENTS.join(', ')}` }),
+  /** Turned round: the model's +Y side faces outside (default: its −Y side, Rhino's Front view). */
+  flip: z.literal(true).optional(),
+  /** Optional module for façade bays with a door (absent: the automatic door). */
+  door: facadeVariantSchema.optional(),
+  /** Optional module for façade bays with an Open relationship (absent: the automatic open side). */
+  open: facadeVariantSchema.optional(),
+});
+
 export const typeAppearanceSchema = z.strictObject({
   windowFraction: windowFractionSchema.optional(),
   windowLayout: windowLayoutSchema.optional(),
   walls: wallStyleSchema.optional(),
   roof: roofStyleSchema.optional(),
+  /** Imported façade for this type: a module, or `'none'` to opt out of the design default. Absent = inherit. */
+  facade: facadeModuleSchema.optional(),
 });
 
 export const designSettingsSchema = z.strictObject({
@@ -111,5 +139,23 @@ export type RoomSize = z.infer<typeof sizeSchema>;
 export type RoomNode = z.infer<typeof roomNodeSchema>;
 export type RelationshipEdge = z.infer<typeof relationshipEdgeSchema>;
 export type TypeAppearance = z.infer<typeof typeAppearanceSchema>;
+export type FacadeModule = z.infer<typeof facadeModuleSchema>;
+export type FacadeVariant = z.infer<typeof facadeVariantSchema>;
+
+/** Canonical copy (key order, `flip` only when true, variants only when set): for writing and comparing. */
+export function canonicalFacadeModule(m: FacadeModule): FacadeModule {
+  const variant = (v: FacadeVariant): FacadeVariant => ({ assetId: v.assetId, ...(v.flip ? { flip: true as const } : {}) });
+  return {
+    assetId: m.assetId,
+    placement: m.placement,
+    ...(m.flip ? { flip: true as const } : {}),
+    ...(m.door ? { door: variant(m.door) } : {}),
+    ...(m.open ? { open: variant(m.open) } : {}),
+  };
+}
+
+/** Equal modules (null = none). */
+export const sameFacadeModule = (a: FacadeModule | null | undefined, b: FacadeModule | null | undefined): boolean =>
+  (a ?? null) === (b ?? null) || (!!a && !!b && JSON.stringify(canonicalFacadeModule(a)) === JSON.stringify(canonicalFacadeModule(b)));
 export type DesignSettings = z.infer<typeof designSettingsSchema>;
 export type DesignDocumentV2 = z.infer<typeof designDocumentV2Schema>;

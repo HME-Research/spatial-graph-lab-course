@@ -14,6 +14,7 @@ import {
   type PartialDisplay,
 } from '@app/display/contracts';
 import { readAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
+import { canonicalFacadeAsset, FACADE_LIMITS, facadeAssetsBytes, formatBytes, readFacadeAsset, type FacadeAssetV1 } from '@app/assets';
 
 /**
  * Project file v1 (Gate F, F-B; root-owned). Pure.
@@ -28,8 +29,12 @@ import { readAttributeRecord, serializeAttributeRecord } from '@app/extensions/p
  *   its current state.
  * - **Canonical text.** `serializeProjectFile` writes a fixed key order and a trailing newline;
  *   the same file always gives the same text.
- * - **Assets.** Binary assets (3DM) are not embedded (`assets.policy: 'none'`): the JSON
- *   portability claim excludes binaries (blocked decision CO04/BD02).
+ * - **Assets** (owner decision D4, 2026-11-17). Imported façades are embedded as validated,
+ *   normalised meshes (`assets: {policy: 'embedded-mesh-v1', items}`, `@app/assets`), so the
+ *   stored record (autosave) and an exported file carry them; the original `.3dm` is not kept.
+ *   Without imported façades the file says `{policy: 'none'}`, byte-identical to older files.
+ *   Every item is checked (structure, hash, bytes, indices, bounds) and the total is limited;
+ *   one bad item rejects the whole file.
  */
 
 export const PROJECT_FILE_FORMAT = 'spatial-graph-lab/project';
@@ -67,8 +72,26 @@ export interface ProjectFileV1 {
   /** At least one; unique ids. */
   readonly scenarios: readonly ScenarioRecord[];
   readonly settings: ProjectSettings;
-  readonly assets: { readonly policy: 'none' };
+  readonly assets: ProjectAssets;
 }
+
+/**
+ * Binary assets of the project. `none` when there are none (also what older files say);
+ * otherwise the imported façades as embedded, validated meshes (at least one, unique ids).
+ */
+export type ProjectAssets =
+  | { readonly policy: 'none' }
+  | { readonly policy: typeof EMBEDDED_ASSET_POLICY; readonly items: readonly FacadeAssetV1[] };
+
+export const EMBEDDED_ASSET_POLICY = 'embedded-mesh-v1';
+export const NO_ASSETS: ProjectAssets = Object.freeze({ policy: 'none' });
+
+/** The imported façades of a project (empty for `policy: 'none'`). */
+export const facadeAssetsOf = (assets: ProjectAssets): readonly FacadeAssetV1[] => (assets.policy === 'none' ? [] : assets.items);
+
+/** Assets from a list: `none` for an empty list, so a project without façades keeps the older text. */
+export const projectAssetsOf = (items: readonly FacadeAssetV1[]): ProjectAssets =>
+  items.length === 0 ? NO_ASSETS : { policy: EMBEDDED_ASSET_POLICY, items: items.map(canonicalFacadeAsset) };
 
 /**
  * Project-level settings (not per scenario, not undoable).
@@ -120,7 +143,9 @@ export type ProjectIssueCode =
   | 'unknown-preference-edge'
   | 'invalid-preference'
   | 'duplicate-camera-id'
-  | 'invalid-attributes';
+  | 'invalid-attributes'
+  /** An embedded asset is malformed, damaged, duplicated or over the limits (additive 2026-11-17). */
+  | 'invalid-asset';
 
 export type ProjectIssue = Issue<ProjectIssueCode>;
 export type ProjectResult<T> = Result<T, ProjectIssue>;
@@ -192,7 +217,16 @@ const projectShape = z.strictObject({
       .max(MAX_PROJECT_FUNCTIONS)
       .optional(),
   }),
-  assets: z.strictObject({ policy: z.literal('none') }),
+  assets: z.union(
+    [
+      z.strictObject({ policy: z.literal('none') }),
+      z.strictObject({
+        policy: z.literal(EMBEDDED_ASSET_POLICY),
+        items: z.array(z.unknown()).min(1, { error: 'an embedded asset list must not be empty (use policy "none")' }).max(FACADE_LIMITS.maxAssets, { error: `at most ${FACADE_LIMITS.maxAssets} imported façades per project` }),
+      }),
+    ],
+    { error: `assets must be {"policy": "none"} or {"policy": "${EMBEDDED_ASSET_POLICY}", "items": [...]}` },
+  ),
 });
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -277,6 +311,25 @@ export function readProjectFile(input: unknown): ProjectResult<ProjectFileV1> {
     else attributes = JSON.parse(serializeAttributeRecord(read.value)) as unknown;
   }
 
+  const assetItems: FacadeAssetV1[] = [];
+  if (data.assets.policy !== 'none') {
+    const ids = new Set<string>();
+    data.assets.items.forEach((item, index) => {
+      const read = readFacadeAsset(item);
+      if (!read.ok) {
+        for (const i of read.issues) issues.push(projectIssue(['assets', 'items', index, ...i.path], 'invalid-asset', `imported façade: ${i.message}`));
+        return;
+      }
+      if (ids.has(read.value.id)) issues.push(projectIssue(['assets', 'items', index, 'id'], 'invalid-asset', `imported façade "${read.value.id}" is listed more than once`));
+      ids.add(read.value.id);
+      assetItems.push(read.value);
+    });
+    const total = facadeAssetsBytes(assetItems);
+    if (total > FACADE_LIMITS.maxTotalBytes) {
+      issues.push(projectIssue(['assets'], 'invalid-asset', `imported façades total ${formatBytes(total)}; the limit is ${formatBytes(FACADE_LIMITS.maxTotalBytes)}`));
+    }
+  }
+
   if (issues.length) return fail(issues);
   return ok({
     format: PROJECT_FILE_FORMAT,
@@ -291,7 +344,7 @@ export function readProjectFile(input: unknown): ProjectResult<ProjectFileV1> {
     activeScenarioId: data.activeScenarioId,
     scenarios,
     settings: canonicalSettings(data.settings),
-    assets: { policy: 'none' },
+    assets: projectAssetsOf(assetItems),
   });
 }
 
@@ -386,7 +439,7 @@ export function serializeProjectFile(file: ProjectFileV1): string {
       display: canonicalOverrides(s.display),
     })),
     settings: canonicalSettings(file.settings),
-    assets: { policy: 'none' },
+    assets: projectAssetsOf(facadeAssetsOf(file.assets)),
   };
   return `${JSON.stringify(canonical, null, 2)}\n`;
 }

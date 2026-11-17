@@ -1,26 +1,21 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { MAX_NAME_LENGTH } from '@app/session/projectStore';
 import { domFocusScope, handleDialogKeyDown } from '@app/ui/concepts/dialogKeys';
-import { DEFAULT_PROJECT_NAME, recentRows, type DefinitionChoice, type RecentState } from './welcomeModel';
+import { recentRows, type RecentState } from './welcomeModel';
 import './welcome.css';
 
 export interface WelcomeProps {
-  /** Course (code) projects that can supply functions and algorithms. */
-  readonly definitions: readonly DefinitionChoice[];
-  readonly defaultDefinitionId: string | null;
   readonly recent: RecentState;
   /** Shown while an action runs (e.g. "Opening project…"); disables the actions. */
   readonly busy?: string | null;
   /** A failure of the last action (e.g. a file that could not be opened). */
   readonly error?: ReactNode;
-  readonly onCreate: (name: string, definitionId: string | null) => void;
+  /** Create project: a clean project at once (no name or template form; owner 2026-11-17). */
+  readonly onCreate: () => void;
   readonly onOpenFile: (file: File) => void;
   readonly onTryExample: () => void;
   readonly onRestore: (projectId: string) => void;
   /** Explicit user decision, confirmed here: delete an unreadable stored record (a copy is kept aside). */
   readonly onDiscardUnreadable: (projectId: string) => void;
-  /** Open with the Create form showing (e.g. from Project → New project). */
-  readonly startWith?: 'choices' | 'create';
 }
 
 /**
@@ -34,8 +29,6 @@ export interface WelcomeProps {
  * behind Welcome to return to).
  */
 export function Welcome({
-  definitions,
-  defaultDefinitionId,
   recent,
   busy = null,
   error = null,
@@ -44,11 +37,7 @@ export function Welcome({
   onTryExample,
   onRestore,
   onDiscardUnreadable,
-  startWith = 'choices',
 }: WelcomeProps) {
-  const [creating, setCreating] = useState(startWith === 'create');
-  const [name, setName] = useState(DEFAULT_PROJECT_NAME);
-  const [definition, setDefinition] = useState<string>(defaultDefinitionId ?? '');
   const disabled = busy !== null;
   const dialog = useRef<HTMLDialogElement>(null);
 
@@ -63,11 +52,6 @@ export function Welcome({
     };
   }, []);
 
-  // Move focus into the Create form when it opens, and back to the actions when it closes.
-  useEffect(() => {
-    dialog.current?.querySelector<HTMLElement>(creating ? '.sgl-welcome-create input' : '[data-autofocus]')?.focus();
-  }, [creating]);
-
   const onFile = (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget;
     const file = input.files?.[0];
@@ -79,7 +63,6 @@ export function Welcome({
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
-      if (creating && !disabled) setCreating(false);
       return;
     }
     handleDialogKeyDown(
@@ -115,44 +98,8 @@ export function Welcome({
         )}
 
         <section className="sgl-welcome-start" aria-label="Start">
-          {creating ? (
-            <form
-              className="sgl-welcome-create"
-              onSubmit={(e) => {
-                e.preventDefault();
-                onCreate(name, definition || null);
-              }}
-            >
-              <h3>Create project</h3>
-              <label className="sgl-form-row sgl-stacked">
-                <span>Project name</span>
-                <input type="text" value={name} maxLength={MAX_NAME_LENGTH} onChange={(e) => setName(e.currentTarget.value)} disabled={disabled} />
-              </label>
-              {definitions.length > 1 && (
-                <label className="sgl-form-row sgl-stacked">
-                  <span>Course</span>
-                  <select value={definition} onChange={(e) => setDefinition(e.currentTarget.value)} disabled={disabled} aria-label="Course">
-                    {definitions.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <p className="sgl-help">The project starts with one empty scenario and the required attributes. The course supplies the functions and algorithms.</p>
-              <div className="sgl-buttons">
-                <button type="submit" className="primary" disabled={disabled}>
-                  Create project
-                </button>
-                <button type="button" onClick={() => setCreating(false)} disabled={disabled}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          ) : (
             <div className="sgl-welcome-actions">
-              <button type="button" className="sgl-welcome-action is-primary" data-autofocus onClick={() => setCreating(true)} disabled={disabled}>
+              <button type="button" className="sgl-welcome-action is-primary" data-autofocus onClick={onCreate} disabled={disabled}>
                 <span className="sgl-welcome-action-title">Create project</span>
                 <span className="sgl-welcome-action-sub">Start from an empty graph</span>
               </button>
@@ -166,7 +113,6 @@ export function Welcome({
                 <span className="sgl-welcome-action-sub">A two-storey building to explore</span>
               </button>
             </div>
-          )}
         </section>
 
         <section className="sgl-welcome-recent" aria-labelledby="sgl-welcome-recent-title">

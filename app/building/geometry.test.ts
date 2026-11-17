@@ -126,13 +126,9 @@ describe('buildArchitecture', () => {
     expect(W * W - slabArea(access)).toBeCloseTo(openingArea('vertical-access', 'slab'), 6);
     expect(openingArea('atrium', 'slab')).toBeGreaterThan(openingArea('vertical-access', 'slab'));
 
-    expect(atrium.some((e) => e.part === 'circulation-marker')).toBe(false);
-    const markers = access.filter((e) => e.part === 'circulation-marker');
-    expect(markers).toHaveLength(1);
-    // Symbolic marker spans half a storey either side of the slab, inside the opening, off-centre.
-    expect(markers[0]!.size[1]).toBe(H);
-    expect(markers[0]!.position[1]).toBe(3);
-    expect(markers[0]!.position[0]).toBeGreaterThan(0);
+    // Only the slab around the opening: no vertical marker box (no shaft) in the Building.
+    expect(access.every((e) => e.part === 'slab')).toBe(true);
+    expect(access.every((e) => e.size[1] === DEFAULT_SLAB_THICKNESS)).toBe(true);
     expect(access.every((e) => e.target.kind === 'edge')).toBe(true);
   });
 
