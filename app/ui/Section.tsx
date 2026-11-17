@@ -5,7 +5,10 @@ export interface CollapsibleSectionProps {
   /** Visible heading text. */
   readonly title: ReactNode;
   readonly children: ReactNode;
-  /** Initially open (default true). The open state is kept by the component afterwards. */
+  /**
+   * Initially open when the user never chose (default false: collapsed). With a `sectionId`, the
+   * user's open/closed choice is remembered in this browser and wins over this default.
+   */
   readonly defaultOpen?: boolean;
   /** Heading level of the title (default 3: panel content under the panel's h2). */
   readonly level?: 3 | 4;
@@ -23,6 +26,59 @@ export interface CollapsibleSectionProps {
 /** The toggle button press (pure): collapse an open section, open a collapsed one. */
 export const toggleSection = (open: boolean): boolean => !open;
 
+/** `localStorage` key of a remembered section (`sgl:ui:*`, like the side panes). */
+export const sectionStorageKey = (id: string): string => `sgl:ui:section:${id}`;
+
+/** The part of `Storage` the sections use. */
+export interface SectionStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+}
+
+function browserStorage(): SectionStorage | null {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The remembered open state of section `id` ('1' / '0'), or `fallback` (no id, never chosen, storage refused). */
+export function readSectionOpen(id: string | undefined, fallback: boolean, storage: SectionStorage | null = browserStorage()): boolean {
+  if (id === undefined || !storage) return fallback;
+  try {
+    const value = storage.getItem(sectionStorageKey(id));
+    return value === '1' ? true : value === '0' ? false : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/** Remember the user's choice for section `id` (best effort: a refused storage simply forgets). */
+export function writeSectionOpen(id: string | undefined, open: boolean, storage: SectionStorage | null = browserStorage()): void {
+  if (id === undefined || !storage) return;
+  try {
+    storage.setItem(sectionStorageKey(id), open ? '1' : '0');
+  } catch {
+    // Forget silently.
+  }
+}
+
+/**
+ * Open state of a disclosure that STICKS: it starts from the user's last choice for `id` (in this
+ * browser), else `defaultOpen`; every toggle is remembered. Without an id it is only local state.
+ */
+export function useRememberedOpen(id: string | undefined, defaultOpen: boolean): readonly [boolean, () => void] {
+  const [open, setOpen] = useState(() => readSectionOpen(id, defaultOpen));
+  const toggle = () =>
+    setOpen((current) => {
+      const next = toggleSection(current);
+      writeSectionOpen(id, next);
+      return next;
+    });
+  return [open, toggle] as const;
+}
+
 /**
  * Collapsible section (WAI-ARIA disclosure pattern): the heading contains one button with
  * `aria-expanded` / `aria-controls`; the body stays MOUNTED while collapsed (`hidden`), so drafts
@@ -31,7 +87,7 @@ export const toggleSection = (open: boolean): boolean => !open;
 export function CollapsibleSection({
   title,
   children,
-  defaultOpen = true,
+  defaultOpen = false,
   level = 3,
   actions,
   meta,
@@ -39,7 +95,8 @@ export function CollapsibleSection({
   className,
   sectionId,
 }: CollapsibleSectionProps) {
-  const [open, setOpen] = useState(defaultOpen);
+  // Collapsed by default; once the user opens or closes a section (by `sectionId`), that choice sticks.
+  const [open, toggle] = useRememberedOpen(sectionId, defaultOpen);
   const id = useId();
   const bodyId = `${id}-body`;
   const Heading = level === 3 ? 'h3' : 'h4';
@@ -50,7 +107,7 @@ export function CollapsibleSection({
     <section className={classes} data-section={sectionId}>
       <div className="sgl-csection-head">
         <Heading className="sgl-csection-title">
-          <button type="button" className="sgl-csection-toggle" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen(toggleSection)}>
+          <button type="button" className="sgl-csection-toggle" aria-expanded={open} aria-controls={bodyId} onClick={toggle}>
             <svg className="sgl-csection-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
               <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

@@ -6,19 +6,35 @@ import { historyShortcut } from '@app/session/shortcuts';
 import { CONCEPT_IDS, CONCEPTS, conceptOf, ConceptContent, handleDialogKeyDown, InfoButton, type DialogFocusScope } from './concepts';
 import { PROPERTIES_DESCRIPTION, PROPERTIES_LABEL } from './labels';
 import { nextTabIndex, trappedFocusIndex } from './navigation';
-import { CollapsibleSection, toggleSection } from './Section';
+import { CollapsibleSection, readSectionOpen, sectionStorageKey, toggleSection, writeSectionOpen } from './Section';
 import { PropertiesIcon, SidebarNav } from './SidebarNav';
 import { HorizontalTabs, tabKeyTarget } from './Tabs';
 
 describe('collapsible sections', () => {
-  it('is a disclosure whose heading button controls the body', () => {
+  it('is a disclosure whose heading button controls the body; collapsed unless asked or remembered', () => {
     const html = renderToStaticMarkup(createElement(CollapsibleSection, { title: 'Geometry', sectionId: 'g', children: createElement('p', null, 'body') }));
     const controls = /aria-controls="([^"]+)"/.exec(html)?.[1];
     expect(controls).toBeTruthy();
     expect(html).toContain(`id="${controls}"`);
-    expect(html).toMatch(/<h3 class="sgl-csection-title"><button[^>]*aria-expanded="true"/);
+    expect(html).toMatch(/<h3 class="sgl-csection-title"><button[^>]*aria-expanded="false"/);
     expect(html).toContain('data-section="g"');
-    expect(html).not.toMatch(/sgl-csection-body" hidden/);
+    const open = renderToStaticMarkup(createElement(CollapsibleSection, { title: 'Geometry', defaultOpen: true, children: createElement('p', null, 'body') }));
+    expect(open).not.toMatch(/sgl-csection-body" hidden/);
+  });
+
+  it('remembers the user’s open/closed choice per section id (and survives refused storage)', () => {
+    const data = new Map<string, string>();
+    const storage = { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v) };
+    expect(readSectionOpen('g', false, storage)).toBe(false);
+    writeSectionOpen('g', true, storage);
+    expect(data.get(sectionStorageKey('g'))).toBe('1');
+    expect(readSectionOpen('g', false, storage)).toBe(true);
+    writeSectionOpen('g', false, storage);
+    expect(readSectionOpen('g', true, storage)).toBe(false);
+    expect(readSectionOpen(undefined, true, storage)).toBe(true);
+    const refusing = { getItem: () => { throw new Error('denied'); }, setItem: () => { throw new Error('denied'); } };
+    expect(readSectionOpen('g', false, refusing)).toBe(false);
+    expect(() => writeSectionOpen('g', true, refusing)).not.toThrow();
   });
 
   it('keeps a collapsed body mounted but hidden, and nests with a level-4 heading', () => {
