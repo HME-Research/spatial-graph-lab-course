@@ -30,8 +30,8 @@ Shared interfaces for the seven parallel MVP branches (`01-graph-ui` … `07-tea
 | `grid` | **Minimum corner** cell `[x,y,z]`, z up. Independent of `diagram.positions`. |
 | `size` | `[sx,sy,sz]` integers 1…`MAX_ROOM_SIZE` (32); default `[1,1,1]` (filled on read, always written). Room = every cell `grid + [0..sx-1, 0..sy-1, 0..sz-1]`. |
 | `kind` | `RelationshipKind = 'access' \| 'open'`; `DEFAULT_RELATIONSHIP_KIND = 'access'`. **No adjacency requirement.** |
-| `connectorStyle` | Optional `'enclosed' \| 'covered' \| 'deck'`; read with `connectorStyleOf(edge)` (default `enclosed`). Used only when the edge is routed. |
-| `settings.typeAppearance[typeId]` | Per-design, per-type overrides `{ windowFraction?: [0,1], windowLayout?: 'repeat' | 'stretch', roof?: 'flat' | 'none' }` (`windowLayout` additive 2026-11-17; absent = `repeat`, one window per bay; `stretch` = one window per façade, i.e. per room side over all its bays and storeys, same glazed share). No per-node overrides.\| 'none' }`. No per-node overrides. Unknown types are tolerated (no validation error). |
+| `connectorStyle` | Optional `'enclosed' \| 'covered' \| 'deck'`; read with `connectorStyleOf(edge)` (default `deck` since 2026-11-17; was `enclosed`). Used only when the edge is routed. |
+| `settings.typeAppearance[typeId]` | Per-design, per-type overrides `{ windowFraction?: [0,1], windowLayout?: 'repeat' | 'stretch', walls?: 'enclosed' | 'open', roof?: 'flat' | 'pergola' | 'none' }` (`walls: 'open'` and `roof: 'pergola'` additive 2026-11-17: open leaves out the room's exterior walls and windows, keeping walls shared with other rooms, with slim posts at bay edges under a roof; pergola is a roof of open slats)| 'stretch', roof?: 'flat' | 'none' }` (`windowLayout` additive 2026-11-17; absent = `repeat`, one window per bay; `stretch` = one window per façade, i.e. per room side over all its bays and storeys, inset from the façade outline by an even frame, same glazed share). No per-node overrides.\| 'none' }`. No per-node overrides. Unknown types are tolerated (no validation error). |
 
 Types: `DesignDocumentV2`, `RoomNode`, `RelationshipEdge`, `RoomSize`, `TypeAppearance`, `DesignSettings`, `RelationshipKind`, `ConnectorStyle`, `RoofStyle`.
 
@@ -124,7 +124,7 @@ type DesignCommand =
   | { type: 'remove-edge'; edgeId }
   | { type: 'change-edge-kind'; edgeId; kind: 'access' | 'open' }
   | { type: 'set-connector-style'; edgeId; style: ConnectorStyle | null }   // null → default
-  | { type: 'set-type-appearance'; typeId; patch: { windowFraction?: number | null; windowLayout?: WindowLayout | null; roof?: RoofStyle | null } } // null → inherit
+  | { type: 'set-type-appearance'; typeId; patch: { windowFraction?: number | null; windowLayout?: WindowLayout | null; walls?: WallStyle | null; roof?: RoofStyle | null } } // null → inherit
   | { type: 'set-edge-attributes'; edgeId; attributes };   // additive (project attributes, docs/PROJECT-ATTRIBUTES.md)
 ```
 

@@ -25,6 +25,7 @@ import {
   setRoofEdit,
   setWindowFractionEdit,
   setWindowLayoutEdit,
+  setWallsEdit,
   type DesignerEdit,
 } from './designerModel';
 import { buildBuildingV2 } from '@app/building';
@@ -198,6 +199,38 @@ describe('window layout per function', () => {
     expect(apply(both, resetTypeEdit(both, 'gallery')).settings.typeAppearance).toEqual({});
   });
 
+  it('Open walls and Pergola roofs are per function: stored, reset and drawn', () => {
+    const doc = labDocV2();
+    expect(setWallsEdit(doc, 'kiosk', 'enclosed').kind).toBe('unchanged');
+    expect(setWallsEdit(doc, 'kiosk', 'half').kind).toBe('invalid');
+    const open = apply(doc, setWallsEdit(doc, 'kiosk', 'open'));
+    expect(open.settings.typeAppearance).toEqual({ kiosk: { walls: 'open' } });
+    const text = serializeDesignV2(apply(open, setRoofEdit(open, 'kiosk', 'pergola')));
+    expect(expectOk(readDesignJson(text)).doc.settings.typeAppearance).toEqual({ kiosk: { walls: 'open', roof: 'pergola' } });
+    expect(apply(open, resetTypeEdit(open, 'kiosk', 'walls')).settings.typeAppearance).toEqual({});
+
+    const parts = (typeAppearance: Record<string, unknown>, owner: string) =>
+      buildBuildingV2(labDocV2(typeAppearance), { facade: exampleFacadeProvider }).elements.filter((e) => e.ownerNodeId === owner);
+    const P = 0.15 + 1e-9;
+    // Open + flat roof: no glazing; the only exterior wall parts are slim posts; the roof stays.
+    const pavilion = parts({ kiosk: { walls: 'open' } }, 'k1');
+    expect(pavilion.some((e) => e.part === 'glazing')).toBe(false);
+    const posts = pavilion.filter((e) => e.part === 'wall' && e.condition === 'exterior');
+    expect(posts.length).toBe(8); // two per side, four sides
+    expect(posts.every((e) => [e.size[0], e.size[2]].filter((d) => d <= P).length === 2)).toBe(true);
+    expect(pavilion.filter((e) => e.part === 'roof')).toHaveLength(1);
+    // Open + no roof: a floor only.
+    const terrace = parts({ kiosk: { walls: 'open', roof: 'none' } }, 'k1');
+    expect(terrace.map((e) => e.part).sort()).toEqual(['slab']);
+    // Pergola roof on an enclosed room: open slats instead of one roof plate; walls unchanged.
+    const pergola = parts({ studio: { roof: 'pergola' } }, 's1');
+    expect(pergola.filter((e) => e.part === 'roof')).toHaveLength(6);
+    expect(parts({}, 's1').filter((e) => e.part === 'wall').length).toBe(pergola.filter((e) => e.part === 'wall').length);
+    // A wall shared with another room stays even when the room is open-sided.
+    const g1 = parts({ gallery: { walls: 'open' } }, 'g1');
+    expect(g1.some((e) => e.part === 'wall' && e.condition === 'door')).toBe(true);
+  });
+
   it('the Building changes the windows of the Stretch function only', () => {
     const glass = (typeAppearance: Record<string, unknown>, typeId: string) =>
       buildBuildingV2(labDocV2(typeAppearance), { facade: exampleFacadeProvider })
@@ -248,7 +281,7 @@ describe('selected relationship summary', () => {
       style: 'deck',
       styleIsDefault: false,
     });
-    expect(selectedRelationship(doc, selectEdge('e1'), spatial)).toMatchObject({ style: 'enclosed', styleIsDefault: true, status: 'direct' });
+    expect(selectedRelationship(doc, selectEdge('e1'), spatial)).toMatchObject({ style: 'deck', styleIsDefault: true, status: 'direct' });
     expect(selectedRelationship(doc, selectNode('g1'), spatial)).toBeNull();
     expect(selectedRelationship(doc, selectEdge('missing'), spatial)).toBeNull();
   });
@@ -291,9 +324,9 @@ describe('DesignerPanel (static render)', () => {
     expect(html).toMatch(/40 % · Stretch · Flat roof · 1 room · changed/);
   });
 
-  it('the guide has a clear order: title, lead, numbered Windows / Layout / Roof, then defaults', () => {
+  it('the guide has a clear order: title, lead, numbered Walls / Windows / Layout / Roof, then defaults', () => {
     const html = renderToStaticMarkup(createElement(DesignerGuideContent, { titleId: 't', descriptionId: 'd' }));
-    const order = ['<h2 id="t"', '<p id="d"', '>1</span> Windows', '>2</span> Layout: Repeat or Stretch', '>3</span> Roof', 'Defaults and reset'].map((x) => html.indexOf(x));
+    const order = ['<h2 id="t"', '<p id="d"', '>1</span> Walls', '>2</span> Windows', '>3</span> Layout: Repeat or Stretch', '>4</span> Roof', 'Defaults and reset'].map((x) => html.indexOf(x));
     expect(order.every((i) => i >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(html).toContain('data-diagram="repeat-stretch"');

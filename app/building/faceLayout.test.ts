@@ -55,7 +55,7 @@ describe('layoutFaces', () => {
     expect(open.openings).toEqual([{ kind: 'open', rect: { u0: -open.frame.width / 2, u1: open.frame.width / 2, v0: -H / 2, v1: H / 2 }, edgeId: 'e2' }]);
   });
 
-  it('window layout: Stretch is ONE window per façade (room side), split over its bays without dividing strips', () => {
+  it('window layout: Stretch is ONE window per façade that follows its outline with an even frame', () => {
     const opts = { facade: () => ({ windowFraction: 0.25 }), windowLayout: () => 'stretch' as const };
     const bay = (cellAt: [number, number, number], direction: FaceDirection, owner = 'n'): ResolvedFace => ({
       ...face(direction, 'exterior', 'g'),
@@ -63,36 +63,50 @@ describe('layoutFaces', () => {
       ownerNodeId: owner,
       cell: cellAt,
     });
-    const holes = (faces: ResolvedFace[]) => layoutFaces(faces, opts).map((l) => l.openings.find((o) => o.kind === 'window')?.rect ?? null);
+    const glassOf = (faces: ResolvedFace[], o: object = opts) =>
+      layoutFaces(faces, o).map((l) => l.openings.filter((x) => x.kind === 'window').map((x) => x.rect));
+    const total = (rects: FaceRect[][]) => rects.flat().reduce((sum, r) => sum + area(r), 0);
+    const inside = (rects: FaceRect[], u: number, v: number) => rects.some((r) => u > r.u0 && u < r.u1 && v > r.v0 && v < r.v1);
+    const covered = (l: { solids: readonly FaceRect[]; openings: readonly { rect: FaceRect }[] }) =>
+      l.solids.reduce((sum, r) => sum + area(r), 0) + l.openings.reduce((sum, o) => sum + area(o.rect), 0);
 
-    // One bay: the façade is the bay, so Stretch looks like Repeat.
+    // One bay: the façade is the bay, so Stretch gives the Repeat window.
     const repeat = layoutFace(face('+y', 'exterior', 'g'), { facade: () => ({ windowFraction: 0.25 }) }).openings[0]!.rect;
-    expect(holes([bay([1, 2, 0], '+y')])[0]).toEqual(repeat);
+    const [single] = glassOf([bay([1, 2, 0], '+y')]);
+    expect(single).toHaveLength(1);
+    for (const k of ['u0', 'u1', 'v0', 'v1'] as const) expect(single![0]![k]).toBeCloseTo(repeat[k]);
 
-    // Two bays side by side: one window W × H/2 centred on the seam; each bay holds half, reaching the seam.
-    const [a, b] = holes([bay([1, 2, 0], '+y'), bay([2, 2, 0], '+y')]);
-    expect(a).toMatchObject({ u0: 0, u1: W / 2 });
-    expect(b).toMatchObject({ u0: -W / 2, u1: 0 });
-    expect(area(a!) + area(b!)).toBeCloseTo(0.25 * 2 * W * H);
+    // Two bays side by side: one window, same frame on every outer edge, no wall at the seam.
+    const two = glassOf([bay([1, 2, 0], '+y'), bay([2, 2, 0], '+y')]);
+    expect(total(two)).toBeCloseTo(0.25 * 2 * W * H);
+    const [a1, b1] = [two[0]![0]!, two[1]![0]!];
+    expect(a1.u1).toBeCloseTo(W / 2);
+    expect(b1.u0).toBeCloseTo(-W / 2);
+    expect(a1.u0 + W / 2).toBeCloseTo(W / 2 - b1.u1); // equal frame left and right
+    expect(a1.v0).toBeCloseTo(b1.v0);
 
-    // ±x walls overlap by the wall thickness: the window opens to the panel edge at the seam.
-    const [c, d] = holes([bay([1, 2, 0], '+x'), bay([1, 3, 0], '+x')]);
-    const edges = [c!.u0, c!.u1, d!.u0, d!.u1].map((v) => Math.abs(v));
-    expect(edges).toContain((W + DEFAULT_WALL_THICKNESS) / 2);
+    // L-shaped façade (a neighbour covers the upper-right bay): an L-shaped window with a frame
+    // at the inner corner, never a rectangle across the covered bay.
+    const lFaces = [bay([1, 2, 0], '+y'), bay([2, 2, 0], '+y'), bay([1, 2, 1], '+y')];
+    const L = glassOf(lFaces);
+    expect(total(L)).toBeCloseTo(0.25 * 3 * W * H);
+    const corner = L[0]!; // bay (0,0): touches the inner corner at its top-right
+    expect(inside(corner, W / 2 - 0.01, H / 2 - 0.01)).toBe(false); // inner corner keeps its frame
+    expect(inside(corner, W / 2 - 0.01, 0)).toBe(true); // continues right into bay (1,0)
+    expect(inside(corner, 0, H / 2 - 0.01)).toBe(true); // continues up into bay (0,1)
+    // Every bay is fully covered by wall + glass, with nothing left open.
+    for (const l of layoutFaces(lFaces, opts)) expect(covered(l)).toBeCloseTo(l.frame.width * l.frame.height);
 
-    // Two storeys of one room: one window spanning both, meeting at the storey line.
-    const [low, high] = holes([bay([1, 2, 0], '+y'), bay([1, 2, 1], '+y')]);
-    expect(low!.v1).toBeCloseTo(H / 2);
-    expect(high!.v0).toBeCloseTo(-H / 2);
+    // ±x walls overlap by the wall thickness: at a seam the glass reaches the panel edge.
+    const x = glassOf([bay([1, 2, 0], '+x'), bay([1, 3, 0], '+x')]).flat();
+    expect(x.map((r) => Math.max(Math.abs(r.u0), Math.abs(r.u1)))).toContainEqual(expect.closeTo((W + DEFAULT_WALL_THICKNESS) / 2));
 
-    // Different rooms are different façades; other types keep Repeat.
-    const [p, q] = holes([bay([1, 2, 0], '+y', 'n'), bay([2, 2, 0], '+y', 'm')]);
-    expect(p).toEqual(repeat);
-    expect(q).toEqual(repeat);
+    // Different rooms are different façades; other types keep Repeat; 0 % has no glass.
+    const [p] = glassOf([bay([1, 2, 0], '+y', 'n'), bay([2, 2, 0], '+y', 'm')]);
+    expect(p![0]!.u0).toBeCloseTo(repeat.u0);
     const mixed = layoutFaces([face('+y', 'exterior', 'h')], { ...opts, windowLayout: (t: string) => (t === 'g' ? 'stretch' : 'repeat') });
     expect(mixed[0]!.openings[0]!.rect).toEqual(repeat);
-    expect(holes([{ ...bay([1, 2, 0], '+y') }]).length).toBe(1);
-    expect(layoutFaces([bay([1, 2, 0], '+y')], { ...opts, facade: () => ({ windowFraction: 0 }) })[0]!.openings).toHaveLength(0);
+    expect(glassOf([bay([1, 2, 0], '+y')], { ...opts, facade: () => ({ windowFraction: 0 }) })[0]).toHaveLength(0);
   });
 
   it('a closed façade, solid partitions and exterior slabs are one solid panel with no openings', () => {

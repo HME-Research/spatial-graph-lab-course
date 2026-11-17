@@ -191,12 +191,13 @@ describe('display ids and appearance settings', () => {
     expect(effectiveTypeAppearance(doc, 'gallery', { windowFraction: 0.7 })).toEqual({
       windowFraction: 0.3,
       windowLayout: 'repeat',
+      walls: 'enclosed',
       roof: 'flat',
-      source: { windowFraction: 'design', windowLayout: 'default', roof: 'default' },
+      source: { windowFraction: 'design', windowLayout: 'default', walls: 'default', roof: 'default' },
     });
     expect(effectiveTypeAppearance(doc, 'studio', { windowFraction: 0.25 }).windowFraction).toBe(0.25);
     expect(effectiveTypeAppearance(doc, 'constructor', { windowFraction: 0.1 }).windowFraction).toBe(0.1);
-    expect(connectorStyleOf(doc.edges[0]!)).toBe('enclosed');
+    expect(connectorStyleOf(doc.edges[0]!)).toBe('deck');
   });
 
   it('window layout is stored per type (default repeat), round-trips, and unknown layouts are rejected', () => {

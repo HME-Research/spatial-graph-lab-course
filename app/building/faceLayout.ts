@@ -63,12 +63,20 @@ export interface FaceLayout<F extends ResolvedFace = ResolvedFace> {
 
 /** How a node type's windows are placed along its walls (default: `repeat`). */
 export type WindowLayoutProvider = (typeId: string) => 'repeat' | 'stretch';
+/** Whether a node type's exterior walls are built (default: `enclosed`). */
+export type WallStyleProvider = (typeId: string) => 'enclosed' | 'open';
+/** A node type's roof on exposed tops (default: `flat`; `none` tops are removed before layout). */
+export type RoofStyleProvider = (typeId: string) => 'flat' | 'pergola' | 'none';
 
 export interface FaceLayoutOptions {
   readonly cell?: CellSize;
   readonly facade?: FacadeProvider;
   /** Window placement per node type (absent: every type repeats one window per bay). */
   readonly windowLayout?: WindowLayoutProvider;
+  /** Open types have no exterior walls (absent: every type is enclosed). */
+  readonly walls?: WallStyleProvider;
+  /** Roof per node type: pergola tops are laid out as slats (absent: flat). */
+  readonly roof?: RoofStyleProvider;
   readonly wallThickness?: number;
 }
 
@@ -85,6 +93,11 @@ export const OPENING_PROPORTIONS = Object.freeze({
   accessDepthFraction: 0.6,
   accessOffsetFraction: 0.25,
   markerWidth: 0.12,
+  /** Open-sided rooms with a roof: a slim post at each bay edge (m). */
+  postWidth: 0.15,
+  /** Pergola: slats across each roof bay, as a fraction of the bay width, and how many per bay. */
+  pergolaSlatFraction: 0.06,
+  pergolaSlats: 6,
   thresholdDepthFraction: 0.5,
 });
 
@@ -211,15 +224,43 @@ export function openingArea(condition: FaceCondition, orientation: FaceOrientati
 
 const dot = (a: Vec3 | WorldPoint, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 
+/** One bay's share of a Stretch window: its glass parts and the wall parts around them. */
+export interface StretchBay {
+  readonly glass: readonly FaceRect[];
+  readonly solid: readonly FaceRect[];
+}
+
+/** Merge rectangles of one 3×3 grid: first along u within a row, then identical u spans along v. */
+function mergeGrid(rects: readonly FaceRect[]): FaceRect[] {
+  const rows: FaceRect[] = [];
+  for (const r of [...rects].sort((p, q) => p.v0 - q.v0 || p.u0 - q.u0)) {
+    const last = rows[rows.length - 1];
+    if (last && Math.abs(last.v0 - r.v0) < EPS && Math.abs(last.v1 - r.v1) < EPS && Math.abs(last.u1 - r.u0) < EPS) rows[rows.length - 1] = { ...last, u1: r.u1 };
+    else rows.push(r);
+  }
+  const out: FaceRect[] = [];
+  for (const r of rows.sort((p, q) => p.u0 - q.u0 || p.u1 - q.u1 || p.v0 - q.v0)) {
+    const last = out[out.length - 1];
+    if (last && Math.abs(last.u0 - r.u0) < EPS && Math.abs(last.u1 - r.u1) < EPS && Math.abs(last.v1 - r.v0) < EPS) out[out.length - 1] = { ...last, v1: r.v1 };
+    else out.push(r);
+  }
+  return out;
+}
+
 /**
  * Stretch windows: each FAÇADE (the exterior walls of one room on one side, over all its bays and
- * storeys) gets ONE window, centred on the façade with its proportions and `windowFraction` of its
- * area. Each bay shows the part of that window that falls on it; where the window continues into
- * the next bay it reaches the panel edge, so no wall strip divides it. Returns the window part of
- * every exterior wall face whose type uses `stretch` (null: no glass on that bay).
+ * storeys) gets ONE window that follows the façade's own outline, inset by an even frame: an L-shaped
+ * façade gets an L-shaped window, never a rectangle floating in the middle.
+ *
+ * Each bay is split into a 3×3 grid (frame | middle | frame, along and up). The middle is glass; an
+ * edge strip is glass only where the façade continues past that edge (so neighbouring bays join with
+ * no dividing wall); a corner only where the façade continues on both sides AND diagonally (so an
+ * inner corner of an L keeps its frame). The frame is `t·W/2` along and `t·H/2` up, with `t` solved
+ * per façade so the glass is `windowFraction` of the façade's area (one bay: the Repeat window).
+ * Returns the glass and wall parts of every exterior wall face whose type uses `stretch`.
  */
-export function stretchWindows(faces: readonly ResolvedFace[], options: FaceLayoutOptions = {}): Map<string, FaceRect | null> {
-  const out = new Map<string, FaceRect | null>();
+export function stretchWindows(faces: readonly ResolvedFace[], options: FaceLayoutOptions = {}): Map<string, StretchBay> {
+  const out = new Map<string, StretchBay>();
   const layoutOf = options.windowLayout;
   if (!layoutOf) return out;
   const cell = options.cell ?? DEFAULT_CELL_SIZE;
@@ -231,6 +272,7 @@ export function stretchWindows(faces: readonly ResolvedFace[], options: FaceLayo
   const groups = new Map<string, Bay[]>();
   for (const face of faces) {
     if (face.orientation !== 'wall' || face.condition !== 'exterior' || layoutOf(face.ownerTypeId) !== 'stretch') continue;
+    if (options.walls?.(face.ownerTypeId) === 'open') continue;
     const frame = frameFor(face.direction, faceCentre(face.cell, face.direction, cell), cell, wallT);
     const key = `${face.ownerNodeId}\u0000${face.direction}`;
     const bays = groups.get(key) ?? [];
@@ -239,45 +281,68 @@ export function stretchWindows(faces: readonly ResolvedFace[], options: FaceLayo
   }
   for (const bays of groups.values()) {
     const f = clampWindowFraction(facade(bays[0]!.face.ownerTypeId).windowFraction);
-    const s = Math.sqrt(f);
-    const uMin = Math.min(...bays.map((b) => b.along - W / 2));
-    const uMax = Math.max(...bays.map((b) => b.along + W / 2));
-    const vMin = Math.min(...bays.map((b) => b.up - H / 2));
-    const vMax = Math.max(...bays.map((b) => b.up + H / 2));
-    const cu = (uMin + uMax) / 2;
-    const cv = (vMin + vMax) / 2;
-    const hw = ((uMax - uMin) / 2) * s;
-    const hh = ((vMax - vMin) / 2) * s;
-    for (const { face, frame, along, up } of bays) {
-      if (f <= 0) {
-        out.set(face.id, null);
-        continue;
-      }
-      const lo = cu - hw - along;
-      const hi = cu + hw - along;
-      let u0 = Math.max(lo, -W / 2);
-      let u1 = Math.min(hi, W / 2);
-      const v0 = Math.max(cv - hh - up, -H / 2);
-      const v1 = Math.min(cv + hh - up, H / 2);
-      if (u1 - u0 <= EPS || v1 - v0 <= EPS) {
-        out.set(face.id, null);
-        continue;
-      }
-      // The window continues into the neighbouring bay: open to the panel edge (no dividing strip).
-      if (lo < -W / 2 - EPS) u0 = -frame.width / 2;
-      if (hi > W / 2 + EPS) u1 = frame.width / 2;
-      out.set(face.id, { u0, u1, v0, v1 });
+    const u0 = Math.min(...bays.map((b) => b.along));
+    const v0 = Math.min(...bays.map((b) => b.up));
+    const at = (b: Bay): [number, number] => [Math.round((b.along - u0) / W), Math.round((b.up - v0) / H)];
+    const exposed = new Set(bays.map((b) => at(b).join(',')));
+    const has = (i: number, j: number) => exposed.has(`${i},${j}`);
+    /** 3×3 glass mask of a bay: [column 0..2 along u][row 0..2 along v]. */
+    const masks = bays.map((b) => {
+      const [i, j] = at(b);
+      const side = [has(i - 1, j), true, has(i + 1, j)];
+      const level = [has(i, j - 1), true, has(i, j + 1)];
+      return [0, 1, 2].map((c) =>
+        [0, 1, 2].map((r) => {
+          if (c === 1 || r === 1) return side[c]! && level[r]!;
+          return side[c]! && level[r]! && has(i + c - 1, j + r - 1);
+        }),
+      );
+    });
+    // Glass area for a frame of t (0..1): monotone decreasing, so solve t by bisection.
+    const glassArea = (t: number) => {
+      const mu = (t * W) / 2;
+      const mv = (t * H) / 2;
+      const cw = [mu, W - 2 * mu, mu];
+      const rh = [mv, H - 2 * mv, mv];
+      let sum = 0;
+      for (const m of masks) for (let c = 0; c < 3; c++) for (let r = 0; r < 3; r++) if (m[c]![r]) sum += cw[c]! * rh[r]!;
+      return sum;
+    };
+    const target = f * bays.length * W * H;
+    let lo = 0;
+    let hi = 1;
+    for (let k = 0; k < 60; k++) {
+      const mid = (lo + hi) / 2;
+      if (glassArea(mid) > target) lo = mid;
+      else hi = mid;
     }
+    const t = f >= 1 ? 0 : (lo + hi) / 2;
+    const mu = (t * W) / 2;
+    const mv = (t * H) / 2;
+    bays.forEach((b, k) => {
+      const panel = fullFaceRect(b.frame);
+      const cols = [panel.u0, -W / 2 + mu, W / 2 - mu, panel.u1];
+      const rows = [panel.v0, -H / 2 + mv, H / 2 - mv, panel.v1];
+      const glass: FaceRect[] = [];
+      const solid: FaceRect[] = [];
+      for (let c = 0; c < 3; c++) {
+        for (let r = 0; r < 3; r++) {
+          const rect = { u0: cols[c]!, u1: cols[c + 1]!, v0: rows[r]!, v1: rows[r + 1]! };
+          if (rect.u1 - rect.u0 <= EPS || rect.v1 - rect.v0 <= EPS) continue;
+          (f > 0 && masks[k]![c]![r] ? glass : solid).push(rect);
+        }
+      }
+      out.set(b.face.id, { glass: mergeGrid(glass), solid: mergeGrid(solid) });
+    });
   }
   return out;
 }
 
 /**
- * Layout of one face. `stretchWindow` (from `stretchWindows` over the whole building) is this
- * face's part of its façade's Stretch window; when omitted, a Stretch face is treated as a façade
- * of one bay.
+ * Layout of one face. `stretch` (from `stretchWindows` over the whole building) is this face's
+ * part of its façade's Stretch window; when omitted, a Stretch face is treated as a façade of one bay.
  */
-export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutOptions = {}, stretchWindow?: FaceRect | null): FaceLayout<F> {
+export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutOptions = {}, stretch?: StretchBay): FaceLayout<F> {
   const cell = options.cell ?? DEFAULT_CELL_SIZE;
   const facade = options.facade ?? exampleFacadeProvider;
   const wallT = options.wallThickness ?? DEFAULT_WALL_THICKNESS;
@@ -290,12 +355,24 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
   if (face.orientation === 'wall') {
     switch (face.condition) {
       case 'exterior': {
-        const hole =
-          options.windowLayout?.(face.ownerTypeId) === 'stretch'
-            ? stretchWindow !== undefined
-              ? stretchWindow
-              : (stretchWindows([face], options).get(face.id) ?? null)
-            : windowRect(cell, facade(face.ownerTypeId).windowFraction);
+        if (options.walls?.(face.ownerTypeId) === 'open') {
+          // No exterior wall. With a roof above, a slim post at each bay edge carries it.
+          if ((options.roof?.(face.ownerTypeId) ?? 'flat') !== 'none') {
+            const p = OPENING_PROPORTIONS.postWidth;
+            const half = cell.horizontal / 2;
+            solids.push({ u0: -half, u1: -half + p, v0: panel.v0, v1: panel.v1 }, { u0: half - p, u1: half, v0: panel.v0, v1: panel.v1 });
+          }
+          break;
+        }
+        if (options.windowLayout?.(face.ownerTypeId) === 'stretch') {
+          const part = stretch ?? stretchWindows([face], options).get(face.id);
+          if (part) {
+            solids.push(...part.solid);
+            for (const g of part.glass) opening('window', g, null);
+            break;
+          }
+        }
+        const hole = windowRect(cell, facade(face.ownerTypeId).windowFraction);
         if (hole === null) solids.push(panel);
         else {
           solids.push(...rectsAroundHole(panel, hole));
@@ -335,6 +412,17 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
         break;
       }
       default:
+        if (face.condition === 'exterior' && face.direction === '+z' && options.roof?.(face.ownerTypeId) === 'pergola') {
+          // Pergola: open slats running along v, evenly spaced across the bay.
+          const n = OPENING_PROPORTIONS.pergolaSlats;
+          const w = cell.horizontal * OPENING_PROPORTIONS.pergolaSlatFraction;
+          const step = (panel.u1 - panel.u0 - w) / (n - 1);
+          for (let k = 0; k < n; k++) {
+            const u0 = panel.u0 + k * step;
+            solids.push({ u0, u1: u0 + w, v0: panel.v0, v1: panel.v1 });
+          }
+          break;
+        }
         // `exterior` (roof / underside) or `solid` separation between storeys.
         solids.push(panel);
     }
@@ -345,7 +433,7 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
 /** Layout of every face, in input order. Pure and deterministic. */
 export function layoutFaces<F extends ResolvedFace>(faces: readonly F[], options: FaceLayoutOptions = {}): FaceLayout<F>[] {
   const stretch = stretchWindows(faces, options);
-  return faces.map((face) => layoutFace(face, options, stretch.has(face.id) ? (stretch.get(face.id) ?? null) : undefined));
+  return faces.map((face) => layoutFace(face, options, stretch.get(face.id)));
 }
 
 /** Axis-aligned world box of a face-local rectangle with the given thickness along the normal. */

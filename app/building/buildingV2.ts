@@ -1,7 +1,7 @@
 import { effectiveTypeAppearance, type ConnectorStyle, type DesignDocumentV2 } from '@app/document/v2';
 import { resolveRelationships, type ResolutionStatus, type SpatialResolution, type UnresolvedReason } from '@app/spatial';
 import type { FacadeProvider } from './contracts';
-import type { WindowLayoutProvider } from './faceLayout';
+import type { RoofStyleProvider, WallStyleProvider, WindowLayoutProvider } from './faceLayout';
 import { buildConnector, type ConnectorElement } from './connectorGeometry';
 import { exampleFacadeProvider } from './facade';
 import { buildArchitecture, type ArchitectureOptions, type ArchitecturalElement } from './geometry';
@@ -76,20 +76,30 @@ export function buildingFacesV2(
   doc: DesignDocumentV2,
   spatial: SpatialResolution,
   base: FacadeProvider = exampleFacadeProvider,
-): { readonly faces: BuildingFace[]; readonly facade: FacadeProvider; readonly windowLayout: WindowLayoutProvider } {
+): {
+  readonly faces: BuildingFace[];
+  readonly facade: FacadeProvider;
+  readonly windowLayout: WindowLayoutProvider;
+  readonly walls: WallStyleProvider;
+  readonly roof: RoofStyleProvider;
+} {
   const appearance = (typeId: string) => effectiveTypeAppearance(doc, typeId, base(typeId));
   const facade: FacadeProvider = (typeId) => ({ windowFraction: appearance(typeId).windowFraction });
   const windowLayout: WindowLayoutProvider = (typeId) => appearance(typeId).windowLayout;
+  const walls: WallStyleProvider = (typeId) => appearance(typeId).walls;
+  const roof: RoofStyleProvider = (typeId) => appearance(typeId).roof;
   const faces = applyRoofPolicy(resolveBuildingFaces(doc, spatial), (t) => appearance(t).roof);
-  return { faces, facade, windowLayout };
+  return { faces, facade, windowLayout, walls, roof };
 }
 
 export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Options = {}): BuildingModelV2 {
   const spatial = options.spatial ?? resolveRelationships(doc);
-  const { faces, facade, windowLayout } = buildingFacesV2(doc, spatial, options.facade ?? exampleFacadeProvider);
+  const { faces, facade, windowLayout, walls, roof } = buildingFacesV2(doc, spatial, options.facade ?? exampleFacadeProvider);
   const elements = buildArchitecture(faces.map(toResolvedFace), {
     facade,
     windowLayout,
+    walls,
+    roof,
     ...(options.cell ? { cell: options.cell } : {}),
     ...(options.wallThickness !== undefined ? { wallThickness: options.wallThickness } : {}),
     ...(options.slabThickness !== undefined ? { slabThickness: options.slabThickness } : {}),

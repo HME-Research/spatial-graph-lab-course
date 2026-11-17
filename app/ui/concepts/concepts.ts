@@ -60,7 +60,7 @@ export const CONCEPTS: Readonly<Record<ConceptId, Concept>> = {
     lead: 'Two ways to place a function’s windows along its walls. Both use the same amount of glass.',
     parts: [
       { heading: 'Repeat', text: 'One window per 3 m bay, keeping its proportions, placed again and again along the wall.' },
-      { heading: 'Stretch', text: 'One single window stretched over the whole façade of the room (all its bays and storeys on that side).' },
+      { heading: 'Stretch', text: 'One window over the whole façade of the room, following its outline with an even frame (an L-shaped wall gets an L-shaped window).' },
     ],
     diagramLabel: 'A wall with four identical window modules (Repeat) above a wall with one wide stretched module (Stretch).',
   },

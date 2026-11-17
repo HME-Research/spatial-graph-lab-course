@@ -9,6 +9,8 @@ import {
   faceRectBox,
   layoutFaces,
   type WindowLayoutProvider,
+  type WallStyleProvider,
+  type RoofStyleProvider,
 } from './faceLayout';
 
 // Re-exported for existing callers; the definitions now live in faceLayout.ts (Gate F, F-C).
@@ -65,6 +67,10 @@ export interface ArchitectureOptions {
   readonly facade?: FacadeProvider;
   /** Window placement per node type (see `FaceLayoutOptions.windowLayout`). */
   readonly windowLayout?: WindowLayoutProvider;
+  /** Open-sided types (see `FaceLayoutOptions.walls`). */
+  readonly walls?: WallStyleProvider;
+  /** Roof per type, for pergola slats (see `FaceLayoutOptions.roof`). */
+  readonly roof?: RoofStyleProvider;
   readonly wallThickness?: number;
   readonly slabThickness?: number;
 }
@@ -121,7 +127,7 @@ export function buildArchitecture(faces: readonly ResolvedFace[], options: Archi
       for (const opening of layout.openings) {
         if (opening.kind === 'window') emit('glazing', faceRectBox(frame, opening.rect, wallT * 0.3));
         else if (opening.kind === 'open') {
-          // No partition. A flat floor strip keeps the relationship visible and pickable.
+          // No partition. A flat floor strip keeps the relationship pickable (the Building draws it invisibly unless hovered or selected).
           const u = axisIndex(frame.u);
           const n = axisIndex(frame.normal);
           const floorTop = centre[1] - cell.vertical / 2 + slabT / 2;

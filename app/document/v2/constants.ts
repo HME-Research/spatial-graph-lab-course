@@ -25,14 +25,15 @@ export const DEFAULT_RELATIONSHIP_KIND: RelationshipKind = 'access';
  */
 export const CONNECTOR_STYLES = ['enclosed', 'covered', 'deck'] as const;
 export type ConnectorStyle = (typeof CONNECTOR_STYLES)[number];
-export const DEFAULT_CONNECTOR_STYLE: ConnectorStyle = 'enclosed';
+export const DEFAULT_CONNECTOR_STYLE: ConnectorStyle = 'deck';
 
 /**
  * Roof of a node type's exposed upward faces (per design, per type). `flat` is the default;
- * `none` leaves the top open (the pre-v2 "open-top" inspection look). Roofs are only ever
- * generated on exposed upward faces, never between stacked rooms. Pitched roofs are not in MVP.
+ * `pergola` (additive 2026-11-17) is a roof of open slats; `none` leaves the top open (the pre-v2
+ * "open-top" inspection look). Roofs are only ever generated on exposed upward faces, never
+ * between stacked rooms. Pitched roofs are not in MVP.
  */
-export const ROOF_STYLES = ['flat', 'none'] as const;
+export const ROOF_STYLES = ['flat', 'pergola', 'none'] as const;
 export type RoofStyle = (typeof ROOF_STYLES)[number];
 export const DEFAULT_ROOF_STYLE: RoofStyle = 'flat';
 
@@ -40,11 +41,21 @@ export const DEFAULT_ROOF_STYLE: RoofStyle = 'flat';
  * How a node type's exterior windows are placed along its walls (per design, per type; additive
  * 2026-11-17). Both glaze the same share of the wall (`windowFraction`):
  * - `repeat` (default): one window per cell bay, keeping the wall's proportions, repeated along the wall;
- * - `stretch`: ONE window per façade (a room's exterior walls on one side, all bays and storeys), centred.
+ * - `stretch`: ONE window per façade (a room's exterior walls on one side, all bays and storeys), following its outline with an even frame.
  */
 export const WINDOW_LAYOUTS = ['repeat', 'stretch'] as const;
 export type WindowLayout = (typeof WINDOW_LAYOUTS)[number];
 export const DEFAULT_WINDOW_LAYOUT: WindowLayout = 'repeat';
+
+/**
+ * Whether a node type's rooms are enclosed by exterior walls (per design, per type; additive
+ * 2026-11-17). `open` leaves out the room's EXTERIOR walls (and their windows), e.g. a pavilion,
+ * pergola or terrace; walls shared with another room stay, as the neighbour still needs them.
+ * Combine with the roof: open + flat = floor and roof; open + pergola; open + none = floor only.
+ */
+export const WALL_STYLES = ['enclosed', 'open'] as const;
+export type WallStyle = (typeof WALL_STYLES)[number];
+export const DEFAULT_WALL_STYLE: WallStyle = 'enclosed';
 
 /** Room size per axis in cells. Rooms are axis-aligned boxes anchored at their minimum corner. */
 export const DEFAULT_ROOM_SIZE = [1, 1, 1] as const;

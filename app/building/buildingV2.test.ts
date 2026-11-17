@@ -278,7 +278,7 @@ describe('unresolved relationships', () => {
 
 describe('straight connectors', () => {
   it.each<[ConnectorStyle | undefined, ConnectorStyle, Record<string, number>]>([
-    [undefined, 'enclosed', { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 6, 'connector-post': 0 }],
+    [undefined, 'deck', { 'connector-floor': 3, 'connector-roof': 0, 'connector-wall': 0, 'connector-post': 0 }],
     ['enclosed', 'enclosed', { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 6, 'connector-post': 0 }],
     ['covered', 'covered', { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 0, 'connector-post': 8 }],
     ['deck', 'deck', { 'connector-floor': 3, 'connector-roof': 0, 'connector-wall': 0, 'connector-post': 0 }],
@@ -290,7 +290,7 @@ describe('straight connectors', () => {
   });
 
   it('enclosed: side walls run along the route; both ends are open', () => {
-    const { model } = corridorFixture();
+    const { model } = corridorFixture('enclosed');
     const walls = model.connectors.filter((c) => c.part === 'connector-wall');
     // ±y side walls: normal along Three Z, at z = ∓W/2, x within the gap between the rooms.
     expect(walls.every((w) => Math.abs(Math.abs(w.position[2]) - W / 2) < 1e-9 && w.size[2] < W)).toBe(true);
@@ -403,7 +403,7 @@ describe('integration: real straight routing', () => {
     const real = buildBuildingV2(doc); // no injected spatial → resolveRelationships(doc)
     const r = resolveRelationships(doc).byEdge.get('ab')!;
     expect(r.status).toBe('routed');
-    expect(real.relationships.map((x) => [x.edgeId, x.geometry, x.connectorStyle])).toEqual([['ab', 'connector', 'enclosed']]);
+    expect(real.relationships.map((x) => [x.edgeId, x.geometry, x.connectorStyle])).toEqual([['ab', 'connector', 'deck']]);
     expect(real.connectors).toEqual(handBuilt.connectors);
   });
 

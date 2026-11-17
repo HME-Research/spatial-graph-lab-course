@@ -1,4 +1,4 @@
-import { DEFAULT_CONNECTOR_STYLE, DEFAULT_ROOF_STYLE, DEFAULT_WINDOW_LAYOUT, type ConnectorStyle, type RoofStyle, type WindowLayout } from './constants';
+import { DEFAULT_CONNECTOR_STYLE, DEFAULT_ROOF_STYLE, DEFAULT_WALL_STYLE, DEFAULT_WINDOW_LAYOUT, type ConnectorStyle, type RoofStyle, type WallStyle, type WindowLayout } from './constants';
 import type { DesignDocumentV2, RelationshipEdge } from './schema';
 
 /**
@@ -14,11 +14,13 @@ export interface ProjectTypeDefaults {
 export interface EffectiveTypeAppearance {
   readonly windowFraction: number;
   readonly windowLayout: WindowLayout;
+  readonly walls: WallStyle;
   readonly roof: RoofStyle;
   /** Where each value came from, for "Reset to project default" and explanations. */
   readonly source: {
     readonly windowFraction: 'design' | 'project';
     readonly windowLayout: 'design' | 'default';
+    readonly walls: 'design' | 'default';
     readonly roof: 'design' | 'default';
   };
 }
@@ -35,15 +37,17 @@ export function effectiveTypeAppearance(
   return {
     windowFraction: own?.windowFraction ?? project.windowFraction,
     windowLayout: own?.windowLayout ?? DEFAULT_WINDOW_LAYOUT,
+    walls: own?.walls ?? DEFAULT_WALL_STYLE,
     roof: own?.roof ?? DEFAULT_ROOF_STYLE,
     source: {
       windowFraction: own?.windowFraction === undefined ? 'project' : 'design',
       windowLayout: own?.windowLayout === undefined ? 'default' : 'design',
+      walls: own?.walls === undefined ? 'default' : 'design',
       roof: own?.roof === undefined ? 'default' : 'design',
     },
   };
 }
 
-/** Effective connector style of a relationship (`enclosed` unless set). */
+/** Effective connector style of a relationship (`deck`, open to the sky, unless set; was `enclosed` before 2026-11-17). */
 export const connectorStyleOf = (edge: Pick<RelationshipEdge, 'connectorStyle'>): ConnectorStyle =>
   edge.connectorStyle ?? DEFAULT_CONNECTOR_STYLE;

@@ -9061,7 +9061,7 @@
     {
       "id": "ab:route:0:connector-floor:0",
       "edgeId": "ab",
-      "style": "enclosed",
+      "style": "deck",
       "part": "connector-floor",
       "cell": [
         1,
@@ -9081,87 +9081,12 @@
         3,
         0.2,
         3
-      ]
-    },
-    {
-      "id": "ab:route:0:connector-roof:1",
-      "edgeId": "ab",
-      "style": "enclosed",
-      "part": "connector-roof",
-      "cell": [
-        1,
-        0,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "ab"
-      },
-      "position": [
-        3,
-        3,
-        0
-      ],
-      "size": [
-        3,
-        0.2,
-        3
-      ]
-    },
-    {
-      "id": "ab:route:0:connector-wall:2",
-      "edgeId": "ab",
-      "style": "enclosed",
-      "part": "connector-wall",
-      "cell": [
-        1,
-        0,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "ab"
-      },
-      "position": [
-        3,
-        1.5,
-        -1.5
-      ],
-      "size": [
-        3,
-        3,
-        0.15
-      ]
-    },
-    {
-      "id": "ab:route:0:connector-wall:3",
-      "edgeId": "ab",
-      "style": "enclosed",
-      "part": "connector-wall",
-      "cell": [
-        1,
-        0,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "ab"
-      },
-      "position": [
-        3,
-        1.5,
-        1.5
-      ],
-      "size": [
-        3,
-        3,
-        0.15
       ]
     },
     {
       "id": "ab:route:1:connector-floor:0",
       "edgeId": "ab",
-      "style": "enclosed",
+      "style": "deck",
       "part": "connector-floor",
       "cell": [
         2,
@@ -9181,87 +9106,12 @@
         3,
         0.2,
         3
-      ]
-    },
-    {
-      "id": "ab:route:1:connector-roof:1",
-      "edgeId": "ab",
-      "style": "enclosed",
-      "part": "connector-roof",
-      "cell": [
-        2,
-        0,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "ab"
-      },
-      "position": [
-        6,
-        3,
-        0
-      ],
-      "size": [
-        3,
-        0.2,
-        3
-      ]
-    },
-    {
-      "id": "ab:route:1:connector-wall:2",
-      "edgeId": "ab",
-      "style": "enclosed",
-      "part": "connector-wall",
-      "cell": [
-        2,
-        0,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "ab"
-      },
-      "position": [
-        6,
-        1.5,
-        -1.5
-      ],
-      "size": [
-        3,
-        3,
-        0.15
-      ]
-    },
-    {
-      "id": "ab:route:1:connector-wall:3",
-      "edgeId": "ab",
-      "style": "enclosed",
-      "part": "connector-wall",
-      "cell": [
-        2,
-        0,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "ab"
-      },
-      "position": [
-        6,
-        1.5,
-        1.5
-      ],
-      "size": [
-        3,
-        3,
-        0.15
       ]
     },
     {
       "id": "ab:route:2:connector-floor:0",
       "edgeId": "ab",
-      "style": "enclosed",
+      "style": "deck",
       "part": "connector-floor",
       "cell": [
         3,
@@ -9281,81 +9131,6 @@
         3,
         0.2,
         3
-      ]
-    },
-    {
-      "id": "ab:route:2:connector-roof:1",
-      "edgeId": "ab",
-      "style": "enclosed",
-      "part": "connector-roof",
-      "cell": [
-        3,
-        0,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "ab"
-      },
-      "position": [
-        9,
-        3,
-        0
-      ],
-      "size": [
-        3,
-        0.2,
-        3
-      ]
-    },
-    {
-      "id": "ab:route:2:connector-wall:2",
-      "edgeId": "ab",
-      "style": "enclosed",
-      "part": "connector-wall",
-      "cell": [
-        3,
-        0,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "ab"
-      },
-      "position": [
-        9,
-        1.5,
-        -1.5
-      ],
-      "size": [
-        3,
-        3,
-        0.15
-      ]
-    },
-    {
-      "id": "ab:route:2:connector-wall:3",
-      "edgeId": "ab",
-      "style": "enclosed",
-      "part": "connector-wall",
-      "cell": [
-        3,
-        0,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "ab"
-      },
-      "position": [
-        9,
-        1.5,
-        1.5
-      ],
-      "size": [
-        3,
-        3,
-        0.15
       ]
     },
     {
@@ -10411,7 +10186,7 @@
     {
       "id": "st:route:0:connector-floor:0",
       "edgeId": "st",
-      "style": "enclosed",
+      "style": "deck",
       "part": "connector-floor",
       "cell": [
         2,
@@ -10430,88 +10205,13 @@
       "size": [
         3,
         0.2,
-        3
-      ]
-    },
-    {
-      "id": "st:route:0:connector-roof:1",
-      "edgeId": "st",
-      "style": "enclosed",
-      "part": "connector-roof",
-      "cell": [
-        2,
-        10,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "st"
-      },
-      "position": [
-        6,
-        3,
-        -30
-      ],
-      "size": [
-        3,
-        0.2,
-        3
-      ]
-    },
-    {
-      "id": "st:route:0:connector-wall:2",
-      "edgeId": "st",
-      "style": "enclosed",
-      "part": "connector-wall",
-      "cell": [
-        2,
-        10,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "st"
-      },
-      "position": [
-        7.5,
-        1.5,
-        -30
-      ],
-      "size": [
-        0.15,
-        3,
-        3
-      ]
-    },
-    {
-      "id": "st:route:0:connector-wall:3",
-      "edgeId": "st",
-      "style": "enclosed",
-      "part": "connector-wall",
-      "cell": [
-        2,
-        10,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "st"
-      },
-      "position": [
-        4.5,
-        1.5,
-        -30
-      ],
-      "size": [
-        0.15,
-        3,
         3
       ]
     },
     {
       "id": "st:route:1:connector-floor:0",
       "edgeId": "st",
-      "style": "enclosed",
+      "style": "deck",
       "part": "connector-floor",
       "cell": [
         2,
@@ -10530,81 +10230,6 @@
       "size": [
         3,
         0.2,
-        3
-      ]
-    },
-    {
-      "id": "st:route:1:connector-roof:1",
-      "edgeId": "st",
-      "style": "enclosed",
-      "part": "connector-roof",
-      "cell": [
-        2,
-        11,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "st"
-      },
-      "position": [
-        6,
-        3,
-        -33
-      ],
-      "size": [
-        3,
-        0.2,
-        3
-      ]
-    },
-    {
-      "id": "st:route:1:connector-wall:2",
-      "edgeId": "st",
-      "style": "enclosed",
-      "part": "connector-wall",
-      "cell": [
-        2,
-        11,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "st"
-      },
-      "position": [
-        7.5,
-        1.5,
-        -33
-      ],
-      "size": [
-        0.15,
-        3,
-        3
-      ]
-    },
-    {
-      "id": "st:route:1:connector-wall:3",
-      "edgeId": "st",
-      "style": "enclosed",
-      "part": "connector-wall",
-      "cell": [
-        2,
-        11,
-        0
-      ],
-      "target": {
-        "kind": "edge",
-        "id": "st"
-      },
-      "position": [
-        4.5,
-        1.5,
-        -33
-      ],
-      "size": [
-        0.15,
-        3,
         3
       ]
     }
@@ -10622,19 +10247,10 @@
         "b:-x:wall:1",
         "b:-x:wall:2",
         "ab:route:0:connector-floor:0",
-        "ab:route:0:connector-roof:1",
-        "ab:route:0:connector-wall:2",
-        "ab:route:0:connector-wall:3",
         "ab:route:1:connector-floor:0",
-        "ab:route:1:connector-roof:1",
-        "ab:route:1:connector-wall:2",
-        "ab:route:1:connector-wall:3",
-        "ab:route:2:connector-floor:0",
-        "ab:route:2:connector-roof:1",
-        "ab:route:2:connector-wall:2",
-        "ab:route:2:connector-wall:3"
+        "ab:route:2:connector-floor:0"
       ],
-      "connectorStyle": "enclosed"
+      "connectorStyle": "deck"
     },
     {
       "edgeId": "cd",
@@ -10746,15 +10362,9 @@
         "t:0.0.0:-y:wall:1",
         "t:0.0.0:-y:wall:2",
         "st:route:0:connector-floor:0",
-        "st:route:0:connector-roof:1",
-        "st:route:0:connector-wall:2",
-        "st:route:0:connector-wall:3",
-        "st:route:1:connector-floor:0",
-        "st:route:1:connector-roof:1",
-        "st:route:1:connector-wall:2",
-        "st:route:1:connector-wall:3"
+        "st:route:1:connector-floor:0"
       ],
-      "connectorStyle": "enclosed"
+      "connectorStyle": "deck"
     }
   ]
 }

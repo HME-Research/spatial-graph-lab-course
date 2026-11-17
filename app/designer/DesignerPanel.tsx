@@ -1,7 +1,7 @@
-import { CollapsibleSection } from '@app/ui';
+import { CollapsibleSection, useRememberedOpen } from '@app/ui';
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { exampleFacadeProvider } from '@app/building';
-import { ROOF_STYLES, WINDOW_LAYOUTS } from '@app/document/v2';
+import { ROOF_STYLES, WALL_STYLES, WINDOW_LAYOUTS } from '@app/document/v2';
 import type { DesignPort } from '@app/spatial';
 import type { ProjectViewContext } from '@app/views/project';
 import { typeColor } from '@core/viewer/appearance';
@@ -17,6 +17,8 @@ import {
   setRoofEdit,
   setWindowFractionEdit,
   setWindowLayoutEdit,
+  setWallsEdit,
+  WALL_LABELS,
   WINDOW_LAYOUT_LABELS,
   type DesignerEdit,
   type DesignerTypeRow,
@@ -100,7 +102,7 @@ export function DesignerPanel({ design, project, selection, onShowRelationship }
             ))}
           </dl>
         )}
-        <p className="sgl-help">Corridors default to Enclosed; choose another style per relationship in Properties.</p>
+        <p className="sgl-help">Corridors default to Deck (floor only, open to the sky); choose another style per relationship in Properties.</p>
         {relationship && (
           <section className="sgl-designer-relationship" aria-label="Selected relationship">
             <p>
@@ -132,6 +134,7 @@ export function DesignerPanel({ design, project, selection, onShowRelationship }
                   }
                   onInvalid={setError}
                   onLayout={(layout) => send(setWindowLayoutEdit(doc, row.typeId, layout))}
+                  onWalls={(walls) => send(setWallsEdit(doc, row.typeId, walls))}
                   onRoof={(roof) => send(setRoofEdit(doc, row.typeId, roof))}
                   onReset={() => send(resetTypeEdit(doc, row.typeId))}
                 />
@@ -152,6 +155,7 @@ interface TypeRowProps {
   readonly onWindow: (fraction: number) => void;
   readonly onInvalid: (message: string) => void;
   readonly onLayout: (layout: string) => void;
+  readonly onWalls: (walls: string) => void;
   readonly onRoof: (roof: string) => void;
   readonly onReset: () => void;
 }
@@ -161,8 +165,10 @@ interface TypeRowProps {
  * a one-line summary of its rules, a warning mark and a small façade preview; the controls stay
  * mounted while collapsed, so drafts survive.
  */
-function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRowProps) {
-  const [open, setOpen] = useState(false);
+function TypeRow({ row, onWindow, onInvalid, onLayout, onWalls, onRoof, onReset }: TypeRowProps) {
+  // Collapsed by default; the user's open/closed choice per function sticks (this browser).
+  const [open, toggleOpen] = useRememberedOpen(`designer-function:${row.typeId}`, false);
+  const enclosed = row.effective.walls === 'enclosed';
   const effectivePercent = formatPercent(row.effective.windowFraction);
   // Drafts while dragging/typing; a command is sent only on release, Enter or blur.
   const [slider, setSlider] = useState<number | null>(null);
@@ -205,7 +211,7 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRo
           className="sgl-designer-type-head"
           aria-expanded={open}
           aria-controls={`${idBase}-body`}
-          onClick={() => setOpen((o) => !o)}
+          onClick={toggleOpen}
         >
           <svg className="sgl-designer-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
             <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -216,7 +222,7 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRo
               {row.name}
             </span>
             <span className="sgl-designer-summary">
-              {formatPercent(shownFraction)} % · {WINDOW_LAYOUT_LABELS[row.effective.windowLayout]} · {ROOF_LABELS[row.effective.roof]} roof ·{' '}
+              {enclosed ? `${formatPercent(shownFraction)} % · ${WINDOW_LAYOUT_LABELS[row.effective.windowLayout]}` : 'Open sides'} · {SHORT_ROOF[row.effective.roof]} ·{' '}
               {row.nodeCount} {row.nodeCount === 1 ? 'room' : 'rooms'}
               {row.hasOverride ? ' · changed' : ''}
             </span>
@@ -226,7 +232,7 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRo
               ⚠
             </span>
           )}
-          <FacadePreview fraction={shownFraction} layout={row.effective.windowLayout} roof={row.effective.roof} />
+          <FacadePreview fraction={shownFraction} layout={row.effective.windowLayout} roof={row.effective.roof} walls={row.effective.walls} />
         </button>
       </h4>
 
@@ -238,6 +244,26 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRo
         </p>
       )}
 
+      <div className="sgl-designer-field sgl-designer-layout">
+        <span className="sgl-designer-label" id={`${idBase}-walls`} title="Enclosed: exterior walls with windows. Open: no exterior walls (pavilion, pergola, terrace).">
+          Walls
+        </span>
+        <div className="sgl-segmented sgl-segmented-sm" role="radiogroup" aria-labelledby={`${idBase}-walls`}>
+          {WALL_STYLES.map((walls) => (
+            <label
+              key={walls}
+              className={row.effective.walls === walls ? 'checked' : undefined}
+              title={walls === 'enclosed' ? 'Exterior walls with windows' : 'No exterior walls; walls shared with other rooms stay'}
+            >
+              <input type="radio" name={`${idBase}-walls`} value={walls} checked={row.effective.walls === walls} onChange={() => onWalls(walls)} />
+              {WALL_LABELS[walls]}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {enclosed ? (
+      <>
       <div className="sgl-designer-field">
         <label htmlFor={`${idBase}-window`} title="Share of each exterior wall that is glazed. Interior walls are not affected.">
           Windows <small>(exterior walls)</small>
@@ -295,6 +321,12 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRo
           ))}
         </div>
       </div>
+      </>
+      ) : (
+        <p className="sgl-designer-source">
+          No exterior walls or windows{row.effective.roof === 'none' ? '' : '; slim posts carry the roof'}. Walls shared with other rooms stay.
+        </p>
+      )}
 
       <div className="sgl-designer-field">
         <label htmlFor={`${idBase}-roof`} title="Roof on the exposed tops of rooms of this type. Pitched roofs are not available yet.">
@@ -318,11 +350,14 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onRoof, onReset }: TypeRo
   );
 }
 
+const SHORT_ROOF: Readonly<Record<string, string>> = { flat: 'Flat roof', pergola: 'Pergola', none: 'No roof' };
+
 /**
  * Schematic exterior façade of two bays: `fraction` of the wall area glazed, as one window per bay
- * (Repeat) or one window over the whole façade (Stretch); a line for a flat roof.
+ * (Repeat) or one window over the whole façade (Stretch); open sides show only posts and a floor.
+ * The roof is a bar (flat), a row of slats (pergola) or nothing.
  */
-function FacadePreview({ fraction, layout, roof }: { fraction: number; layout: string; roof: string }) {
+function FacadePreview({ fraction, layout, roof, walls }: { fraction: number; layout: string; roof: string; walls: string }) {
   const f = Math.min(1, Math.max(0, fraction));
   const bay = 18;
   const side = Math.sqrt(f) * bay;
@@ -331,6 +366,14 @@ function FacadePreview({ fraction, layout, roof }: { fraction: number; layout: s
   return (
     <svg className="sgl-designer-preview" viewBox="0 0 38 26" width={38} height={26} aria-hidden="true">
       {roof === 'flat' && <rect x={0} y={0} width={38} height={3} className="sgl-designer-preview-roof" />}
+      {roof === 'pergola' && [0, 7, 14, 21, 28, 35].map((x) => <rect key={x} x={x} y={0} width={3} height={3} className="sgl-designer-preview-roof" />)}
+      {walls === 'open' ? (
+        <>
+          {roof !== 'none' && [1, 18, 35].map((x) => <rect key={x} x={x} y={3} width={2} height={22} className="sgl-designer-preview-roof" />)}
+          <rect x={0} y={24} width={38} height={2} className="sgl-designer-preview-roof" />
+        </>
+      ) : (
+      <>
       <rect x={1} y={4} width={36} height={21} className="sgl-designer-preview-wall" />
       {f > 0 &&
         (layout === 'stretch' ? (
@@ -338,6 +381,8 @@ function FacadePreview({ fraction, layout, roof }: { fraction: number; layout: s
         ) : (
           [10, 28].map((cx) => <rect key={cx} x={cx - side / 2} y={14.5 - side / 2} width={side} height={side} className="sgl-designer-preview-glass" />)
         ))}
+      </>
+      )}
     </svg>
   );
 }

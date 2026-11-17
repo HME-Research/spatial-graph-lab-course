@@ -3,7 +3,7 @@ import { CONCEPTS, ConceptDiagram, ModalDialog } from '@app/ui';
 
 /**
  * The content of the Building Designer guide: what the panel decides, then one numbered section
- * per control in the order they appear on each function card (Windows, Layout, Roof), then where
+ * per control in the order they appear on each function card (Walls, Windows, Layout, Roof), then where
  * the values come from. Separate from the button so it can be rendered (and tested) on its own.
  */
 export function DesignerGuideContent({ titleId, descriptionId }: { readonly titleId: string; readonly descriptionId: string }) {
@@ -20,14 +20,24 @@ export function DesignerGuideContent({ titleId, descriptionId }: { readonly titl
 
       <section className="sgl-designer-guide-step">
         <h3>
-          <span className="sgl-designer-guide-num">1</span> Windows
+          <span className="sgl-designer-guide-num">1</span> Walls
+        </h3>
+        <p>
+          Enclosed rooms have exterior walls with windows. Open rooms have none: combine with the roof for a pavilion (Flat), a pergola
+          (Pergola) or an open terrace (None). Walls shared with another room always stay.
+        </p>
+      </section>
+
+      <section className="sgl-designer-guide-step">
+        <h3>
+          <span className="sgl-designer-guide-num">2</span> Windows
         </h3>
         <p>How much of each exterior wall is glass: 0 % is a closed wall, 100 % is fully glazed. Walls between rooms are not affected.</p>
       </section>
 
       <section className="sgl-designer-guide-step">
         <h3>
-          <span className="sgl-designer-guide-num">2</span> Layout: Repeat or Stretch
+          <span className="sgl-designer-guide-num">3</span> Layout: Repeat or Stretch
         </h3>
         <p>{repeatStretch.lead}</p>
         <ConceptDiagram id="repeat-stretch" label={repeatStretch.diagramLabel} />
@@ -43,9 +53,12 @@ export function DesignerGuideContent({ titleId, descriptionId }: { readonly titl
 
       <section className="sgl-designer-guide-step">
         <h3>
-          <span className="sgl-designer-guide-num">3</span> Roof
+          <span className="sgl-designer-guide-num">4</span> Roof
         </h3>
-        <p>Flat puts a roof only on room tops that are open to the sky, never between stacked storeys. None leaves the tops open, so you can look inside.</p>
+        <p>
+          Flat puts a roof only on room tops that are open to the sky, never between stacked storeys. Pergola is a roof of open slats. None
+          leaves the tops open.
+        </p>
       </section>
 
       <section className="sgl-designer-guide-step sgl-designer-guide-note">

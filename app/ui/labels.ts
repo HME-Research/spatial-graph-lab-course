@@ -96,9 +96,9 @@ export const RELATIONSHIP_KIND_CHOICES: readonly Choice<RelationshipKind>[] = [
 ];
 
 export const CONNECTOR_STYLE_CHOICES: readonly Choice<ConnectorStyle>[] = [
-  { value: 'enclosed', label: 'Enclosed', description: 'Floor, roof and side walls. (Default)' },
+  { value: 'enclosed', label: 'Enclosed', description: 'Floor, roof and side walls.' },
   { value: 'covered', label: 'Covered', description: 'Floor and roof, open at the sides.' },
-  { value: 'deck', label: 'Deck', description: 'Floor only, open to the sky.' },
+  { value: 'deck', label: 'Deck', description: 'Floor only, open to the sky. (Default)' },
 ];
 
 export const labelOfChoice = <T extends string>(choices: readonly Choice<T>[], value: T): string =>

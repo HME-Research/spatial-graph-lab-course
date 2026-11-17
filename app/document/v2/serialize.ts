@@ -93,6 +93,7 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
           {
             ...(a.windowFraction === undefined ? {} : { windowFraction: a.windowFraction }),
             ...(a.windowLayout === undefined ? {} : { windowLayout: a.windowLayout }),
+            ...(a.walls === undefined ? {} : { walls: a.walls }),
             ...(a.roof === undefined ? {} : { roof: a.roof }),
           },
         ]),

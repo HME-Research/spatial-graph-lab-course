@@ -6,11 +6,13 @@ import {
   ROOF_STYLES,
   windowFractionSchema,
   WINDOW_LAYOUTS,
+  WALL_STYLES,
   type ConnectorStyle,
   type DesignDocumentV2,
   type EffectiveTypeAppearance,
   type RoofStyle,
   type WindowLayout,
+  type WallStyle,
 } from '@app/document/v2';
 import { findNodeType, type ActiveProject } from '@app/extensions';
 import type { DesignCommand, SpatialResolution } from '@app/spatial';
@@ -204,17 +206,33 @@ export function setWindowLayoutEdit(doc: DesignDocumentV2, typeId: string, layou
   };
 }
 
+/** Set whether the rooms of `typeId` have exterior walls (Enclosed) or not (Open). */
+export function setWallsEdit(doc: DesignDocumentV2, typeId: string, walls: string): DesignerEdit {
+  if (!(WALL_STYLES as readonly string[]).includes(walls)) {
+    return { kind: 'invalid', message: `Walls must be one of: ${WALL_STYLES.join(', ')}.` };
+  }
+  const stored = current(doc, typeId).walls;
+  const effective = effectiveTypeAppearance(doc, typeId, { windowFraction: 0 }).walls;
+  if (stored !== undefined ? stored === walls : effective === walls) return UNCHANGED;
+  return {
+    kind: 'command',
+    command: { type: 'set-type-appearance', typeId, patch: { walls: walls as WallStyle } },
+    label: `Set ${typeId} walls to ${WALL_LABELS[walls as WallStyle]}`,
+  };
+}
+
 /** Remove this design's overrides for `typeId` (one field or all), restoring project defaults. */
 export function resetTypeEdit(
   doc: DesignDocumentV2,
   typeId: string,
-  field: 'windowFraction' | 'windowLayout' | 'roof' | 'all' = 'all',
+  field: 'windowFraction' | 'windowLayout' | 'walls' | 'roof' | 'all' = 'all',
 ): DesignerEdit {
   const own = current(doc, typeId);
   const clearWindow = (field === 'all' || field === 'windowFraction') && own.windowFraction !== undefined;
   const clearLayout = (field === 'all' || field === 'windowLayout') && own.windowLayout !== undefined;
+  const clearWalls = (field === 'all' || field === 'walls') && own.walls !== undefined;
   const clearRoof = (field === 'all' || field === 'roof') && own.roof !== undefined;
-  if (!clearWindow && !clearLayout && !clearRoof) return UNCHANGED;
+  if (!clearWindow && !clearLayout && !clearWalls && !clearRoof) return UNCHANGED;
   return {
     kind: 'command',
     command: {
@@ -223,6 +241,7 @@ export function resetTypeEdit(
       patch: {
         ...(clearWindow ? { windowFraction: null } : {}),
         ...(clearLayout ? { windowLayout: null } : {}),
+        ...(clearWalls ? { walls: null } : {}),
         ...(clearRoof ? { roof: null } : {}),
       },
     },
@@ -256,8 +275,14 @@ export const WINDOW_LAYOUT_LABELS: Readonly<Record<WindowLayout, string>> = {
   stretch: 'Stretch',
 };
 
+export const WALL_LABELS: Readonly<Record<WallStyle, string>> = {
+  enclosed: 'Enclosed',
+  open: 'Open',
+};
+
 export const ROOF_LABELS: Readonly<Record<RoofStyle, string>> = {
   flat: 'Flat',
+  pergola: 'Pergola (open slats)',
   none: 'None (open top)',
 };
 
