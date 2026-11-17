@@ -3,7 +3,7 @@
 // Runs against an ALREADY RUNNING dev or preview server; never starts/stops Node or Vite, never
 // writes into the repository (screenshots and report go to --out, default under the OS temp dir).
 
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -216,12 +216,18 @@ const pass = (message, data) => ({ status: 'PASS', message, data });
 const fail = (message, data) => ({ status: 'FAIL', message, data });
 const skip = (message) => ({ status: 'SKIP', message });
 
+/** Show one left destination (only clicks when it is not already the open one). */
+async function showSidebarTab(id) {
+  await evaluate(`(() => { const t = document.querySelector('#sidebar-tab-${id}'); if (!t) return false; if (t.getAttribute('aria-selected') !== 'true' || document.querySelector('#sidebar-panel-${id}')?.hidden) t.click(); return true; })()`);
+  await delay(100);
+}
+
 /** On the Welcome screen (always shown at startup, workstream B): open the example as a new project. */
 async function leaveWelcome() {
   if (!(await evaluate(`!!document.querySelector('.sgl-welcome')`))) return false;
-  const clicked = await clickButton('Try Example', `document.querySelector('.sgl-welcome')`);
-  if (clicked !== 'clicked') throw new Error(`Welcome "Try Example" button ${clicked}`);
-  await waitFor(`!document.querySelector('.sgl-welcome') && document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length > 0`, 'the example project after Try Example');
+  const clicked = await clickButton('Try example', `document.querySelector('.sgl-welcome')`);
+  if (clicked !== 'clicked') throw new Error(`Welcome "Try example" button ${clicked}`);
+  await waitFor(`!document.querySelector('.sgl-welcome') && document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length > 0`, 'the example project after Try example');
   return true;
 }
 
@@ -232,8 +238,10 @@ async function ensureDesign() {
   await evaluate(`(() => { const s = document.querySelector('select[aria-label="View mode, panel 1"], select[aria-label="View shown in panel 1"]'); if (!s || s.value === 'graph2d') return;
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'graph2d'); s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
   if ((await nodeCount()) > 0) return;
-  await clickButton('Load example');
-  await waitFor(`document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length > 0`, 'diagram nodes after Load example');
+  // No design-level "Load example" any more: start again from Welcome → Try example.
+  await page.send('Page.reload');
+  await waitFor(`!!document.querySelector('.sgl-welcome')`, 'the Welcome screen after a reload');
+  await leaveWelcome();
 }
 
 // ── Checks ────────────────────────────────────────────────────────────────────────────────────
@@ -249,17 +257,17 @@ await check('load/app', async () => {
 await check('load/welcome', async () => {
   const shown = await waitFor(`(() => { const w = document.querySelector('.sgl-welcome'); return w ? { text: w.innerText.slice(0, 600), panels: document.querySelectorAll('.view-panel').length } : null; })()`, 'the Welcome screen');
   const file = await screenshot('welcome-1366x768');
-  const problems = ['Create project', 'Open file', 'Try Example', 'Recent local projects'].filter((t) => !shown.text.includes(t));
+  const problems = ['Welcome to Spatial Graph Lab', 'Create project', 'Open project', 'Try example', 'Recent projects'].filter((t) => !shown.text.toLowerCase().includes(t.toLowerCase()));
   if (shown.panels > 0) problems.push(`${shown.panels} view panel(s) mounted behind Welcome`);
   return problems.length
     ? fail(`Welcome incomplete: ${problems.join('; ')}`, { screenshot: file })
-    : pass('Welcome shown at startup (Create, Open, Try Example, Recent); no project auto-opened', { screenshot: file });
+    : pass('Welcome overlay shown at startup (Create, Open, Try example, Recent); no project auto-opened', { screenshot: file });
 });
 
 await check('load/project', async () => {
   await leaveWelcome();
   await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'project activation to finish');
-  const project = await evaluate(`(() => { const s = document.querySelector('select[aria-label="Active project"]'); return s ? s.value : null; })()`);
+  const project = await evaluate(`document.querySelector('.sgl-identity-project')?.textContent ?? null`);
   await ensureDesign();
   const n = await nodeCount();
   return n > 0 ? pass(`project "${project ?? 'none'}" active; design shows ${n} node(s) in Graph 2D`, { project, nodes: n }) : fail('no nodes visible in Graph 2D after loading');
@@ -424,7 +432,8 @@ if (wants('import')) {
     const bad = join(outDir, 'invalid-design.json');
     writeFileSync(bad, '{ "schemaVersion": 1, "nodes": [ ');
     const before = await nodeCount();
-    await setFile('.toolbar input[type="file"]', bad);
+    await showSidebarTab('project');
+    await setFile('.sgl-project-actions input[type="file"]', bad);
     const alert = await waitFor(
       `(() => { const a = document.querySelector('section.issues[role="alert"]'); if (!a) return null;
         return { heading: a.querySelector('h2')?.textContent ?? '', text: a.innerText, items: a.querySelectorAll('li').length }; })()`,
@@ -444,7 +453,8 @@ if (wants('import')) {
   });
 
   await check('import/valid-example', async () => {
-    await setFile('.toolbar input[type="file"]', EXAMPLE_DESIGN);
+    await showSidebarTab('project');
+    await setFile('.sgl-project-actions input[type="file"]', EXAMPLE_DESIGN);
     await waitFor(`!document.querySelector('section.issues[role="alert"]') && document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length > 0`, 'the imported design');
     const n = await nodeCount();
     return pass(`imported two-storey-example.json: ${n} node(s)${dialogs.length ? `; accepted dialog(s): ${dialogs.length}` : ''}`);
@@ -455,8 +465,10 @@ if (wants('export')) {
   await check('export/json', async () => {
     await browser.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir, eventsEnabled: true });
     const existing = new Set(readdirSync(downloadDir));
-    const clicked = await clickButton('Export design JSON');
-    if (clicked !== 'clicked') return fail(`Export design JSON button ${clicked}`);
+    // Export is project-level: the active scenario's design is read from the project file.
+    await showSidebarTab('project');
+    const clicked = await clickButton('Export project');
+    if (clicked !== 'clicked') return fail(`Export project button ${clicked}`);
     let name = null;
     for (const end = Date.now() + opts.timeout; name === null && Date.now() < end; ) {
       name = readdirSync(downloadDir).find((x) => !existing.has(x) && x.endsWith('.json')) ?? null;
@@ -466,11 +478,16 @@ if (wants('export')) {
     const text = readFileSync(join(downloadDir, name), 'utf8');
     let doc;
     try {
-      doc = JSON.parse(text);
+      const file = JSON.parse(text);
+      if (file.format !== 'spatial-graph-lab/project') return fail(`${name} is not a project file (format ${file.format})`);
+      doc = file.scenarios.find((s) => s.id === file.activeScenarioId)?.design ?? {};
     } catch {
       return fail(`downloaded ${name} is not valid JSON`);
     }
-    const data = { file: join(downloadDir, name), schemaVersion: doc.schemaVersion, nodes: doc.nodes?.length };
+    // Keep it under another name, so a later export of the same project is not renamed by the browser.
+    const kept = join(downloadDir, `export-json-${name}`);
+    renameSync(join(downloadDir, name), kept);
+    const data = { file: kept, schemaVersion: doc.schemaVersion, nodes: doc.nodes?.length };
     if (!Array.isArray(doc.nodes) || !Array.isArray(doc.edges)) return fail(`${name} has no nodes/edges arrays`, data);
     if (opts.features.has('v2') && doc.schemaVersion !== 2) return fail(`--feature v2: export wrote schemaVersion ${doc.schemaVersion}, expected 2`, data);
     return pass(`${name}: schemaVersion ${doc.schemaVersion}, ${doc.nodes.length} nodes, ${doc.edges.length} edges`, data);
@@ -663,8 +680,8 @@ if (wants('scenarios')) {
     await waitFor(`document.querySelectorAll('.sgl-scenario').length === 1`, 'exactly one scenario in a new project');
     for (let n = 2; n <= 3; n++) {
       if ((await clickButton('+ New scenario')) !== 'clicked') return fail('"+ New scenario" not clickable');
-      await waitFor(`!!document.querySelector('.sgl-scenario-form')`, 'the new-scenario form');
-      if ((await clickButton('Create scenario')) !== 'clicked') return fail('"Create scenario" not clickable');
+      await waitFor(`!!document.querySelector('dialog[data-dialog="new-scenario"][open]')`, 'the new-scenario dialog');
+      if ((await clickButton('Create scenario', `document.querySelector('dialog[data-dialog="new-scenario"]')`)) !== 'clicked') return fail('"Create scenario" not clickable');
       await waitFor(`document.querySelectorAll('.sgl-scenario').length === ${n}`, `${n} scenarios`);
     }
     // Rename the active (third) scenario.
@@ -675,8 +692,8 @@ if (wants('scenarios')) {
     await waitFor(`!!${ROW('Option C')}`, 'the renamed scenario');
     // Delete Scenario 1 with confirmation.
     await evaluate(`${ROW('Scenario 1')}.querySelector('button[aria-label="Delete Scenario 1"]').click()`);
-    await waitFor(`!!${ROW('Scenario 1')}?.querySelector('[role="alertdialog"]')`, 'the delete confirmation');
-    await clickButton('Delete scenario', ROW('Scenario 1'));
+    await waitFor(`!!document.querySelector('dialog[data-dialog="delete-scenario"][open]')`, 'the delete confirmation dialog');
+    await clickButton('Delete scenario', `document.querySelector('dialog[data-dialog="delete-scenario"]')`);
     await waitFor(`!${ROW('Scenario 1')}`, 'Scenario 1 to be deleted');
     const names = await scenarioNames();
     const header = await headerScenario();
@@ -776,7 +793,7 @@ if (wants('scenarios')) {
     await delay(200);
     await screenshot('project-files-1366x768');
     const existing = new Set(readdirSync(downloadDir));
-    if ((await clickButton('Export Project')) !== 'clicked') return fail('"Export Project" not clickable');
+    if ((await clickButton('Export project')) !== 'clicked') return fail('"Export project" not clickable');
     let name = null;
     for (const end = Date.now() + opts.timeout; name === null && Date.now() < end; ) {
       name = readdirSync(downloadDir).find((x) => !existing.has(x) && x.endsWith('.project.json')) ?? null;
@@ -786,7 +803,7 @@ if (wants('scenarios')) {
     const path = join(downloadDir, name);
     const json = JSON.parse(readFileSync(path, 'utf8'));
     if (json.format !== 'spatial-graph-lab/project' || json.scenarios?.length !== 2) return fail(`exported ${name}: format ${json.format}, ${json.scenarios?.length} scenarios`);
-    await setFile('.toolbar input[type="file"]', path);
+    await setFile('.sgl-project-actions input[type="file"]', path);
     const notice = await waitFor(`document.querySelector('.sgl-notice')?.textContent ?? null`, 'the "opened as a separate copy" notice');
     await openTab('scenarios');
     await waitFor(`document.querySelectorAll('.sgl-scenario').length === 2`, 'two scenarios in the imported project');
@@ -817,11 +834,12 @@ if (wants('scenarios')) {
       );
       const shot = await screenshot('blocked-save-1366x768');
       const before = dialogs.length;
-      await setFile('.toolbar input[type="file"]', EXAMPLE_DESIGN);
+      await showSidebarTab('project');
+      await setFile('.sgl-project-actions input[type="file"]', EXAMPLE_DESIGN);
       let asked = null;
-      for (const end = Date.now() + opts.timeout; asked === null && Date.now() < end; await delay(100)) if (dialogs.length > before) asked = dialogs[dialogs.length - 1];
-      if (!asked) return fail('opening another file while the save was blocked did not ask before discarding the unsaved changes', { state, screenshot: shot });
-      if (!/could not be saved/i.test(asked)) return fail(`unexpected dialog: ${asked}`, { state });
+      // An unsaved last session is asked about first ("not saved in this browser"), then the blocked save itself.
+      for (const end = Date.now() + opts.timeout; asked === null && Date.now() < end; await delay(100)) asked = dialogs.slice(before).find((d) => /could not be saved/i.test(d)) ?? null;
+      if (!asked) return fail(`opening another file while the save was blocked did not ask before discarding the unsaved changes; dialogs: ${JSON.stringify(dialogs.slice(before))}`, { state, screenshot: shot });
       // The harness accepts dialogs, i.e. the user chose to discard: the other file opens.
       await waitFor(`document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length > 0 && document.querySelector('.sgl-identity-project')?.textContent !== null`, 'the opened file after confirming');
       return pass(`blocked save shown ("${state.split(' | ')[0].trim()}"); opening another file asked first: "${asked.slice(0, 90)}…"`, { state, dialog: asked, screenshot: shot });

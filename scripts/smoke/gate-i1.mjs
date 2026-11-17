@@ -511,7 +511,8 @@ await step(5, 'camera-after-reload', async () => {
 await step(1, 'export-import-project', async () => {
   await openTab('project');
   const existing = new Set(readdirSync(downloadDir));
-  expect((await evaluate(`__g.click('Export Project')`)) === 'clicked', 'Export Project');
+  await openTab('project');
+  expect((await evaluate(`__g.click('Export project')`)) === 'clicked', 'Export project');
   let name = null;
   for (const end = Date.now() + 10000; name === null && Date.now() < end; ) {
     name = readdirSync(downloadDir).find((x) => !existing.has(x) && x.endsWith('.project.json')) ?? null;
@@ -529,7 +530,8 @@ await step(1, 'export-import-project', async () => {
   expect((json.settings.calculatedFields ?? []).includes('exposed-facade-area'), `settings.calculatedFields: ${JSON.stringify(json.settings.calculatedFields)}`);
   expect(byName[st.second].cameras.length === 1 && byName[st.first].cameras.length === 0, 'saved cameras are not per scenario in the file');
   expect(!/exposed-facade-area":\s*[0-9]/.test(JSON.stringify(json.scenarios)), 'a metric VALUE was exported');
-  await setFile('.toolbar input[type="file"]', path);
+  await openTab('project');
+  await setFile('.sgl-project-actions input[type="file"]', path);
   const notice = await waitFor(`document.querySelector('.sgl-notice')?.textContent ?? null`, 'the "separate copy" notice', 15000);
   await helpers();
   await openTab('scenarios');

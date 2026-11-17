@@ -170,7 +170,8 @@ async function selectNodeInGraph(id) {
 let downloads = 0;
 async function download() {
   const before = new Set(readdirSync(downloadDir));
-  if ((await evaluate(`__wf.click('Export design JSON')`)) !== 'clicked') throw new Error('Export design JSON not clickable');
+  await evaluate(`__wf.tab('project'); true`);
+  if ((await evaluate(`__wf.click('Export project')`)) !== 'clicked') throw new Error('Export project not clickable');
   for (const end = Date.now() + 8000; Date.now() < end; ) {
     const name = readdirSync(downloadDir).find((x) => !before.has(x) && x.endsWith('.json'));
     if (name) {
@@ -178,7 +179,9 @@ async function download() {
       // Rename, so a later export with the same name is detected as a new file.
       const file = join(downloadDir, `export-${++downloads}-${name}`);
       renameSync(join(downloadDir, name), file);
-      return { file, json: JSON.parse(readFileSync(file, 'utf8')) };
+      // A project file: the active scenario's design is what the old design export contained.
+      const project = JSON.parse(readFileSync(file, 'utf8'));
+      return { file, project, json: project.scenarios.find((s) => s.id === project.activeScenarioId).design };
     }
     await delay(150);
   }
@@ -209,13 +212,17 @@ for (let i = 1; i <= 3; i++) {
     await page.send('Page.navigate', { url });
     // Welcome is always shown at startup (workstream B): open the example as a new local project.
     await waitFor(`!!document.querySelector('.sgl-welcome')`, 'the Welcome screen', 20000);
-    await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try Example'))?.click(); true`);
+    await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try example'))?.click(); true`);
     await waitFor(`document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node').length > 0`, 'the design', 20000);
     await helpers();
     // The code project (types, algorithms) of the local project is activated.
     await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the code project to activate', 20000);
-    const bar = await evaluate(`document.querySelector('.sgl-identity-project')?.title ?? ''`);
-    expect(/types from example-gallery/.test(bar), `project identity: ${bar.slice(0, 120)}`);
+    // The header names the project only (no internal or course ids); the course project is listed in Project → Advanced.
+    const bar = await evaluate(`document.querySelector('.sgl-identity-project')?.textContent ?? ''`);
+    expect(bar === 'Two-storey example', `project identity: ${bar.slice(0, 120)}`);
+    await evaluate(`__wf.tab('project'); true`);
+    const course = await waitFor(`(() => { const dt = [...document.querySelectorAll('.sgl-project dt')].find((d) => d.textContent === 'Course project'); const t = dt?.nextElementSibling?.textContent ?? ''; return t && t !== 'loading…' ? t : null; })()`, 'the course project');
+    expect(course.length > 0, `course project: ${course}`);
     expect(consoleErrors.length === errorsBefore, `console errors: ${consoleErrors.slice(errorsBefore).join(' | ')}`);
     return `project active, ${(await evaluate('__wf.nodes()')).length} rooms, no console errors`;
   });
@@ -385,15 +392,17 @@ await step('workflow/export-v2', async () => {
 });
 
 await step('workflow/reimport-roundtrip', async () => {
-  await setFile('.toolbar input[type="file"]', exported.file);
+  await evaluate(`__wf.tab('project'); true`);
+  await setFile('.sgl-project-actions input[type="file"]', exported.file);
   await waitFor(`!__wf.canUndo()`, 'the re-imported design (fresh history)');
   const nodes = await evaluate('__wf.nodes()');
   expect(nodes.length === exported.json.nodes.length, `rooms ${nodes.length}`);
   const modified = await evaluate(`/unsaved|modified|not exported/i.test(document.querySelector('.project-bar')?.innerText ?? '')`);
   expect(!modified, 'design marked modified right after import');
   const again = await download();
-  expect(readFileSync(again.file, 'utf8') === readFileSync(exported.file, 'utf8'), 're-export differs from the imported file');
-  return `re-imported ${nodes.length} rooms; re-export is byte-identical; dialogs accepted: ${dialogs.length}`;
+  // Re-opened in the same browser the project gets a new identity (a separate copy); its scenario design is identical.
+  expect(JSON.stringify(again.json) === JSON.stringify(exported.json), 're-exported scenario design differs from the imported one');
+  return `re-imported ${nodes.length} rooms; re-exported scenario design is identical; dialogs accepted: ${dialogs.length}`;
 });
 
 // ── 2. failure cases ─────────────────────────────────────────────────────────────────────────
@@ -468,19 +477,20 @@ const writeTemp = (name, text) => {
 
 await step('fail/invalid-json-import', async () => {
   const before = (await evaluate('__wf.nodes()')).length;
-  await setFile('.toolbar input[type="file"]', writeTemp('broken.json', '{ "schemaVersion": 2, "nodes": ['));
-  const h = await waitFor(`document.querySelector('section.issues h2')?.textContent`, 'the import error');
+  await evaluate(`__wf.tab('project'); true`);
+  await setFile('.sgl-project-actions input[type="file"]', writeTemp('broken.json', '{ "schemaVersion": 2, "nodes": ['));
+  const h = await waitFor(`document.querySelector('section.issues[role="alert"] h2')?.textContent`, 'the import error');
   expect(/broken\.json/.test(h) && /kept unchanged/.test(h), h);
   expect((await evaluate('__wf.nodes()')).length === before, 'design changed');
-  await evaluate(`__wf.click('Dismiss', document.querySelector('section.issues')); true`);
+  await evaluate(`__wf.click('Dismiss', document.querySelector('section.issues[role="alert"]')); true`);
   return h;
 });
 
 await step('fail/unsupported-version-import', async () => {
-  await setFile('.toolbar input[type="file"]', writeTemp('future.json', JSON.stringify({ schemaVersion: 3, metadata: { name: 'x' }, nodes: [], edges: [] })));
-  const text = await waitFor(`document.querySelector('section.issues')?.innerText`, 'the version error');
+  await setFile('.sgl-project-actions input[type="file"]', writeTemp('future.json', JSON.stringify({ schemaVersion: 3, metadata: { name: 'x' }, nodes: [], edges: [] })));
+  const text = await waitFor(`document.querySelector('section.issues[role="alert"]')?.innerText`, 'the version error');
   expect(/future\.json/.test(text), text);
-  await evaluate(`__wf.click('Dismiss', document.querySelector('section.issues')); true`);
+  await evaluate(`__wf.click('Dismiss', document.querySelector('section.issues[role="alert"]')); true`);
   return text.split('\n')[0];
 });
 
@@ -497,7 +507,8 @@ await step('fail/unknown-type-import', async () => {
     settings: { typeAppearance: {} },
   };
   const errorsBefore = consoleErrors.length;
-  await setFile('.toolbar input[type="file"]', writeTemp('unknown-type.json', JSON.stringify(doc)));
+  await evaluate(`__wf.tab('project'); true`);
+  await setFile('.sgl-project-actions input[type="file"]', writeTemp('unknown-type.json', JSON.stringify(doc)));
   await waitFor(`__wf.nodes().length === 2`, 'the imported design');
   const bar = await evaluate(`document.querySelector('.project-bar')?.innerText ?? ''`);
   await evaluate(`__wf.panel2('architecture'); true`);
@@ -509,8 +520,12 @@ await step('fail/unknown-type-import', async () => {
 
 // ── 3. coordination across the four views ────────────────────────────────────────────────────
 await step('views/coordinated-selection', async () => {
+  // No design-level "Load example": New project → back to Welcome → Try example (a fresh example project).
   await evaluate(`__wf.tab('project'); true`);
-  await evaluate(`__wf.click('Load example'); true`);
+  await evaluate(`__wf.click('New project'); true`);
+  await waitFor(`!!document.querySelector('.sgl-welcome')`, 'the Welcome screen');
+  await evaluate(`__wf.click('Cancel', document.querySelector('.sgl-welcome')); true`);
+  await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try example'))?.click(); true`);
   await waitFor(`__wf.nodes().length === 6`, 'the example');
   await selectNodeInGraph('store');
   const out = [];

@@ -274,7 +274,7 @@ const panelRect = (n) => evaluate(`(() => { const b = ${P(n)}?.getBoundingClient
 await step('open-example', async () => {
   await page.send('Page.navigate', { url });
   await waitFor(`!!document.querySelector('.sgl-welcome')`, 'the Welcome screen', 20000);
-  await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try Example'))?.click(); true`);
+  await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try example'))?.click(); true`);
   await waitFor(`document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node').length === 6`, 'the example', 20000);
   await helpers();
   await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the code project to activate', 20000);
