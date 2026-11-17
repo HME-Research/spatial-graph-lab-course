@@ -65,7 +65,7 @@ const COLORS = {
 function elementColor(e: ArchitecturalElement, display: SceneDisplay | null): string {
   switch (e.part) {
     case 'wall':
-      if (e.condition === 'exterior') return presetColour(typeColor(e.ownerTypeId), display);
+      if (e.condition === 'exterior' || e.outside) return presetColour(typeColor(e.ownerTypeId), display);
       return e.condition === 'door' ? COLORS.doorWall : COLORS.internalWall;
     case 'glazing':
       return COLORS.glazing;

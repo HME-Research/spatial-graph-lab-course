@@ -306,13 +306,13 @@ describe('straight connectors', () => {
     expect(model.connectors.filter((c) => c.part === 'connector-roof').every((r) => r.position[1] === H)).toBe(true);
   });
 
-  it('endpoint faces become a door (access) or full opening (open), never glazed', () => {
-    const access = corridorFixture().model;
+  it('endpoint faces of an enclosed route become a door (access) or full opening (open), never glazed', () => {
+    const access = corridorFixture('enclosed').model;
     expect(access.faces.find((f) => f.id === 'a:+x')).toMatchObject({ condition: 'door', edgeId: 'ab', via: 'route' });
     expect(access.faces.find((f) => f.id === 'b:-x')).toMatchObject({ condition: 'door', edgeId: 'ab', via: 'route' });
     expect(facesOf(access.elements, 'a:+x').map((e) => e.part)).toEqual(['wall', 'wall', 'wall']);
 
-    const open = corridorFixture(undefined, 'open').model;
+    const open = corridorFixture('enclosed', 'open').model;
     expect(facesOf(open.elements, 'a:+x').map((e) => e.part)).toEqual(['threshold']);
     expect(facesOf(open.elements, 'b:-x').map((e) => e.part)).toEqual(['threshold']);
   });
@@ -322,6 +322,33 @@ describe('straight connectors', () => {
     expect(count(model.connectors, 'connector-wall')).toBe(5);
     expect(model.faces.find((f) => f.id === 'c:-y')).toMatchObject({ condition: 'solid', via: 'route', edgeId: null });
     expect(facesOf(model.elements, 'c:-y').map((e) => e.part)).toEqual(['wall']);
+  });
+
+  it('the end wall of an open-air route is outside (façade colour) with a closed glass door; enclosed is not', () => {
+    for (const style of ['deck', 'covered'] as const) {
+      const { model } = corridorFixture(style);
+      expect(model.faces.find((f) => f.id === 'a:+x')).toMatchObject({ condition: 'door', outside: true, edgeId: 'ab' });
+      const parts = facesOf(model.elements, 'a:+x');
+      expect(parts.map((e) => e.part)).toEqual(['wall', 'wall', 'wall', 'glazing']);
+      expect(parts.every((e) => e.outside === true && e.edgeId === 'ab')).toBe(true);
+      // The glass fills exactly the door hole.
+      const glass = parts.find((e) => e.part === 'glazing')!;
+      expect(glass.size[1]).toBeCloseTo(Math.min(2.2, H * 0.8), 9);
+      // An `open` relationship has no end wall: still just a threshold.
+      expect(facesOf(corridorFixture(style, 'open').model.elements, 'a:+x').map((e) => e.part)).toEqual(['threshold']);
+    }
+    const enclosed = corridorFixture('enclosed').model;
+    expect(enclosed.faces.find((f) => f.id === 'a:+x')!.outside).toBeUndefined();
+    expect(facesOf(enclosed.elements, 'a:+x').map((e) => e.part)).toEqual(['wall', 'wall', 'wall']);
+  });
+
+  it.each(['deck', 'covered'] as const)('a room beside a %s route keeps its façade wall (exterior, glazed)', (style) => {
+    const { model } = corridorFixture(style, 'access', [{ id: 'c', grid: [2, 1, 0] }]);
+    expect(model.faces.find((f) => f.id === 'c:-y')).toMatchObject({ condition: 'exterior', via: 'route', edgeId: null });
+    expect(facesOf(model.elements, 'c:-y').some((e) => e.part === 'glazing')).toBe(true);
+    // Only walls keep the façade: a room above the route still has a plain solid underside.
+    const above = corridorFixture(style, 'access', [{ id: 'up', grid: [2, 0, 1] }]).model;
+    expect(above.faces.find((f) => f.id === 'up:-z')!.condition).toBe('solid');
   });
 
   it('a room above the route has no roof doubling; a room below the route loses its roof there', () => {

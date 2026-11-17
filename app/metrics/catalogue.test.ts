@@ -36,7 +36,7 @@ describe('metric catalogue: hand-computed values (multi-cell, multi-storey, rout
   it('exposed façade length: exterior unit wall faces × 3 m, summed over storeys', () => {
     // hall: storey 0 has 7 (its +x face at [1,0,0] is shared with shop), storey 1 has 8 → 15 faces.
     // shop: −x shared with hall, +x is the connector endpoint → only ±y (2).
-    // cafe: −x is the connector endpoint → 3. kiosk: −y runs alongside the connector (solid) → 3.
+    // cafe: −x is the connector endpoint → 3. kiosk: −y runs alongside the enclosed connector (solid) → 3.
     // loft: free-standing → 4.
     expect(table(doc, 'exposed-facade-length')).toEqual({ hall: 45, shop: 6, cafe: 9, kiosk: 9, loft: 12 });
     expect(table(doc, 'exposed-facade-area')).toEqual({ hall: 135, shop: 18, cafe: 27, kiosk: 27, loft: 36 });

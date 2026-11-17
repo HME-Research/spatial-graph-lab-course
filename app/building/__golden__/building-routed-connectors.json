@@ -14,6 +14,7 @@
       "neighbourNodeId": null,
       "edgeId": "ab",
       "condition": "door",
+      "outside": true,
       "via": "route"
     },
     {
@@ -126,6 +127,7 @@
       "neighbourNodeId": null,
       "edgeId": "ab",
       "condition": "door",
+      "outside": true,
       "via": "route"
     },
     {
@@ -206,6 +208,7 @@
       "neighbourNodeId": null,
       "edgeId": "cd",
       "condition": "open",
+      "outside": true,
       "via": "route"
     },
     {
@@ -382,6 +385,7 @@
       "neighbourNodeId": null,
       "edgeId": "cd",
       "condition": "open",
+      "outside": true,
       "via": "route"
     },
     {
@@ -542,6 +546,7 @@
       "neighbourNodeId": null,
       "edgeId": "ef",
       "condition": "door",
+      "outside": true,
       "via": "route"
     },
     {
@@ -638,6 +643,7 @@
       "neighbourNodeId": null,
       "edgeId": "ef",
       "condition": "door",
+      "outside": true,
       "via": "route"
     },
     {
@@ -910,6 +916,7 @@
       "neighbourNodeId": null,
       "edgeId": "ij",
       "condition": "open",
+      "outside": true,
       "via": "route"
     },
     {
@@ -1006,6 +1013,7 @@
       "neighbourNodeId": null,
       "edgeId": "ij",
       "condition": "open",
+      "outside": true,
       "via": "route"
     },
     {
@@ -1294,6 +1302,7 @@
       "neighbourNodeId": null,
       "edgeId": "st",
       "condition": "door",
+      "outside": true,
       "via": "route"
     },
     {
@@ -1390,6 +1399,7 @@
       "neighbourNodeId": null,
       "edgeId": "st",
       "condition": "door",
+      "outside": true,
       "via": "route"
     },
     {
@@ -1511,6 +1521,7 @@
       "faceId": "a:+x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "a",
       "ownerTypeId": "gallery",
@@ -1536,6 +1547,7 @@
       "faceId": "a:+x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "a",
       "ownerTypeId": "gallery",
@@ -1561,6 +1573,7 @@
       "faceId": "a:+x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "a",
       "ownerTypeId": "gallery",
@@ -1578,6 +1591,32 @@
       "size": [
         0.15,
         0.7999999999999998,
+        1
+      ]
+    },
+    {
+      "id": "a:+x:glazing:3",
+      "faceId": "a:+x",
+      "part": "glazing",
+      "condition": "door",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": "a",
+      "ownerTypeId": "gallery",
+      "neighbourNodeId": null,
+      "edgeId": "ab",
+      "target": {
+        "kind": "edge",
+        "id": "ab"
+      },
+      "position": [
+        1.5,
+        1.1,
+        0
+      ],
+      "size": [
+        0.045,
+        2.2,
         1
       ]
     },
@@ -2136,6 +2175,7 @@
       "faceId": "b:-x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "b",
       "ownerTypeId": "studio",
@@ -2161,6 +2201,7 @@
       "faceId": "b:-x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "b",
       "ownerTypeId": "studio",
@@ -2186,6 +2227,7 @@
       "faceId": "b:-x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "b",
       "ownerTypeId": "studio",
@@ -2203,6 +2245,32 @@
       "size": [
         0.15,
         0.7999999999999998,
+        1
+      ]
+    },
+    {
+      "id": "b:-x:glazing:3",
+      "faceId": "b:-x",
+      "part": "glazing",
+      "condition": "door",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": "b",
+      "ownerTypeId": "studio",
+      "neighbourNodeId": null,
+      "edgeId": "ab",
+      "target": {
+        "kind": "edge",
+        "id": "ab"
+      },
+      "position": [
+        10.5,
+        1.1,
+        0
+      ],
+      "size": [
+        0.045,
+        2.2,
         1
       ]
     },
@@ -2511,6 +2579,7 @@
       "faceId": "c:0.0.0:+x",
       "part": "threshold",
       "condition": "open",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "c",
       "ownerTypeId": "gallery",
@@ -3586,6 +3655,7 @@
       "faceId": "d:-x",
       "part": "threshold",
       "condition": "open",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "d",
       "ownerTypeId": "storage",
@@ -4336,6 +4406,7 @@
       "faceId": "e:1.0.0:+x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "e",
       "ownerTypeId": "gallery",
@@ -4361,6 +4432,7 @@
       "faceId": "e:1.0.0:+x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "e",
       "ownerTypeId": "gallery",
@@ -4386,6 +4458,7 @@
       "faceId": "e:1.0.0:+x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "e",
       "ownerTypeId": "gallery",
@@ -4403,6 +4476,32 @@
       "size": [
         0.15,
         0.7999999999999998,
+        1
+      ]
+    },
+    {
+      "id": "e:1.0.0:+x:glazing:3",
+      "faceId": "e:1.0.0:+x",
+      "part": "glazing",
+      "condition": "door",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": "e",
+      "ownerTypeId": "gallery",
+      "neighbourNodeId": null,
+      "edgeId": "ef",
+      "target": {
+        "kind": "edge",
+        "id": "ef"
+      },
+      "position": [
+        4.5,
+        1.1,
+        -12
+      ],
+      "size": [
+        0.045,
+        2.2,
         1
       ]
     },
@@ -4836,6 +4935,7 @@
       "faceId": "f:-x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "f",
       "ownerTypeId": "gallery",
@@ -4861,6 +4961,7 @@
       "faceId": "f:-x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "f",
       "ownerTypeId": "gallery",
@@ -4886,6 +4987,7 @@
       "faceId": "f:-x",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "f",
       "ownerTypeId": "gallery",
@@ -4903,6 +5005,32 @@
       "size": [
         0.15,
         0.7999999999999998,
+        1
+      ]
+    },
+    {
+      "id": "f:-x:glazing:3",
+      "faceId": "f:-x",
+      "part": "glazing",
+      "condition": "door",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": "f",
+      "ownerTypeId": "gallery",
+      "neighbourNodeId": null,
+      "edgeId": "ef",
+      "target": {
+        "kind": "edge",
+        "id": "ef"
+      },
+      "position": [
+        13.5,
+        1.1,
+        -12
+      ],
+      "size": [
+        0.045,
+        2.2,
         1
       ]
     },
@@ -6011,6 +6139,7 @@
       "faceId": "i:+x",
       "part": "threshold",
       "condition": "open",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "i",
       "ownerTypeId": "studio",
@@ -6461,6 +6590,7 @@
       "faceId": "j:-x",
       "part": "threshold",
       "condition": "open",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "j",
       "ownerTypeId": "studio",
@@ -8011,6 +8141,7 @@
       "faceId": "s:+y",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "s",
       "ownerTypeId": "gallery",
@@ -8036,6 +8167,7 @@
       "faceId": "s:+y",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "s",
       "ownerTypeId": "gallery",
@@ -8061,6 +8193,7 @@
       "faceId": "s:+y",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "s",
       "ownerTypeId": "gallery",
@@ -8079,6 +8212,32 @@
         1,
         0.7999999999999998,
         0.15
+      ]
+    },
+    {
+      "id": "s:+y:glazing:3",
+      "faceId": "s:+y",
+      "part": "glazing",
+      "condition": "door",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": "s",
+      "ownerTypeId": "gallery",
+      "neighbourNodeId": null,
+      "edgeId": "st",
+      "target": {
+        "kind": "edge",
+        "id": "st"
+      },
+      "position": [
+        6,
+        1.1,
+        -28.5
+      ],
+      "size": [
+        1,
+        2.2,
+        0.045
       ]
     },
     {
@@ -8511,6 +8670,7 @@
       "faceId": "t:0.0.0:-y",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "t",
       "ownerTypeId": "gallery",
@@ -8536,6 +8696,7 @@
       "faceId": "t:0.0.0:-y",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "t",
       "ownerTypeId": "gallery",
@@ -8561,6 +8722,7 @@
       "faceId": "t:0.0.0:-y",
       "part": "wall",
       "condition": "door",
+      "outside": true,
       "orientation": "wall",
       "ownerNodeId": "t",
       "ownerTypeId": "gallery",
@@ -8579,6 +8741,32 @@
         1,
         0.7999999999999998,
         0.15
+      ]
+    },
+    {
+      "id": "t:0.0.0:-y:glazing:3",
+      "faceId": "t:0.0.0:-y",
+      "part": "glazing",
+      "condition": "door",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": "t",
+      "ownerTypeId": "gallery",
+      "neighbourNodeId": null,
+      "edgeId": "st",
+      "target": {
+        "kind": "edge",
+        "id": "st"
+      },
+      "position": [
+        6,
+        1.1,
+        -34.5
+      ],
+      "size": [
+        1,
+        2.2,
+        0.045
       ]
     },
     {
@@ -10243,9 +10431,11 @@
         "a:+x:wall:0",
         "a:+x:wall:1",
         "a:+x:wall:2",
+        "a:+x:glazing:3",
         "b:-x:wall:0",
         "b:-x:wall:1",
         "b:-x:wall:2",
+        "b:-x:glazing:3",
         "ab:route:0:connector-floor:0",
         "ab:route:1:connector-floor:0",
         "ab:route:2:connector-floor:0"
@@ -10284,9 +10474,11 @@
         "e:1.0.0:+x:wall:0",
         "e:1.0.0:+x:wall:1",
         "e:1.0.0:+x:wall:2",
+        "e:1.0.0:+x:glazing:3",
         "f:-x:wall:0",
         "f:-x:wall:1",
         "f:-x:wall:2",
+        "f:-x:glazing:3",
         "ef:route:0:connector-floor:0",
         "ef:route:1:connector-floor:0",
         "ef:route:2:connector-floor:0"
@@ -10358,9 +10550,11 @@
         "s:+y:wall:0",
         "s:+y:wall:1",
         "s:+y:wall:2",
+        "s:+y:glazing:3",
         "t:0.0.0:-y:wall:0",
         "t:0.0.0:-y:wall:1",
         "t:0.0.0:-y:wall:2",
+        "t:0.0.0:-y:glazing:3",
         "st:route:0:connector-floor:0",
         "st:route:1:connector-floor:0"
       ],

@@ -38,6 +38,11 @@ export interface ResolvedFace {
   readonly neighbourNodeId: string | null;
   readonly edgeId: string | null;
   readonly condition: FaceCondition;
+  /**
+   * Set only on the endpoint face of an open-air (`deck` / `covered`) connector: the face is
+   * outside, so its wall keeps the owner's façade colour and a door is a closed glass door.
+   */
+  readonly outside?: true;
 }
 
 /**

@@ -17,8 +17,8 @@ function valid(raw: unknown): DesignDocumentV2 {
  *
  * - hall: 2×2×2 (storeys 0–1), the only multi-storey room.
  * - shop touches hall (+x of hall cell [1,0,0]); e1 hall–shop access → direct.
- * - e2 shop–cafe access → routed through [3,0,0], [4,0,0] (2 cells = 6 m).
- * - kiosk [3,1,0] has no relationship; its −y wall runs alongside the connector (solid, not exterior).
+ * - e2 shop–cafe access, enclosed connector → routed through [3,0,0], [4,0,0] (2 cells = 6 m).
+ * - kiosk [3,1,0] has no relationship; its −y wall runs alongside the enclosed connector (solid, not exterior).
  * - loft [0,5,3] stands alone on storey 3; e3 hall–loft (open) and e4 cafe–loft → unresolved (different level).
  * - e5 hall–cafe → unresolved (the straight line on storey 0 passes through shop).
  */
@@ -35,7 +35,7 @@ export function metricsLabDoc(): DesignDocumentV2 {
     ],
     edges: [
       { id: 'e1', source: 'hall', target: 'shop', kind: 'access', attributes: {} },
-      { id: 'e2', source: 'shop', target: 'cafe', kind: 'access', attributes: {} },
+      { id: 'e2', source: 'shop', target: 'cafe', kind: 'access', connectorStyle: 'enclosed', attributes: {} },
       { id: 'e3', source: 'hall', target: 'loft', kind: 'open', attributes: {} },
       { id: 'e4', source: 'cafe', target: 'loft', kind: 'access', attributes: {} },
       { id: 'e5', source: 'hall', target: 'cafe', kind: 'access', attributes: {} },

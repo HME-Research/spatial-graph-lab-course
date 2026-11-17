@@ -1,5 +1,5 @@
 import { FACE_DIRECTIONS, FACE_DIRECTION_OFFSETS, gridKey, neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial';
-import { footprintCells, v1KindFor, type DesignDocumentV2, type RoomNode } from '@app/document/v2';
+import { footprintCells, v1KindFor, type ConnectorStyle, type DesignDocumentV2, type RoomNode } from '@app/document/v2';
 import type { EdgeResolution, RoomFace, SpatialResolution } from '@app/spatial';
 import type { FaceCondition, ResolvedFace } from './contracts';
 import { directionOrientation } from './resolve';
@@ -13,8 +13,11 @@ import { directionOrientation } from './resolve';
  * - a face between two different rooms is authored once, by the room whose id sorts first;
  * - a face whose neighbour cell is empty is `exterior`;
  * - a face whose neighbour cell is reserved by a generated connector is either the connector's
- *   endpoint face (`door` for access, `open` for open, selecting the edge) or a plain `solid`
- *   boundary (no window, no roof) when the connector merely runs alongside / above / below.
+ *   endpoint face (`door` for access, `open` for open, selecting the edge; marked `outside` when
+ *   the connector is `deck` / `covered`: façade colour and a closed glass door); otherwise the connector
+ *   merely runs alongside / above / below. A WALL beside a `covered` or `deck` connector stays
+ *   `exterior` (the room keeps its façade colour and windows: it is still open to the air); beside
+ *   an `enclosed` connector, and every slab above / below a connector, is a plain `solid` boundary.
  *
  * Occupancy comes ONLY from `spatial.occupancy` (02's single occupancy API); this module never
  * reserves or computes cells of its own. Shared-face portions are handled naturally because the
@@ -109,6 +112,8 @@ const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id 
 export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialResolution): BuildingFace[] {
   const direct = directFaceConditions(spatial.edges);
   const endpoints = routeEndpointFaces(spatial.edges);
+  const routeStyle = new Map<string, ConnectorStyle>();
+  for (const r of spatial.edges) if (r.status === 'routed') routeStyle.set(r.edgeId, r.route.style);
   const typeOf = new Map(doc.nodes.map((n) => [n.id, n.typeId]));
   const faces: BuildingFace[] = [];
 
@@ -126,6 +131,7 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
         let condition: FaceCondition = 'exterior';
         let edgeId: string | null = null;
         let via: FaceVia = 'none';
+        let outside = false;
         if (occupant?.kind === 'room') {
           const d = direct.get(key);
           condition = d?.condition ?? 'solid';
@@ -137,8 +143,12 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
           if (e && e.edgeId === occupant.edgeId) {
             condition = e.condition;
             edgeId = e.edgeId;
+            // The end of an open-air connector is outside too: façade colour, glass door.
+            outside = routeStyle.get(occupant.edgeId) !== 'enclosed';
           } else {
-            condition = 'solid';
+            // Beside an open-sided connector a wall is still outside: keep its façade (colour, windows).
+            const wall = direction !== '+z' && direction !== '-z';
+            condition = wall && routeStyle.get(occupant.edgeId) !== 'enclosed' ? 'exterior' : 'solid';
           }
         }
 
@@ -152,6 +162,7 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
           neighbourNodeId: occupant?.kind === 'room' ? occupant.nodeId : null,
           edgeId,
           condition,
+          ...(outside ? { outside: true as const } : {}),
           via,
         });
       }

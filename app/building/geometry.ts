@@ -49,6 +49,8 @@ export interface ArchitecturalElement {
   readonly faceId: string;
   readonly part: ElementPart;
   readonly condition: FaceCondition;
+  /** Copied from the face: an open-air connector's end wall (façade colour, glass door). */
+  readonly outside?: true;
   readonly orientation: FaceOrientation;
   readonly ownerNodeId: string;
   readonly ownerTypeId: string;
@@ -111,6 +113,7 @@ export function buildArchitecture(faces: readonly ResolvedFace[], options: Archi
         faceId: face.id,
         part,
         condition: face.condition,
+        ...(face.outside ? { outside: true as const } : {}),
         orientation: face.orientation,
         ownerNodeId: face.ownerNodeId,
         ownerTypeId: face.ownerTypeId,
@@ -139,7 +142,9 @@ export function buildArchitecture(faces: readonly ResolvedFace[], options: Archi
           size[1] = 0.02;
           emit('threshold', { position, size });
         }
-        // A door is the hole between the solid frame parts: nothing else to draw.
+        // An outside door (end of an open-air connector) is a closed glass door filling the hole.
+        else if (opening.kind === 'door' && face.outside) emit('glazing', faceRectBox(frame, opening.rect, wallT * 0.3));
+        // Any other door is the hole between the solid frame parts: nothing else to draw.
       }
       continue;
     }
