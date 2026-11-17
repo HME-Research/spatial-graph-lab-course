@@ -10,6 +10,7 @@ import {
   serializeProjectFile,
   PROJECT_FILE_FORMAT,
   type ProjectFileV1,
+  type ProjectFunction,
   type ProjectIssue,
   type ProjectMeta,
   type ProjectResult,
@@ -430,6 +431,17 @@ export function setCalculatedFields(project: OpenProject, ids: readonly string[]
   const current = project.meta.settings.calculatedFields;
   if (current && current.length === ids.length && current.every((id, i) => id === ids[i])) return project;
   return changed(project, { meta: { ...project.meta, settings: { ...project.meta.settings, calculatedFields: [...ids] } } });
+}
+
+/** The project functions (`settings.functions`): node types added in the browser. Not undoable; autosaved. */
+export function setProjectFunctions(project: OpenProject, functions: readonly ProjectFunction[], hidden: readonly string[] = project.meta.settings.hiddenFunctions ?? []): OpenProject {
+  const current = project.meta.settings.functions ?? [];
+  const currentHidden = project.meta.settings.hiddenFunctions ?? [];
+  const sameFunctions = current.length === functions.length && current.every((f, i) => f.id === functions[i]!.id && f.label === functions[i]!.label);
+  const sameHidden = currentHidden.length === hidden.length && currentHidden.every((id, i) => id === hidden[i]);
+  if (sameFunctions && sameHidden) return project;
+  const settings = { ...project.meta.settings, functions: functions.map((f) => ({ id: f.id, label: f.label })), hiddenFunctions: [...hidden] };
+  return changed(project, { meta: { ...project.meta, settings } });
 }
 
 /** The project attribute record (`exportAttributeFile` shape) or null (= the project files' schema). */

@@ -35,12 +35,13 @@ export function scenarioRows(project: OpenProject): ScenarioRow[] {
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-export const scenarioSummary = (row: ScenarioRow): string => `${plural(row.rooms, 'room')}, ${plural(row.relationships, 'connection')}`;
+export const scenarioSummary = (row: ScenarioRow): string => `${plural(row.rooms, 'node')} · ${plural(row.relationships, 'edge')}`;
 
 export type SaveAction = 'retry' | 'overwrite' | 'save-as';
 
 export interface SaveStatusView {
-  readonly tone: 'ok' | 'busy' | 'error';
+  /** `note`: autosaved as the last session only (not saved locally): neutral, not an error. */
+  readonly tone: 'ok' | 'busy' | 'error' | 'note';
   /** Short text for the indicator. */
   readonly text: string;
   /** Optional longer explanation (blocked reason, export state). */
@@ -52,15 +53,23 @@ export interface SaveStatusView {
  * The local save indicator. Local saving and exporting are separate: "not exported" is a neutral
  * note, never a warning; a blocked save is an error and never reads as saved.
  */
-export function saveStatusView(state: Pick<ControllerState, 'project' | 'save'>): SaveStatusView | null {
+export function saveStatusView(state: Pick<ControllerState, 'project' | 'save'> & Partial<Pick<ControllerState, 'kept'>>): SaveStatusView | null {
   const { project, save } = state;
   if (!project) return null;
   switch (save.local) {
     case 'saved':
+      if (state.kept === false) {
+        return {
+          tone: 'note',
+          text: 'Not saved locally',
+          detail: 'Autosaved as your last session only. Use Project → Save locally to keep it when you open another project.',
+          actions: [],
+        };
+      }
       return {
         tone: 'ok',
-        text: 'Saved in this browser',
-        detail: isExported(project) ? 'The exported file is up to date.' : 'Use Export Project to keep a file copy.',
+        text: 'Saved locally',
+        detail: isExported(project) ? 'Saved in this browser. The exported file is up to date.' : 'Saved in this browser. Export the project for a portable copy.',
         actions: [],
       };
     case 'pending':
@@ -69,7 +78,7 @@ export function saveStatusView(state: Pick<ControllerState, 'project' | 'save'>)
     case 'blocked': {
       const actions: SaveAction[] =
         save.reason === 'conflict' ? ['save-as', 'overwrite'] : save.reason === 'refused-unreadable' ? ['save-as'] : ['retry', 'save-as'];
-      return { tone: 'error', text: 'Not saved', detail: save.message, actions };
+      return { tone: 'error', text: 'Save failed', detail: save.message, actions };
     }
   }
 }
@@ -77,5 +86,5 @@ export function saveStatusView(state: Pick<ControllerState, 'project' | 'save'>)
 export const SAVE_ACTION_LABELS: Readonly<Record<SaveAction, string>> = {
   retry: 'Try again',
   overwrite: 'Overwrite',
-  'save-as': 'Save As New Project',
+  'save-as': 'Save as new project',
 };

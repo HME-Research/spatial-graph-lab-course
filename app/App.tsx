@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import exampleDesign from './document/examples/two-storey-example.json';
 import { formatIssuePath, type GraphIssue } from '@app/document';
-import { readDesign, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
 import {
   discoverProjects,
   PROJECT_GLOBS,
   selectProject,
+  withProjectFunctions,
+  isProjectFunction,
   type AttributeCollection,
   type ExtensionDiagnostic,
   type TransformationPreviewV2,
@@ -39,16 +41,19 @@ import {
   type KeyValueStorage,
 } from './session/projectAttributeStore';
 import { activeProjectOf, readProjectRequest, startProject, type ProjectSession } from './session/projectSession';
-import { activeSession, activeSlot, isExported } from './session/projectStore';
+import { activeSession, activeSlot } from './session/projectStore';
 import { createProjectController, showsWelcome, type LeaveOptions } from './session/projectStoreController';
 import { createProjectCameraStore, createProjectDisplayStore } from './session/projectViewSettings';
 import { ProjectControllerContext, useProjectControllerState } from './session/projectStoreContext';
 import { historyButtonTitle, historyShortcut, isApplePlatform, type HistoryShortcut } from './session/shortcuts';
 import './session/session.css';
-import { ProjectFiles, ProjectNameField } from './welcome/ProjectFiles';
-import { Welcome } from './welcome/Welcome';
+import { ProjectFiles } from './welcome/ProjectFiles';
+import { EmptyShell, Welcome } from './welcome/Welcome';
+import { FunctionsDialog } from './attributes/FunctionsDialog';
+import { ManageFunctionsContext } from './attributes/navigation';
+import { SIDEBAR_LABELS, SIDEBAR_SECTIONS } from '@app/ui/labels';
 import { createProject, openProjectText, tryExample, type FlowOutcome, type WelcomeHost } from './welcome/welcomeFlow';
-import { recentStateOf, type RecentState } from './welcome/welcomeModel';
+import { courseLabel, recentStateOf, type RecentState } from './welcome/welcomeModel';
 import { Workspace } from './Workspace';
 import { DESTINATION_PANELS } from '@app/workspace/panelSlots';
 import {
@@ -103,20 +108,6 @@ function builtInExample(): { readonly doc: Doc; readonly source: string } {
   return { doc: result.value.doc, source: EXAMPLE_LABEL };
 }
 
-/** File name for an exported design, derived from its metadata name. */
-const exportFileName = (doc: Doc): string =>
-  `${doc.metadata.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'design'}.json`;
-
-/** Download the current document as canonical schema-v2 JSON (the same text `readDesignJson` accepts). */
-function downloadDesign(doc: Doc): void {
-  const url = URL.createObjectURL(new Blob([serializeDesignV2(doc)], { type: 'application/json' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = exportFileName(doc);
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
 const APPLE = typeof navigator !== 'undefined' && isApplePlatform(navigator.platform);
 
 /**
@@ -146,7 +137,7 @@ function LoadFailure({ failure, kept, onDismiss }: { readonly failure: LoadFailu
   const feedback = conciseIssues(failure.issues, { action: `load ${failure.source}`, kept });
   return (
     <section className="issues sgl-load-failure" role="alert">
-      <h2>{kept ? feedback.headline : `${feedback.headline} No design is loaded.`}</h2>
+      <h2>{kept ? feedback.headline : `${feedback.headline} No project is open.`}</h2>
       <ul>
         {feedback.lines.map((l, n) => (
           <li key={n}>{l.hint}</li>
@@ -212,7 +203,8 @@ export function App() {
   /** Centre viewports (layout 1/2/4, modes, maximise); owned here so WorkspaceServices can describe them. */
   const [viewports, setViewports] = useState<ViewportState>(DEFAULT_VIEWPORT_STATE);
   const [attributeCollection, setAttributeCollection] = useState<AttributeCollection>('nodes');
-  const fileInput = useRef<HTMLInputElement>(null);
+  /** The Functions pop-up (add or remove node types) is open. */
+  const [functionsOpen, setFunctionsOpen] = useState(false);
 
   const definitionId = openProject?.meta.definition?.projectId ?? null;
   const projectId = openProject?.meta.projectId ?? null;
@@ -325,7 +317,17 @@ export function App() {
   /** Read-only v1-shaped projection for the frozen `ViewProps.doc` (identity-stable per document). */
   const viewDoc = doc ? legacyProjection(doc) : null;
   const selection = viewDoc ? reconcileSelection(rawSelection, viewDoc) : NO_SELECTION;
-  const project = activeProjectOf(session);
+  /** Project functions (`settings.functions`) and removed course functions merged into the course project's types. */
+  const projectFunctions = openProject?.meta.settings.functions;
+  const hiddenFunctions = openProject?.meta.settings.hiddenFunctions;
+  const courseProject = activeProjectOf(session);
+  const project = useMemo(() => (courseProject ? withProjectFunctions(courseProject, projectFunctions, hiddenFunctions ?? []) : null), [courseProject, projectFunctions, hiddenFunctions]);
+  /** Every scenario's current design (attribute values are checked and counted across all of them). */
+  const scenarioDesigns = useMemo(
+    () => (openProject ? openProject.scenarios.map((s) => ({ id: s.id, name: s.name, doc: currentDocument(s.session).design })) : []),
+    [openProject],
+  );
+  const usedTypeIds = useMemo(() => scenarioDesigns.flatMap((s) => s.doc.nodes.map((n) => n.typeId)), [scenarioDesigns]);
   const facade = useMemo(() => projectFacadeProvider(project), [project]);
   const schema = attributes && project && attributes.projectId === project.id ? currentSchema(attributes) : undefined;
   const projectContext = useMemo(() => (doc ? buildProjectViewContext(project, doc, facade, schema) : undefined), [project, doc, facade, schema]);
@@ -345,7 +347,8 @@ export function App() {
       legacyAttributes: legacyBrowserStorage(),
       startingDesign: async (id) => {
         const start = await startProject(PROJECT_GLOBS, { query: id, env: null }, builtInExample());
-        if (start.startup.doc) return { ok: true, doc: start.startup.doc, source: start.startup.source };
+        const signature = activeProjectOf(start.session)?.attributeBaseline.signature;
+        if (start.startup.doc) return { ok: true, doc: start.startup.doc, source: start.startup.source, ...(signature !== undefined && { attributeSignature: signature }) };
         return { ok: false, message: `The starting design of “${id ?? 'the default project'}” (${start.startup.source}) could not be loaded.` };
       },
     }),
@@ -358,11 +361,22 @@ export function App() {
    * discarded (the action is repeated with `discard`).
    */
   const runFlow = async (label: string, action: (options: LeaveOptions) => Promise<FlowOutcome>) => {
+    // Only the last session is kept without asking: a project that was not saved locally is
+    // replaced by the next one. Ask first when it has changes.
+    const shown = controller.getState();
+    if (shown.project && shown.kept !== true && shown.project.changes > 0) {
+      const keep = !window.confirm(
+        `“${shown.project.meta.name}” is not saved in this browser. Opening another project replaces it.
+
+Continue? (Cancel keeps it open: use Project → Save locally, or Export project.)`,
+      );
+      if (keep) return;
+    }
     setBusy(label);
     try {
       let outcome = await action({});
       if (!outcome.ok && outcome.needsConfirmation) {
-        const discard = window.confirm(`${outcome.message}\n\nContinue and lose those changes? (Cancel keeps this project open; Save As New Project keeps them.)`);
+        const discard = window.confirm(`${outcome.message}\n\nContinue and lose those changes? (Cancel keeps this project open; Save as new project keeps them.)`);
         if (!discard) return;
         outcome = await action({ discard: true });
       }
@@ -388,11 +402,17 @@ export function App() {
   const startExample = () => void runFlow('Opening the example…', (options) => tryExample(host, builtInExample().doc, EXAMPLE_LABEL, options));
   /** Close the project (its changes are written first) and show Welcome's Create form. */
   const backToWelcome = async (definition: string | null = definitions.defaultId) => {
+    const shown = controller.getState();
+    if (shown.project && shown.kept !== true && shown.project.changes > 0) {
+      if (!window.confirm(`“${shown.project.meta.name}” is not saved in this browser. Starting a new project replaces it.
+
+Continue? (Cancel keeps it open: use Save locally, or Export project.)`)) return;
+    }
     let closed = await controller.close();
     if (!closed) {
       const reason = controller.getState().save;
       const why = reason.local === 'blocked' ? `\n\n${reason.message}` : '';
-      // Never dropped silently: the user decides (Save As New Project keeps them instead).
+      // Never dropped silently: the user decides (Save as new project keeps them instead).
       if (!window.confirm(`The latest changes of this project could not be saved in this browser.${why}\n\nClose it anyway and lose them?`)) return;
       closed = await controller.close({ discard: true });
     }
@@ -488,35 +508,6 @@ export function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [navigate]);
 
-  function onToolbarFile(event: ChangeEvent<HTMLInputElement>) {
-    const input = event.currentTarget;
-    const file = input.files?.[0];
-    input.value = '';
-    if (file) openFile(file);
-  }
-
-  /** Download the ACTIVE scenario's design as a single design file (schema v2). */
-  const exportDesign = () => {
-    if (!doc) return;
-    try {
-      downloadDesign(doc);
-    } catch (error) {
-      window.alert(`Export failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
-
-  /** A code project's design as a new scenario of the open project. */
-  const openProjectDesign = (designId: string) => {
-    const design = project?.designs.find((d) => d.id === designId);
-    if (!design) return;
-    if (!design.result.ok) {
-      setFailure({ source: design.file, issues: design.result.issues });
-      return;
-    }
-    const r = controller.createScenario({ from: 'design', design: design.result.value, name: designId, source: design.file });
-    if (!r.ok) window.alert(r.message);
-  };
-
   /** Analysis overlay: rebuilt on every document change so a stale result is visibly marked. */
   const analysis = useMemo<AnalysisPresentation | null>(() => {
     if (!shownAnalysis || !doc || !version) return null;
@@ -583,14 +574,14 @@ export function App() {
                 type="button"
                 className="sgl-identity-project"
                 onClick={() => openLeft('project')}
-                title={`Project “${openProject.meta.name}”${definitionId ? `, types from ${definitionId}` : ''}: files, information and checks`}
+                title={`Project “${openProject.meta.name}”: information, files and checks`}
               >
                 {openProject.meta.name}
               </button>
               <span className="sgl-identity-sep" aria-hidden="true">
                 /
               </span>
-              <span className="sgl-identity-design sgl-identity-scenario" title="Active scenario (switch in the Scenarios section)">
+              <span className="sgl-identity-design sgl-identity-scenario" title="Active scenario (switch scenarios in the Scenarios tab)">
                 {slot.name}
               </span>
               <SaveStatus controller={controller} compact />
@@ -612,17 +603,6 @@ export function App() {
                 </button>
               </div>
             )}
-            {openProject && (
-              <label className="file-button" title="Open a project file, or a design JSON file (schema v1 or v2) as a new project">
-                Open JSON…
-                <input ref={fileInput} type="file" accept=".json,application/json" onChange={onToolbarFile} />
-              </label>
-            )}
-            {openProject && (
-              <button type="button" disabled={!doc} onClick={exportDesign} title="Download only the current scenario’s design as schema-v2 JSON. This does not mark the project exported; Project → Export Project keeps every scenario.">
-                Export design JSON (current scenario)
-              </button>
-            )}
           </div>
         </header>
 
@@ -636,9 +616,12 @@ export function App() {
             </section>
           )}
           {welcome ? (
+            <>
+            {/* Welcome is a modal overlay on a neutral, inert shell: nothing is created or saved to draw it. */}
+            <EmptyShell labels={SIDEBAR_SECTIONS.map((s) => SIDEBAR_LABELS[s])} />
             <Welcome
               key={welcomeMode ? `${welcomeMode.startWith}:${welcomeMode.definitionId ?? ''}` : 'start'}
-              definitions={definitions.ids.map((id) => ({ id, label: id }))}
+              definitions={definitions.ids.map((id) => ({ id, label: courseLabel(id) }))}
               defaultDefinitionId={welcomeMode?.definitionId ?? definitions.defaultId}
               startWith={welcomeMode?.startWith ?? 'choices'}
               recent={recent}
@@ -656,6 +639,7 @@ export function App() {
               }
               onDiscardUnreadable={(id) => void controller.discardUnreadable(id).then(async () => setRecent(recentStateOf(await controller.listRecent())))}
             />
+            </>
           ) : (
             <>
               {failureView}
@@ -665,6 +649,7 @@ export function App() {
                 <DisplayProvider scenarioId={scenarioId ?? ''} store={displayStore}>
                 <EnabledMetricsContext.Provider value={calculatedFields}>
                 <OpenAttributesContext.Provider value={project ? openAttributes : null}>
+                <ManageFunctionsContext.Provider value={project ? () => setFunctionsOpen(true) : null}>
                   <Workspace
                     view={
                       doc && viewDoc && port
@@ -683,33 +668,18 @@ export function App() {
                     onViewports={setViewports}
                     analysis={analysis}
                     onClearAnalysis={() => setShownAnalysis(null)}
-                    empty={<p className="meta">No design is open.</p>}
+                    empty={<p className="meta">No scenario is open.</p>}
                     sections={{
                       project: (
                           <ProjectPanel
-                            // Workstream B's project-file actions, mounted in A's single Project Files section.
-                            files={
-                              <div className="sgl-project-files-section">
-                                {/* Keyed by project: no draft name or Save As form carries over to another project. */}
-                                <ProjectNameField key={`name:${projectId ?? '-'}`} controller={controller} />
-                                <ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} onNew={() => void backToWelcome()} onOpenFile={openFile} />
-                                <SaveStatus controller={controller} />
-                              </div>
-                            }
+                            // Keyed by project: no draft name or Save As dialog carries over to another project.
+                            overview={<ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} onNew={() => void backToWelcome()} onOpenFile={openFile} />}
                             session={session}
                             docLoaded={doc !== null}
                             source={current?.source ?? null}
-                            designName={doc?.metadata.name ?? null}
-                            // EXPORT state only ("not exported" ≠ "unsaved"); local saving is shown by SaveStatus.
-                            modified={openProject !== null && !isExported(openProject)}
                             conformance={conformance}
                             attributeProblems={attributeProblems}
-                            onSwitchProject={(id) => void backToWelcome(id)}
-                            onOpenDesign={openProjectDesign}
                             onSelect={select}
-                            onLoadExample={startExample}
-                            onOpenFile={() => fileInput.current?.click()}
-                            onExport={exportDesign}
                           />
                       ),
                       attributes: (
@@ -718,6 +688,8 @@ export function App() {
                           project={project}
                           doc={doc}
                           source={current?.source ?? null}
+                          scenarios={scenarioDesigns}
+                          onManageFunctions={() => setFunctionsOpen(true)}
                           onChange={(next) => setAttributes(next)}
                           saveError={attributeSaveError}
                           collection={attributeCollection}
@@ -737,7 +709,7 @@ export function App() {
                           }}
                         />
                       ) : (
-                        <p className="meta">Open a design to change its appearance.</p>
+                        <p className="meta">Open a project to change its appearance.</p>
                       ),
                       algorithms: (
                         <AlgorithmPanel
@@ -758,11 +730,22 @@ export function App() {
                       display: <DESTINATION_PANELS.display />,
                     }}
                   />
+                </ManageFunctionsContext.Provider>
                 </OpenAttributesContext.Provider>
                 </EnabledMetricsContext.Provider>
                 </DisplayProvider>
                 </SavedCamerasProvider>
               </WorkspaceServicesContext.Provider>
+              {functionsOpen && openProject && (
+                <FunctionsDialog
+                  courseTypes={(courseProject?.nodeTypes ?? []).filter((t) => t.status.ok && !isProjectFunction(t)).map((t) => ({ id: t.id, label: t.definition.label }))}
+                  projectFunctions={projectFunctions ?? []}
+                  hidden={hiddenFunctions ?? []}
+                  usedTypeIds={usedTypeIds}
+                  onChange={(functions, hidden) => controller.setFunctions(functions, hidden)}
+                  onClose={() => setFunctionsOpen(false)}
+                />
+              )}
             </>
           )}
         </main>

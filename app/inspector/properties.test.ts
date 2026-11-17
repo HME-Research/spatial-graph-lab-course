@@ -36,7 +36,7 @@ describe('Properties panel, schema v1 (today)', () => {
   it('offers the project types in a real dropdown with the current one selected', () => {
     const node = doc.nodes[0]!;
     const html = render({ doc, selection: selectNode(node.id), project: buildProjectViewContext(project, doc) });
-    expect(selectOptions(html, 'Room type')).toEqual(['Gallery (gallery)', 'Studio (studio)']);
+    expect(selectOptions(html, 'Room type')).toEqual(['Gallery', 'Studio']);
     expect(html).toMatch(new RegExp(`<option value="${node.typeId}" selected=""`));
     expect(html).not.toContain('<datalist');
   });
@@ -57,7 +57,7 @@ describe('Properties panel, schema v1 (today)', () => {
     const legacy = expectOk(validateDocument({ ...structuredClone(doc), nodes: doc.nodes.map((n, i) => (i === 0 ? { ...n, typeId: 'legacy-thing' } : n)) }));
     const html = render({ doc: legacy, selection: selectNode(legacy.nodes[0]!.id), project: buildProjectViewContext(project, legacy) });
     expect(selectOptions(html, 'Room type')[0]).toBe('legacy-thing: not defined in this project');
-    expect(html).toContain('does not define the type “legacy-thing”');
+    expect(html).toContain('does not offer the function “legacy-thing”');
   });
 
   it('shows the relationship kind and a remove action with an undo hint', () => {
@@ -123,11 +123,13 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     expect(html).not.toContain('aria-label="Corridor style"');
   });
 
-  it('summarises the design when nothing is selected', () => {
+  it('summarises the scenario when nothing is selected (student vocabulary; the schema only as a tooltip)', () => {
     const design = fakePort();
     const html = render({ doc: v1(), design, selection: NO_SELECTION });
-    expect(html).toContain('3 rooms · 1 relationships');
-    expect(html).toContain('schema v2');
+    expect(html).toContain('This scenario');
+    expect(html).toContain('3 nodes · 1 edge');
+    expect(html).toContain('title="Stored as schema v2"');
+    expect(html).not.toContain('>Design<');
   });
 });
 

@@ -220,6 +220,25 @@ export function editAttributes(session: AttributeSession, edit: SchemaEdit, cont
   return { ok: true, session: next, label: outcome.label, ...(outcome.fieldId !== undefined && { fieldId: outcome.fieldId }) };
 }
 
+/**
+ * Apply several schema edits as ONE schema-history step labelled `label` (for example everything a
+ * student changed in one attribute dialog). All or nothing: the first refusal leaves the session
+ * untouched. Each edit is validated against the result of the previous ones. No edits, or edits
+ * that leave the schema equal, record nothing.
+ */
+export function editAttributesBatch(session: AttributeSession, edits: readonly SchemaEdit[], label: string, context: EditContext = {}): AttributeEditResult {
+  let schema = currentSchema(session);
+  let fieldId: string | undefined;
+  for (const edit of edits) {
+    const outcome = applySchemaEdit(schema, edit, context);
+    if (!outcome.ok) return outcome;
+    schema = outcome.schema;
+    fieldId ??= outcome.fieldId;
+  }
+  const next = edits.length === 0 ? session : commit(session, { schema, recordBaseline: currentRecordBaseline(session) }, label);
+  return { ok: true, session: next, label, ...(fieldId !== undefined && { fieldId }) };
+}
+
 export function undoAttributes(session: AttributeSession): AttributeSession {
   const history = undo(session.history);
   return history === session.history ? session : { ...session, history, revision: session.revision + 1 };

@@ -2,6 +2,7 @@ import type { DesignDocumentV2 } from '@app/document/v2';
 import type { DisplayDefaults, DisplayOverrides } from '@app/display/contracts';
 import {
   createLocalStorageExportMarks,
+  createLocalStorageKeptMarks,
   exportMarkOf,
   formatProjectIssues,
   newProjectId as defaultProjectId,
@@ -10,7 +11,9 @@ import {
   serializeProjectFile,
   type DiscardResult,
   type ExportMarks,
+  type KeptMarks,
   type ProjectFileV1,
+  type ProjectFunction,
   type ProjectStore,
   type ProjectSummary,
 } from '@app/project';
@@ -35,6 +38,7 @@ import {
   setAttributeRecord,
   setCalculatedFields,
   setDisplayDefaults,
+  setProjectFunctions,
   setProjectDescription,
   setScenarioCameras,
   setScenarioDisplay,
@@ -79,6 +83,12 @@ export interface ControllerState {
   readonly save: LocalSaveState;
   /** One-off information for the user (e.g. "opened as a separate copy"); cleared by `dismissNotice`. */
   readonly notice: string | null;
+  /**
+   * The open project was saved locally by the user (Save locally / Save as new project / restored
+   * from the saved list). false = it is the last session only: autosaved, but replaced when another
+   * project becomes the last session.
+   */
+  readonly kept?: boolean;
 }
 
 /** The part of the Web Locks API used here (injectable). */
@@ -103,6 +113,8 @@ export interface ProjectControllerOptions {
   readonly locks?: LockManagerLike | null;
   /** Where "exported" is remembered beside the stored records. Default: `localStorage` (best effort). */
   readonly exportMarks?: ExportMarks;
+  /** Which stored projects the user saved locally. Default: `localStorage` (best effort). */
+  readonly keptMarks?: KeptMarks;
 }
 
 /**
@@ -126,7 +138,8 @@ export type RestoreOutcome =
 
 /** Projects stored in this browser, or why they cannot be listed. */
 export type RecentList =
-  | { readonly status: 'ok'; readonly items: readonly ProjectSummary[] }
+  /** `unsaved`: ids of stored projects that are only the last session (not saved locally). */
+  | { readonly status: 'ok'; readonly items: readonly ProjectSummary[]; readonly unsaved?: readonly string[] }
   | { readonly status: 'unavailable'; readonly message: string };
 
 export interface ProjectController {
@@ -172,6 +185,8 @@ export interface ProjectController {
   setDisplayDefaults(display: DisplayDefaults): void;
   /** Project `settings.calculatedFields` (canonical metric ids). Not undoable; autosaved. */
   setCalculatedFields(ids: readonly string[]): void;
+  /** Project `settings.functions` (node types added in the browser). Not undoable; autosaved. */
+  setFunctions(functions: readonly ProjectFunction[], hiddenFunctions: readonly string[]): void;
   setAttributeRecord(record: unknown | null): void;
 
   // Files
@@ -184,6 +199,12 @@ export interface ProjectController {
    * also the way out of a blocked or conflicting save). The original keeps its last stored state.
    */
   saveAs(name?: string): Promise<Outcome<OpenProject>>;
+  /**
+   * Save locally: keep the open project in this browser's saved projects (it is written now and
+   * then autosaved as before). Without it, the project is only the last session and is replaced
+   * when another project becomes the last session.
+   */
+  saveLocally(): Promise<Outcome<void>>;
 
   // Saving
   /** Write pending changes now and wait for every write in progress. */
@@ -240,7 +261,7 @@ interface Book {
 export const BUSY_MESSAGE = 'Not changed: a project is being opened, copied or closed. Try again in a moment.';
 
 export const CONFLICT_MESSAGE =
-  'Not saved: this project was saved from another tab or window after it was opened here. To keep that work, saving here has stopped. Use “Save As New Project” to keep this version separately, or “Overwrite” to replace the stored copy.';
+  'Not saved: this project was saved from another tab or window after it was opened here. To keep that work, saving here has stopped. Use “Save as new project” to keep this version separately, or “Overwrite” to replace the stored copy.';
 
 const isConflicted = (b: Book): boolean => b.status.local === 'blocked' && b.status.reason === 'conflict';
 const isDirty = (b: Book): boolean => b.latest.changes !== b.savedChanges || b.overwrite;
@@ -254,6 +275,34 @@ export function createProjectController(options: ProjectControllerOptions): Proj
   const scheduler = options.scheduler ?? defaultScheduler;
   const locks = options.locks === undefined ? defaultLocks() : options.locks;
   const exportMarks = options.exportMarks ?? createLocalStorageExportMarks();
+  const keptMarks = options.keptMarks ?? createLocalStorageKeptMarks();
+
+  /** Projects stored before saved-locally marks existed are adopted as saved (never removed). */
+  const adoptEarlierProjects = (items: readonly ProjectSummary[], except: string | null): void => {
+    if (keptMarks.initialised()) return;
+    for (const s of items) if (s.status === 'ok' && s.projectId !== except) keptMarks.add(s.projectId);
+    keptMarks.setInitialised();
+  };
+
+  /**
+   * Only the last session is kept without asking: remove every other READABLE stored project the
+   * user did not save locally. Unreadable records are never touched. Best effort: failures leave
+   * the record in place. Nothing is removed when the marks cannot be used.
+   */
+  async function pruneUnsaved(current: string): Promise<void> {
+    if (!keptMarks.available()) return;
+    let items: readonly ProjectSummary[];
+    try {
+      items = await store.list();
+    } catch {
+      return;
+    }
+    adoptEarlierProjects(items, current);
+    for (const s of items) {
+      if (s.status !== 'ok' || s.projectId === current || keptMarks.has(s.projectId)) continue;
+      await store.remove(s.projectId);
+    }
+  }
 
   /** Remember that `project` was exported (or opened from a file) in its current exported state. */
   const rememberExport = (project: OpenProject): void => {
@@ -267,7 +316,7 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     return mark === exportMarkOf(signature) ? markProjectExported(project, signature) : project;
   };
 
-  let state: ControllerState = { project: null, save: { local: 'saved', at: '' }, notice: null };
+  let state: ControllerState = { project: null, save: { local: 'saved', at: '' }, notice: null, kept: false };
   /** The book of the project shown, or null (Welcome). */
   let book: Book | null = null;
   const listeners = new Set<() => void>();
@@ -432,13 +481,13 @@ export function createProjectController(options: ProjectControllerOptions): Proj
    * Callers have already left the previous project (`leave`, or Save As whose copy carries its
    * changes): its book is dropped here, so no hidden write of it can land later.
    */
-  function activate(project: OpenProject, known: string | null): void {
+  function activate(project: OpenProject, known: string | null, kept = false): void {
     if (book) cancelTimer(book);
     const status: LocalSaveState = known === null ? { local: 'pending' } : { local: 'saved', at: project.meta.updatedAt };
     const b: Book = { projectId: project.meta.projectId, latest: project, known, savedChanges: known === null ? -1 : project.changes, status, writing: null, again: false, overwrite: false, timer: null };
     book = b;
     rememberExport(project);
-    setState({ project, save: status, notice: null });
+    setState({ project, save: status, notice: null, kept });
     if (known === null) schedule(b, 0);
   }
 
@@ -473,6 +522,7 @@ export function createProjectController(options: ProjectControllerOptions): Proj
       if (!separate.ok) return { ok: false, message: `The project could not be opened: ${formatProjectIssues(separate.issues)}` };
       const project = openProject(separate.value, origin, { exported: opts.exported === true && !identityTaken });
       activate(project, null);
+      await pruneUnsaved(project.meta.projectId);
       if (identityTaken) {
         setState({
           notice: `This browser already has a project with the id of “${file.name}”. The file was opened as a separate copy, so the stored project was not changed.`,
@@ -496,7 +546,8 @@ export function createProjectController(options: ProjectControllerOptions): Proj
         };
       }
       const project = withExportMark(openProject(loaded.file, { kind: 'restored', label: 'this browser' }));
-      activate(project, serializeProjectFile(loaded.file));
+      activate(project, serializeProjectFile(loaded.file), keptMarks.has(projectId));
+      await pruneUnsaved(projectId);
       return { ok: true, project };
     }),
 
@@ -507,7 +558,7 @@ export function createProjectController(options: ProjectControllerOptions): Proj
       if (book !== b) return true;
       cancelTimer(b);
       book = null;
-      setState({ project: null, save: { local: 'saved', at: '' }, notice: null });
+      setState({ project: null, save: { local: 'saved', at: '' }, notice: null, kept: false });
       return true;
     }),
 
@@ -523,7 +574,9 @@ export function createProjectController(options: ProjectControllerOptions): Proj
         const probe = await store.load('sgl-storage-probe');
         if (probe.status === 'unavailable') return { status: 'unavailable', message: probe.message };
       }
-      return { status: 'ok', items };
+      if (!keptMarks.available()) return { status: 'ok', items, unsaved: [] };
+      adoptEarlierProjects(items, book?.projectId ?? null);
+      return { status: 'ok', items, unsaved: items.filter((s) => s.status === 'ok' && !keptMarks.has(s.projectId)).map((s) => s.projectId) };
     },
 
     hasPendingWork: () => book !== null && (isDirty(book) || book.writing !== null),
@@ -585,6 +638,9 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     setCalculatedFields(ids) {
       mutate((p) => setCalculatedFields(p, ids));
     },
+    setFunctions(functions, hiddenFunctions) {
+      mutate((p) => setProjectFunctions(p, functions, hiddenFunctions));
+    },
     setAttributeRecord(record) {
       mutate((p) => setAttributeRecord(p, record));
     },
@@ -618,9 +674,22 @@ export function createProjectController(options: ProjectControllerOptions): Proj
       if (!project) return { ok: false, message: 'No project is open.' };
       const copy = saveProjectAs(project, name, { now, newId: newProjectId, newScenarioId });
       if (!copy.ok) return copy;
-      activate(copy.value, null);
+      // Save as new project is an explicit save: the copy is kept.
+      keptMarks.add(copy.value.meta.projectId);
+      activate(copy.value, null, true);
+      await pruneUnsaved(copy.value.meta.projectId);
       return copy;
     }),
+
+    async saveLocally() {
+      const b = book;
+      if (!b || !state.project) return { ok: false, message: 'No project is open.' };
+      if (!keptMarks.available()) return { ok: false, message: 'This browser does not allow saving: its local storage is not available. Export the project to keep it.' };
+      keptMarks.add(b.projectId);
+      if (book === b) setState({ kept: true });
+      await flushBook(b);
+      return { ok: true, value: undefined };
+    },
 
     async flush() {
       if (book) await flushBook(book);

@@ -125,7 +125,7 @@ describe('PlanView', () => {
   it('an empty design shows an explanation and a disabled storey selector', () => {
     const empty = expectOk(validateDocumentV2({ schemaVersion: 2, metadata: { name: 'e' }, nodes: [], edges: [], settings: { typeAppearance: {} } }));
     const html = render(empty);
-    expect(html).toContain('This design has no rooms yet');
+    expect(html).toContain('This scenario has no rooms yet');
     expect(html).toMatch(/<select[^>]*disabled/);
   });
 

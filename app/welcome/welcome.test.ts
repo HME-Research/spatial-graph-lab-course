@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { readDesign, serializeDesignV2 } from '@app/document/v2';
 import { makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
-import { createMemoryProjectStore, readProjectFile, serializeProjectFile } from '@app/project';
+import { createMemoryKeptMarks, createMemoryProjectStore, readProjectFile, serializeProjectFile } from '@app/project';
 import { attributeStorageKey } from '@app/session/projectAttributeStore';
 import { readLegacyAttributeRecord } from './legacyAttributes';
 import { fileOf, twoRooms } from '@app/session/projectStore.fixtures';
@@ -21,13 +21,17 @@ const example = () => {
   return r.value.doc;
 };
 
-function host(store = createMemoryProjectStore()): WelcomeHost & { store: typeof store } {
-  const controller = createProjectController({ store, locks: null, debounceMs: 0 });
+function host(store = createMemoryProjectStore(), kept = createMemoryKeptMarks()): WelcomeHost & { store: typeof store; kept: typeof kept } {
+  const controller = createProjectController({ store, locks: null, debounceMs: 0, keptMarks: kept });
   return {
     store,
+    kept,
     controller,
     defaultDefinitionId: 'example-gallery',
-    startingDesign: async (id) => (id === 'broken' ? { ok: false, message: 'the default design of broken is invalid' } : { ok: true, doc: twoRooms(), source: `projects/${id}/designs/x.json` }),
+    startingDesign: async (id) =>
+      id === 'broken'
+        ? { ok: false, message: 'the default design of broken is invalid' }
+        : { ok: true, doc: twoRooms(), source: `projects/${id}/designs/x.json`, attributeSignature: 'files-sig' },
   };
 }
 
@@ -61,6 +65,18 @@ describe('Welcome flow', () => {
     expect(h.store.records.size).toBe(1);
   });
 
+  it('Create project starts with an EMPTY graph and only the required attributes (no custom, no calculated)', async () => {
+    const h = host();
+    expect((await createProject(h, 'Empty', 'example-gallery')).ok).toBe(true);
+    const p = h.controller.getState().project!;
+    expect(p.scenarios).toHaveLength(1);
+    const design = p.scenarios[0]!.session.history.present.design;
+    expect(design.nodes).toEqual([]);
+    expect(design.edges).toEqual([]);
+    expect(p.meta.attributes).toMatchObject({ projectId: 'example-gallery', baseline: 'files-sig', schema: { nodes: [], edges: [] } });
+    expect(p.meta.settings.calculatedFields).toEqual([]);
+  });
+
   it('refuses an empty name or a failing starting design without opening anything', async () => {
     const h = host();
     expect((await createProject(h, '  ', 'example-gallery')).ok).toBe(false);
@@ -69,15 +85,56 @@ describe('Welcome flow', () => {
     expect(h.controller.getState().project).toBeNull();
   });
 
-  it('Try Example opens a new project each time (Recent restores earlier ones)', async () => {
+  it('Try Example opens a new project each time; only the last session is kept unless saved locally', async () => {
     const h = host();
     const a = await tryExample(h, example(), 'example.json');
     await h.controller.flush();
     const b = await tryExample(h, example(), 'example.json');
     await h.controller.flush();
-    expect(a.ok && b.ok && a.projectId !== b.projectId).toBe(true);
+    if (!a.ok || !b.ok) throw new Error('not opened');
+    expect(a.projectId).not.toBe(b.projectId);
+    let recent = await h.controller.listRecent();
+    // a was never saved locally: b replaced it as the last session.
+    expect(recent.status === 'ok' && recent.items.map((s) => s.projectId)).toEqual([b.projectId]);
+    expect(recent.status === 'ok' && recent.unsaved).toEqual([b.projectId]);
+    expect((await h.controller.saveLocally()).ok).toBe(true);
+    expect(h.controller.getState().kept).toBe(true);
+    const c = await tryExample(h, example(), 'example.json');
+    await h.controller.flush();
+    if (!c.ok) throw new Error('not opened');
+    recent = await h.controller.listRecent();
+    expect(recent.status === 'ok' && recent.items.map((s) => s.projectId).sort()).toEqual([b.projectId, c.projectId].sort());
+    expect(recent.status === 'ok' && recent.unsaved).toEqual([c.projectId]);
+    // Restoring the saved one keeps it saved, and the unsaved last session (c) is then replaced.
+    expect((await h.controller.restore(b.projectId)).ok).toBe(true);
+    expect(h.controller.getState().kept).toBe(true);
+    recent = await h.controller.listRecent();
+    expect(recent.status === 'ok' && recent.items.map((s) => s.projectId)).toEqual([b.projectId]);
+  });
+
+  it('projects stored before saved-locally marks existed are adopted as saved, never removed', async () => {
+    const store = createMemoryProjectStore();
+    const old = createProjectController({ store, locks: null, debounceMs: 0, keptMarks: createMemoryKeptMarks() });
+    const earlier = await old.open(fileOf(), { kind: 'opened-file', label: 'x' });
+    await old.flush();
+    if (!earlier.ok) throw new Error('not opened');
+    const marks = createMemoryKeptMarks(false); // a browser that has never used marks
+    const h = host(store, marks);
+    await tryExample(h, example(), 'example.json');
+    await h.controller.flush();
     const recent = await h.controller.listRecent();
     expect(recent.status === 'ok' && recent.items.length).toBe(2);
+    expect(marks.has(earlier.project.meta.projectId)).toBe(true);
+    expect(recent.status === 'ok' && recent.unsaved).toHaveLength(1);
+  });
+
+  it('Save as new project keeps the copy saved', async () => {
+    const h = host();
+    await tryExample(h, example(), 'example.json');
+    const r = await h.controller.saveAs('Copy');
+    expect(r.ok).toBe(true);
+    expect(h.controller.getState().kept).toBe(true);
+    expect(r.ok && h.kept.has(r.value.meta.projectId)).toBe(true);
   });
 
   it('imports a legacy v1 design file as a new project with one scenario', async () => {
@@ -107,7 +164,7 @@ describe('Welcome flow', () => {
 
   it('export → import round trip keeps every scenario (as a separate copy in the same browser)', async () => {
     const h = host();
-    await createProject(h, 'Round trip', 'example-gallery');
+    await tryExample(h, twoRooms(), 'two.json');
     h.controller.createScenario({ from: 'current', name: 'Option B' });
     h.controller.command({ type: 'set-node-geometry', nodeId: 'b', grid: [2, 1, 0] });
     let text = '';
@@ -152,18 +209,15 @@ describe('legacy attribute seed (one-time, read-only)', () => {
       makeAttributeRecord(projectId, { nodes: [{ id: 'cost', key: 'cost', label: 'Cost', kind: 'number' }], edges: [], nodeTypeDefaults: {} }, 'legacy-baseline'),
     );
 
-  it('seeds a project created from a code project with that code project’s legacy record, never touching it', async () => {
+  it('never seeds Create project (required attributes only) and never touches the legacy record', async () => {
     const storage = legacyStorage({ [attributeStorageKey('starter-template')]: legacyText('starter-template') });
     const h = { ...host(), legacyAttributes: storage };
-    expect((await createProject(h, 'Seeded', 'starter-template')).ok).toBe(true);
+    expect((await createProject(h, 'Not seeded', 'starter-template')).ok).toBe(true);
     const attrs = h.controller.getState().project!.meta.attributes as { projectId: string; schema: { nodes: { key: string }[] } };
     expect(attrs.projectId).toBe('starter-template');
-    expect(attrs.schema.nodes.map((n) => n.key)).toEqual(['cost']);
+    expect(attrs.schema.nodes).toEqual([]);
     expect(storage.writes).toEqual([]);
     expect(storage.data.get(attributeStorageKey('starter-template'))).toBe(legacyText('starter-template'));
-    // Another code project without a legacy record starts from its files.
-    expect((await createProject(h, 'Plain', 'example-gallery')).ok).toBe(true);
-    expect(h.controller.getState().project!.meta.attributes).toBeNull();
   });
 
   it('seeds Try Example and design-file imports, but never an opened project file', async () => {
@@ -181,7 +235,7 @@ describe('legacy attribute seed (one-time, read-only)', () => {
   it('ignores an unreadable legacy record with a short notice', async () => {
     const storage = legacyStorage({ [attributeStorageKey('example-gallery')]: '{ broken' });
     const h = { ...host(), legacyAttributes: storage };
-    expect((await createProject(h, 'x', 'example-gallery')).ok).toBe(true);
+    expect((await tryExample(h, example(), 'example.json')).ok).toBe(true);
     expect(h.controller.getState().project!.meta.attributes).toBeNull();
     expect(h.controller.getState().notice).toMatch(/could not be read/);
     expect(readLegacyAttributeRecord(storage, 'example-gallery').kind).toBe('unreadable');
@@ -211,14 +265,17 @@ describe('Welcome screen', () => {
     expect(html).toContain('IndexedDB is not available');
   });
 
-  it('offers Create, Open, Try Example and Recent', () => {
+  it('offers Create project, Open project, Try example and Recent projects', () => {
     const html = renderToStaticMarkup(createElement(Welcome, props()));
+    expect(html).toContain('Welcome to Spatial Graph Lab');
     expect(html).toContain('Create project');
-    expect(html).toContain('Open file…');
+    expect(html).toContain('Open project');
     expect(html).toContain('type="file"');
-    expect(html).toContain('Try Example');
-    expect(html).toContain('Recent local projects');
-    expect(html).toContain('No projects are saved in this browser yet.');
+    expect(html).toContain('Try example');
+    expect(html).toContain('Recent projects');
+    expect(html).toContain('No saved projects yet.');
+    expect(html).toContain('Projects are saved in this browser');
+    for (const old of ['design file', 'Open file', 'Try Example']) expect(html).not.toContain(old);
   });
 
   it('lists readable projects and unreadable records honestly', () => {
@@ -226,14 +283,18 @@ describe('Welcome screen', () => {
       { status: 'ok', projectId: 'p1', name: 'House', createdAt: '2026-11-16T10:00:00.000Z', updatedAt: '2026-11-16T11:00:00.000Z', scenarioCount: 2, definitionId: 'example-gallery' },
       { status: 'unreadable', projectId: 'p2', quarantineKey: 'p2:unreadable:x', issues: [{ path: [], code: 'invalid-json', message: 'file is not valid JSON' }] },
     ] as const;
-    const html = renderToStaticMarkup(createElement(Welcome, props({ recent: { status: 'ready', items } })));
+    const html = renderToStaticMarkup(createElement(Welcome, props({ recent: { status: 'ready', items, unsaved: ['p1'] } })));
     expect(html).toContain('House');
     expect(html).toContain('2 scenarios');
     expect(html).toContain('Unreadable project');
     expect(html).toContain('file is not valid JSON');
     expect(html).toContain('Discard…');
+    expect(html).toContain('last session · not saved');
+    // No internal project ids or course ids are shown.
+    expect(html).not.toContain('>p2<');
+    expect(html).not.toContain('example-gallery');
     const rows = recentRows(items, () => 'when');
-    expect(rows[0]).toMatchObject({ kind: 'ok', detail: '2 scenarios · edited when · example-gallery' });
+    expect(rows[0]).toMatchObject({ kind: 'ok', detail: '2 scenarios · edited when', unsaved: false });
     expect(rows[1]).toMatchObject({ kind: 'unreadable', quarantined: true });
   });
 
@@ -246,19 +307,29 @@ describe('Welcome screen', () => {
   it('disables actions while busy and shows loading', () => {
     const html = renderToStaticMarkup(createElement(Welcome, props({ busy: 'Opening…', recent: { status: 'loading' } })));
     expect(html).toContain('Opening…');
-    expect(html).toContain('Looking for projects');
+    expect(html).toContain('Looking for saved projects');
     expect(html).toMatch(/disabled=""/);
   });
 });
 
 describe('Project Files', () => {
-  it('renders New, Open, Export Project and Save As New Project', async () => {
+  it('renders each project action once, the information and the unsaved last-session state', async () => {
     const h = host();
     await createProject(h, 'x', 'example-gallery');
-    const html = renderToStaticMarkup(
-      createElement(ProjectControllerContext.Provider, { value: h.controller }, createElement(ProjectFiles, { controller: h.controller, onNew: noop, onOpenFile: noop })),
-    );
-    for (const label of ['New', 'Open…', 'Export Project', 'Save As New Project']) expect(html).toContain(label);
+    const render = () =>
+      renderToStaticMarkup(
+        createElement(ProjectControllerContext.Provider, { value: h.controller }, createElement(ProjectFiles, { controller: h.controller, onNew: noop, onOpenFile: noop })),
+      );
+    let html = render();
+    for (const label of ['New project', 'Open project', 'Export project', 'Save as new project']) {
+      expect(html.split(`>${label}`).length, label).toBe(2);
+    }
+    for (const text of ['Last edited', '1 scenario', 'Description', 'Not saved locally', '>Save locally<']) expect(html).toContain(text);
+    for (const old of ['Export design', 'Open JSON', 'Load example', 'Active project', 'Project Files']) expect(html).not.toContain(old);
+    await h.controller.saveLocally();
+    html = render();
+    expect(html).not.toContain('>Save locally<');
+    expect(html).toContain('Saved locally');
     expect(projectFileName('My House!')).toBe('my-house.project.json');
     expect(projectFileName('???')).toBe('project.project.json');
   });

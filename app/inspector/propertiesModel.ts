@@ -106,10 +106,13 @@ export function typeMenu(project: ActiveProject | null, typesInDesign: readonly 
     .map((t) => ({ id: t.id, status: nodeTypeStatus(project, t.id) }))
     // One entry per id (a duplicated definition is reported as broken by the registry).
     .filter((t, i, all) => all.findIndex((o) => o.id === t.id) === i);
+  // Readable names only; the identifier is added only where two functions share a name.
+  const labelCount = new Map<string, number>();
+  for (const { status: s } of registered) if (s.kind === 'registered') labelCount.set(s.label, (labelCount.get(s.label) ?? 0) + 1);
   const options: TypeOption[] = registered
     .map(({ id, status: s }): TypeOption =>
       s.kind === 'registered'
-        ? { value: id, label: `${s.label} (${id})`, disabled: false }
+        ? { value: id, label: (labelCount.get(s.label) ?? 0) > 1 ? `${s.label} (${id})` : s.label, disabled: false }
         : { value: id, label: `${s.kind === 'broken' && s.label ? s.label : id} (${id}): invalid definition`, disabled: true },
     )
     .sort((a, b) => Number(a.disabled) - Number(b.disabled) || a.label.localeCompare(b.label));

@@ -91,7 +91,7 @@ export function CustomAttributes({
       )}
       {resolved.length === 0 ? (
         <p className="meta">
-          The project has no {collection === 'nodes' ? 'node' : 'edge'} attributes yet.{onManage ? ' Use “Manage attributes” to add one.' : ''}
+          The project has no custom {collection === 'nodes' ? 'node' : 'edge'} attributes yet.{onManage ? ' Use “Manage attributes” to add one.' : ''}
         </p>
       ) : (
         <p className="sgl-help">A value set here applies to this {what} only; “Use default” returns to the inherited value.</p>
@@ -101,8 +101,8 @@ export function CustomAttributes({
       ))}
       {Object.keys(outside).length > 0 && (
         <details className="sgl-outside">
-          <summary>Not in the project fields ({Object.keys(outside).length})</summary>
-          <p className="sgl-help">Stored on this {what} but not a project field (e.g. a deleted field). Kept exactly as stored.</p>
+          <summary>Not in the project attributes ({Object.keys(outside).length})</summary>
+          <p className="sgl-help">Stored on this {what} but not a project attribute (e.g. a deleted attribute). Kept exactly as stored.</p>
           <ul className="sgl-list">
             {Object.entries(outside).map(([k, v]) => (
               <li key={k}>
@@ -181,7 +181,7 @@ function FieldValue({
   return (
     <div className={`sgl-field sgl-field-${source.tone}`}>
       <label className="sgl-field-label" htmlFor={field.kind === 'enum' || field.kind === 'boolean' ? id : undefined}>
-        <span>{field.label}</span> <code>{field.key}</code>
+        <span title={`Identifier: ${field.key}`}>{field.label}</span>
         <span id={`${id}-src`} className={`sgl-chip sgl-chip-src-${source.tone}`} title={`Effective value: ${formatFieldValue(r.value)}`}>
           {source.chip}
         </span>
@@ -207,7 +207,7 @@ function FieldValue({
       )}
       {r.storedKey !== undefined && r.storedKey !== field.key && (
         <p className="sgl-help">
-          Stored under the field’s former name <code>{r.storedKey}</code>; editing saves it as <code>{field.key}</code>.
+          Stored under an earlier identifier of this attribute; editing saves it under the current one.
         </p>
       )}
     </div>

@@ -1,18 +1,12 @@
-import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import type { DesignDocumentV2 } from '@app/document/v2';
 import {
   algorithmReferences,
   designSamples,
-  describeField,
-  FIELD_KIND_LABELS,
-  FIELD_KINDS,
   fieldKeys,
-  fieldUsage,
   type ActiveProject,
   type AttributeCollection,
-  type AttributeField,
-  type DefaultValue,
-  type FieldKind,
+  type DesignSample,
   type SchemaEdit,
 } from '@app/extensions';
 import {
@@ -23,11 +17,10 @@ import {
   currentSchema,
   differsFromFiles,
   discardUnreadableRecord,
-  editAttributes,
+  editAttributesBatch,
   exportAttributeFile,
   filesChangedSinceSaved,
   importAttributeFile,
-  isAttributeSchemaModified,
   markAttributesExported,
   mergeFilesIntoSession,
   redoAttributes,
@@ -35,75 +28,110 @@ import {
   undoAttributes,
   type AttributeSession,
 } from '@app/session/projectAttributeStore';
-import { formatFieldValue, KIND_HELP, parseChoices, parseValueDraft, typeChoices } from './attributesModel';
-import { DEFAULT_ENABLED_METRICS, METRIC_CATALOGUE, setMetricEnabled, type CatalogueMetric, type EnabledMetricIds } from '@app/metrics';
-import { CollapsibleSection, HorizontalTabs, InfoButton } from '@app/ui';
-import { HelpTip } from '@app/ui/help';
+import { DEFAULT_ENABLED_METRICS, setMetricEnabled, type CatalogueMetric, type EnabledMetricIds } from '@app/metrics';
+import { CollapsibleSection, HorizontalTabs } from '@app/ui';
+import { attributeRows, metricValueText, scenarioSamples, type AttributeRow } from './attributeList';
+import { AddAttributeDialog, AttributeInfoDialog, DeleteAttributeDialog, EditAttributeDialog, studentMessage, type ApplyEdits } from './AttributeDialogs';
+import { HideIcon, LockIcon, PencilIcon, TrashIcon } from './FunctionsDialog';
 import './attributes.css';
 
+/** One scenario of the open project, for counting and validating stored values. */
+export interface ScenarioDesign {
+  readonly id: string;
+  readonly name: string;
+  readonly doc: DesignDocumentV2;
+}
+
+type OpenDialog =
+  | { readonly kind: 'add' }
+  | { readonly kind: 'edit'; readonly fieldId: string }
+  | { readonly kind: 'delete'; readonly fieldId: string }
+  | { readonly kind: 'info'; readonly row: AttributeRow };
+
 /**
- * The project's custom attribute fields (programme phase 03): one list for every node and one for
- * every edge of every design in the project. Changes here are PROJECT changes — saved in this
- * browser immediately, with their own Undo/Redo here — not design edits (the header's Undo/Redo
- * only undoes design edits). Designer appearance settings are separate.
+ * The project's attributes (UI refinement 2026-11-17): ONE list per Node | Edge, in which required,
+ * custom and calculated attributes appear alike (required first, then custom in project order,
+ * then calculated in catalogue order). One "+ Add attribute" opens a dialog (Custom or Calculated);
+ * a custom row opens its edit dialog; calculated and required rows open a short information view.
+ *
+ * Internally nothing is merged: custom attributes are the project attribute schema (with their own
+ * Undo/Redo, ↶ ↷ here), calculated ones are the project's shown metric ids (`settings.calculatedFields`;
+ * removing one hides it, the calculation stays registered and available to algorithms), and the
+ * required ones are system properties of the graph.
  */
 export function AttributesPanel({
   session,
   project,
   doc,
   source,
+  scenarios,
   onChange,
   saveError = null,
   collection: controlledCollection,
   onCollection,
   calculatedFields = DEFAULT_ENABLED_METRICS,
   onCalculatedFields,
+  onManageFunctions,
+  functions,
 }: {
   readonly session: AttributeSession | null;
   readonly project: ActiveProject | null;
-  /** The open design (its stored values are respected by kind changes and counted for deletes). */
+  /** The open design (used when `scenarios` is not given). */
   readonly doc: DesignDocumentV2 | null;
   readonly source: string | null;
+  /** Every scenario of the open project: stored values are checked and counted in all of them. */
+  readonly scenarios?: readonly ScenarioDesign[];
   readonly onChange: (next: AttributeSession) => void;
   readonly saveError?: string | null;
-  /** Optional controlled sub-section (Nodes / Edges). */
+  /** Optional controlled sub-section (Node / Edge). */
   readonly collection?: AttributeCollection;
   readonly onCollection?: (collection: AttributeCollection) => void;
-  /** The project's enabled calculated values (`settings.calculatedFields`, canonical ids). */
+  /** The project's shown calculated attributes (`settings.calculatedFields`, canonical ids). */
   readonly calculatedFields?: EnabledMetricIds;
-  /** Enable/disable calculated values (a project setting: autosaved, not undoable). Read-only list without it. */
+  /** Show or hide calculated attributes (a project setting: autosaved, not undoable). Read-only without it. */
   readonly onCalculatedFields?: (ids: EnabledMetricIds) => void;
+  /** Opens the Functions pop-up (the Function row). */
+  readonly onManageFunctions?: () => void;
+  /** Functions offered for per-function defaults (default: the project's valid types). */
+  readonly functions?: readonly { readonly id: string; readonly label: string }[];
 }) {
   const [ownCollection, setOwnCollection] = useState<AttributeCollection>('nodes');
   const collection = controlledCollection ?? ownCollection;
   const setCollection = onCollection ?? setOwnCollection;
   const [notice, setNotice] = useState<{ readonly tone: 'ok' | 'error'; readonly text: string } | null>(null);
+  const [dialog, setDialog] = useState<OpenDialog | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-  /** Bumped on every refused edit: field inputs re-key, so a refused draft never looks applied. */
-  const [refusals, setRefusals] = useState(0);
-  const usage = useMemo(() => designSamples(project, doc && source ? { doc, source } : null), [project, doc, source]);
+  const samples = useMemo<DesignSample[]>(
+    () => (scenarios ? scenarioSamples(scenarios, designSamples(project, null)) : designSamples(project, doc && source ? { doc, source } : null)),
+    [scenarios, project, doc, source],
+  );
 
   if (!session || !project) {
     return (
       <div className="sgl-attributes sgl-inspector">
-        <p className="meta">No active project: custom fields belong to a project.</p>
+        <p className="meta">{project === null && session === null ? 'Open a project to see its attributes.' : 'Loading attributes…'}</p>
       </div>
     );
   }
   const schema = currentSchema(session);
-  const fields = schema[collection];
-  const what = collection === 'nodes' ? 'node' : 'edge';
+  const rows = attributeRows(collection, schema, calculatedFields);
+  const functionChoices = functions ?? project.nodeTypes.filter((t) => t.status.ok).map((t) => ({ id: t.id, label: t.definition.label }));
 
-  const apply = (edit: SchemaEdit): boolean => {
-    const result = editAttributes(session, edit, { usage });
-    if (!result.ok) {
-      setNotice({ tone: 'error', text: result.reason });
-      setRefusals((n) => n + 1); // refused drafts are replaced by the stored values again
-      return false;
-    }
+  const apply: ApplyEdits = (edits: readonly SchemaEdit[], label: string) => {
+    const result = editAttributesBatch(session, edits, label, { usage: samples });
+    if (!result.ok) return result.reason;
     onChange(result.session);
-    setNotice({ tone: 'ok', text: `${result.label}. Saved for project “${project.id}”.` });
-    return true;
+    setNotice({ tone: 'ok', text: `${label}.` });
+    return null;
+  };
+
+  const showCalculated = (metric: CatalogueMetric, on: boolean) => {
+    if (!onCalculatedFields) return;
+    onCalculatedFields(setMetricEnabled(calculatedFields, metric.id, on));
+    setNotice({
+      tone: 'ok',
+      text: on ? `Added “${metric.label}”.` : `“${metric.label}” removed from the list. It is still calculated and available to algorithms.`,
+    });
   };
 
   const exportFile = () => {
@@ -111,7 +139,7 @@ export function AttributesPanel({
       const url = URL.createObjectURL(new Blob([exportAttributeFile(session, new Date().toISOString())], { type: 'application/json' }));
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${project.id}.attributes.json`;
+      link.download = 'attributes.json';
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (error) {
@@ -119,7 +147,7 @@ export function AttributesPanel({
       return;
     }
     onChange(markAttributesExported(session));
-    setNotice({ tone: 'ok', text: `Downloaded ${project.id}.attributes.json.` });
+    setNotice({ tone: 'ok', text: 'Downloaded attributes.json.' });
   };
 
   const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -130,578 +158,240 @@ export function AttributesPanel({
     const text = await file.text();
     let result = importAttributeFile(session, text);
     if (!result.ok && result.issues[0]?.code === 'attribute-schema-project-mismatch') {
-      if (!window.confirm(`${result.issues[0].message}.\n\nImport its fields into project “${project.id}” anyway? (Undo here reverts it.)`)) return;
+      if (!window.confirm('This attribute file was made for another course project.\n\nUse its attributes here anyway? (Undo reverses it.)')) return;
       result = importAttributeFile(session, text, { allowOtherProject: true });
     }
     if (!result.ok) {
-      setNotice({ tone: 'error', text: `Not imported: ${result.issues.map((i) => i.message).join('; ')}. The current fields were kept.` });
+      setNotice({ tone: 'error', text: `Not imported: ${studentMessage(result.issues.map((i) => i.message).join('; '))} The current attributes were kept.` });
       return;
     }
     onChange(result.session);
-    setNotice({ tone: 'ok', text: `Imported ${file.name}. Undo here reverts it.` });
+    setNotice({ tone: 'ok', text: `Imported ${file.name}. Undo reverses it.` });
   };
 
-  const modified = isAttributeSchemaModified(session);
-  const status = session.saveBlocked
-    ? { tone: 'error', text: `Not saved: ${session.saveBlocked}.` }
-    : saveError
-      ? { tone: 'error', text: `Not saved: ${saveError}` }
-      : differsFromFiles(session)
-        ? { tone: 'ok', text: `Saved in this browser${modified ? ' · not exported' : ''}.` }
-        : { tone: 'ok', text: 'Same as the project files.' };
+  const undoTitle = canUndoAttributes(session) ? `Undo attribute change: ${attributeUndoLabel(session)}` : 'No attribute change to undo';
+  const redoTitle = canRedoAttributes(session) ? `Redo attribute change: ${attributeRedoLabel(session)}` : 'No attribute change to redo';
+  const fieldOf = (id: string) => schema[collection].find((f) => f.id === id);
+  const referencesOf = (id: string) => {
+    const field = fieldOf(id);
+    return field ? algorithmReferences(project, fieldKeys(field)).map((r) => r.file.split('/').pop() ?? r.file) : [];
+  };
+  const blocked = session.saveBlocked ?? (saveError ? saveError : null);
 
   return (
     <div className="sgl-attributes sgl-inspector">
-      <div className="sgl-help-row">
-        <p className="sgl-help sgl-attr-intro">
-          Attributes of project <strong>{project.definition.name}</strong>, shared by every design. Values are set per item in Properties.
-        </p>
-        <HelpTip topicId="project-attributes" />
-      </div>
-      <div className={`sgl-attr-status sgl-attr-status-${status.tone}`} role="status">
-        {status.text}
-      </div>
-      <div className="sgl-buttons" role="group" aria-label="Project attribute history and files">
-        <button type="button" disabled={!canUndoAttributes(session)} onClick={() => onChange(undoAttributes(session))} title={canUndoAttributes(session) ? `Undo: ${attributeUndoLabel(session)}` : 'Nothing to undo in the project fields'}>
-          ↶ Undo field change
-        </button>
-        <button type="button" disabled={!canRedoAttributes(session)} onClick={() => onChange(redoAttributes(session))} title={canRedoAttributes(session) ? `Redo: ${attributeRedoLabel(session)}` : 'Nothing to redo in the project fields'}>
-          ↷ Redo
-        </button>
-      </div>
-      {session.saveBlocked && (
+      {blocked && (
         <div className="sgl-warning" role="alert">
-          The saved fields of this project could not be read, so nothing is saved until you decide.{' '}
-          <button type="button" onClick={() => onChange(discardUnreadableRecord(session))}>
-            Discard the unreadable copy and save
-          </button>
+          Attribute changes are not saved: {blocked}
+          {session.saveBlocked && (
+            <>
+              {' '}
+              <button type="button" className="sgl-link" onClick={() => onChange(discardUnreadableRecord(session))}>
+                Discard the unreadable copy and save
+              </button>
+            </>
+          )}
         </div>
       )}
-      {filesChangedSinceSaved(session) && (
-        <div className="sgl-warning">
-          The project files declare fields differently from when these were saved.{' '}
+
+      <div className="sgl-attr-head">
+        <HorizontalTabs
+          label="Attributes of"
+          active={collection}
+          onActive={(c) => {
+            setCollection(c);
+            setNotice(null);
+          }}
+          tabs={(['nodes', 'edges'] as const).map((c) => ({
+            id: c,
+            label: c === 'nodes' ? 'Node' : 'Edge',
+            description: c === 'nodes' ? 'Attributes of every node (room)' : 'Attributes of every edge (relationship), Access and Open alike',
+          }))}
+        >
+          <ul className="sgl-attr-list" aria-label={`${collection === 'nodes' ? 'Node' : 'Edge'} attributes`}>
+            {rows.map((row) => (
+              <AttributeListRow
+                key={`${row.kind}:${row.id}`}
+                row={row}
+                onOpen={() => {
+                  if (row.kind === 'custom') setDialog({ kind: 'edit', fieldId: row.id });
+                  else if (row.kind === 'required' && row.id === 'function' && onManageFunctions) onManageFunctions();
+                  else setDialog({ kind: 'info', row });
+                }}
+                onRemove={
+                  row.kind === 'custom'
+                    ? () => setDialog({ kind: 'delete', fieldId: row.id })
+                    : row.kind === 'calculated' && onCalculatedFields
+                      ? () => showCalculated(row.metric, false)
+                      : undefined
+                }
+                {...(row.kind === 'required' && row.id === 'function' && onManageFunctions && { onEdit: onManageFunctions })}
+              />
+            ))}
+          </ul>
+          <button type="button" className="sgl-attr-add" onClick={() => setDialog({ kind: 'add' })}>
+            <span aria-hidden="true">+</span> Add attribute
+          </button>
+        </HorizontalTabs>
+        <div className="sgl-attr-history" role="group" aria-label="Attribute changes">
+          <button type="button" className="sgl-icon-action" disabled={!canUndoAttributes(session)} onClick={() => onChange(undoAttributes(session))} title={undoTitle} aria-label={undoTitle}>
+            <span aria-hidden="true">↶</span>
+          </button>
+          <button type="button" className="sgl-icon-action" disabled={!canRedoAttributes(session)} onClick={() => onChange(redoAttributes(session))} title={redoTitle} aria-label={redoTitle}>
+            <span aria-hidden="true">↷</span>
+          </button>
+        </div>
+      </div>
+
+      {notice && (
+        <p className={notice.tone === 'ok' ? 'sgl-attr-notice' : 'sgl-error'} role={notice.tone === 'ok' ? 'status' : 'alert'}>
+          {notice.text}
+        </p>
+      )}
+
+      <CollapsibleSection title="Advanced" sectionId="attributes-advanced" defaultOpen={false} variant="advanced">
+        <p className="sgl-help">↶ ↷ above undo attribute changes only. Changes to the scenario (nodes, edges, values) have their own Undo in the header.</p>
+        {filesChangedSinceSaved(session) && <p className="sgl-help">The course project declares attributes differently from when these were saved.</p>}
+        <div className="sgl-buttons">
           <button
             type="button"
             onClick={() => {
               const merged = mergeFilesIntoSession(session, project);
               onChange(merged.session);
-              setNotice({ tone: 'ok', text: merged.added.length ? `Added ${merged.added.join(', ')}.` : 'Nothing new to add; the files are now marked as merged.' });
+              setNotice({ tone: 'ok', text: merged.added.length ? `Added ${merged.added.length} attribute${merged.added.length === 1 ? '' : 's'} from the course project.` : 'Nothing new to add from the course project.' });
+            }}
+            title="Add the attributes that the course project's functions declare and this project does not have yet"
+          >
+            Add course attributes
+          </button>
+          <button
+            type="button"
+            className="sgl-danger"
+            disabled={!differsFromFiles(session) && !session.saveBlocked}
+            onClick={() => {
+              if (window.confirm('Replace all custom attributes with exactly what the course project declares? Values entered are kept. Undo reverses it.')) onChange(resetToFiles(session, project));
             }}
           >
-            Add fields from project files
+            Reset to course attributes
           </button>
         </div>
-      )}
-      {notice && (
-        <p className={notice.tone === 'ok' ? 'algorithm-notice' : 'sgl-error'} role={notice.tone === 'ok' ? 'status' : 'alert'}>
-          {notice.text}
-        </p>
-      )}
-
-      <HorizontalTabs
-        label="Attributes of"
-        active={collection}
-        onActive={setCollection}
-        tabs={(['nodes', 'edges'] as const).map((c) => ({
-          id: c,
-          label: (
-            <>
-              {c === 'nodes' ? 'Node' : 'Edge'} <span className="sgl-htab-count">({schema[c].length})</span>
-            </>
-          ),
-          description: c === 'nodes' ? 'Attributes of every room (node)' : 'Attributes of every relationship (edge), Access and Open alike',
-        }))}
-      >
-        <CollapsibleSection title="System fields" sectionId="system-fields" meta={<span className="sgl-chip sgl-chip-readonly">required</span>}>
-          <SystemFields collection={collection} />
-        </CollapsibleSection>
-
-        <CollapsibleSection title="Custom attributes" sectionId="custom-attributes" meta={String(fields.length)}>
-          {fields.length === 0 && <p className="meta">No {what} attributes yet.</p>}
-          <ul className="sgl-field-list">
-            {fields.map((field, index) => (
-              <FieldEditor
-                key={`${field.id}:${field.key}:${field.kind}`}
-                token={`${session.revision}:${refusals}`}
-                field={field}
-                index={index}
-                count={fields.length}
-                collection={collection}
-                nodeTypeDefaults={collection === 'nodes' ? Object.entries(schema.nodeTypeDefaults).flatMap(([t, d]) => (Object.prototype.hasOwnProperty.call(d, field.id) ? [[t, d[field.id]!] as const] : [])) : []}
-                types={typeChoices(project, doc?.nodes.map((n) => n.typeId) ?? [])}
-                usage={fieldUsage(field, collection, usage)}
-                references={algorithmReferences(project, fieldKeys(field))}
-                apply={apply}
-                onError={(text) => setNotice({ tone: 'error', text })}
-              />
-            ))}
-          </ul>
-          <AddField collection={collection} apply={apply} onError={(text) => setNotice({ tone: 'error', text })} />
-        </CollapsibleSection>
-
-        <CalculatedCatalogue collection={collection} enabled={calculatedFields} {...(onCalculatedFields && { onChange: onCalculatedFields })} />
-      </HorizontalTabs>
-
-      <CollapsibleSection title="Advanced" sectionId="attributes-advanced" defaultOpen={false} variant="advanced">
         <div className="sgl-buttons">
-          <button type="button" onClick={exportFile} title="Download the project's fields as a file (keep or share it)">
-            Export fields…
+          <button type="button" onClick={exportFile} title="Download only the custom attributes as a file">
+            Export attributes…
           </button>
-          <button type="button" onClick={() => fileInput.current?.click()} title="Replace the fields with an exported attribute file">
-            Import fields…
+          <button type="button" onClick={() => fileInput.current?.click()} title="Replace the custom attributes with an exported attribute file">
+            Import attributes…
           </button>
           <input ref={fileInput} type="file" accept=".json,application/json" hidden onChange={(e) => void importFile(e)} aria-label="Attribute file to import" />
         </div>
-        <p className="sgl-help">
-          Built-in properties (id, label, type, position, size, connection kind and corridor style) are always shown in Properties and are not custom fields. Building Designer settings are separate.
-        </p>
-        <button
-          type="button"
-          className="sgl-danger"
-          disabled={!differsFromFiles(session) && !session.saveBlocked}
-          onClick={() => {
-            if (window.confirm('Replace all fields with exactly what the project files declare? Stored design values are not changed. Undo here reverts it.')) onChange(resetToFiles(session, project));
-          }}
-        >
-          Reset fields to the project files
-        </button>
       </CollapsibleSection>
+
+      {dialog?.kind === 'add' && (
+        <AddAttributeDialog
+          collection={collection}
+          schema={schema}
+          samples={samples}
+          enabledMetrics={calculatedFields}
+          apply={apply}
+          onAddCalculated={
+            onCalculatedFields
+              ? (id) => {
+                  const metric = attributeRows(collection, schema, [...calculatedFields, id]).find((r) => r.kind === 'calculated' && r.id === id);
+                  if (metric?.kind === 'calculated') showCalculated(metric.metric, true);
+                }
+              : null
+          }
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'edit' && fieldOf(dialog.fieldId) && (
+        <EditAttributeDialog
+          key={dialog.fieldId}
+          collection={collection}
+          schema={schema}
+          field={fieldOf(dialog.fieldId)!}
+          samples={samples}
+          functions={functionChoices}
+          references={referencesOf(dialog.fieldId)}
+          apply={apply}
+          onDelete={() => setDialog({ kind: 'delete', fieldId: dialog.fieldId })}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'delete' && fieldOf(dialog.fieldId) && (
+        <DeleteAttributeDialog
+          collection={collection}
+          field={fieldOf(dialog.fieldId)!}
+          samples={samples}
+          hasTypeDefaults={collection === 'nodes' && Object.values(schema.nodeTypeDefaults).some((d) => Object.prototype.hasOwnProperty.call(d, dialog.fieldId))}
+          references={referencesOf(dialog.fieldId)}
+          apply={apply}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'info' && dialog.row.kind !== 'custom' && (
+        <AttributeInfoDialog
+          name={dialog.row.name}
+          typeText={dialog.row.kind === 'calculated' ? metricValueText(dialog.row.metric) : dialog.row.typeText}
+          text={dialog.row.kind === 'calculated' ? dialog.row.metric.definition : dialog.row.info}
+          {...(dialog.row.kind === 'calculated' && { calculated: dialog.row.metric })}
+          {...(dialog.row.kind === 'calculated' &&
+            onCalculatedFields && {
+              onRemove: () => {
+                if (dialog.row.kind === 'calculated') showCalculated(dialog.row.metric, false);
+                setDialog(null);
+              },
+            })}
+          onClose={() => setDialog(null)}
+        />
+      )}
     </div>
   );
 }
 
-/**
- * System-backed fields every item has (read-only here): they are edited through their own
- * controls in Properties, never as free custom attributes.
- */
-const SYSTEM_FIELDS: Readonly<Record<AttributeCollection, readonly { readonly label: string; readonly detail: string }[]>> = {
-  nodes: [
-    { label: 'Function', detail: 'The room type. Required; chosen from the project’s functions.' },
-    { label: 'Level', detail: 'The storey: the room’s z position. Change it with the position in Properties.' },
-  ],
-  edges: [{ label: 'Kind', detail: 'Access or Open. Required; chosen in Properties.' }],
-};
-
-function SystemFields({ collection }: { readonly collection: AttributeCollection }) {
+/** One compact row: name, a subtle type indicator, and the lock or the remove action. */
+function AttributeListRow({ row, onOpen, onRemove, onEdit }: { readonly row: AttributeRow; readonly onOpen: () => void; readonly onRemove?: (() => void) | undefined; readonly onEdit?: () => void }) {
+  const title =
+    row.kind === 'custom'
+      ? `${row.name} · ${row.typeText}${row.field.description ? ` — ${row.field.description}` : ''}. Click to edit.`
+      : row.kind === 'calculated'
+        ? `${row.name} · calculated (${metricValueText(row.metric)}). ${row.metric.definition}`
+        : `${row.name} · ${row.typeText} · required. ${row.info}`;
   return (
-    <dl className="sgl-readonly-list sgl-system-fields">
-      {SYSTEM_FIELDS[collection].map((f) => (
-        <div key={f.label} style={{ display: 'contents' }}>
-          <dt>{f.label}</dt>
-          <dd>{f.detail}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-/** What kind of value a calculated value has, in plain words (never "number" for yes/no or text). */
-export function metricKindText(metric: Pick<CatalogueMetric, 'valueKind' | 'unit'>): string {
-  if (metric.valueKind === 'boolean') return 'yes / no';
-  if (metric.valueKind === 'text') return 'text';
-  return metric.unit ? `number, in ${metric.unit}` : 'number';
-}
-
-/**
- * The catalogue of built-in calculated values for this kind of item (`app/metrics`), each with its
- * kind and definition. The checkbox chooses whether Properties shows it and colour-by offers it
- * (project setting `settings.calculatedFields`). The values themselves are read-only.
- */
-function CalculatedCatalogue({
-  collection,
-  enabled,
-  onChange,
-}: {
-  readonly collection: AttributeCollection;
-  readonly enabled: EnabledMetricIds;
-  readonly onChange?: (ids: EnabledMetricIds) => void;
-}) {
-  const metrics = METRIC_CATALOGUE.filter((m) => m.collection === collection);
-  const on = metrics.filter((m) => enabled.includes(m.id)).length;
-  return (
-    <CollapsibleSection
-      title="Calculated"
-      sectionId="calculated-catalogue"
-      variant="calculated"
-      meta={<span className="sgl-chip sgl-chip-readonly">{`${on} of ${metrics.length} shown`}</span>}
-      actions={<InfoButton concept="calculated-values" />}
-    >
-      {metrics.length === 0 ? (
-        <p className="meta">No calculated values for {collection === 'nodes' ? 'rooms' : 'relationships'} yet.</p>
+    <li className={`sgl-attr-row is-${row.kind}`} data-attribute={row.id} data-attribute-kind={row.kind}>
+      <button type="button" className="sgl-attr-main" onClick={onOpen} title={title}>
+        <span className="sgl-attr-name">{row.name}</span>
+        {row.kind === 'required' && (
+          <span className="sgl-attr-lock" role="img" aria-label="Required: cannot be removed" title="Required: cannot be removed">
+            <LockIcon />
+          </span>
+        )}
+        <span className={`sgl-attr-type${row.kind === 'calculated' ? ' is-calculated' : ''}`}>{row.typeText}</span>
+      </button>
+      {onEdit ? (
+        <button type="button" className="sgl-icon-action sgl-attr-remove" onClick={onEdit} aria-label="Add or remove functions" title="Add or remove functions">
+          <PencilIcon />
+        </button>
+      ) : onRemove ? (
+        <button
+          type="button"
+          className="sgl-icon-action sgl-attr-remove"
+          onClick={onRemove}
+          aria-label={row.kind === 'custom' ? `Delete attribute ${row.name}…` : `Remove ${row.name} from the list`}
+          title={row.kind === 'custom' ? 'Delete this attribute…' : 'Remove from the list (the calculation stays available)'}
+        >
+          {row.kind === 'custom' ? <TrashIcon /> : <HideIcon />}
+        </button>
       ) : (
-        <ul className="sgl-calculated-catalogue">
-          {metrics.map((m) => (
-            <li key={m.id} data-metric={m.id}>
-              <label className="sgl-check-row" title={m.definition}>
-                <input
-                  type="checkbox"
-                  checked={enabled.includes(m.id)}
-                  disabled={!onChange}
-                  onChange={(e) => onChange?.(setMetricEnabled(enabled, m.id, e.currentTarget.checked))}
-                />
-                <span className="sgl-calculated-name">{m.label}</span>
-                <span className="sgl-calculated-kind meta">{metricKindText(m)}</span>
-              </label>
-              <p className="sgl-help">{m.definition}</p>
-            </li>
-          ))}
-        </ul>
+        <span className="sgl-attr-remove-placeholder" aria-hidden="true" />
       )}
-      <p className="sgl-help">Ticked values appear read-only in Properties and in the 3D views’ “Colour by”. They are worked out from the design, never typed in or exported as data.</p>
-    </CollapsibleSection>
-  );
-}
-
-type UsageInfo = ReturnType<typeof fieldUsage>;
-
-function FieldEditor({
-  field,
-  token,
-  index,
-  count,
-  collection,
-  nodeTypeDefaults,
-  types,
-  usage,
-  references,
-  apply,
-  onError,
-}: {
-  readonly field: AttributeField;
-  /** Changes on every schema revision and refusal; re-keys the uncontrolled inputs. */
-  readonly token: string;
-  readonly index: number;
-  readonly count: number;
-  readonly collection: AttributeCollection;
-  readonly nodeTypeDefaults: readonly (readonly [string, DefaultValue])[];
-  readonly types: readonly { readonly id: string; readonly label: string }[];
-  readonly usage: UsageInfo;
-  readonly references: ReturnType<typeof algorithmReferences>;
-  readonly apply: (edit: SchemaEdit) => boolean;
-  readonly onError: (message: string) => void;
-}) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [rename, setRename] = useState(field.key);
-  const [kind, setKind] = useState<FieldKind>(field.kind);
-  const [kindChoices, setKindChoices] = useState('');
-  const base = { collection, fieldId: field.id } as const;
-  const usageText = usage.total === 0 ? 'no stored values in known designs' : usage.designs.map((d) => `${d.count} in ${d.label}`).join(', ');
-  const refText = references.length > 0 ? `Algorithm code may read “${field.key}”: ${references.map((r) => r.file).join(', ')}. It is not changed automatically.` : null;
-
-  const commitDefault = (draft: string) => {
-    const parsed = parseValueDraft(field, draft);
-    if (!parsed.ok) return onError(parsed.message);
-    if (parsed.value === field.default) return;
-    apply({ type: 'update-field', ...base, patch: { default: parsed.value ?? null } });
-  };
-
-  return (
-    <li className="sgl-field-card">
-      <details>
-        <summary>
-          <strong>{field.label}</strong> <code>{field.key}</code> <span className="sgl-chip">{FIELD_KIND_LABELS[field.kind]}</span>
-          {field.default !== undefined && <span className="sgl-help"> default {formatFieldValue(field.default)}</span>}
-        </summary>
-        <div className="sgl-field-body">
-          <p className="sgl-help">
-            Accepts {describeField(field)}. {usageText.charAt(0).toUpperCase() + usageText.slice(1)}.
-            {(field.formerKeys ?? []).length > 0 && <> Former names (still read): {field.formerKeys!.join(', ')}.</>}
-          </p>
-          <label className="sgl-form-row">
-            Label
-            <input defaultValue={field.label} key={`${field.label}:${token}`} onBlur={(e) => e.currentTarget.value.trim() !== field.label && apply({ type: 'update-field', ...base, patch: { label: e.currentTarget.value } })} onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
-          </label>
-          <label className="sgl-form-row">
-            Default
-            {field.kind === 'enum' || field.kind === 'boolean' ? (
-              <select value={field.default === undefined ? '' : String(field.default)} onChange={(e) => commitDefault(e.currentTarget.value)}>
-                <option value="">— no default</option>
-                {(field.kind === 'enum' ? (field.values ?? []) : ['true', 'false']).map((v) => (
-                  <option key={v} value={v}>
-                    {field.kind === 'boolean' ? (v === 'true' ? 'yes' : 'no') : v}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type={field.kind === 'number' ? 'number' : 'text'}
-                step="any"
-                defaultValue={field.default === undefined ? '' : String(field.default)}
-                key={`${String(field.default)}:${token}`}
-                placeholder="no default"
-                onBlur={(e) => commitDefault(e.currentTarget.value)}
-                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-              />
-            )}
-          </label>
-          {field.kind === 'enum' && (
-            <label className="sgl-form-row">
-              Choices
-              <input
-                defaultValue={(field.values ?? []).join(', ')}
-                key={`${(field.values ?? []).join('|')}:${token}`}
-                onBlur={(e) => {
-                  const values = parseChoices(e.currentTarget.value);
-                  if (values.join('|') !== (field.values ?? []).join('|')) apply({ type: 'update-field', ...base, patch: { values } });
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                aria-describedby={`${field.id}-choices-help`}
-              />
-            </label>
-          )}
-          {field.kind === 'enum' && <p className="sgl-help" id={`${field.id}-choices-help`}>Comma-separated. Removing a choice that is stored somewhere is refused.</p>}
-          {field.kind === 'number' && (
-            <div className="sgl-form-row">
-              Range
-              {(['min', 'max'] as const).map((bound) => (
-                <input
-                  key={`${bound}:${String(field[bound])}:${token}`}
-                  type="number"
-                  step="any"
-                  aria-label={`${field.label} ${bound === 'min' ? 'smallest' : 'largest'} value`}
-                  placeholder={bound}
-                  defaultValue={field[bound] === undefined ? '' : String(field[bound])}
-                  onBlur={(e) => {
-                    const text = e.currentTarget.value.trim();
-                    const value = text === '' ? null : Number(text);
-                    if ((value ?? undefined) !== field[bound]) apply({ type: 'update-field', ...base, patch: { [bound]: value } });
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          {collection === 'nodes' && (
-            <TypeDefaults field={field} types={types} defaults={nodeTypeDefaults} apply={apply} onError={onError} token={token} />
-          )}
-
-          <form
-            className="sgl-form-row"
-            onSubmit={(e: FormEvent) => {
-              e.preventDefault();
-              if (rename.trim() !== field.key) apply({ type: 'rename-field', ...base, key: rename.trim() });
-            }}
-          >
-            <label>
-              Key
-              <input value={rename} onChange={(e) => setRename(e.currentTarget.value)} aria-describedby={`${field.id}-key-help`} />
-            </label>
-            <button type="submit" disabled={rename.trim() === field.key}>
-              Rename
-            </button>
-          </form>
-          <p className="sgl-help" id={`${field.id}-key-help`}>
-            The name stored in designs. Renaming keeps every stored value (the old name is still read).{refText && <strong> {refText}</strong>}
-          </p>
-
-          <form
-            className="sgl-form-row"
-            onSubmit={(e: FormEvent) => {
-              e.preventDefault();
-              if (kind === field.kind) return;
-              apply({ type: 'change-field-kind', ...base, kind, ...(kind === 'enum' && { values: parseChoices(kindChoices) }) });
-            }}
-          >
-            <label>
-              Kind
-              <select value={kind} onChange={(e) => setKind(e.currentTarget.value as FieldKind)}>
-                {FIELD_KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {FIELD_KIND_LABELS[k]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {kind === 'enum' && kind !== field.kind && <input placeholder="choices, comma-separated" value={kindChoices} onChange={(e) => setKindChoices(e.currentTarget.value)} aria-label="Choices for the new kind" />}
-            <button type="submit" disabled={kind === field.kind}>
-              Change kind
-            </button>
-          </form>
-          <p className="sgl-help">Values are never converted: a kind change that would make a stored value or default invalid is refused with the reason.</p>
-
-          <div className="sgl-buttons">
-            <button type="button" disabled={index === 0} onClick={() => apply({ type: 'move-field', ...base, toIndex: index - 1 })} aria-label={`Move ${field.label} up`}>
-              ↑
-            </button>
-            <button type="button" disabled={index === count - 1} onClick={() => apply({ type: 'move-field', ...base, toIndex: index + 1 })} aria-label={`Move ${field.label} down`}>
-              ↓
-            </button>
-            {!confirmDelete && (
-              <button type="button" className="sgl-danger" onClick={() => setConfirmDelete(true)}>
-                Delete field…
-              </button>
-            )}
-          </div>
-          {confirmDelete && (
-            <div
-              className="sgl-confirm"
-              role="alertdialog"
-              aria-label={`Delete field ${field.key}?`}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  e.stopPropagation();
-                  setConfirmDelete(false);
-                }
-              }}
-            >
-              <p>
-                <strong>Delete “{field.key}” from every {collection === 'nodes' ? 'room' : 'relationship'} of this project?</strong>
-              </p>
-              <ul className="sgl-list">
-                <li>Stored values: {usageText}. They are kept in the designs (listed as “not in the project fields”), not deleted.</li>
-                {collection === 'nodes' && nodeTypeDefaults.length > 0 && <li>Its type defaults ({nodeTypeDefaults.map(([t]) => t).join(', ')}) are removed.</li>}
-                {refText && <li>{refText}</li>}
-                <li>Undo field change reverts it.</li>
-              </ul>
-              <div className="sgl-buttons">
-                <button type="button" onClick={() => setConfirmDelete(false)} autoFocus>
-                  Cancel
-                </button>
-                <button type="button" className="sgl-danger" onClick={() => apply({ type: 'delete-field', ...base }) && setConfirmDelete(false)}>
-                  Delete field
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </details>
     </li>
   );
 }
 
-function TypeDefaults({
-  field,
-  types,
-  defaults,
-  apply,
-  onError,
-  token,
-}: {
-  readonly field: AttributeField;
-  readonly types: readonly { readonly id: string; readonly label: string }[];
-  readonly defaults: readonly (readonly [string, DefaultValue])[];
-  readonly apply: (edit: SchemaEdit) => boolean;
-  readonly onError: (message: string) => void;
-  readonly token: string;
-}) {
-  const own = new Map(defaults);
-  if (types.length === 0) return null;
-  return (
-    <fieldset className="sgl-type-defaults">
-      <legend>Default per room type</legend>
-      <p className="sgl-help">A type default replaces the field default for rooms of that type. It never adds or removes fields.</p>
-      {types.map((t) => {
-        const value = own.get(t.id);
-        const set = (draft: string) => {
-          const parsed = parseValueDraft(field, draft);
-          if (!parsed.ok) return onError(parsed.message);
-          if (parsed.value === value) return;
-          if (parsed.value === undefined) {
-            if (value !== undefined) apply({ type: 'set-type-default', typeId: t.id, fieldId: field.id, value: null });
-          } else apply({ type: 'set-type-default', typeId: t.id, fieldId: field.id, value: parsed.value });
-        };
-        const label = `${field.label} default for ${t.label}`;
-        return (
-          <label key={t.id} className="sgl-form-row">
-            {t.label}
-            {field.kind === 'enum' || field.kind === 'boolean' ? (
-              <select aria-label={label} value={value === undefined ? '' : String(value)} onChange={(e) => set(e.currentTarget.value)}>
-                <option value="">— field default ({formatFieldValue(field.default)})</option>
-                {(field.kind === 'enum' ? (field.values ?? []) : ['true', 'false']).map((v) => (
-                  <option key={v} value={v}>
-                    {field.kind === 'boolean' ? (v === 'true' ? 'yes' : 'no') : v}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                aria-label={label}
-                key={`${String(value)}:${token}`}
-                type={field.kind === 'number' ? 'number' : 'text'}
-                step="any"
-                placeholder={`field default ${formatFieldValue(field.default)}`}
-                defaultValue={value === undefined ? '' : String(value)}
-                onBlur={(e) => set(e.currentTarget.value)}
-                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-              />
-            )}
-          </label>
-        );
-      })}
-    </fieldset>
-  );
-}
-
-function AddField({ collection, apply, onError }: { readonly collection: AttributeCollection; readonly apply: (edit: SchemaEdit) => boolean; readonly onError: (message: string) => void }) {
-  const [key, setKey] = useState('');
-  const [label, setLabel] = useState('');
-  const [kind, setKind] = useState<FieldKind>('text');
-  const [choices, setChoices] = useState('');
-  const [def, setDef] = useState('');
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    const values = parseChoices(choices);
-    let defaultValue: DefaultValue | undefined;
-    if (def.trim() !== '') {
-      const parsed = parseValueDraft({ kind, values, label: label || key }, def);
-      if (!parsed.ok) return onError(parsed.message);
-      defaultValue = parsed.value;
-    }
-    const ok = apply({
-      type: 'add-field',
-      collection,
-      field: { key: key.trim(), ...(label.trim() && { label: label.trim() }), kind, ...(kind === 'enum' && { values }), ...(defaultValue !== undefined && { default: defaultValue }) },
-    });
-    if (ok) {
-      setKey('');
-      setLabel('');
-      setChoices('');
-      setDef('');
-    }
-  };
-  return (
-    <form className="sgl-section sgl-add-field" onSubmit={submit} aria-label={`Add a ${collection === 'nodes' ? 'node' : 'edge'} field`}>
-      <h4>Add a {collection === 'nodes' ? 'node' : 'edge'} field</h4>
-      <label className="sgl-form-row">
-        Key
-        <input value={key} onChange={(e) => setKey(e.currentTarget.value)} placeholder="e.g. capacity" required />
-      </label>
-      <label className="sgl-form-row">
-        Label
-        <input value={label} onChange={(e) => setLabel(e.currentTarget.value)} placeholder="optional, e.g. Capacity (people)" />
-      </label>
-      <label className="sgl-form-row">
-        Kind
-        <select value={kind} onChange={(e) => setKind(e.currentTarget.value as FieldKind)} title={KIND_HELP[kind]}>
-          {FIELD_KINDS.map((k) => (
-            <option key={k} value={k}>
-              {FIELD_KIND_LABELS[k]}
-            </option>
-          ))}
-        </select>
-      </label>
-      {kind === 'enum' && (
-        <label className="sgl-form-row">
-          Choices
-          <input value={choices} onChange={(e) => setChoices(e.currentTarget.value)} placeholder="high, medium, low" required />
-        </label>
-      )}
-      <label className="sgl-form-row">
-        Default
-        {kind === 'boolean' ? (
-          <select value={def} onChange={(e) => setDef(e.currentTarget.value)}>
-            <option value="">— none</option>
-            <option value="true">yes</option>
-            <option value="false">no</option>
-          </select>
-        ) : (
-          <input value={def} type={kind === 'number' ? 'number' : 'text'} step="any" onChange={(e) => setDef(e.currentTarget.value)} placeholder="optional" />
-        )}
-      </label>
-      <p className="sgl-help">{KIND_HELP[kind]} The key is the name stored in designs: letters, digits and “_”, starting with a letter.</p>
-      <button type="submit" disabled={key.trim() === ''}>
-        Add field
-      </button>
-    </form>
-  );
+/** What kind of value a calculated attribute has, in plain words (kept for existing callers). */
+export function metricKindText(metric: Pick<CatalogueMetric, 'valueKind' | 'unit'>): string {
+  if (metric.valueKind === 'boolean') return 'yes / no';
+  if (metric.valueKind === 'text') return 'text';
+  return metric.unit ? `number, in ${metric.unit}` : 'number';
 }

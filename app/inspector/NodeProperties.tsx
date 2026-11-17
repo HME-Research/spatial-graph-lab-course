@@ -1,7 +1,7 @@
 import { HelpTip } from '@app/ui/help';
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { CustomAttributes, ManageAttributesLink } from '@app/attributes/CustomAttributes';
-import { OpenAttributesContext } from '@app/attributes/navigation';
+import { ManageFunctionsContext, OpenAttributesContext } from '@app/attributes/navigation';
 import type { EdgeKind, GraphNode } from '@app/document';
 import { MAX_ROOM_SIZE, nodeLabel, type RoomNode } from '@app/document/v2';
 import { findNodeType } from '@app/extensions';
@@ -53,6 +53,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
   /** Bumped to reset the geometry drafts after Cancel. */
   const [resetKey, setResetKey] = useState(0);
   const openAttributes = useContext(OpenAttributesContext);
+  const manageFunctions = useContext(ManageFunctionsContext);
 
   const v2Node: RoomNode | undefined = design?.doc.nodes.find((n) => n.id === nodeId);
   const v1Node: GraphNode | undefined = doc.nodes.find((n) => n.id === nodeId);
@@ -148,7 +149,14 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
 
       <CollapsibleSection title="Identity" sectionId="identity">
         <section className="sgl-section">
-          <h4>Room type</h4>
+          <div className="sgl-help-row">
+            <h4>Function</h4>
+            {manageFunctions && (
+              <button type="button" className="sgl-link sgl-manage-link" onClick={manageFunctions} title="Add or remove the functions this project offers">
+                Edit functions…
+              </button>
+            )}
+          </div>
           {/* Re-keyed on the stored value so the menu resets after any change (or undo). */}
           <TypeSelect
             key={node.typeId}
@@ -157,7 +165,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
             onChange={(typeId) => runShared({ type: 'set-node-type', nodeId, typeId })}
           />
           <TypeStatusNote status={typeStatus} typeId={node.typeId} projectId={active?.id ?? null} />
-          {design && project && <p className="sgl-help">Values set on this room are kept when its type changes.</p>}
+          {design && project && <p className="sgl-help">Values set on this room are kept when its function changes.</p>}
         </section>
         <dl className="sgl-readonly-list sgl-identity-facts" aria-label="Fixed identity (read-only)">
           <dt>Id</dt>

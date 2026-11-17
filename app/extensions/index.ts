@@ -8,6 +8,7 @@ export * from './attributes';
 export * from './attributeBaseline';
 export * from './attributeEdits';
 export * from './projectAttributes';
+export * from './projectFunctions';
 export * from './resolveAttributes';
 export * from './conformance';
 export * from './context';

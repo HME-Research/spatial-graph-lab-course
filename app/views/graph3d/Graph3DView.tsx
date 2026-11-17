@@ -80,7 +80,7 @@ export function Graph3DView({ doc, selection, onSelect, design, project }: ViewP
             {design && <ViewRelationshipLegend view="graph3d" design={design} />}
           </Legend>
           {doc.nodes.length === 0 ? (
-            <div className="viewer3d-empty">No nodes in this design.</div>
+            <div className="viewer3d-empty">No nodes in this scenario.</div>
           ) : (
             <div className="viewer3d-hint">{NAVIGATION_HINT}</div>
           )}

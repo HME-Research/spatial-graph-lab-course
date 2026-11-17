@@ -617,7 +617,7 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
 
         {model.nodes.length === 0 && (
           <Panel position="top-center" className="sgl-empty">
-            This design has no nodes yet. Click <strong>+ Add node</strong> to start.
+            This scenario has no nodes yet. Click <strong>+ Add node</strong> to start.
           </Panel>
         )}
 

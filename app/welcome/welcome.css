@@ -1,20 +1,27 @@
-/* Welcome screen and Project Files (workstream B). Neutral, one accent. */
+/* Welcome overlay (modal over the empty shell) and the Project panel overview. Neutral, one accent. */
 .sgl-welcome {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 32px 16px;
-  background: var(--bg);
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg, 8px);
+  background: var(--panel);
+  color: var(--fg);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.2);
   font-size: 14px;
+  overflow: hidden;
+}
+.sgl-welcome[open] {
+  display: flex;
+}
+.sgl-welcome::backdrop {
+  background: rgb(20 20 18 / 0.3);
 }
 .sgl-welcome-card {
-  width: min(760px, 100%);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -192,4 +199,235 @@ button.sgl-recent-open:focus-visible {
 .sgl-project-files-error {
   color: #9b2c2c;
   margin: 0;
+}
+
+/* Project panel overview (UI refinement 2026-11-17). */
+.sgl-project-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sgl-project-name-field {
+  min-width: 0;
+}
+:where(.sgl-sidenav-panel) input.sgl-project-name-input,
+input.sgl-project-name-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 34px;
+  padding: 0 var(--space-2, 8px);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  font-size: var(--text-lg, 16px);
+  font-weight: 650;
+}
+input.sgl-project-name-input:hover {
+  border-color: var(--line, #e1e1dc);
+}
+input.sgl-project-name-input:focus {
+  border-color: var(--line-strong, #c9c9c2);
+  background: var(--panel, #fff);
+}
+.sgl-project-head .sgl-save-status {
+  padding-left: var(--space-2, 8px);
+  font-size: var(--text-sm, 13px);
+}
+/* Natural-width buttons that wrap: labels are never cut off in a narrow sidebar. */
+.sgl-project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+.sgl-project-actions > :where(button, .file-button) {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  justify-content: center;
+  white-space: nowrap;
+}
+.sgl-project-actions .file-button {
+  min-height: var(--hit, 36px);
+  border-color: var(--line-strong, #c9c9c2);
+}
+.sgl-project-description textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  font: inherit;
+  resize: vertical;
+  border: 1px solid var(--line-strong, #c9c9c2);
+  border-radius: var(--radius-sm, 4px);
+}
+.sgl-project-facts {
+  margin: 0;
+}
+
+/* Welcome overlay layout (UI refinement 2026-11-17): only the recent list scrolls. */
+.sgl-welcome-card {
+  gap: 18px;
+}
+.sgl-welcome-head h2 {
+  font-size: 22px;
+  font-weight: 650;
+}
+.sgl-welcome-start,
+.sgl-welcome-head {
+  flex: none;
+}
+.sgl-welcome-action {
+  min-height: 64px;
+}
+.sgl-welcome-action.is-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: none;
+}
+.sgl-welcome-action.is-primary .sgl-welcome-action-title,
+.sgl-welcome-action.is-primary .sgl-welcome-action-sub {
+  color: #fff;
+}
+.sgl-welcome-action.is-primary:hover,
+.sgl-welcome-action.is-primary:focus-visible {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.sgl-welcome-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.sgl-welcome-recent {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.sgl-welcome-recent h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sgl-welcome-recent .sgl-recent-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 240px;
+  overflow: auto;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.sgl-welcome-recent .sgl-recent {
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--line);
+}
+.sgl-welcome-recent .sgl-recent:first-child {
+  border-top: 0;
+}
+.sgl-welcome-recent button.sgl-recent-open {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding: 6px 12px;
+}
+.sgl-welcome-recent button.sgl-recent-open .sgl-recent-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.sgl-welcome-recent button.sgl-recent-open .sgl-recent-detail {
+  flex: none;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.sgl-recent-empty {
+  margin: 0 0 8px;
+}
+.sgl-welcome-storage-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+/* The neutral, inert application shell behind Welcome. */
+.sgl-empty-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  background: var(--bg);
+  pointer-events: none;
+  user-select: none;
+}
+.sgl-empty-rail {
+  flex: none;
+  width: 168px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 8px;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+.sgl-empty-rail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.sgl-empty-rail-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--line-strong);
+}
+.sgl-empty-views {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px;
+}
+.sgl-empty-view {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+.sgl-project-unsaved {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-left: 8px;
+}
+.sgl-project-unsaved .sgl-save-status {
+  white-space: normal;
+}
+.sgl-project-unsaved button {
+  flex: none;
+}
+.sgl-recent-tag {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+  font-size: 11px;
+  font-weight: 600;
+}
+.sgl-welcome-recent button.sgl-recent-open .sgl-recent-name {
+  flex: 1 1 auto;
+}
+.sgl-welcome-recent button.sgl-recent-open .sgl-recent-tag {
+  flex: none;
+  margin-left: 0;
 }

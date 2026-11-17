@@ -122,7 +122,7 @@ export function NodeDisplayControl({
           <legend>Attributes</legend>
           {attributeKeys.length === 0 ? (
             <span id={`${id}-attr`} className="sgl-muted">
-              No attributes in this design.
+              No attributes in this scenario.
             </span>
           ) : (
             <>

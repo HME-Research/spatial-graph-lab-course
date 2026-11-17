@@ -61,17 +61,17 @@ export const parseChoices = (text: string): string[] =>
 export function sourceText(r: EffectiveAttribute, typeId?: string): { readonly chip: string; readonly tone: 'set' | 'inherited' | 'none' | 'warning' } {
   if (r.stored === 'invalid') return { chip: 'invalid stored value', tone: 'warning' };
   if (r.source === 'instance') return r.value === null ? { chip: 'set to no value', tone: 'set' } : { chip: 'set here', tone: 'set' };
-  if (r.source === 'type-default') return { chip: `${typeId ?? 'type'} default`, tone: 'inherited' };
-  if (r.source === 'schema-default') return { chip: 'field default', tone: 'inherited' };
+  if (r.source === 'type-default') return { chip: `${typeId ?? 'function'} default`, tone: 'inherited' };
+  if (r.source === 'schema-default') return { chip: 'default', tone: 'inherited' };
   return { chip: 'no value', tone: 'none' };
 }
 
 /** Text describing what "Use default" falls back to. */
 export const inheritedText = (r: EffectiveAttribute, typeId?: string): string =>
   r.inheritedSource === 'type-default'
-    ? `${typeId ?? 'type'} default ${formatFieldValue(r.inherited)}`
+    ? `${typeId ?? 'function'} default ${formatFieldValue(r.inherited)}`
     : r.inheritedSource === 'schema-default'
-      ? `field default ${formatFieldValue(r.inherited)}`
+      ? `default ${formatFieldValue(r.inherited)}`
       : 'no default';
 
 /** Node types offered for type defaults: the project's valid types plus types used in the open design. */

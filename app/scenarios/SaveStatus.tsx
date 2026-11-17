@@ -37,7 +37,7 @@ export function SaveStatus({
         role={view.tone === 'error' ? 'alert' : 'status'}
         title={view.detail ?? view.text}
       >
-        <span aria-hidden="true">{view.tone === 'ok' ? '✓' : view.tone === 'busy' ? '…' : '✖'}</span> {view.text}
+        <span aria-hidden="true">{view.tone === 'ok' ? '✓' : view.tone === 'busy' ? '…' : view.tone === 'note' ? '○' : '✖'}</span> {view.text}
       </span>
     );
   }

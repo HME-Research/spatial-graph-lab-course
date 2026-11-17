@@ -29,8 +29,8 @@ describe('scenario rows', () => {
       ['Scenario 1', false, 3],
       ['Empty', true, 0],
     ]);
-    expect(scenarioSummary(rows[0]!)).toBe('3 rooms, 2 connections');
-    expect(scenarioSummary(rows[1]!)).toBe('0 rooms, 0 connections');
+    expect(scenarioSummary(rows[0]!)).toBe('3 nodes · 2 edges');
+    expect(scenarioSummary(rows[1]!)).toBe('0 nodes · 0 edges');
   });
 });
 
@@ -44,11 +44,10 @@ describe('Scenarios panel', () => {
     const html = withController(c, createElement(ScenariosPanel));
     expect(html).toContain('Scenario 1');
     expect(html).toContain('aria-current="true"');
-    expect(html).toContain('Rename');
-    expect(html).toContain('Duplicate');
-    expect(html).toMatch(/<button type="button" disabled="" aria-label="Delete Scenario 1"/);
-    expect(html).toContain('+ New scenario');
-    expect(html).toContain('Saved in this browser');
+    expect(html).toContain('aria-label="Rename Scenario 1"');
+    expect(html).toContain('aria-label="Duplicate Scenario 1"');
+    expect(html).toMatch(/<button type="button" class="sgl-icon-action" disabled="" aria-label="Delete Scenario 1"/);
+    expect(html).toContain('New scenario');
     // No scenario dropdown: switching is by the list only.
     expect(html).not.toContain('<select');
   });
@@ -61,8 +60,11 @@ describe('Scenarios panel', () => {
       c,
       createElement(ScenarioList, { controller: c, rows: scenarioRows(p), defaultName: 'Scenario 3', initialEditing: { kind: 'delete', id: p.activeScenarioId } }),
     );
-    expect(html).toContain('role="alertdialog"');
-    expect(html).toContain('Delete scenario');
+    expect(html).toContain('<dialog class="sgl-dialog"');
+    expect(html).toContain('Delete scenario “Option B”?');
+    expect(html).toContain('>Delete scenario<');
+    // Cancel is focused first: deleting needs a deliberate second choice.
+    expect(html).toMatch(/<button type="button" data-autofocus="true">Cancel<\/button>/);
   });
 
   it('offers copy-of-active or empty when creating', async () => {
@@ -70,7 +72,7 @@ describe('Scenarios panel', () => {
     const p = c.getState().project!;
     const html = withController(c, createElement(ScenarioList, { controller: c, rows: scenarioRows(p), defaultName: 'Scenario 2', initialEditing: { kind: 'create' } }));
     expect(html).toContain('A copy of the active scenario');
-    expect(html).toContain('An empty design');
+    expect(html).toContain('An empty scenario');
     expect(html).toContain('value="Scenario 2"');
   });
 });
@@ -80,7 +82,7 @@ describe('save status', () => {
 
   it('never reports a blocked save as saved, and offers actions to resolve it', () => {
     const quota = saveStatusView({ project, save: { local: 'blocked', reason: 'quota', message: 'not saved: quota' } })!;
-    expect(quota).toMatchObject({ tone: 'error', text: 'Not saved', actions: ['retry', 'save-as'] });
+    expect(quota).toMatchObject({ tone: 'error', text: 'Save failed', actions: ['retry', 'save-as'] });
     const conflict = saveStatusView({ project, save: { local: 'blocked', reason: 'conflict', message: 'x' } })!;
     expect(conflict.actions).toEqual(['save-as', 'overwrite']);
     const unreadable = saveStatusView({ project, save: { local: 'blocked', reason: 'refused-unreadable', message: 'x' } })!;
@@ -90,7 +92,8 @@ describe('save status', () => {
   it('keeps "not exported" a neutral note on a saved project', () => {
     const v = saveStatusView({ project, save: { local: 'saved', at: 'x' } })!;
     expect(v.tone).toBe('ok');
-    expect(v.detail).toMatch(/Export Project/);
+    expect(v.text).toBe('Saved locally');
+    expect(v.detail).toMatch(/Export the project/);
     expect(saveStatusView({ project, save: { local: 'pending' } })!.text).toBe('Saving…');
     expect(saveStatusView({ project: null, save: { local: 'pending' } })).toBeNull();
   });

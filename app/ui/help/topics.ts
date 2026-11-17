@@ -98,12 +98,12 @@ const topics = [
   },
   {
     id: 'project-attributes',
-    title: 'Custom attributes',
-    summary: 'Every room (and every relationship) in a project has the same fields; a value set on one room applies to that room only.',
+    title: 'Attributes',
+    summary: 'Every node (and every edge) in a project has the same attributes; a value set on one node applies to that node only.',
     details:
-      'Fields are defined once per project in Attributes (Nodes and Edges) and saved in this browser; Export keeps a copy. ' +
-      'A room shows the value set on it, else its type’s default, else the field default. “Use default” removes the room’s own value. ' +
-      'Renaming a field keeps every stored value; deleting a field keeps stored values, listed as not in the project fields.',
+      'Attributes are defined once per project in Attributes (Node and Edge) and shared by every scenario. ' +
+      'A node shows the value set on it, else its function’s default, else the attribute default. “Use default” removes the node’s own value. ' +
+      'Renaming an attribute keeps every stored value; deleting one hides its stored values, which return if it is added again.',
   },
   {
     id: 'display-id',

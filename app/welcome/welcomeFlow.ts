@@ -1,7 +1,8 @@
 import type { DesignDocumentV2 } from '@app/document/v2';
-import { formatProjectIssues, type ProjectFileV1, type ProjectIssue } from '@app/project';
+import { EMPTY_ATTRIBUTE_SCHEMA, makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
+import { formatProjectIssues, readProjectFile, serializeProjectFile, type ProjectFileV1, type ProjectIssue } from '@app/project';
 import type { KeyValueStorage } from '@app/session/projectAttributeStore';
-import { checkName, newProjectFromDesign, readProjectOrDesign, type ProjectOrigin } from '@app/session/projectStore';
+import { blankDesign, checkName, newProjectFromDesign, readProjectOrDesign, type ProjectOrigin } from '@app/session/projectStore';
 import type { LeaveOptions, ProjectController } from '@app/session/projectStoreController';
 import { seedLegacyAttributes } from './legacyAttributes';
 
@@ -13,7 +14,17 @@ import { seedLegacyAttributes } from './legacyAttributes';
  */
 
 export type StartingDesign =
-  | { readonly ok: true; readonly doc: DesignDocumentV2; readonly source: string }
+  | {
+      readonly ok: true;
+      readonly doc: DesignDocumentV2;
+      readonly source: string;
+      /**
+       * Signature of the code project's attribute baseline (`ActiveProject.attributeBaseline.signature`).
+       * Lets a NEW project record "no custom attributes" against the baseline it started from, so it
+       * is not reported as "the project files changed". Absent when the code project did not activate.
+       */
+      readonly attributeSignature?: string;
+    }
   | { readonly ok: false; readonly message: string };
 
 export interface WelcomeHost {
@@ -64,14 +75,37 @@ async function openNew(
   return { ok: true, projectId: opened.project.meta.projectId };
 }
 
+/**
+ * The minimal starting state of a CREATED project (owner decision, UI refinement 2026-11-17): one
+ * scenario with an empty graph (no rooms; the code project's Building settings are kept), only the
+ * required attributes (Function, Level: no custom attributes) and no calculated attributes shown.
+ * Students add attributes explicitly. The attributes declared by the code project's types stay
+ * available through Attributes → Advanced → "Add attributes from the project files".
+ */
+export function minimalProjectFile(
+  file: ProjectFileV1,
+  attributeSignature: string | undefined,
+): { readonly ok: true; readonly value: ProjectFileV1 } | { readonly ok: false; readonly issues: readonly ProjectIssue[] } {
+  const attributes =
+    file.definition !== null && attributeSignature !== undefined
+      ? (JSON.parse(serializeAttributeRecord(makeAttributeRecord(file.definition.projectId, EMPTY_ATTRIBUTE_SCHEMA, attributeSignature))) as unknown)
+      : file.attributes;
+  // Re-read the result: validated exactly like a stored or imported file.
+  const read = readProjectFile(serializeProjectFile({ ...file, attributes, settings: { ...file.settings, calculatedFields: [] } }));
+  return read.ok ? { ok: true, value: read.value } : { ok: false, issues: read.issues };
+}
+
+/** Create project: an EMPTY graph with only the required attributes (see `minimalProjectFile`). */
 export async function createProject(host: WelcomeHost, rawName: string, definitionId: string | null, options: LeaveOptions = {}): Promise<FlowOutcome> {
   const name = checkName(rawName, 'project');
   if (!name.ok) return failed('new project', name.message);
   const start = await host.startingDesign(definitionId);
   if (!start.ok) return failed('new project', start.message);
-  const file = newProjectFromDesign(start.doc, { name: name.value, definition: definitionId === null ? null : { projectId: definitionId } });
-  if (!file.ok) return failed(start.source, `The starting design could not be used: ${formatProjectIssues(file.issues)}`, file.issues);
-  return openNew(host, file.value, { kind: 'created', label: start.source }, { ...options, seed: true });
+  const file = newProjectFromDesign(blankDesign(start.doc, name.value), { name: name.value, definition: definitionId === null ? null : { projectId: definitionId } });
+  if (!file.ok) return failed('new project', `The new project could not be created: ${formatProjectIssues(file.issues)}`, file.issues);
+  const minimal = minimalProjectFile(file.value, start.attributeSignature);
+  if (!minimal.ok) return failed('new project', `The new project could not be created: ${formatProjectIssues(minimal.issues)}`, minimal.issues);
+  return openNew(host, minimal.value, { kind: 'created', label: 'new project' }, { ...options, seed: false });
 }
 
 export const EXAMPLE_PROJECT_NAME = 'Two-storey example';

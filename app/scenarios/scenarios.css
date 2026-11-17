@@ -14,10 +14,17 @@
   gap: 6px;
 }
 .sgl-scenario {
+  display: flex;
+  align-items: center;
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--panel);
-  padding: 4px;
+  padding: 2px;
+}
+.sgl-scenario > :first-child {
+  flex: 1;
+  min-width: 0;
 }
 .sgl-scenario.is-active {
   border-color: var(--accent);
@@ -30,7 +37,7 @@
   gap: 2px;
   width: 100%;
   min-height: 40px;
-  padding: 6px 8px;
+  padding: 4px 8px;
   border: 0;
   background: transparent;
   text-align: left;
@@ -44,7 +51,10 @@
 }
 .sgl-scenario-name {
   font-weight: 600;
-  overflow-wrap: anywhere;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sgl-scenario-meta {
   color: var(--muted);
@@ -58,21 +68,15 @@
   font-weight: 600;
 }
 .sgl-scenario-actions {
+  flex: none;
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 0 4px 2px;
-}
-.sgl-scenario-actions button {
-  min-height: 32px;
-  padding: 4px 8px;
-  font-size: 13px;
 }
 .sgl-scenario-form {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 4px;
+  width: 100%;
 }
 .sgl-scenario-form input[type='text'] {
   min-height: 32px;

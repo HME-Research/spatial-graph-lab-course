@@ -276,7 +276,7 @@ function PlanCanvas({
 
   const message =
     level === null
-      ? 'This design has no rooms yet. Add a room in Graph 2D or the Building view to see its plan.'
+      ? 'This scenario has no rooms yet. Add a room in Graph 2D or the Building view to see its plan.'
       : plan && plan.rooms.length === 0
         ? `No rooms on ${levelName(level)}${plan.routeCells.length > 0 ? ' — only generated connectors pass through it' : ''}.`
         : null;

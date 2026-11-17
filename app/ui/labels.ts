@@ -62,11 +62,11 @@ export const SIDEBAR_LABELS: Readonly<Record<SidebarSection, string>> = {
 };
 
 export const SIDEBAR_DESCRIPTIONS: Readonly<Record<SidebarSection, string>> = {
-  project: 'Project, designs, files and checks',
-  attributes: 'Custom fields of every room (Nodes) and relationship (Edges) in this project',
-  designer: 'Appearance settings per room type in this design',
-  algorithms: 'Run the project’s analyses and transformations on this design',
-  scenarios: 'Design alternatives of this project',
+  project: 'Project information, files and checks',
+  attributes: 'Attributes of every node and edge in this project',
+  designer: 'Appearance per function in this scenario',
+  algorithms: 'Run the project’s analyses and transformations on this scenario',
+  scenarios: 'Alternatives within this project',
   camera: 'Saved camera views of the 3D viewports',
   display: 'How each view looks: labels, legend, colours and lighting',
 };

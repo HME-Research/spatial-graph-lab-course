@@ -56,8 +56,8 @@ describe('node type menu', () => {
     const menu = typeMenu(project, ['gallery', 'legacy-thing'], 'gallery');
     expect(menu.allowCustom).toBe(false);
     expect(menu.options).toEqual([
-      { value: 'gallery', label: 'Gallery (gallery)', disabled: false },
-      { value: 'studio', label: 'Studio (studio)', disabled: false },
+      { value: 'gallery', label: 'Gallery', disabled: false },
+      { value: 'studio', label: 'Studio', disabled: false },
     ]);
     expect(menu.current.kind).toBe('registered');
   });

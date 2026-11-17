@@ -54,12 +54,11 @@ function DesignSummary({ doc, design }: { readonly doc: DesignDocument; readonly
   const notBuilt = design ? design.spatial.edges.filter((r) => describeResolution(r).tone === 'warning').length : 0;
   return (
     <section className="sgl-section">
-      <h4>Design</h4>
-      <p className="sgl-design-name">{metadata.name}</p>
+      <h4>This scenario</h4>
       {metadata.description && <p className="sgl-help">{metadata.description}</p>}
-      <p className="sgl-help">
-        {nodes.length} rooms · {edgeCount} relationships{notBuilt > 0 ? ` (${notBuilt} unresolved)` : ''} · storeys (z):{' '}
-        {storeys.join(', ') || '—'} · schema v{design ? design.doc.schemaVersion : doc.schemaVersion}
+      <p className="sgl-help" title={`Stored as schema v${design ? design.doc.schemaVersion : doc.schemaVersion}`}>
+        {nodes.length} {nodes.length === 1 ? 'node' : 'nodes'} · {edgeCount} {edgeCount === 1 ? 'edge' : 'edges'}
+        {notBuilt > 0 ? ` (${notBuilt} unresolved)` : ''} · levels: {storeys.join(', ') || '—'}
       </p>
       {design && (
         <div className="sgl-help-row">

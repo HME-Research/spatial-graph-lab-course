@@ -5,12 +5,13 @@ import type { RecentList } from '@app/session/projectStoreController';
 
 export type RecentState =
   | { readonly status: 'loading' }
-  | { readonly status: 'ready'; readonly items: readonly ProjectSummary[] }
+  /** `unsaved`: ids of the last session that was not saved locally (replaced by the next project). */
+  | { readonly status: 'ready'; readonly items: readonly ProjectSummary[]; readonly unsaved?: readonly string[] }
   /** Local storage cannot be used: say so instead of showing an empty list. */
   | { readonly status: 'unavailable'; readonly message: string };
 
 export const recentStateOf = (list: RecentList): RecentState =>
-  list.status === 'ok' ? { status: 'ready', items: list.items } : { status: 'unavailable', message: list.message };
+  list.status === 'ok' ? { status: 'ready', items: list.items, unsaved: list.unsaved ?? [] } : { status: 'unavailable', message: list.message };
 
 /** A code project (`projects/<id>`) that can supply types and algorithms for a new project. */
 export interface DefinitionChoice {
@@ -19,7 +20,7 @@ export interface DefinitionChoice {
 }
 
 export type RecentRow =
-  | { readonly kind: 'ok'; readonly projectId: string; readonly name: string; readonly detail: string; readonly description: string | null }
+  | { readonly kind: 'ok'; readonly projectId: string; readonly name: string; readonly detail: string; readonly description: string | null; readonly unsaved: boolean }
   | { readonly kind: 'unreadable'; readonly projectId: string; readonly detail: string; readonly quarantined: boolean };
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -39,15 +40,17 @@ export function formatWhen(iso: string): string {
  * Rows for "Recent local projects": readable projects newest first (the store's order), then
  * records that cannot be read — listed honestly, never hidden and never opened.
  */
-export function recentRows(items: readonly ProjectSummary[], when: (iso: string) => string = formatWhen): RecentRow[] {
+export function recentRows(items: readonly ProjectSummary[], when: (iso: string) => string = formatWhen, unsaved: readonly string[] = []): RecentRow[] {
+  const last = new Set(unsaved);
   return items.map((s) =>
     s.status === 'ok'
       ? {
           kind: 'ok',
           projectId: s.projectId,
           name: s.name,
-          detail: `${plural(s.scenarioCount, 'scenario')} · edited ${when(s.updatedAt)}${s.definitionId ? ` · ${s.definitionId}` : ''}`,
+          detail: `${plural(s.scenarioCount, 'scenario')} · edited ${when(s.updatedAt)}`,
           description: s.description ?? null,
+          unsaved: last.has(s.projectId),
         }
       : {
           kind: 'unreadable',
@@ -56,6 +59,12 @@ export function recentRows(items: readonly ProjectSummary[], when: (iso: string)
           quarantined: s.quarantineKey !== null,
         },
   );
+}
+
+/** A readable course name from a code project id: "example-gallery" → "Example gallery". */
+export function courseLabel(id: string): string {
+  const words = id.replace(/[-_]+/g, ' ').trim();
+  return words === '' ? id : words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 /** File name for an exported project: `<slug>.project.json`. */

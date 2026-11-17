@@ -81,7 +81,33 @@ export interface ProjectFileV1 {
 export interface ProjectSettings {
   readonly display: DisplayDefaults;
   readonly calculatedFields?: readonly string[];
+  /**
+   * Project functions (optional, UI refinement 2026-11-17): node types added in the browser, beside
+   * the code project's `types/`. Each is `{id (a document typeId), label}`; no façade or attributes
+   * of their own (the fallback façade and colour apply). A function whose id the code project also
+   * defines is ignored (the code definition wins). Absent = none; written only when set.
+   */
+  readonly functions?: readonly ProjectFunction[];
+  /**
+   * Ids of course (code project) functions removed from this project (optional, 2026-11-17): they are
+   * not offered and not registered while the project is open. The code files are never changed, so
+   * removing is undone by restoring the id. Absent = none; written only when set.
+   */
+  readonly hiddenFunctions?: readonly string[];
 }
+
+/** A project function: a node type defined in the project file (`settings.functions`). */
+export interface ProjectFunction {
+  /** The document `typeId`: lowercase letters, digits and "-", starting with a letter. Never changes. */
+  readonly id: string;
+  /** Display name. */
+  readonly label: string;
+}
+
+/** Same pattern as the document schema's type id. */
+export const FUNCTION_ID_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
+export const MAX_FUNCTION_LABEL = 60;
+export const MAX_PROJECT_FUNCTIONS = 64;
 
 export type ProjectIssueCode =
   | 'invalid-json'
@@ -150,6 +176,21 @@ const projectShape = z.strictObject({
   settings: z.strictObject({
     display: displayDefaultsSchema,
     calculatedFields: z.array(z.string().min(1).max(64), { error: 'calculatedFields must be a list of calculated value ids' }).max(64).optional(),
+    functions: z
+      .array(
+        z.strictObject({
+          id: z.string().regex(FUNCTION_ID_PATTERN, { error: 'a function id must be lowercase letters, digits or "-", starting with a letter' }),
+          label: z.string().trim().min(1, { error: 'a function name must not be empty' }).max(MAX_FUNCTION_LABEL),
+        }),
+        { error: 'functions must be a list of {id, label}' },
+      )
+      .max(MAX_PROJECT_FUNCTIONS)
+      .refine((list) => new Set(list.map((f) => f.id)).size === list.length, { error: 'function ids must be unique' })
+      .optional(),
+    hiddenFunctions: z
+      .array(z.string().regex(FUNCTION_ID_PATTERN, { error: 'a function id must be lowercase letters, digits or "-", starting with a letter' }))
+      .max(MAX_PROJECT_FUNCTIONS)
+      .optional(),
   }),
   assets: z.strictObject({ policy: z.literal('none') }),
 });
@@ -311,10 +352,17 @@ const canonicalDefaults = (d: DisplayDefaults): DisplayDefaults => ({
  * by edge id, optional fields omitted when undefined, trailing newline. Same file → same text.
  * Expects a valid file (as returned by `readProjectFile` or the builders here).
  */
-/** Settings in canonical key order; `calculatedFields` only when present (older files stay byte-identical). */
-const canonicalSettings = (settings: { readonly display: DisplayDefaults; readonly calculatedFields?: readonly string[] | undefined }): ProjectSettings => ({
+/** Settings in canonical key order; optional keys only when present (older files stay byte-identical). */
+const canonicalSettings = (settings: {
+  readonly display: DisplayDefaults;
+  readonly calculatedFields?: readonly string[] | undefined;
+  readonly functions?: readonly ProjectFunction[] | undefined;
+  readonly hiddenFunctions?: readonly string[] | undefined;
+}): ProjectSettings => ({
   display: canonicalDefaults(settings.display),
   ...(settings.calculatedFields !== undefined && { calculatedFields: [...settings.calculatedFields] }),
+  ...(settings.functions !== undefined && { functions: settings.functions.map((f) => ({ id: f.id, label: f.label })) }),
+  ...(settings.hiddenFunctions !== undefined && { hiddenFunctions: [...settings.hiddenFunctions] }),
 });
 
 export function serializeProjectFile(file: ProjectFileV1): string {

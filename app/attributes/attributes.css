@@ -174,3 +174,207 @@
 .sgl-calculated-catalogue .sgl-help {
   margin: 0 0 0 26px;
 }
+
+/* ── Unified attribute list (UI refinement 2026-11-17) ──────────────────────────────────────── */
+.sgl-attr-head {
+  position: relative;
+  min-width: 0;
+}
+/* Undo and Redo of attribute changes: two small icon buttons on the Node | Edge row. */
+.sgl-attr-history {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  display: flex;
+  gap: 2px;
+}
+.sgl-attr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  border: 1px solid var(--line, #e1e1dc);
+  border-radius: var(--radius, 6px);
+  overflow: hidden;
+}
+.sgl-attr-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-top: 1px solid var(--line, #e1e1dc);
+}
+.sgl-attr-row:first-child {
+  border-top: 0;
+}
+:where(.sgl-sidenav-panel) button.sgl-attr-main,
+button.sgl-attr-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2, 8px);
+  padding: 0 var(--space-2, 8px) 0 var(--space-3, 12px);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+  font-weight: 400;
+}
+button.sgl-attr-main:hover {
+  background: var(--surface-hover, #efefec);
+}
+.sgl-attr-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sgl-attr-type {
+  flex: none;
+  font-size: var(--text-xs, 12px);
+  color: var(--muted, #62625c);
+  white-space: nowrap;
+}
+.sgl-attr-type.is-calculated {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--calc-bg, #f5f4ef);
+  border: 1px solid var(--calc-line, #dedccf);
+  color: var(--calc-fg, #4a4940);
+}
+.sgl-attr-lock,
+.sgl-attr-remove-placeholder {
+  flex: none;
+  width: 32px;
+  display: inline-flex;
+  justify-content: center;
+  color: var(--muted, #62625c);
+}
+:where(.sgl-sidenav-panel, .sgl-dialog) button.sgl-icon-action,
+button.sgl-icon-action {
+  flex: none;
+  min-height: 28px;
+  width: 28px;
+  margin: 0 2px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 4px);
+  background: none;
+  color: var(--muted, #62625c);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+button.sgl-icon-action:hover:not(:disabled) {
+  border-color: var(--line-strong, #c9c9c2);
+  background: var(--surface-hover, #efefec);
+  color: var(--fg, #1f1f1d);
+}
+button.sgl-icon-action:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+:where(.sgl-sidenav-panel) button.sgl-attr-add,
+button.sgl-attr-add {
+  margin-top: var(--space-2, 8px);
+  width: 100%;
+  justify-content: flex-start;
+  border-style: dashed;
+  color: var(--accent, #2c5d8f);
+}
+.sgl-attr-notice {
+  margin: 0;
+  font-size: var(--text-sm, 13px);
+  color: var(--ok-fg, #2f5a2a);
+}
+
+/* ── Functions pop-up ───────────────────────────────────────────────────────────────────────── */
+.sgl-function-add {
+  display: flex;
+  gap: var(--space-2, 8px);
+}
+.sgl-function-add input {
+  flex: 1;
+  min-width: 0;
+}
+.sgl-function-list {
+  list-style: none;
+  margin: var(--space-3, 12px) 0 0;
+  padding: 0;
+  border: 1px solid var(--line, #e1e1dc);
+  border-radius: var(--radius, 6px);
+  max-height: min(320px, 45dvh);
+  overflow: auto;
+}
+.sgl-function-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  min-height: 34px;
+  padding: 0 var(--space-1, 4px) 0 var(--space-3, 12px);
+  border-top: 1px solid var(--line, #e1e1dc);
+}
+.sgl-function-row:first-child {
+  border-top: 0;
+}
+.sgl-function-row > input {
+  flex: 1;
+  min-width: 0;
+}
+.sgl-function-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sgl-function-meta {
+  display: flex;
+  gap: var(--space-2, 8px);
+  align-items: center;
+  font-size: var(--text-xs, 12px);
+  color: var(--muted, #62625c);
+  white-space: nowrap;
+}
+.sgl-function-actions {
+  display: flex;
+  min-width: 64px;
+  justify-content: flex-end;
+}
+.sgl-function-removed {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1, 4px) var(--space-3, 12px);
+  align-items: baseline;
+  margin-top: var(--space-2, 8px);
+}
+/* Names win the space in narrow sidebars: the type indicator shrinks (and ellipsises) first. */
+.sgl-attr-name {
+  flex: 0 1 auto;
+  min-width: 3.5em;
+}
+.sgl-attr-type {
+  flex: 0 10 auto;
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sgl-attr-row .sgl-attr-name {
+  flex: 0 0 auto;
+  max-width: 65%;
+}
+.sgl-attr-row .sgl-attr-type {
+  flex: 1 1 0;
+  text-align: right;
+}
+.sgl-attr-row .sgl-attr-type.is-calculated {
+  flex: 0 1 auto;
+}
+.sgl-attr-main .sgl-attr-lock {
+  width: auto;
+  flex: none;
+}

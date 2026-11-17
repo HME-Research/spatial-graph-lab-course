@@ -30,21 +30,17 @@ type LocalError = (issues: readonly GraphIssue[]) => void;
 const localIssue = (path: GraphIssue['path'], message: string): GraphIssue => ({ path, code: 'schema', message });
 
 /** How the active project knows the room's current type. The stored value is never changed here. */
-export function TypeStatusNote({ status, typeId, projectId }: { status: NodeTypeStatus; typeId: string; projectId: string | null }) {
+export function TypeStatusNote({ status, typeId }: { status: NodeTypeStatus; typeId: string; projectId?: string | null }) {
   switch (status.kind) {
     case 'no-project':
       return <p className="sgl-help">No project is active, so any type id can be used.</p>;
     case 'registered':
-      return (
-        <p className="sgl-help">
-          Defined in <code>{status.file}</code>.
-        </p>
-      );
+      return <p className="sgl-help">{status.file === 'project functions' ? 'Added in this project (Edit functions).' : 'Defined by the course.'}</p>;
     case 'undefined-type':
       return (
         <p className="sgl-warning">
-          ⚠ Project “{projectId}” does not define the type “{typeId}”. The room keeps it (with a fallback colour and
-          façade) until you choose another type above.
+          ⚠ This project does not offer the function “{typeId}”. The room keeps it (with a fallback colour and façade) until
+          you choose another function above, or add it with Edit functions.
         </p>
       );
     case 'broken':

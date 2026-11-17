@@ -58,7 +58,19 @@ export interface ProjectStore {
   save(file: ProjectFileV1): Promise<SaveResult>;
   /** Explicit user decision: delete an unreadable record (its quarantine copy is kept). */
   discardUnreadable(projectId: string): Promise<DiscardResult>;
+  /**
+   * Remove a READABLE stored project (additive, 2026-11-17): used only for a session the user did
+   * not save locally, when another project becomes the last session. An unreadable record is never
+   * removed here (`not-readable`); it stays until `discardUnreadable`.
+   */
+  remove(projectId: string): Promise<RemoveResult>;
 }
+
+export type RemoveResult =
+  | { readonly status: 'removed' }
+  | { readonly status: 'missing' }
+  | { readonly status: 'not-readable' }
+  | { readonly status: 'blocked'; readonly message: string };
 
 // ---------------------------------------------------------------------------------------------
 // Shared policy over a minimal backend
@@ -210,6 +222,17 @@ export function createRecordProjectStore(backend: RecordBackend, options: Record
         return blocked(error);
       }
     },
+    async remove(projectId) {
+      try {
+        const existing = await backend.getProject(projectId);
+        if (existing === undefined) return { status: 'missing' };
+        if (!readStored(projectId, existing).ok) return { status: 'not-readable' };
+        await backend.deleteProject(projectId);
+        return { status: 'removed' };
+      } catch (error) {
+        return { status: 'blocked', message: messageOf(error) };
+      }
+    },
   };
 }
 
@@ -246,6 +269,68 @@ export function exportMarkOf(signature: string): string {
 }
 
 export const EXPORT_MARK_PREFIX = 'sgl-exported:';
+
+// ---------------------------------------------------------------------------------------------
+// Saved-locally marks (additive, 2026-11-17): which stored projects the user chose to keep
+
+/**
+ * Only the LAST session is autosaved without asking; any other project stays in this browser only
+ * once the user saved it locally (Save locally, or Save as new project). These marks remember that
+ * choice beside the stored records (never in a project file). Projects stored before the marks
+ * existed are adopted as saved on first use (`initialised`), so nothing stored earlier is removed.
+ * When the marks cannot be used (`available()` false), nothing is ever removed.
+ */
+export interface KeptMarks {
+  available(): boolean;
+  initialised(): boolean;
+  setInitialised(): void;
+  has(projectId: string): boolean;
+  add(projectId: string): void;
+}
+
+export const KEPT_MARK_PREFIX = 'sgl-kept:';
+export const KEPT_MARKS_INITIALISED = 'sgl-kept-initialised';
+
+export function createMemoryKeptMarks(initialised = true): KeptMarks & { readonly kept: Set<string> } {
+  const kept = new Set<string>();
+  let init = initialised;
+  return { kept, available: () => true, initialised: () => init, setInitialised: () => void (init = true), has: (id) => kept.has(id), add: (id) => void kept.add(id) };
+}
+
+export function createLocalStorageKeptMarks(storage?: Pick<Storage, 'getItem' | 'setItem'> | null): KeptMarks {
+  const target = (): Pick<Storage, 'getItem' | 'setItem'> | null => {
+    if (storage !== undefined) return storage;
+    try {
+      return (globalThis as { localStorage?: Storage }).localStorage ?? null;
+    } catch {
+      return null;
+    }
+  };
+  const get = (key: string): string | null => {
+    try {
+      return target()?.getItem(key) ?? null;
+    } catch {
+      return null;
+    }
+  };
+  const set = (key: string): boolean => {
+    try {
+      const t = target();
+      if (!t) return false;
+      t.setItem(key, '1');
+      return t.getItem(key) === '1';
+    } catch {
+      return false;
+    }
+  };
+  return {
+    available: () => set('sgl-kept-probe'),
+    initialised: () => get(KEPT_MARKS_INITIALISED) === '1',
+    setInitialised: () => void set(KEPT_MARKS_INITIALISED),
+    has: (id) => get(`${KEPT_MARK_PREFIX}${id}`) === '1',
+    add: (id) => void set(`${KEPT_MARK_PREFIX}${id}`),
+  };
+}
 
 export function createMemoryExportMarks(): ExportMarks & { readonly marks: Map<string, string> } {
   const marks = new Map<string, string>();

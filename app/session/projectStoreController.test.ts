@@ -127,7 +127,7 @@ describe('startup and Welcome', () => {
     const recent = await none.listRecent();
     expect(recent.status).toBe('unavailable');
     const empty = await makeController().c.listRecent();
-    expect(empty).toEqual({ status: 'ok', items: [] });
+    expect(empty).toMatchObject({ status: 'ok', items: [] });
   });
 
   it('restores a Recent project explicitly, without writing', async () => {
@@ -155,7 +155,9 @@ describe('startup and Welcome', () => {
     store.records.set('project-bad', '{ corrupt');
     const { c } = makeController(store);
     const recent = await c.listRecent();
-    expect(recent).toEqual({ status: 'ok', items: [expect.objectContaining({ status: 'unreadable', projectId: 'project-bad' })] });
+    expect(recent).toMatchObject({ status: 'ok', items: [expect.objectContaining({ status: 'unreadable', projectId: 'project-bad' })] });
+    // An unreadable record is never listed as an unsaved session (it is never removed automatically).
+    expect(recent.status === 'ok' && (recent.unsaved ?? [])).toEqual([]);
     const r = await c.restore('project-bad');
     expect(r.ok === false && r.status).toBe('unreadable');
     expect(r.ok === false && r.message).toMatch(/cannot be read/);

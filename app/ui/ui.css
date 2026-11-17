@@ -735,3 +735,229 @@
   align-items: flex-start;
   gap: 0;
 }
+
+/* ── Compact modal dialog (app/ui/Dialog.tsx) ────────────────────────────────────────────── */
+
+.sgl-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  border: 1px solid var(--line-strong, #c9c9c2);
+  border-radius: var(--radius-lg, 8px);
+  background: var(--panel, #fff);
+  color: var(--fg, #1f1f1d);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
+  font-size: var(--text-md, 14px);
+  line-height: var(--leading, 1.4);
+}
+.sgl-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.sgl-dialog::backdrop {
+  background: rgb(20 20 18 / 0.32);
+}
+.sgl-dialog-box {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: inherit;
+}
+.sgl-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2, 8px);
+  padding: var(--space-4, 16px) var(--space-4, 16px) 0;
+}
+.sgl-dialog-title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--text-lg, 16px);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.sgl-dialog button.sgl-dialog-close {
+  min-height: 28px;
+  width: 28px;
+  padding: 0;
+  border-color: transparent;
+  background: none;
+  color: var(--muted, #62625c);
+  font-size: 20px;
+  line-height: 1;
+}
+.sgl-dialog-lead {
+  margin: var(--space-1, 4px) var(--space-4, 16px) 0;
+  color: var(--muted, #62625c);
+  font-size: var(--text-sm, 13px);
+}
+.sgl-dialog-body {
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  overflow: auto;
+  min-height: 0;
+}
+.sgl-dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2, 8px);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-top: 1px solid var(--line, #e1e1dc);
+}
+.sgl-dialog-footer .sgl-dialog-footer-start {
+  margin-right: auto;
+}
+.sgl-dialog-form {
+  display: grid;
+  gap: var(--space-3, 12px);
+}
+.sgl-dialog-field {
+  display: grid;
+  gap: var(--space-1, 4px);
+  font-size: var(--text-sm, 13px);
+  font-weight: 600;
+}
+.sgl-dialog-field > :where(input, select, textarea) {
+  font-weight: 400;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.sgl-dialog textarea {
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  font: inherit;
+  resize: vertical;
+}
+.sgl-dialog-field-inline {
+  grid-template-columns: minmax(6em, 1fr) minmax(0, 1.4fr);
+  align-items: center;
+  font-weight: 400;
+}
+.sgl-dialog-optional {
+  font-weight: 400;
+  color: var(--muted, #62625c);
+}
+.sgl-dialog-hint {
+  margin: var(--space-2, 8px) 0 0;
+  font-size: var(--text-sm, 13px);
+  font-weight: 400;
+  color: var(--muted, #62625c);
+}
+.sgl-dialog-field .sgl-dialog-hint {
+  margin: 0;
+}
+.sgl-dialog-note {
+  margin: var(--space-2, 8px) 0 0;
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--warning-bg, #fbf5e6);
+  color: var(--warning-fg, #6b4e0f);
+  font-size: var(--text-sm, 13px);
+}
+.sgl-dialog-error {
+  margin: var(--space-2, 8px) 0 0;
+  color: var(--error-fg, #8a3030);
+  font-size: var(--text-sm, 13px);
+}
+.sgl-dialog-text {
+  margin: 0;
+}
+.sgl-dialog-list {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: var(--space-1, 4px);
+}
+.sgl-dialog-range,
+.sgl-dialog-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+.sgl-dialog-range input {
+  flex: 1;
+  min-width: 0;
+}
+.sgl-dialog-advanced {
+  margin-top: var(--space-3, 12px);
+}
+.sgl-dialog-advanced > summary {
+  cursor: pointer;
+  font-size: var(--text-sm, 13px);
+  color: var(--muted, #62625c);
+}
+.sgl-dialog-advanced[open] > summary {
+  margin-bottom: var(--space-2, 8px);
+}
+.sgl-dialog button.sgl-danger {
+  border-color: var(--error-line, #e0aaaa);
+  color: var(--error-fg, #8a3030);
+}
+.sgl-dialog button.sgl-primary {
+  border-color: var(--accent, #2c5d8f);
+  background: var(--accent, #2c5d8f);
+  color: #fff;
+}
+.sgl-dialog button.sgl-primary:hover:not(:disabled) {
+  background: var(--accent-hover, #234b74);
+}
+
+/* Two large choices (Add attribute: Custom or Calculated). */
+.sgl-choice-list {
+  display: grid;
+  gap: var(--space-2, 8px);
+}
+.sgl-dialog button.sgl-choice {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  min-height: 56px;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  text-align: left;
+}
+.sgl-choice-title {
+  font-weight: 650;
+}
+.sgl-choice-text {
+  color: var(--muted, #62625c);
+  font-size: var(--text-sm, 13px);
+}
+
+/* Calculated attribute options. */
+.sgl-dialog-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: var(--space-2, 8px);
+}
+.sgl-metric-options {
+  display: grid;
+  gap: 2px;
+  max-height: min(320px, 45dvh);
+  overflow: auto;
+}
+.sgl-metric-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2, 8px);
+  padding: 6px var(--space-2, 8px);
+  border-radius: var(--radius, 6px);
+  cursor: pointer;
+}
+.sgl-metric-option:hover,
+.sgl-metric-option.is-selected {
+  background: var(--accent-soft, #edf2f8);
+}
+.sgl-metric-option input {
+  margin-top: 3px;
+}
+.sgl-metric-option-text {
+  display: grid;
+  gap: 2px;
+}
+.sgl-metric-option-name {
+  font-weight: 600;
+}
+.sgl-metric-option-help {
+  font-size: var(--text-sm, 13px);
+  color: var(--muted, #62625c);
+}

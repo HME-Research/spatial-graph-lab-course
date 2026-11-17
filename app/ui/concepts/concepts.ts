@@ -39,10 +39,10 @@ export const CONCEPTS: Readonly<Record<ConceptId, Concept>> = {
     title: 'Project and Scenario',
     lead: 'A project holds the shared rules; each scenario is one complete design alternative.',
     parts: [
-      { heading: 'Project', text: 'Shared by every scenario: functions, attribute fields and settings.' },
+      { heading: 'Project', text: 'Shared by every scenario: functions, attributes and settings.' },
       { heading: 'Scenario', text: 'Its own rooms, relationships, values and undo history. Switch scenarios in the Scenarios tab.' },
     ],
-    diagramLabel: 'A project box containing shared fields, with three scenario cards (A, B, C) inside it.',
+    diagramLabel: 'A project box containing shared attributes, with three scenario cards (A, B, C) inside it.',
   },
   'calculated-values': {
     id: 'calculated-values',

@@ -147,7 +147,7 @@ button:hover,
  * `button` (0,0,1) or `button:pseudo` (0,1,1): later than the base rule, it wins over it, but ANY
  * class rule (`.sgl-sidenav-tab.active`, `.sgl-link`, `.sgl-icon-button` …) still wins over it.
  */
-:where(.toolbar, .sgl-sidenav-panel, .sgl-concept-dialog) button,
+:where(.toolbar, .sgl-sidenav-panel, .sgl-concept-dialog, .sgl-dialog) button,
 :where(.toolbar) .file-button {
   min-height: var(--hit);
   padding: 0 var(--space-3);
@@ -160,18 +160,18 @@ button:hover,
   gap: var(--space-1);
 }
 
-:where(.toolbar, .sgl-sidenav, .panel-header, .sgl-concept-dialog) button:where(:hover:not(:disabled)) {
+:where(.toolbar, .sgl-sidenav, .panel-header, .sgl-concept-dialog, .sgl-dialog) button:where(:hover:not(:disabled)) {
   border-color: var(--line-strong);
   background: var(--surface-hover);
 }
 
-:where(.toolbar, .sgl-sidenav, .panel-header, .sgl-concept-dialog) button:where(:disabled) {
+:where(.toolbar, .sgl-sidenav, .panel-header, .sgl-concept-dialog, .sgl-dialog) button:where(:disabled) {
   border-color: var(--line);
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-:where(.sgl-sidenav-panel) :where(select, input:not([type='checkbox']):not([type='radio']):not([type='range'])) {
+:where(.sgl-sidenav-panel, .sgl-dialog) :where(select, textarea, input:not([type='checkbox']):not([type='radio']):not([type='range'])) {
   min-height: var(--hit-compact);
   padding: 0 var(--space-2);
   border: 1px solid var(--line-strong);
@@ -184,7 +184,7 @@ button:hover,
  * Focus ring of shell controls: an outline drawn INSIDE the control's box edge (offset -2px), so a
  * parent with `overflow: hidden` (viewport panels, scrolling side panels) never clips it.
  */
-:where(.toolbar, .sgl-sidenav, .panel-header, .left-pane, .sgl-concept-dialog) :where(button, select, input, textarea, summary):focus-visible,
+:where(.toolbar, .sgl-sidenav, .panel-header, .left-pane, .sgl-concept-dialog, .sgl-dialog) :where(button, select, input, textarea, summary):focus-visible,
 :where(.toolbar) .file-button:focus-within {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
@@ -535,6 +535,6 @@ main {
 }
 
 /* A disabled shell button does not react to hover (beats the base `button:hover`). */
-:where(.toolbar, .sgl-sidenav, .panel-header, .sgl-concept-dialog) button:disabled:hover {
+:where(.toolbar, .sgl-sidenav, .panel-header, .sgl-concept-dialog, .sgl-dialog) button:disabled:hover {
   border-color: var(--line);
 }
