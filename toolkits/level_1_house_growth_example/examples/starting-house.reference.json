@@ -1,0 +1,97 @@
+{
+  "purpose": "Illustrative starting design for manually reproducing in Spatial Graph Lab; NOT verified application import JSON.",
+  "rooms": [
+    {
+      "id": "entry",
+      "typeId": "entry",
+      "grid": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "living",
+      "typeId": "living",
+      "grid": [
+        1,
+        0,
+        0
+      ],
+      "size": [
+        2,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "kitchen",
+      "typeId": "kitchen",
+      "grid": [
+        3,
+        0,
+        0
+      ],
+      "size": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "bedroom",
+      "typeId": "bedroom",
+      "grid": [
+        1,
+        1,
+        0
+      ],
+      "size": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "bath",
+      "typeId": "bath",
+      "grid": [
+        0,
+        1,
+        0
+      ],
+      "size": [
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "source": "entry",
+      "target": "living",
+      "kind": "access"
+    },
+    {
+      "source": "living",
+      "target": "kitchen",
+      "kind": "open"
+    },
+    {
+      "source": "living",
+      "target": "bedroom",
+      "kind": "access"
+    },
+    {
+      "source": "entry",
+      "target": "bath",
+      "kind": "access"
+    }
+  ]
+}
