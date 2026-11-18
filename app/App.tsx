@@ -75,6 +75,7 @@ import { DisplayProvider } from '@app/display/DisplayProvider';
 import { sanitizeEnabledMetrics } from '@app/metrics';
 import { EnabledMetricsContext } from '@app/views/three/enabledMetrics';
 import { EMPTY_FACADE_LIBRARY, facadeLibraryOf, FacadeLibraryContext } from '@app/views/three/facadeLibrary';
+import { RoomHighlightContext, SetRoomHighlightContext, type RoomHighlight } from '@app/views/roomHighlight';
 import { DEFAULT_VIEWPORT_STATE, deriveViewports, type ViewportState } from '@app/workspace/viewports';
 
 /**
@@ -205,10 +206,14 @@ export function App() {
   const [attributeCollection, setAttributeCollection] = useState<AttributeCollection>('nodes');
   /** The Functions pop-up (add or remove node types) is open. */
   const [functionsOpen, setFunctionsOpen] = useState(false);
+  /** Rooms lit up by a Designer card's highlight button (view-only, never saved). */
+  const [roomHighlight, setRoomHighlight] = useState<RoomHighlight | null>(null);
 
   const toolkitId = openProject?.meta.toolkit?.id ?? null;
   const projectId = openProject?.meta.projectId ?? null;
   const scenarioId = openProject?.activeScenarioId ?? null;
+  // Another project or scenario: its rooms are different, so no highlight carries over.
+  useEffect(() => setRoomHighlight(null), [projectId, scenarioId]);
   /** The project's calculated values (`settings.calculatedFields`), validated at runtime; absent = defaults. */
   const storedCalculatedFields = openProject?.meta.settings.calculatedFields;
   const calculatedFields = useMemo(() => sanitizeEnabledMetrics(storedCalculatedFields).enabled, [storedCalculatedFields]);
@@ -664,6 +669,8 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                 <DisplayProvider scenarioId={scenarioId ?? ''} store={displayStore}>
                 <EnabledMetricsContext.Provider value={calculatedFields}>
                 <FacadeLibraryContext.Provider value={facadeLibrary}>
+                <RoomHighlightContext.Provider value={roomHighlight}>
+                <SetRoomHighlightContext.Provider value={setRoomHighlight}>
                 <OpenAttributesContext.Provider value={project ? openAttributes : null}>
                 <ManageFunctionsContext.Provider value={project ? () => setFunctionsOpen(true) : null}>
                   <Workspace
@@ -750,6 +757,8 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                   />
                 </ManageFunctionsContext.Provider>
                 </OpenAttributesContext.Provider>
+                </SetRoomHighlightContext.Provider>
+                </RoomHighlightContext.Provider>
                 </FacadeLibraryContext.Provider>
                 </EnabledMetricsContext.Provider>
                 </DisplayProvider>

@@ -76,7 +76,7 @@ export const EMPTY_FACADE_MODULES: FacadeModuleLayout = Object.freeze({ instance
 
 /** True when any stored look of the design (any remembered setup) uses an imported façade. */
 export function designUsesFacadeModules(doc: Pick<DesignDocumentV2, 'settings'>): boolean {
-  for (const { look } of storedLooks(doc.settings)) if (look.facade !== undefined) return true;
+  for (const { look } of storedLooks(doc.settings)) if (look.facade !== undefined && look.facade !== 'none') return true;
   return false;
 }
 
@@ -103,7 +103,7 @@ export function cardsUsingFacade(doc: Pick<DesignDocumentV2, 'settings'>, assetI
 
 /** The look without any use of `assetId` (a façade that IS it is removed; a bay using it loses that bay). */
 function lookWithout(look: Look, assetId: string): Look {
-  if (!look.facade) return look;
+  if (!look.facade || look.facade === 'none') return look;
   const { facade, ...rest } = look;
   if (facade.assetId === assetId) return rest;
   const kept = { ...facade };
@@ -238,14 +238,16 @@ export function layoutFacadeModules(
 }
 
 /** Instances of one type scaled by more than `tolerance` (default 5 %) along or up: a fit warning. */
-export function distortedModules(instances: readonly FacadeModuleInstance[], typeId: string, tolerance = 0.05): {
+/** Modules scaled more than `tolerance` of a function (`owner` = type id) or of these rooms (a set of node ids). */
+export function distortedModules(instances: readonly FacadeModuleInstance[], owner: string | ReadonlySet<string>, tolerance = 0.05): {
   readonly count: number;
   readonly minAlong: number;
   readonly maxAlong: number;
   readonly minUp: number;
   readonly maxUp: number;
 } | null {
-  const own = instances.filter((i) => i.ownerTypeId === typeId && (Math.abs(i.scaleAlong - 1) > tolerance || Math.abs(i.scaleUp - 1) > tolerance));
+  const mine = (i: FacadeModuleInstance) => (typeof owner === 'string' ? i.ownerTypeId === owner : owner.has(i.ownerNodeId));
+  const own = instances.filter((i) => mine(i) && (Math.abs(i.scaleAlong - 1) > tolerance || Math.abs(i.scaleUp - 1) > tolerance));
   if (own.length === 0) return null;
   return {
     count: own.length,

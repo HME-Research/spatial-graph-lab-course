@@ -322,6 +322,14 @@ await step('workflow/orbit-keeps-selection', async () => {
 
 await step('workflow/designer-windows-and-roof', async () => {
   await evaluate(`__wf.tab('designer'); true`);
+  // "Style rooms by" (2026-11-18): functions get a card from "+ Style another function" (one undo step each).
+  await waitFor(`document.querySelector('select[aria-label="Style another function"]') !== null`, 'the Designer add menu');
+  for (const fn of ['gallery', 'studio']) {
+    const before = await evaluate('__wf.undoTitle()');
+    await evaluate(`(() => { const s = document.querySelector('select[aria-label="Style another function"]'); __wf.setValue(s, '${fn}'); return true; })()`);
+    await waitFor(`__wf.undoTitle() !== ${JSON.stringify(before)}`, `the ${fn} card`);
+    undoLabels.push(await evaluate('__wf.undoTitle()'));
+  }
   await waitFor(`document.querySelector('input[aria-label="Gallery window coverage in percent"], input[aria-label$="window coverage in percent"]') !== null`, 'Designer rows');
   const names = await evaluate(`[...document.querySelectorAll('input[aria-label$="window coverage in percent"]')].map((i) => i.getAttribute('aria-label'))`);
   const gallery = names.find((n) => /gallery/i.test(n)) ?? names[0];

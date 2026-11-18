@@ -118,7 +118,7 @@ export function effectiveLook(setup: StyleSetup, ref: StyleGroupRef, base: Proje
     windowLayout: layout.value ?? DEFAULT_WINDOW_LAYOUT,
     walls: walls.value ?? DEFAULT_WALL_STYLE,
     roof: roof.value ?? DEFAULT_ROOF_STYLE,
-    facade: facade.value ?? null,
+    facade: facade.value === undefined || facade.value === 'none' ? null : facade.value,
     source: { windowFraction: wf.source, windowLayout: layout.source, walls: walls.source, roof: roof.source, facade: facade.source },
   };
 }
@@ -168,8 +168,9 @@ export function* storedLooks(settings: Pick<DesignSettings, 'styles'>): Generato
 
 /** Asset ids a look refers to (its façade and door / open bays). */
 export function lookAssetIds(look: Look): string[] {
-  if (!look.facade) return [];
-  return [look.facade.assetId, ...FACADE_VARIANTS.flatMap((v) => (look.facade![v] ? [look.facade![v]!.assetId] : []))];
+  const f = look.facade;
+  if (!f || f === 'none') return [];
+  return [f.assetId, ...FACADE_VARIANTS.flatMap((v) => (f[v] ? [f[v]!.assetId] : []))];
 }
 
 /** Same card. */

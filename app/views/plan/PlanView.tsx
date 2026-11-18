@@ -33,6 +33,7 @@ import { useRemembered } from '../panelMemory';
 import { centreLinePath, crossedRectPath, doorSwingPath, grow, windowPath } from './planShapes';
 import { effectiveLevel, fitViewport, panBy, staleWallHover, viewBoxOf, wheelFactor, wheelPixels, zoomAt, type PlanViewport, type ScreenSize } from './planViewport';
 import './plan.css';
+import { useRoomHighlight } from '../roomHighlight';
 
 /**
  * Plan view (workstream C): the architectural floor plan of ONE storey, drawn as SVG from
@@ -217,6 +218,8 @@ function PlanCanvas({
   });
 
   const emphasis = useMemo(() => selectionEmphasis(selection, doc.edges), [selection, doc.edges]);
+  // Rooms lit up by the Designer's highlight button (never part of the selection).
+  const lit = useRoomHighlight()?.nodeIds;
   const unresolvedHere = useMemo(() => {
     if (!plan) return 0;
     const here = new Set(plan.rooms.map((r) => r.nodeId));
@@ -254,6 +257,7 @@ function PlanCanvas({
         plan={plan}
         px={viewport.scale}
         emphasis={emphasis}
+        lit={lit}
         activate={activate}
         wallTargets={onWallTarget ? plan.wallTargets : []}
         hoveredWall={hoveredWall}
@@ -354,6 +358,7 @@ export function PlanDrawing({
   activeWall = null,
   onWallHover,
   onWallClick,
+  lit,
 }: {
   readonly plan: PlanModel;
   /** Metres per screen pixel (labels and hit areas keep a constant on-screen size). */
@@ -365,6 +370,8 @@ export function PlanDrawing({
   readonly activeWall?: string | null;
   readonly onWallHover?: (t: PlanWallTarget | null) => void;
   readonly onWallClick?: (t: PlanWallTarget) => void;
+  /** Rooms lit up by the Designer's highlight button. */
+  readonly lit?: ReadonlySet<string> | undefined;
 }) {
   const edgeClass = (base: string, edgeId: string | null) => (edgeId !== null && emphasis.edges.has(edgeId) ? `${base} selected` : base);
   const hit = 4 * px; // 4 px of extra hit area around thin elements
@@ -386,7 +393,9 @@ export function PlanDrawing({
 
       <g className="sgl-plan-rooms">
         {plan.rooms.map((room) => {
-          const cls = emphasis.primaryNodes.has(room.nodeId) ? ' selected' : emphasis.secondaryNodes.has(room.nodeId) ? ' related' : '';
+          const cls =
+            (emphasis.primaryNodes.has(room.nodeId) ? ' selected' : emphasis.secondaryNodes.has(room.nodeId) ? ' related' : '') +
+            (lit?.has(room.nodeId) ? ' highlighted' : '');
           return (
             <rect
               key={room.nodeId}

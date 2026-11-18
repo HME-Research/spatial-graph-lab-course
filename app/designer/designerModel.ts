@@ -4,9 +4,13 @@ import {
   canonicalFacadeModule,
   sameFacadeModule,
   connectorStyleOf,
+  DEFAULT_GROUP,
   effectiveLook,
   lookOfGroup,
+  nodeLooks,
+  sameGroup,
   styleSetupOf,
+  styleValueKey,
   nodeLabel,
   ROOF_STYLES,
   windowFractionSchema,
@@ -16,7 +20,9 @@ import {
   type DesignDocumentV2,
   type EffectiveLook,
   type Look,
+  type StyleBy,
   type StyleGroupRef,
+  type StyleValues,
   type FacadeModule,
   type FacadePlacement,
   type RoofStyle,
@@ -24,7 +30,7 @@ import {
   type WallStyle,
 } from '@app/document/v2';
 import { findNodeType, type ActiveToolkit } from '@app/extensions';
-import type { DesignCommand, SpatialResolution } from '@app/spatial';
+import type { DesignCommand, LookPatch, SpatialResolution } from '@app/spatial';
 import { nodeTypeStatus, typeDisplayName, type NodeTypeStatus } from '@app/views/project';
 import type { Selection } from '@core/viewer/selection';
 
@@ -52,33 +58,46 @@ export interface DesignerTypeRow {
   /** Menu/label text, e.g. "Gallery (gallery)". */
   readonly name: string;
   readonly status: NodeTypeStatus;
-  /** Rooms of this type in the current design (all of them use the effective values). */
+  /** Rooms of this type in the current design. */
   readonly nodeCount: number;
-  /** The design stores an override for a type that is neither in the project nor in the design. */
+  /** The design stores a card for a type that is neither in the project nor in the design. */
   readonly orphanOverride: boolean;
   readonly projectDefault: { readonly windowFraction: number; readonly source: ProjectDefaultSource };
   readonly effective: EffectiveLook;
-  /** True when the design stores any override for this type ("Reset" is available). */
+  /** True when the design stores a card for this type. */
   readonly hasOverride: boolean;
-  /** Readable warning (undefined / broken type, orphan override), or null. */
+  /** Readable warning (undefined / broken type, orphan card), or null. */
   readonly warning: string | null;
 }
 
-/** The function cards: the `function` setup of "Style rooms by". */
+/**
+ * Which card an edit applies to: a card of the `by` setup ("Style rooms by"). `name` is used in
+ * undo labels. A plain string means the function card of that type id.
+ */
+export interface CardTarget {
+  readonly by: StyleBy;
+  readonly group: StyleGroupRef;
+  readonly name: string;
+}
+
 const FUNCTION = 'function';
 const functionCard = (typeId: string): StyleGroupRef => ({ kind: 'value', value: typeId });
 const functionSetup = (doc: Pick<DesignDocumentV2, 'settings'>) => styleSetupOf(doc.settings, FUNCTION);
-/** The stored card of `typeId`, or undefined when the function has no card. */
-const storedCard = (doc: Pick<DesignDocumentV2, 'settings'>, typeId: string): Look | undefined => lookOfGroup(functionSetup(doc), functionCard(typeId));
-/** Effective look of a function's rooms (card → Default → `windowFraction` → built-in). */
-const effectiveOf = (doc: Pick<DesignDocumentV2, 'settings'>, typeId: string, windowFraction = 0): EffectiveLook =>
-  effectiveLook(functionSetup(doc), functionCard(typeId), { windowFraction });
-const lookCommand = (typeId: string, patch: Extract<DesignCommand, { type: 'set-look' }>['patch']): DesignCommand => ({
-  type: 'set-look',
-  by: FUNCTION,
-  group: functionCard(typeId),
-  patch,
-});
+export const functionTarget = (typeId: string): CardTarget => ({ by: FUNCTION, group: functionCard(typeId), name: typeId });
+const targetOf = (card: string | CardTarget): CardTarget => (typeof card === 'string' ? functionTarget(card) : card);
+
+/** The stored look of a card (Default: its look, or undefined when Default sets nothing). */
+function storedLook(doc: Pick<DesignDocumentV2, 'settings'>, t: CardTarget): Look | undefined {
+  const setup = styleSetupOf(doc.settings, t.by);
+  return t.group.kind === 'default' ? setup.default : lookOfGroup(setup, t.group);
+}
+/** Effective look of a card's rooms (card → Default → `windowFraction` → built-in). */
+const effectiveFor = (doc: Pick<DesignDocumentV2, 'settings'>, t: CardTarget, windowFraction = 0): EffectiveLook =>
+  effectiveLook(styleSetupOf(doc.settings, t.by), t.group, { windowFraction });
+/** What a card's rooms get when the card sets nothing (Default for a value card or band; built-in for Default). */
+const inheritedFor = (doc: Pick<DesignDocumentV2, 'settings'>, t: CardTarget, windowFraction = 0): EffectiveLook =>
+  effectiveLook(t.group.kind === 'default' ? {} : styleSetupOf(doc.settings, t.by), DEFAULT_GROUP, { windowFraction });
+const lookCommand = (t: CardTarget, patch: LookPatch): DesignCommand => ({ type: 'set-look', by: t.by, group: t.group, patch });
 
 function projectDefaultSource(project: ActiveToolkit | null, status: NodeTypeStatus, typeId: string): ProjectDefaultSource {
   if (status.kind === 'broken') return 'broken';
@@ -93,7 +112,7 @@ function warningFor(row: Pick<DesignerTypeRow, 'status' | 'orphanOverride' | 'ty
     const why = row.status.problems.length > 0 ? `: ${row.status.problems.join('; ')}` : '';
     return `The type definition in ${row.status.file} is invalid${why}. Rooms of this type show a closed wall until it is fixed.`;
   }
-  if (row.orphanOverride) return 'No room uses this type and the project does not define it. Reset to remove the stored setting.';
+  if (row.orphanOverride) return 'No room uses this type and the project does not define it. Remove the card if it is not needed.';
   if (row.status.kind === 'undefined-type') {
     return `The active project does not define "${row.typeId}"; the fallback window coverage is used.`;
   }
@@ -102,8 +121,8 @@ function warningFor(row: Pick<DesignerTypeRow, 'status' | 'orphanOverride' | 'ty
 
 /**
  * One row per node type: the active project's registered (and broken) types in project order,
- * then types used only by the design, then types that only have a stored override. The list is
- * derived from `project` and `doc` every time, so new student-defined types appear automatically.
+ * then types used only by the design, then types that only have a stored card. Feeds the
+ * "+ Style another function" menu and the function cards' names and warnings.
  */
 export function designerTypeRows(
   doc: DesignDocumentV2,
@@ -137,11 +156,141 @@ export function designerTypeRows(
       nodeCount,
       orphanOverride: nodeCount === 0 && !inProject,
       projectDefault: { windowFraction: projectWindowFraction, source: projectDefaultSource(project, status, typeId) },
-      effective: effectiveOf(doc, typeId, projectWindowFraction),
-      hasOverride: storedCard(doc, typeId) !== undefined,
+      effective: effectiveFor(doc, functionTarget(typeId), projectWindowFraction),
+      hasOverride: storedLook(doc, functionTarget(typeId)) !== undefined,
     };
     return { ...base, warning: warningFor(base) };
   });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Cards ("Style rooms by", S2 2026-11-18): Default + the cards of the active attribute.
+
+/** Readable names of the attributes rooms can be styled by (S2: Function only). */
+export const STYLE_BY_LABELS: Readonly<Record<string, string>> = { function: 'Function' };
+
+export interface DesignerCardRow {
+  /** Stable key for element ids and remembered open state ("default", "v:gallery", "b:0"). */
+  readonly key: string;
+  readonly target: CardTarget;
+  /** Function cards: the type id (swatch colour, façade fit warning); otherwise null. */
+  readonly typeId: string | null;
+  /** Card title, e.g. "Default", "Gallery (gallery)". */
+  readonly name: string;
+  /** The rooms this card styles now (each room is in exactly one card). */
+  readonly nodeIds: readonly string[];
+  readonly effective: EffectiveLook;
+  /** What the window coverage falls back to when the card does not set it, as text. */
+  readonly inheritedWindowText: string;
+  /** The fraction an unset window coverage falls back to. */
+  readonly inheritedWindowFraction: number;
+  /** The card stores something (Reset available). */
+  readonly hasOverride: boolean;
+  /** Value cards can be removed; Default cannot. */
+  readonly removable: boolean;
+  readonly warning: string | null;
+}
+
+export interface DesignerCards {
+  readonly by: StyleBy;
+  readonly byLabel: string;
+  readonly defaultCard: DesignerCardRow;
+  readonly cards: readonly DesignerCardRow[];
+  /** Functions without a card, for "+ Style another function" (styling by Function only). */
+  readonly addable: readonly { readonly value: string; readonly label: string; readonly nodeCount: number }[];
+}
+
+const cardKey = (group: StyleGroupRef): string =>
+  group.kind === 'default' ? 'default' : group.kind === 'band' ? `b:${group.index}` : `v:${String(group.value)}`;
+
+/** Example window coverage shown when the rooms of a card have different functions. */
+const MIXED_BASE = 0.25;
+
+/** The single toolkit window coverage of these rooms, or null when their functions' defaults differ. */
+function sharedBase(doc: DesignDocumentV2, nodeIds: readonly string[], facade: FacadeProvider): number | null {
+  const ids = new Set(nodeIds);
+  const values = new Set(doc.nodes.filter((n) => ids.has(n.id)).map((n) => facade(n.typeId).windowFraction));
+  return values.size === 1 ? [...values][0]! : null;
+}
+
+/** "Under 50", "50 – 100", "100 or more". */
+export function bandName(dividers: readonly number[], index: number): string {
+  const lo = dividers[index - 1];
+  const hi = dividers[index];
+  if (lo === undefined) return hi === undefined ? 'All values' : `Under ${hi}`;
+  if (hi === undefined) return `${lo} or more`;
+  return `${lo} – ${hi}`;
+}
+
+/**
+ * The Designer cards of `doc`: Default plus one card per stored value / band of the active
+ * "Style rooms by" attribute, each with the rooms it styles now. `values` supplies attribute /
+ * measured values (not needed for Function and Level).
+ */
+export function designerCards(doc: DesignDocumentV2, project: ActiveToolkit | null, facade: FacadeProvider, values?: StyleValues): DesignerCards {
+  const by = doc.settings.styleBy;
+  const setup = styleSetupOf(doc.settings, by);
+  const looks = nodeLooks(doc, facade, values);
+  const roomsOf = (group: StyleGroupRef) => doc.nodes.filter((n) => sameGroup(looks.get(n.id)!.group, group)).map((n) => n.id);
+  const types = by === FUNCTION ? designerTypeRows(doc, project, facade) : [];
+
+  const row = (group: StyleGroupRef, name: string, typeId: string | null, warning: string | null): DesignerCardRow => {
+    const target: CardTarget = { by, group, name: typeId ?? name };
+    const nodeIds = roomsOf(group);
+    const own = typeId !== null ? facade(typeId).windowFraction : sharedBase(doc, nodeIds, facade);
+    const base = own ?? MIXED_BASE;
+    const inherited = inheritedFor(doc, target, base);
+    const fromDefault = group.kind !== 'default' && inherited.source.windowFraction === 'default';
+    const stored = storedLook(doc, target);
+    return {
+      key: cardKey(group),
+      target,
+      typeId,
+      name,
+      nodeIds,
+      effective: effectiveFor(doc, target, base),
+      inheritedWindowFraction: inherited.windowFraction,
+      inheritedWindowText: fromDefault
+        ? `Default, ${formatPercent(inherited.windowFraction)} %`
+        : own === null
+          ? "each function's own default"
+          : `${typeId === null ? 'function' : 'project'} default, ${formatPercent(own)} %`,
+      hasOverride: stored !== undefined && (group.kind !== 'default' || Object.keys(stored).length > 0),
+      removable: group.kind === 'value',
+      warning,
+    };
+  };
+
+  const defaultCard = row(DEFAULT_GROUP, 'Default', null, null);
+  const cards: DesignerCardRow[] = [];
+  if (setup.dividers && setup.bands) {
+    setup.bands.forEach((_, index) => cards.push(row({ kind: 'band', index }, bandName(setup.dividers!, index), null, null)));
+  }
+  for (const g of setup.groups ?? []) {
+    const group: StyleGroupRef = { kind: 'value', value: g.value };
+    if (by === FUNCTION) {
+      const typeId = String(g.value);
+      const t = types.find((r) => r.typeId === typeId);
+      cards.push(row(group, t?.name ?? typeId, typeId, t?.warning ?? null));
+    } else {
+      cards.push(row(group, String(g.value), null, null));
+    }
+  }
+  const carded = new Set((setup.groups ?? []).map((g) => styleValueKey(g.value)));
+  const addable = types.filter((t) => !carded.has(styleValueKey(t.typeId))).map((t) => ({ value: t.typeId, label: t.name, nodeCount: t.nodeCount }));
+  return { by, byLabel: STYLE_BY_LABELS[by] ?? by, defaultCard, cards, addable };
+}
+
+/** Add a card for `value`: an empty card, so its rooms keep their look until something is changed. */
+export function addCardEdit(doc: DesignDocumentV2, by: StyleBy, value: string, name = value): DesignerEdit {
+  if (lookOfGroup(styleSetupOf(doc.settings, by), { kind: 'value', value }) !== undefined) return UNCHANGED;
+  return { kind: 'command', command: { type: 'set-look', by, group: { kind: 'value', value }, patch: {} }, label: `Add a Designer card for ${name}` };
+}
+
+/** Remove a value card: its rooms use Default again. */
+export function removeCardEdit(doc: DesignDocumentV2, target: CardTarget): DesignerEdit {
+  if (target.group.kind !== 'value' || storedLook(doc, target) === undefined) return UNCHANGED;
+  return { kind: 'command', command: { type: 'remove-style-group', by: target.by, value: target.group.value }, label: `Remove the Designer card for ${target.name}` };
 }
 
 /** Result of turning a Designer interaction into a command. */
@@ -175,109 +324,93 @@ export function parseWindowPercent(text: string): { ok: true; fraction: number }
   return { ok: true, fraction: roundFraction(percent / 100) };
 }
 
-function current(doc: DesignDocumentV2, typeId: string): Look {
-  return storedCard(doc, typeId) ?? {};
-}
+const current = (doc: DesignDocumentV2, t: CardTarget): Look => storedLook(doc, t) ?? {};
 
-/** Set this design's window coverage (fraction 0–1, exterior walls only) for every room of `typeId`. */
-export function setWindowFractionEdit(
-  doc: DesignDocumentV2,
-  typeId: string,
-  fraction: number,
-  projectDefault: number,
-): DesignerEdit {
+/**
+ * Set a card's window coverage (fraction 0–1, exterior walls only). `inherited` is the toolkit
+ * value the card falls back to when neither it nor Default sets one.
+ */
+export function setWindowFractionEdit(doc: DesignDocumentV2, card: string | CardTarget, fraction: number, inherited: number): DesignerEdit {
+  const t = targetOf(card);
   const checked = windowFractionSchema.safeParse(fraction);
   if (!checked.success) return { kind: 'invalid', message: 'Window coverage must be a number between 0 and 1 (0–100 %).' };
   const value = roundFraction(fraction);
-  const stored = current(doc, typeId).windowFraction;
-  // Unchanged: the same override, or no override and the value equals the inherited default.
-  if (stored !== undefined ? stored === value : value === roundFraction(projectDefault)) return UNCHANGED;
-  return {
-    kind: 'command',
-    command: lookCommand(typeId, { windowFraction: value }),
-    label: `Set ${typeId} window coverage to ${formatPercent(value)} %`,
-  };
+  const stored = current(doc, t).windowFraction;
+  // Unchanged: the same stored value, or nothing stored and the value equals what is inherited.
+  if (stored !== undefined ? stored === value : value === roundFraction(effectiveFor(doc, t, inherited).windowFraction)) return UNCHANGED;
+  return { kind: 'command', command: lookCommand(t, { windowFraction: value }), label: `Set ${t.name} window coverage to ${formatPercent(value)} %` };
 }
 
-/** Set this design's roof for `typeId` (applies to exposed upward faces only; Building draws it). */
-export function setRoofEdit(doc: DesignDocumentV2, typeId: string, roof: string): DesignerEdit {
+/** Set a card's roof (applies to exposed upward faces only; Building draws it). */
+export function setRoofEdit(doc: DesignDocumentV2, card: string | CardTarget, roof: string): DesignerEdit {
+  const t = targetOf(card);
   if (!(ROOF_STYLES as readonly string[]).includes(roof)) {
     return { kind: 'invalid', message: `Roof must be one of: ${ROOF_STYLES.join(', ')}.` };
   }
-  const stored = current(doc, typeId).roof;
-  const effective = effectiveOf(doc, typeId).roof;
-  if (stored !== undefined ? stored === roof : effective === roof) return UNCHANGED;
-  return {
-    kind: 'command',
-    command: lookCommand(typeId, { roof: roof as RoofStyle }),
-    label: `Set ${typeId} roof to ${roof}`,
-  };
+  const stored = current(doc, t).roof;
+  if (stored !== undefined ? stored === roof : effectiveFor(doc, t).roof === roof) return UNCHANGED;
+  return { kind: 'command', command: lookCommand(t, { roof: roof as RoofStyle }), label: `Set ${t.name} roof to ${roof}` };
 }
 
-/** Set this design's window placement (Repeat or Stretch) for every room of `typeId`. */
-export function setWindowLayoutEdit(doc: DesignDocumentV2, typeId: string, layout: string): DesignerEdit {
+/** Set a card's window placement (Repeat or Stretch). */
+export function setWindowLayoutEdit(doc: DesignDocumentV2, card: string | CardTarget, layout: string): DesignerEdit {
+  const t = targetOf(card);
   if (!(WINDOW_LAYOUTS as readonly string[]).includes(layout)) {
     return { kind: 'invalid', message: `Window layout must be one of: ${WINDOW_LAYOUTS.join(', ')}.` };
   }
-  const stored = current(doc, typeId).windowLayout;
-  const effective = effectiveOf(doc, typeId).windowLayout;
-  if (stored !== undefined ? stored === layout : effective === layout) return UNCHANGED;
+  const stored = current(doc, t).windowLayout;
+  if (stored !== undefined ? stored === layout : effectiveFor(doc, t).windowLayout === layout) return UNCHANGED;
   return {
     kind: 'command',
-    command: lookCommand(typeId, { windowLayout: layout as WindowLayout }),
-    label: `Set ${typeId} windows to ${WINDOW_LAYOUT_LABELS[layout as WindowLayout]}`,
+    command: lookCommand(t, { windowLayout: layout as WindowLayout }),
+    label: `Set ${t.name} windows to ${WINDOW_LAYOUT_LABELS[layout as WindowLayout]}`,
   };
 }
 
-/** Set whether the rooms of `typeId` have exterior walls (Enclosed) or not (Open). */
-export function setWallsEdit(doc: DesignDocumentV2, typeId: string, walls: string): DesignerEdit {
+/** Set whether a card's rooms have exterior walls (Enclosed) or not (Open). */
+export function setWallsEdit(doc: DesignDocumentV2, card: string | CardTarget, walls: string): DesignerEdit {
+  const t = targetOf(card);
   if (!(WALL_STYLES as readonly string[]).includes(walls)) {
     return { kind: 'invalid', message: `Walls must be one of: ${WALL_STYLES.join(', ')}.` };
   }
-  const stored = current(doc, typeId).walls;
-  const effective = effectiveOf(doc, typeId).walls;
-  if (stored !== undefined ? stored === walls : effective === walls) return UNCHANGED;
-  return {
-    kind: 'command',
-    command: lookCommand(typeId, { walls: walls as WallStyle }),
-    label: `Set ${typeId} walls to ${WALL_LABELS[walls as WallStyle]}`,
-  };
+  const stored = current(doc, t).walls;
+  if (stored !== undefined ? stored === walls : effectiveFor(doc, t).walls === walls) return UNCHANGED;
+  return { kind: 'command', command: lookCommand(t, { walls: walls as WallStyle }), label: `Set ${t.name} walls to ${WALL_LABELS[walls as WallStyle]}` };
 }
 
-/** Remove this design's overrides for `typeId` (one field or all), restoring project defaults. */
+/**
+ * Clear what a card sets (one field or all): its rooms inherit again. With a plain type id (the
+ * older per-function call), clearing everything removes the function's card; a card target keeps
+ * the card (use `removeCardEdit`); Default is just emptied.
+ */
 export function resetTypeEdit(
   doc: DesignDocumentV2,
-  typeId: string,
+  card: string | CardTarget,
   field: 'windowFraction' | 'windowLayout' | 'walls' | 'roof' | 'facade' | 'all' = 'all',
 ): DesignerEdit {
-  const own = current(doc, typeId);
+  const t = targetOf(card);
+  const own = current(doc, t);
   const clearWindow = (field === 'all' || field === 'windowFraction') && own.windowFraction !== undefined;
   const clearLayout = (field === 'all' || field === 'windowLayout') && own.windowLayout !== undefined;
   const clearWalls = (field === 'all' || field === 'walls') && own.walls !== undefined;
   const clearRoof = (field === 'all' || field === 'roof') && own.roof !== undefined;
   const clearFacade = (field === 'all' || field === 'facade') && own.facade !== undefined;
-  const label = `Reset ${typeId} appearance to project default`;
-  const card = storedCard(doc, typeId);
-  // Nothing of the card would be left: remove the card (its rooms use Default again).
+  const label = t.group.kind === 'default' ? 'Reset Default' : `Reset ${t.name} appearance`;
   const keeps = (key: keyof Look, cleared: boolean) => own[key] !== undefined && !cleared;
-  if (card !== undefined && !keeps('windowFraction', clearWindow) && !keeps('windowLayout', clearLayout) && !keeps('walls', clearWalls) && !keeps('roof', clearRoof) && !keeps('facade', clearFacade)) {
-    return { kind: 'command', command: { type: 'remove-style-group', by: FUNCTION, value: typeId }, label };
+  const nothingLeft = !keeps('windowFraction', clearWindow) && !keeps('windowLayout', clearLayout) && !keeps('walls', clearWalls) && !keeps('roof', clearRoof) && !keeps('facade', clearFacade);
+  if (typeof card === 'string' && t.group.kind === 'value' && storedLook(doc, t) !== undefined && nothingLeft) {
+    return { kind: 'command', command: { type: 'remove-style-group', by: t.by, value: t.group.value }, label };
   }
   if (!clearWindow && !clearLayout && !clearWalls && !clearRoof && !clearFacade) return UNCHANGED;
   return {
     kind: 'command',
-    command: {
-      type: 'set-look',
-      by: FUNCTION,
-      group: functionCard(typeId),
-      patch: {
-        ...(clearWindow ? { windowFraction: null } : {}),
-        ...(clearLayout ? { windowLayout: null } : {}),
-        ...(clearWalls ? { walls: null } : {}),
-        ...(clearRoof ? { roof: null } : {}),
-        ...(clearFacade ? { facade: null } : {}),
-      },
-    },
+    command: lookCommand(t, {
+      ...(clearWindow ? { windowFraction: null } : {}),
+      ...(clearLayout ? { windowLayout: null } : {}),
+      ...(clearWalls ? { walls: null } : {}),
+      ...(clearRoof ? { roof: null } : {}),
+      ...(clearFacade ? { facade: null } : {}),
+    }),
     label,
   };
 }
@@ -285,28 +418,29 @@ export function resetTypeEdit(
 // ---------------------------------------------------------------------------------------------
 // Imported façades (3DM modules, 2026-11-17)
 
-/** A function's façade in the Designer: none, or an imported module (no design-wide default). */
+/** A card's façade in the Designer: none, or an imported module. */
 export type FacadeChoice = { readonly kind: 'none' } | { readonly kind: 'module'; readonly module: FacadeModule };
 
-/** The stored choice of `typeId` (what the menu shows). */
-export function facadeChoiceOf(doc: DesignDocumentV2, typeId: string): FacadeChoice {
-  const own = current(doc, typeId).facade;
-  return own === undefined ? { kind: 'none' } : { kind: 'module', module: own };
+/** The stored choice of a card (what the menu shows). */
+export function facadeChoiceOf(doc: DesignDocumentV2, card: string | CardTarget): FacadeChoice {
+  const own = current(doc, targetOf(card)).facade;
+  return own === undefined || own === 'none' ? { kind: 'none' } : { kind: 'module', module: own };
 }
 
 const sameModule = sameFacadeModule;
 
-/** Set (or clear, `none`) the façade of `typeId`. */
-export function setFacadeEdit(doc: DesignDocumentV2, typeId: string, choice: FacadeChoice, assetName?: string): DesignerEdit {
-  const stored = facadeChoiceOf(doc, typeId);
+/** Set (or clear, `none`) the façade of a card. */
+export function setFacadeEdit(doc: DesignDocumentV2, card: string | CardTarget, choice: FacadeChoice, assetName?: string): DesignerEdit {
+  const t = targetOf(card);
+  const stored = facadeChoiceOf(doc, t);
   if (choice.kind === stored.kind && (choice.kind !== 'module' || (stored.kind === 'module' && sameModule(choice.module, stored.module)))) return UNCHANGED;
-  const patch = choice.kind === 'none' ? null : canonicalFacadeModule(choice.module);
+  const patch = choice.kind === 'none' ? (inheritedFor(doc, t).facade ? ('none' as const) : null) : canonicalFacadeModule(choice.module);
   const what = choice.kind === 'none' ? 'no imported façade' : `${assetName ?? 'an imported façade'} (${FACADE_PLACEMENT_LABELS[choice.module.placement]})`;
-  return { kind: 'command', command: lookCommand(typeId, { facade: patch }), label: `Set ${typeId} to ${what}` };
+  return { kind: 'command', command: lookCommand(t, { facade: patch }), label: `Set ${t.name} to ${what}` };
 }
 
 /**
- * Façade geometry of a function (owner 2026-11-17), one control over two stored fields:
+ * Façade geometry of a card (owner 2026-11-17), one control over two stored fields:
  * - `open`: no exterior walls (`walls: 'open'`);
  * - `automatic`: enclosed walls with the Designer's windows (no imported façade);
  * - `import`: enclosed walls replaced by an imported 3DM module (`facade`).
@@ -320,29 +454,34 @@ export const FACADE_MODE_HELP: Readonly<Record<FacadeMode, string>> = {
   import: 'Exterior walls replaced by a façade module imported from Rhino (.3dm)',
 };
 
-/** The stored mode of `typeId`. */
-export function facadeModeOf(doc: DesignDocumentV2, typeId: string): FacadeMode {
-  const effective = effectiveOf(doc, typeId);
+/** The effective mode of a card. */
+export function facadeModeOf(doc: DesignDocumentV2, card: string | CardTarget): FacadeMode {
+  const effective = effectiveFor(doc, targetOf(card));
   if (effective.walls === 'open') return 'open';
   return effective.facade ? 'import' : 'automatic';
 }
 
 /**
  * Switch the façade geometry in ONE command (one undo step). `import` needs the module to use
- * (`module`); leaving `import` removes the function's module, so no hidden choice is kept.
+ * (`module`). The card stores only what differs from what it inherits (Default): Automatic under
+ * an Open Default stores `walls: 'enclosed'`, and under an imported Default `facade: 'none'`.
  */
-export function setFacadeModeEdit(doc: DesignDocumentV2, typeId: string, mode: FacadeMode, module?: FacadeModule, assetName?: string): DesignerEdit {
-  const own = current(doc, typeId);
+export function setFacadeModeEdit(doc: DesignDocumentV2, card: string | CardTarget, mode: FacadeMode, module?: FacadeModule, assetName?: string): DesignerEdit {
+  const t = targetOf(card);
   if (mode === 'import' && !module) return { kind: 'invalid', message: 'Choose or import a façade first.' };
-  const walls: WallStyle | null = mode === 'open' ? 'open' : null;
-  const facade = mode === 'import' ? canonicalFacadeModule(module!) : null;
-  const sameWalls = (own.walls ?? null) === walls || (walls === null && own.walls === 'enclosed');
-  if (sameWalls && sameModule(own.facade ?? null, facade)) return UNCHANGED;
+  const inherited = inheritedFor(doc, t);
+  const own = current(doc, t);
+  const wantWalls: WallStyle = mode === 'open' ? 'open' : 'enclosed';
+  const walls: WallStyle | null = inherited.walls === wantWalls ? null : wantWalls;
+  const facade: FacadeModule | 'none' | null = mode === 'import' ? canonicalFacadeModule(module!) : inherited.facade ? 'none' : null;
+  const ownFacade = own.facade ?? null;
+  const sameFacade =
+    facade === null || facade === 'none' ? ownFacade === facade : ownFacade !== null && ownFacade !== 'none' && sameModule(ownFacade, facade);
+  if ((own.walls ?? null) === walls && sameFacade) return UNCHANGED;
   const label =
-    mode === 'import' ? `Set ${typeId} façade to ${assetName ?? 'an imported façade'}` : mode === 'open' ? `Set ${typeId} to open sides` : `Set ${typeId} to automatic façade`;
-  return { kind: 'command', command: lookCommand(typeId, { walls, facade }), label };
+    mode === 'import' ? `Set ${t.name} façade to ${assetName ?? 'an imported façade'}` : mode === 'open' ? `Set ${t.name} to open sides` : `Set ${t.name} to automatic façade`;
+  return { kind: 'command', command: lookCommand(t, { walls, facade }), label };
 }
-
 
 export const FACADE_PLACEMENT_LABELS: Readonly<Record<FacadePlacement, string>> = {
   repeat: 'Repeat',
@@ -355,8 +494,8 @@ export const FACADE_PLACEMENT_HELP: Readonly<Record<FacadePlacement, string>> = 
 };
 
 /** One sentence for a function's fit warning, or null (≤ 5 % scaling everywhere). */
-export function distortionMessage(instances: readonly FacadeModuleInstance[], typeId: string): string | null {
-  const d = distortedModules(instances, typeId);
+export function distortionMessage(instances: readonly FacadeModuleInstance[], owner: string | ReadonlySet<string>): string | null {
+  const d = distortedModules(instances, owner);
   if (!d) return null;
   const range = (lo: number, hi: number) => (Math.abs(hi - lo) < 0.005 ? `×${lo.toFixed(2)}` : `×${lo.toFixed(2)}–${hi.toFixed(2)}`);
   const parts = [

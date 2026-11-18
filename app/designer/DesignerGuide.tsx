@@ -14,8 +14,9 @@ export function DesignerGuideContent({ titleId, descriptionId }: { readonly titl
         Building Designer
       </h2>
       <p id={descriptionId} className="sgl-concept-lead">
-        Rules for how the rooms of each function are built in this scenario. Every room of a function follows them; there are no
-        settings for single rooms.
+        How the rooms are built in this scenario. Choose what the rooms are styled by (their Function), then give each card a look.
+        Default is the look of every room without a card of its own; add a card for a function to give its rooms their own look. There
+        are no settings for single rooms.
       </p>
 
       <section className="sgl-designer-guide-step">
@@ -67,8 +68,9 @@ export function DesignerGuideContent({ titleId, descriptionId }: { readonly titl
       <section className="sgl-designer-guide-step sgl-designer-guide-note">
         <h3>Defaults and reset</h3>
         <p>
-          Each function starts from its project default. A change applies to this scenario only and is one undo step.
-          “Reset to project default” removes your changes for that function.
+          A card only changes what you set on it; everything else comes from Default, and Default starts from the project’s defaults.
+          A change applies to this scenario only and is one undo step. “Clear this card” removes what the card sets; “Remove card” sends its
+          rooms back to Default; “Reset Default” empties Default. The eye button lights up a card’s rooms in the Building and the Plan.
         </p>
       </section>
     </div>

@@ -316,12 +316,15 @@ describe('DesignerPanel (static render)', () => {
   it('each function card has a Repeat | Stretch layout choice, and the guide opens from "How it works"', () => {
     const doc = labDocV2({ studio: { windowLayout: 'stretch' } });
     const html = renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(doc) }));
-    expect(html).toMatch(/role="radiogroup" aria-labelledby="sgl-designer-gallery-layout"/);
+    expect(html).toMatch(/role="radiogroup" aria-labelledby="sgl-designer--default-layout"/);
     const studioStretch = html.match(/<input[^>]*name="sgl-designer-studio-layout"[^>]*value="stretch"[^>]*>/)?.[0] ?? '';
-    const galleryStretch = html.match(/<input[^>]*name="sgl-designer-gallery-layout"[^>]*value="stretch"[^>]*>/)?.[0] ?? '';
+    const defaultStretch = html.match(/<input[^>]*name="sgl-designer--default-layout"[^>]*value="stretch"[^>]*>/)?.[0] ?? '';
     expect(studioStretch).toContain('checked');
-    expect(galleryStretch).not.toBe('');
-    expect(galleryStretch).not.toContain('checked');
+    expect(defaultStretch).not.toBe('');
+    expect(defaultStretch).not.toContain('checked');
+    // Gallery has no card of its own: it is offered in "+ Style another function".
+    expect(html).not.toContain('name="sgl-designer-gallery-layout"');
+    expect(html).toMatch(/<option value="gallery">gallery · 2 rooms<\/option>/);
     expect(html).toMatch(/aria-haspopup="dialog"[^>]*>How it works<\/button>/);
     expect(html).not.toContain('data-help-topic="designer-windows"');
   });
@@ -330,7 +333,7 @@ describe('DesignerPanel (static render)', () => {
     const doc = labDocV2({ studio: { windowLayout: 'stretch', windowFraction: 0.4 } });
     const html = renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(doc) }));
     const heads = html.match(/<button type="button" class="sgl-designer-type-head"[^>]*>/g) ?? [];
-    expect(heads.length).toBeGreaterThanOrEqual(3);
+    expect(heads.length).toBe(2); // Default + the studio card
     for (const head of heads) expect(head).toContain('aria-expanded="false"');
     expect(html).toMatch(/id="sgl-designer-studio-body" class="sgl-designer-type-body" hidden=""/);
     expect(html).toMatch(/40 % · Stretch · Flat roof · 1 room · changed/);
@@ -354,21 +357,24 @@ describe('DesignerPanel (static render)', () => {
     const project = await labToolkit();
     const v1Placeholder = { schemaVersion: 1 as const, metadata: { name: 'x' }, nodes: [], edges: [], diagram: { positions: {} } };
     const context = buildProjectViewContext(project, v1Placeholder);
-    const doc = labDocV2({ gallery: { windowFraction: 0.35 } });
+    const doc = labDocV2({ gallery: { windowFraction: 0.35 }, kiosk: {} });
     const html = renderToStaticMarkup(
       createElement(DesignerPanel, { design: fakePort(doc), project: context, selection: selectEdge('e2'), onShowRelationship: () => {} }),
     );
+    expect(html).toMatch(/<label for="sgl-designer-style-by"[^>]*>Style rooms by<\/label>/);
     expect(html).toMatch(/Gallery \(gallery\)/);
-    expect(html).toMatch(/Studio \(studio\)/);
-    expect(html).toMatch(/kiosk/);
+    // Studio has no card: offered in the add menu with its room count.
+    expect(html).toMatch(/<option value="studio">Studio \(studio\) · 1 room<\/option>/);
     expect(html).toMatch(/does not define &quot;kiosk&quot;/);
     expect(html).toMatch(/exterior walls/);
     expect(html).toMatch(/value="35"/);
-    expect(html).toContain("Changed from the project default (60 %)"); // phase 08 (O06) wording
-    expect(html).toMatch(/Reset to project default/);
+    expect(html).toContain('Set here (otherwise project default, 60 %)');
+    expect(html).toMatch(/Reset Default/);
+    expect(html).toMatch(/Clear this card/);
+    expect((html.match(/>Remove card</g) ?? []).length).toBe(2); // gallery and kiosk; Default cannot be removed
+    // No highlight button without a view that can show it (no provider).
+    expect(html).not.toContain('sgl-designer-highlight');
     expect(html).toMatch(/None \(open top\)/);
-    // No Defaults section (owner 2026-11-17): only Function-Specific.
-    expect(html).not.toContain('data-section="designer-defaults"');
     expect(html).not.toMatch(/Edit in Properties/);
     // Without a façade library there is no 3DM import.
     expect(html).not.toMatch(/Import \.3dm/);

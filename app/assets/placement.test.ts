@@ -119,10 +119,10 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
     expect(facadeAssetIdsOf(design(functionStyleSettings({ gallery: { facade: repeat(A2) }, studio: { facade: repeat(A1) } })))).toEqual([A1, A2].sort());
   });
 
-  it('a design-wide default and "none" are not part of the format (refused)', () => {
+  it('a design-wide facadeDefault is not part of the format; a card may say "none" (opt out of Default, 2026-11-18)', () => {
     const base = { schemaVersion: 2, metadata: { name: 'x' }, nodes: [], edges: [] };
     expect(validateDocumentV2({ ...base, settings: { styleBy: 'function', styles: {}, facadeDefault: repeat() } }).ok).toBe(false);
-    expect(validateDocumentV2({ ...base, settings: { styleBy: 'function', styles: { function: { groups: [{ value: 'gallery', look: { facade: 'none' } }] } } } }).ok).toBe(false);
+    expect(validateDocumentV2({ ...base, settings: { styleBy: 'function', styles: { function: { groups: [{ value: 'gallery', look: { facade: 'none' } }] } } } }).ok).toBe(true);
   });
 
   it('open-sided functions (no exterior walls) never get a module', () => {
@@ -290,7 +290,7 @@ describe('door / open bay variants (optional per function)', () => {
   });
 
   it('the format accepts door / open variants and refuses unknown fields or a placement on a variant', () => {
-    expect(functionLooks(design(functionStyleSettings({ gallery: { facade: { ...repeat(), door: { assetId: A2, flip: true }, open: { assetId: A1 } } } })).settings).gallery?.facade?.door).toEqual({ assetId: A2, flip: true });
+    expect((functionLooks(design(functionStyleSettings({ gallery: { facade: { ...repeat(), door: { assetId: A2, flip: true }, open: { assetId: A1 } } } })).settings).gallery?.facade as FacadeModule | undefined)?.door).toEqual({ assetId: A2, flip: true });
     const refused = (variant: unknown) =>
       validateDocumentV2({ schemaVersion: 2, metadata: { name: 'x' }, nodes: [], edges: [], settings: { styleBy: 'function', styles: { function: { groups: [{ value: 'gallery', look: { facade: { ...repeat(), door: variant } } }] } } } }).ok;
     expect(refused({ assetId: A2, placement: 'repeat' })).toBe(false);

@@ -53,6 +53,11 @@
   fill: var(--sgl-plan-selection);
   fill-opacity: 0.1;
 }
+/* Lit by a Designer card's highlight button: a tint only (no outline, which is in metres here). */
+.sgl-plan-room.highlighted {
+  fill: var(--sgl-plan-selection);
+  fill-opacity: 0.28;
+}
 .sgl-plan-room.selected,
 .sgl-plan-room:focus-visible {
   fill: var(--sgl-plan-selection);

@@ -18,6 +18,7 @@ import { useFacadeLibrary } from '../three/facadeLibrary';
 import { FacadeModules } from './FacadeModules';
 import { brokenTypeIds, projectFacadeProvider } from '../project';
 import { useRemembered } from '../panelMemory';
+import { useRoomHighlight } from '../roomHighlight';
 import { useViewportCamera } from '../viewportCamera';
 import { buildEdgeItems, framingFor } from '../three/sceneModel';
 import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
@@ -313,6 +314,8 @@ function Scene({
   readonly onWallClick: (faceId: string) => void;
 }) {
   const display = useViewDisplay();
+  // Rooms lit up by the Designer's highlight button (never part of the selection).
+  const lit = useRoomHighlight()?.nodeIds;
   // One shared unit box, scaled per element: no per-element geometry allocation.
   const unitBox = useMemo(() => new BoxGeometry(1, 1, 1), []);
   useEffect(() => () => unitBox.dispose(), [unitBox]);
@@ -327,7 +330,7 @@ function Scene({
           color={elementColor(e, display)}
           kind={e.part === 'glazing' ? 'glass' : e.part === 'threshold' ? 'hidden' : 'solid'}
           geometry={unitBox}
-          highlighted={isElementHighlighted(e, selection)}
+          highlighted={isElementHighlighted(e, selection) || (lit?.has(e.ownerNodeId) ?? false)}
           pick={pick}
           setHovered={setHovered}
           {...(eligibleWalls.has(e.faceId) && {

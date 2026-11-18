@@ -10,7 +10,7 @@ const canonicalLook = (a: Look): Look => ({
   ...(a.windowLayout === undefined ? {} : { windowLayout: a.windowLayout }),
   ...(a.walls === undefined ? {} : { walls: a.walls }),
   ...(a.roof === undefined ? {} : { roof: a.roof }),
-  ...(a.facade === undefined ? {} : { facade: canonicalFacadeModule(a.facade) }),
+  ...(a.facade === undefined ? {} : { facade: a.facade === 'none' ? ('none' as const) : canonicalFacadeModule(a.facade) }),
 });
 import { validateDocumentV2, type ValidationOptionsV2 } from './validate';
 

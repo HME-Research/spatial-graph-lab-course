@@ -215,7 +215,7 @@ describe('project store: the façade library', () => {
     expect(removed.revision).toBeGreaterThan(used.revision);
     // Undo in the scenario brings the setting back (the façade itself stays removed: drawn as missing).
     const undone = undoActive(removed);
-    expect(functionLooks(activeDesign(undone).settings).gallery?.facade?.assetId).toBe(a.id);
+    expect(JSON.stringify(functionLooks(activeDesign(undone).settings).gallery?.facade)).toContain(a.id);
     expect(undone.meta.assets).toEqual({ policy: 'none' });
   });
 });

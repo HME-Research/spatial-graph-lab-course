@@ -1,5 +1,6 @@
 import { CollapsibleSection, useRememberedOpen } from '@app/ui';
 import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { sameRooms, useRoomHighlight, useSetRoomHighlight } from '@app/views/roomHighlight';
 import { buildingFacesV2, exampleFacadeProvider } from '@app/building';
 import { designUsesFacadeModules, facadeAssetIdsOf, layoutFacadeModules, type FacadeAssetV1 } from '@app/assets';
 import { FACADE_VARIANTS, ROOF_STYLES, WINDOW_LAYOUTS, type FacadeModule, type FacadeVariant, type FacadeVariantKind } from '@app/document/v2';
@@ -8,7 +9,10 @@ import type { ProjectViewContext } from '@app/views/project';
 import { typeColor } from '@core/viewer/appearance';
 import type { Selection } from '@core/viewer/selection';
 import {
-  designerTypeRows,
+  addCardEdit,
+  designerCards,
+  removeCardEdit,
+  STYLE_BY_LABELS,
   distortionMessage,
   FACADE_PLACEMENT_LABELS,
   formatPercent,
@@ -25,7 +29,7 @@ import {
   setWindowLayoutEdit,
   WINDOW_LAYOUT_LABELS,
   type DesignerEdit,
-  type DesignerTypeRow,
+  type DesignerCardRow,
 } from './designerModel';
 import { DesignerGuideButton } from './DesignerGuide';
 import { FacadeAssetDetails, FacadeImport, FacadeLibraryFooter, PlacementControl, type DesignerFacades } from './FacadeLibraryPanel';
@@ -56,12 +60,15 @@ export interface DesignerPanelProps {
 const NO_ASSETS: readonly FacadeAssetV1[] = [];
 
 
+/** Highlight keys the Designer owns (other features may light rooms with their own keys). */
+const HIGHLIGHT_PREFIX = 'designer:';
+
 export function DesignerPanel({ design, project, facades }: DesignerPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const doc = design?.doc;
   const activeProject = project?.project ?? null;
   const facade = project?.facade ?? exampleFacadeProvider;
-  const rows = useMemo(() => (doc ? designerTypeRows(doc, activeProject, facade) : []), [doc, activeProject, facade]);
+  const cards = useMemo(() => (doc ? designerCards(doc, activeProject, facade) : null), [doc, activeProject, facade]);
   const assets = facades?.assets ?? NO_ASSETS;
   const assetById = useMemo(() => new Map(assets.map((a) => [a.id, a] as const)), [assets]);
   // Where the modules land (for fit warnings): only computed when the design uses imported façades.
@@ -77,7 +84,22 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
   }, [doc, spatial, facade, assetById]);
   const usedHere = useMemo(() => new Set(doc ? facadeAssetIdsOf(doc) : []), [doc]);
 
-  if (!design || !doc) {
+  // Highlight button: the lit card follows the design (rooms move between cards as they change);
+  // a card that no longer exists switches the highlight off.
+  const highlight = useRoomHighlight();
+  const setHighlight = useSetRoomHighlight();
+  useEffect(() => {
+    if (!highlight || !setHighlight || !cards || !highlight.key.startsWith(HIGHLIGHT_PREFIX)) return;
+    const card = [cards.defaultCard, ...cards.cards].find((c) => HIGHLIGHT_PREFIX + c.key === highlight.key);
+    if (!card) {
+      setHighlight(null);
+      return;
+    }
+    const nodeIds = new Set(card.nodeIds);
+    if (!sameRooms(nodeIds, highlight.nodeIds)) setHighlight({ key: highlight.key, nodeIds });
+  }, [cards, highlight, setHighlight]);
+
+  if (!design || !doc || !cards) {
     return (
       <div className="sgl-designer" aria-label="Designer">
         <p className="sgl-designer-notice">
@@ -97,10 +119,48 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
     setError(outcome.ok ? null : outcome.issues.map((i) => i.message).join(' '));
   };
 
+  const renderCard = (row: DesignerCardRow) => {
+    const key = HIGHLIGHT_PREFIX + row.key;
+    const lit = highlight?.key === key;
+    return (
+      <li key={row.key}>
+        <CardRow
+          row={row}
+          onWindow={(fraction) =>
+            send(setWindowFractionEdit(doc, row.target, fraction, row.typeId !== null ? facade(row.typeId).windowFraction : row.inheritedWindowFraction))
+          }
+          onInvalid={setError}
+          onLayout={(layout) => send(setWindowLayoutEdit(doc, row.target, layout))}
+          onMode={(mode) => send(setFacadeModeEdit(doc, row.target, mode))}
+          onRoof={(roof) => send(setRoofEdit(doc, row.target, roof))}
+          onReset={() => send(resetTypeEdit(doc, row.target))}
+          {...(row.removable && { onRemove: () => send(removeCardEdit(doc, row.target)) })}
+          {...(setHighlight && {
+            highlighted: lit,
+            onHighlight: () => setHighlight(lit ? null : { key, nodeIds: new Set(row.nodeIds) }),
+          })}
+          {...(facades && {
+            facade: {
+              module: row.effective.walls === 'enclosed' ? row.effective.facade : null,
+              library: facades,
+              assetById,
+              fit: distortionMessage(modules, new Set(row.nodeIds)),
+              onModule: (module) => send(setFacadeModeEdit(doc, row.target, 'import', module, assetById.get(module.assetId)?.name)),
+            },
+          })}
+        />
+      </li>
+    );
+  };
+
+  const byFunction = cards.by === 'function';
   return (
     <div className="sgl-designer" aria-label="Building Designer">
       <div className="sgl-designer-intro">
-        <p className="sgl-help">Windows and roofs per function, for this scenario. Colours and lighting are in Display.</p>
+        <p className="sgl-help">
+          Choose what the rooms are styled by, then give each card a look. Rooms without a card of their own use Default. Colours and lighting are in
+          Display.
+        </p>
         <DesignerGuideButton />
       </div>
 
@@ -110,36 +170,50 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
         </p>
       )}
 
-      <CollapsibleSection title="Function-Specific" sectionId="designer-functions" meta={String(rows.length)}>
-        {rows.length === 0 ? (
-          <p className="sgl-designer-notice">No functions yet: add a room or define a type in your project.</p>
-        ) : (
-          <ul className="sgl-designer-list">
-            {rows.map((row) => (
-              <li key={row.typeId}>
-                <TypeRow
-                  row={row}
-                  onWindow={(fraction) =>
-                    send(setWindowFractionEdit(doc, row.typeId, fraction, row.projectDefault.windowFraction))
-                  }
-                  onInvalid={setError}
-                  onLayout={(layout) => send(setWindowLayoutEdit(doc, row.typeId, layout))}
-                  onMode={(mode) => send(setFacadeModeEdit(doc, row.typeId, mode))}
-                  onRoof={(roof) => send(setRoofEdit(doc, row.typeId, roof))}
-                  onReset={() => send(resetTypeEdit(doc, row.typeId))}
-                  {...(facades && {
-                    facade: {
-                      module: row.effective.walls === 'enclosed' ? row.effective.facade : null,
-                      library: facades,
-                      assetById,
-                      fit: distortionMessage(modules, row.typeId),
-                      onModule: (module) => send(setFacadeModeEdit(doc, row.typeId, 'import', module, assetById.get(module.assetId)?.name)),
-                    },
-                  })}
-                />
-              </li>
-            ))}
-          </ul>
+      <div className="sgl-designer-field sgl-designer-styleby">
+        <label htmlFor="sgl-designer-style-by" title="The one attribute that decides each room's look">
+          Style rooms by
+        </label>
+        <select
+          id="sgl-designer-style-by"
+          value={cards.by}
+          onChange={(e) => {
+            const by = e.currentTarget.value;
+            if (by !== cards.by) send({ kind: 'command', command: { type: 'set-style-by', by }, label: `Style rooms by ${STYLE_BY_LABELS[by] ?? by}` });
+          }}
+        >
+          <option value="function">Function</option>
+          {!byFunction && <option value={cards.by}>{cards.byLabel}</option>}
+        </select>
+      </div>
+
+      <CollapsibleSection title={`Looks by ${cards.byLabel}`} sectionId="designer-functions" defaultOpen meta={String(cards.cards.length + 1)}>
+        <ul className="sgl-designer-list">
+          {renderCard(cards.defaultCard)}
+          {cards.cards.map(renderCard)}
+        </ul>
+        {byFunction && cards.cards.length === 0 && (
+          <p className="sgl-designer-notice">Every room uses Default. Add a function below to give its rooms their own look.</p>
+        )}
+        {byFunction && cards.addable.length > 0 && (
+          <div className="sgl-designer-add">
+            <select
+              aria-label="Style another function"
+              value=""
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                const option = cards.addable.find((a) => a.value === value);
+                if (option) send(addCardEdit(doc, cards.by, option.value, option.label));
+              }}
+            >
+              <option value="">+ Style another function…</option>
+              {cards.addable.map((a) => (
+                <option key={a.value} value={a.value}>
+                  {a.label} · {a.nodeCount} {a.nodeCount === 1 ? 'room' : 'rooms'}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
         {facades && <FacadeLibraryFooter facades={facades} usedHere={usedHere} />}
       </CollapsibleSection>
@@ -147,14 +221,20 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
   );
 }
 
-interface TypeRowProps {
-  readonly row: DesignerTypeRow;
+interface CardRowProps {
+  readonly row: DesignerCardRow;
   readonly onWindow: (fraction: number) => void;
   readonly onInvalid: (message: string) => void;
   readonly onLayout: (layout: string) => void;
   readonly onMode: (mode: FacadeMode) => void;
   readonly onRoof: (roof: string) => void;
+  /** Clear what the card sets. */
   readonly onReset: () => void;
+  /** Value cards only: remove the card (its rooms use Default again). */
+  readonly onRemove?: () => void;
+  /** The highlight button (absent without a view that can show it). */
+  readonly highlighted?: boolean;
+  readonly onHighlight?: () => void;
   /** Imported façade controls (absent without a project façade library). */
   readonly facade?: TypeRowFacade;
 }
@@ -345,9 +425,14 @@ function VariantField({
  * a one-line summary of its rules, a warning mark and a small façade preview; the controls stay
  * mounted while collapsed, so drafts survive.
  */
-function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, facade }: TypeRowProps) {
-  // Collapsed by default; the user's open/closed choice per function sticks (this browser).
-  const [open, toggleOpen] = useRememberedOpen(`designer-function:${row.typeId}`, false);
+function CardRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, onRemove, highlighted, onHighlight, facade }: CardRowProps) {
+  // Collapsed by default; the user's open/closed choice per card sticks (this browser).
+  const rememberBase = row.typeId !== null ? `designer-function:${row.typeId}` : `designer-card:${row.target.by}:${row.key}`;
+  const [open, toggleOpen] = useRememberedOpen(rememberBase, false);
+  const isDefault = row.target.group.kind === 'default';
+  /** The card itself sets this field (for Default: Default sets it). */
+  const setHere = (source: string) => source === (isDefault ? 'default' : 'card');
+  const nodeCount = row.nodeIds.length;
   const enclosed = row.effective.walls === 'enclosed';
   const storedMode: FacadeMode = !enclosed ? 'open' : facade && row.effective.facade ? 'import' : 'automatic';
   // Import chosen but no façade yet: shown here only (nothing is stored until one is chosen or imported).
@@ -375,12 +460,8 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
   useEffect(() => setText(effectivePercent), [effectivePercent]);
 
   const shownFraction = slider ?? row.effective.windowFraction;
-  const idBase = `sgl-designer-${row.typeId}`;
-  const inherited = row.effective.source.windowFraction !== 'card';
-  const defaultText =
-    row.projectDefault.source === 'broken'
-      ? 'invalid definition'
-      : `${formatPercent(row.projectDefault.windowFraction)} %${row.projectDefault.source === 'fallback' ? ', fallback' : ''}`;
+  const idBase = row.typeId !== null ? `sgl-designer-${row.typeId}` : `sgl-designer--${row.key.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+  const inherited = !setHere(row.effective.source.windowFraction);
 
   const commitSlider = () => {
     if (slider === null) return;
@@ -404,6 +485,7 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
 
   return (
     <article className={`sgl-designer-type${row.warning ? ' sgl-designer-type--warn' : ''}`} aria-labelledby={`${idBase}-name`}>
+      <div className="sgl-designer-type-titlebar">
       <h4 className="sgl-designer-type-title">
         <button
           type="button"
@@ -415,7 +497,11 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
           <svg className="sgl-designer-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
             <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span className="sgl-designer-swatch" style={{ background: typeColor(row.typeId) }} aria-hidden="true" />
+          <span
+            className={`sgl-designer-swatch${row.typeId === null ? ' sgl-designer-swatch--default' : ''}`}
+            style={row.typeId !== null ? { background: typeColor(row.typeId) } : undefined}
+            aria-hidden="true"
+          />
           <span className="sgl-designer-type-text">
             <span id={`${idBase}-name`} className="sgl-designer-type-name">
               {row.name}
@@ -430,7 +516,7 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
                   : `${formatPercent(shownFraction)} % · ${WINDOW_LAYOUT_LABELS[row.effective.windowLayout]}`}{' '}
               ·{' '}
               {SHORT_ROOF[row.effective.roof]} ·{' '}
-              {row.nodeCount} {row.nodeCount === 1 ? 'room' : 'rooms'}
+              {nodeCount} {nodeCount === 1 ? 'room' : 'rooms'}
               {row.hasOverride ? ' · changed' : ''}
             </span>
           </span>
@@ -442,6 +528,23 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
           <FacadePreview fraction={shownFraction} layout={row.effective.windowLayout} roof={row.effective.roof} walls={row.effective.walls} />
         </button>
       </h4>
+      {onHighlight && (
+        <button
+          type="button"
+          className="sgl-designer-highlight"
+          aria-pressed={highlighted === true}
+          aria-label={`Highlight the rooms of ${row.name}`}
+          title={nodeCount === 0 ? 'No room uses this card' : highlighted ? 'Stop highlighting these rooms' : 'Highlight these rooms in the Building and the Plan'}
+          disabled={nodeCount === 0 && !highlighted}
+          onClick={onHighlight}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M1 8s2.6-5 7-5 7 5 7 5-2.6 5-7 5-7-5-7-5Z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+            <circle cx="8" cy="8" r="2.2" fill="currentColor" />
+          </svg>
+        </button>
+      )}
+      </div>
 
       <div id={`${idBase}-body`} className="sgl-designer-type-body" hidden={!open}>
 
@@ -451,7 +554,7 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
         </p>
       )}
 
-      <Subsection idBase={idBase} name="facade" title="Façade" rememberId={`designer-function:${row.typeId}:facade`}>
+      <Subsection idBase={idBase} name="facade" title="Façade" rememberId={`${rememberBase}:facade`}>
       <div className="sgl-designer-field sgl-designer-layout sgl-designer-mode">
         <span className="sgl-designer-label" id={`${idBase}-mode`} title="How the exterior walls of this function are made">
           Geometry
@@ -499,7 +602,7 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
         </span>
       </div>
       <p className="sgl-designer-source">
-        {inherited ? `Uses the project default (${defaultText})` : `Changed from the project default (${defaultText})`}
+        {inherited ? `Uses ${row.inheritedWindowText}` : `Set here (otherwise ${row.inheritedWindowText})`}
       </p>
 
       <div className="sgl-designer-field sgl-designer-layout">
@@ -535,7 +638,7 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
       )}
       </Subsection>
 
-      <Subsection idBase={idBase} name="roof" title="Roof" rememberId={`designer-function:${row.typeId}:roof`}>
+      <Subsection idBase={idBase} name="roof" title="Roof" rememberId={`${rememberBase}:roof`}>
 
       <div className="sgl-designer-field">
         <label htmlFor={`${idBase}-roof`} title="Roof on the exposed tops of rooms of this type. Pitched roofs are not available yet.">
@@ -548,13 +651,20 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
             </option>
           ))}
         </select>
-        <span className="sgl-designer-source">{row.effective.source.roof === 'card' ? 'Changed for this design' : 'Uses the default'}</span>
+        <span className="sgl-designer-source">{setHere(row.effective.source.roof) ? 'Set here' : isDefault ? 'Built-in default' : 'Uses Default'}</span>
       </div>
       </Subsection>
 
-      <button type="button" className="sgl-designer-reset" disabled={!row.hasOverride} onClick={onReset}>
-        Reset to project default
-      </button>
+      <div className="sgl-designer-card-actions">
+        <button type="button" className="sgl-designer-reset" disabled={!row.hasOverride} onClick={onReset}>
+          {isDefault ? 'Reset Default' : 'Clear this card'}
+        </button>
+        {onRemove && (
+          <button type="button" className="sgl-designer-remove" onClick={onRemove} title="Remove the card: its rooms use Default again">
+            Remove card
+          </button>
+        )}
+      </div>
       </div>
     </article>
   );

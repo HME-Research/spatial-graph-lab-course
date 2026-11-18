@@ -62,8 +62,8 @@ export interface LookPatch {
   readonly windowLayout?: WindowLayout | null;
   readonly walls?: WallStyle | null;
   readonly roof?: RoofStyle | null;
-  /** Imported façade: a module, or `null` (inherit again). */
-  readonly facade?: FacadeModule | null;
+  /** Imported façade: a module, `'none'` (no module even when Default has one), or `null` (inherit again). */
+  readonly facade?: FacadeModule | 'none' | null;
 }
 
 export type DesignCommand =
@@ -134,7 +134,7 @@ const isEmptyLook = (look: Look): boolean => Object.keys(look).length === 0;
 
 /** Apply a patch to a look (`null` removes a field); façades are stored canonically. */
 function patchLook(current: Look, patch: LookPatch): Look {
-  const out: { windowFraction?: number; windowLayout?: WindowLayout; walls?: WallStyle; roof?: RoofStyle; facade?: FacadeModule } = {};
+  const out: { windowFraction?: number; windowLayout?: WindowLayout; walls?: WallStyle; roof?: RoofStyle; facade?: FacadeModule | 'none' } = {};
   const pick = <K extends keyof LookPatch>(key: K) => (patch[key] === undefined ? current[key] : patch[key]);
   const wf = pick('windowFraction');
   if (wf !== null && wf !== undefined) out.windowFraction = wf;
@@ -146,7 +146,7 @@ function patchLook(current: Look, patch: LookPatch): Look {
   if (roof !== null && roof !== undefined) out.roof = roof;
   const facade = pick('facade');
   // The whole module, door / open bay variants included.
-  if (facade !== null && facade !== undefined) out.facade = canonicalFacadeModule(facade);
+  if (facade !== null && facade !== undefined) out.facade = facade === 'none' ? 'none' : canonicalFacadeModule(facade);
   return out;
 }
 

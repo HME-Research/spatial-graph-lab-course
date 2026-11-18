@@ -652,3 +652,74 @@
   min-width: 0;
   text-overflow: ellipsis;
 }
+
+/* "Style rooms by" (owner 2026-11-18): the attribute selector, Default card, add menu, card actions. */
+.sgl-designer-styleby {
+  margin-bottom: 8px;
+}
+.sgl-designer-styleby select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Card header: the toggle fills the row; the highlight button sits beside it (not inside it). */
+.sgl-designer-type-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sgl-designer-type-titlebar .sgl-designer-type-title {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Default has no function colour: a neutral, hatched swatch. */
+.sgl-designer-swatch--default {
+  border: 1px solid var(--line-strong, #c9c9c2);
+  background: repeating-linear-gradient(45deg, var(--surface-muted, #f7f7f5) 0 2px, var(--line-strong, #c9c9c2) 2px 3px);
+}
+
+.sgl-designer-highlight {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted, #62625c);
+  cursor: pointer;
+}
+.sgl-designer-highlight:hover:not(:disabled) {
+  border-color: var(--line, #e1e1dc);
+  background: var(--surface-hover, #efefec);
+  color: var(--fg, #1f1f1d);
+}
+.sgl-designer-highlight[aria-pressed='true'] {
+  border-color: var(--accent-line, #b9cbe0);
+  background: var(--accent-soft, #edf2f8);
+  color: var(--accent, #2c5d8f);
+}
+.sgl-designer-highlight:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sgl-designer-add {
+  margin-top: 8px;
+}
+.sgl-designer-add select {
+  width: 100%;
+}
+
+.sgl-designer-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sgl-designer-remove {
+  font-size: var(--text-sm, 13px);
+}

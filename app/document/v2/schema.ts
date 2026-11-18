@@ -120,8 +120,11 @@ export const lookSchema = z.strictObject({
   windowLayout: windowLayoutSchema.optional(),
   walls: wallStyleSchema.optional(),
   roof: roofStyleSchema.optional(),
-  /** Imported façade module. Absent = inherit (none unless Default sets one). */
-  facade: facadeModuleSchema.optional(),
+  /**
+   * Imported façade module, or `'none'`: no module even when Default has one (a card only; owner
+   * 2026-11-18). Absent = inherit (none unless Default sets one).
+   */
+  facade: z.union([facadeModuleSchema, z.literal('none')]).optional(),
 });
 
 /**
