@@ -1,3 +1,4 @@
+import { functionStyleSettings, type Look } from '@app/document/v2';
 import { describe, expect, it } from 'vitest';
 import exampleJson from '../document/examples/two-storey-example.json';
 import { validateDocument } from '@app/document';
@@ -38,7 +39,7 @@ function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown>
         kind: e.kind ?? 'access',
         ...(e.connectorStyle ? { connectorStyle: e.connectorStyle } : {}),
       })),
-      settings: { typeAppearance },
+      settings: functionStyleSettings(typeAppearance as Record<string, Look>),
     }),
   );
 }
@@ -50,11 +51,11 @@ const FIXTURES: Readonly<Record<string, DesignDocumentV2>> = {
   'two-storey-example': example,
   'two-storey-example-roofs-off': {
     ...example,
-    settings: { typeAppearance: Object.fromEntries(exampleTypes.map((t) => [t, { roof: 'none' as const }])) },
+    settings: functionStyleSettings(Object.fromEntries(exampleTypes.map((t) => [t, { roof: 'none' as const }]))),
   },
   'two-storey-example-appearance': {
     ...example,
-    settings: { typeAppearance: { gallery: { windowFraction: 1 }, studio: { windowFraction: 0, roof: 'none' as const } } },
+    settings: functionStyleSettings({ gallery: { windowFraction: 1 }, studio: { windowFraction: 0, roof: 'none' as const } }),
   },
   'multi-cell-rooms': v2(
     [

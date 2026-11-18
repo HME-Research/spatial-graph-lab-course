@@ -19,7 +19,7 @@ Shared interfaces for the seven parallel MVP branches (`01-graph-ui` … `07-tea
   "nodes": [{ "id": "a", "displayId": "01", "grid": [0,0,0], "size": [2,3,1], "typeId": "gallery", "attributes": {} }],
   "edges": [{ "id": "ab", "source": "a", "target": "b", "kind": "access", "connectorStyle": "covered", "attributes": {} }],
   "diagram": { "positions": { "a": [0, 0] } },
-  "settings": { "typeAppearance": { "gallery": { "windowFraction": 0.3, "roof": "flat" } } }
+  "settings": { "styleBy": "function", "styles": { "function": { "default": { "windowFraction": 0.3 }, "groups": [{ "value": "gallery", "look": { "roof": "pergola" } }] } } }
 }
 ```
 
@@ -31,10 +31,10 @@ Shared interfaces for the seven parallel MVP branches (`01-graph-ui` … `07-tea
 | `size` | `[sx,sy,sz]` integers 1…`MAX_ROOM_SIZE` (32); default `[1,1,1]` (filled on read, always written). Room = every cell `grid + [0..sx-1, 0..sy-1, 0..sz-1]`. |
 | `kind` | `RelationshipKind = 'access' \| 'open'`; `DEFAULT_RELATIONSHIP_KIND = 'access'`. **No adjacency requirement.** |
 | `connectorStyle` | Optional `'enclosed' \| 'covered' \| 'deck'`; read with `connectorStyleOf(edge)` (default `deck` since 2026-11-17; was `enclosed`). Used only when the edge is routed. |
-| `settings.typeAppearance[typeId]` | Per-design, per-type overrides `{ windowFraction?: [0,1], windowLayout?: 'repeat' | 'stretch', walls?: 'enclosed' | 'open', roof?: 'flat' | 'pergola' | 'none' }` (`walls: 'open'` and `roof: 'pergola'` additive 2026-11-17: open leaves out the room's exterior walls and windows, keeping walls shared with other rooms, with slim posts at bay edges under a roof; pergola is a roof of open slats)| 'stretch', roof?: 'flat' | 'none' }` (`windowLayout` additive 2026-11-17; absent = `repeat`, one window per bay; `stretch` = one window per façade, i.e. per room side over all its bays and storeys, inset from the façade outline by an even frame, same glazed share). No per-node overrides.\| 'none' }`. No per-node overrides. Unknown types are tolerated (no validation error). |
-| `settings.typeAppearance[typeId].facade` | Optional imported façade (additive 2026-11-17): `{ assetId, placement: 'repeat' \| 'stretch', flip?: true, door?: { assetId, flip?: true }, open?: { assetId, flip?: true } }`; `flip` turns the module round (its +Y side outside). `door` / `open` (optional, each independent) replace the façade bays with a door / an Open relationship on the outside of the room (the `outside` endpoint faces of open-air connectors), one module per bay; without them those bays keep the automatic geometry. Interior doors and open sides never get a module. Absent = no imported façade (there is no design-wide default). Written only when set, so older designs stay byte-identical; types with `walls: 'open'` never get one. `assetId` (`facade-` + 16 hex) names an asset of the PROJECT file (`ProjectFileV2.assets`, CONTRACTS-V3 §2); a design never embeds geometry and an unknown id is not a validation error (the Building draws nothing for it; the Designer warns). |
+| `settings.styleBy` / `settings.styles` | **Style rooms by** (owner 2026-11-18; replaced `typeAppearance`, old files are not read). `styleBy` = `'function'` (default) | `'level'` | `'attribute:<field id>'` | `'metric:<metric id>'`: the ONE attribute that decides each room's look. `styles[styleBy]` = that attribute's setup, remembered per attribute: `{ default?: Look, groups?: [{ value: string | number | boolean, look: Look }], dividers?: number[], bands?: Look[] }`. Each room falls in exactly one card: the band holding its number (band i = `[dividers[i-1], dividers[i])`, ends open), else the value card it equals (text trimmed, case-insensitive), else **Default** (also without a value). Validation: card values unique, dividers strictly ascending, `bands.length = dividers.length + 1`. Resolved per room on read by `nodeLooks(doc, base, values?)`: each look field card → Default → `base(typeId)` (toolkit window coverage) → built-in. Function and Level are read from the document; custom and measured values are passed by the caller. Cards for values no room has are tolerated (no validation error). |
+| `Look` | `{ windowFraction?: [0,1], windowLayout?: 'repeat' | 'stretch', walls?: 'enclosed' | 'open', roof?: 'flat' | 'pergola' | 'none', facade?: FacadeModule }`; absent = inherit. `stretch` = one window per façade (room side over all its bays and storeys, inset by an even frame, same glazed share); `walls: 'open'` leaves out the room's exterior walls and windows (shared walls stay); `pergola` = open slats. `facade` = optional imported module `{ assetId, placement: 'repeat' | 'stretch', flip?: true, door?: { assetId, flip?: true }, open?: { assetId, flip?: true } }` (`flip` turns it round; `door` / `open` replace the façade bays where an open-air connector meets the room). Rooms with `walls: 'open'` never get a module. `assetId` names a PROJECT asset (CONTRACTS-V3 §2); an unknown id draws nothing (the Designer warns). |
 
-Types: `DesignDocumentV2`, `RoomNode`, `RelationshipEdge`, `RoomSize`, `TypeAppearance`, `DesignSettings`, `RelationshipKind`, `ConnectorStyle`, `RoofStyle`.
+Types: `DesignDocumentV2`, `RoomNode`, `RelationshipEdge`, `RoomSize`, `Look`, `StyleBy`, `StyleSetup`, `StyleGroup`, `DesignSettings`, `RelationshipKind`, `ConnectorStyle`, `RoofStyle`.
 
 ## 2. Validation — `validateDocumentV2(input, options?)`
 
@@ -125,7 +125,10 @@ type DesignCommand =
   | { type: 'remove-edge'; edgeId }
   | { type: 'change-edge-kind'; edgeId; kind: 'access' | 'open' }
   | { type: 'set-connector-style'; edgeId; style: ConnectorStyle | null }   // null → default
-  | { type: 'set-type-appearance'; typeId; patch: { windowFraction?: number | null; windowLayout?: WindowLayout | null; walls?: WallStyle | null; roof?: RoofStyle | null; facade?: FacadeModule | null } } // null → inherit
+  | { type: 'set-style-by'; by: StyleBy }                    // every setup stays remembered
+  | { type: 'set-look'; by; group: {kind:'default'} | {kind:'value', value} | {kind:'band', index}; patch: LookPatch } // null → inherit; a value card is created when missing and kept when empty; Default is removed when empty
+  | { type: 'remove-style-group'; by; value }               // its rooms use Default again
+  | { type: 'set-band-dividers'; by; dividers: number[] | null } // moved: bands keep looks; added: copies the split band; removed: keeps the lower band; null drops bands
   | { type: 'set-edge-attributes'; edgeId; attributes };   // additive (project attributes, docs/PROJECT-ATTRIBUTES.md)
 ```
 
@@ -155,7 +158,7 @@ interface DesignPort {
 | `core/viewer/three/` new gizmo files, `app/views/three/editing/**` | 04-3d-gizmo |
 | `app/views/graph2d/**` | 01-graph-ui |
 | `app/inspector/**`, `app/ui/**` | 05-app-ui |
-| `app/designer/**` (uses `effectiveTypeAppearance`, `set-type-appearance`) | 06-designer |
+| `app/designer/**` (uses `effectiveLook`, `set-look`, `remove-style-group`) | 06-designer |
 | `app/views/presentation/**`, `app/ui/help/**`, `scripts/smoke/**` | 07-teaching-feedback |
 | `App.tsx`, `Workspace.tsx`, `app/views/registry.ts`, `VoxelView.tsx`, `ArchitectureView.tsx`, `Graph3DView.tsx`, `app/session/history*`, `documentSession.ts`, toolkit activation | **Integration only** |
 

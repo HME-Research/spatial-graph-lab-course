@@ -36,7 +36,7 @@ import './designer.css';
  * Designer panel (06-designer): per-design, per-node-type window coverage and roof.
  *
  * Reads the v2 document from `design.doc` and changes it ONLY through `design.onCommand` with the
- * frozen `set-type-appearance` command: one committed change (slider release, Enter, blur, roof
+ * `set-look` command: one committed change (slider release, Enter, blur, roof
  * choice, reset) = one command = one history step. Without a v2 port (before integration) it
  * shows a notice instead of controls.
  */
@@ -72,7 +72,8 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
       const a = assetById.get(id);
       return a ? { width: a.size[0], height: a.size[1], depth: a.size[2] } : null;
     };
-    return layoutFacadeModules(buildingFacesV2(doc, spatial, facade).faces, doc, sizeOf).instances;
+    const built = buildingFacesV2(doc, spatial, facade);
+    return layoutFacadeModules(built.faces, built.looks, sizeOf).instances;
   }, [doc, spatial, facade, assetById]);
   const usedHere = useMemo(() => new Set(doc ? facadeAssetIdsOf(doc) : []), [doc]);
 
@@ -375,7 +376,7 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
 
   const shownFraction = slider ?? row.effective.windowFraction;
   const idBase = `sgl-designer-${row.typeId}`;
-  const inherited = row.effective.source.windowFraction === 'project';
+  const inherited = row.effective.source.windowFraction !== 'card';
   const defaultText =
     row.projectDefault.source === 'broken'
       ? 'invalid definition'
@@ -547,7 +548,7 @@ function TypeRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
             </option>
           ))}
         </select>
-        <span className="sgl-designer-source">{row.effective.source.roof === 'design' ? 'Changed for this design' : 'Uses the default'}</span>
+        <span className="sgl-designer-source">{row.effective.source.roof === 'card' ? 'Changed for this design' : 'Uses the default'}</span>
       </div>
       </Subsection>
 

@@ -1,3 +1,4 @@
+import { functionStyleSettings, type Look } from '@app/document/v2';
 import { describe, expect, it } from 'vitest';
 import exampleJson from '../document/examples/two-storey-example.json';
 import { expectOk } from '@app/document/test-fixtures';
@@ -32,7 +33,7 @@ function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown>
         kind: e.kind ?? 'access',
         ...(e.connectorStyle ? { connectorStyle: e.connectorStyle } : {}),
       })),
-      settings: { typeAppearance },
+      settings: functionStyleSettings(typeAppearance as Record<string, Look>),
     }),
   );
 }

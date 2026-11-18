@@ -71,6 +71,8 @@ export interface ArchitectureOptions {
   readonly walls?: WallStyleProvider;
   /** Roof per type, for pergola slats (see `FaceLayoutOptions.roof`). */
   readonly roof?: RoofStyleProvider;
+  /** What the style providers are keyed by (see `FaceLayoutOptions.styleKey`). */
+  readonly styleKey?: 'type' | 'node';
   readonly wallThickness?: number;
   readonly slabThickness?: number;
 }

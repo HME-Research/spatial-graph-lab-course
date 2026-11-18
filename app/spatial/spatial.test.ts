@@ -1,3 +1,4 @@
+import { functionLooks } from '@app/document/v2';
 import { describe, expect, it } from 'vitest';
 import exampleJson from '../document/examples/two-storey-example.json?raw';
 import { expectIssue, expectOk } from '../document/test-fixtures';
@@ -141,13 +142,16 @@ describe('applyDesignCommand (frozen v2 command shapes)', () => {
   });
 
   it('patches and resets per-type appearance overrides', () => {
-    let d = expectOk(applyDesignCommand(doc(), { type: 'set-type-appearance', typeId: 'gallery', patch: { windowFraction: 0.4 } }));
-    d = expectOk(applyDesignCommand(d, { type: 'set-type-appearance', typeId: 'gallery', patch: { roof: 'none' } }));
-    expect(d.settings.typeAppearance).toEqual({ gallery: { windowFraction: 0.4, roof: 'none' } });
-    d = expectOk(applyDesignCommand(d, { type: 'set-type-appearance', typeId: 'gallery', patch: { windowFraction: null, roof: null } }));
-    expect(d.settings.typeAppearance).toEqual({});
+    let d = expectOk(applyDesignCommand(doc(), { type: 'set-look', by: 'function', group: { kind: 'value', value: 'gallery' }, patch: { windowFraction: 0.4 } }));
+    d = expectOk(applyDesignCommand(d, { type: 'set-look', by: 'function', group: { kind: 'value', value: 'gallery' }, patch: { roof: 'none' } }));
+    expect(functionLooks(d.settings)).toEqual({ gallery: { windowFraction: 0.4, roof: 'none' } });
+    d = expectOk(applyDesignCommand(d, { type: 'set-look', by: 'function', group: { kind: 'value', value: 'gallery' }, patch: { windowFraction: null, roof: null } }));
+    // An emptied value card is kept (its rooms look like Default); remove-style-group removes it.
+    expect(functionLooks(d.settings)).toEqual({ gallery: {} });
+    d = expectOk(applyDesignCommand(d, { type: 'remove-style-group', by: 'function', value: 'gallery' }));
+    expect(d.settings).toEqual({ styleBy: 'function', styles: {} });
     expectIssue(
-      applyDesignCommand(d, { type: 'set-type-appearance', typeId: 'gallery', patch: { windowFraction: 2 } }),
+      applyDesignCommand(d, { type: 'set-look', by: 'function', group: { kind: 'value', value: 'gallery' }, patch: { windowFraction: 2 } }),
       'schema',
     );
   });

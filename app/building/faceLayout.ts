@@ -78,7 +78,16 @@ export interface FaceLayoutOptions {
   /** Roof per node type: pergola tops are laid out as slats (absent: flat). */
   readonly roof?: RoofStyleProvider;
   readonly wallThickness?: number;
+  /**
+   * What the style providers above are keyed by: the face's node TYPE (default) or its owner
+   * NODE id (`'node'`: per-room looks, "Style rooms by", 2026-11-18).
+   */
+  readonly styleKey?: 'type' | 'node';
 }
+
+/** The key the style providers are called with for `face` (see `FaceLayoutOptions.styleKey`). */
+export const styleKeyOf = (face: Pick<ResolvedFace, 'ownerNodeId' | 'ownerTypeId'>, options: Pick<FaceLayoutOptions, 'styleKey'>): string =>
+  options.styleKey === 'node' ? face.ownerNodeId : face.ownerTypeId;
 
 /** Abstract opening proportions, relative to the cell, with absolute caps in metres. */
 export const OPENING_PROPORTIONS = Object.freeze({
@@ -271,8 +280,8 @@ export function stretchWindows(faces: readonly ResolvedFace[], options: FaceLayo
   type Bay = { readonly face: ResolvedFace; readonly frame: FaceFrame; readonly along: number; readonly up: number };
   const groups = new Map<string, Bay[]>();
   for (const face of faces) {
-    if (face.orientation !== 'wall' || face.condition !== 'exterior' || layoutOf(face.ownerTypeId) !== 'stretch') continue;
-    if (options.walls?.(face.ownerTypeId) === 'open') continue;
+    if (face.orientation !== 'wall' || face.condition !== 'exterior' || layoutOf(styleKeyOf(face, options)) !== 'stretch') continue;
+    if (options.walls?.(styleKeyOf(face, options)) === 'open') continue;
     const frame = frameFor(face.direction, faceCentre(face.cell, face.direction, cell), cell, wallT);
     const key = `${face.ownerNodeId}\u0000${face.direction}`;
     const bays = groups.get(key) ?? [];
@@ -280,7 +289,7 @@ export function stretchWindows(faces: readonly ResolvedFace[], options: FaceLayo
     groups.set(key, bays);
   }
   for (const bays of groups.values()) {
-    const f = clampWindowFraction(facade(bays[0]!.face.ownerTypeId).windowFraction);
+    const f = clampWindowFraction(facade(styleKeyOf(bays[0]!.face, options)).windowFraction);
     const u0 = Math.min(...bays.map((b) => b.along));
     const v0 = Math.min(...bays.map((b) => b.up));
     const at = (b: Bay): [number, number] => [Math.round((b.along - u0) / W), Math.round((b.up - v0) / H)];
@@ -355,16 +364,16 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
   if (face.orientation === 'wall') {
     switch (face.condition) {
       case 'exterior': {
-        if (options.walls?.(face.ownerTypeId) === 'open') {
+        if (options.walls?.(styleKeyOf(face, options)) === 'open') {
           // No exterior wall. With a roof above, a slim post at each bay edge carries it.
-          if ((options.roof?.(face.ownerTypeId) ?? 'flat') !== 'none') {
+          if ((options.roof?.(styleKeyOf(face, options)) ?? 'flat') !== 'none') {
             const p = OPENING_PROPORTIONS.postWidth;
             const half = cell.horizontal / 2;
             solids.push({ u0: -half, u1: -half + p, v0: panel.v0, v1: panel.v1 }, { u0: half - p, u1: half, v0: panel.v0, v1: panel.v1 });
           }
           break;
         }
-        if (options.windowLayout?.(face.ownerTypeId) === 'stretch') {
+        if (options.windowLayout?.(styleKeyOf(face, options)) === 'stretch') {
           const part = stretch ?? stretchWindows([face], options).get(face.id);
           if (part) {
             solids.push(...part.solid);
@@ -372,7 +381,7 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
             break;
           }
         }
-        const hole = windowRect(cell, facade(face.ownerTypeId).windowFraction);
+        const hole = windowRect(cell, facade(styleKeyOf(face, options)).windowFraction);
         if (hole === null) solids.push(panel);
         else {
           solids.push(...rectsAroundHole(panel, hole));
@@ -412,7 +421,7 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
         break;
       }
       default:
-        if (face.condition === 'exterior' && face.direction === '+z' && options.roof?.(face.ownerTypeId) === 'pergola') {
+        if (face.condition === 'exterior' && face.direction === '+z' && options.roof?.(styleKeyOf(face, options)) === 'pergola') {
           // Pergola: open slats running along v, evenly spaced across the bay.
           const n = OPENING_PROPORTIONS.pergolaSlats;
           const w = cell.horizontal * OPENING_PROPORTIONS.pergolaSlatFraction;

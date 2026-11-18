@@ -1,3 +1,4 @@
+import {  } from '@app/document/v2';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
@@ -59,7 +60,7 @@ const twoRooms = expectOk(
       // Not adjacent and on different storeys: unresolved, so never drawn as an opening.
       { id: 'cd', source: 'c', target: 'd', kind: 'access' },
     ],
-    settings: { typeAppearance: {} },
+    settings: { styleBy: 'function', styles: {} },
   }),
 );
 
@@ -123,7 +124,7 @@ describe('PlanView', () => {
   });
 
   it('an empty design shows an explanation and a disabled storey selector', () => {
-    const empty = expectOk(validateDocumentV2({ schemaVersion: 2, metadata: { name: 'e' }, nodes: [], edges: [], settings: { typeAppearance: {} } }));
+    const empty = expectOk(validateDocumentV2({ schemaVersion: 2, metadata: { name: 'e' }, nodes: [], edges: [], settings: { styleBy: 'function', styles: {} } }));
     const html = render(empty);
     expect(html).toContain('This scenario has no rooms yet');
     expect(html).toMatch(/<select[^>]*disabled/);
@@ -187,7 +188,7 @@ describe('plan shapes', () => {
           { id: 'b', grid: [0, 1, 0], size: [1, 1, 1], typeId: 'gallery' },
         ],
         edges: [{ id: 'ab', source: 'a', target: 'b', kind: 'access' }],
-        settings: { typeAppearance: {} },
+        settings: { styleBy: 'function', styles: {} },
       }),
     );
     const plan = buildPlan(planSourceV2(doc, resolveRelationships(doc)), 0);

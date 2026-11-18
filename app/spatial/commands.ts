@@ -13,7 +13,14 @@ import {
   type RelationshipKind,
   type RoofStyle,
   type RoomSize,
-  type TypeAppearance,
+  bandIndex,
+  styleValueKey,
+  usesBands,
+  type Look,
+  type StyleBy,
+  type StyleGroupRef,
+  type StyleSetup,
+  type StyleValue,
   type ValidationOptionsV2,
   type WindowLayout,
   type WallStyle,
@@ -49,13 +56,13 @@ export interface NewRelationship {
   readonly attributes?: Attributes;
 }
 
-/** Per-type override patch: a value sets the override, `null` removes it (inherit again). */
-export interface TypeAppearancePatch {
+/** Look patch for one card: a value sets the field, `null` removes it (inherit again). */
+export interface LookPatch {
   readonly windowFraction?: number | null;
   readonly windowLayout?: WindowLayout | null;
   readonly walls?: WallStyle | null;
   readonly roof?: RoofStyle | null;
-  /** Imported façade: a module, `'none'` (opt out of the design default), or `null` (inherit again). */
+  /** Imported façade: a module, or `null` (inherit again). */
   readonly facade?: FacadeModule | null;
 }
 
@@ -89,7 +96,21 @@ export type DesignCommand =
   | { readonly type: 'set-edge-attributes'; readonly edgeId: string; readonly attributes: Attributes }
   /** `null` removes the explicit style (default `enclosed` applies). */
   | { readonly type: 'set-connector-style'; readonly edgeId: string; readonly style: ConnectorStyle | null }
-  | { readonly type: 'set-type-appearance'; readonly typeId: string; readonly patch: TypeAppearancePatch };
+  /** Style rooms by another attribute; every attribute's setup stays remembered. */
+  | { readonly type: 'set-style-by'; readonly by: StyleBy }
+  /**
+   * Change one card of `by`'s setup. A value card is created when missing (and kept when its look
+   * becomes empty); a band must exist; Default is removed when it becomes empty.
+   */
+  | { readonly type: 'set-look'; readonly by: StyleBy; readonly group: StyleGroupRef; readonly patch: LookPatch }
+  /** Remove a value card: its rooms use Default again. */
+  | { readonly type: 'remove-style-group'; readonly by: StyleBy; readonly value: StyleValue }
+  /**
+   * Number bands of `by`: strictly ascending dividers, or `null` to drop the bands. Moving dividers
+   * keeps each band's look; adding one copies the look of the band it splits; removing one keeps
+   * the lower band's look.
+   */
+  | { readonly type: 'set-band-dividers'; readonly by: StyleBy; readonly dividers: readonly number[] | null };
 
 export type DesignCommandType = DesignCommand['type'];
 
@@ -106,6 +127,29 @@ function withoutKey<V>(record: Readonly<Record<string, V>>, key: string): Record
   return copy;
 }
 
+const setupOf = (doc: DesignDocumentV2, by: StyleBy): StyleSetup =>
+  Object.prototype.hasOwnProperty.call(doc.settings.styles, by) ? doc.settings.styles[by]! : {};
+
+const isEmptyLook = (look: Look): boolean => Object.keys(look).length === 0;
+
+/** Apply a patch to a look (`null` removes a field); façades are stored canonically. */
+function patchLook(current: Look, patch: LookPatch): Look {
+  const out: { windowFraction?: number; windowLayout?: WindowLayout; walls?: WallStyle; roof?: RoofStyle; facade?: FacadeModule } = {};
+  const pick = <K extends keyof LookPatch>(key: K) => (patch[key] === undefined ? current[key] : patch[key]);
+  const wf = pick('windowFraction');
+  if (wf !== null && wf !== undefined) out.windowFraction = wf;
+  const layout = pick('windowLayout');
+  if (layout !== null && layout !== undefined) out.windowLayout = layout;
+  const walls = pick('walls');
+  if (walls !== null && walls !== undefined) out.walls = walls;
+  const roof = pick('roof');
+  if (roof !== null && roof !== undefined) out.roof = roof;
+  const facade = pick('facade');
+  // The whole module, door / open bay variants included.
+  if (facade !== null && facade !== undefined) out.facade = canonicalFacadeModule(facade);
+  return out;
+}
+
 /** Apply one v2 command purely. */
 export function applyDesignCommand(
   doc: DesignDocumentV2,
@@ -119,6 +163,12 @@ export function applyDesignCommand(
     hasNode(id) ? validate({ ...doc, nodes: doc.nodes.map((n) => (n.id === id ? f(n) : n)) }) : notFound('node', id);
   const mapEdge = (id: string, f: (e: DesignDocumentV2['edges'][number]) => DesignDocumentV2['edges'][number]) =>
     hasEdge(id) ? validate({ ...doc, edges: doc.edges.map((e) => (e.id === id ? f(e) : e)) }) : notFound('edge', id);
+  /** Store `setup` for `by` (an empty setup is removed). */
+  const withSetup = (by: StyleBy, setup: StyleSetup) => {
+    const rest = withoutKey(doc.settings.styles, by);
+    const styles = Object.keys(setup).length === 0 ? rest : { ...rest, [by]: setup };
+    return validate({ ...doc, settings: { ...doc.settings, styles } });
+  };
 
   switch (command.type) {
     case 'add-node': {
@@ -237,25 +287,51 @@ export function applyDesignCommand(
         const { connectorStyle: _old, ...rest } = e;
         return command.style === null ? rest : { ...rest, connectorStyle: command.style };
       });
-    case 'set-type-appearance': {
-      const current: TypeAppearance = Object.prototype.hasOwnProperty.call(doc.settings.typeAppearance, command.typeId)
-        ? doc.settings.typeAppearance[command.typeId]!
-        : {};
-      const merged: { windowFraction?: number; windowLayout?: WindowLayout; walls?: WallStyle; roof?: RoofStyle; facade?: FacadeModule } = {};
-      const wf = command.patch.windowFraction === undefined ? current.windowFraction : command.patch.windowFraction;
-      const roof = command.patch.roof === undefined ? current.roof : command.patch.roof;
-      if (wf !== null && wf !== undefined) merged.windowFraction = wf;
-      const layout = command.patch.windowLayout === undefined ? current.windowLayout : command.patch.windowLayout;
-      if (layout !== null && layout !== undefined) merged.windowLayout = layout;
-      const walls = command.patch.walls === undefined ? current.walls : command.patch.walls;
-      if (walls !== null && walls !== undefined) merged.walls = walls;
-      if (roof !== null && roof !== undefined) merged.roof = roof;
-      const facade = command.patch.facade === undefined ? current.facade : command.patch.facade;
-      // The whole module, door / open bay variants included (they were dropped here before).
-      if (facade !== null && facade !== undefined) merged.facade = canonicalFacadeModule(facade);
-      const rest = withoutKey(doc.settings.typeAppearance, command.typeId);
-      const typeAppearance = Object.keys(merged).length === 0 ? rest : { ...rest, [command.typeId]: merged };
-      return validate({ ...doc, settings: { ...doc.settings, typeAppearance } });
+    case 'set-style-by':
+      return validate({ ...doc, settings: { ...doc.settings, styleBy: command.by } });
+    case 'set-look': {
+      const setup = setupOf(doc, command.by);
+      const { group } = command;
+      let next: StyleSetup;
+      if (group.kind === 'default') {
+        const look = patchLook(setup.default ?? {}, command.patch);
+        const { default: _old, ...rest } = setup;
+        next = isEmptyLook(look) ? rest : { ...rest, default: look };
+      } else if (group.kind === 'value') {
+        const key = styleValueKey(group.value);
+        const groups = setup.groups ?? [];
+        const at = groups.findIndex((g) => styleValueKey(g.value) === key);
+        const look = patchLook(at >= 0 ? groups[at]!.look : {}, command.patch);
+        next = { ...setup, groups: at >= 0 ? groups.map((g, i) => (i === at ? { value: g.value, look } : g)) : [...groups, { value: group.value, look }] };
+      } else {
+        if (!usesBands(setup) || group.index < 0 || group.index >= setup.bands!.length) {
+          return fail([issue(['settings', 'styles', command.by, 'bands'], 'not-found', `band ${group.index + 1} does not exist`)]);
+        }
+        next = { ...setup, bands: setup.bands!.map((b, i) => (i === group.index ? patchLook(b, command.patch) : b)) };
+      }
+      return withSetup(command.by, next);
+    }
+    case 'remove-style-group': {
+      const setup = setupOf(doc, command.by);
+      const key = styleValueKey(command.value);
+      const groups = (setup.groups ?? []).filter((g) => styleValueKey(g.value) !== key);
+      if (groups.length === (setup.groups ?? []).length) {
+        return fail([issue(['settings', 'styles', command.by, 'groups'], 'not-found', `there is no card for ${JSON.stringify(command.value)}`)]);
+      }
+      const { groups: _old, ...rest } = setup;
+      return withSetup(command.by, groups.length > 0 ? { ...rest, groups } : rest);
+    }
+    case 'set-band-dividers': {
+      const setup = setupOf(doc, command.by);
+      const { dividers: _d, bands: oldBands, ...rest } = setup;
+      if (command.dividers === null) return withSetup(command.by, rest);
+      const dividers = [...command.dividers];
+      const old = usesBands(setup) ? { dividers: setup.dividers!, bands: oldBands! } : { dividers: [] as number[], bands: [{}] as Look[] };
+      // Same count (dividers moved): every band keeps its look. Otherwise each new band takes the
+      // look of the old band holding its lower bound (band 0 keeps old band 0).
+      const bands =
+        dividers.length === old.dividers.length ? old.bands : [old.bands[0]!, ...dividers.map((d) => old.bands[bandIndex(old.dividers, d)]!)];
+      return withSetup(command.by, { ...rest, dividers, bands: bands.map((b) => ({ ...b })) });
     }
     default: {
       const unreachable: never = command;

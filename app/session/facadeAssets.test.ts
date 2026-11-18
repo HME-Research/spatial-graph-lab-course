@@ -1,3 +1,5 @@
+import { functionStyleSettings } from '@app/document/v2';
+import { functionLooks } from '@app/document/v2';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   createFacadeAsset,
@@ -71,13 +73,13 @@ describe('project file: embedded façade assets', () => {
 
   it('assets and the scenario settings that use them round-trip through the canonical text', () => {
     const a = asset(1);
-    const file = withAssets(fileOf(), [a], { typeAppearance: { gallery: { facade: { assetId: a.id, placement: 'stretch' } } } });
+    const file = withAssets(fileOf(), [a], functionStyleSettings({ gallery: { facade: { assetId: a.id, placement: 'stretch' } } }));
     const text = serializeProjectFile(file);
     const read = readProjectFile(text);
     expect(read.ok).toBe(true);
     if (!read.ok) return;
     expect(facadeAssetsOf(read.value.assets)).toEqual([a]);
-    expect(read.value.scenarios[0]!.design.settings.typeAppearance.gallery?.facade).toEqual({ assetId: a.id, placement: 'stretch' });
+    expect(functionLooks(read.value.scenarios[0]!.design.settings).gallery?.facade).toEqual({ assetId: a.id, placement: 'stretch' });
     expect(serializeProjectFile(read.value)).toBe(text);
   });
 
@@ -191,7 +193,7 @@ describe('project store: the façade library', () => {
 
   it('a façade used by any scenario cannot be removed; an unused one can (and the file says "none" again)', () => {
     const a = asset(5);
-    const used = opened(withAssets(fileOf(), [a], { typeAppearance: { gallery: { facade: { assetId: a.id, placement: 'repeat' } } } }));
+    const used = opened(withAssets(fileOf(), [a], functionStyleSettings({ gallery: { facade: { assetId: a.id, placement: 'repeat' } } })));
     const refused = removeFacadeAsset(used, a.id);
     expect(refused.ok === false && refused.message).toMatch(/used in scenario “Scenario 1”/);
     const unused = opened(withAssets(fileOf(), [a]));
@@ -202,18 +204,18 @@ describe('project store: the façade library', () => {
 
   it('a used façade can be removed once confirmed (replaceUses): its functions become Automatic, one undo step each', () => {
     const a = asset(5);
-    const used = opened(withAssets(fileOf(), [a], { typeAppearance: { gallery: { facade: { assetId: a.id, placement: 'repeat' } }, studio: { roof: 'none' } } }));
-    expect(facadeUses(used, a.id)).toEqual([{ scenarioId: used.activeScenarioId, scenario: 'Scenario 1', typeIds: ['gallery'] }]);
+    const used = opened(withAssets(fileOf(), [a], functionStyleSettings({ gallery: { facade: { assetId: a.id, placement: 'repeat' } }, studio: { roof: 'none' } })));
+    expect(facadeUses(used, a.id)).toEqual([{ scenarioId: used.activeScenarioId, scenario: 'Scenario 1', cards: ['gallery'] }]);
     const removed = ok(removeFacadeAsset(used, a.id, { replaceUses: true }));
     expect(removed.meta.assets).toEqual({ policy: 'none' });
     expect(removed.changes).toBe(used.changes + 1);
     const design = activeDesign(removed);
-    expect(design.settings.typeAppearance).toEqual({ studio: { roof: 'none' } });
+    expect(functionLooks(design.settings)).toEqual({ gallery: {}, studio: { roof: 'none' } });
     expect(facadeUses(removed, a.id)).toEqual([]);
     expect(removed.revision).toBeGreaterThan(used.revision);
     // Undo in the scenario brings the setting back (the façade itself stays removed: drawn as missing).
     const undone = undoActive(removed);
-    expect(activeDesign(undone).settings.typeAppearance.gallery?.facade?.assetId).toBe(a.id);
+    expect(functionLooks(activeDesign(undone).settings).gallery?.facade?.assetId).toBe(a.id);
     expect(undone.meta.assets).toEqual({ policy: 'none' });
   });
 });
@@ -239,7 +241,7 @@ describe('end to end: .3dm → project → autosave → restore → export → o
     const c = createProjectController({ store, scheduler, locks: null, now: () => '2026-11-17T09:00:00.000Z' });
     await c.open(fileOf(), { kind: 'created', label: 'test' });
     expect(c.addFacadeAsset(imported.asset)).toEqual({ ok: true, value: undefined });
-    const set = c.command({ type: 'set-type-appearance', typeId: 'gallery', patch: { facade: { assetId: imported.asset.id, placement: 'repeat' } } });
+    const set = c.command({ type: 'set-look', by: 'function', group: { kind: 'value', value: 'gallery' }, patch: { facade: { assetId: imported.asset.id, placement: 'repeat' } } });
     expect(set.ok).toBe(true);
     await c.flush();
     const projectId = c.getState().project!.meta.projectId;
@@ -253,7 +255,7 @@ describe('end to end: .3dm → project → autosave → restore → export → o
     expect((await tab.restore(projectId)).ok).toBe(true);
     const restored = tab.getState().project!;
     expect(facadeAssetsOf(restored.meta.assets)).toEqual([imported.asset]);
-    expect(activeDesign(restored).settings.typeAppearance.gallery?.facade).toEqual({ assetId: imported.asset.id, placement: 'repeat' });
+    expect(functionLooks(activeDesign(restored).settings).gallery?.facade).toEqual({ assetId: imported.asset.id, placement: 'repeat' });
 
     // 3. Export, then open the exported text as a user-chosen file.
     const exported = tab.exportFile();

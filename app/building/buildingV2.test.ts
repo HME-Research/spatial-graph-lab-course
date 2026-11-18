@@ -1,3 +1,4 @@
+import { functionStyleSettings, type Look } from '@app/document/v2';
 import { describe, expect, it } from 'vitest';
 import exampleJson from '../document/examples/two-storey-example.json';
 import { validateDocument } from '@app/document';
@@ -46,7 +47,7 @@ function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown>
         kind: e.kind ?? 'access',
         ...(e.connectorStyle ? { connectorStyle: e.connectorStyle } : {}),
       })),
-      settings: { typeAppearance },
+      settings: functionStyleSettings(typeAppearance as Record<string, Look>),
     }),
   );
 }
@@ -113,7 +114,7 @@ describe('v1 → v2 legacy geometry', () => {
     expect(roofs.length).toBeGreaterThan(0);
     // roof: none for every type reproduces the old open-top look.
     const types = [...new Set(migrated.nodes.map((n) => n.typeId))];
-    const open = { ...migrated, settings: { typeAppearance: Object.fromEntries(types.map((t) => [t, { roof: 'none' as const }])) } };
+    const open = { ...migrated, settings: functionStyleSettings(Object.fromEntries(types.map((t) => [t, { roof: 'none' as const }]))) };
     expect(buildBuildingV2(open).elements).toEqual(buildArchitecture(resolveFaces(v1)).filter((e) => e.part !== 'roof'));
   });
 });

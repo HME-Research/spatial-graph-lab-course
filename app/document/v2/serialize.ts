@@ -2,7 +2,16 @@ import { fail, issue, ok, type Result } from '../errors';
 import { validateDocument } from '../validate';
 import { SCHEMA_VERSION_V2 } from './constants';
 import { migrateV1toV2 } from './migrate';
-import { canonicalFacadeModule, type DesignDocumentV2 } from './schema';
+import { canonicalFacadeModule, type DesignDocumentV2, type Look } from './schema';
+
+/** Canonical look: fixed key order, only fields that are set. */
+const canonicalLook = (a: Look): Look => ({
+  ...(a.windowFraction === undefined ? {} : { windowFraction: a.windowFraction }),
+  ...(a.windowLayout === undefined ? {} : { windowLayout: a.windowLayout }),
+  ...(a.walls === undefined ? {} : { walls: a.walls }),
+  ...(a.roof === undefined ? {} : { roof: a.roof }),
+  ...(a.facade === undefined ? {} : { facade: canonicalFacadeModule(a.facade) }),
+});
 import { validateDocumentV2, type ValidationOptionsV2 } from './validate';
 
 /**
@@ -87,15 +96,15 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
     })),
     diagram: { positions: { ...doc.diagram.positions } },
     settings: {
-      typeAppearance: Object.fromEntries(
-        Object.entries(doc.settings.typeAppearance).map(([typeId, a]) => [
-          typeId,
+      styleBy: doc.settings.styleBy,
+      styles: Object.fromEntries(
+        Object.entries(doc.settings.styles).map(([by, setup]) => [
+          by,
           {
-            ...(a.windowFraction === undefined ? {} : { windowFraction: a.windowFraction }),
-            ...(a.windowLayout === undefined ? {} : { windowLayout: a.windowLayout }),
-            ...(a.walls === undefined ? {} : { walls: a.walls }),
-            ...(a.roof === undefined ? {} : { roof: a.roof }),
-            ...(a.facade === undefined ? {} : { facade: canonicalFacadeModule(a.facade) }),
+            ...(setup.default === undefined ? {} : { default: canonicalLook(setup.default) }),
+            ...(setup.groups === undefined ? {} : { groups: setup.groups.map((g) => ({ value: g.value, look: canonicalLook(g.look) })) }),
+            ...(setup.dividers === undefined ? {} : { dividers: [...setup.dividers] }),
+            ...(setup.bands === undefined ? {} : { bands: setup.bands.map(canonicalLook) }),
           },
         ]),
       ),

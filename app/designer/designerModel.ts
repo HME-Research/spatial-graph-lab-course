@@ -1,10 +1,12 @@
-import type { FacadeProvider, FacadeSpec } from '@app/building';
+import type { FacadeProvider } from '@app/building';
 import { distortedModules, type FacadeModuleInstance } from '@app/assets';
 import {
   canonicalFacadeModule,
   sameFacadeModule,
   connectorStyleOf,
-  effectiveTypeAppearance,
+  effectiveLook,
+  lookOfGroup,
+  styleSetupOf,
   nodeLabel,
   ROOF_STYLES,
   windowFractionSchema,
@@ -12,7 +14,9 @@ import {
   WALL_STYLES,
   type ConnectorStyle,
   type DesignDocumentV2,
-  type EffectiveTypeAppearance,
+  type EffectiveLook,
+  type Look,
+  type StyleGroupRef,
   type FacadeModule,
   type FacadePlacement,
   type RoofStyle,
@@ -27,9 +31,9 @@ import type { Selection } from '@core/viewer/selection';
 /**
  * Designer model (06-designer): pure helpers behind the Designer panel. No React here.
  *
- * - One set of appearance rules per node type PER DESIGN, stored in the frozen v2 shape
- *   `settings.typeAppearance` and changed only through the frozen `set-type-appearance` command.
- * - Defaults are resolved on read with the frozen `effectiveTypeAppearance`; nothing is
+ * - One card per function PER DESIGN, stored as the `function` setup of "Style rooms by"
+ *   (`settings.styles.function`, 2026-11-18) and changed through `set-look` / `remove-style-group`.
+ * - Looks are resolved on read with `effectiveLook` (card → Default → project → built-in); nothing is
  *   materialised into the document, and project TypeScript definitions are never rewritten.
  * - No per-room overrides. Connector style is per relationship (Properties), not per type.
  */
@@ -53,14 +57,28 @@ export interface DesignerTypeRow {
   /** The design stores an override for a type that is neither in the project nor in the design. */
   readonly orphanOverride: boolean;
   readonly projectDefault: { readonly windowFraction: number; readonly source: ProjectDefaultSource };
-  readonly effective: EffectiveTypeAppearance;
+  readonly effective: EffectiveLook;
   /** True when the design stores any override for this type ("Reset" is available). */
   readonly hasOverride: boolean;
   /** Readable warning (undefined / broken type, orphan override), or null. */
   readonly warning: string | null;
 }
 
-const hasOwn = (record: object, key: string) => Object.prototype.hasOwnProperty.call(record, key);
+/** The function cards: the `function` setup of "Style rooms by". */
+const FUNCTION = 'function';
+const functionCard = (typeId: string): StyleGroupRef => ({ kind: 'value', value: typeId });
+const functionSetup = (doc: Pick<DesignDocumentV2, 'settings'>) => styleSetupOf(doc.settings, FUNCTION);
+/** The stored card of `typeId`, or undefined when the function has no card. */
+const storedCard = (doc: Pick<DesignDocumentV2, 'settings'>, typeId: string): Look | undefined => lookOfGroup(functionSetup(doc), functionCard(typeId));
+/** Effective look of a function's rooms (card → Default → `windowFraction` → built-in). */
+const effectiveOf = (doc: Pick<DesignDocumentV2, 'settings'>, typeId: string, windowFraction = 0): EffectiveLook =>
+  effectiveLook(functionSetup(doc), functionCard(typeId), { windowFraction });
+const lookCommand = (typeId: string, patch: Extract<DesignCommand, { type: 'set-look' }>['patch']): DesignCommand => ({
+  type: 'set-look',
+  by: FUNCTION,
+  group: functionCard(typeId),
+  patch,
+});
 
 function projectDefaultSource(project: ActiveToolkit | null, status: NodeTypeStatus, typeId: string): ProjectDefaultSource {
   if (status.kind === 'broken') return 'broken';
@@ -105,7 +123,7 @@ export function designerTypeRows(
   };
   for (const type of project?.nodeTypes ?? []) add(type.id);
   [...counts.keys()].sort().forEach(add);
-  Object.keys(doc.settings.typeAppearance).sort().forEach(add);
+  (functionSetup(doc).groups ?? []).map((g) => String(g.value)).sort().forEach(add);
 
   return ordered.map((typeId) => {
     const status = nodeTypeStatus(project, typeId);
@@ -119,8 +137,8 @@ export function designerTypeRows(
       nodeCount,
       orphanOverride: nodeCount === 0 && !inProject,
       projectDefault: { windowFraction: projectWindowFraction, source: projectDefaultSource(project, status, typeId) },
-      effective: effectiveTypeAppearance(doc, typeId, { windowFraction: projectWindowFraction }),
-      hasOverride: hasOwn(doc.settings.typeAppearance, typeId),
+      effective: effectiveOf(doc, typeId, projectWindowFraction),
+      hasOverride: storedCard(doc, typeId) !== undefined,
     };
     return { ...base, warning: warningFor(base) };
   });
@@ -157,8 +175,8 @@ export function parseWindowPercent(text: string): { ok: true; fraction: number }
   return { ok: true, fraction: roundFraction(percent / 100) };
 }
 
-function current(doc: DesignDocumentV2, typeId: string) {
-  return hasOwn(doc.settings.typeAppearance, typeId) ? doc.settings.typeAppearance[typeId]! : {};
+function current(doc: DesignDocumentV2, typeId: string): Look {
+  return storedCard(doc, typeId) ?? {};
 }
 
 /** Set this design's window coverage (fraction 0–1, exterior walls only) for every room of `typeId`. */
@@ -176,7 +194,7 @@ export function setWindowFractionEdit(
   if (stored !== undefined ? stored === value : value === roundFraction(projectDefault)) return UNCHANGED;
   return {
     kind: 'command',
-    command: { type: 'set-type-appearance', typeId, patch: { windowFraction: value } },
+    command: lookCommand(typeId, { windowFraction: value }),
     label: `Set ${typeId} window coverage to ${formatPercent(value)} %`,
   };
 }
@@ -187,11 +205,11 @@ export function setRoofEdit(doc: DesignDocumentV2, typeId: string, roof: string)
     return { kind: 'invalid', message: `Roof must be one of: ${ROOF_STYLES.join(', ')}.` };
   }
   const stored = current(doc, typeId).roof;
-  const effective = effectiveTypeAppearance(doc, typeId, { windowFraction: 0 }).roof;
+  const effective = effectiveOf(doc, typeId).roof;
   if (stored !== undefined ? stored === roof : effective === roof) return UNCHANGED;
   return {
     kind: 'command',
-    command: { type: 'set-type-appearance', typeId, patch: { roof: roof as RoofStyle } },
+    command: lookCommand(typeId, { roof: roof as RoofStyle }),
     label: `Set ${typeId} roof to ${roof}`,
   };
 }
@@ -202,11 +220,11 @@ export function setWindowLayoutEdit(doc: DesignDocumentV2, typeId: string, layou
     return { kind: 'invalid', message: `Window layout must be one of: ${WINDOW_LAYOUTS.join(', ')}.` };
   }
   const stored = current(doc, typeId).windowLayout;
-  const effective = effectiveTypeAppearance(doc, typeId, { windowFraction: 0 }).windowLayout;
+  const effective = effectiveOf(doc, typeId).windowLayout;
   if (stored !== undefined ? stored === layout : effective === layout) return UNCHANGED;
   return {
     kind: 'command',
-    command: { type: 'set-type-appearance', typeId, patch: { windowLayout: layout as WindowLayout } },
+    command: lookCommand(typeId, { windowLayout: layout as WindowLayout }),
     label: `Set ${typeId} windows to ${WINDOW_LAYOUT_LABELS[layout as WindowLayout]}`,
   };
 }
@@ -217,11 +235,11 @@ export function setWallsEdit(doc: DesignDocumentV2, typeId: string, walls: strin
     return { kind: 'invalid', message: `Walls must be one of: ${WALL_STYLES.join(', ')}.` };
   }
   const stored = current(doc, typeId).walls;
-  const effective = effectiveTypeAppearance(doc, typeId, { windowFraction: 0 }).walls;
+  const effective = effectiveOf(doc, typeId).walls;
   if (stored !== undefined ? stored === walls : effective === walls) return UNCHANGED;
   return {
     kind: 'command',
-    command: { type: 'set-type-appearance', typeId, patch: { walls: walls as WallStyle } },
+    command: lookCommand(typeId, { walls: walls as WallStyle }),
     label: `Set ${typeId} walls to ${WALL_LABELS[walls as WallStyle]}`,
   };
 }
@@ -238,12 +256,20 @@ export function resetTypeEdit(
   const clearWalls = (field === 'all' || field === 'walls') && own.walls !== undefined;
   const clearRoof = (field === 'all' || field === 'roof') && own.roof !== undefined;
   const clearFacade = (field === 'all' || field === 'facade') && own.facade !== undefined;
+  const label = `Reset ${typeId} appearance to project default`;
+  const card = storedCard(doc, typeId);
+  // Nothing of the card would be left: remove the card (its rooms use Default again).
+  const keeps = (key: keyof Look, cleared: boolean) => own[key] !== undefined && !cleared;
+  if (card !== undefined && !keeps('windowFraction', clearWindow) && !keeps('windowLayout', clearLayout) && !keeps('walls', clearWalls) && !keeps('roof', clearRoof) && !keeps('facade', clearFacade)) {
+    return { kind: 'command', command: { type: 'remove-style-group', by: FUNCTION, value: typeId }, label };
+  }
   if (!clearWindow && !clearLayout && !clearWalls && !clearRoof && !clearFacade) return UNCHANGED;
   return {
     kind: 'command',
     command: {
-      type: 'set-type-appearance',
-      typeId,
+      type: 'set-look',
+      by: FUNCTION,
+      group: functionCard(typeId),
       patch: {
         ...(clearWindow ? { windowFraction: null } : {}),
         ...(clearLayout ? { windowLayout: null } : {}),
@@ -252,7 +278,7 @@ export function resetTypeEdit(
         ...(clearFacade ? { facade: null } : {}),
       },
     },
-    label: `Reset ${typeId} appearance to project default`,
+    label,
   };
 }
 
@@ -276,7 +302,7 @@ export function setFacadeEdit(doc: DesignDocumentV2, typeId: string, choice: Fac
   if (choice.kind === stored.kind && (choice.kind !== 'module' || (stored.kind === 'module' && sameModule(choice.module, stored.module)))) return UNCHANGED;
   const patch = choice.kind === 'none' ? null : canonicalFacadeModule(choice.module);
   const what = choice.kind === 'none' ? 'no imported façade' : `${assetName ?? 'an imported façade'} (${FACADE_PLACEMENT_LABELS[choice.module.placement]})`;
-  return { kind: 'command', command: { type: 'set-type-appearance', typeId, patch: { facade: patch } }, label: `Set ${typeId} to ${what}` };
+  return { kind: 'command', command: lookCommand(typeId, { facade: patch }), label: `Set ${typeId} to ${what}` };
 }
 
 /**
@@ -296,7 +322,7 @@ export const FACADE_MODE_HELP: Readonly<Record<FacadeMode, string>> = {
 
 /** The stored mode of `typeId`. */
 export function facadeModeOf(doc: DesignDocumentV2, typeId: string): FacadeMode {
-  const effective = effectiveTypeAppearance(doc, typeId, { windowFraction: 0 });
+  const effective = effectiveOf(doc, typeId);
   if (effective.walls === 'open') return 'open';
   return effective.facade ? 'import' : 'automatic';
 }
@@ -314,7 +340,7 @@ export function setFacadeModeEdit(doc: DesignDocumentV2, typeId: string, mode: F
   if (sameWalls && sameModule(own.facade ?? null, facade)) return UNCHANGED;
   const label =
     mode === 'import' ? `Set ${typeId} façade to ${assetName ?? 'an imported façade'}` : mode === 'open' ? `Set ${typeId} to open sides` : `Set ${typeId} to automatic façade`;
-  return { kind: 'command', command: { type: 'set-type-appearance', typeId, patch: { walls, facade } }, label };
+  return { kind: 'command', command: lookCommand(typeId, { walls, facade }), label };
 }
 
 
@@ -339,27 +365,6 @@ export function distortionMessage(instances: readonly FacadeModuleInstance[], ty
   ].filter(Boolean);
   return `${d.count} ${d.count === 1 ? 'module is' : 'modules are'} stretched ${parts.join(' and ')} to fit. Draw the module at the size it is used, or switch Repeat / Stretch.`;
 }
-
-/**
- * Integration adapter: a façade provider that applies this design's per-type overrides on top of
- * the project's provider. Building/Architecture can use it instead of `ProjectViewContext.facade`
- * so every room of a type gets the effective window coverage.
- */
-export function designFacadeProvider(doc: Pick<DesignDocumentV2, 'settings'>, project: FacadeProvider): FacadeProvider {
-  const cache = new Map<string, FacadeSpec>();
-  return (typeId) => {
-    let spec = cache.get(typeId);
-    if (!spec) {
-      spec = Object.freeze({ windowFraction: effectiveTypeAppearance(doc, typeId, project(typeId)).windowFraction });
-      cache.set(typeId, spec);
-    }
-    return spec;
-  };
-}
-
-/** Integration adapter: effective roof of a type in this design (`flat` unless overridden). */
-export const designRoofOf = (doc: Pick<DesignDocumentV2, 'settings'>, typeId: string): RoofStyle =>
-  effectiveTypeAppearance(doc, typeId, { windowFraction: 0 }).roof;
 
 export const WINDOW_LAYOUT_LABELS: Readonly<Record<WindowLayout, string>> = {
   repeat: 'Repeat',

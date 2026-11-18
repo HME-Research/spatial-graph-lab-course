@@ -1,7 +1,9 @@
+import { effectiveLook, styleSetupOf } from '@app/document/v2';
+import { functionLooks, functionStyleSettings, type Look } from '@app/document/v2';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { exampleFacadeProvider } from '@app/building';
+import { exampleFacadeProvider, type FacadeProvider } from '@app/building';
 import { expectOk } from '@app/document/test-fixtures';
 import {
   readDesignJson,
@@ -18,8 +20,6 @@ import { DesignerPanel } from './DesignerPanel';
 import { setFacadeModeEdit as modeEdit } from './designerModel';
 import {
   designerTypeRows,
-  designFacadeProvider,
-  designRoofOf,
   parseWindowPercent,
   resetTypeEdit,
   selectedRelationship,
@@ -51,7 +51,7 @@ function labDocV2(typeAppearance: Record<string, unknown> = {}): DesignDocumentV
         { id: 'e1', source: 'g1', target: 'g2', kind: 'access' },
         { id: 'e2', source: 'g1', target: 'k1', kind: 'open', connectorStyle: 'deck' },
       ],
-      settings: { typeAppearance },
+      settings: functionStyleSettings(typeAppearance as Record<string, Look>),
     }),
   );
 }
@@ -63,6 +63,14 @@ function commandOf(edit: DesignerEdit): DesignCommand {
 
 const apply = (doc: DesignDocumentV2, edit: DesignerEdit) => expectOk(applyDesignCommand(doc, commandOf(edit)));
 
+/** Window coverage per function in a design (its card → Default → the project's provider). */
+const designFacadeProvider = (doc: Pick<DesignDocumentV2, 'settings'>, project: FacadeProvider) => (typeId: string) => ({
+  windowFraction: effectiveLook(styleSetupOf(doc.settings, 'function'), { kind: 'value', value: typeId }, project(typeId)).windowFraction,
+});
+/** Roof per function in a design. */
+const designRoofOf = (doc: Pick<DesignDocumentV2, 'settings'>, typeId: string) =>
+  effectiveLook(styleSetupOf(doc.settings, 'function'), { kind: 'value', value: typeId }, { windowFraction: 0 }).roof;
+
 describe('designer type rows', () => {
   it('lists project types first, then design-only types, with project defaults and node counts', async () => {
     const project = await labToolkit();
@@ -73,7 +81,7 @@ describe('designer type rows', () => {
       name: 'Gallery (gallery)',
       nodeCount: 2,
       projectDefault: { windowFraction: 0.6, source: 'type-definition' },
-      effective: { windowFraction: 0.6, roof: 'flat', source: { windowFraction: 'project', roof: 'default' } },
+      effective: { windowFraction: 0.6, roof: 'flat', source: { windowFraction: 'base', roof: 'base' } },
       hasOverride: false,
       warning: null,
     });
@@ -123,18 +131,18 @@ describe('designer edits', () => {
     const facade = projectFacadeProvider(project);
     const doc = labDocV2();
     const edited = apply(doc, setWindowFractionEdit(doc, 'gallery', 0.35, 0.6));
-    expect(edited.settings.typeAppearance).toEqual({ gallery: { windowFraction: 0.35 } });
+    expect(functionLooks(edited.settings)).toEqual({ gallery: { windowFraction: 0.35 } });
 
     const effective = designFacadeProvider(edited, facade);
     for (const node of edited.nodes.filter((n) => n.typeId === 'gallery')) expect(effective(node.typeId).windowFraction).toBe(0.35);
     expect(effective('studio')).toEqual(facade('studio'));
 
     const row = designerTypeRows(edited, project, facade).find((r) => r.typeId === 'gallery')!;
-    expect(row.effective.source.windowFraction).toBe('design');
+    expect(row.effective.source.windowFraction).toBe('card');
     expect(row.projectDefault.windowFraction).toBe(0.6);
 
     const reset = apply(edited, resetTypeEdit(edited, 'gallery'));
-    expect(reset.settings.typeAppearance).toEqual({});
+    expect(functionLooks(reset.settings)).toEqual({});
     expect(designFacadeProvider(reset, facade)('gallery').windowFraction).toBe(0.6);
   });
 
@@ -145,8 +153,8 @@ describe('designer edits', () => {
     const designB = labDocV2();
     const textB = serializeDesignV2(designB);
     const editedA = apply(designA, setWindowFractionEdit(designA, 'gallery', 0.1, 0.6));
-    expect(editedA.settings.typeAppearance.gallery).toEqual({ windowFraction: 0.1 });
-    expect(designA.settings.typeAppearance).toEqual({});
+    expect(functionLooks(editedA.settings).gallery).toEqual({ windowFraction: 0.1 });
+    expect(functionLooks(designA.settings)).toEqual({});
     expect(serializeDesignV2(designB)).toBe(textB);
     expect(JSON.stringify(project.nodeTypes.map((t) => t.definition))).toBe(definitionBefore);
     expect(projectFacadeProvider(project)('gallery').windowFraction).toBe(0.6);
@@ -173,7 +181,7 @@ describe('designer edits', () => {
     expect(parseWindowPercent('100%')).toEqual({ ok: true, fraction: 1 });
     for (const bad of ['', 'abc', '-1', '101', '1e3', '50 50']) expect(parseWindowPercent(bad).ok).toBe(false);
     // The frozen command validates too: an out-of-range patch is rejected, not clamped.
-    expect(applyDesignCommand(doc, { type: 'set-type-appearance', typeId: 'gallery', patch: { windowFraction: 2 } }).ok).toBe(false);
+    expect(applyDesignCommand(doc, { type: 'set-look', by: 'function', group: { kind: 'value', value: 'gallery' }, patch: { windowFraction: 2 } }).ok).toBe(false);
   });
 
   it('roof override and per-field reset keep the other override', () => {
@@ -184,7 +192,7 @@ describe('designer edits', () => {
     expect(setRoofEdit(roofless, 'studio', 'pitched').kind).toBe('invalid');
     const both = apply(roofless, setWindowFractionEdit(roofless, 'studio', 0.4, 0.25));
     const windowOnly = apply(both, resetTypeEdit(both, 'studio', 'roof'));
-    expect(windowOnly.settings.typeAppearance).toEqual({ studio: { windowFraction: 0.4 } });
+    expect(functionLooks(windowOnly.settings)).toEqual({ studio: { windowFraction: 0.4 } });
   });
 });
 
@@ -196,11 +204,11 @@ describe('window layout per function', () => {
     const edit = setWindowLayoutEdit(doc, 'gallery', 'stretch');
     expect(edit.kind === 'command' && edit.label).toBe('Set gallery windows to Stretch');
     const stretched = apply(doc, edit);
-    expect(stretched.settings.typeAppearance).toEqual({ gallery: { windowLayout: 'stretch' } });
+    expect(functionLooks(stretched.settings)).toEqual({ gallery: { windowLayout: 'stretch' } });
     expect(setWindowLayoutEdit(stretched, 'gallery', 'stretch').kind).toBe('unchanged');
     const both = apply(stretched, setWindowFractionEdit(stretched, 'gallery', 0.4, 0.6));
-    expect(apply(both, resetTypeEdit(both, 'gallery', 'windowLayout')).settings.typeAppearance).toEqual({ gallery: { windowFraction: 0.4 } });
-    expect(apply(both, resetTypeEdit(both, 'gallery')).settings.typeAppearance).toEqual({});
+    expect(functionLooks(apply(both, resetTypeEdit(both, 'gallery', 'windowLayout')).settings)).toEqual({ gallery: { windowFraction: 0.4 } });
+    expect(functionLooks(apply(both, resetTypeEdit(both, 'gallery')).settings)).toEqual({});
   });
 
   it('Open walls and Pergola roofs are per function: stored, reset and drawn', () => {
@@ -208,10 +216,10 @@ describe('window layout per function', () => {
     expect(setWallsEdit(doc, 'kiosk', 'enclosed').kind).toBe('unchanged');
     expect(setWallsEdit(doc, 'kiosk', 'half').kind).toBe('invalid');
     const open = apply(doc, setWallsEdit(doc, 'kiosk', 'open'));
-    expect(open.settings.typeAppearance).toEqual({ kiosk: { walls: 'open' } });
+    expect(functionLooks(open.settings)).toEqual({ kiosk: { walls: 'open' } });
     const text = serializeDesignV2(apply(open, setRoofEdit(open, 'kiosk', 'pergola')));
-    expect(expectOk(readDesignJson(text)).doc.settings.typeAppearance).toEqual({ kiosk: { walls: 'open', roof: 'pergola' } });
-    expect(apply(open, resetTypeEdit(open, 'kiosk', 'walls')).settings.typeAppearance).toEqual({});
+    expect(functionLooks(expectOk(readDesignJson(text)).doc.settings)).toEqual({ kiosk: { walls: 'open', roof: 'pergola' } });
+    expect(functionLooks(apply(open, resetTypeEdit(open, 'kiosk', 'walls')).settings)).toEqual({});
 
     const parts = (typeAppearance: Record<string, unknown>, owner: string) =>
       buildBuildingV2(labDocV2(typeAppearance), { facade: exampleFacadeProvider }).elements.filter((e) => e.ownerNodeId === owner);
@@ -257,7 +265,7 @@ describe('designer persistence and history', () => {
     expect(text).not.toMatch(/"studio":/); // inherited types are not written
     const read = expectOk(readDesignJson(text));
     expect(read.sourceVersion).toBe(2);
-    expect(read.doc.settings.typeAppearance).toEqual({ gallery: { windowFraction: 0.35 }, kiosk: { roof: 'none' } });
+    expect(functionLooks(read.doc.settings)).toEqual({ gallery: { windowFraction: 0.35 }, kiosk: { roof: 'none' } });
     expect(serializeDesignV2(read.doc)).toBe(text);
   });
 
@@ -269,9 +277,9 @@ describe('designer persistence and history', () => {
     expect(history.past).toHaveLength(1);
     expect(history.past[0]!.label).toBe('Set gallery window coverage to 20 %');
     history = undo(history);
-    expect(history.present.settings.typeAppearance).toEqual({});
+    expect(functionLooks(history.present.settings)).toEqual({});
     history = redo(history);
-    expect(history.present.settings.typeAppearance).toEqual({ gallery: { windowFraction: 0.2 } });
+    expect(functionLooks(history.present.settings)).toEqual({ gallery: { windowFraction: 0.2 } });
   });
 });
 
@@ -445,7 +453,7 @@ describe('DesignerPanel (static render)', () => {
 
 describe('removing a used façade (confirmation) and the Materials dialog', () => {
   const asset = { id: 'facade-0123456789abcdef', name: 'Bay' } as unknown as FacadeAssetV1;
-  const library = (uses: { scenario: string; typeIds: string[] }[]) => {
+  const library = (uses: { scenario: string; cards: string[] }[]) => {
     const calls: unknown[] = [];
     const facades = {
       assets: [asset],
@@ -467,7 +475,7 @@ describe('removing a used façade (confirmation) and the Materials dialog', () =
   });
 
   it('a used façade asks first, names where it is used; Cancel keeps it, OK replaces its uses with Automatic', () => {
-    const uses = [{ scenario: 'Scenario 1', typeIds: ['gallery', 'studio'] }, { scenario: 'Option B', typeIds: ['gallery'] }];
+    const uses = [{ scenario: 'Scenario 1', cards: ['gallery', 'studio'] }, { scenario: 'Option B', cards: ['gallery'] }];
     const question = removeFacadeQuestion(asset, uses);
     expect(question).toContain('Scenario 1: gallery, studio');
     expect(question).toContain('Option B: gallery');
@@ -476,7 +484,7 @@ describe('removing a used façade (confirmation) and the Materials dialog', () =
     expect(confirmAndRemoveFacade(cancelled.facades, asset, () => false)).toBeNull();
     expect(cancelled.calls).toEqual([]);
     const confirmed = library(uses);
-    expect(confirmAndRemoveFacade(confirmed.facades, asset, () => true)).toBe('Removed “Bay”; 3 functions are Automatic again.');
+    expect(confirmAndRemoveFacade(confirmed.facades, asset, () => true)).toBe('Removed “Bay”; 3 styles are Automatic again.');
     expect(confirmed.calls).toEqual([[asset.id, { replaceUses: true }]]);
   });
 

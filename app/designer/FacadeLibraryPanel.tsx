@@ -39,7 +39,7 @@ export interface DesignerFacades {
   /** Remove a façade; with `replaceUses`, every function using it goes back to Automatic first. */
   readonly remove: (assetId: string, options?: { readonly replaceUses?: boolean }) => Outcome;
   /** Where a façade is used (scenario name, function type ids), for the removal confirmation. */
-  readonly uses?: (assetId: string) => readonly { readonly scenario: string; readonly typeIds: readonly string[] }[];
+  readonly uses?: (assetId: string) => readonly { readonly scenario: string; readonly cards: readonly string[] }[];
   readonly rename: (assetId: string, name: string) => Outcome;
   /** Colour and finish per material group for one use (Materials dialog); `null` = a bay uses the façade's. */
   readonly setMaterials: (assetId: string, materials: readonly FacadeMaterial[] | null, role?: FacadeRole) => Outcome;
@@ -374,9 +374,9 @@ export function FacadeLibrarySection({ facades }: { readonly facades: DesignerFa
 }
 
 /** The confirmation text for removing a façade that is in use (pure; exported for tests). */
-export function removeFacadeQuestion(asset: Pick<FacadeAssetV1, 'name'>, uses: readonly { readonly scenario: string; readonly typeIds: readonly string[] }[]): string {
-  const where = uses.map((u) => `• ${u.scenario}: ${u.typeIds.join(', ')}`).join('\n');
-  return `“${asset.name}” is used by:\n${where}\n\nRemove it anyway? Those functions (and door / open bays) go back to Automatic. Undo in a scenario restores its setting, but the removed façade itself is not restored.`;
+export function removeFacadeQuestion(asset: Pick<FacadeAssetV1, 'name'>, uses: readonly { readonly scenario: string; readonly cards: readonly string[] }[]): string {
+  const where = uses.map((u) => `• ${u.scenario}: ${u.cards.join(', ')}`).join('\n');
+  return `“${asset.name}” is used by:\n${where}\n\nRemove it anyway? Those styles (and door / open bays) go back to Automatic. Undo in a scenario restores its setting, but the removed façade itself is not restored.`;
 }
 
 /**
@@ -388,6 +388,6 @@ export function confirmAndRemoveFacade(facades: DesignerFacades, asset: FacadeAs
   if (uses.length > 0 && !confirm(removeFacadeQuestion(asset, uses))) return null;
   const outcome = facades.remove(asset.id, { replaceUses: uses.length > 0 });
   if (!outcome.ok) return outcome.message;
-  const count = uses.reduce((n, u) => n + u.typeIds.length, 0);
-  return uses.length > 0 ? `Removed “${asset.name}”; ${count} ${count === 1 ? 'function is' : 'functions are'} Automatic again.` : `Removed “${asset.name}”.`;
+  const count = uses.reduce((n, u) => n + u.cards.length, 0);
+  return uses.length > 0 ? `Removed “${asset.name}”; ${count} ${count === 1 ? 'style is' : 'styles are'} Automatic again.` : `Removed “${asset.name}”.`;
 }

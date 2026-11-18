@@ -386,9 +386,11 @@ await step('workflow/export-v2', async () => {
   expect(room && JSON.stringify(room.size) === '[2,1,1]' && JSON.stringify(room.grid) === '[5,0,0]', `new room ${JSON.stringify(room)}`);
   const corridor = d.edges.find((e) => (e.source === newId || e.target === newId) && e.connectorStyle);
   expect(corridor?.connectorStyle === 'deck', `connector edge ${JSON.stringify(corridor)}`);
-  const ta = d.settings?.typeAppearance ?? {};
-  expect(Object.values(ta).some((a) => a.windowFraction === 0.6) && Object.values(ta).some((a) => a.roof === 'none'), `typeAppearance ${JSON.stringify(ta)}`);
-  return `${exported.file}: v2, ${d.nodes.length} rooms, ${d.edges.length} relationships, typeAppearance ${JSON.stringify(ta)}`;
+  // Function cards ("Style rooms by", 2026-11-18): settings.styles.function.groups[].look.
+  const cards = (d.settings?.styles?.function?.groups ?? []).map((g) => g.look);
+  expect(d.settings?.styleBy === 'function', `styleBy ${d.settings?.styleBy}`);
+  expect(cards.some((a) => a.windowFraction === 0.6) && cards.some((a) => a.roof === 'none'), `function cards ${JSON.stringify(cards)}`);
+  return `${exported.file}: v2, ${d.nodes.length} rooms, ${d.edges.length} relationships, function cards ${JSON.stringify(cards)}`;
 });
 
 await step('workflow/reimport-roundtrip', async () => {
@@ -504,7 +506,7 @@ await step('fail/unknown-type-import', async () => {
     ],
     edges: [{ id: 'ab', source: 'a', target: 'b', kind: 'access', attributes: {} }],
     diagram: { positions: {} },
-    settings: { typeAppearance: {} },
+    settings: { styleBy: 'function', styles: {} },
   };
   const errorsBefore = consoleErrors.length;
   await evaluate(`__wf.tab('project'); true`);

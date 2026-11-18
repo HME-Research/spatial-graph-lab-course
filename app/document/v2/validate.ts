@@ -140,8 +140,8 @@ export function checkDocumentV2Invariants(doc: DesignDocumentV2, options: Valida
       issues.push(issue(['diagram', 'positions', nodeId], 'unknown-node-position', `diagram position refers to missing node "${nodeId}"`));
     }
   }
-  // settings.typeAppearance entries for types no node uses (or the project does not define) are
-  // tolerated: conformance reports them, validation does not.
+  // Style cards for values no room has (or attributes the project does not define) are tolerated:
+  // the Designer reports them, validation does not.
 
   return byLocation([...structural, ...issues]);
 }

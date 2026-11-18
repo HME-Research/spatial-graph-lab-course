@@ -1,10 +1,12 @@
+import { functionLooks, functionStyleSettings } from './index';
 import { describe, expect, it } from 'vitest';
 import exampleJson from '../examples/two-storey-example.json?raw';
 import { isFaceAdjacent } from '../adjacency';
 import { parseDesignJson, serializeDesign } from '../serialize';
 import { expectIssue, expectOk, threeRoomsRaw } from '../test-fixtures';
 import {
-  effectiveTypeAppearance,
+  effectiveLook,
+  styleSetupOf,
   footprintCells,
   migrateV1toV2,
   nextDisplayId,
@@ -20,6 +22,10 @@ import {
   type DesignDocumentV2,
 } from './index';
 import { v2Raw } from './test-fixtures';
+
+/** Effective look of a function's rooms (its card → Default → base). */
+const fnLook = (doc: Pick<DesignDocumentV2, 'settings'>, typeId: string, base: { windowFraction: number }) =>
+  effectiveLook(styleSetupOf(doc.settings, 'function'), { kind: 'value', value: typeId }, base);
 
 describe('v1 → v2 migration (frozen mapping)', () => {
   const v1 = expectOk(parseDesignJson(exampleJson));
@@ -40,7 +46,7 @@ describe('v1 → v2 migration (frozen mapping)', () => {
     );
     expect(v2.diagram).toEqual(v1.diagram);
     expect(v2.metadata).toEqual(v1.metadata);
-    expect(v2.settings).toEqual({ typeAppearance: {} });
+    expect(v2.settings).toEqual({ styleBy: 'function', styles: {} });
     expect(v2.edges.some((e) => 'connectorStyle' in e)).toBe(false);
   });
 
@@ -83,7 +89,7 @@ describe('reading and writing (compatibility policy)', () => {
   it('round-trips v2-only data (size, displayId, connector style, appearance overrides)', () => {
     const raw = v2Raw();
     raw.edges[0]!.connectorStyle = 'deck';
-    raw.settings = { typeAppearance: { gallery: { windowFraction: 0.3 }, studio: { roof: 'none' } } };
+    raw.settings = functionStyleSettings({ gallery: { windowFraction: 0.3 }, studio: { roof: 'none' } });
     const doc = expectOk(readDesign(raw)).doc;
     const back = expectOk(readDesignJson(serializeDesignV2(doc))).doc;
     expect(back).toEqual(doc);
@@ -95,12 +101,12 @@ describe('reading and writing (compatibility policy)', () => {
   it('round-trips an imported façade with door / open bay variants in canonical order', () => {
     const raw = v2Raw();
     const facade = { open: { flip: true, assetId: 'facade-00000000000000bb' }, door: { assetId: 'facade-00000000000000aa' }, placement: 'stretch', assetId: 'facade-0123456789abcdef' };
-    raw.settings = { typeAppearance: { gallery: { facade } } } as typeof raw.settings;
+    raw.settings = functionStyleSettings({ gallery: { facade } } as never);
     const doc = expectOk(readDesign(raw)).doc;
     const text = serializeDesignV2(doc);
     const back = expectOk(readDesignJson(text)).doc;
     expect(back).toEqual(doc);
-    expect(JSON.stringify(back.settings.typeAppearance.gallery!.facade)).toBe(
+    expect(JSON.stringify(functionLooks(back.settings).gallery!.facade)).toBe(
       '{"assetId":"facade-0123456789abcdef","placement":"stretch","door":{"assetId":"facade-00000000000000aa"},"open":{"assetId":"facade-00000000000000bb","flip":true}}',
     );
     expect(text.indexOf('"door"')).toBeLessThan(text.indexOf('"open"'));
@@ -200,42 +206,42 @@ describe('display ids and appearance settings', () => {
 
   it('design overrides win; omitted values inherit the project default and the flat roof', () => {
     const raw = v2Raw();
-    raw.settings = { typeAppearance: { gallery: { windowFraction: 0.3 } } };
+    raw.settings = functionStyleSettings({ gallery: { windowFraction: 0.3 } });
     const doc: DesignDocumentV2 = expectOk(validateDocumentV2(raw));
-    expect(effectiveTypeAppearance(doc, 'gallery', { windowFraction: 0.7 })).toEqual({
+    expect(fnLook(doc, 'gallery', { windowFraction: 0.7 })).toEqual({
       windowFraction: 0.3,
       windowLayout: 'repeat',
       walls: 'enclosed',
       roof: 'flat',
       facade: null,
-      source: { windowFraction: 'design', windowLayout: 'default', walls: 'default', roof: 'default', facade: 'default' },
+      source: { windowFraction: 'card', windowLayout: 'base', walls: 'base', roof: 'base', facade: 'base' },
     });
-    expect(effectiveTypeAppearance(doc, 'studio', { windowFraction: 0.25 }).windowFraction).toBe(0.25);
-    expect(effectiveTypeAppearance(doc, 'constructor', { windowFraction: 0.1 }).windowFraction).toBe(0.1);
+    expect(fnLook(doc, 'studio', { windowFraction: 0.25 }).windowFraction).toBe(0.25);
+    expect(fnLook(doc, 'constructor', { windowFraction: 0.1 }).windowFraction).toBe(0.1);
     expect(connectorStyleOf(doc.edges[0]!)).toBe('deck');
   });
 
   it('window layout is stored per type (default repeat), round-trips, and unknown layouts are rejected', () => {
     const raw = v2Raw();
-    raw.settings = { typeAppearance: { gallery: { windowLayout: 'stretch' } } };
+    raw.settings = functionStyleSettings({ gallery: { windowLayout: 'stretch' } });
     const doc: DesignDocumentV2 = expectOk(validateDocumentV2(raw));
-    expect(effectiveTypeAppearance(doc, 'gallery', { windowFraction: 0.7 })).toMatchObject({
+    expect(fnLook(doc, 'gallery', { windowFraction: 0.7 })).toMatchObject({
       windowFraction: 0.7,
       windowLayout: 'stretch',
-      source: { windowFraction: 'project', windowLayout: 'design' },
+      source: { windowFraction: 'base', windowLayout: 'card' },
     });
-    expect(effectiveTypeAppearance(doc, 'studio', { windowFraction: 0.25 }).windowLayout).toBe('repeat');
+    expect(fnLook(doc, 'studio', { windowFraction: 0.25 }).windowLayout).toBe('repeat');
     const text = serializeDesignV2(doc);
     expect(text).toContain('"windowLayout": "stretch"');
-    expect(expectOk(readDesignJson(text)).doc.settings.typeAppearance).toEqual({ gallery: { windowLayout: 'stretch' } });
+    expect(functionLooks(expectOk(readDesignJson(text)).doc.settings)).toEqual({ gallery: { windowLayout: 'stretch' } });
     const bad = v2Raw();
-    bad.settings = { typeAppearance: { gallery: { windowLayout: 'scatter' } } };
-    expectIssue(validateDocumentV2(bad), 'schema', ['settings', 'typeAppearance', 'gallery', 'windowLayout']);
+    bad.settings = functionStyleSettings({ gallery: { windowLayout: 'scatter' as never } });
+    expectIssue(validateDocumentV2(bad), 'schema', ['settings', 'styles', 'function', 'groups', 0, 'look', 'windowLayout']);
   });
 
   it('rejects window fractions outside [0, 1]', () => {
     const raw = v2Raw();
-    raw.settings = { typeAppearance: { gallery: { windowFraction: 1.2 } } };
-    expectIssue(validateDocumentV2(raw), 'schema', ['settings', 'typeAppearance', 'gallery', 'windowFraction']);
+    raw.settings = functionStyleSettings({ gallery: { windowFraction: 1.2 } });
+    expectIssue(validateDocumentV2(raw), 'schema', ['settings', 'styles', 'function', 'groups', 0, 'look', 'windowFraction']);
   });
 });

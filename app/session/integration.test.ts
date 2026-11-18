@@ -1,3 +1,4 @@
+import {  } from '@app/document/v2';
 import { describe, expect, it } from 'vitest';
 import exampleDesign from '../document/examples/two-storey-example.json';
 import { validateDocument } from '@app/document';
@@ -102,7 +103,7 @@ describe('v2 document session (one command = one history step)', () => {
 
   it('export marks the clean state; v2 export re-reads to the same content', () => {
     let s = openDocument(example(), 'test', null);
-    const r = applyDesignCommandToSession(s, { type: 'set-type-appearance', typeId: 'gallery', patch: { windowFraction: 0.6 } });
+    const r = applyDesignCommandToSession(s, { type: 'set-look', by: 'function', group: { kind: 'value', value: 'gallery' }, patch: { windowFraction: 0.6 } });
     if (!r.ok) throw new Error('expected ok');
     s = markExported(r.session, currentDocument(r.session));
     expect(isModified(s)).toBe(false);
@@ -118,7 +119,7 @@ describe('undo labels name what changes', () => {
     [{ type: 'set-node-geometry', nodeId: 'b', grid: [5, 0, 0], size: [2, 1, 1] }, 'Resize room 02 to 2×1×1'],
     [{ type: 'set-node-geometry', nodeId: 'b', grid: [6, 0, 0], size: [2, 1, 1] }, 'Move and resize room 02'],
     [{ type: 'add-node', node: { id: 'n', grid: [9, 9, 0], typeId: 'x' } }, 'Add room 03'],
-    [{ type: 'set-type-appearance', typeId: 'gallery', patch: { roof: 'none' } }, 'Change Designer settings for gallery'],
+    [{ type: 'set-look', by: 'function', group: { kind: 'value', value: 'gallery' }, patch: { roof: 'none' } }, 'Change Designer settings for gallery'],
   ] as const)('%j → %s', (command, label) => {
     expect(designCommandLabel(command as Parameters<typeof designCommandLabel>[0], doc)).toBe(label);
   });

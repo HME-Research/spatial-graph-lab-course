@@ -1,6 +1,19 @@
 import { DEFAULT_CELL_SIZE, type CellSize } from '@core/viewer/coordinates';
 import { DEFAULT_WALL_THICKNESS, groupWallRuns, layoutFace, type FaceFrame, type ResolvedFace } from '@app/building';
-import { effectiveTypeAppearance, FACADE_VARIANTS, type DesignDocumentV2, type FacadeModule, type FacadePlacement, type FacadeVariantKind } from '@app/document/v2';
+import {
+  FACADE_VARIANTS,
+  lookAssetIds,
+  storedLooks,
+  type DesignDocumentV2,
+  type FacadeModule,
+  type FacadePlacement,
+  type FacadeVariantKind,
+  type Look,
+  type NodeLook,
+  type StyleBy,
+  type StyleGroupRef,
+  type StyleSetup,
+} from '@app/document/v2';
 import { placeComponent, targetFromFaceFrame, targetFromWallRun, type ComponentSize } from './facadeAdapter';
 
 /**
@@ -10,8 +23,8 @@ import { placeComponent, targetFromFaceFrame, targetFromWallRun, type ComponentS
  * INNER surface (half a wall thickness inside the centre plane), and the Building view hides the
  * wall and Designer windows of every face a module covers (`FacadeModuleInstance.faceIds`).
  *
- * Which walls: exterior wall faces of rooms whose type's effective façade (`effectiveTypeAppearance`
- * = the type's own module; there is no design-wide default) is a module and whose walls are `enclosed`. Faces of
+ * Which walls: exterior wall faces of rooms whose effective look (`nodeLooks`: the room's card
+ * under "Style rooms by", else Default) has a module and whose walls are `enclosed`. Faces of
  * other conditions (shared walls, interior doors and open sides) never get the wall module.
  *
  * Door and Open bays on the façade (`outside` faces: the end of an open-air connector, condition
@@ -61,69 +74,78 @@ const isVariant = (condition: string): condition is FacadeVariantKind => (FACADE
 
 export const EMPTY_FACADE_MODULES: FacadeModuleLayout = Object.freeze({ instances: [], missingAssets: [] });
 
-/** True when the design uses any imported façade (any type's module). */
+/** True when any stored look of the design (any remembered setup) uses an imported façade. */
 export function designUsesFacadeModules(doc: Pick<DesignDocumentV2, 'settings'>): boolean {
-  return Object.values(doc.settings.typeAppearance).some((a) => a.facade !== undefined);
+  for (const { look } of storedLooks(doc.settings)) if (look.facade !== undefined) return true;
+  return false;
 }
 
-/** Every asset id a design refers to (its types' modules), sorted. */
+/** Every asset id a design refers to (any card of any remembered setup), sorted. */
 export function facadeAssetIdsOf(doc: Pick<DesignDocumentV2, 'settings'>): string[] {
   const ids = new Set<string>();
-  for (const a of Object.values(doc.settings.typeAppearance)) {
-    if (!a.facade) continue;
-    ids.add(a.facade.assetId);
-    for (const v of FACADE_VARIANTS) if (a.facade[v]) ids.add(a.facade[v].assetId);
-  }
+  for (const { look } of storedLooks(doc.settings)) for (const id of lookAssetIds(look)) ids.add(id);
   return [...ids].sort();
 }
 
-/** Type ids whose façade uses `assetId` (as the façade or a door / open bay), sorted. */
-export function typesUsingFacade(doc: Pick<DesignDocumentV2, 'settings'>, assetId: string): string[] {
-  return Object.entries(doc.settings.typeAppearance)
-    .filter(([, a]) => a.facade && (a.facade.assetId === assetId || FACADE_VARIANTS.some((v) => a.facade?.[v]?.assetId === assetId)))
-    .map(([typeId]) => typeId)
-    .sort();
+/** Readable name of a card, e.g. "gallery", "Default", "Area band 2" (`by` is the setup's attribute). */
+export function styleCardName(by: StyleBy, group: StyleGroupRef): string {
+  if (group.kind === 'default') return by === 'function' ? 'Default' : `Default (${by})`;
+  if (group.kind === 'band') return `${by} band ${group.index + 1}`;
+  return by === 'function' ? String(group.value) : `${by} = ${String(group.value)}`;
+}
+
+/** Cards (any remembered setup) whose façade or door / open bay uses `assetId`, as readable names. */
+export function cardsUsingFacade(doc: Pick<DesignDocumentV2, 'settings'>, assetId: string): string[] {
+  const out: string[] = [];
+  for (const { by, group, look } of storedLooks(doc.settings)) if (lookAssetIds(look).includes(assetId)) out.push(styleCardName(by, group));
+  return out;
+}
+
+/** The look without any use of `assetId` (a façade that IS it is removed; a bay using it loses that bay). */
+function lookWithout(look: Look, assetId: string): Look {
+  if (!look.facade) return look;
+  const { facade, ...rest } = look;
+  if (facade.assetId === assetId) return rest;
+  const kept = { ...facade };
+  for (const v of FACADE_VARIANTS) if (kept[v]?.assetId === assetId) delete kept[v];
+  return { ...rest, facade: kept };
 }
 
 /**
- * The design with every use of `assetId` replaced by the automatic geometry (pure): a function
- * whose façade IS that asset loses its façade (Automatic, its bays too); a door / open bay using
- * it loses only that bay module. Returns the same object when nothing uses it.
+ * The design with every use of `assetId` replaced by the automatic geometry (pure), in every
+ * remembered setup. Returns the same object when nothing uses it.
  */
 export function withoutFacadeAsset<D extends Pick<DesignDocumentV2, 'settings'>>(doc: D, assetId: string): D {
-  if (typesUsingFacade(doc, assetId).length === 0) return doc;
-  const typeAppearance = Object.fromEntries(
-    Object.entries(doc.settings.typeAppearance).flatMap(([typeId, a]) => {
-      if (!a.facade) return [[typeId, a]];
-      const { facade, ...rest } = a;
-      // No façade left and nothing else changed: the type inherits everything again (as the command writes it).
-      if (facade.assetId === assetId) return Object.keys(rest).length > 0 ? [[typeId, rest]] : [];
-      const kept = { ...facade };
-      for (const v of FACADE_VARIANTS) if (kept[v]?.assetId === assetId) delete kept[v];
-      return [[typeId, { ...rest, facade: kept }]];
-    }),
+  if (cardsUsingFacade(doc, assetId).length === 0) return doc;
+  const styles = Object.fromEntries(
+    Object.entries(doc.settings.styles).map(([by, setup]): [string, StyleSetup] => [
+      by,
+      {
+        ...setup,
+        ...(setup.default ? { default: lookWithout(setup.default, assetId) } : {}),
+        ...(setup.groups ? { groups: setup.groups.map((g) => ({ value: g.value, look: lookWithout(g.look, assetId) })) } : {}),
+        ...(setup.bands ? { bands: setup.bands.map((b) => lookWithout(b, assetId)) } : {}),
+      },
+    ]),
   );
-  return { ...doc, settings: { ...doc.settings, typeAppearance } };
+  return { ...doc, settings: { ...doc.settings, styles } };
 }
 
 export function layoutFacadeModules(
   faces: readonly WallFace[],
-  doc: Pick<DesignDocumentV2, 'settings'>,
+  /** Per-room looks (`nodeLooks` / `buildingFacesV2(...).looks` / `BuildingModelV2.looks`). */
+  looks: ReadonlyMap<string, NodeLook>,
   sizeOf: (assetId: string) => ComponentSize | null,
   options: FacadeModuleOptions = {},
 ): FacadeModuleLayout {
-  if (!designUsesFacadeModules(doc)) return EMPTY_FACADE_MODULES;
+  if (![...looks.values()].some((l) => l.look.facade !== null)) return EMPTY_FACADE_MODULES;
   const cell = options.cell ?? DEFAULT_CELL_SIZE;
   const wallThickness = options.wallThickness ?? DEFAULT_WALL_THICKNESS;
   const optionsFor = (module: FacadeModule) => ({ mountOffset: -wallThickness / 2, flip: module.flip === true });
 
-  const moduleOfType = new Map<string, FacadeModule | null>();
-  const moduleOf = (typeId: string): FacadeModule | null => {
-    if (!moduleOfType.has(typeId)) {
-      const effective = effectiveTypeAppearance(doc, typeId, { windowFraction: 0 });
-      moduleOfType.set(typeId, effective.walls === 'enclosed' ? effective.facade : null);
-    }
-    return moduleOfType.get(typeId)!;
+  const moduleOf = (nodeId: string): FacadeModule | null => {
+    const look = looks.get(nodeId)?.look;
+    return look && look.walls === 'enclosed' ? look.facade : null;
   };
 
   const missing = new Set<string>();
@@ -133,7 +155,7 @@ export function layoutFacadeModules(
     return size;
   };
 
-  const eligible = faces.filter((f) => f.orientation === 'wall' && f.condition === 'exterior' && moduleOf(f.ownerTypeId) !== null);
+  const eligible = faces.filter((f) => f.orientation === 'wall' && f.condition === 'exterior' && moduleOf(f.ownerNodeId) !== null);
   const frames = new Map<string, FaceFrame>();
   const frameOf = (face: WallFace): FaceFrame => {
     let frame = frames.get(face.id);
@@ -146,7 +168,7 @@ export function layoutFacadeModules(
 
   const instances: FacadeModuleInstance[] = [];
   for (const face of eligible) {
-    const module = moduleOf(face.ownerTypeId)!;
+    const module = moduleOf(face.ownerNodeId)!;
     if (module.placement !== 'repeat') continue;
     const size = sized(module);
     if (!size) continue;
@@ -165,13 +187,13 @@ export function layoutFacadeModules(
     });
   }
 
-  const stretchFaces = eligible.filter((f) => moduleOf(f.ownerTypeId)!.placement === 'stretch');
+  const stretchFaces = eligible.filter((f) => moduleOf(f.ownerNodeId)!.placement === 'stretch');
   if (stretchFaces.length > 0) {
     const byId = new Map(stretchFaces.map((f) => [f.id, f] as const));
     for (const run of groupWallRuns(stretchFaces)) {
       const runFaces = run.faceIds.map((id) => byId.get(id)!);
       const first = runFaces[0]!;
-      const module = moduleOf(first.ownerTypeId)!;
+      const module = moduleOf(first.ownerNodeId)!;
       const size = sized(module);
       if (!size) continue;
       const placed = placeComponent(size, targetFromWallRun(runFaces.map(frameOf), cell), optionsFor(module));
@@ -193,7 +215,7 @@ export function layoutFacadeModules(
   // Door / Open bays on the façade: the function's variant module, one per bay (if set).
   for (const face of faces) {
     if (face.orientation !== 'wall' || !face.outside || !isVariant(face.condition)) continue;
-    const module = moduleOf(face.ownerTypeId);
+    const module = moduleOf(face.ownerNodeId);
     const variant = module?.[face.condition];
     if (!variant) continue;
     const size = sized(variant);

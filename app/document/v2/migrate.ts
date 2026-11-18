@@ -18,7 +18,7 @@ import type { DesignDocumentV2 } from './schema';
  *   vertical-access/atrium are vertical. The direct-contact building semantics are therefore
  *   unchanged (door → door wall, open → no wall, atrium → slab void, vertical-access → slab
  *   opening + access marker).
- * - `settings` is empty: every type inherits its project façade; roofs default to flat (the
+ * - `settings` is empty (styled by Function, no cards): every room inherits its toolkit façade; roofs default to flat (the
  *   one visible difference from v1's open-top Architecture view).
  *
  * Expects a VALIDATED v1 document (use readDesign for raw input).
@@ -46,7 +46,7 @@ export function migrateV1toV2(doc: DesignDocument): DesignDocumentV2 {
       attributes: { ...e.attributes },
     })),
     diagram: { positions: Object.fromEntries(Object.entries(doc.diagram.positions).map(([k, p]) => [k, [p[0], p[1]]])) },
-    settings: { typeAppearance: {} },
+    settings: { styleBy: 'function', styles: {} },
   };
 }
 

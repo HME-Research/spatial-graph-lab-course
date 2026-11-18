@@ -1,6 +1,6 @@
 import { gridKey, type GridCoord } from '@core/spatial';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize } from '@core/viewer/coordinates';
-import { levelRange, nodeLabel, type DesignDocumentV2, type RoomNode } from '@app/document/v2';
+import { levelRange, nodeLabel, type DesignDocumentV2, type RoomNode, type StyleValues } from '@app/document/v2';
 import type { SpatialResolution } from '@app/spatial';
 import type { FacadeProvider } from './contracts';
 import { buildingFacesV2 } from './buildingV2';
@@ -147,6 +147,8 @@ const EPS = 1e-9;
 export interface PlanSourceOptions extends PlanOptions {
   /** Project façade defaults, as passed to `buildBuildingV2`. */
   readonly facade?: FacadeProvider;
+  /** Values of the styling attribute, as passed to `buildBuildingV2`. */
+  readonly styleValues?: StyleValues;
 }
 
 /**
@@ -155,12 +157,13 @@ export interface PlanSourceOptions extends PlanOptions {
  * be the resolution of `doc` (`DesignPort.spatial`).
  */
 export function planSourceV2(doc: DesignDocumentV2, spatial: SpatialResolution, options: PlanSourceOptions = {}): PlanSource {
-  const { faces, facade, windowLayout, walls, roof } = buildingFacesV2(doc, spatial, options.facade);
+  const { faces, facade, windowLayout, walls, roof, styleKey } = buildingFacesV2(doc, spatial, options.facade, options.styleValues);
   const layouts = layoutFaces(faces, {
     facade,
     windowLayout,
     walls,
     roof,
+    styleKey,
     ...(options.cell ? { cell: options.cell } : {}),
     ...(options.wallThickness !== undefined ? { wallThickness: options.wallThickness } : {}),
   });

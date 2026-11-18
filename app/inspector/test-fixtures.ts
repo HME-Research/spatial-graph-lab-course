@@ -28,7 +28,7 @@ export function corridorRaw() {
     ],
     edges: [{ id: 'ab', source: 'a', target: 'b', kind: 'access', attributes: {} }],
     diagram: { positions: {} },
-    settings: { typeAppearance: {} },
+    settings: { styleBy: 'function', styles: {} },
   };
 }
 

@@ -1,4 +1,4 @@
-import { effectiveTypeAppearance, type ConnectorStyle, type DesignDocumentV2 } from '@app/document/v2';
+import { nodeLooks, type ConnectorStyle, type DesignDocumentV2, type NodeLook, type StyleValues } from '@app/document/v2';
 import { resolveRelationships, type ResolutionStatus, type SpatialResolution, type UnresolvedReason } from '@app/spatial';
 import type { FacadeProvider } from './contracts';
 import type { RoofStyleProvider, WallStyleProvider, WindowLayoutProvider } from './faceLayout';
@@ -6,7 +6,7 @@ import { buildConnector, type ConnectorElement } from './connectorGeometry';
 import { exampleFacadeProvider } from './facade';
 import { buildArchitecture, type ArchitectureOptions, type ArchitecturalElement } from './geometry';
 import { resolveBuildingFaces, toResolvedFace, type BuildingFace } from './multicellFaces';
-import { applyRoofPolicy } from './roofGeometry';
+import { isExposedTop } from './roofGeometry';
 
 /**
  * Schema-v2 building generator (03-building). Pure entry point:
@@ -25,14 +25,16 @@ import { applyRoofPolicy } from './roofGeometry';
  * `spatial` must be the resolution of `doc` (the host derives it once: `DesignPort.spatial`).
  * When omitted it is computed with `resolveRelationships(doc)`.
  *
- * Façade: window fraction per type = design override (`settings.typeAppearance`) → project
- * `facade(typeId)` → example provider. Roof: design override → `flat`.
+ * Façade and roof per ROOM (`nodeLooks`: the room's card under "Style rooms by" → Default →
+ * project `facade(typeId)` → example provider / built-in). Faces are styled by `ownerNodeId`.
  */
 
 export interface BuildingV2Options extends Omit<ArchitectureOptions, 'facade'> {
   readonly spatial?: SpatialResolution;
   /** Project façade defaults (e.g. the active project's provider); example façades otherwise. */
   readonly facade?: FacadeProvider;
+  /** Values of the styling attribute that the document cannot read itself (custom / measured). */
+  readonly styleValues?: StyleValues;
   readonly postSize?: number;
 }
 
@@ -65,41 +67,49 @@ export interface BuildingModelV2 {
   readonly elements: readonly ArchitecturalElement[];
   readonly connectors: readonly ConnectorElement[];
   readonly relationships: readonly RelationshipBuildInfo[];
+  /** Effective look of every room (node id → card + look), as used for the faces. */
+  readonly looks: ReadonlyMap<string, NodeLook>;
 }
 
 /**
- * The building faces and effective façade of `doc`, exactly as `buildBuildingV2` uses them
- * (`resolveBuildingFaces` → `applyRoofPolicy`; window fraction = design override → `base` →
- * example). Shared with the Plan (`planSourceV2`) so both views lay out the same faces.
+ * The building faces and effective per-room look of `doc`, exactly as `buildBuildingV2` uses them
+ * (`resolveBuildingFaces` → roofs of `none` rooms removed). The providers are keyed by node id
+ * (`styleKey: 'node'`). Shared with the Plan (`planSourceV2`) so both views lay out the same faces.
  */
 export function buildingFacesV2(
   doc: DesignDocumentV2,
   spatial: SpatialResolution,
   base: FacadeProvider = exampleFacadeProvider,
+  styleValues?: StyleValues,
 ): {
   readonly faces: BuildingFace[];
   readonly facade: FacadeProvider;
   readonly windowLayout: WindowLayoutProvider;
   readonly walls: WallStyleProvider;
   readonly roof: RoofStyleProvider;
+  readonly styleKey: 'node';
+  readonly looks: ReadonlyMap<string, NodeLook>;
 } {
-  const appearance = (typeId: string) => effectiveTypeAppearance(doc, typeId, base(typeId));
-  const facade: FacadeProvider = (typeId) => ({ windowFraction: appearance(typeId).windowFraction });
-  const windowLayout: WindowLayoutProvider = (typeId) => appearance(typeId).windowLayout;
-  const walls: WallStyleProvider = (typeId) => appearance(typeId).walls;
-  const roof: RoofStyleProvider = (typeId) => appearance(typeId).roof;
-  const faces = applyRoofPolicy(resolveBuildingFaces(doc, spatial), (t) => appearance(t).roof);
-  return { faces, facade, windowLayout, walls, roof };
+  const looks = nodeLooks(doc, base, styleValues);
+  // A face's owner is always a room of `doc`; the example default only guards a stale resolution.
+  const look = (nodeId: string) => looks.get(nodeId)?.look;
+  const facade: FacadeProvider = (nodeId) => ({ windowFraction: look(nodeId)?.windowFraction ?? 0 });
+  const windowLayout: WindowLayoutProvider = (nodeId) => look(nodeId)?.windowLayout ?? 'repeat';
+  const walls: WallStyleProvider = (nodeId) => look(nodeId)?.walls ?? 'enclosed';
+  const roof: RoofStyleProvider = (nodeId) => look(nodeId)?.roof ?? 'flat';
+  const faces = resolveBuildingFaces(doc, spatial).filter((f) => !isExposedTop(f) || roof(f.ownerNodeId) !== 'none');
+  return { faces, facade, windowLayout, walls, roof, styleKey: 'node', looks };
 }
 
 export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Options = {}): BuildingModelV2 {
   const spatial = options.spatial ?? resolveRelationships(doc);
-  const { faces, facade, windowLayout, walls, roof } = buildingFacesV2(doc, spatial, options.facade ?? exampleFacadeProvider);
+  const { faces, facade, windowLayout, walls, roof, styleKey, looks } = buildingFacesV2(doc, spatial, options.facade ?? exampleFacadeProvider, options.styleValues);
   const elements = buildArchitecture(faces.map(toResolvedFace), {
     facade,
     windowLayout,
     walls,
     roof,
+    styleKey,
     ...(options.cell ? { cell: options.cell } : {}),
     ...(options.wallThickness !== undefined ? { wallThickness: options.wallThickness } : {}),
     ...(options.slabThickness !== undefined ? { slabThickness: options.slabThickness } : {}),
@@ -151,5 +161,5 @@ export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Option
         break;
     }
   }
-  return { faces, elements, connectors, relationships };
+  return { faces, elements, connectors, relationships, looks };
 }

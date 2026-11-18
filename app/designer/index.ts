@@ -1,7 +1,7 @@
 /**
- * Designer (06-designer): per-design, per-node-type window coverage and roof rules.
- * Uses the frozen v2 settings (`settings.typeAppearance`, `effectiveTypeAppearance`) and the
- * `set-type-appearance` command; never rewrites project type definitions.
+ * Designer (06-designer): per-design looks (windows, walls, roof, façade) per card of
+ * "Style rooms by" (`settings.styleBy` / `settings.styles`, `effectiveLook`), changed through
+ * `set-look` / `remove-style-group`; never rewrites project type definitions.
  */
 export * from './designerModel';
 export { DesignerPanel, type DesignerPanelProps } from './DesignerPanel';

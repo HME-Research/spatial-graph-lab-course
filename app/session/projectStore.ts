@@ -26,7 +26,7 @@ import {
   facadeAssetsBytes,
   finishOf,
   formatBytes,
-  typesUsingFacade,
+  cardsUsingFacade,
   withFinish,
   withoutFacadeAsset,
   type FacadeAssetV1,
@@ -485,13 +485,14 @@ export function scenariosUsingFacade(project: OpenProject, assetId: string): str
 export interface FacadeUse {
   readonly scenarioId: string;
   readonly scenario: string;
-  readonly typeIds: readonly string[];
+  /** Designer cards using it (readable names, e.g. "gallery", "Default"). */
+  readonly cards: readonly string[];
 }
 
 export function facadeUses(project: OpenProject, assetId: string): FacadeUse[] {
   return project.scenarios.flatMap((s) => {
-    const typeIds = typesUsingFacade(currentDocument(s.session).design, assetId);
-    return typeIds.length > 0 ? [{ scenarioId: s.id, scenario: s.name, typeIds }] : [];
+    const cards = cardsUsingFacade(currentDocument(s.session).design, assetId);
+    return cards.length > 0 ? [{ scenarioId: s.id, scenario: s.name, cards }] : [];
   });
 }
 

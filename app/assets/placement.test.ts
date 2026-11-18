@@ -1,10 +1,11 @@
+import { functionLooks, functionStyleSettings } from '@app/document/v2';
 import { describe, expect, it } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
 import { validateDocumentV2, type DesignDocumentV2, type FacadeModule } from '@app/document/v2';
 import { buildBuildingV2, DEFAULT_WALL_THICKNESS, layoutFace, type BuildingFace, type Vec3 } from '@app/building';
 import { applyDesignCommand } from '@app/spatial';
 import type { GridCoord } from '@core/spatial';
-import { designUsesFacadeModules, distortedModules, EMPTY_FACADE_MODULES, facadeAssetIdsOf, layoutFacadeModules, typesUsingFacade, withoutFacadeAsset, type FacadeModuleInstance } from './placement';
+import { designUsesFacadeModules, distortedModules, EMPTY_FACADE_MODULES, facadeAssetIdsOf, layoutFacadeModules, cardsUsingFacade, withoutFacadeAsset, type FacadeModuleInstance } from './placement';
 
 const A1 = 'facade-0123456789abcdef';
 const A2 = 'facade-fedcba9876543210';
@@ -30,7 +31,7 @@ function design(settings: Record<string, unknown> = {}, nodes?: N[]): DesignDocu
       metadata: { name: 'facades' },
       nodes: rooms.map((n) => ({ id: n.id, grid: n.grid, size: n.size ?? [1, 1, 1], typeId: n.typeId })),
       edges: nodes ? [] : [{ id: 'ab', source: 'a', target: 'b', kind: 'access' }],
-      settings: { typeAppearance: {}, ...settings },
+      settings: { styleBy: 'function', styles: {}, ...settings },
     }),
   );
 }
@@ -38,11 +39,11 @@ function design(settings: Record<string, unknown> = {}, nodes?: N[]): DesignDocu
 const repeat = (assetId = A1): FacadeModule => ({ assetId, placement: 'repeat' });
 const stretch = (assetId = A1): FacadeModule => ({ assetId, placement: 'stretch' });
 /** The same module for both functions (there is no design-wide default; each function chooses). */
-const both = (m: FacadeModule) => ({ typeAppearance: { gallery: { facade: m }, studio: { facade: m } } });
+const both = (m: FacadeModule) => (functionStyleSettings({ gallery: { facade: m }, studio: { facade: m } }));
 
 function modules(doc: DesignDocumentV2) {
-  const faces = buildBuildingV2(doc).faces;
-  return { faces, layout: layoutFacadeModules(faces, doc, sizeOf) };
+  const built = buildBuildingV2(doc);
+  return { faces: built.faces, layout: layoutFacadeModules(built.faces, built.looks, sizeOf) };
 }
 
 const exteriorWalls = (faces: readonly BuildingFace[], owner?: string) =>
@@ -85,7 +86,7 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
   });
 
   it('Stretch fits one module across each wall run (3 bays → one 9 m module)', () => {
-    const doc = design({ typeAppearance: { gallery: { facade: stretch(A2) } } });
+    const doc = design(functionStyleSettings({ gallery: { facade: stretch(A2) } }));
     const { layout } = modules(doc);
     const a = layout.instances.filter((i) => i.ownerNodeId === 'a');
     expect(a.map((i) => [i.placement, i.faceIds.length]).sort()).toEqual([
@@ -110,22 +111,22 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
   });
 
   it('each function draws only its own module; a function without one gets none', () => {
-    const doc = design({ typeAppearance: { gallery: { facade: stretch(A2) }, studio: { windowFraction: 0.5 } } });
+    const doc = design(functionStyleSettings({ gallery: { facade: stretch(A2) }, studio: { windowFraction: 0.5 } }));
     const { layout } = modules(doc);
     expect(new Set(layout.instances.map((i) => i.ownerTypeId))).toEqual(new Set(['gallery']));
     expect(new Set(layout.instances.map((i) => i.assetId))).toEqual(new Set([A2]));
     expect(facadeAssetIdsOf(doc)).toEqual([A2]);
-    expect(facadeAssetIdsOf(design({ typeAppearance: { gallery: { facade: repeat(A2) }, studio: { facade: repeat(A1) } } }))).toEqual([A1, A2].sort());
+    expect(facadeAssetIdsOf(design(functionStyleSettings({ gallery: { facade: repeat(A2) }, studio: { facade: repeat(A1) } })))).toEqual([A1, A2].sort());
   });
 
   it('a design-wide default and "none" are not part of the format (refused)', () => {
     const base = { schemaVersion: 2, metadata: { name: 'x' }, nodes: [], edges: [] };
-    expect(validateDocumentV2({ ...base, settings: { typeAppearance: {}, facadeDefault: repeat() } }).ok).toBe(false);
-    expect(validateDocumentV2({ ...base, settings: { typeAppearance: { gallery: { facade: 'none' } } } }).ok).toBe(false);
+    expect(validateDocumentV2({ ...base, settings: { styleBy: 'function', styles: {}, facadeDefault: repeat() } }).ok).toBe(false);
+    expect(validateDocumentV2({ ...base, settings: { styleBy: 'function', styles: { function: { groups: [{ value: 'gallery', look: { facade: 'none' } }] } } } }).ok).toBe(false);
   });
 
   it('open-sided functions (no exterior walls) never get a module', () => {
-    const doc = design({ typeAppearance: { gallery: { walls: 'open', facade: repeat() }, studio: { facade: repeat() } } });
+    const doc = design(functionStyleSettings({ gallery: { walls: 'open', facade: repeat() }, studio: { facade: repeat() } }));
     const { layout } = modules(doc);
     expect(layout.instances.every((i) => i.ownerTypeId === 'studio')).toBe(true);
     expect(layout.instances).toHaveLength(3);
@@ -133,7 +134,7 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
 
   it('an asset missing from the project draws nothing and is reported', () => {
     const missing = 'facade-aaaaaaaaaaaaaaaa';
-    const doc = design({ typeAppearance: { gallery: { facade: repeat(missing) }, studio: { facade: repeat(A1) } } });
+    const doc = design(functionStyleSettings({ gallery: { facade: repeat(missing) }, studio: { facade: repeat(A1) } }));
     const { layout } = modules(doc);
     expect(layout.missingAssets).toEqual([missing]);
     expect(layout.instances.every((i) => i.assetId === A1 && i.ownerNodeId === 'b')).toBe(true);
@@ -142,7 +143,7 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
 
 describe('imported façade modules: mounting (Rhino coordinate adaptation; the module replaces the wall)', () => {
   /** A single room: four exterior walls with outward normals +X, −X, −Z (grid +y) and +Z (grid −y). */
-  const single = design({ typeAppearance: { gallery: { facade: repeat() } } }, [{ id: 'r', grid: [2, 5, 1], typeId: 'gallery' }]);
+  const single = design(functionStyleSettings({ gallery: { facade: repeat() } }), [{ id: 'r', grid: [2, 5, 1], typeId: 'gallery' }]);
   const { faces, layout } = modules(single);
   const t = DEFAULT_WALL_THICKNESS;
   const depth = 0.2;
@@ -170,8 +171,8 @@ describe('imported façade modules: mounting (Rhino coordinate adaptation; the m
 });
 
 describe('Outside +Y (flip): the module is turned round, not mirrored', () => {
-  const flipped = design({ typeAppearance: { gallery: { facade: { ...repeat(), flip: true } } } }, [{ id: 'r', grid: [2, 5, 1], typeId: 'gallery' }]);
-  const plain = design({ typeAppearance: { gallery: { facade: repeat() } } }, [{ id: 'r', grid: [2, 5, 1], typeId: 'gallery' }]);
+  const flipped = design(functionStyleSettings({ gallery: { facade: { ...repeat(), flip: true } } }), [{ id: 'r', grid: [2, 5, 1], typeId: 'gallery' }]);
+  const plain = design(functionStyleSettings({ gallery: { facade: repeat() } }), [{ id: 'r', grid: [2, 5, 1], typeId: 'gallery' }]);
   it.each(['+x', '-x', '+y', '-y'] as const)('wall %s: same bay and depth slot, other side out, a rotation', (direction) => {
     const f = modules(flipped);
     const p = modules(plain);
@@ -198,24 +199,27 @@ describe('Outside +Y (flip): the module is turned round, not mirrored', () => {
 describe('regression: imported façades never change the Building elements', () => {
   it('buildBuildingV2 output is identical with and without façade settings', () => {
     const plain = design();
-    const withFacades = design({ typeAppearance: { gallery: { facade: stretch(A2) }, studio: { facade: repeat(A1) } } });
-    expect(buildBuildingV2(withFacades)).toEqual(buildBuildingV2(plain));
+    const withFacades = design(functionStyleSettings({ gallery: { facade: stretch(A2) }, studio: { facade: repeat(A1) } }));
+    // Same faces, elements and connectors; only the per-room looks (which carry the module) differ.
+    const { looks: _withLooks, ...withRest } = buildBuildingV2(withFacades);
+    const { looks: _plainLooks, ...plainRest } = buildBuildingV2(plain);
+    expect(withRest).toEqual(plainRest);
   });
 
-  it('set-type-appearance sets and clears the façade of a function (one step each)', () => {
+  it('set-look sets and clears the façade of a function (one step each)', () => {
     const doc = design();
-    const set = expectOk(applyDesignCommand(doc, { type: 'set-type-appearance', typeId: 'studio', patch: { facade: stretch() } }));
-    expect(set.settings.typeAppearance.studio).toEqual({ facade: stretch() });
-    const cleared = expectOk(applyDesignCommand(set, { type: 'set-type-appearance', typeId: 'studio', patch: { facade: null } }));
-    expect(cleared.settings).toEqual(doc.settings);
-    expect(applyDesignCommand(doc, { type: 'set-type-appearance', typeId: 'studio', patch: { facade: { assetId: 'not-an-id', placement: 'repeat' } } }).ok).toBe(false);
+    const set = expectOk(applyDesignCommand(doc, { type: 'set-look', by: 'function', group: { kind: 'value', value: 'studio' }, patch: { facade: stretch() } }));
+    expect(functionLooks(set.settings).studio).toEqual({ facade: stretch() });
+    const cleared = expectOk(applyDesignCommand(set, { type: 'set-look', by: 'function', group: { kind: 'value', value: 'studio' }, patch: { facade: null } }));
+    expect(functionLooks(cleared.settings)).toEqual({ studio: {} }); // the card stays, now empty
+    expect(applyDesignCommand(doc, { type: 'set-look', by: 'function', group: { kind: 'value', value: 'studio' }, patch: { facade: { assetId: 'not-an-id', placement: 'repeat' } } }).ok).toBe(false);
     // Door / open bay variants survive the command (regression: they were dropped, so the Door bay could not be set).
     const withBays = { ...stretch(), door: { assetId: A2, flip: true as const }, open: { assetId: A1 } };
-    const bays = expectOk(applyDesignCommand(doc, { type: 'set-type-appearance', typeId: 'studio', patch: { facade: withBays } }));
-    expect(bays.settings.typeAppearance.studio).toEqual({ facade: withBays });
+    const bays = expectOk(applyDesignCommand(doc, { type: 'set-look', by: 'function', group: { kind: 'value', value: 'studio' }, patch: { facade: withBays } }));
+    expect(functionLooks(bays.settings).studio).toEqual({ facade: withBays });
     // Another field changed later keeps them too.
-    const roofed = expectOk(applyDesignCommand(bays, { type: 'set-type-appearance', typeId: 'studio', patch: { roof: 'none' } }));
-    expect(roofed.settings.typeAppearance.studio?.facade).toEqual(withBays);
+    const roofed = expectOk(applyDesignCommand(bays, { type: 'set-look', by: 'function', group: { kind: 'value', value: 'studio' }, patch: { roof: 'none' } }));
+    expect(functionLooks(roofed.settings).studio?.facade).toEqual(withBays);
   });
 });
 
@@ -235,7 +239,7 @@ describe('door / open bay variants (optional per function)', () => {
           { id: 'ab', source: 'a', target: 'b', kind, connectorStyle },
           { id: 'ac', source: 'a', target: 'c', kind: 'access' },
         ],
-        settings: { typeAppearance: { gallery: { facade } } },
+        settings: functionStyleSettings({ gallery: { facade } }),
       }),
     );
   }
@@ -286,9 +290,9 @@ describe('door / open bay variants (optional per function)', () => {
   });
 
   it('the format accepts door / open variants and refuses unknown fields or a placement on a variant', () => {
-    expect(design({ typeAppearance: { gallery: { facade: { ...repeat(), door: { assetId: A2, flip: true }, open: { assetId: A1 } } } } }).settings.typeAppearance.gallery?.facade?.door).toEqual({ assetId: A2, flip: true });
+    expect(functionLooks(design(functionStyleSettings({ gallery: { facade: { ...repeat(), door: { assetId: A2, flip: true }, open: { assetId: A1 } } } })).settings).gallery?.facade?.door).toEqual({ assetId: A2, flip: true });
     const refused = (variant: unknown) =>
-      validateDocumentV2({ schemaVersion: 2, metadata: { name: 'x' }, nodes: [], edges: [], settings: { typeAppearance: { gallery: { facade: { ...repeat(), door: variant } } } } }).ok;
+      validateDocumentV2({ schemaVersion: 2, metadata: { name: 'x' }, nodes: [], edges: [], settings: { styleBy: 'function', styles: { function: { groups: [{ value: 'gallery', look: { facade: { ...repeat(), door: variant } } }] } } } }).ok;
     expect(refused({ assetId: A2, placement: 'repeat' })).toBe(false);
     expect(refused({ assetId: 'nope' })).toBe(false);
     expect(refused({ assetId: A2, flip: false })).toBe(false);
@@ -297,20 +301,20 @@ describe('door / open bay variants (optional per function)', () => {
 
 describe('removing a used façade: its uses become Automatic', () => {
   it('drops the façade where it is the module, only the bay where it is a bay module; untouched designs are the same object', () => {
-    const doc = design({
-      typeAppearance: {
+    const doc = design(
+      functionStyleSettings({
         gallery: { facade: { ...repeat(A1), door: { assetId: A2 } }, roof: 'none' },
         studio: { facade: { ...stretch(A2), open: { assetId: A1 }, door: { assetId: A2 } } },
-      },
-    });
-    expect(typesUsingFacade(doc, A1)).toEqual(['gallery', 'studio']);
+      }),
+    );
+    expect(cardsUsingFacade(doc, A1)).toEqual(['gallery', 'studio']);
     const out = withoutFacadeAsset(doc, A1);
-    expect(out.settings.typeAppearance.gallery).toEqual({ roof: 'none' }); // the façade is gone, its door bay with it
-    expect(out.settings.typeAppearance.studio).toEqual({ facade: { ...stretch(A2), door: { assetId: A2 } } });
+    expect(functionLooks(out.settings).gallery).toEqual({ roof: 'none' }); // the façade is gone, its door bay with it
+    expect(functionLooks(out.settings).studio).toEqual({ facade: { ...stretch(A2), door: { assetId: A2 } } });
     expect(facadeAssetIdsOf(out)).toEqual([A2]);
     expect(withoutFacadeAsset(out, A1)).toBe(out);
-    // A type whose only setting was the façade inherits everything again (no empty entry).
-    expect(withoutFacadeAsset(design(both(repeat(A1))), A1).settings.typeAppearance).toEqual({});
+    // A card whose only setting was the façade stays, empty: its rooms inherit everything again.
+    expect(functionLooks(withoutFacadeAsset(design(both(repeat(A1))), A1).settings)).toEqual({ gallery: {}, studio: {} });
     expect(validateDocumentV2(out).ok).toBe(true);
   });
 });

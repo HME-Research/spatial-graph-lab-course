@@ -116,7 +116,7 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
   // Imported façade modules: an extra layer on exterior walls (the elements above are unchanged).
   const library = useFacadeLibrary();
   const modules = useMemo(
-    () => (v2 && v2Doc ? layoutFacadeModules(v2.faces, v2Doc, library.sizeOf) : EMPTY_FACADE_MODULES),
+    () => (v2 && v2Doc ? layoutFacadeModules(v2.faces, v2.looks, library.sizeOf) : EMPTY_FACADE_MODULES),
     [v2, v2Doc, library],
   );
   const broken = useMemo(() => brokenTypeIds(project?.project ?? null, v2Doc ?? doc), [project, v2Doc, doc]);
@@ -152,8 +152,8 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
     [v2Doc, v2Spatial, doc.edges],
   );
   const roofsHiddenByDesigner = useMemo(
-    () => (v2Doc ? Object.values(v2Doc.settings.typeAppearance).some((a) => a.roof === 'none') : false),
-    [v2Doc],
+    () => (v2 ? [...v2.looks.values()].some((l) => l.look.roof === 'none') : false),
+    [v2],
   );
 
   // Shared-wall interaction (wave 2, D): hover highlights an eligible shared wall, a click opens the

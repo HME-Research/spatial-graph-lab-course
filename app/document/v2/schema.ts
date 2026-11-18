@@ -31,8 +31,9 @@ import {
  *   integers. The room occupies every cell grid + [0..sx-1, 0..sy-1, 0..sz-1].
  * - Edge `kind` is relationship intent (`access` | `open`), independent of adjacency.
  * - `connectorStyle` is optional; `undefined` means DEFAULT_CONNECTOR_STYLE (resolved on read).
- * - `settings.typeAppearance` holds per-design, per-node-type overrides; omitted fields inherit
- *   the project default (resolved on read, never materialised).
+ * - `settings.styleBy` / `settings.styles` (2026-11-18, replaced `typeAppearance`): the rooms are
+ *   styled by ONE attribute; each attribute's setup (Default, value cards or number bands) is
+ *   remembered. Effective looks are resolved on read (`settings.ts`), never materialised.
  * - `diagram.positions` stay independent 2D diagram coordinates.
  */
 
@@ -113,17 +114,68 @@ export const facadeModuleSchema = z.strictObject({
   open: facadeVariantSchema.optional(),
 });
 
-export const typeAppearanceSchema = z.strictObject({
+/** What one Designer card sets. Every field is optional: absent = inherit (group → Default → toolkit → built-in). */
+export const lookSchema = z.strictObject({
   windowFraction: windowFractionSchema.optional(),
   windowLayout: windowLayoutSchema.optional(),
   walls: wallStyleSchema.optional(),
   roof: roofStyleSchema.optional(),
-  /** Imported façade for this type: a module, or `'none'` to opt out of the design default. Absent = inherit. */
+  /** Imported façade module. Absent = inherit (none unless Default sets one). */
   facade: facadeModuleSchema.optional(),
 });
 
+/**
+ * Which attribute the rooms are styled by (owner 2026-11-18): the room's Function (`typeId`), its
+ * Level (`grid[2]`), a custom attribute by its permanent field id, or a measured value (metric id).
+ */
+export const STYLE_BY_PATTERN = /^(function|level|attribute:[A-Za-z][A-Za-z0-9_-]{0,63}|metric:[a-z][a-z0-9-]{0,63})$/;
+export const styleBySchema = z.string().regex(STYLE_BY_PATTERN, {
+  error: 'styleBy must be "function", "level", "attribute:<field id>" or "metric:<metric id>"',
+});
+
+/** A value card: rooms whose value equals `value` (text: trimmed, case-insensitive). */
+export const styleGroupSchema = z.strictObject({
+  value: z.union([z.string().min(1).max(200), z.number().finite(), z.boolean()]),
+  look: lookSchema,
+});
+
+/**
+ * One attribute's setup. Value attributes use `groups`; numbers use `dividers` + `bands`
+ * (band i = [dividers[i-1], dividers[i]), the first and last open-ended). Rooms without a value,
+ * or matching no card, use `default`.
+ */
+export const styleSetupSchema = z
+  .strictObject({
+    default: lookSchema.optional(),
+    groups: z.array(styleGroupSchema).optional(),
+    dividers: z.array(z.number().finite()).max(20).optional(),
+    bands: z.array(lookSchema).optional(),
+  })
+  .superRefine((setup, ctx) => {
+    const seen = new Set<string>();
+    setup.groups?.forEach((g, i) => {
+      const key = styleValueKey(g.value);
+      if (seen.has(key)) ctx.addIssue({ code: 'custom', path: ['groups', i, 'value'], message: `duplicate card value ${JSON.stringify(g.value)}` });
+      seen.add(key);
+    });
+    const dividers = setup.dividers ?? [];
+    for (let i = 1; i < dividers.length; i++) {
+      if (!(dividers[i]! > dividers[i - 1]!)) ctx.addIssue({ code: 'custom', path: ['dividers', i], message: 'band dividers must be strictly ascending' });
+    }
+    if ((setup.dividers === undefined) !== (setup.bands === undefined) || (setup.bands && setup.bands.length !== dividers.length + 1)) {
+      ctx.addIssue({ code: 'custom', path: ['bands'], message: 'bands must have exactly one look more than there are dividers' });
+    }
+  });
+
+/** Comparison key of a card value: text is trimmed and case-insensitive; numbers and Yes/No exact. */
+export const styleValueKey = (value: string | number | boolean): string =>
+  typeof value === 'string' ? `s:${value.trim().toLowerCase()}` : `${typeof value}:${String(value)}`;
+
 export const designSettingsSchema = z.strictObject({
-  typeAppearance: z.record(typeIdSchema, typeAppearanceSchema).default({}),
+  /** The attribute the rooms are styled by. */
+  styleBy: styleBySchema.default('function'),
+  /** Remembered setup per attribute (switching `styleBy` back restores it). */
+  styles: z.record(styleBySchema, styleSetupSchema).default({}),
 });
 
 export const designDocumentV2Schema = z.strictObject({
@@ -132,13 +184,17 @@ export const designDocumentV2Schema = z.strictObject({
   nodes: z.array(roomNodeSchema),
   edges: z.array(relationshipEdgeSchema),
   diagram: diagramSchema.default({ positions: {} }),
-  settings: designSettingsSchema.default({ typeAppearance: {} }),
+  settings: designSettingsSchema.default({ styleBy: 'function', styles: {} }),
 });
 
 export type RoomSize = z.infer<typeof sizeSchema>;
 export type RoomNode = z.infer<typeof roomNodeSchema>;
 export type RelationshipEdge = z.infer<typeof relationshipEdgeSchema>;
-export type TypeAppearance = z.infer<typeof typeAppearanceSchema>;
+export type Look = z.infer<typeof lookSchema>;
+export type StyleBy = z.infer<typeof styleBySchema>;
+export type StyleGroup = z.infer<typeof styleGroupSchema>;
+export type StyleSetup = z.infer<typeof styleSetupSchema>;
+export type StyleValue = StyleGroup['value'];
 export type FacadeModule = z.infer<typeof facadeModuleSchema>;
 export type FacadeVariant = z.infer<typeof facadeVariantSchema>;
 

@@ -211,8 +211,14 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       return `Edit the attributes of connection ${connection(command.edgeId)}`;
     case 'set-connector-style':
       return `Change the connector style of ${connection(command.edgeId)}`;
-    case 'set-type-appearance':
-      return `Change Designer settings for ${command.typeId}`;
+    case 'set-style-by':
+      return 'Change what the rooms are styled by';
+    case 'set-look':
+      return command.group.kind === 'value' ? `Change Designer settings for ${String(command.group.value)}` : 'Change Designer settings';
+    case 'remove-style-group':
+      return `Remove the Designer card for ${String(command.value)}`;
+    case 'set-band-dividers':
+      return 'Change the Designer bands';
     default: {
       const unreachable: never = command;
       throw new Error(`unknown design command ${JSON.stringify(unreachable)}`);
