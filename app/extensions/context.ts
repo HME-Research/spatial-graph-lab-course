@@ -12,7 +12,7 @@ import type {
   SpatialNode,
 } from '@student-api';
 import type { SpatialResolution } from '@app/spatial';
-import type { ActiveProject } from './activate';
+import type { ActiveToolkit } from './activate';
 import { checkValue, effectiveAttributes } from './attributes';
 import { diagnostic, type ExtensionDiagnostic } from './diagnostics';
 import { createMetricReader } from './metricReader';
@@ -63,7 +63,7 @@ const isGrid = (g: unknown): g is GridCoord =>
  */
 export function buildSpatialContext<P extends AttributeSpecs>(
   doc: DesignDocument,
-  project: ActiveProject,
+  project: ActiveToolkit,
   algorithmId: string,
   params: AttributesOf<P>,
 ): SpatialAlgorithmContext<P> {
@@ -76,7 +76,7 @@ export function buildSpatialContext<P extends AttributeSpecs>(
  */
 export function buildSpatialContextV2<P extends AttributeSpecs>(
   doc: DesignDocumentV2,
-  project: ActiveProject,
+  project: ActiveToolkit,
   algorithmId: string,
   params: AttributesOf<P>,
   schema: ProjectAttributeSchema = project.attributeBaseline?.schema ?? EMPTY_ATTRIBUTE_SCHEMA,
@@ -141,7 +141,7 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
       const entry = project.nodeTypes.find((t) => t.definition === type);
       const name = typeof type === 'object' && type !== null && typeof type.id === 'string' ? `"${type.id}"` : 'the given value';
       if (!entry) {
-        throw runError('type-not-registered', `attributesOf: ${name} is not a node type definition registered by project "${project.id}" (import it from the project's types/ folder)`);
+        throw runError('type-not-registered', `attributesOf: ${name} is not a node type definition registered by toolkit "${project.id}" (import it from the toolkit's types/ folder)`);
       }
       if (!entry.status.ok) {
         throw runError('broken-node-type', `attributesOf: node type "${entry.id}" (${entry.file}) is invalid, so algorithms cannot use it`);

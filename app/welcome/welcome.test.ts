@@ -27,11 +27,11 @@ function host(store = createMemoryProjectStore(), kept = createMemoryKeptMarks()
     store,
     kept,
     controller,
-    defaultDefinitionId: 'example-gallery',
+    defaultToolkitId: 'example-gallery',
     startingDesign: async (id) =>
       id === 'broken'
         ? { ok: false, message: 'the default design of broken is invalid' }
-        : { ok: true, doc: twoRooms(), source: `projects/${id}/designs/x.json`, attributeSignature: 'files-sig' },
+        : { ok: true, doc: twoRooms(), source: `toolkits/${id}/designs/x.json`, attributeSignature: 'files-sig' },
   };
 }
 
@@ -47,7 +47,7 @@ const props = (over: Partial<WelcomeProps> = {}): WelcomeProps => ({
 });
 
 describe('Welcome flow', () => {
-  it('creates a project from a code project’s starting design and stores it', async () => {
+  it('creates a project from a toolkit’s starting design and stores it', async () => {
     const h = host();
     expect(showsWelcome(h.controller.getState())).toBe(true);
     const r = await createProject(h, '  My house ', 'starter-template');
@@ -55,7 +55,7 @@ describe('Welcome flow', () => {
     await h.controller.flush();
     const p = h.controller.getState().project!;
     expect(p.meta.name).toBe('My house');
-    expect(p.meta.definition).toEqual({ projectId: 'starter-template' });
+    expect(p.meta.toolkit).toEqual({ id: 'starter-template' });
     expect(showsWelcome(h.controller.getState())).toBe(false);
     expect(h.store.records.size).toBe(1);
   });
@@ -174,7 +174,7 @@ describe('Welcome flow', () => {
     const p = h.controller.getState().project!;
     expect(p.scenarios).toHaveLength(1);
     expect(p.origin.kind).toBe('imported-design');
-    expect(p.meta.definition).toEqual({ projectId: 'example-gallery' });
+    expect(p.meta.toolkit).toEqual({ id: 'example-gallery' });
   });
 
   it('opens a project file with every scenario; invalid files keep the open project', async () => {
@@ -310,7 +310,7 @@ describe('Welcome screen', () => {
 
   it('lists readable projects and unreadable records honestly', () => {
     const items = [
-      { status: 'ok', projectId: 'p1', name: 'House', createdAt: '2026-11-16T10:00:00.000Z', updatedAt: '2026-11-16T11:00:00.000Z', scenarioCount: 2, definitionId: 'example-gallery' },
+      { status: 'ok', projectId: 'p1', name: 'House', createdAt: '2026-11-16T10:00:00.000Z', updatedAt: '2026-11-16T11:00:00.000Z', scenarioCount: 2, toolkitId: 'example-gallery' },
       { status: 'unreadable', projectId: 'p2', quarantineKey: 'p2:unreadable:x', issues: [{ path: [], code: 'invalid-json', message: 'file is not valid JSON' }] },
     ] as const;
     const html = renderToStaticMarkup(createElement(Welcome, props({ recent: { status: 'ready', items, unsaved: ['p1'] } })));
@@ -320,7 +320,7 @@ describe('Welcome screen', () => {
     expect(html).toContain('file is not valid JSON');
     expect(html).toContain('Discard…');
     expect(html).toContain('last session · not saved');
-    // No internal project ids or course ids are shown.
+    // No internal project ids or toolkit ids are shown.
     expect(html).not.toContain('>p2<');
     expect(html).not.toContain('example-gallery');
     const rows = recentRows(items, () => 'when');

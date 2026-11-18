@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import type { ActiveProject } from '@app/extensions';
-import { labProject } from '@app/extensions/test-fixtures';
+import type { ActiveToolkit } from '@app/extensions';
+import { labToolkit } from '@app/extensions/test-fixtures';
 import { friendlyMessages } from '@app/ui';
 import {
   decideTripleCommit,
@@ -47,9 +47,9 @@ describe('three-number fields (position / size)', () => {
 });
 
 describe('node type menu', () => {
-  let project: ActiveProject;
+  let project: ActiveToolkit;
   beforeAll(async () => {
-    project = await labProject();
+    project = await labToolkit();
   });
 
   it('lists the active project types with their labels', () => {
@@ -70,7 +70,7 @@ describe('node type menu', () => {
   });
 
   it('lists broken definitions as disabled', async () => {
-    const broken = await labProject({ 'projects/lab/types/kiosk.ts': { default: { id: 'kiosk', label: 7 } } });
+    const broken = await labToolkit({ 'toolkits/lab/types/kiosk.ts': { default: { id: 'kiosk', label: 7 } } });
     const menu = typeMenu(broken, [], 'gallery');
     const kiosk = menu.options.find((o) => o.value === 'kiosk');
     expect(kiosk?.disabled).toBe(true);

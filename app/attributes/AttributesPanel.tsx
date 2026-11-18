@@ -4,7 +4,7 @@ import {
   algorithmReferences,
   designSamples,
   fieldKeys,
-  type ActiveProject,
+  type ActiveToolkit,
   type AttributeCollection,
   type DesignSample,
   type SchemaEdit,
@@ -75,7 +75,7 @@ export function AttributesPanel({
   functions,
 }: {
   readonly session: AttributeSession | null;
-  readonly project: ActiveProject | null;
+  readonly project: ActiveToolkit | null;
   /** The open design (used when `scenarios` is not given). */
   readonly doc: DesignDocumentV2 | null;
   readonly source: string | null;
@@ -158,7 +158,7 @@ export function AttributesPanel({
     const text = await file.text();
     let result = importAttributeFile(session, text);
     if (!result.ok && result.issues[0]?.code === 'attribute-schema-project-mismatch') {
-      if (!window.confirm('This attribute file was made for another course project.\n\nUse its attributes here anyway? (Undo reverses it.)')) return;
+      if (!window.confirm('This attribute file was made for another toolkit.\n\nUse its attributes here anyway? (Undo reverses it.)')) return;
       result = importAttributeFile(session, text, { allowOtherProject: true });
     }
     if (!result.ok) {
@@ -251,28 +251,28 @@ export function AttributesPanel({
 
       <CollapsibleSection title="Advanced" sectionId="attributes-advanced" defaultOpen={false} variant="advanced">
         <p className="sgl-help">↶ ↷ above undo attribute changes only. Changes to the scenario (nodes, edges, values) have their own Undo in the header.</p>
-        {filesChangedSinceSaved(session) && <p className="sgl-help">The course project declares attributes differently from when these were saved.</p>}
+        {filesChangedSinceSaved(session) && <p className="sgl-help">The toolkit declares attributes differently from when these were saved.</p>}
         <div className="sgl-buttons">
           <button
             type="button"
             onClick={() => {
               const merged = mergeFilesIntoSession(session, project);
               onChange(merged.session);
-              setNotice({ tone: 'ok', text: merged.added.length ? `Added ${merged.added.length} attribute${merged.added.length === 1 ? '' : 's'} from the course project.` : 'Nothing new to add from the course project.' });
+              setNotice({ tone: 'ok', text: merged.added.length ? `Added ${merged.added.length} attribute${merged.added.length === 1 ? '' : 's'} from the toolkit.` : 'Nothing new to add from the toolkit.' });
             }}
-            title="Add the attributes that the course project's functions declare and this project does not have yet"
+            title="Add the attributes that the toolkit's functions declare and this project does not have yet"
           >
-            Add course attributes
+            Add toolkit attributes
           </button>
           <button
             type="button"
             className="sgl-danger"
             disabled={!differsFromFiles(session) && !session.saveBlocked}
             onClick={() => {
-              if (window.confirm('Replace all custom attributes with exactly what the course project declares? Values entered are kept. Undo reverses it.')) onChange(resetToFiles(session, project));
+              if (window.confirm('Replace all custom attributes with exactly what the toolkit declares? Values entered are kept. Undo reverses it.')) onChange(resetToFiles(session, project));
             }}
           >
-            Reset to course attributes
+            Reset to toolkit attributes
           </button>
         </div>
         <div className="sgl-buttons">

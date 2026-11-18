@@ -9,8 +9,8 @@ One sparse 3D architectural graph, visualised simultaneously as an abstract 2D g
 ## Directory ownership
 - `core/`: reusable infrastructure (generic graph, grid maths, 3D viewport/selection helpers); maintained by the owner.
 - `app/`: the application itself (v1 design document, building rules and geometry, views, state, inspector); maintained by the owner and protected from student edits in the same way as `core/`.
-- `student-api/`: the stable Student API that project code imports (`@student-api`); maintained by the owner.
-- `projects/<project-id>/`: student projects (`project.ts`, `types/`, `designs/`, `algorithms/`). `projects/example-gallery/` is the reference project; see `docs/STUDENT-API.md`.
+- `student-api/`: the stable Student API that toolkit code imports (`@student-api`); maintained by the owner.
+- `toolkits/<toolkit-id>/`: student toolkits (`toolkit.ts`, `types/`, `designs/`, `algorithms/`). `toolkits/example-gallery/` is the reference toolkit; see `docs/STUDENT-API.md`.
 - `.claude/`: shared AI project instructions, skills and settings.
 - `_planning/`, `CLAUDE.local.md`, `.claude/skills/owner-*`: **local-only files**, ignored by Git. Keep them on the owner's machine. They must not be committed.
 
@@ -30,12 +30,12 @@ npm ci              # install exact versions from package-lock.json
 npm run dev         # start the development server, then open the printed local URL
 npm run typecheck   # TypeScript strict type checking
 npm test -- --run   # run unit tests once (omit --run for watch mode)
-npm run check:project  # check every project in projects/ (add -- -t <project-id> for one)
+npm run check:toolkit  # check every toolkit in toolkits/ (add -- -t <toolkit-id> for one)
 npm run build       # typecheck + production build into dist/
 npm run preview     # serve the production build locally
 ```
 
-The app loads the built-in example `app/document/examples/two-storey-example.json` at startup when no project provides a default design; normally the active project's default design is opened (see `docs/STUDENT-API.md`). **Open JSON…** loads another design file. It's validated first, and if it's invalid the errors are listed with their location and the current design is kept.
+The app loads the built-in example `app/document/examples/two-storey-example.json` at startup when no toolkit provides a default design; normally the active toolkit's default design is opened (see `docs/STUDENT-API.md`). **Open JSON…** loads another design file. It's validated first, and if it's invalid the errors are listed with their location and the current design is kept.
 
 ## Design file format (schema v1)
 See `docs/ARCHITECTURE.md` for the full contract. In brief:

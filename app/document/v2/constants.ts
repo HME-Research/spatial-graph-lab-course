@@ -78,7 +78,7 @@ export type FacadePlacement = (typeof FACADE_PLACEMENTS)[number];
 export const FACADE_VARIANTS = ['door', 'open'] as const;
 export type FacadeVariantKind = (typeof FACADE_VARIANTS)[number];
 
-/** Imported façade asset ids are project-level (`ProjectFileV1.assets`): `facade-` + 16 hex digits. */
+/** Imported façade asset ids are project-level (`ProjectFileV2.assets`): `facade-` + 16 hex digits. */
 export const FACADE_ASSET_REF_PATTERN = /^facade-[0-9a-f]{16}$/;
 
 /** Room size per axis in cells. Rooms are axis-aligned boxes anchored at their minimum corner. */

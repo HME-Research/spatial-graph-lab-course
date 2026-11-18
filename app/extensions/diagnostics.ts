@@ -11,12 +11,12 @@ export type Severity = 'error' | 'warning' | 'info';
 
 export type ExtensionIssueCode =
   // discovery, selection and activation
-  | 'invalid-project-folder'
-  | 'missing-project-file'
-  | 'unknown-project'
+  | 'invalid-toolkit-folder'
+  | 'missing-toolkit-file'
+  | 'unknown-toolkit'
   | 'module-load-failed'
   | 'missing-default-export'
-  | 'invalid-project-definition'
+  | 'invalid-toolkit-definition'
   | 'invalid-node-type'
   | 'duplicate-node-type'
   | 'invalid-algorithm'
@@ -66,7 +66,7 @@ export type ExtensionIssueCode =
   | 'conformance-regression';
 
 export type DiagnosticSubject =
-  | { readonly kind: 'project'; readonly id: string }
+  | { readonly kind: 'toolkit'; readonly id: string }
   | { readonly kind: 'file'; readonly path: string }
   | { readonly kind: 'node'; readonly id: string }
   | { readonly kind: 'edge'; readonly id: string }

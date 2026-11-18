@@ -1,4 +1,4 @@
-import type { AttributeSpec, ProjectAttributeSpec, ProjectDefinition } from '@student-api';
+import type { AttributeSpec, ToolkitAttributeSpec, ToolkitDefinition } from '@student-api';
 import type { RegisteredNodeType } from './activate';
 import { diagnostic, type ExtensionDiagnostic } from './diagnostics';
 import {
@@ -15,7 +15,7 @@ import {
 
 /**
  * The attribute schema a project's FILES describe: its immutable baseline. Built from
- * `defineProject({ attributes: { nodes, edges } })` and, for nodes, from the attributes its node
+ * `defineToolkit({ attributes: { nodes, edges } })` and, for nodes, from the attributes its node
  * types declare (the union of all valid types; a type's `default` becomes that type's default).
  *
  * The baseline seeds the project's stored schema when the browser has none. It is never compared
@@ -44,7 +44,7 @@ export function humanizeKey(key: string): string {
 const shapeOf = (spec: AttributeSpec): string =>
   JSON.stringify([spec.kind, spec.kind === 'enum' ? spec.values : null, spec.kind === 'number' ? [spec.min ?? null, spec.max ?? null] : null]);
 
-function fieldFromSpec(key: string, spec: ProjectAttributeSpec | AttributeSpec, withDefault: boolean): AttributeField {
+function fieldFromSpec(key: string, spec: ToolkitAttributeSpec | AttributeSpec, withDefault: boolean): AttributeField {
   const extra = spec as { label?: unknown; description?: unknown };
   return {
     id: key,
@@ -60,16 +60,16 @@ function fieldFromSpec(key: string, spec: ProjectAttributeSpec | AttributeSpec, 
 }
 
 /**
- * Derive the baseline. `definition` must have passed `projectDefinitionSchema`; only node types
+ * Derive the baseline. `definition` must have passed `toolkitDefinitionSchema`; only node types
  * with an ok status contribute (broken definitions are already reported as errors).
  */
 export function deriveAttributeBaseline(
   projectId: string,
-  definition: ProjectDefinition,
+  definition: ToolkitDefinition,
   nodeTypes: readonly Pick<RegisteredNodeType, 'id' | 'file' | 'definition' | 'status'>[],
 ): AttributeBaseline {
   const diagnostics: ExtensionDiagnostic[] = [];
-  const projectFile = `projects/${projectId}/project.ts`;
+  const projectFile = `toolkits/${projectId}/toolkit.ts`;
   const fields: Record<AttributeCollection, AttributeField[]> = { nodes: [], edges: [] };
   /** lower-case key → shape signature and where it was declared. */
   const declared: Record<AttributeCollection, Map<string, { field: AttributeField; shape: string; where: string }>> = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createMemoryProjectStore, readProjectFile, type MemoryProjectStore, type ProjectFileV1 } from '@app/project';
+import { createMemoryProjectStore, readProjectFile, type MemoryProjectStore, type ProjectFileV2 } from '@app/project';
 import { DEFAULT_DISPLAY } from '@app/display/contracts';
 import type { AppSavedCamera } from '@app/camera/savedCamera';
 import { addCameraFor } from '@app/camera/savedCameras';
@@ -38,7 +38,7 @@ const camera = (id: string, name: string): AppSavedCamera => ({
   pose: { position: [10, 8, 10], target: [1, 0, 1], up: [0, 1, 0], projection: 'perspective', fov: 50 },
 });
 
-function stored(store: MemoryProjectStore, id: string): ProjectFileV1 {
+function stored(store: MemoryProjectStore, id: string): ProjectFileV2 {
   const r = readProjectFile(store.records.get(id) as string);
   if (!r.ok) throw new Error('stored record unreadable');
   return r.value;
@@ -89,7 +89,7 @@ describe('cameras and display bound to the project file (I1)', () => {
     const c = makeController(store);
     const base = fileOf();
     const future = { ...camera('camera-1', 'Future'), viewMode: 'future-mode' };
-    const file = { ...base, scenarios: base.scenarios.map((s, i) => (i === 0 ? { ...s, cameras: [future] } : s)) } as ProjectFileV1;
+    const file = { ...base, scenarios: base.scenarios.map((s, i) => (i === 0 ? { ...s, cameras: [future] } : s)) } as ProjectFileV2;
     const opened = await c.open(file, created);
     if (!opened.ok) throw new Error(opened.message);
     const cameras = createProjectCameraStore(c);

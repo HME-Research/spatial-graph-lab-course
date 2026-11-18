@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { readDesign, readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
 import { applyDesignCommand } from '@app/spatial';
-import { defineNodeType, defineProject, defineSpatialAlgorithm, type SpatialOperation } from '@student-api';
+import { defineNodeType, defineToolkit, defineSpatialAlgorithm, type SpatialOperation } from '@student-api';
 import { applySchemaEdit, type SchemaEdit } from './attributeEdits';
 import { checkConformance } from './conformance';
 import { runAlgorithmV2 } from './run';
 import type { ProjectAttributeSchema } from './projectAttributes';
 import { effectiveEdgeValues, effectiveNodeValues, viewAttributes } from './resolveAttributes';
-import { expectExtOk, labProject } from './test-fixtures';
+import { expectExtOk, labToolkit } from './test-fixtures';
 
 /** Phase 02: one effective-attribute engine for Student API, transformations and conformance. */
 
@@ -53,14 +53,14 @@ const reader = defineSpatialAlgorithm({
 const writer = (operations: SpatialOperation[]) => defineSpatialAlgorithm({ id: 'writer', label: 'Writer', run: () => ({ kind: 'transformation', operations }) });
 
 async function project(extra: Record<string, unknown> = {}) {
-  return labProject({
-    'projects/lab/project.ts': {
-      default: defineProject({
+  return labToolkit({
+    'toolkits/lab/toolkit.ts': {
+      default: defineToolkit({
         name: 'Lab',
         attributes: { nodes: { capacity: { kind: 'number', min: 0, default: 10 }, note: { kind: 'text' } }, edges: { weight: { kind: 'number', default: 1 } } },
       }),
     },
-    'projects/lab/algorithms/reader.ts': { default: reader },
+    'toolkits/lab/algorithms/reader.ts': { default: reader },
     ...extra,
   });
 }
@@ -93,7 +93,7 @@ describe('Student API reads effective values (same resolver as the app)', () => 
       run: (ctx) => ({ kind: 'transformation', summary: JSON.stringify(ctx.design.nodes.filter((n) => n.typeId === 'gallery').map((n) => ctx.attributesOf(n, gallery))), operations: [] }),
     });
     const gallery = defineNodeType({ id: 'gallery', label: 'Gallery', attributes: { public: { kind: 'boolean', default: true } } });
-    const p = await project({ 'projects/lab/types/gallery.ts': { default: gallery }, 'projects/lab/algorithms/reads.ts': { default: reads } });
+    const p = await project({ 'toolkits/lab/types/gallery.ts': { default: gallery }, 'toolkits/lab/algorithms/reads.ts': { default: reads } });
     const publicId = p.attributeBaseline.schema.nodes.find((f) => f.key === 'public')!.id;
     const schema = schemaWith(p.attributeBaseline.schema, { type: 'set-type-default', typeId: 'gallery', fieldId: publicId, value: false });
     const out = expectExtOk(runAlgorithmV2(docA(), p, 'reads', {}, { attributes: schema }));
@@ -102,7 +102,7 @@ describe('Student API reads effective values (same resolver as the app)', () => 
 
   it('unknown node/edge ids fail the run with a diagnostic', async () => {
     const bad = defineSpatialAlgorithm({ id: 'bad', label: 'Bad', run: (ctx) => (ctx.nodeAttributes('nope'), { kind: 'transformation', operations: [] }) });
-    const p = await project({ 'projects/lab/algorithms/bad.ts': { default: bad } });
+    const p = await project({ 'toolkits/lab/algorithms/bad.ts': { default: bad } });
     const r = runAlgorithmV2(docA(), p, 'bad');
     expect(r.ok ? 'ok' : r.issues[0]!.code).toBe('unknown-node-reference');
   });
@@ -110,7 +110,7 @@ describe('Student API reads effective values (same resolver as the app)', () => 
 
 describe('transformations write project fields', () => {
   const run = async (operations: SpatialOperation[], schema?: ProjectAttributeSchema) => {
-    const p = await project({ 'projects/lab/algorithms/writer.ts': { default: writer(operations) } });
+    const p = await project({ 'toolkits/lab/algorithms/writer.ts': { default: writer(operations) } });
     return runAlgorithmV2(docA(), p, 'writer', {}, schema ? { attributes: schema } : {});
   };
 

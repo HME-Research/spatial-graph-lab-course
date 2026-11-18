@@ -14,6 +14,7 @@ import {
   type PartialDisplay,
 } from '@app/display/contracts';
 import { readAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
+import { toolkitIdSchema } from '@app/extensions/discover';
 import { canonicalFacadeAsset, FACADE_LIMITS, facadeAssetsBytes, formatBytes, readFacadeAsset, type FacadeAssetV1 } from '@app/assets';
 
 /**
@@ -38,7 +39,7 @@ import { canonicalFacadeAsset, FACADE_LIMITS, facadeAssetsBytes, formatBytes, re
  */
 
 export const PROJECT_FILE_FORMAT = 'spatial-graph-lab/project';
-export const PROJECT_FILE_VERSION = 1;
+export const PROJECT_FILE_VERSION = 2;
 
 export interface ScenarioRecord {
   readonly id: string;
@@ -49,7 +50,7 @@ export interface ScenarioRecord {
   readonly display: DisplayOverrides;
 }
 
-export interface ProjectFileV1 {
+export interface ProjectFileV2 {
   readonly format: typeof PROJECT_FILE_FORMAT;
   readonly version: typeof PROJECT_FILE_VERSION;
   /** Local identity (idSchema-compatible); a new id on Save As. */
@@ -60,12 +61,12 @@ export interface ProjectFileV1 {
   readonly createdAt: string;
   /** ISO 8601. */
   readonly updatedAt: string;
-  /** The code project (`projects/<id>`) supplying types/algorithms: referenced, never embedded. */
-  readonly definition: { readonly projectId: string } | null;
+  /** The toolkit (`toolkits/<id>`) the project was started from, supplying its types and algorithms: referenced, never embedded. Version 1 files called this `definition: { projectId }`. */
+  readonly toolkit: { readonly id: string } | null;
   /**
    * The project-attribute record (`exportAttributeFile` shape, `app/extensions/projectAttributes.ts`),
-   * validated by `readAttributeRecord` against `definition.projectId` (or its own project id when
-   * there is no definition). `null` = use the schema derived from the project files.
+   * validated by `readAttributeRecord` against `toolkit.id` (or its own project id when
+   * there is no toolkit). `null` = use the schema derived from the toolkit files.
    */
   readonly attributes: unknown | null;
   readonly activeScenarioId: string;
@@ -106,13 +107,13 @@ export interface ProjectSettings {
   readonly calculatedFields?: readonly string[];
   /**
    * Project functions (optional, UI refinement 2026-11-17): node types added in the browser, beside
-   * the code project's `types/`. Each is `{id (a document typeId), label}`; no façade or attributes
-   * of their own (the fallback façade and colour apply). A function whose id the code project also
+   * the toolkit's `types/`. Each is `{id (a document typeId), label}`; no façade or attributes
+   * of their own (the fallback façade and colour apply). A function whose id the toolkit also
    * defines is ignored (the code definition wins). Absent = none; written only when set.
    */
   readonly functions?: readonly ProjectFunction[];
   /**
-   * Ids of course (code project) functions removed from this project (optional, 2026-11-17): they are
+   * Ids of toolkit functions removed from this project (optional, 2026-11-17): they are
    * not offered and not registered while the project is open. The code files are never changed, so
    * removing is undone by restoring the id. Absent = none; written only when set.
    */
@@ -194,7 +195,7 @@ const projectShape = z.strictObject({
   description: z.string().optional(),
   createdAt: isoSchema,
   updatedAt: isoSchema,
-  definition: z.strictObject({ projectId: idSchema }).nullable(),
+  toolkit: z.strictObject({ id: toolkitIdSchema }).nullable(),
   attributes: z.looseObject({}).nullable(),
   activeScenarioId: idSchema,
   scenarios: z.array(scenarioShape).min(1, { error: 'a project needs at least one scenario' }),
@@ -232,10 +233,22 @@ const projectShape = z.strictObject({
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 /**
+ * Version 1 → 2 (toolkit terminology, 17 November 2026): `definition: { projectId } | null` became
+ * `toolkit: { id } | null`; nothing else changed. Unrecognised shapes are passed through renamed
+ * so the version 2 schema reports them. Pure: the input is not modified.
+ */
+function migrateProjectFileV1(raw: Record<string, unknown>): Record<string, unknown> {
+  const { definition, ...rest } = raw;
+  const toolkit = isRecord(definition) && Object.keys(definition).length === 1 && 'projectId' in definition ? { id: definition.projectId } : definition;
+  // A version 1 file's toolkit comes only from `definition` (a missing one is reported as missing).
+  return { ...rest, version: PROJECT_FILE_VERSION, toolkit };
+}
+
+/**
  * Read a project file from JSON text or an already parsed value. Never throws. On success the
  * returned file is a fresh, normalised copy (designs as v2, canonical attribute record).
  */
-export function readProjectFile(input: unknown): ProjectResult<ProjectFileV1> {
+export function readProjectFile(input: unknown): ProjectResult<ProjectFileV2> {
   let raw: unknown = input;
   if (typeof input === 'string') {
     try {
@@ -247,9 +260,10 @@ export function readProjectFile(input: unknown): ProjectResult<ProjectFileV1> {
   if (!isRecord(raw) || raw.format !== PROJECT_FILE_FORMAT) {
     return fail([projectIssue(['format'], 'wrong-format', `not a Spatial Graph Lab project file (format must be "${PROJECT_FILE_FORMAT}")`)]);
   }
-  if (raw.version !== PROJECT_FILE_VERSION) {
+  if (raw.version === 1) raw = migrateProjectFileV1(raw);
+  if (!isRecord(raw) || raw.version !== PROJECT_FILE_VERSION) {
     return fail([
-      projectIssue(['version'], 'unsupported-version', `unsupported project file version ${JSON.stringify(raw.version)}; this application reads version ${PROJECT_FILE_VERSION}`),
+      projectIssue(['version'], 'unsupported-version', `unsupported project file version ${JSON.stringify(isRecord(raw) ? raw.version : undefined)}; this application reads versions 1 and ${PROJECT_FILE_VERSION}`),
     ]);
   }
   if (!('attributes' in raw)) return fail([projectIssue(['attributes'], 'schema', 'attributes is required (null when not customised)')]);
@@ -305,7 +319,7 @@ export function readProjectFile(input: unknown): ProjectResult<ProjectFileV1> {
 
   let attributes: unknown | null = null;
   if (data.attributes !== null) {
-    const owner = data.definition?.projectId ?? (typeof data.attributes.projectId === 'string' ? data.attributes.projectId : data.projectId);
+    const owner = data.toolkit?.id ?? (typeof data.attributes.projectId === 'string' ? data.attributes.projectId : data.projectId);
     const read = readAttributeRecord(JSON.stringify(data.attributes), { projectId: owner });
     if (!read.ok) for (const d of read.issues) issues.push(projectIssue(['attributes'], 'invalid-attributes', d.message));
     else attributes = JSON.parse(serializeAttributeRecord(read.value)) as unknown;
@@ -339,7 +353,7 @@ export function readProjectFile(input: unknown): ProjectResult<ProjectFileV1> {
     ...(data.description !== undefined && { description: data.description }),
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
-    definition: data.definition === null ? null : { projectId: data.definition.projectId },
+    toolkit: data.toolkit === null ? null : { id: data.toolkit.id },
     attributes,
     activeScenarioId: data.activeScenarioId,
     scenarios,
@@ -418,7 +432,7 @@ const canonicalSettings = (settings: {
   ...(settings.hiddenFunctions !== undefined && { hiddenFunctions: [...settings.hiddenFunctions] }),
 });
 
-export function serializeProjectFile(file: ProjectFileV1): string {
+export function serializeProjectFile(file: ProjectFileV2): string {
   const canonical = {
     format: PROJECT_FILE_FORMAT,
     version: PROJECT_FILE_VERSION,
@@ -427,7 +441,7 @@ export function serializeProjectFile(file: ProjectFileV1): string {
     ...(file.description !== undefined && { description: file.description }),
     createdAt: file.createdAt,
     updatedAt: file.updatedAt,
-    definition: file.definition === null ? null : { projectId: file.definition.projectId },
+    toolkit: file.toolkit === null ? null : { id: file.toolkit.id },
     attributes: file.attributes ?? null,
     activeScenarioId: file.activeScenarioId,
     scenarios: file.scenarios.map((s) => ({
@@ -459,20 +473,20 @@ export interface IdClockOptions {
 export interface LegacyImportOptions extends IdClockOptions {
   /** Project name. Default: the design's metadata name. */
   readonly name?: string;
-  readonly definition?: { readonly projectId: string } | null;
+  readonly toolkit?: { readonly id: string } | null;
 }
 
 /**
  * Wrap a design file (schema v1 or v2 JSON value, read through `readDesign`) into a new project
  * with one scenario "Scenario 1". The result is validated as a whole project file.
  */
-export function projectFromLegacyDesign(design: unknown, options: LegacyImportOptions = {}): ProjectResult<ProjectFileV1> {
+export function projectFromLegacyDesign(design: unknown, options: LegacyImportOptions = {}): ProjectResult<ProjectFileV2> {
   const read = readDesign(design);
   if (!read.ok) return fail(read.issues.map((i) => projectIssue(['design', ...i.path], 'invalid-design', i.message)));
   const doc = read.value.doc;
   const at = (options.now ?? nowIso)();
   const scenarioId = (options.newScenarioId ?? newScenarioId)();
-  const file: ProjectFileV1 = {
+  const file: ProjectFileV2 = {
     format: PROJECT_FILE_FORMAT,
     version: PROJECT_FILE_VERSION,
     projectId: (options.newId ?? newProjectId)(),
@@ -480,7 +494,7 @@ export function projectFromLegacyDesign(design: unknown, options: LegacyImportOp
     ...(doc.metadata.description !== undefined && { description: doc.metadata.description }),
     createdAt: at,
     updatedAt: at,
-    definition: options.definition ?? null,
+    toolkit: options.toolkit ?? null,
     attributes: null,
     activeScenarioId: scenarioId,
     scenarios: [{ id: scenarioId, name: 'Scenario 1', design: doc, facePreferences: {}, cameras: [], display: {} }],
@@ -500,13 +514,13 @@ export interface SaveAsOptions extends IdClockOptions {
  * (scenario order and content preserved; the active scenario is mapped). `createdAt` and
  * `updatedAt` are now. Nothing is shared with `file`: mutating either never changes the other.
  */
-export function saveAsNewProject(file: ProjectFileV1, options: SaveAsOptions = {}): ProjectResult<ProjectFileV1> {
+export function saveAsNewProject(file: ProjectFileV2, options: SaveAsOptions = {}): ProjectResult<ProjectFileV2> {
   const copy = readProjectFile(serializeProjectFile(file));
   if (!copy.ok) return copy;
   const at = (options.now ?? nowIso)();
   const makeScenarioId = options.newScenarioId ?? newScenarioId;
   const idMap = new Map(copy.value.scenarios.map((s) => [s.id, makeScenarioId()] as const));
-  const next: ProjectFileV1 = {
+  const next: ProjectFileV2 = {
     ...copy.value,
     projectId: (options.newId ?? newProjectId)(),
     name: options.name ?? copy.value.name,

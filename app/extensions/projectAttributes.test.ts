@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readDesign, readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
-import { defineGraphAlgorithm, defineNodeType, defineProject, defineSpatialAlgorithm } from '@student-api';
+import { defineGraphAlgorithm, defineNodeType, defineToolkit, defineSpatialAlgorithm } from '@student-api';
 import exampleV1 from '../document/examples/two-storey-example.json';
-import { activate, type ActiveProject } from './activate';
+import { activate, type ActiveToolkit } from './activate';
 import { deriveAttributeBaseline, humanizeKey, mergeBaseline } from './attributeBaseline';
 import { algorithmReferences, applySchemaEdit, designSamples, fieldUsage, keyConflict, type EditOutcome, type SchemaEdit } from './attributeEdits';
 import {
@@ -22,7 +22,7 @@ import {
   resolveNodeAttributes,
   writeFieldValue,
 } from './resolveAttributes';
-import { fakeGlobs, galleryType, LAB_FILES, labProject, studioType } from './test-fixtures';
+import { fakeGlobs, galleryType, LAB_FILES, labToolkit, studioType } from './test-fixtures';
 
 /** Phase 01 contract: project-wide attribute schema, effective resolution, edits and records. */
 
@@ -66,11 +66,11 @@ const designB = () =>
 
 const storageType = defineNodeType({ id: 'storage', label: 'Storage', attributes: { public: { kind: 'boolean', default: false } } });
 
-async function gallery(): Promise<ActiveProject> {
-  return labProject({ 'projects/lab/types/storage.ts': { default: storageType } });
+async function gallery(): Promise<ActiveToolkit> {
+  return labToolkit({ 'toolkits/lab/types/storage.ts': { default: storageType } });
 }
 
-describe('baseline from project files', () => {
+describe('baseline from toolkit files', () => {
   it('unions node type declarations into one node field list; type defaults become type defaults', async () => {
     const project = await gallery();
     const { schema, diagnostics } = project.attributeBaseline;
@@ -86,10 +86,10 @@ describe('baseline from project files', () => {
     expect(schema.edges).toEqual([]);
   });
 
-  it('reads defineProject({ attributes }) with labels, help and separate edge fields', async () => {
-    const project = await labProject({
-      'projects/lab/project.ts': {
-        default: defineProject({
+  it('reads defineToolkit({ attributes }) with labels, help and separate edge fields', async () => {
+    const project = await labToolkit({
+      'toolkits/lab/toolkit.ts': {
+        default: defineToolkit({
           name: 'Lab',
           attributes: {
             nodes: { capacity: { kind: 'number', min: 0, default: 10, label: 'Capacity (people)' } },
@@ -105,7 +105,7 @@ describe('baseline from project files', () => {
 
   it('reports conflicting and unusable declarations; the first declaration wins', async () => {
     const odd = defineNodeType({ id: 'odd', label: 'Odd', attributes: { public: { kind: 'text' }, type: { kind: 'text' } } });
-    const project = await labProject({ 'projects/lab/types/zz-odd.ts': { default: odd } });
+    const project = await labToolkit({ 'toolkits/lab/types/zz-odd.ts': { default: odd } });
     const codes = project.attributeBaseline.diagnostics.map((d) => [d.code, d.attribute]);
     expect(codes).toContainEqual(['attribute-declaration-conflict', 'public']);
     expect(codes).toContainEqual(['attribute-declaration-conflict', 'type']);
@@ -115,15 +115,15 @@ describe('baseline from project files', () => {
 
   it('rejects an invalid project attribute declaration at activation (whole definition invalid)', async () => {
     const { activation } = await activate(
-      fakeGlobs({ ...LAB_FILES, 'projects/lab/project.ts': { default: { name: 'Lab', attributes: { nodes: { x: { kind: 'colour' } } } } } }),
+      fakeGlobs({ ...LAB_FILES, 'toolkits/lab/toolkit.ts': { default: { name: 'Lab', attributes: { nodes: { x: { kind: 'colour' } } } } } }),
       { query: 'lab' },
     );
     expect(activation.status).toBe('failed');
   });
 
-  it('flags a reserved key declared in defineProject and ignores it', async () => {
-    const project = await labProject({
-      'projects/lab/project.ts': { default: defineProject({ name: 'Lab', attributes: { nodes: { grid: { kind: 'text' } } } }) },
+  it('flags a reserved key declared in defineToolkit and ignores it', async () => {
+    const project = await labToolkit({
+      'toolkits/lab/toolkit.ts': { default: defineToolkit({ name: 'Lab', attributes: { nodes: { grid: { kind: 'text' } } } }) },
     });
     expect(project.attributeBaseline.schema.nodes.some((f) => f.key === 'grid')).toBe(false);
     expect(project.diagnostics.find((d) => d.code === 'invalid-attribute-schema')?.message).toMatch(/reserved/);
@@ -198,10 +198,10 @@ describe('effective values (shared by every design of the project)', () => {
 
   it('separate projects do not share definitions', async () => {
     const lab = await gallery();
-    const other = await labProject({
-      'projects/lab/project.ts': { default: defineProject({ name: 'Other', attributes: { nodes: { quiet: { kind: 'boolean' } } } }) },
-      'projects/lab/types/gallery.ts': { default: defineNodeType({ id: 'gallery', label: 'G' }) },
-      'projects/lab/types/studio.ts': { default: defineNodeType({ id: 'studio', label: 'S' }) },
+    const other = await labToolkit({
+      'toolkits/lab/toolkit.ts': { default: defineToolkit({ name: 'Other', attributes: { nodes: { quiet: { kind: 'boolean' } } } }) },
+      'toolkits/lab/types/gallery.ts': { default: defineNodeType({ id: 'gallery', label: 'G' }) },
+      'toolkits/lab/types/studio.ts': { default: defineNodeType({ id: 'studio', label: 'S' }) },
     });
     expect(other.attributeBaseline.schema.nodes.map((f) => f.key)).toEqual(['quiet']);
     expect(lab.attributeBaseline.schema.nodes.map((f) => f.key)).not.toContain('quiet');
@@ -269,12 +269,12 @@ describe('schema edits', () => {
   });
 
   it('impact: counts instances per known design (open design replaces its own file)', async () => {
-    const project = await labProject({
-      'projects/lab/designs/one.json': serializeDesignV2(designA()),
-      'projects/lab/designs/two.json': serializeDesignV2(designB()),
+    const project = await labToolkit({
+      'toolkits/lab/designs/one.json': serializeDesignV2(designA()),
+      'toolkits/lab/designs/two.json': serializeDesignV2(designB()),
     });
     const daylight = project.attributeBaseline.schema.nodes.find((f) => f.key === 'daylight')!;
-    const open = { doc: designB(), source: 'projects/lab/designs/one.json' };
+    const open = { doc: designB(), source: 'toolkits/lab/designs/one.json' };
     const usage = fieldUsage(daylight, 'nodes', designSamples(project, open));
     expect(usage.designs.map((d) => [d.label, d.count])).toEqual([]);
     const fromFiles = fieldUsage(daylight, 'nodes', designSamples(project, null));
@@ -322,7 +322,7 @@ describe('audit regressions (phase 01 review)', () => {
 
   it('a type default that does not fit the project field is reported, not silently ignored', async () => {
     const odd = defineNodeType({ id: 'odd', label: 'Odd', attributes: { public: { kind: 'text', default: 'yes' } } });
-    const project = await labProject({ 'projects/lab/types/zz-odd.ts': { default: odd } });
+    const project = await labToolkit({ 'toolkits/lab/types/zz-odd.ts': { default: odd } });
     expect(project.attributeBaseline.diagnostics.some((d) => d.message.includes('default "yes"'))).toBe(true);
   });
 });
@@ -335,8 +335,8 @@ describe('algorithm reference warnings (heuristic)', () => {
       run: (ctx) => ({ kind: 'transformation', operations: ctx.design.nodes.filter((n) => n.attributes['daylight'] === 'high').map(() => ({ op: 'add-edge', id: 'e', source: 'a', target: 'b', kind: 'access' }) as const) }),
     });
     const other = defineGraphAlgorithm({ id: 'other', label: 'Other', run: ({ graph }) => ({ kind: 'analysis', nodeValues: Object.fromEntries(graph.nodes.map((n) => [n.id, 1])) }) });
-    const project = await labProject({ 'projects/lab/algorithms/reads.ts': { default: reads }, 'projects/lab/algorithms/other.ts': { default: other } });
-    expect(algorithmReferences(project, ['daylight'])).toEqual([{ algorithmId: 'reads', file: 'projects/lab/algorithms/reads.ts', keys: ['daylight'] }]);
+    const project = await labToolkit({ 'toolkits/lab/algorithms/reads.ts': { default: reads }, 'toolkits/lab/algorithms/other.ts': { default: other } });
+    expect(algorithmReferences(project, ['daylight'])).toEqual([{ algorithmId: 'reads', file: 'toolkits/lab/algorithms/reads.ts', keys: ['daylight'] }]);
     expect(algorithmReferences(project, ['capacity'])).toEqual([]);
   });
 });

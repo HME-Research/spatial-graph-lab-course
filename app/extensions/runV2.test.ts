@@ -5,11 +5,11 @@ import { migrateV1toV2, readDesignJson, validateDocumentV2, type DesignDocumentV
 import { resolveRelationships } from '@app/spatial';
 import { defineSpatialAlgorithm, roomCells, type SpatialAlgorithmContext, type SpatialOperation } from '@student-api';
 import builtInText from '../document/examples/two-storey-example.json?raw';
-import { activate, type ActiveProject } from './activate';
-import { discoverProjects } from './discover';
-import { PROJECT_GLOBS } from './projectGlobs';
+import { activate, type ActiveToolkit } from './activate';
+import { discoverToolkits } from './discover';
+import { TOOLKIT_GLOBS } from './toolkitGlobs';
 import { runAlgorithm, runAlgorithmV2 } from './run';
-import { expectDiagnostic, expectExtOk, labDoc, labProject } from './test-fixtures';
+import { expectDiagnostic, expectExtOk, labDoc, labToolkit } from './test-fixtures';
 
 /**
  * Student API on schema v2 (docs/CONTRACTS-V2.md §7): the shipped example algorithms keep
@@ -17,10 +17,10 @@ import { expectDiagnostic, expectExtOk, labDoc, labProject } from './test-fixtur
  * deprecated `canConnect`, and transformations are validated with `validateDocumentV2`.
  */
 
-const ALG = 'projects/lab/algorithms/t.ts';
+const ALG = 'toolkits/lab/algorithms/t.ts';
 
 async function transforming(operations: readonly SpatialOperation[] | ((ctx: SpatialAlgorithmContext) => readonly SpatialOperation[])) {
-  return labProject({
+  return labToolkit({
     [ALG]: {
       default: defineSpatialAlgorithm({
         id: 't',
@@ -162,13 +162,13 @@ describe('v1 runner compatibility with the v2 Student API', () => {
 });
 
 describe('shipped projects on schema v2', () => {
-  let projects: Record<string, ActiveProject>;
+  let projects: Record<string, ActiveToolkit>;
   beforeAll(async () => {
     projects = {};
     for (const query of ['example-gallery', 'starter-template']) {
-      const { activation } = await activate(PROJECT_GLOBS, { query });
+      const { activation } = await activate(TOOLKIT_GLOBS, { query });
       if (activation.status !== 'active') throw new Error(`${query} did not activate`);
-      projects[query] = activation.project;
+      projects[query] = activation.toolkit;
     }
   });
   const exampleV1 = () => expectOk(parseDesignJson(builtInText));
@@ -176,7 +176,7 @@ describe('shipped projects on schema v2', () => {
   // The starter design file on disk is v1; read it exactly as v1 for the v1 comparison runs.
   let starterText = '';
   beforeAll(async () => {
-    const source = discoverProjects(PROJECT_GLOBS).projects.find((p) => p.id === 'starter-template')!;
+    const source = discoverToolkits(TOOLKIT_GLOBS).toolkits.find((p) => p.id === 'starter-template')!;
     starterText = await source.designs.find((d) => d.stem === 'starter')!.load();
   });
   const starterV1 = () => expectOk(parseDesignJson(starterText));

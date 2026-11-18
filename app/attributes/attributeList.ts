@@ -212,30 +212,30 @@ export function storedValueText(count: { readonly total: number; readonly design
 export interface FunctionRow {
   readonly id: string;
   readonly label: string;
-  /** Defined by the course (code) project: read-only here. */
-  readonly fromCourse: boolean;
+  /** Defined by the toolkit: read-only here. */
+  readonly fromToolkit: boolean;
   /** Nodes using it across every scenario. */
   readonly used: number;
 }
 
 export const MAX_FUNCTION_NAME = 60;
 
-/** Course functions first (their order), then project functions (their order). */
+/** Toolkit functions first (their order), then project functions (their order). */
 export function functionRows(
-  courseTypes: readonly { readonly id: string; readonly label: string }[],
+  toolkitTypes: readonly { readonly id: string; readonly label: string }[],
   projectFunctions: readonly { readonly id: string; readonly label: string }[],
   usedTypeIds: readonly string[],
 ): FunctionRow[] {
   const counts = new Map<string, number>();
   for (const id of usedTypeIds) counts.set(id, (counts.get(id) ?? 0) + 1);
-  const course = new Set(courseTypes.map((t) => t.id));
+  const toolkit = new Set(toolkitTypes.map((t) => t.id));
   return [
-    ...courseTypes.map((t) => ({ id: t.id, label: t.label, fromCourse: true, used: counts.get(t.id) ?? 0 })),
-    ...projectFunctions.filter((f) => !course.has(f.id)).map((f) => ({ id: f.id, label: f.label, fromCourse: false, used: counts.get(f.id) ?? 0 })),
+    ...toolkitTypes.map((t) => ({ id: t.id, label: t.label, fromToolkit: true, used: counts.get(t.id) ?? 0 })),
+    ...projectFunctions.filter((f) => !toolkit.has(f.id)).map((f) => ({ id: f.id, label: f.label, fromToolkit: false, used: counts.get(f.id) ?? 0 })),
   ];
 }
 
-/** Why `label` cannot name a function (null: it can). Unique ignoring case, also against course functions. */
+/** Why `label` cannot name a function (null: it can). Unique ignoring case, also against toolkit functions. */
 export function functionNameProblem(label: string, rows: readonly FunctionRow[], selfId?: string): string | null {
   const n = norm(label);
   if (n === '') return 'Enter a name.';

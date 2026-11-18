@@ -8,7 +8,7 @@ import { defineConfig } from 'vitest/config';
  * server on another port) would otherwise share `node_modules/.vite`. When any of them
  * re-optimizes dependencies, the others keep serving the old optimized-dependency URLs and the
  * browser gets `504 (Outdated Optimize Dep)` for them. Lazily imported project modules
- * (`projects/<id>/project.ts` → `@student-api` → optimized dependencies) then fail with "Failed to
+ * (`toolkits/<id>/toolkit.ts` → `@student-api` → optimized dependencies) then fail with "Failed to
  * fetch dynamically imported module", and the app falls back to the built-in example. Keying the
  * cache by port removes that race (reproduced and verified at Gate 1; see docs/DEVELOPMENT-WORKFLOW.md).
  * Two servers cannot listen on the same port, so they can never share a cache.

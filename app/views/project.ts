@@ -9,7 +9,7 @@ import {
   EMPTY_ATTRIBUTE_SCHEMA,
   findNodeType,
   typeAppearance,
-  type ActiveProject,
+  type ActiveToolkit,
   type ExtensionDiagnostic,
   type ProjectAttributeSchema,
 } from '@app/extensions';
@@ -20,7 +20,7 @@ import {
  */
 export interface ProjectViewContext {
   /** null: no active project (none selected, or activation failed). */
-  readonly project: ActiveProject | null;
+  readonly project: ActiveToolkit | null;
   /** Conformance of the current document to the project's node types (empty without a project). */
   readonly conformance: readonly ExtensionDiagnostic[];
   /** Exterior façade per node type (see `projectFacadeProvider`). */
@@ -45,7 +45,7 @@ export const BROKEN_TYPE_FACADE: FacadeSpec = Object.freeze({ windowFraction: 0 
  * façade (identical to today's behaviour without a project); broken definitions get
  * `BROKEN_TYPE_FACADE`. Colours are unchanged (`typeColor`).
  */
-export function projectFacadeProvider(project: ActiveProject | null): FacadeProvider {
+export function projectFacadeProvider(project: ActiveToolkit | null): FacadeProvider {
   const cache = new Map<string, FacadeSpec>();
   return (typeId) => {
     let spec = cache.get(typeId);
@@ -60,7 +60,7 @@ export function projectFacadeProvider(project: ActiveProject | null): FacadeProv
 
 /** Context for `doc`. Pass the project's `facade` provider to keep it stable across document edits. */
 export function buildProjectViewContext(
-  project: ActiveProject | null,
+  project: ActiveToolkit | null,
   doc: TypedNodes & { readonly edges?: readonly { readonly id: string; readonly attributes: { readonly [key: string]: string | number | boolean | null } }[] },
   facade: FacadeProvider = projectFacadeProvider(project),
   attributes: ProjectAttributeSchema = project?.attributeBaseline.schema ?? EMPTY_ATTRIBUTE_SCHEMA,
@@ -81,7 +81,7 @@ export type NodeTypeStatus =
   | { readonly kind: 'registered'; readonly label: string; readonly file: string }
   | { readonly kind: 'broken'; readonly label: string | null; readonly file: string; readonly problems: readonly string[] };
 
-export function nodeTypeStatus(project: ActiveProject | null, typeId: string): NodeTypeStatus {
+export function nodeTypeStatus(project: ActiveToolkit | null, typeId: string): NodeTypeStatus {
   if (!project) return { kind: 'no-project' };
   const type = findNodeType(project, typeId);
   if (!type) return { kind: 'undefined-type' };
@@ -105,7 +105,7 @@ export function typeDisplayName(status: NodeTypeStatus, typeId: string): string 
 }
 
 /** Ids of the document's node types whose definition is broken (sorted). */
-export function brokenTypeIds(project: ActiveProject | null, doc: TypedNodes): string[] {
+export function brokenTypeIds(project: ActiveToolkit | null, doc: TypedNodes): string[] {
   if (!project) return [];
   return [...new Set((doc.nodes as readonly { readonly typeId: string }[]).map((n) => n.typeId))].filter((t) => nodeTypeStatus(project, t).kind === 'broken').sort();
 }

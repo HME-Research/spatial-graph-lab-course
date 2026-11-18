@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
-import { effectiveNodeValues, schemaSignature, type ActiveProject } from '@app/extensions';
-import { labProject } from '@app/extensions/test-fixtures';
+import { effectiveNodeValues, schemaSignature, type ActiveToolkit } from '@app/extensions';
+import { labToolkit } from '@app/extensions/test-fixtures';
 import { applyDesignCommandToSession, currentDocument, openDocument, undoDocument } from './documentSession';
 import {
   attributeStorageKey,
@@ -56,8 +56,8 @@ const doc = (name: string, nodes: unknown[]): DesignDocumentV2 => {
   return r.value.doc;
 };
 
-async function projectNamed(id: 'lab', name: string, extra: Record<string, unknown> = {}): Promise<ActiveProject> {
-  return labProject({ [`projects/${id}/project.ts`]: { default: { name } }, ...extra });
+async function projectNamed(id: 'lab', name: string, extra: Record<string, unknown> = {}): Promise<ActiveToolkit> {
+  return labToolkit({ [`toolkits/${id}/toolkit.ts`]: { default: { name } }, ...extra });
 }
 
 describe('audit regressions (phase 01 review)', () => {
@@ -77,11 +77,11 @@ describe('audit regressions (phase 01 review)', () => {
     expect(storage.data.get(attributeStorageKey('lab'))).toMatch(/"formatVersion": 1/);
   });
 
-  it('undoing a merge also restores the "project files changed" state', async () => {
+  it('undoing a merge also restores the "toolkit files changed" state', async () => {
     const storage = memoryStorage();
     persistAttributeSession(storage, addCapacity(loadAttributeSession(storage, await projectNamed('lab', 'Lab'))));
     const kiosk = { id: 'kiosk', label: 'Kiosk', attributes: { open24h: { kind: 'boolean' } } };
-    const changed = await projectNamed('lab', 'Lab', { 'projects/lab/types/kiosk.ts': { default: kiosk } });
+    const changed = await projectNamed('lab', 'Lab', { 'toolkits/lab/types/kiosk.ts': { default: kiosk } });
     const session = loadAttributeSession(storage, changed);
     expect(filesChangedSinceSaved(session)).toBe(true);
     const merged = mergeFilesIntoSession(session, changed).session;
@@ -112,7 +112,7 @@ describe('phase 10 audit: shown problems follow the session', () => {
 
     const fresh = memoryStorage();
     persistAttributeSession(fresh, addCapacity(loadAttributeSession(fresh, project)));
-    const changed = await projectNamed('lab', 'Lab', { 'projects/lab/types/kiosk.ts': { default: { id: 'kiosk', label: 'Kiosk', attributes: { open24h: { kind: 'boolean' } } } } });
+    const changed = await projectNamed('lab', 'Lab', { 'toolkits/lab/types/kiosk.ts': { default: { id: 'kiosk', label: 'Kiosk', attributes: { open24h: { kind: 'boolean' } } } } });
     const session = loadAttributeSession(fresh, changed);
     expect(attributeDiagnostics(session).map((d) => d.code)).toEqual(['attribute-baseline-changed']);
     expect(attributeDiagnostics(mergeFilesIntoSession(session, changed).session)).toEqual([]);
@@ -120,7 +120,7 @@ describe('phase 10 audit: shown problems follow the session', () => {
 });
 
 describe('project attribute session', () => {
-  it('starts from the project files when nothing is stored, and stores nothing until changed', async () => {
+  it('starts from the toolkit files when nothing is stored, and stores nothing until changed', async () => {
     const storage = memoryStorage();
     const project = await projectNamed('lab', 'Lab');
     const session = loadAttributeSession(storage, project);
@@ -152,7 +152,7 @@ describe('project attribute session', () => {
     const storage = memoryStorage();
     const lab = await projectNamed('lab', 'Lab');
     persistAttributeSession(storage, addCapacity(loadAttributeSession(storage, lab)));
-    const other: ActiveProject = { ...lab, id: 'other' };
+    const other: ActiveToolkit = { ...lab, id: 'other' };
     expect(currentSchema(loadAttributeSession(storage, other)).nodes.map((f) => f.key)).not.toContain('capacity');
     expect([...storage.data.keys()].every((k) => k.startsWith('sgl:project-attributes:lab'))).toBe(true);
   });
@@ -219,11 +219,11 @@ describe('project attribute session', () => {
     expect(persistAttributeSession(throwing, addCapacity(session))).toMatch(/Quota/);
   });
 
-  it('detects changed project files and merges them only on request (additive)', async () => {
+  it('detects changed toolkit files and merges them only on request (additive)', async () => {
     const storage = memoryStorage();
     persistAttributeSession(storage, addCapacity(loadAttributeSession(storage, await projectNamed('lab', 'Lab'))));
     const kiosk = { id: 'kiosk', label: 'Kiosk', attributes: { open24h: { kind: 'boolean', default: true } } };
-    const changed = await projectNamed('lab', 'Lab', { 'projects/lab/types/kiosk.ts': { default: kiosk } });
+    const changed = await projectNamed('lab', 'Lab', { 'toolkits/lab/types/kiosk.ts': { default: kiosk } });
     const session = loadAttributeSession(storage, changed);
     expect(session.diagnostics.map((d) => d.code)).toEqual(['attribute-baseline-changed']);
     expect(currentSchema(session).nodes.map((f) => f.key)).not.toContain('open24h');

@@ -13,9 +13,9 @@ Student workflow will be specified later, after the viewer is working. Do not pl
 
 ## Dev servers and the dependency-optimizer cache (Gate 1 finding)
 
-Symptom: occasionally, on a fresh load of the dev server, the example project failed to activate with `Failed to fetch dynamically imported module: …/projects/example-gallery/project.ts`, and the app fell back to the built-in example with a persistent error.
+Symptom: occasionally, on a fresh load of the dev server, the example toolkit failed to activate with `Failed to fetch dynamically imported module: …/toolkits/example-gallery/toolkit.ts`, and the app fell back to the built-in example with a persistent error.
 
-Cause (reproduced): several dev servers started from the **same checkout** shared Vite's optimizer cache `node_modules/.vite`. When one of them re-optimized dependencies (first start, `--force`, a changed lockfile or config), the others kept serving the old optimized-dependency URLs. The browser then received `504 (Outdated Optimize Dep)` for those dependencies. The lazily imported project module (`project.ts` → `@student-api` → optimized dependencies) is reported by the browser as the failing module, even though `project.ts` itself loads with status 200.
+Cause (reproduced): several dev servers started from the **same checkout** shared Vite's optimizer cache `node_modules/.vite`. When one of them re-optimized dependencies (first start, `--force`, a changed lockfile or config), the others kept serving the old optimized-dependency URLs. The browser then received `504 (Outdated Optimize Dep)` for those dependencies. The lazily imported toolkit module (`toolkit.ts` → `@student-api` → optimized dependencies) is reported by the browser as the failing module, even though `toolkit.ts` itself loads with status 200.
 
 Evidence (bounded, headless Edge, fresh profile per load): one cold server alone, 0/10 failures. Two servers sharing one cache, with the second started with `--force` during the first one's page load: the first re-optimization failed in 2 of 2 runs (1/8 loads each run, each with `504 (Outdated Optimize Dep)` on optimized chunks). With a cache per port: 0/10 and 0/8. Production preview has no optimizer and was not affected.
 

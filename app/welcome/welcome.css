@@ -431,3 +431,24 @@ input.sgl-project-name-input:focus {
   flex: none;
   margin-left: 0;
 }
+
+/* Toolkit a new project starts from (Welcome: under the actions; Project panel: New project dialog). */
+.sgl-toolkit-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 10px;
+}
+.sgl-toolkit-picker label {
+  font-weight: 600;
+}
+.sgl-toolkit-picker select {
+  min-width: 12em;
+  max-width: 100%;
+}
+.sgl-toolkit-picker-help {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 13px;
+}

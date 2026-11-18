@@ -33,6 +33,25 @@
   color: var(--fg);
 }
 
+/* The project's toolkit: a quiet chip after the project name. */
+.sgl-identity-toolkit {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 16em;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.sgl-identity-toolkit.failed {
+  border-color: var(--error-line);
+  color: var(--error-fg);
+}
+
 .sgl-identity-sep {
   color: var(--muted);
 }

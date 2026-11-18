@@ -4,6 +4,7 @@ import type { ProjectController } from '@app/session/projectStoreController';
 import { useProjectControllerState } from '@app/session/projectStoreContext';
 import { SaveStatus } from '@app/scenarios/SaveStatus';
 import { Dialog } from '@app/ui/Dialog';
+import { ToolkitPicker, type ToolkitOption } from './ToolkitPicker';
 import { formatWhen, projectFileName } from './welcomeModel';
 import './welcome.css';
 
@@ -47,16 +48,25 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
  */
 export function ProjectFiles({
   controller,
+  toolkits = [],
+  defaultToolkitId = null,
   onNew,
   onOpenFile,
 }: {
   readonly controller: ProjectController | null;
-  readonly onNew: () => void;
+  /** Toolkits a new project can start from; with more than one, New project asks which. */
+  readonly toolkits?: readonly ToolkitOption[];
+  /** Preselected toolkit for New project (normally the open project's own). */
+  readonly defaultToolkitId?: string | null;
+  readonly onNew: (toolkitId: string | null) => void;
   readonly onOpenFile: (file: File) => void;
 }) {
   const state = useProjectControllerState(controller);
   const project = state.project;
   const [saveAsName, setSaveAsName] = useState<string | null>(null);
+  /** New project dialog: the toolkit being chosen (undefined: closed). */
+  const [newToolkit, setNewToolkit] = useState<string | null | undefined>(undefined);
+  const startNew = () => (toolkits.length > 1 ? setNewToolkit(defaultToolkitId) : onNew(toolkits[0]?.id ?? defaultToolkitId));
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -97,7 +107,7 @@ export function ProjectFiles({
         <button type="button" disabled={!project} onClick={() => project && setSaveAsName(`${project.meta.name.slice(0, MAX_NAME_LENGTH - 5)} copy`)} title="Continue in an independent copy of the whole project">
           Save as new project
         </button>
-        <button type="button" onClick={onNew} title="Start another project (this one stays saved in this browser)">
+        <button type="button" onClick={startNew} title="Start another project (this one stays saved in this browser)">
           New project
         </button>
         <label className="file-button" title="Open a project file">
@@ -167,6 +177,36 @@ export function ProjectFiles({
               <input type="text" data-autofocus value={saveAsName} maxLength={MAX_NAME_LENGTH} onChange={(e) => setSaveAsName(e.currentTarget.value)} disabled={busy} />
             </label>
           </form>
+        </Dialog>
+      )}
+
+      {newToolkit !== undefined && (
+        <Dialog
+          title="New project"
+          lead="A new, empty project. This one stays saved in this browser."
+          onClose={() => setNewToolkit(undefined)}
+          dialogId="new-project"
+          footer={
+            <>
+              <button type="button" onClick={() => setNewToolkit(undefined)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="sgl-primary"
+                data-autofocus
+                onClick={() => {
+                  const chosen = newToolkit;
+                  setNewToolkit(undefined);
+                  onNew(chosen);
+                }}
+              >
+                Create project
+              </button>
+            </>
+          }
+        >
+          <ToolkitPicker toolkits={toolkits} value={newToolkit} onChange={setNewToolkit} />
         </Dialog>
       )}
     </div>

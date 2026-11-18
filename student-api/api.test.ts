@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
   defineGraphAlgorithm,
   defineNodeType,
-  defineProject,
+  defineToolkit,
   defineSpatialAlgorithm,
   FACE_DIRECTIONS,
   neighbourCell,
@@ -25,7 +25,7 @@ const graph: Graph = {
 describe('Student API runtime helpers', () => {
   it('define helpers return their argument (algorithms gain only a scope tag)', () => {
     const project = { name: 'P' };
-    expect(defineProject(project)).toBe(project);
+    expect(defineToolkit(project)).toBe(project);
     const type = { id: 'gallery', label: 'Gallery' };
     expect(defineNodeType(type)).toBe(type);
     const run = () => ({ kind: 'analysis' as const, nodeValues: {} });

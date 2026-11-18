@@ -2,8 +2,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { buildArchitecture, EXAMPLE_FACADES, exampleFacadeProvider, resolveFaces } from '@app/building';
 import { parseDesignJson } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
-import { activate, PROJECT_GLOBS, type ActiveProject } from '@app/extensions';
-import { labDoc, labProject } from '@app/extensions/test-fixtures';
+import { activate, TOOLKIT_GLOBS, type ActiveToolkit } from '@app/extensions';
+import { labDoc, labToolkit } from '@app/extensions/test-fixtures';
 import builtInText from '../document/examples/two-storey-example.json?raw';
 import {
   BROKEN_TYPE_FACADE,
@@ -15,12 +15,12 @@ import {
 } from './project';
 
 const builtIn = expectOk(parseDesignJson(builtInText));
-let example: ActiveProject;
+let example: ActiveToolkit;
 
 beforeAll(async () => {
-  const { activation } = await activate(PROJECT_GLOBS, { query: 'example-gallery' });
+  const { activation } = await activate(TOOLKIT_GLOBS, { query: 'example-gallery' });
   if (activation.status !== 'active') throw new Error('example-gallery did not activate');
-  example = activation.project;
+  example = activation.toolkit;
 });
 
 describe('project appearance in the views', () => {
@@ -37,13 +37,13 @@ describe('project appearance in the views', () => {
   });
 
   it('a project façade declaration is used', async () => {
-    const lab = await labProject();
+    const lab = await labToolkit();
     expect(projectFacadeProvider(lab)('gallery')).toEqual({ windowFraction: 0.6 });
     expect(projectFacadeProvider(lab)('studio')).toEqual(EXAMPLE_FACADES['studio']); // no declaration
   });
 
   it('a broken type definition is visible: closed façade, broken status with its problems', async () => {
-    const lab = await labProject({ 'projects/lab/types/kiosk.ts': { default: { id: 'kiosk', label: 'Kiosk', facade: { windowFraction: 2 } } } });
+    const lab = await labToolkit({ 'toolkits/lab/types/kiosk.ts': { default: { id: 'kiosk', label: 'Kiosk', facade: { windowFraction: 2 } } } });
     expect(projectFacadeProvider(lab)('kiosk')).toBe(BROKEN_TYPE_FACADE);
     const status = nodeTypeStatus(lab, 'kiosk');
     expect(status.kind).toBe('broken');
@@ -54,8 +54,8 @@ describe('project appearance in the views', () => {
   });
 
   it('type status distinguishes registered, undefined and no project', async () => {
-    const lab = await labProject();
-    expect(nodeTypeStatus(lab, 'gallery')).toEqual({ kind: 'registered', label: 'Gallery', file: 'projects/lab/types/gallery.ts' });
+    const lab = await labToolkit();
+    expect(nodeTypeStatus(lab, 'gallery')).toEqual({ kind: 'registered', label: 'Gallery', file: 'toolkits/lab/types/gallery.ts' });
     expect(typeDisplayName(nodeTypeStatus(lab, 'gallery'), 'gallery')).toBe('Gallery (gallery)');
     expect(nodeTypeStatus(lab, 'kiosk')).toEqual({ kind: 'undefined-type' });
     expect(nodeTypeStatus(null, 'gallery')).toEqual({ kind: 'no-project' });

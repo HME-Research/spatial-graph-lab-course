@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { domFocusScope, handleDialogKeyDown } from '@app/ui/concepts/dialogKeys';
+import { ToolkitPicker, type ToolkitOption } from './ToolkitPicker';
 import { recentRows, type RecentState } from './welcomeModel';
 import './welcome.css';
 
@@ -9,8 +10,14 @@ export interface WelcomeProps {
   readonly busy?: string | null;
   /** A failure of the last action (e.g. a file that could not be opened). */
   readonly error?: ReactNode;
-  /** Create project: a clean project at once (no name or template form; owner 2026-11-17). */
-  readonly onCreate: () => void;
+  /** Toolkits a new project can start from (`toolkits/<id>`), and the preselected one. */
+  readonly toolkits?: readonly ToolkitOption[];
+  readonly defaultToolkitId?: string | null;
+  /**
+   * Create project: a clean project at once with the chosen toolkit (no name form; owner
+   * 2026-11-17). The toolkit is chosen beside the button (owner 2026-11-17, toolkit terminology).
+   */
+  readonly onCreate: (toolkitId: string | null) => void;
   readonly onOpenFile: (file: File) => void;
   readonly onTryExample: () => void;
   readonly onRestore: (projectId: string) => void;
@@ -32,6 +39,8 @@ export function Welcome({
   recent,
   busy = null,
   error = null,
+  toolkits = [],
+  defaultToolkitId = null,
   onCreate,
   onOpenFile,
   onTryExample,
@@ -40,6 +49,7 @@ export function Welcome({
 }: WelcomeProps) {
   const disabled = busy !== null;
   const dialog = useRef<HTMLDialogElement>(null);
+  const [toolkitId, setToolkitId] = useState<string | null>(defaultToolkitId);
 
   useEffect(() => {
     const el = dialog.current;
@@ -99,7 +109,7 @@ export function Welcome({
 
         <section className="sgl-welcome-start" aria-label="Start">
             <div className="sgl-welcome-actions">
-              <button type="button" className="sgl-welcome-action is-primary" data-autofocus onClick={onCreate} disabled={disabled}>
+              <button type="button" className="sgl-welcome-action is-primary" data-autofocus onClick={() => onCreate(toolkitId)} disabled={disabled}>
                 <span className="sgl-welcome-action-title">Create project</span>
                 <span className="sgl-welcome-action-sub">Start from an empty graph</span>
               </button>
@@ -113,6 +123,7 @@ export function Welcome({
                 <span className="sgl-welcome-action-sub">A two-storey building to explore</span>
               </button>
             </div>
+            {toolkits.length > 0 && <ToolkitPicker toolkits={toolkits} value={toolkitId} onChange={setToolkitId} disabled={disabled} />}
         </section>
 
         <section className="sgl-welcome-recent" aria-labelledby="sgl-welcome-recent-title">

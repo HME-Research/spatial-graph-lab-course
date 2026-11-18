@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react';
 import type { ComponentSize, FacadeAssetV1 } from '@app/assets';
 
 /**
- * The open project's imported façades (`ProjectFileV1.assets`), provided by the shell so views
+ * The open project's imported façades (`ProjectFileV2.assets`), provided by the shell so views
  * can draw them without a change to `ViewProps`. Project-level: every scenario shares them.
  */
 export interface FacadeLibrary {

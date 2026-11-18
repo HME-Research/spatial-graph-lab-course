@@ -8,7 +8,7 @@ import {
   type RunOutcomeV2,
   type TransformationPreviewV2,
   validateParameters,
-  type ActiveProject,
+  type ActiveToolkit,
   type AttributeSpec,
   type ExtensionDiagnostic,
   type ExtensionResult,
@@ -38,7 +38,7 @@ export interface AlgorithmEntry {
   readonly parameters: readonly (readonly [string, AttributeSpec])[];
 }
 
-export function listAlgorithms(project: ActiveProject | null): AlgorithmEntry[] {
+export function listAlgorithms(project: ActiveToolkit | null): AlgorithmEntry[] {
   if (!project) return [];
   return project.algorithms.map((a) => {
     // Disabled definitions are unvalidated student data: read their fields defensively.
@@ -109,7 +109,7 @@ export interface AttributesVersion {
 export type AlgorithmRunV2 = AlgorithmRun<DesignDocumentV2, RunOutcomeV2>;
 
 /** Run once. Never changes `doc`; a failure is reported in `outcome`. */
-export function runEntry(version: DocumentVersion, project: ActiveProject, entry: AlgorithmEntry, drafts: ParameterDrafts): AlgorithmRun {
+export function runEntry(version: DocumentVersion, project: ActiveToolkit, entry: AlgorithmEntry, drafts: ParameterDrafts): AlgorithmRun {
   const { doc, revision } = version;
   return {
     algorithmId: entry.id,
@@ -136,7 +136,7 @@ export interface HostResolution {
  */
 export function runEntryV2(
   version: DocumentVersion<DesignDocumentV2>,
-  project: ActiveProject,
+  project: ActiveToolkit,
   entry: AlgorithmEntry,
   drafts: ParameterDrafts,
   attributes?: AttributesVersion,

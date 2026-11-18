@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 /**
  * The Student API is a thin, stable contract. Its source may import only sibling student-api
  * files and the generic `@core/graph` / `@core/spatial` entry points (tests may also import
- * vitest and the application's extension runtime). Never app/, projects/, Zod, React or Three.js.
+ * vitest and the application's extension runtime). Never app/, toolkits/, Zod, React or Three.js.
  * An automated architectural check, not an access-control mechanism.
  */
 const sources = import.meta.glob<string>('./**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true });
@@ -25,7 +25,7 @@ describe('student-api dependency boundary', () => {
 
   it('flags application, project and package imports (self-check)', () => {
     expect(allowed('./graph.ts', '@app/document')).toBe(false);
-    expect(allowed('./graph.ts', '../projects/x/types/a')).toBe(false);
+    expect(allowed('./graph.ts', '../toolkits/x/types/a')).toBe(false);
     expect(allowed('./graph.ts', 'zod')).toBe(false);
     expect(allowed('./graph.ts', '@core/viewer/appearance')).toBe(false);
     expect(allowed('./graph.ts', '@core/graph')).toBe(true);

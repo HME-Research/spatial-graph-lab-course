@@ -164,13 +164,13 @@ describe('scenario management', () => {
     expect(scenarioById(p, 'blank')!.name).toBe('Empty');
   });
 
-  it('creates a scenario from a given design (e.g. a code project design), and refuses a missing one', () => {
+  it('creates a scenario from a given design (e.g. a toolkit design), and refuses a missing one', () => {
     let p = open();
     expect(createScenario(p, { id: 'x', from: 'design' }).ok).toBe(false);
     const d = twoRooms();
-    p = ok(createScenario(p, { id: 'from-design', from: 'design', design: d, name: 'Starter', source: 'projects/x/designs/s.json' }));
+    p = ok(createScenario(p, { id: 'from-design', from: 'design', design: d, name: 'Starter', source: 'toolkits/x/designs/s.json' }));
     expect(activeDesign(p)).toBe(d);
-    expect(activeSession(p).source).toBe('projects/x/designs/s.json');
+    expect(activeSession(p).source).toBe('toolkits/x/designs/s.json');
     expect(activeContent(p).facePreferences).toEqual({});
   });
 
@@ -293,11 +293,11 @@ describe('all-scenario JSON round trip', () => {
 
 describe('reading files', () => {
   it('imports a legacy v1 design as a new project with one scenario', () => {
-    const r = readProjectOrDesign(JSON.stringify(exampleV1), { ...ids(), definition: { projectId: 'example-gallery' } });
+    const r = readProjectOrDesign(JSON.stringify(exampleV1), { ...ids(), toolkit: { id: 'example-gallery' } });
     if (!r.ok) throw new Error(JSON.stringify(r.issues));
     expect(r.kind).toBe('design');
     expect(r.file.scenarios).toHaveLength(1);
-    expect(r.file.definition).toEqual({ projectId: 'example-gallery' });
+    expect(r.file.toolkit).toEqual({ id: 'example-gallery' });
     expect(r.file.scenarios[0]!.design.schemaVersion).toBe(2);
   });
 
@@ -316,7 +316,7 @@ describe('reading files', () => {
     expect(bad('[]')).toEqual(['wrong-format']);
     expect(bad('{"hello":1}')).toEqual(['wrong-format']);
     const newer = JSON.parse(serializeProjectFile(fileOf()));
-    newer.version = 2;
+    newer.version = 3;
     expect(bad(JSON.stringify(newer))).toEqual(['unsupported-version']);
     expect(bad(JSON.stringify({ format: 'something-else' }))).toEqual(['wrong-format']);
     expect(bad(JSON.stringify({ schemaVersion: 3, metadata: { name: 'x' }, nodes: [], edges: [] }))).toEqual(['invalid-design']);

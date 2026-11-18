@@ -9,12 +9,12 @@
  */
 export type { AttributeSpec, AttributeSpecs, AttributeValue, AttributesOf, ValueOf } from './attributes';
 export {
-  defineProject,
-  type ProjectAttributes,
-  type ProjectAttributeSpec,
-  type ProjectAttributeSpecs,
-  type ProjectDefinition,
-} from './project';
+  defineToolkit,
+  type ToolkitAttributes,
+  type ToolkitAttributeSpec,
+  type ToolkitAttributeSpecs,
+  type ToolkitDefinition,
+} from './toolkit';
 export { defineNodeType, type FacadeParameters, type NodeTypeDefinition } from './types';
 export {
   edgesBetween,

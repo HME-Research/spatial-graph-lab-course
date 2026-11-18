@@ -2,10 +2,10 @@
 import { expect } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
 import { validateDocument, type DesignDocument } from '@app/document';
-import { defineNodeType, defineProject } from '@student-api';
-import { activate, type ActiveProject } from './activate';
+import { defineNodeType, defineToolkit } from '@student-api';
+import { activate, type ActiveToolkit } from './activate';
 import type { ExtensionDiagnostic, ExtensionIssueCode, ExtensionResult } from './diagnostics';
-import type { ModuleLoader, ProjectGlobs, TextLoader } from './discover';
+import type { ModuleLoader, ToolkitGlobs, TextLoader } from './discover';
 
 /** Marks a module that fails to load (e.g. a syntax error in the student's file). */
 export const LOAD_FAILS = Symbol('load fails');
@@ -14,8 +14,8 @@ export const LOAD_FAILS = Symbol('load fails');
  * In-memory stand-in for `import.meta.glob`: keys are repository paths, values are module
  * objects (`{ default: … }`), JSON text for designs, or LOAD_FAILS.
  */
-export function fakeGlobs(files: Readonly<Record<string, unknown>>): ProjectGlobs {
-  const project: Record<string, ModuleLoader> = {};
+export function fakeGlobs(files: Readonly<Record<string, unknown>>): ToolkitGlobs {
+  const toolkit: Record<string, ModuleLoader> = {};
   const types: Record<string, ModuleLoader> = {};
   const algorithms: Record<string, ModuleLoader> = {};
   const designs: Record<string, TextLoader> = {};
@@ -26,11 +26,11 @@ export function fakeGlobs(files: Readonly<Record<string, unknown>>): ProjectGlob
     };
     const key = `/${path}`;
     if (path.endsWith('.json')) designs[key] = load;
-    else if (path.endsWith('/project.ts')) project[key] = load;
+    else if (path.endsWith('/toolkit.ts')) toolkit[key] = load;
     else if (path.includes('/types/')) types[key] = load;
     else if (path.includes('/algorithms/')) algorithms[key] = load;
   }
-  return { project, types, algorithms, designs };
+  return { toolkit, types, algorithms, designs };
 }
 
 export const galleryType = defineNodeType({
@@ -49,21 +49,21 @@ export const studioType = defineNodeType({
   attributes: { occupancy: { kind: 'number', min: 0 }, public: { kind: 'boolean', default: false } },
 });
 
-/** Base files of the "lab" test project; tests add or override entries. */
+/** Base files of the "lab" test toolkit; tests add or override entries. */
 export const LAB_FILES: Readonly<Record<string, unknown>> = {
-  'projects/lab/project.ts': { default: defineProject({ name: 'Lab' }) },
-  'projects/lab/types/gallery.ts': { default: galleryType },
-  'projects/lab/types/studio.ts': { default: studioType },
+  'toolkits/lab/toolkit.ts': { default: defineToolkit({ name: 'Lab' }) },
+  'toolkits/lab/types/gallery.ts': { default: galleryType },
+  'toolkits/lab/types/studio.ts': { default: studioType },
 };
 
-export async function labProject(extra: Readonly<Record<string, unknown>> = {}): Promise<ActiveProject> {
+export async function labToolkit(extra: Readonly<Record<string, unknown>> = {}): Promise<ActiveToolkit> {
   const { activation } = await activate(fakeGlobs({ ...LAB_FILES, ...extra }), { query: 'lab' });
-  if (activation.status !== 'active') throw new Error(`expected an active project, got ${JSON.stringify(activation)}`);
-  return activation.project;
+  if (activation.status !== 'active') throw new Error(`expected an active toolkit, got ${JSON.stringify(activation)}`);
+  return activation.toolkit;
 }
 
 /**
- * g1, g2 (galleries) and s1 (studio) on storey 0, plus k1 of a type the lab project does not define.
+ * g1, g2 (galleries) and s1 (studio) on storey 0, plus k1 of a type the lab toolkit does not define.
  * g2 has an invalid daylight value and an undeclared legacy attribute; e1 has an edge attribute.
  */
 export function labDoc(): DesignDocument {

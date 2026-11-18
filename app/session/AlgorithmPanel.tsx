@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import type { DesignDocumentV2 } from '@app/document/v2';
-import type { ActiveProject, AttributeSpec, ExtensionDiagnostic, TransformationPreviewV2 } from '@app/extensions';
+import type { ActiveToolkit, AttributeSpec, ExtensionDiagnostic, TransformationPreviewV2 } from '@app/extensions';
 import { ALGORITHM_GROUP_LABELS, EFFECT_LABELS, groupAlgorithms, presentAlgorithm } from '@app/ui';
 import { HelpTip } from '@app/ui/help';
 import { selectNode, type SelectionHandler } from '@core/viewer/selection';
@@ -33,7 +33,7 @@ export function AlgorithmPanel({
   attributes,
   resolution,
 }: {
-  readonly project: ActiveProject | null;
+  readonly project: ActiveToolkit | null;
   /** The current (schema-v2) document and its revision; results are bound to it. */
   readonly version: DocumentVersion<DesignDocumentV2> | null;
   /**
@@ -73,7 +73,7 @@ export function AlgorithmPanel({
   if (!project) {
     return (
       <div className="algorithms sgl-inspector">
-        <p className="meta">No active project. Algorithms come from <code>projects/&lt;id&gt;/algorithms/</code>.</p>
+        <p className="meta">No toolkit. Algorithms come from the project’s toolkit (<code>toolkits/&lt;id&gt;/algorithms/</code>).</p>
       </div>
     );
   }
@@ -102,7 +102,7 @@ export function AlgorithmPanel({
     <div className="algorithms sgl-inspector">
       {algorithms.length === 0 ? (
         <p className="meta">
-          Project “{project.id}” has no algorithms. Add one in <code>projects/{project.id}/algorithms/</code>.
+          Toolkit “{project.id}” has no algorithms. Add one in <code>toolkits/{project.id}/algorithms/</code>.
         </p>
       ) : (
         <div className="algorithm-list" aria-label="Algorithms" role="region">

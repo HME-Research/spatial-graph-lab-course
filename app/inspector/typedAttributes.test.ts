@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyGraphCommand, serializeDesign, type GraphNode } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
 import { checkConformance } from '@app/extensions';
-import { galleryType, labDoc, labProject, studioType } from '@app/extensions/test-fixtures';
+import { galleryType, labDoc, labToolkit, studioType } from '@app/extensions/test-fixtures';
 import {
   fieldDraft,
   parseFieldDraft,
@@ -65,7 +65,7 @@ describe('typed attribute edits', () => {
   });
 
   it('changing daylight updates the graph data and resolves the conformance warning', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const doc = labDoc();
     expect(checkConformance(doc, project).map((d) => d.id)).toContain('invalid-attribute-value|node:g2|daylight');
     const g2 = doc.nodes.find((n) => n.id === 'g2')!;

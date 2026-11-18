@@ -3,8 +3,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
 import { validateDocument, type DesignDocument } from '@app/document';
-import type { ActiveProject } from '@app/extensions';
-import { labDoc, labProject } from '@app/extensions/test-fixtures';
+import type { ActiveToolkit } from '@app/extensions';
+import { labDoc, labToolkit } from '@app/extensions/test-fixtures';
 import type { InspectorProps } from '@app/views/contracts';
 import { buildProjectViewContext } from '@app/views/project';
 import { selectEdge, selectNode, NO_SELECTION, type Selection } from '@core/viewer/selection';
@@ -26,10 +26,10 @@ function selectOptions(html: string, label: string): string[] {
 }
 
 describe('Properties panel, schema v1 (today)', () => {
-  let project: ActiveProject;
+  let project: ActiveToolkit;
   let doc: DesignDocument;
   beforeAll(async () => {
-    project = await labProject();
+    project = await labToolkit();
     doc = labDoc();
   });
 
@@ -210,7 +210,7 @@ describe('Properties grouping (wave 1)', () => {
   });
 
   it('offers "Manage attributes" in the Attributes group header when a project is active', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const design = fakePort();
     const context = buildProjectViewContext(project, v1());
     const html = renderToStaticMarkup(

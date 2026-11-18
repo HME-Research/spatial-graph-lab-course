@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { typeIdSchema, type AttributeValue } from '@app/document';
 import { zodMessages } from './definitions';
+import { toolkitIdSchema } from './discover';
 import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionResult } from './diagnostics';
 
 /**
@@ -277,7 +278,7 @@ export const ATTRIBUTE_RECORD_VERSION = 1;
 
 /**
  * What is stored in the browser for a project and what Export/Import exchange. `baseline` is the
- * signature of the schema derived from the project's files when this record was created or last
+ * signature of the schema derived from the toolkit's files when this record was created or last
  * merged with them: if the files change later, the app can tell (and offer an explicit merge).
  */
 export interface ProjectAttributeRecord {
@@ -293,7 +294,8 @@ export interface ProjectAttributeRecord {
 const recordShape = z.strictObject({
   format: z.literal(ATTRIBUTE_RECORD_FORMAT, { error: `not a Spatial Graph Lab project attribute file (format must be "${ATTRIBUTE_RECORD_FORMAT}")` }),
   formatVersion: z.number(),
-  projectId: typeIdSchema,
+  // Owner scope: the toolkit id, or the saved project's own id when it has no toolkit.
+  projectId: toolkitIdSchema,
   schema: z.unknown(),
   baseline: z.string(),
   savedAt: z.string().optional(),
@@ -328,7 +330,7 @@ export interface ReadRecordOptions {
  * itself; every failure is an error diagnostic and nothing is returned.
  */
 export function readAttributeRecord(text: string, options: ReadRecordOptions): ExtensionResult<ProjectAttributeRecord> {
-  const subject = { kind: 'project', id: options.projectId } as const;
+  const subject = { kind: 'toolkit', id: options.projectId } as const;
   const err = (code: 'invalid-attribute-schema' | 'attribute-schema-project-mismatch' | 'attribute-schema-version', message: string, detail?: string) =>
     fail<ProjectAttributeRecord>([diagnostic(code, 'error', subject, message, detail !== undefined ? { detail } : {})]);
   let raw: unknown;

@@ -1,5 +1,5 @@
 import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
-import type { ProjectFileV1 } from '@app/project';
+import type { ProjectFileV2 } from '@app/project';
 import { newProjectFromDesign } from './projectStore';
 
 /** Test fixtures for the project controller (not a test file, so importing it registers no tests). */
@@ -30,8 +30,8 @@ export const twoRooms = (): DesignDocumentV2 =>
 let seq = 0;
 export const fixtureIds = () => ({ newId: () => `project-f${++seq}`, newScenarioId: () => `scenario-f${++seq}`, now: () => '2026-11-16T10:00:00.000Z' });
 
-export function fileOf(doc: DesignDocumentV2 = twoRooms()): ProjectFileV1 {
-  const r = newProjectFromDesign(doc, { ...fixtureIds(), name: 'Test project', definition: { projectId: 'example-gallery' } });
+export function fileOf(doc: DesignDocumentV2 = twoRooms()): ProjectFileV2 {
+  const r = newProjectFromDesign(doc, { ...fixtureIds(), name: 'Test project', toolkit: { id: 'example-gallery' } });
   if (!r.ok) throw new Error(JSON.stringify(r.issues));
   return r.value;
 }

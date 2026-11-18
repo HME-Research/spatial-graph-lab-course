@@ -12,7 +12,7 @@ import {
   readProjectFile,
   saveAsNewProject,
   serializeProjectFile,
-  type ProjectFileV1,
+  type ProjectFileV2,
   type ProjectIssueCode,
   type ProjectResult,
   type ProjectState,
@@ -72,13 +72,13 @@ function twoScenarioState(): ProjectState {
   return {
     meta: {
       format: PROJECT_FILE_FORMAT,
-      version: 1,
+      version: 2,
       projectId: 'p1',
       name: 'Museum',
       description: 'Two options',
       createdAt: '2026-11-16T09:00:00.000Z',
       updatedAt: '2026-11-16T10:00:00.000Z',
-      definition: { projectId: 'example-gallery' },
+      toolkit: { id: 'example-gallery' },
       attributes: attributeRecord(),
       settings: { display: { labels: true, legend: false, roofs: true, colourPreset: 'neutral', lighting: 'soft' } },
       assets: { policy: 'none' },
@@ -122,7 +122,7 @@ const rawFile = () => JSON.parse(serializeProjectFile(validFile())) as Record<st
 
 // ── Project file ──────────────────────────────────────────────────────────────────────────────
 
-describe('project file v1', () => {
+describe('project file', () => {
   it('serializes canonically: deterministic, trailing newline, key order independent of input order', () => {
     const file = validFile();
     const text = serializeProjectFile(file);
@@ -131,8 +131,21 @@ describe('project file v1', () => {
     const shuffled = Object.fromEntries(Object.entries(JSON.parse(text) as Record<string, unknown>).reverse());
     expect(serializeProjectFile(okValue(readProjectFile(shuffled)))).toBe(text);
     expect(Object.keys(JSON.parse(text) as object)).toEqual([
-      'format', 'version', 'projectId', 'name', 'description', 'createdAt', 'updatedAt', 'definition', 'attributes', 'activeScenarioId', 'scenarios', 'settings', 'assets',
+      'format', 'version', 'projectId', 'name', 'description', 'createdAt', 'updatedAt', 'toolkit', 'attributes', 'activeScenarioId', 'scenarios', 'settings', 'assets',
     ]);
+  });
+
+  it('migrates a version 1 file: definition { projectId } becomes toolkit { id }; written back as version 2', () => {
+    const current = JSON.parse(serializeProjectFile(validFile())) as Record<string, unknown>;
+    const { toolkit, ...rest } = current;
+    const v1 = { ...rest, version: 1, definition: toolkit === null ? null : { projectId: (toolkit as { id: string }).id } };
+    const read = okValue(readProjectFile(JSON.stringify(v1)));
+    expect(read.version).toBe(2);
+    expect(read.toolkit).toEqual(toolkit);
+    expect(serializeProjectFile(read)).toBe(serializeProjectFile(validFile()));
+    expect(okValue(readProjectFile({ ...v1, definition: null })).toolkit).toBeNull();
+    // A version 1 file that already uses the version 2 key is not silently accepted.
+    expect(codes(readProjectFile({ ...rest, version: 1, toolkit }))).toContain('schema');
   });
 
   it('reads text and parsed values alike', () => {
@@ -144,7 +157,7 @@ describe('project file v1', () => {
     expect(codes(readProjectFile('{nope'))).toEqual(['invalid-json']);
     expect(codes(readProjectFile({ ...rawFile(), format: 'spatial-graph-lab/project-attributes' }))).toEqual(['wrong-format']);
     expect(codes(readProjectFile(designA()))).toEqual(['wrong-format']);
-    expect(codes(readProjectFile({ ...rawFile(), version: 2 }))).toEqual(['unsupported-version']);
+    expect(codes(readProjectFile({ ...rawFile(), version: 3 }))).toEqual(['unsupported-version']);
     expect(codes(readProjectFile({ ...rawFile(), extra: 1 }))).toContain('schema');
     const noAttrs = rawFile();
     delete noAttrs.attributes;
@@ -213,7 +226,7 @@ describe('project file v1', () => {
     broken.attributes.schema = { nodes: 'x' };
     expect(codes(readProjectFile(broken))).toEqual(['invalid-attributes']);
     expect(okValue(readProjectFile({ ...rawFile(), attributes: null })).attributes).toBeNull();
-    expect(okValue(readProjectFile({ ...rawFile(), definition: null })).attributes).toEqual(attributeRecord());
+    expect(okValue(readProjectFile({ ...rawFile(), toolkit: null })).attributes).toEqual(attributeRecord());
   });
 });
 
@@ -224,7 +237,7 @@ describe('legacy design import', () => {
   };
 
   it('wraps a schema v1 design into one scenario "Scenario 1" (migrated to v2)', () => {
-    const file = okValue(projectFromLegacyDesign(exampleV1, { ...ids(), definition: { projectId: 'example-gallery' } }));
+    const file = okValue(projectFromLegacyDesign(exampleV1, { ...ids(), toolkit: { id: 'example-gallery' } }));
     expect(file.projectId).toBe('proj-new');
     expect(file.name).toBe('Two-storey example');
     expect(file.scenarios).toHaveLength(1);
@@ -232,7 +245,7 @@ describe('legacy design import', () => {
     expect(file.scenarios[0]!.design.schemaVersion).toBe(2);
     expect(file.activeScenarioId).toBe('scn-1');
     expect(file.createdAt).toBe('2026-11-16T12:00:00.000Z');
-    expect(file.definition).toEqual({ projectId: 'example-gallery' });
+    expect(file.toolkit).toEqual({ id: 'example-gallery' });
   });
 
   it('wraps a schema v2 design and keeps it exactly', () => {
@@ -330,7 +343,7 @@ describe('project store', () => {
   });
 
   it('a wrong-format file never replaces the current state', () => {
-    let current: ProjectFileV1 = validFile();
+    let current: ProjectFileV2 = validFile();
     const before = serializeProjectFile(current);
     const attributeFile = serializeAttributeRecord(makeAttributeRecord('example-gallery', { nodes: [], edges: [], nodeTypeDefaults: {} }, 'x'));
     for (const text of [attributeFile, JSON.stringify(designA()), 'not json', JSON.stringify({ ...rawFile(), version: 9 })]) {
@@ -368,7 +381,7 @@ describe('project store', () => {
     const store = createMemoryProjectStore({ now: () => '2026-11-16T12:00:00.000Z' });
     store.records.set('p1', { not: 'text' });
     expect(await store.load('p1')).toMatchObject({ status: 'unreadable', quarantineKey: 'p1:unreadable:2026-11-16T12:00:00.000Z' });
-    store.records.set('p1', JSON.stringify({ ...rawFile(), version: 2 }));
+    store.records.set('p1', JSON.stringify({ ...rawFile(), version: 3 }));
     const second = await store.load('p1');
     expect(second).toMatchObject({ status: 'unreadable', quarantineKey: 'p1:unreadable:2026-11-16T12:00:00.000Z-2' });
     expect(second.status === 'unreadable' && second.issues[0]!.code).toBe('unsupported-version');
@@ -382,7 +395,7 @@ describe('project store', () => {
     const store = createMemoryProjectStore({ quotaBytes: small + 10 });
     expect((await store.save(validFile())).status).toBe('saved'); // replacing does not count the old copy
     expect((await store.save(validFile())).status).toBe('saved');
-    const bigger: ProjectFileV1 = { ...validFile(), description: 'x'.repeat(100) };
+    const bigger: ProjectFileV2 = { ...validFile(), description: 'x'.repeat(100) };
     const r = await store.save(bigger);
     expect(r).toMatchObject({ status: 'blocked', reason: 'quota' });
     expect(store.records.get('p1')).toBe(serializeProjectFile(validFile()));
@@ -390,14 +403,14 @@ describe('project store', () => {
 
   it('lists readable projects newest first, then unreadable ones', async () => {
     const store = createMemoryProjectStore();
-    const at = (id: string, updatedAt: string): ProjectFileV1 => ({ ...validFile(), projectId: id, name: id, updatedAt });
+    const at = (id: string, updatedAt: string): ProjectFileV2 => ({ ...validFile(), projectId: id, name: id, updatedAt });
     await store.save(at('old', '2026-01-01T00:00:00.000Z'));
     await store.save(at('new', '2026-11-16T00:00:00.000Z'));
     await store.save(at('mid', '2026-06-01T00:00:00.000Z'));
     store.records.set('bad', 'x');
     const list = await store.list();
     expect(list.map((s) => s.projectId)).toEqual(['new', 'mid', 'old', 'bad']);
-    expect(list[0]).toMatchObject({ status: 'ok', name: 'new', scenarioCount: 2, definitionId: 'example-gallery' });
+    expect(list[0]).toMatchObject({ status: 'ok', name: 'new', scenarioCount: 2, toolkitId: 'example-gallery' });
   });
 
   it('reports missing IndexedDB as unavailable without throwing', async () => {

@@ -8,7 +8,7 @@ import {
   readProjectFile,
   serializeProjectFile,
   type MemoryProjectStore,
-  type ProjectFileV1,
+  type ProjectFileV2,
   type RecordBackend,
 } from '@app/project';
 import { currentDocument } from './documentSession';
@@ -98,7 +98,7 @@ function move(c: ProjectController, nodeId: string, grid: [number, number, numbe
 }
 const gridOf = (c: ProjectController, nodeId: string) => activeDesign(project(c)).nodes.find((n) => n.id === nodeId)!.grid;
 
-function stored(store: MemoryProjectStore, id: string): ProjectFileV1 {
+function stored(store: MemoryProjectStore, id: string): ProjectFileV2 {
   const r = readProjectFile(store.records.get(id) as string);
   if (!r.ok) throw new Error('stored record unreadable');
   return r.value;

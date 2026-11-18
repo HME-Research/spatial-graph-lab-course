@@ -1,4 +1,4 @@
-import { formatProjectIssues, nowIso, readProjectFile, serializeProjectFile, type ProjectFileV1, type ProjectIssue } from './projectFile';
+import { formatProjectIssues, nowIso, readProjectFile, serializeProjectFile, type ProjectFileV2, type ProjectIssue } from './projectFile';
 
 /**
  * Local project storage (Gate F, F-B; root-owned).
@@ -28,12 +28,12 @@ export type ProjectSummary =
       readonly createdAt: string;
       readonly updatedAt: string;
       readonly scenarioCount: number;
-      readonly definitionId: string | null;
+      readonly toolkitId: string | null;
     }
   | { readonly status: 'unreadable'; readonly projectId: string; readonly quarantineKey: string | null; readonly issues: readonly ProjectIssue[] };
 
 export type LoadResult =
-  | { readonly status: 'ok'; readonly file: ProjectFileV1 }
+  | { readonly status: 'ok'; readonly file: ProjectFileV2 }
   | { readonly status: 'missing' }
   /** `quarantineKey` is null only when the copy could not be written (the record itself is untouched). */
   | { readonly status: 'unreadable'; readonly quarantineKey: string | null; readonly issues: readonly ProjectIssue[] }
@@ -55,7 +55,7 @@ export type DiscardResult =
 export interface ProjectStore {
   list(): Promise<ProjectSummary[]>;
   load(projectId: string): Promise<LoadResult>;
-  save(file: ProjectFileV1): Promise<SaveResult>;
+  save(file: ProjectFileV2): Promise<SaveResult>;
   /** Explicit user decision: delete an unreadable record (its quarantine copy is kept). */
   discardUnreadable(projectId: string): Promise<DiscardResult>;
   /**
@@ -107,7 +107,7 @@ function blocked(error: unknown): { readonly status: 'blocked'; readonly reason:
   return { status: 'blocked', reason: 'error', message: `not saved: ${messageOf(error)}` };
 }
 
-function readStored(id: string, value: unknown): { ok: true; file: ProjectFileV1 } | { ok: false; issues: readonly ProjectIssue[] } {
+function readStored(id: string, value: unknown): { ok: true; file: ProjectFileV2 } | { ok: false; issues: readonly ProjectIssue[] } {
   if (typeof value !== 'string') return { ok: false, issues: [{ path: [], code: 'invalid-json', message: 'the stored record is not text' }] };
   const read = readProjectFile(value);
   if (!read.ok) return { ok: false, issues: read.issues };
@@ -166,7 +166,7 @@ export function createRecordProjectStore(backend: RecordBackend, options: Record
             createdAt: f.createdAt,
             updatedAt: f.updatedAt,
             scenarioCount: f.scenarios.length,
-            definitionId: f.definition?.projectId ?? null,
+            toolkitId: f.toolkit?.id ?? null,
           });
         } else {
           bad.push({ status: 'unreadable', projectId: id, quarantineKey: await quarantine(id, value), issues: read.issues });

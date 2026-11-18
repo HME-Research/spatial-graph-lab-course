@@ -17,7 +17,7 @@ import { describe, expect, it } from 'vitest';
  *   selection, axes — the one Z-up adapter). rhino3dm is reached only through a dynamic import.
  * - `extensions/` (project loading, definition validation, conformance, algorithm execution):
  *   pure; may import document, building, pure core modules and `@student-api`. It is the only
- *   app module that may import `@student-api` or glob `projects/` (`import.meta.glob`).
+ *   app module that may import `@student-api` or glob `toolkits/` (`import.meta.glob`).
  * - `project/` (project file envelope and local storage, F-B): pure (its IndexedDB adapter uses
  *   only an injected `IDBFactory`); may import document, spatial, extensions (the attribute
  *   record reader), `assets/` (embedded façade validation), `display/contracts` (only that pure
@@ -103,12 +103,12 @@ function violation(file: string, specifier: string): string | null {
 
 /**
  * Reason an `import.meta.glob` pattern is forbidden, or null. Globs are invisible to the
- * specifier check, so they are checked separately: only app/extensions may glob `/projects/`,
+ * specifier check, so they are checked separately: only app/extensions may glob `/toolkits/`,
  * and every other glob must stay inside app/.
  */
 function globViolation(file: string, pattern: string): string | null {
   const p = pattern.startsWith('!') ? pattern.slice(1) : pattern;
-  if (p.startsWith('/projects/')) return layerOf(file) === 'extensions' ? null : 'only app/extensions may glob projects/';
+  if (p.startsWith('/toolkits/')) return layerOf(file) === 'extensions' ? null : 'only app/extensions may glob toolkits/';
   if (!p.startsWith('.')) return `glob outside app/ (${pattern})`;
   return resolveRelative(file, p).startsWith('./') ? null : `glob leaves app/ (${pattern})`;
 }
@@ -150,13 +150,13 @@ describe('application layering', () => {
     expect(violation('./views/x.ts', '@app/metrics/registry')).toBeNull();
     expect(violation('./views/x.ts', '@app/inspector/Inspector')).not.toBeNull();
     expect(violation('./views/graph2d/x.ts', '../../App')).not.toBeNull();
-    expect(violation('./views/x.ts', '../../projects/a/b.ts')).not.toBeNull();
+    expect(violation('./views/x.ts', '../../toolkits/a/b.ts')).not.toBeNull();
     expect(violation('./views/x.ts', '@student-api')).not.toBeNull();
     expect(violation('./document/x.ts', '@student-api')).not.toBeNull();
     expect(violation('./extensions/x.ts', '@app/views/contracts')).not.toBeNull();
     expect(violation('./extensions/x.ts', 'react')).not.toBeNull();
     expect(violation('./extensions/x.ts', '@core/viewer/three/SceneCanvas')).not.toBeNull();
-    expect(violation('./extensions/x.ts', '../../projects/example-gallery/types/gallery')).not.toBeNull();
+    expect(violation('./extensions/x.ts', '../../toolkits/example-gallery/types/gallery')).not.toBeNull();
     expect(violation('./extensions/x.ts', '@student-api')).toBeNull();
     expect(violation('./extensions/x.ts', '@app/building')).toBeNull();
     expect(violation('./extensions/x.ts', '@core/viewer/appearance')).toBeNull();
@@ -191,25 +191,25 @@ describe('application layering', () => {
     expect(violation('./building/x.ts', '@app/assets')).not.toBeNull();
   });
 
-  it('flags globs into projects/ outside extensions and globs leaving app/ (self-check)', () => {
-    expect(globViolation('./App.tsx', '/projects/*/project.ts')).not.toBeNull();
-    expect(globViolation('./views/x.ts', '/projects/**/*.json')).not.toBeNull();
-    expect(globViolation('./views/x.ts', '../../projects/*/types/*.ts')).not.toBeNull();
+  it('flags globs into toolkits/ outside extensions and globs leaving app/ (self-check)', () => {
+    expect(globViolation('./App.tsx', '/toolkits/*/toolkit.ts')).not.toBeNull();
+    expect(globViolation('./views/x.ts', '/toolkits/**/*.json')).not.toBeNull();
+    expect(globViolation('./views/x.ts', '../../toolkits/*/types/*.ts')).not.toBeNull();
     expect(globViolation('./views/x.ts', '/core/**/*.ts')).not.toBeNull();
-    expect(globViolation('./extensions/projectGlobs.ts', '/projects/*/types/*.ts')).toBeNull();
-    expect(globViolation('./extensions/projectGlobs.ts', '!/projects/*/types/*.test.ts')).toBeNull();
+    expect(globViolation('./extensions/toolkitGlobs.ts', '/toolkits/*/types/*.ts')).toBeNull();
+    expect(globViolation('./extensions/toolkitGlobs.ts', '!/toolkits/*/types/*.test.ts')).toBeNull();
     expect(globViolation('./boundary.test.ts', './**/*.{ts,tsx}')).toBeNull();
     const call = ['import', 'meta', 'glob'].join('.'); // built so this file's own scan does not see it
     expect(globPatterns(`${call}<string>(['/a/*.ts', '!/a/*.test.ts'], {})`)).toEqual(['/a/*.ts', '!/a/*.test.ts']);
     expect(globPatterns(`${call}('./x/*.json')`)).toEqual(['./x/*.json']);
   });
 
-  it('globs projects/ only from app/extensions/projectGlobs.ts (outside tests)', () => {
+  it('globs toolkits/ only from app/extensions/toolkitGlobs.ts (outside tests)', () => {
     const globbing = Object.entries(sources)
       .filter(([file]) => !file.endsWith('.test.ts'))
-      .filter(([, text]) => globPatterns(text).some((p) => p.replace(/^!/, '').startsWith('/projects/')))
+      .filter(([, text]) => globPatterns(text).some((p) => p.replace(/^!/, '').startsWith('/toolkits/')))
       .map(([file]) => file);
-    expect(globbing).toEqual(['./extensions/projectGlobs.ts']);
+    expect(globbing).toEqual(['./extensions/toolkitGlobs.ts']);
   });
 
   it.each(Object.entries(sources))('%s respects the application layering', (file, text) => {

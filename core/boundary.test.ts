@@ -26,7 +26,7 @@ function violation(file: string, specifier: string): string | null {
   if (specifier.startsWith('@app/') || specifier === '@app') return 'imports the application';
   if (specifier.startsWith('@student-api')) return 'imports the Student API';
   if (specifier.startsWith('.')) {
-    // Anything outside core/ (app/, student/, projects/, root files) is forbidden.
+    // Anything outside core/ (app/, student/, toolkits/, root files) is forbidden.
     const target = resolveRelative(file, specifier);
     if (!(target === '.' || target.startsWith('./'))) return `relative path leaves core/ (${target})`;
   }
@@ -43,14 +43,14 @@ describe('core dependency boundary', () => {
     expect(violation('./viewer/x.ts', '@app/document')).not.toBeNull();
     expect(violation('./viewer/x.ts', '../../app/document')).not.toBeNull();
     expect(violation('./graph/x.ts', '@student-api')).not.toBeNull();
-    expect(violation('./graph/x.ts', '../../projects/p/types/a')).not.toBeNull();
+    expect(violation('./graph/x.ts', '../../toolkits/p/types/a')).not.toBeNull();
     expect(violation('./viewer/three/x.ts', '../../../student/designs/a.json')).not.toBeNull();
     expect(violation('./viewer/three/x.ts', '../coordinates')).toBeNull();
     expect(violation('./viewer/x.ts', '@core/spatial')).toBeNull();
     expect(violation('./viewer/x.ts', 'three')).toBeNull();
   });
 
-  it.each(Object.entries(sources))('%s never imports app/, student/ or projects/', (file, text) => {
+  it.each(Object.entries(sources))('%s never imports app/, student/ or toolkits/', (file, text) => {
     const problems = [...text.matchAll(SPECIFIER)]
       .map((m) => m[1]!)
       .map((s) => [s, violation(file, s)] as const)

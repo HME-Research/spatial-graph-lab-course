@@ -2,7 +2,7 @@ import type { AttributeValue } from '@app/document';
 import {
   checkFieldValue,
   describeField,
-  type ActiveProject,
+  type ActiveToolkit,
   type AttributeField,
   type DefaultValue,
   type EffectiveAttribute,
@@ -75,7 +75,7 @@ export const inheritedText = (r: EffectiveAttribute, typeId?: string): string =>
       : 'no default';
 
 /** Node types offered for type defaults: the project's valid types plus types used in the open design. */
-export function typeChoices(project: Pick<ActiveProject, 'nodeTypes'> | null, usedTypeIds: readonly string[]): { readonly id: string; readonly label: string }[] {
+export function typeChoices(project: Pick<ActiveToolkit, 'nodeTypes'> | null, usedTypeIds: readonly string[]): { readonly id: string; readonly label: string }[] {
   const out = new Map<string, string>();
   for (const t of project?.nodeTypes ?? []) if (t.status.ok) out.set(t.id, t.definition.label);
   for (const id of usedTypeIds) if (!out.has(id)) out.set(id, id);

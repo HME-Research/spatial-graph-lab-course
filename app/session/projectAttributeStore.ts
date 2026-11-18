@@ -6,7 +6,7 @@ import {
   readAttributeRecord,
   schemaSignature,
   serializeAttributeRecord,
-  type ActiveProject,
+  type ActiveToolkit,
   type EditContext,
   type ExtensionDiagnostic,
   type ProjectAttributeSchema,
@@ -19,18 +19,18 @@ import { canRedo, canUndo, createHistory, record, redo, redoLabel, undo, undoLab
  * docs/PROJECT-ATTRIBUTES.md.
  *
  * - **Owner.** One record per project in browser storage (`sgl:project-attributes:<projectId>`).
- *   When none exists, the schema derived from the project's files (`ActiveProject.attributeBaseline`)
+ *   When none exists, the schema derived from the toolkit's files (`ActiveToolkit.attributeBaseline`)
  *   is used. Every schema change is persisted at once by the host (`persistAttributeSession`), so
  *   every design opened in this project — in this browser, now or after a reload — sees it.
  * - **History.** Schema edits have their own undo/redo, independent of the open design's history.
  *   Schema edits never change design data and design edits never change the schema. A history
  *   step holds the schema AND the files' signature it was based on, so undoing a merge or reset
- *   also restores the "project files changed" state.
+ *   also restores the "toolkit files changed" state.
  * - **Never overwrite what cannot be read.** A stored record that cannot be read (corrupt, or
  *   written by a newer app version) is copied to a backup key and saving is BLOCKED until the user
  *   explicitly replaces it (import, reset to the files, or "discard the unreadable copy").
  * - **Modified** means changed since the last export/import of the attribute file (or, if never
- *   exported, since the project files' version).
+ *   exported, since the toolkit files' version).
  *
  * Pure: every transition returns a new session (or the same object for a no-op). Storage access
  * is limited to `loadAttributeSession` / `persistAttributeSession` with an injectable storage.
@@ -58,7 +58,7 @@ export interface AttributeState {
 export interface AttributeSession {
   readonly projectId: string;
   readonly history: History<AttributeState>;
-  /** Signature of the schema derived from the project's files NOW. */
+  /** Signature of the schema derived from the toolkit's files NOW. */
   readonly filesSignature: string;
   /** Signature of the last exported/imported schema (the "clean" state). */
   readonly exportedSignature: string;
@@ -76,7 +76,7 @@ export const currentSchema = (session: AttributeSession): ProjectAttributeSchema
 
 /**
  * The problems to show NOW: a load-time "could not be read" error disappears once saving is no
- * longer blocked (import, reset, discard), and "project files changed" once the files are merged
+ * longer blocked (import, reset, discard), and "toolkit files changed" once the files are merged
  * or reset (phase 10 audit). Storage-unavailable warnings stay.
  */
 export function attributeDiagnostics(session: AttributeSession): readonly ExtensionDiagnostic[] {
@@ -101,9 +101,9 @@ function safeGet(storage: KeyValueStorage | null, key: string): { value: string 
 }
 
 /** The schema in use for `project` at activation. Never throws; problems become diagnostics. */
-export function loadAttributeSession(storage: KeyValueStorage | null, project: ActiveProject): AttributeSession {
+export function loadAttributeSession(storage: KeyValueStorage | null, project: ActiveToolkit): AttributeSession {
   const baseline = project.attributeBaseline;
-  const subject = { kind: 'project', id: project.id } as const;
+  const subject = { kind: 'toolkit', id: project.id } as const;
   const diagnostics: ExtensionDiagnostic[] = [];
   const fromFiles = (saveBlocked?: string): AttributeSession => ({
     projectId: project.id,
@@ -144,7 +144,7 @@ export function loadAttributeSession(storage: KeyValueStorage | null, project: A
         'attribute-schema-storage',
         'error',
         subject,
-        `${reason}. The fields from the project files are shown. Changes are NOT saved until you import an attribute file, reset to the project files or discard the saved copy; ${backedUp ? `a copy is kept in browser storage under "${backup}"` : "NO backup copy could be written, so discarding loses the saved record for good"}`,
+        `${reason}. The fields from the toolkit files are shown. Changes are NOT saved until you import an attribute file, reset to the toolkit files or discard the saved copy; ${backedUp ? `a copy is kept in browser storage under "${backup}"` : "NO backup copy could be written, so discarding loses the saved record for good"}`,
       ),
     );
     return fromFiles(reason);
@@ -156,7 +156,7 @@ export function loadAttributeSession(storage: KeyValueStorage | null, project: A
         'attribute-baseline-changed',
         'warning',
         subject,
-        'the project files declare attributes differently from when this browser saved the project attributes. The saved fields are used; use “Add fields from project files” to merge new ones',
+        'the toolkit files declare attributes differently from when this browser saved the project attributes. The saved fields are used; use “Add fields from toolkit files” to merge new ones',
       ),
     );
   }
@@ -174,8 +174,8 @@ export function loadAttributeSession(storage: KeyValueStorage | null, project: A
 
 /**
  * Write the schema in use to storage. Returns an error message when it could not be saved (the
- * session keeps working in memory). A schema identical to the project files that was never
- * exported differently is stored as nothing at all: no record means "use the project files".
+ * session keeps working in memory). A schema identical to the toolkit files that was never
+ * exported differently is stored as nothing at all: no record means "use the toolkit files".
  */
 export function persistAttributeSession(storage: KeyValueStorage | null, session: AttributeSession, now: () => string = () => new Date().toISOString()): string | null {
   if (session.saveBlocked !== undefined) return `not saved: ${session.saveBlocked}`;
@@ -254,14 +254,14 @@ export const canRedoAttributes = (s: AttributeSession): boolean => canRedo(s.his
 export const attributeUndoLabel = (s: AttributeSession): string | null => undoLabel(s.history);
 export const attributeRedoLabel = (s: AttributeSession): string | null => redoLabel(s.history);
 
-/** Changed since the last export/import (or since the project files' version). */
+/** Changed since the last export/import (or since the toolkit files' version). */
 export const isAttributeSchemaModified = (session: AttributeSession): boolean =>
   schemaSignature(currentSchema(session)) !== session.exportedSignature;
 
-/** Differs from what the project files describe (i.e. customised in this browser). */
+/** Differs from what the toolkit files describe (i.e. customised in this browser). */
 export const differsFromFiles = (session: AttributeSession): boolean => schemaSignature(currentSchema(session)) !== session.filesSignature;
 
-/** The project files declare attributes the schema in use was not merged with. */
+/** The toolkit files declare attributes the schema in use was not merged with. */
 export const filesChangedSinceSaved = (session: AttributeSession): boolean => currentRecordBaseline(session) !== session.filesSignature;
 
 /** The attribute file to download for the schema in use. */
@@ -277,7 +277,7 @@ export function markAttributesExported(session: AttributeSession): AttributeSess
 /**
  * Replace the schema in use with an imported attribute file (validated: format, version, project
  * id, schema). One undoable schema-history step. Stored design values are untouched. A file of
- * another project (explicitly allowed) is re-based on this project's files.
+ * another project (explicitly allowed) is re-based on this toolkit's files.
  */
 export function importAttributeFile(session: AttributeSession, text: string, options: { readonly allowOtherProject?: boolean } = {}):
   | { readonly ok: true; readonly session: AttributeSession }
@@ -292,15 +292,15 @@ export function importAttributeFile(session: AttributeSession, text: string, opt
   return { ok: true, session: { ...rest, history, exportedSignature: schemaSignature(schema), revision: session.revision + 1 } };
 }
 
-/** Add fields and type defaults the project files declare but the schema in use lacks (one step). */
-export function mergeFilesIntoSession(session: AttributeSession, project: ActiveProject): { readonly session: AttributeSession; readonly added: readonly string[] } {
+/** Add fields and type defaults the toolkit files declare but the schema in use lacks (one step). */
+export function mergeFilesIntoSession(session: AttributeSession, project: ActiveToolkit): { readonly session: AttributeSession; readonly added: readonly string[] } {
   const merged = mergeBaseline(currentSchema(session), project.attributeBaseline.schema);
-  const next = commit(session, { schema: merged.schema, recordBaseline: project.attributeBaseline.signature }, 'Add fields from project files');
+  const next = commit(session, { schema: merged.schema, recordBaseline: project.attributeBaseline.signature }, 'Add fields from toolkit files');
   return { session: next, added: merged.added };
 }
 
-/** Use exactly what the project files describe (one undoable step; also unblocks saving). */
-export function resetToFiles(session: AttributeSession, project: ActiveProject): AttributeSession {
-  const next = commit(discardUnreadableRecord(session), { schema: project.attributeBaseline.schema, recordBaseline: project.attributeBaseline.signature }, 'Reset attributes to the project files');
+/** Use exactly what the toolkit files describe (one undoable step; also unblocks saving). */
+export function resetToFiles(session: AttributeSession, project: ActiveToolkit): AttributeSession {
+  const next = commit(discardUnreadableRecord(session), { schema: project.attributeBaseline.schema, recordBaseline: project.attributeBaseline.signature }, 'Reset attributes to the toolkit files');
   return next;
 }

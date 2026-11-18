@@ -4,7 +4,7 @@ import { BUILT_IN_METRICS } from './registry';
 /**
  * Which calculated fields a project shows (Properties rows, colour-by options): a project-level
  * list of metric ids. Pure contract helpers only; the list is persisted in the project file by
- * the integration owner (proposed field: `ProjectFileV1.settings.calculatedFields: string[]`).
+ * the integration owner (proposed field: `ProjectFileV2.settings.calculatedFields: string[]`).
  *
  * The list stores ids only, never values. Canonical form: known ids, no duplicates, in catalogue
  * order (so the stored list, and every UI built from it, is deterministic).

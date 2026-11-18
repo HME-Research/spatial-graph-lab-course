@@ -3,9 +3,9 @@ import exampleDesign from './document/examples/two-storey-example.json';
 import { formatIssuePath, type GraphIssue } from '@app/document';
 import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
 import {
-  discoverProjects,
-  PROJECT_GLOBS,
-  selectProject,
+  discoverToolkits,
+  TOOLKIT_GLOBS,
+  selectToolkit,
   withProjectFunctions,
   isProjectFunction,
   type AttributeCollection,
@@ -40,7 +40,7 @@ import {
   type AttributeSession,
   type KeyValueStorage,
 } from './session/projectAttributeStore';
-import { activeProjectOf, readProjectRequest, startProject, type ProjectSession } from './session/projectSession';
+import { activeToolkitOf, readToolkitRequest, startToolkit, type ToolkitSession } from './session/toolkitSession';
 import { activeSession, activeSlot } from './session/projectStore';
 import { createProjectController, showsWelcome, type LeaveOptions } from './session/projectStoreController';
 import { createProjectCameraStore, createProjectDisplayStore } from './session/projectViewSettings';
@@ -53,7 +53,7 @@ import { FunctionsDialog } from './attributes/FunctionsDialog';
 import { ManageFunctionsContext } from './attributes/navigation';
 import { SIDEBAR_LABELS, SIDEBAR_SECTIONS } from '@app/ui/labels';
 import { createProject, openProjectText, tryExample, type FlowOutcome, type WelcomeHost } from './welcome/welcomeFlow';
-import { DEFAULT_PROJECT_NAME, recentStateOf, type RecentState } from './welcome/welcomeModel';
+import { DEFAULT_PROJECT_NAME, recentStateOf, toolkitLabel, type RecentState } from './welcome/welcomeModel';
 import { Workspace } from './Workspace';
 import { DESTINATION_PANELS } from '@app/workspace/panelSlots';
 import {
@@ -86,7 +86,7 @@ import { DEFAULT_VIEWPORT_STATE, deriveViewports, type ViewportState } from '@ap
  * Every view, Properties and the Designer receive the same live `DesignPort` (`design`) of the
  * ACTIVE scenario: `spatial` is resolved once per content with its face preferences, `onCommand`
  * is the only way to change it and records exactly one history step per successful change. The
- * code project (`projects/<id>`) named by the local project's `definition` supplies types and
+ * toolkit (`toolkits/<id>`) named by the local project's `definition` supplies types and
  * algorithms. The frozen v1 `doc` / `onCommand` props carry a read-only projection and a v1→v2
  * command translation (legacyBridge).
  */
@@ -112,7 +112,7 @@ function builtInExample(): { readonly doc: Doc; readonly source: string } {
 const APPLE = typeof navigator !== 'undefined' && isApplePlatform(navigator.platform);
 
 /**
- * An empty key-value store: `loadAttributeSession` then yields the code project files' schema.
+ * An empty key-value store: `loadAttributeSession` then yields the toolkit files' schema.
  * Local projects carry their attribute record in their own project file instead.
  */
 const NO_STORAGE: KeyValueStorage = { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
@@ -158,11 +158,11 @@ function LoadFailure({ failure, kept, onDismiss }: { readonly failure: LoadFailu
   );
 }
 
-/** Code projects available for new projects, and the default one (`?project=` / VITE_SGL_PROJECT / example-gallery). */
-function definitionChoices() {
-  const ids = discoverProjects(PROJECT_GLOBS).projects.map((p) => p.id);
-  const env = import.meta.env['VITE_SGL_PROJECT'] as string | undefined;
-  const selected = selectProject(ids, readProjectRequest(typeof window === 'undefined' ? '' : window.location.search, env));
+/** Toolkits available for new projects, and the default one (`?toolkit=` / VITE_SGL_TOOLKIT / example-gallery). */
+function toolkitChoices() {
+  const ids = discoverToolkits(TOOLKIT_GLOBS).toolkits.map((p) => p.id);
+  const env = import.meta.env['VITE_SGL_TOOLKIT'] as string | undefined;
+  const selected = selectToolkit(ids, readToolkitRequest(typeof window === 'undefined' ? '' : window.location.search, env));
   return { ids, defaultId: selected.diagnostic ? (ids[0] ?? null) : selected.id };
 }
 
@@ -177,9 +177,10 @@ export function App() {
   const [failure, setFailure] = useState<LoadFailureState | null>(null);
   const [recent, setRecent] = useState<RecentState>({ status: 'loading' });
   const [busy, setBusy] = useState<string | null>(null);
-  const [definitions] = useState(definitionChoices);
-  /** Activation of the open project's code project; null while activating or without project. */
-  const [session, setSession] = useState<ProjectSession | null>(null);
+  const [toolkits] = useState(toolkitChoices);
+  const toolkitOptions = useMemo(() => toolkits.ids.map((id) => ({ id, label: toolkitLabel(id) })), [toolkits]);
+  /** Activation of the open project's toolkit; null while activating or without project. */
+  const [session, setSession] = useState<ToolkitSession | null>(null);
   const [rawSelection, setSelection] = useState<Selection>(NO_SELECTION);
   /** The analysis run whose values are shown on the model (never part of the document). */
   const [shownAnalysis, setShownAnalysis] = useState<AlgorithmRunV2 | null>(null);
@@ -205,7 +206,7 @@ export function App() {
   /** The Functions pop-up (add or remove node types) is open. */
   const [functionsOpen, setFunctionsOpen] = useState(false);
 
-  const definitionId = openProject?.meta.definition?.projectId ?? null;
+  const toolkitId = openProject?.meta.toolkit?.id ?? null;
   const projectId = openProject?.meta.projectId ?? null;
   const scenarioId = openProject?.activeScenarioId ?? null;
   /** The project's calculated values (`settings.calculatedFields`), validated at runtime; absent = defaults. */
@@ -228,7 +229,7 @@ export function App() {
 
   /**
    * A user change of the schema: carried in the LOCAL project file (autosaved with the project),
-   * so each local project keeps its own fields, also when several use the same code project.
+   * so each local project keeps its own fields, also when several use the same toolkit.
    */
   const setAttributes = useCallback(
     (next: AttributeSession | null, persist = true) => {
@@ -237,7 +238,7 @@ export function App() {
       if (next && persist) {
         setAttributeSaveError(null);
         const open = controller.getState().project;
-        if (open && (open.meta.definition?.projectId ?? null) === next.projectId) {
+        if (open && (open.meta.toolkit?.id ?? null) === next.projectId) {
           controller.setAttributeRecord(differsFromFiles(next) ? (JSON.parse(exportAttributeFile(next)) as unknown) : null);
         }
       }
@@ -245,7 +246,7 @@ export function App() {
     [controller],
   );
 
-  // Activate the open project's code project (types, algorithms) whenever the project changes.
+  // Activate the open project's toolkit (types, algorithms) whenever the project changes.
   useEffect(() => {
     if (projectId === null) {
       setSession(null);
@@ -254,17 +255,17 @@ export function App() {
     }
     let cancelled = false;
     setSession(null);
-    void startProject(PROJECT_GLOBS, { query: definitionId, env: null }, builtInExample()).then((start) => {
+    void startToolkit(TOOLKIT_GLOBS, { query: toolkitId, env: null }, builtInExample()).then((start) => {
       if (cancelled) return;
       setSession(start.session);
-      const active = activeProjectOf(start.session);
+      const active = activeToolkitOf(start.session);
       setAttributeSaveError(null);
       if (!active) {
         setAttributes(null, false);
         return;
       }
-      // The schema in use is the LOCAL project's own record, else the code project's files. The
-      // browser copy (keyed by code project, shared by every local project using it) is not read.
+      // The schema in use is the LOCAL project's own record, else the toolkit's files. The
+      // browser copy (keyed by toolkit, shared by every local project using it) is not read.
       const fromFiles = loadAttributeSession(NO_STORAGE, active);
       const record = controller.getState().project?.meta.attributes ?? null;
       if (record === null) {
@@ -277,13 +278,13 @@ export function App() {
         setAttributes({ ...imported.session, history: createHistory(imported.session.history.present) }, false);
       } else {
         setAttributes(fromFiles, false);
-        setAttributeSaveError(`the project’s attribute fields could not be read, so the project files’ fields are shown: ${imported.issues.map((i) => i.message).join('; ')}`);
+        setAttributeSaveError(`the project’s attribute fields could not be read, so the toolkit files’ fields are shown: ${imported.issues.map((i) => i.message).join('; ')}`);
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [projectId, definitionId, controller, setAttributes]);
+  }, [projectId, toolkitId, controller, setAttributes]);
 
   // A different project or scenario: per-design panels reset, selection and overlay cleared.
   const generation = `${projectId ?? '-'}:${scenarioId ?? '-'}`;
@@ -330,11 +331,11 @@ export function App() {
   /** Read-only v1-shaped projection for the frozen `ViewProps.doc` (identity-stable per document). */
   const viewDoc = doc ? legacyProjection(doc) : null;
   const selection = viewDoc ? reconcileSelection(rawSelection, viewDoc) : NO_SELECTION;
-  /** Project functions (`settings.functions`) and removed course functions merged into the course project's types. */
+  /** Project functions (`settings.functions`) and removed toolkit functions merged into the toolkit's types. */
   const projectFunctions = openProject?.meta.settings.functions;
   const hiddenFunctions = openProject?.meta.settings.hiddenFunctions;
-  const courseProject = activeProjectOf(session);
-  const project = useMemo(() => (courseProject ? withProjectFunctions(courseProject, projectFunctions, hiddenFunctions ?? []) : null), [courseProject, projectFunctions, hiddenFunctions]);
+  const activeToolkit = activeToolkitOf(session);
+  const project = useMemo(() => (activeToolkit ? withProjectFunctions(activeToolkit, projectFunctions, hiddenFunctions ?? []) : null), [activeToolkit, projectFunctions, hiddenFunctions]);
   /** Every scenario's current design (attribute values are checked and counted across all of them). */
   const scenarioDesigns = useMemo(
     () => (openProject ? openProject.scenarios.map((s) => ({ id: s.id, name: s.name, doc: currentDocument(s.session).design })) : []),
@@ -355,17 +356,19 @@ export function App() {
   const host = useMemo<WelcomeHost>(
     () => ({
       controller,
-      defaultDefinitionId: definitions.defaultId,
+      defaultToolkitId: toolkits.defaultId,
       // Read only: attribute schemas saved before local projects existed seed NEW projects once.
       legacyAttributes: legacyBrowserStorage(),
       startingDesign: async (id) => {
-        const start = await startProject(PROJECT_GLOBS, { query: id, env: null }, builtInExample());
-        const signature = activeProjectOf(start.session)?.attributeBaseline.signature;
+        // No toolkit: the built-in example's settings (never the default toolkit's, which activation would pick).
+        if (id === null) return { ok: true, ...builtInExample() };
+        const start = await startToolkit(TOOLKIT_GLOBS, { query: id, env: null }, builtInExample());
+        const signature = activeToolkitOf(start.session)?.attributeBaseline.signature;
         if (start.startup.doc) return { ok: true, doc: start.startup.doc, source: start.startup.source, ...(signature !== undefined && { attributeSignature: signature }) };
-        return { ok: false, message: `The starting design of “${id ?? 'the default project'}” (${start.startup.source}) could not be loaded.` };
+        return { ok: false, message: `The starting design of ${id === null ? 'the built-in example' : `toolkit “${toolkitLabel(id)}”`} (${start.startup.source}) could not be loaded.` };
       },
     }),
-    [controller, definitions.defaultId],
+    [controller, toolkits.defaultId],
   );
 
   /**
@@ -414,11 +417,13 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
   const startExample = () => void runFlow('Opening the example…', (options) => tryExample(host, builtInExample().doc, EXAMPLE_LABEL, options));
   /**
    * Create project (Welcome) and New project (Project panel): a clean project straight away, named
-   * "Untitled project" (rename it in Project) with the default course; no form in between (owner
-   * 2026-11-17). Leaving an open project with unsaved changes is asked in `runFlow`.
+   * "Untitled project" (rename it in Project) with the chosen toolkit; no name form in between
+   * (owner 2026-11-17). Welcome shows a Toolkit choice beside Create project; the Project panel asks
+   * in a small dialog when there is more than one toolkit. Leaving an open project with unsaved
+   * changes is asked in `runFlow`.
    */
-  const startNewProject = () =>
-    void runFlow('Creating the project…', (options) => createProject(host, DEFAULT_PROJECT_NAME, definitions.defaultId, options));
+  const startNewProject = (toolkitId: string | null) =>
+    void runFlow('Creating the project…', (options) => createProject(host, DEFAULT_PROJECT_NAME, toolkitId, options));
 
   /**
    * Validate and apply one command to the active scenario; one history step, a no-op none. Design
@@ -534,7 +539,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
   const attributeProblems: readonly ExtensionDiagnostic[] = [
     ...(attributes ? attributeDiagnostics(attributes) : []),
     ...(attributeSaveError
-      ? [{ id: 'attribute-save', code: 'attribute-schema-storage', severity: 'error', subject: { kind: 'project', id: project?.id ?? '' }, message: `project attributes were not saved: ${attributeSaveError}` } as const]
+      ? [{ id: 'attribute-save', code: 'attribute-schema-storage', severity: 'error', subject: { kind: 'toolkit', id: project?.id ?? '' }, message: `project attributes were not saved: ${attributeSaveError}` } as const]
       : []),
   ];
   const status = projectStatus(session, conformance, attributeProblems);
@@ -579,6 +584,17 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
               >
                 {openProject.meta.name}
               </button>
+              {/* The toolkit the project was created with (fixed per project; see docs/DECISIONS.md). */}
+              <span
+                className={`sgl-identity-toolkit${toolkitId !== null && session !== null && activeToolkit === null ? ' failed' : ''}`}
+                title={
+                  toolkitId === null
+                    ? 'This project uses no toolkit (built-in types only)'
+                    : `Toolkit: toolkits/${toolkitId}${session !== null && activeToolkit === null ? ' (could not be loaded; see Project → Advanced)' : ''}`
+                }
+              >
+                {toolkitId === null ? 'No toolkit' : activeToolkit?.id === toolkitId ? activeToolkit.definition.name : toolkitLabel(toolkitId)}
+              </span>
               <span className="sgl-identity-sep" aria-hidden="true">
                 /
               </span>
@@ -624,6 +640,8 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
               recent={recent}
               busy={busy}
               error={failureView}
+              toolkits={toolkitOptions}
+              defaultToolkitId={toolkits.defaultId}
               onCreate={startNewProject}
               onOpenFile={openFile}
               onTryExample={startExample}
@@ -671,7 +689,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                       project: (
                           <ProjectPanel
                             // Keyed by project: no draft name or Save As dialog carries over to another project.
-                            overview={<ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} onNew={startNewProject} onOpenFile={openFile} />}
+                            overview={<ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} toolkits={toolkitOptions} defaultToolkitId={openProject?.meta.toolkit?.id ?? toolkits.defaultId} onNew={startNewProject} onOpenFile={openFile} />}
                             session={session}
                             docLoaded={doc !== null}
                             source={current?.source ?? null}
@@ -739,7 +757,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
               </WorkspaceServicesContext.Provider>
               {functionsOpen && openProject && (
                 <FunctionsDialog
-                  courseTypes={(courseProject?.nodeTypes ?? []).filter((t) => t.status.ok && !isProjectFunction(t)).map((t) => ({ id: t.id, label: t.definition.label }))}
+                  toolkitTypes={(activeToolkit?.nodeTypes ?? []).filter((t) => t.status.ok && !isProjectFunction(t)).map((t) => ({ id: t.id, label: t.definition.label }))}
                   projectFunctions={projectFunctions ?? []}
                   hidden={hiddenFunctions ?? []}
                   usedTypeIds={usedTypeIds}

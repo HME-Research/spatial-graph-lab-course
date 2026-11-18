@@ -18,7 +18,7 @@ import {
   readProjectFile,
   saveAsNewProject,
   serializeProjectFile,
-  type ProjectFileV1,
+  type ProjectFileV2,
 } from '@app/project';
 import { activeDesign, addFacadeAsset, facadeUses, undoActive, openProject, projectFileOf, readProjectOrDesign, removeFacadeAsset, renameFacadeAsset, setFacadeAssetMaterials, type OpenProject } from './projectStore';
 import { fileOf, fixtureIds } from './projectStore.fixtures';
@@ -45,13 +45,13 @@ function asset(variant = 0, name?: string): FacadeAssetV1 {
   return made.value;
 }
 
-const opened = (file: ProjectFileV1 = fileOf()): OpenProject => openProject(file, { kind: 'created', label: 'test' });
+const opened = (file: ProjectFileV2 = fileOf()): OpenProject => openProject(file, { kind: 'created', label: 'test' });
 const ok = <T>(r: { ok: true; value: T } | { ok: false; message: string }): T => {
   if (!r.ok) throw new Error(r.message);
   return r.value;
 };
 
-function withAssets(file: ProjectFileV1, items: readonly FacadeAssetV1[], designSettings?: object): ProjectFileV1 {
+function withAssets(file: ProjectFileV2, items: readonly FacadeAssetV1[], designSettings?: object): ProjectFileV2 {
   const scenarios = designSettings
     ? file.scenarios.map((s) => ({ ...s, design: { ...s.design, settings: { ...s.design.settings, ...designSettings } } }))
     : file.scenarios;
@@ -293,7 +293,7 @@ describe('end to end: .3dm → project → autosave → restore → export → o
 });
 
 /** Serialise without the canonical asset pass (to write deliberately broken files). */
-function serializeUnchecked(file: ProjectFileV1): string {
+function serializeUnchecked(file: ProjectFileV2): string {
   const value = JSON.parse(serializeProjectFile({ ...file, assets: { policy: 'none' } })) as Record<string, unknown>;
   value.assets = file.assets;
   return JSON.stringify(value);

@@ -1,6 +1,6 @@
 import type { GraphIssue } from '@app/document';
 import { nodeLabel, type DesignDocumentV2, relationshipLabel } from '@app/document/v2';
-import type { ActiveProject } from '@app/extensions';
+import type { ActiveToolkit } from '@app/extensions';
 import type { SpatialEditProposal } from '@app/spatial';
 import { nodeTypeStatus, type NodeTypeStatus } from '@app/views/project';
 import type { ParseResult } from './inspectorModel';
@@ -96,7 +96,7 @@ export interface TypeMenu {
  *   only changed when the student picks another type.
  * - Without a project: the types used in the design, plus free entry.
  */
-export function typeMenu(project: ActiveProject | null, typesInDesign: readonly string[], current: string): TypeMenu {
+export function typeMenu(project: ActiveToolkit | null, typesInDesign: readonly string[], current: string): TypeMenu {
   const status = nodeTypeStatus(project, current);
   if (!project) {
     const ids = [...new Set([...typesInDesign, current])].sort();

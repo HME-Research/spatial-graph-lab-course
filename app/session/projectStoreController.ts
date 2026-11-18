@@ -12,7 +12,7 @@ import {
   type DiscardResult,
   type ExportMarks,
   type KeptMarks,
-  type ProjectFileV1,
+  type ProjectFileV2,
   type ProjectFunction,
   type ProjectStore,
   type ProjectSummary,
@@ -156,7 +156,7 @@ export interface ProjectController {
 
   // Lifecycle
   /** Open a validated file as the current project (a new identity if another local project uses its id). Stored at once. */
-  open(file: ProjectFileV1, origin: ProjectOrigin, options?: { readonly exported?: boolean } & LeaveOptions): Promise<OpenOutcome>;
+  open(file: ProjectFileV2, origin: ProjectOrigin, options?: { readonly exported?: boolean } & LeaveOptions): Promise<OpenOutcome>;
   /** Reopen a project stored in this browser (Recent). Never writes it. */
   restore(projectId: string, options?: LeaveOptions): Promise<RestoreOutcome>;
   /**
@@ -216,7 +216,7 @@ export interface ProjectController {
 
   // Files
   /** The project file to export now, and its text. Call `markExported(signature)` once the download started. */
-  exportFile(): Outcome<{ readonly file: ProjectFileV1; readonly text: string; readonly signature: string }>;
+  exportFile(): Outcome<{ readonly file: ProjectFileV2; readonly text: string; readonly signature: string }>;
   markExported(signature: string): void;
   /**
    * Save As New Project: open an independent copy (new ids) of the CURRENT state, stored at once.

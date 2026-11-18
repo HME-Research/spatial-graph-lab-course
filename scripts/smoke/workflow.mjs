@@ -215,14 +215,14 @@ for (let i = 1; i <= 3; i++) {
     await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try example'))?.click(); true`);
     await waitFor(`document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node').length > 0`, 'the design', 20000);
     await helpers();
-    // The code project (types, algorithms) of the local project is activated.
-    await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the code project to activate', 20000);
-    // The header names the project only (no internal or course ids); the course project is listed in Project → Advanced.
+    // The toolkit (types, algorithms) of the local project is activated.
+    await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the toolkit to activate', 20000);
+    // The header names the project only (no internal or toolkit ids); the toolkit is listed in Project → Advanced.
     const bar = await evaluate(`document.querySelector('.sgl-identity-project')?.textContent ?? ''`);
     expect(bar === 'Two-storey example', `project identity: ${bar.slice(0, 120)}`);
     await evaluate(`__wf.tab('project'); true`);
-    const course = await waitFor(`(() => { const dt = [...document.querySelectorAll('.sgl-project dt')].find((d) => d.textContent === 'Course project'); const t = dt?.nextElementSibling?.textContent ?? ''; return t && t !== 'loading…' ? t : null; })()`, 'the course project');
-    expect(course.length > 0, `course project: ${course}`);
+    const toolkit = await waitFor(`(() => { const dt = [...document.querySelectorAll('.sgl-project dt')].find((d) => d.textContent === 'Toolkit'); const t = dt?.nextElementSibling?.textContent ?? ''; return t && t !== 'loading…' ? t : null; })()`, 'the toolkit');
+    expect(toolkit.length > 0, `toolkit: ${toolkit}`);
     expect(consoleErrors.length === errorsBefore, `console errors: ${consoleErrors.slice(errorsBefore).join(' | ')}`);
     return `project active, ${(await evaluate('__wf.nodes()')).length} rooms, no console errors`;
   });

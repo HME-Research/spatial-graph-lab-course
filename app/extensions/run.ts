@@ -3,7 +3,7 @@ import { attributeValueSchema, type AttributeValue, type DesignDocument } from '
 import type { DesignDocumentV2 } from '@app/document/v2';
 import type { SpatialResolution } from '@app/spatial';
 import type { AnalysisResult, AttributeSpecs, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
-import type { ActiveProject } from './activate';
+import type { ActiveToolkit } from './activate';
 import { checkValue, describeSpec, specFor } from './attributes';
 import { migrateV1toV2 } from '@app/document/v2';
 import { buildGraphContext, buildSpatialContextV2, ExtensionRunError, type GraphSource } from './context';
@@ -98,17 +98,17 @@ function invalidResult(algorithmId: string, messages: readonly string[]): Extens
 interface RunAdapter<D extends GraphSource, Preview> {
   spatialContext<P extends AttributeSpecs>(
     doc: D,
-    project: ActiveProject,
+    project: ActiveToolkit,
     algorithmId: string,
     params: never,
     schema: ProjectAttributeSchema,
     spatial: SpatialResolution | undefined,
   ): SpatialAlgorithmContext<P>;
-  apply(doc: D, project: ActiveProject, operations: readonly SpatialOperation[], summary: string | undefined, schema: ProjectAttributeSchema): ExtensionResult<Preview>;
+  apply(doc: D, project: ActiveToolkit, operations: readonly SpatialOperation[], summary: string | undefined, schema: ProjectAttributeSchema): ExtensionResult<Preview>;
 }
 
 export interface RunOptions {
-  /** The project attribute schema in use (default: the project files' baseline). */
+  /** The project attribute schema in use (default: the toolkit files' baseline). */
   readonly attributes?: ProjectAttributeSchema;
   /**
    * The host's spatial resolution of the run's (v2) document, with the scenario's face
@@ -121,7 +121,7 @@ export interface RunOptions {
 function runWith<D extends GraphSource, Preview>(
   adapter: RunAdapter<D, Preview>,
   doc: D,
-  project: ActiveProject,
+  project: ActiveToolkit,
   algorithmId: string,
   params: unknown,
   options: RunOptions = {},
@@ -190,7 +190,7 @@ const V2_ADAPTER: RunAdapter<DesignDocumentV2, TransformationPreviewV2> = {
 };
 
 /** Run an algorithm against the schema-v1 document (today's app; see `runAlgorithmV2`). */
-export function runAlgorithm(doc: DesignDocument, project: ActiveProject, algorithmId: string, params?: unknown): ExtensionResult<RunOutcome> {
+export function runAlgorithm(doc: DesignDocument, project: ActiveToolkit, algorithmId: string, params?: unknown): ExtensionResult<RunOutcome> {
   return runWith(V1_ADAPTER, doc, project, algorithmId, params);
 }
 
@@ -205,7 +205,7 @@ export type RunOutcomeV2 =
  */
 export function runAlgorithmV2(
   doc: DesignDocumentV2,
-  project: ActiveProject,
+  project: ActiveToolkit,
   algorithmId: string,
   params?: unknown,
   options: RunOptions = {},

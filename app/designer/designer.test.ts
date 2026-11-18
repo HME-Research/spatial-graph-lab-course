@@ -9,7 +9,7 @@ import {
   validateDocumentV2,
   type DesignDocumentV2,
 } from '@app/document/v2';
-import { labProject } from '@app/extensions/test-fixtures';
+import { labToolkit } from '@app/extensions/test-fixtures';
 import { applyDesignCommand, proposeSpatialEdit, resolveRelationships, type DesignCommand, type DesignPort } from '@app/spatial';
 import { createHistory, record, redo, undo } from '@app/session/history';
 import { buildProjectViewContext, projectFacadeProvider } from '@app/views/project';
@@ -65,7 +65,7 @@ const apply = (doc: DesignDocumentV2, edit: DesignerEdit) => expectOk(applyDesig
 
 describe('designer type rows', () => {
   it('lists project types first, then design-only types, with project defaults and node counts', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const rows = designerTypeRows(labDocV2(), project, projectFacadeProvider(project));
     expect(rows.map((r) => r.typeId)).toEqual(['gallery', 'studio', 'kiosk']);
     const [gallery, studio, kiosk] = rows;
@@ -85,7 +85,7 @@ describe('designer type rows', () => {
 
   it('shows a new student-defined type automatically, even before any room uses it', async () => {
     const pavilionType = { id: 'pavilion', label: 'Pavilion', facade: { windowFraction: 0.9 } };
-    const project = await labProject({ 'projects/lab/types/pavilion.ts': { default: pavilionType } });
+    const project = await labToolkit({ 'toolkits/lab/types/pavilion.ts': { default: pavilionType } });
     const rows = designerTypeRows(labDocV2(), project, projectFacadeProvider(project));
     const pavilion = rows.find((r) => r.typeId === 'pavilion');
     expect(pavilion).toMatchObject({ name: 'Pavilion (pavilion)', nodeCount: 0, orphanOverride: false, warning: null });
@@ -93,7 +93,7 @@ describe('designer type rows', () => {
   });
 
   it('flags a broken type definition instead of silently using it', async () => {
-    const project = await labProject({ 'projects/lab/types/studio.ts': { default: { id: 'studio', label: 42 } } });
+    const project = await labToolkit({ 'toolkits/lab/types/studio.ts': { default: { id: 'studio', label: 42 } } });
     const studio = designerTypeRows(labDocV2(), project, projectFacadeProvider(project)).find((r) => r.typeId === 'studio')!;
     expect(studio.status.kind).toBe('broken');
     expect(studio.projectDefault.source).toBe('broken');
@@ -119,7 +119,7 @@ describe('designer type rows', () => {
 
 describe('designer edits', () => {
   it('a design override beats the project default for every room of the type, and reset restores inheritance', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const facade = projectFacadeProvider(project);
     const doc = labDocV2();
     const edited = apply(doc, setWindowFractionEdit(doc, 'gallery', 0.35, 0.6));
@@ -138,8 +138,8 @@ describe('designer edits', () => {
     expect(designFacadeProvider(reset, facade)('gallery').windowFraction).toBe(0.6);
   });
 
-  it('never alters the project definition or another design', async () => {
-    const project = await labProject();
+  it('never alters the toolkit definition or another design', async () => {
+    const project = await labToolkit();
     const definitionBefore = JSON.stringify(project.nodeTypes.map((t) => t.definition));
     const designA = labDocV2();
     const designB = labDocV2();
@@ -343,7 +343,7 @@ describe('DesignerPanel (static render)', () => {
   });
 
   it('renders one row per type with window coverage, roof, reset and warnings', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const v1Placeholder = { schemaVersion: 1 as const, metadata: { name: 'x' }, nodes: [], edges: [], diagram: { positions: {} } };
     const context = buildProjectViewContext(project, v1Placeholder);
     const doc = labDocV2({ gallery: { windowFraction: 0.35 } });
@@ -367,7 +367,7 @@ describe('DesignerPanel (static render)', () => {
   });
 
   it('each function card has Façade and Roof subsections; façade geometry Open / Automatic / Import (Automatic by default)', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const v1Placeholder = { schemaVersion: 1 as const, metadata: { name: 'x' }, nodes: [], edges: [], diagram: { positions: {} } };
     const context = buildProjectViewContext(project, v1Placeholder);
     const facades = { assets: [], add: () => ({ ok: true as const }), remove: () => ({ ok: true as const }), rename: () => ({ ok: true as const }), setMaterials: () => ({ ok: true as const }) };
@@ -397,7 +397,7 @@ describe('DesignerPanel (static render)', () => {
   });
 
   it('Import layout: façade menu and Import .3dm… on one row; Outside and Placement on one row; optional Door / Open bays', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const v1Placeholder = { schemaVersion: 1 as const, metadata: { name: 'x' }, nodes: [], edges: [], diagram: { positions: {} } };
     const context = buildProjectViewContext(project, v1Placeholder);
     const A = 'facade-0123456789abcdef';

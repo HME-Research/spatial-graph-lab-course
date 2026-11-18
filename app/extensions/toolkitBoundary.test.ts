@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 /**
- * Project code may import only `@student-api` and files of its own project (relative paths that
- * stay inside `projects/<id>/`). No packages, no application or core internals, no other
- * projects. Lives in app/ (owner-maintained) so it cannot be removed from a project folder.
+ * Toolkit code may import only `@student-api` and files of its own toolkit (relative paths that
+ * stay inside `toolkits/<id>/`). No packages, no application or core internals, no other
+ * toolkits. Lives in app/ (owner-maintained) so it cannot be removed from a toolkit folder.
  * An automated architectural check, not an access-control mechanism.
  */
-const sources = import.meta.glob<string>('/projects/**/*.{ts,tsx,js,mjs}', { query: '?raw', import: 'default', eager: true });
+const sources = import.meta.glob<string>('/toolkits/**/*.{ts,tsx,js,mjs}', { query: '?raw', import: 'default', eager: true });
 
 /**
  * Static `import`/`export … from`, side-effect `import '…'`, dynamic `import(…)` and `require(…)`.
@@ -18,7 +18,7 @@ const SPECIFIER =
 
 const specifiers = (text: string): string[] => [...text.matchAll(SPECIFIER)].map((m) => (m[1] ?? m[2] ?? m[3] ?? m[4])!);
 
-/** Resolve a relative specifier against '/projects/<id>/…/file.ts'. */
+/** Resolve a relative specifier against '/toolkits/<id>/…/file.ts'. */
 function resolveRelative(file: string, specifier: string): string {
   const parts = file.split('/').slice(0, -1);
   for (const segment of specifier.split('/')) {
@@ -31,19 +31,19 @@ function resolveRelative(file: string, specifier: string): string {
 function violation(file: string, specifier: string): string | null {
   if (specifier === '@student-api') return null;
   if (specifier.startsWith('.')) {
-    const root = file.split('/').slice(0, 3).join('/'); // '/projects/<id>'
-    return resolveRelative(file, specifier).startsWith(`${root}/`) ? null : `leaves its project (${specifier})`;
+    const root = file.split('/').slice(0, 3).join('/'); // '/toolkits/<id>'
+    return resolveRelative(file, specifier).startsWith(`${root}/`) ? null : `leaves its toolkit (${specifier})`;
   }
-  return `imports ${specifier}; project code may import only @student-api and its own files`;
+  return `imports ${specifier}; toolkit code may import only @student-api and its own files`;
 }
 
-describe('project import boundary', () => {
-  it('finds the example project', () => {
-    expect(Object.keys(sources)).toContain('/projects/example-gallery/project.ts');
+describe('toolkit import boundary', () => {
+  it('finds the example toolkit', () => {
+    expect(Object.keys(sources)).toContain('/toolkits/example-gallery/toolkit.ts');
   });
 
   it('flags forbidden imports (self-check)', () => {
-    const f = '/projects/a/algorithms/x.ts';
+    const f = '/toolkits/a/algorithms/x.ts';
     expect(violation(f, '@student-api')).toBeNull();
     expect(violation(f, '../types/gallery')).toBeNull();
     expect(violation(f, '../../b/types/gallery')).not.toBeNull();
@@ -64,7 +64,7 @@ describe('project import boundary', () => {
     expect(specifiers(sample)).toEqual(['@student-api', 'zod', './side-effect', 'left-pad']);
   });
 
-  it.each(Object.entries(sources))('%s imports only @student-api and its own project', (file, text) => {
+  it.each(Object.entries(sources))('%s imports only @student-api and its own toolkit', (file, text) => {
     const problems = specifiers(text).filter((s) => violation(file, s) !== null);
     expect(problems, `forbidden imports in ${file}`).toEqual([]);
   });

@@ -2,8 +2,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { resolveFaces } from '@app/building';
 import { applyGraphCommand, parseDesignJson, serializeDesign, validateDocument, type DesignDocument } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
-import { activate, PROJECT_GLOBS, type ActiveProject } from '@app/extensions';
-import { labDoc, labProject } from '@app/extensions/test-fixtures';
+import { activate, TOOLKIT_GLOBS, type ActiveToolkit } from '@app/extensions';
+import { labDoc, labToolkit } from '@app/extensions/test-fixtures';
 import { metricsLabDoc } from '@app/metrics/test-fixtures';
 import { resolveWithPreferences } from '@app/spatial';
 import builtInText from '../document/examples/two-storey-example.json?raw';
@@ -36,18 +36,18 @@ const numberAlgorithm = {
   run: () => ({ kind: 'transformation', operations: [] }),
 };
 
-let example: ActiveProject;
+let example: ActiveToolkit;
 const builtIn = expectOk(parseDesignJson(builtInText));
 /** A document shown at a revision (revision 1 unless given). */
 const at = (doc: DesignDocument, revision = 1): DocumentVersion => ({ doc, revision });
 
 beforeAll(async () => {
-  const { activation } = await activate(PROJECT_GLOBS, { query: 'example-gallery' });
+  const { activation } = await activate(TOOLKIT_GLOBS, { query: 'example-gallery' });
   if (activation.status !== 'active') throw new Error('example-gallery did not activate');
-  example = activation.project;
+  example = activation.toolkit;
 });
 
-const entry = (project: ActiveProject, id: string): AlgorithmEntry => listAlgorithms(project).find((a) => a.id === id)!;
+const entry = (project: ActiveToolkit, id: string): AlgorithmEntry => listAlgorithms(project).find((a) => a.id === id)!;
 
 function transformation(run: AlgorithmRun) {
   if (!run.outcome.ok || run.outcome.value.kind !== 'transformation') throw new Error(`expected a preview, got ${JSON.stringify(run.outcome)}`);
@@ -65,10 +65,10 @@ describe('algorithm list', () => {
   });
 
   it('identifies disabled algorithms with the reason, and refuses to run them', async () => {
-    const project = await labProject({
-      'projects/lab/algorithms/no-scope.ts': { default: { id: 'no-scope', label: 'No scope', run: () => null } },
-      'projects/lab/algorithms/one.ts': { default: { ...numberAlgorithm, id: 'twin' } },
-      'projects/lab/algorithms/two.ts': { default: { ...numberAlgorithm, id: 'twin', label: 7 } },
+    const project = await labToolkit({
+      'toolkits/lab/algorithms/no-scope.ts': { default: { id: 'no-scope', label: 'No scope', run: () => null } },
+      'toolkits/lab/algorithms/one.ts': { default: { ...numberAlgorithm, id: 'twin' } },
+      'toolkits/lab/algorithms/two.ts': { default: { ...numberAlgorithm, id: 'twin', label: 7 } },
     });
     const list = listAlgorithms(project);
     expect(list.map((a) => [a.id, a.enabled, a.scope])).toEqual([
@@ -88,7 +88,7 @@ describe('algorithm list', () => {
 
 describe('algorithm parameters', () => {
   it('empty drafts mean defaults; drafts are converted by kind and checked by the runtime', async () => {
-    const project = await labProject({ 'projects/lab/algorithms/grow.ts': { default: numberAlgorithm } });
+    const project = await labToolkit({ 'toolkits/lab/algorithms/grow.ts': { default: numberAlgorithm } });
     const grow = entry(project, 'grow');
     expect(grow.parameters.map(([k]) => k)).toEqual(['count', 'mode', 'loud', 'note']);
     expect(draftsToParameters(grow, {})).toEqual({});
@@ -179,8 +179,8 @@ describe('spatial transformation preview', () => {
   });
 
   it('a failing transformation reports diagnostics and leaves the design unchanged', async () => {
-    const project = await labProject({
-      'projects/lab/algorithms/bad.ts': {
+    const project = await labToolkit({
+      'toolkits/lab/algorithms/bad.ts': {
         default: {
           id: 'bad',
           label: 'Bad',
@@ -216,7 +216,7 @@ describe('runEntryV2 passes the host (preference-aware) resolution (I1)', () => 
         return { kind: 'transformation', operations: [] };
       },
     };
-    const project = await labProject({ 'projects/lab/algorithms/probe.ts': { default: probe } });
+    const project = await labToolkit({ 'toolkits/lab/algorithms/probe.ts': { default: probe } });
     const entry = listAlgorithms(project).find((a) => a.id === 'probe')!;
     const doc = metricsLabDoc();
     const spatial = resolveWithPreferences(doc, { e1: { nodeId: 'hall', offset: [0, 0, 0], direction: '-x' } });

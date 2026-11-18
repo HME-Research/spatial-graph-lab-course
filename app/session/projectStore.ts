@@ -11,7 +11,7 @@ import {
   saveAsNewProject,
   serializeProjectFile,
   PROJECT_FILE_FORMAT,
-  type ProjectFileV1,
+  type ProjectFileV2,
   type ProjectFunction,
   type ProjectIssue,
   type ProjectMeta,
@@ -105,7 +105,7 @@ export const MAX_NAME_LENGTH = 80;
 // ---------------------------------------------------------------------------------------------
 // Construction and conversion
 
-function slotOf(record: ProjectFileV1['scenarios'][number], source: string): ScenarioSlot {
+function slotOf(record: ProjectFileV2['scenarios'][number], source: string): ScenarioSlot {
   return {
     id: record.id,
     name: record.name,
@@ -116,7 +116,7 @@ function slotOf(record: ProjectFileV1['scenarios'][number], source: string): Sce
 }
 
 /** Open a validated project file. Every scenario starts with a fresh, empty history. */
-export function openProject(file: ProjectFileV1, origin: ProjectOrigin, options: { readonly exported?: boolean } = {}): OpenProject {
+export function openProject(file: ProjectFileV2, origin: ProjectOrigin, options: { readonly exported?: boolean } = {}): OpenProject {
   const { scenarios, activeScenarioId, ...meta } = file;
   const slots = scenarios.map((s) => slotOf(s, origin.label));
   const project: OpenProject = {
@@ -134,7 +134,7 @@ export function openProject(file: ProjectFileV1, origin: ProjectOrigin, options:
 }
 
 /** The project file for the current state (validated as a whole; `updatedAt` = `at`). */
-export function projectFileOf(project: OpenProject, at: string = project.meta.updatedAt): ProjectResult<ProjectFileV1> {
+export function projectFileOf(project: OpenProject, at: string = project.meta.updatedAt): ProjectResult<ProjectFileV2> {
   return projectFileFromState({
     meta: { ...project.meta, updatedAt: at },
     activeScenarioId: project.activeScenarioId,
@@ -147,7 +147,7 @@ export function projectFileOf(project: OpenProject, at: string = project.meta.up
  * only moves `updatedAt`) never changes it. Used for "exported" bookkeeping only.
  */
 export function contentSignature(project: OpenProject): string {
-  const file: ProjectFileV1 = {
+  const file: ProjectFileV2 = {
     ...project.meta,
     updatedAt: project.meta.createdAt,
     activeScenarioId: project.activeScenarioId,
@@ -302,7 +302,7 @@ export interface NewScenarioRequest {
   readonly name?: string;
   /**
    * `current`: a copy of the active scenario's current content and settings; `blank`: no rooms
-   * (Building settings kept); `design`: the given validated design (e.g. a code project's design).
+   * (Building settings kept); `design`: the given validated design (e.g. a toolkit's design).
    */
   readonly from: 'current' | 'blank' | 'design';
   /** Required when `from` is `design`. */
@@ -571,7 +571,7 @@ export function setFacadeAssetMaterials(
   return accept(changed(project, { meta: { ...project.meta, assets: projectAssetsOf(current.map((a) => (a.id === assetId ? next : a))) } }));
 }
 
-/** The project attribute record (`exportAttributeFile` shape) or null (= the project files' schema). */
+/** The project attribute record (`exportAttributeFile` shape) or null (= the toolkit files' schema). */
 export function setAttributeRecord(project: OpenProject, record: unknown | null): OpenProject {
   if (JSON.stringify(project.meta.attributes ?? null) === JSON.stringify(record ?? null)) return project;
   return changed(project, { meta: { ...project.meta, attributes: record ?? null } });
@@ -601,12 +601,12 @@ export function saveProjectAs(project: OpenProject, rawName: string | undefined,
 }
 
 export type ReadFileOutcome =
-  | { readonly ok: true; readonly file: ProjectFileV1; readonly kind: 'project' | 'design' }
+  | { readonly ok: true; readonly file: ProjectFileV2; readonly kind: 'project' | 'design' }
   | { readonly ok: false; readonly issues: readonly ProjectIssue[] };
 
 export interface ReadFileOptions extends IdOptions {
-  /** Code project referenced by a project made from a design file. */
-  readonly definition?: { readonly projectId: string } | null;
+  /** Toolkit referenced by a project made from a design file. */
+  readonly toolkit?: { readonly id: string } | null;
   /** Project name for a design file (default: the design's metadata name). */
   readonly name?: string;
 }
@@ -631,7 +631,7 @@ export function readProjectOrDesign(text: string, options: ReadFileOptions = {})
   if (obj && 'schemaVersion' in obj) {
     const made = projectFromLegacyDesign(raw, {
       ...options,
-      ...(options.definition !== undefined && { definition: options.definition }),
+      ...(options.toolkit !== undefined && { toolkit: options.toolkit }),
     });
     return made.ok ? { ok: true, file: made.value, kind: 'design' } : { ok: false, issues: made.issues };
   }
@@ -642,11 +642,11 @@ export function readProjectOrDesign(text: string, options: ReadFileOptions = {})
 }
 
 /**
- * A new project from one design (a code project's default design or the built-in example): one
+ * A new project from one design (a toolkit's default design or the built-in example): one
  * scenario, "Scenario 1".
  */
-export function newProjectFromDesign(design: DesignDocumentV2, options: ReadFileOptions = {}): ProjectResult<ProjectFileV1> {
-  return projectFromLegacyDesign(design, { ...options, ...(options.definition !== undefined && { definition: options.definition }) });
+export function newProjectFromDesign(design: DesignDocumentV2, options: ReadFileOptions = {}): ProjectResult<ProjectFileV2> {
+  return projectFromLegacyDesign(design, { ...options, ...(options.toolkit !== undefined && { toolkit: options.toolkit }) });
 }
 
 /**
@@ -654,7 +654,7 @@ export function newProjectFromDesign(design: DesignDocumentV2, options: ReadFile
  * project: re-identified (new project and scenario ids), so opening a file never overwrites
  * another local project. Returns the file unchanged when `taken` is false.
  */
-export function separateIdentity(file: ProjectFileV1, taken: boolean, options: IdOptions = {}): ProjectResult<ProjectFileV1> {
+export function separateIdentity(file: ProjectFileV2, taken: boolean, options: IdOptions = {}): ProjectResult<ProjectFileV2> {
   if (!taken) return { ok: true, value: file };
   return saveAsNewProject(file, { name: file.name, ...options });
 }

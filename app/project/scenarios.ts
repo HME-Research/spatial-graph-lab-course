@@ -1,7 +1,7 @@
 import type { SavedCamera } from '@core/viewer/three/camera';
 import type { ScenarioContent } from '@app/spatial';
 import type { DisplayOverrides } from '@app/display/contracts';
-import { readProjectFile, serializeProjectFile, type ProjectFileV1, type ProjectResult, type ScenarioRecord } from './projectFile';
+import { readProjectFile, serializeProjectFile, type ProjectFileV2, type ProjectResult, type ScenarioRecord } from './projectFile';
 
 /**
  * Minimal pure conversion between the project file and the in-memory scenario shape (Gate F, F-B).
@@ -20,7 +20,7 @@ export interface ScenarioState {
 }
 
 /** Everything in the project file except the scenarios and the active scenario. */
-export type ProjectMeta = Omit<ProjectFileV1, 'scenarios' | 'activeScenarioId'>;
+export type ProjectMeta = Omit<ProjectFileV2, 'scenarios' | 'activeScenarioId'>;
 
 export interface ProjectState {
   readonly meta: ProjectMeta;
@@ -49,13 +49,13 @@ const toState = (s: ScenarioRecord): ScenarioState => ({
  * Build a project file from in-memory state. The result is validated as a whole (and is a fresh
  * copy): an invalid scenario, duplicate id or unknown active scenario is refused, never written.
  */
-export function projectFileFromState(state: ProjectState): ProjectResult<ProjectFileV1> {
-  const file: ProjectFileV1 = { ...state.meta, activeScenarioId: state.activeScenarioId, scenarios: state.scenarios.map(toRecord) };
+export function projectFileFromState(state: ProjectState): ProjectResult<ProjectFileV2> {
+  const file: ProjectFileV2 = { ...state.meta, activeScenarioId: state.activeScenarioId, scenarios: state.scenarios.map(toRecord) };
   return readProjectFile(serializeProjectFile(file));
 }
 
 /** In-memory state of a (validated) project file. Shares no objects with the caller's input beyond the file itself. */
-export function projectStateFromFile(file: ProjectFileV1): ProjectState {
+export function projectStateFromFile(file: ProjectFileV2): ProjectState {
   const { scenarios, activeScenarioId, ...meta } = file;
   return { meta, scenarios: scenarios.map(toState), activeScenarioId };
 }

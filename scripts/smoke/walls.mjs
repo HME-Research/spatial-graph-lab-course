@@ -277,7 +277,7 @@ await step('open-example', async () => {
   await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try example'))?.click(); true`);
   await waitFor(`document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node').length === 6`, 'the example', 20000);
   await helpers();
-  await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the code project to activate', 20000);
+  await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the toolkit to activate', 20000);
   await evaluate(`document.querySelector('.sgl-notice button')?.click(); true`);
   await setMode(2, 'architecture');
   // Roofs off (a view cutaway) so the interior wall can be seen from above.

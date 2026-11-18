@@ -19,7 +19,7 @@ import {
   type WindowLayout,
   type WallStyle,
 } from '@app/document/v2';
-import { findNodeType, type ActiveProject } from '@app/extensions';
+import { findNodeType, type ActiveToolkit } from '@app/extensions';
 import type { DesignCommand, SpatialResolution } from '@app/spatial';
 import { nodeTypeStatus, typeDisplayName, type NodeTypeStatus } from '@app/views/project';
 import type { Selection } from '@core/viewer/selection';
@@ -62,7 +62,7 @@ export interface DesignerTypeRow {
 
 const hasOwn = (record: object, key: string) => Object.prototype.hasOwnProperty.call(record, key);
 
-function projectDefaultSource(project: ActiveProject | null, status: NodeTypeStatus, typeId: string): ProjectDefaultSource {
+function projectDefaultSource(project: ActiveToolkit | null, status: NodeTypeStatus, typeId: string): ProjectDefaultSource {
   if (status.kind === 'broken') return 'broken';
   if (status.kind === 'registered' && project) {
     return findNodeType(project, typeId)?.definition.facade ? 'type-definition' : 'fallback';
@@ -89,7 +89,7 @@ function warningFor(row: Pick<DesignerTypeRow, 'status' | 'orphanOverride' | 'ty
  */
 export function designerTypeRows(
   doc: DesignDocumentV2,
-  project: ActiveProject | null,
+  project: ActiveToolkit | null,
   facade: FacadeProvider,
 ): DesignerTypeRow[] {
   const counts = new Map<string, number>();

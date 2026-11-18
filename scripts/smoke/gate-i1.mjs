@@ -258,7 +258,7 @@ await step(1, 'welcome-create', async () => {
   await evaluate(`document.querySelector('.sgl-welcome-create').requestSubmit(); true`);
   await waitFor(`!document.querySelector('.sgl-welcome') && document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node').length === 6`, 'the created project', 20000);
   await helpers();
-  await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the code project to activate', 20000);
+  await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the toolkit to activate', 20000);
   const name = await evaluate(`document.querySelector('.sgl-identity-project')?.textContent ?? ''`);
   expect(name.includes(PROJECT), `header names "${name}"`);
   await screenshot('01-created');
@@ -459,7 +459,7 @@ await step(1, 'reload-recent-restore', async () => {
   expect(opened, `"${PROJECT}" not in Recent: ${JSON.stringify(rows)}`);
   await waitFor(`!document.querySelector('.sgl-welcome') && document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node').length === 6`, 'the restored project', 20000);
   await helpers();
-  await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the code project to activate', 20000);
+  await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the toolkit to activate', 20000);
   await screenshot('06-restored');
   await openTab('scenarios');
   const names = await evaluate(`__g.scenarios()`);

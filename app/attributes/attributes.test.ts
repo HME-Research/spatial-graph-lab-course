@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { applySchemaEdit, EMPTY_ATTRIBUTE_SCHEMA, resolveNodeAttributes, withProjectFunctions, PROJECT_FUNCTIONS_FILE, type ProjectAttributeSchema, type SchemaEdit } from '@app/extensions';
-import { labProject } from '@app/extensions/test-fixtures';
+import { labToolkit } from '@app/extensions/test-fixtures';
 import { canUndoAttributes, currentSchema, editAttributesBatch, loadAttributeSession, undoAttributes } from '@app/session/projectAttributeStore';
 import { readDesign } from '@app/document/v2';
 import { readProjectFile, serializeProjectFile } from '@app/project';
@@ -76,7 +76,7 @@ describe('attributes model (values)', () => {
   });
 
   it('offers project types plus types used in the design', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     expect(typeChoices(project, ['kiosk', 'gallery']).map((t) => t.id)).toEqual(['gallery', 'kiosk', 'studio']);
   });
 });
@@ -169,7 +169,7 @@ describe('names and identifiers', () => {
 
 describe('batched attribute edits (one dialog Save = one Undo step)', () => {
   it('applies every edit as ONE history step, all or nothing', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const session = loadAttributeSession(null, project);
     const ok = editAttributesBatch(
       session,
@@ -199,7 +199,7 @@ describe('batched attribute edits (one dialog Save = one Undo step)', () => {
   });
 
   it('refuses a type change that would invalidate a value stored in ANY scenario (nothing is converted)', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const session = loadAttributeSession(null, project);
     const occupancy = currentSchema(session).nodes.find((f) => f.key === 'occupancy')!;
     const usage = scenarioSamples([
@@ -214,7 +214,7 @@ describe('batched attribute edits (one dialog Save = one Undo step)', () => {
 
 describe('Attributes panel', () => {
   const render = async (over: Record<string, unknown> = {}) => {
-    const project = await labProject();
+    const project = await labToolkit();
     const session = loadAttributeSession(null, project);
     return renderToStaticMarkup(createElement(AttributesPanel, { session, project, doc: docOf({ daylight: 'high' }), source: 'd.json', onChange: () => {}, onCalculatedFields: () => {}, ...over }));
   };
@@ -316,11 +316,11 @@ describe('custom attributes in Properties', () => {
 });
 
 describe('functions (node types) added or removed in the project', () => {
-  it('lists course functions, then project functions, with usage across scenarios', () => {
+  it('lists toolkit functions, then project functions, with usage across scenarios', () => {
     const rows = functionRows([{ id: 'gallery', label: 'Gallery' }], [{ id: 'kiosk', label: 'Kiosk' }, { id: 'gallery', label: 'Shadow' }], ['gallery', 'gallery', 'kiosk']);
     expect(rows).toEqual([
-      { id: 'gallery', label: 'Gallery', fromCourse: true, used: 2 },
-      { id: 'kiosk', label: 'Kiosk', fromCourse: false, used: 1 },
+      { id: 'gallery', label: 'Gallery', fromToolkit: true, used: 2 },
+      { id: 'kiosk', label: 'Kiosk', fromToolkit: false, used: 1 },
     ]);
     expect(functionNameProblem('gallery', rows)).toMatch(/already a function/);
     expect(functionNameProblem('Kiosk', rows, 'kiosk')).toBeNull();
@@ -328,8 +328,8 @@ describe('functions (node types) added or removed in the project', () => {
     expect(generateFunctionId('2 Café', [])).toBe('f-2-cafe');
   });
 
-  it('merges project functions into the active project as valid types; course definitions win; removed course functions are left out', async () => {
-    const project = await labProject();
+  it('merges project functions into the active project as valid types; toolkit definitions win; removed toolkit functions are left out', async () => {
+    const project = await labToolkit();
     const merged = withProjectFunctions(project, [{ id: 'kiosk', label: 'Kiosk' }, { id: 'gallery', label: 'Not this' }], ['studio']);
     const ids = merged.nodeTypes.map((t) => t.id);
     expect(ids).toContain('kiosk');
@@ -355,7 +355,7 @@ describe('functions (node types) added or removed in the project', () => {
   it('the Functions pop-up adds, renames and removes; a used function cannot be removed', () => {
     const html = renderToStaticMarkup(
       createElement(FunctionsDialog, {
-        courseTypes: [{ id: 'gallery', label: 'Gallery' }, { id: 'studio', label: 'Studio' }],
+        toolkitTypes: [{ id: 'gallery', label: 'Gallery' }, { id: 'studio', label: 'Studio' }],
         projectFunctions: [{ id: 'kiosk', label: 'Kiosk' }],
         hidden: ['studio'],
         usedTypeIds: ['gallery'],

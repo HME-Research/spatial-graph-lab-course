@@ -1,5 +1,5 @@
 import { readAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
-import { readProjectFile, serializeProjectFile, type ProjectFileV1 } from '@app/project';
+import { readProjectFile, serializeProjectFile, type ProjectFileV2 } from '@app/project';
 import { attributeStorageKey, type KeyValueStorage } from '@app/session/projectAttributeStore';
 
 /**
@@ -30,17 +30,17 @@ export function readLegacyAttributeRecord(storage: KeyValueStorage | null, codeP
 }
 
 /**
- * `file` with its attribute record seeded from the legacy browser record of its code project, when
+ * `file` with its attribute record seeded from the legacy browser record of its toolkit, when
  * it references one and has no record of its own. Returns a notice when a legacy record exists but
- * cannot be used (the project then starts with the code project files' fields).
+ * cannot be used (the project then starts with the toolkit files' fields).
  */
-export function seedLegacyAttributes(file: ProjectFileV1, storage: KeyValueStorage | null): { readonly file: ProjectFileV1; readonly notice: string | null } {
-  if (file.definition === null || file.attributes !== null) return { file, notice: null };
-  const id = file.definition.projectId;
+export function seedLegacyAttributes(file: ProjectFileV2, storage: KeyValueStorage | null): { readonly file: ProjectFileV2; readonly notice: string | null } {
+  if (file.toolkit === null || file.attributes !== null) return { file, notice: null };
+  const id = file.toolkit.id;
   const seed = readLegacyAttributeRecord(storage, id);
   const ignored = (why: string) => ({
     file,
-    notice: `The attribute fields saved earlier in this browser for “${id}” could not be read, so this project starts with the course project’s own fields (${why}).`,
+    notice: `The attribute fields saved earlier in this browser for “${id}” could not be read, so this project starts with the toolkit’s own fields (${why}).`,
   });
   if (seed.kind === 'none') return { file, notice: null };
   if (seed.kind === 'unreadable') return ignored(seed.message);

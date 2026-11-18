@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { ExtensionDiagnostic } from '@app/extensions';
 import { CollapsibleSection } from '@app/ui';
 import { selectNode, type SelectionHandler } from '@core/viewer/selection';
-import { activeProjectOf, projectHeadline, sessionDiagnostics, type ProjectSession } from './projectSession';
+import { activeToolkitOf, toolkitHeadline, sessionDiagnostics, type ToolkitSession } from './toolkitSession';
 
 const ICON = { error: '✖', warning: '⚠', info: 'ℹ' } as const;
 
@@ -13,7 +13,7 @@ export interface ProjectStatus {
 }
 
 /** Problems worth a header badge: project loading problems and design checks (not info notes). */
-export function projectStatus(session: ProjectSession | null, conformance: readonly ExtensionDiagnostic[], extra: readonly ExtensionDiagnostic[] = []): ProjectStatus {
+export function projectStatus(session: ToolkitSession | null, conformance: readonly ExtensionDiagnostic[], extra: readonly ExtensionDiagnostic[] = []): ProjectStatus {
   const all = [...(session ? sessionDiagnostics(session) : []), ...conformance, ...extra].filter((d) => d.severity !== 'info');
   return { problems: all.length, errors: all.filter((d) => d.severity === 'error').length };
 }
@@ -23,7 +23,7 @@ export function projectStatus(session: ProjectSession | null, conformance: reado
  * scenarios, shared attributes and project information, so this panel manages only that:
  * - `overview` (supplied by the shell): name, save state, the project actions and information;
  * - **Checks**, only while something needs attention;
- * - **Advanced** (collapsed): the course project, where the open scenario came from, and every
+ * - **Advanced** (collapsed): the toolkit, where the open scenario came from, and every
  *   message with its code.
  * Scenario management lives in Scenarios. Nothing here exposes design-level files.
  */
@@ -39,8 +39,8 @@ export function ProjectPanel({
 }: {
   /** Project-level libraries supplied by the shell (Imported façades), after the overview. */
   readonly library?: ReactNode;
-  /** null while the course project is being activated. */
-  readonly session: ProjectSession | null;
+  /** null while the toolkit is being activated. */
+  readonly session: ToolkitSession | null;
   readonly overview: ReactNode;
   readonly docLoaded: boolean;
   /** Where the open scenario's design was loaded from (Advanced only). */
@@ -50,13 +50,13 @@ export function ProjectPanel({
   readonly attributeProblems: readonly ExtensionDiagnostic[];
   readonly onSelect: SelectionHandler;
 }) {
-  const project = session ? activeProjectOf(session) : null;
+  const project = session ? activeToolkitOf(session) : null;
   const problems = session ? [...sessionDiagnostics(session), ...attributeProblems] : [];
   const actionable = [...problems, ...(docLoaded && project ? conformance : [])].filter((d) => d.severity !== 'info');
   const errors = actionable.filter((d) => d.severity === 'error').length;
   const tally = (severity: ExtensionDiagnostic['severity']) => conformance.filter((d) => d.severity === severity).length;
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
-  const headline = session ? projectHeadline(session, docLoaded) : null;
+  const headline = session ? toolkitHeadline(session, docLoaded) : null;
 
   return (
     <div className={`sgl-project sgl-inspector${headline ? ` tone-${headline.tone}` : ''}`} aria-busy={session === null ? 'true' : undefined}>
@@ -80,7 +80,7 @@ export function ProjectPanel({
 
       <CollapsibleSection title="Advanced" sectionId="project-advanced" defaultOpen={false} variant="advanced">
         <dl className="sgl-readonly-list">
-          <dt>Course project</dt>
+          <dt>Toolkit</dt>
           <dd>{project ? project.definition.name : session ? <span className="meta">none</span> : <span className="meta">loading…</span>}</dd>
           {source && (
             <>

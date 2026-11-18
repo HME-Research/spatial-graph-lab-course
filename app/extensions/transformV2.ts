@@ -22,7 +22,7 @@ import {
 } from '@app/document/v2';
 import { resolveRelationships } from '@app/spatial';
 import type { SpatialOperation } from '@student-api';
-import type { ActiveProject } from './activate';
+import type { ActiveToolkit } from './activate';
 import { checkConformance, findRegressions } from './conformance';
 import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionResult } from './diagnostics';
 import { describeField, checkFieldValue, fieldForKey, EMPTY_ATTRIBUTE_SCHEMA, type AttributeCollection, type AttributeField, type ProjectAttributeSchema } from './projectAttributes';
@@ -101,7 +101,7 @@ function fieldWrite(
   return field;
 }
 
-function addNode(draft: DraftV2, project: ActiveProject, op: Extract<SpatialOperation, { op: 'add-node' }>, i: number): Check {
+function addNode(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'add-node' }>, i: number): Check {
   const what = `add-node "${op.id}"`;
   const id = idSchema.safeParse(op.id);
   if (!id.success) return opError(i, 'invalid-id', `${what}: ${id.error.issues[0]?.message ?? 'invalid id'}`);
@@ -166,7 +166,7 @@ function addEdge(draft: DraftV2, op: Extract<SpatialOperation, { op: 'add-edge' 
   return null;
 }
 
-function setNodeAttribute(draft: DraftV2, project: ActiveProject, op: Extract<SpatialOperation, { op: 'set-node-attribute' }>, i: number): Check {
+function setNodeAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'set-node-attribute' }>, i: number): Check {
   const what = `set-node-attribute "${op.nodeId}.${op.key}"`;
   const node = draft.byId.get(op.nodeId);
   if (!node) return opError(i, 'missing-node', `${what}: node "${op.nodeId}" does not exist`);
@@ -176,7 +176,7 @@ function setNodeAttribute(draft: DraftV2, project: ActiveProject, op: Extract<Sp
   return null;
 }
 
-function setEdgeAttribute(draft: DraftV2, project: ActiveProject, op: Extract<SpatialOperation, { op: 'set-edge-attribute' }>, i: number): Check {
+function setEdgeAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'set-edge-attribute' }>, i: number): Check {
   const what = `set-edge-attribute "${op.edgeId}.${op.key}"`;
   const edge = draft.edgeById.get(op.edgeId);
   if (!edge) return opError(i, 'missing-edge', `${what}: edge "${op.edgeId}" does not exist`);
@@ -189,7 +189,7 @@ function setEdgeAttribute(draft: DraftV2, project: ActiveProject, op: Extract<Sp
 /** Apply `operations` atomically to a VALIDATED v2 `doc` (see module comment). Never mutates `doc`. */
 export function applyTransformationV2(
   doc: DesignDocumentV2,
-  project: ActiveProject,
+  project: ActiveToolkit,
   operations: readonly SpatialOperation[],
   summary?: string,
   schema: ProjectAttributeSchema = project.attributeBaseline?.schema ?? EMPTY_ATTRIBUTE_SCHEMA,
@@ -226,7 +226,7 @@ export function applyTransformationV2(
         diagnostic(
           'final-document-invalid',
           'error',
-          { kind: 'project', id: project.id },
+          { kind: 'toolkit', id: project.id },
           `the transformed design is invalid: ${formatIssuePath(issue.path)} — ${issue.message} (${issue.code})`,
           { detail: String(n) },
         ),

@@ -13,7 +13,7 @@ export type RecentState =
 export const recentStateOf = (list: RecentList): RecentState =>
   list.status === 'ok' ? { status: 'ready', items: list.items, unsaved: list.unsaved ?? [] } : { status: 'unavailable', message: list.message };
 
-/** A code project (`projects/<id>`) that can supply types and algorithms for a new project. */
+/** A toolkit (`toolkits/<id>`) that can supply types and algorithms for a new project. */
 export interface DefinitionChoice {
   readonly id: string;
   readonly label: string;
@@ -61,8 +61,8 @@ export function recentRows(items: readonly ProjectSummary[], when: (iso: string)
   );
 }
 
-/** A readable course name from a code project id: "example-gallery" → "Example gallery". */
-export function courseLabel(id: string): string {
+/** A readable toolkit name from a toolkit id: "example-gallery" → "Example gallery". */
+export function toolkitLabel(id: string): string {
   const words = id.replace(/[-_]+/g, ' ').trim();
   return words === '' ? id : words.charAt(0).toUpperCase() + words.slice(1);
 }

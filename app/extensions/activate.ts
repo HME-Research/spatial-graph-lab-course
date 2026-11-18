@@ -1,28 +1,28 @@
 import type { ZodType } from 'zod';
 import type { Result } from '@app/document';
 import { readDesignJson, type DesignDocumentV2 } from '@app/document/v2';
-import type { GraphAlgorithm, NodeTypeDefinition, ProjectDefinition, SpatialAlgorithm } from '@student-api';
+import type { GraphAlgorithm, NodeTypeDefinition, ToolkitDefinition, SpatialAlgorithm } from '@student-api';
 import {
   algorithmDefinitionSchema,
   nodeTypeDefinitionSchema,
-  projectDefinitionSchema,
+  toolkitDefinitionSchema,
   readableId,
   zodMessages,
 } from './definitions';
 import { deriveAttributeBaseline, type AttributeBaseline } from './attributeBaseline';
 import { diagnostic, type ExtensionDiagnostic } from './diagnostics';
 import {
-  discoverProjects,
-  selectProject,
+  discoverToolkits,
+  selectToolkit,
   type ModuleLoader,
-  type ProjectGlobs,
-  type ProjectRequest,
-  type ProjectSource,
+  type ToolkitGlobs,
+  type ToolkitRequest,
+  type ToolkitSource,
   type SourceFile,
 } from './discover';
 
 /**
- * Project activation: loads the selected project's modules, validates every definition at
+ * Toolkit activation: loads the selected toolkit's modules, validates every definition at
  * runtime and builds a registry of plain data. Invalid or colliding definitions stay in the
  * registry with a failed status (so nodes of a broken type are recognised as broken, not
  * unknown) and conspicuous error diagnostics; they are never applied.
@@ -55,26 +55,26 @@ export interface RegisteredDesign {
   readonly sourceVersion?: 1 | 2;
 }
 
-export interface ActiveProject {
+export interface ActiveToolkit {
   readonly id: string;
-  readonly definition: ProjectDefinition;
+  readonly definition: ToolkitDefinition;
   readonly nodeTypes: readonly RegisteredNodeType[];
   readonly algorithms: readonly RegisteredAlgorithm[];
   readonly designs: readonly RegisteredDesign[];
   /**
-   * The project-wide attribute schema its FILES describe (`defineProject({ attributes })` plus
+   * The toolkit-wide attribute schema its FILES describe (`defineToolkit({ attributes })` plus
    * node type declarations): the immutable baseline that seeds the stored schema. See
    * docs/PROJECT-ATTRIBUTES.md; the schema in use comes from app/session/projectAttributeStore.ts.
    */
   readonly attributeBaseline: AttributeBaseline;
-  /** Every loading/definition problem of this project. */
+  /** Every loading/definition problem of this toolkit. */
   readonly diagnostics: readonly ExtensionDiagnostic[];
 }
 
 export type Activation =
   | { readonly status: 'none' }
-  | { readonly status: 'active'; readonly project: ActiveProject }
-  | { readonly status: 'failed'; readonly projectId: string; readonly diagnostics: readonly ExtensionDiagnostic[] };
+  | { readonly status: 'active'; readonly toolkit: ActiveToolkit }
+  | { readonly status: 'failed'; readonly toolkitId: string; readonly diagnostics: readonly ExtensionDiagnostic[] };
 
 type Loaded = { readonly ok: true; readonly value: unknown } | { readonly ok: false; readonly diagnostic: ExtensionDiagnostic };
 
@@ -154,26 +154,26 @@ async function loadDefinitions<D>(
 
 const status = (ids: readonly string[]): DefinitionStatus => (ids.length === 0 ? { ok: true } : { ok: false, diagnosticIds: ids });
 
-/** Load, validate and register one discovered project. Never throws. */
-export async function activateProject(source: ProjectSource): Promise<Activation> {
-  const projectFile = await loadDefault(source.project);
-  if (!projectFile.ok) return { status: 'failed', projectId: source.id, diagnostics: [projectFile.diagnostic] };
-  const parsedProject = projectDefinitionSchema.safeParse(projectFile.value);
-  if (!parsedProject.success) {
+/** Load, validate and register one discovered toolkit. Never throws. */
+export async function activateToolkit(source: ToolkitSource): Promise<Activation> {
+  const toolkitFile = await loadDefault(source.toolkit);
+  if (!toolkitFile.ok) return { status: 'failed', toolkitId: source.id, diagnostics: [toolkitFile.diagnostic] };
+  const parsedToolkit = toolkitDefinitionSchema.safeParse(toolkitFile.value);
+  if (!parsedToolkit.success) {
     return {
       status: 'failed',
-      projectId: source.id,
+      toolkitId: source.id,
       diagnostics: [
         diagnostic(
-          'invalid-project-definition',
+          'invalid-toolkit-definition',
           'error',
-          { kind: 'file', path: source.project.file },
-          `invalid project definition in ${source.project.file}: ${zodMessages(parsedProject.error.issues).join('; ')} — project "${source.id}" was not activated`,
+          { kind: 'file', path: source.toolkit.file },
+          `invalid toolkit definition in ${source.toolkit.file}: ${zodMessages(parsedToolkit.error.issues).join('; ')} — toolkit "${source.id}" was not activated`,
         ),
       ],
     };
   }
-  const definition = projectFile.value as ProjectDefinition;
+  const definition = toolkitFile.value as ToolkitDefinition;
 
   const types = await loadDefinitions<NodeTypeDefinition>(
     source.types,
@@ -212,10 +212,10 @@ export async function activateProject(source: ProjectSource): Promise<Activation
 
   if (definition.defaultDesign !== undefined) {
     const chosen = designs.find((d) => d.id === definition.defaultDesign);
-    const subject = { kind: 'file', path: source.project.file } as const;
+    const subject = { kind: 'file', path: source.toolkit.file } as const;
     if (!chosen) {
       diagnostics.push(
-        diagnostic('default-design-missing', 'error', subject, `defaultDesign "${definition.defaultDesign}" does not exist in projects/${source.id}/designs/`),
+        diagnostic('default-design-missing', 'error', subject, `defaultDesign "${definition.defaultDesign}" does not exist in toolkits/${source.id}/designs/`),
       );
     } else if (!chosen.result.ok) {
       diagnostics.push(diagnostic('default-design-invalid', 'error', subject, `defaultDesign "${definition.defaultDesign}" (${chosen.file}) is invalid`));
@@ -228,7 +228,7 @@ export async function activateProject(source: ProjectSource): Promise<Activation
 
   return {
     status: 'active',
-    project: {
+    toolkit: {
       id: source.id,
       definition,
       nodeTypes,
@@ -241,29 +241,29 @@ export async function activateProject(source: ProjectSource): Promise<Activation
 }
 
 /**
- * Discover, select and activate. `discovery` holds problems with project folders themselves
- * (shown alongside the activation outcome). A requested project that does not exist yields a
+ * Discover, select and activate. `discovery` holds problems with toolkit folders themselves
+ * (shown alongside the activation outcome). A requested toolkit that does not exist yields a
  * failed activation.
  */
 export async function activate(
-  globs: ProjectGlobs,
-  request: ProjectRequest,
+  globs: ToolkitGlobs,
+  request: ToolkitRequest,
 ): Promise<{ readonly activation: Activation; readonly discovery: readonly ExtensionDiagnostic[] }> {
-  const { projects, diagnostics } = discoverProjects(globs);
-  const selection = selectProject(
-    projects.map((p) => p.id),
+  const { toolkits, diagnostics } = discoverToolkits(globs);
+  const selection = selectToolkit(
+    toolkits.map((p) => p.id),
     request,
   );
   if (selection.diagnostic) {
-    const requested = selection.diagnostic.subject.kind === 'project' ? selection.diagnostic.subject.id : '';
-    return { activation: { status: 'failed', projectId: requested, diagnostics: [selection.diagnostic] }, discovery: diagnostics };
+    const requested = selection.diagnostic.subject.kind === 'toolkit' ? selection.diagnostic.subject.id : '';
+    return { activation: { status: 'failed', toolkitId: requested, diagnostics: [selection.diagnostic] }, discovery: diagnostics };
   }
-  const source = projects.find((p) => p.id === selection.id);
-  return { activation: source ? await activateProject(source) : { status: 'none' }, discovery: diagnostics };
+  const source = toolkits.find((p) => p.id === selection.id);
+  return { activation: source ? await activateToolkit(source) : { status: 'none' }, discovery: diagnostics };
 }
 
 export interface StartupDesign {
-  /** null: nothing loaded (the project's chosen default design is missing or invalid). */
+  /** null: nothing loaded (the toolkit's chosen default design is missing or invalid). */
   readonly doc: DesignDocumentV2 | null;
   readonly source: string;
   /** To be shown prominently and persistently. */
@@ -272,11 +272,11 @@ export interface StartupDesign {
 
 /**
  * The design to show at startup:
- * - no project → the built-in example;
+ * - no toolkit → the built-in example;
  * - failed activation → the built-in example plus the activation diagnostics;
- * - active project without `defaultDesign` → the built-in example;
- * - active project with a valid `defaultDesign` → that design;
- * - active project whose `defaultDesign` is missing or invalid → nothing, plus diagnostics.
+ * - active toolkit without `defaultDesign` → the built-in example;
+ * - active toolkit with a valid `defaultDesign` → that design;
+ * - active toolkit whose `defaultDesign` is missing or invalid → nothing, plus diagnostics.
  */
 export function resolveStartupDesign(
   activation: Activation,
@@ -284,10 +284,10 @@ export function resolveStartupDesign(
 ): StartupDesign {
   if (activation.status === 'none') return { ...builtIn, diagnostics: [] };
   if (activation.status === 'failed') return { ...builtIn, diagnostics: activation.diagnostics };
-  const { project } = activation;
-  const name = project.definition.defaultDesign;
-  if (name === undefined) return { ...builtIn, diagnostics: project.diagnostics };
-  const chosen = project.designs.find((d) => d.id === name);
-  if (chosen?.result.ok) return { doc: chosen.result.value, source: chosen.file, diagnostics: project.diagnostics };
-  return { doc: null, source: chosen?.file ?? `projects/${project.id}/designs/${name}.json`, diagnostics: project.diagnostics };
+  const { toolkit } = activation;
+  const name = toolkit.definition.defaultDesign;
+  if (name === undefined) return { ...builtIn, diagnostics: toolkit.diagnostics };
+  const chosen = toolkit.designs.find((d) => d.id === name);
+  if (chosen?.result.ok) return { doc: chosen.result.value, source: chosen.file, diagnostics: toolkit.diagnostics };
+  return { doc: null, source: chosen?.file ?? `toolkits/${toolkit.id}/designs/${name}.json`, diagnostics: toolkit.diagnostics };
 }

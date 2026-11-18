@@ -2,7 +2,7 @@ import { exampleFacadeProvider, type FacadeSpec } from '@app/building';
 import type { AttributeValue, DesignDocument } from '@app/document';
 import type { DesignDocumentV2 } from '@app/document/v2';
 import { typeColor } from '@core/viewer/appearance';
-import type { ActiveProject, RegisteredNodeType } from './activate';
+import type { ActiveToolkit, RegisteredNodeType } from './activate';
 import { diagnostic, isBlocking, type ExtensionDiagnostic } from './diagnostics';
 import { describeField, type ProjectAttributeSchema } from './projectAttributes';
 import { attributesOutsideSchema, resolveEdgeAttributes, resolveNodeAttributes, type EffectiveAttribute } from './resolveAttributes';
@@ -30,7 +30,7 @@ import { attributesOutsideSchema, resolveEdgeAttributes, resolveNodeAttributes, 
  */
 
 /** The registered definition of `typeId` (if several collide, all are broken; the first is returned). */
-export const findNodeType = (project: ActiveProject, typeId: string): RegisteredNodeType | undefined =>
+export const findNodeType = (project: ActiveToolkit, typeId: string): RegisteredNodeType | undefined =>
   project.nodeTypes.find((t) => t.id === typeId);
 
 type CheckedDocument = (Pick<DesignDocument, 'nodes'> | Pick<DesignDocumentV2, 'nodes'>) & {
@@ -100,9 +100,9 @@ function attributeChecks(
 /**
  * Works on schema-v1 and schema-v2 documents. Node types are checked against the project's
  * types; custom values of nodes AND edges against the project's attribute schema in use
- * (`schema`; default: the project files' baseline). Never changes the document.
+ * (`schema`; default: the toolkit files' baseline). Never changes the document.
  */
-export function checkConformance(doc: CheckedDocument, project: ActiveProject | null, schema?: ProjectAttributeSchema): ExtensionDiagnostic[] {
+export function checkConformance(doc: CheckedDocument, project: ActiveToolkit | null, schema?: ProjectAttributeSchema): ExtensionDiagnostic[] {
   if (!project) return [];
   const fields = schema ?? project.attributeBaseline.schema;
   const projectDefinesTypes = project.nodeTypes.length > 0;
@@ -154,7 +154,7 @@ export type TypeAppearance =
  * façade for that id. A broken definition yields `broken` (no façade), never a silent fallback;
  * no project or no definition gives today's behaviour.
  */
-export function typeAppearance(project: ActiveProject | null, typeId: string): TypeAppearance {
+export function typeAppearance(project: ActiveToolkit | null, typeId: string): TypeAppearance {
   const color = typeColor(typeId);
   const type = project ? findNodeType(project, typeId) : undefined;
   if (type && !type.status.ok) return { status: 'broken', color, diagnosticIds: type.status.diagnosticIds };

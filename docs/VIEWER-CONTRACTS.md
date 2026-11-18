@@ -38,9 +38,9 @@ interface ViewProps {
   readonly project?: ProjectViewContext; // optional, read-only (Stage 3B)
 }
 interface ProjectViewContext {           // app/views/project.ts
-  readonly project: ActiveProject | null; // the active project registry (app/extensions)
+  readonly project: ActiveToolkit | null; // the active toolkit registry (app/extensions)
   readonly conformance: readonly ExtensionDiagnostic[];
-  readonly facade: FacadeProvider;        // project façades; example façades otherwise
+  readonly facade: FacadeProvider;        // toolkit façades; example façades otherwise
 }
 type CommandOutcome = { ok: true } | { ok: false; issues: readonly GraphIssue[] };
 type InspectorProps = ViewProps;
@@ -49,7 +49,7 @@ type ViewMode = 'graph2d' | 'graph3d' | 'voxels' | 'architecture';
 
 `onCommand` is **synchronous**: the outcome reflects validation against the latest document. On `ok: false`, show the issues (use `formatIssuePath(issue.path)` + `issue.message`); the document is unchanged. 3D views are read-only and must not call `onCommand`.
 
-`project` is optional: without it every view behaves exactly as before projects existed. Views only read it: the Architecture view builds geometry with `project.facade` (a broken type definition gets a closed façade plus an on-canvas notice), Graph 2D marks nodes of a broken type with ⚠, and the inspector uses it for type labels, typed attribute controls and conformance checks.
+`project` is optional: without it every view behaves exactly as before toolkits existed. Views only read it: the Architecture view builds geometry with `project.facade` (a broken type definition gets a closed façade plus an on-canvas notice), Graph 2D marks nodes of a broken type with ⚠, and the inspector uses it for type labels, typed attribute controls and conformance checks.
 
 View sizing: the view is rendered inside `.view-body` (`position: relative`, min-height 200 px; the application fills the browser viewport, so the body's size follows the window and the layout, never the inspector's or algorithm panel's content). Fill it (`width/height: 100%` or `position: absolute; inset: 0`) and expect it to be resized at any time. Each panel is its own component instance, so view-local UI state (camera, colour-by choice, zoom) lives inside the view and survives document/selection changes.
 
@@ -108,7 +108,7 @@ spatialToThree(grid: readonly [number, number, number], cell = DEFAULT_CELL_SIZE
 
 ## 6. Appearance — `core/viewer/appearance.ts`
 
-`typeColor(typeId)` gives the deterministic fallback colour per node type, used identically in 2D and 3D. Stage 3 project node types keep this colour (custom colours are deferred); `typeAppearance` in `app/extensions` adds project façades, which reach the views through `ViewProps.project.facade` (`projectFacadeProvider` in `app/views/project.ts`). `SELECTION_COLOR` is the shared highlight colour.
+`typeColor(typeId)` gives the deterministic fallback colour per node type, used identically in 2D and 3D. Stage 3 toolkit node types keep this colour (custom colours are deferred); `typeAppearance` in `app/extensions` adds toolkit façades, which reach the views through `ViewProps.project.facade` (`projectFacadeProvider` in `app/views/project.ts`). `SELECTION_COLOR` is the shared highlight colour.
 
 ## A. Graph 2D editing — implement `Graph2DView` and `Inspector`
 

@@ -6,7 +6,7 @@ import { functionNameProblem, functionRows, generateFunctionId, type FunctionRow
 /**
  * The Functions pop-up (UI refinement 2026-11-17): add, rename and remove the functions (node
  * types) a project offers.
- * - Course functions come from the course (code) project. They cannot be renamed here; removing
+ * - Toolkit functions come from the toolkit. They cannot be renamed here; removing
  *   one only hides it in this project (it can be restored).
  * - Project functions are stored in the project file (`settings.functions`): their name can be
  *   changed at any time; their identifier never changes, so nodes keep their function.
@@ -14,17 +14,17 @@ import { functionNameProblem, functionRows, generateFunctionId, type FunctionRow
  * Changes are saved with the project immediately; they are not part of Undo.
  */
 export function FunctionsDialog({
-  courseTypes,
+  toolkitTypes,
   projectFunctions,
   hidden,
   usedTypeIds,
   onChange,
   onClose,
 }: {
-  /** The course project's valid types, in its order (hidden ones included). */
-  readonly courseTypes: readonly { readonly id: string; readonly label: string }[];
+  /** The toolkit's valid types, in its order (hidden ones included). */
+  readonly toolkitTypes: readonly { readonly id: string; readonly label: string }[];
   readonly projectFunctions: readonly ProjectFunction[];
-  /** Course function ids removed from this project. */
+  /** Toolkit function ids removed from this project. */
   readonly hidden: readonly string[];
   /** The function of every node of every scenario (with repeats). */
   readonly usedTypeIds: readonly string[];
@@ -35,16 +35,16 @@ export function FunctionsDialog({
   const [error, setError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ readonly id: string; readonly label: string } | null>(null);
   const hiddenSet = new Set(hidden);
-  const all = functionRows(courseTypes, projectFunctions, usedTypeIds);
-  const shown = all.filter((r) => !(r.fromCourse && hiddenSet.has(r.id)));
-  const removedCourse = all.filter((r) => r.fromCourse && hiddenSet.has(r.id));
+  const all = functionRows(toolkitTypes, projectFunctions, usedTypeIds);
+  const shown = all.filter((r) => !(r.fromToolkit && hiddenSet.has(r.id)));
+  const removedToolkit = all.filter((r) => r.fromToolkit && hiddenSet.has(r.id));
 
   const add = (e: FormEvent) => {
     e.preventDefault();
     const problem = functionNameProblem(name, shown);
     if (problem) return setError(problem);
     const label = name.trim().replace(/\s+/g, ' ');
-    // Never reuse the id of any course function (hidden ones included) or project function.
+    // Never reuse the id of any toolkit function (hidden ones included) or project function.
     const id = generateFunctionId(label, all.map((r) => r.id));
     onChange([...projectFunctions, { id, label }], hidden);
     setName('');
@@ -53,7 +53,7 @@ export function FunctionsDialog({
 
   const remove = (row: FunctionRow) => {
     if (row.used > 0) return;
-    if (row.fromCourse) onChange(projectFunctions, [...hidden, row.id]);
+    if (row.fromToolkit) onChange(projectFunctions, [...hidden, row.id]);
     else onChange(projectFunctions.filter((f) => f.id !== row.id), hidden);
   };
 
@@ -134,11 +134,11 @@ export function FunctionsDialog({
               <span className="sgl-function-name">{row.label}</span>
             )}
             <span className="sgl-function-meta">
-              {row.fromCourse && <span className="sgl-attr-type" title="Defined by the course project">Course</span>}
+              {row.fromToolkit && <span className="sgl-attr-type" title="Defined by the toolkit">Toolkit</span>}
               <span className="sgl-function-used">{row.used > 0 ? plural(row.used) : 'unused'}</span>
             </span>
             <span className="sgl-function-actions">
-              {!row.fromCourse && renaming?.id !== row.id && (
+              {!row.fromToolkit && renaming?.id !== row.id && (
                 <button type="button" className="sgl-icon-action" onClick={() => setRenaming({ id: row.id, label: row.label })} aria-label={`Rename ${row.label}`} title="Rename">
                   <PencilIcon />
                 </button>
@@ -149,7 +149,7 @@ export function FunctionsDialog({
                 disabled={row.used > 0}
                 onClick={() => remove(row)}
                 aria-label={`Remove ${row.label}`}
-                title={row.used > 0 ? `Used by ${plural(row.used)} in this project. Give them another function first.` : row.fromCourse ? 'Remove from this project (can be restored)' : 'Remove'}
+                title={row.used > 0 ? `Used by ${plural(row.used)} in this project. Give them another function first.` : row.fromToolkit ? 'Remove from this project (can be restored)' : 'Remove'}
               >
                 <TrashIcon />
               </button>
@@ -157,10 +157,10 @@ export function FunctionsDialog({
           </li>
         ))}
       </ul>
-      {removedCourse.length > 0 && (
+      {removedToolkit.length > 0 && (
         <div className="sgl-function-removed">
-          <span className="sgl-dialog-hint">Removed course functions:</span>
-          {removedCourse.map((r) => (
+          <span className="sgl-dialog-hint">Removed toolkit functions:</span>
+          {removedToolkit.map((r) => (
             <button key={r.id} type="button" className="sgl-link" onClick={() => onChange(projectFunctions, hidden.filter((h) => h !== r.id))} title={`Offer ${r.label} again`}>
               Restore {r.label}
             </button>

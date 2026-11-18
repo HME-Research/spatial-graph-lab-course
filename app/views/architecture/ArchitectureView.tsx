@@ -481,7 +481,7 @@ function Overlay({
   /** v2 port: its relationship legend ("what gets built") is part of the one Legend disclosure. */
   readonly design: DesignPort | undefined;
   readonly empty: boolean;
-  /** Node types of this design whose project definition is broken. */
+  /** Node types of this design whose toolkit definition is broken. */
   readonly brokenTypes: readonly string[];
   readonly showRoofs: boolean;
   readonly onToggleRoofs: (v: boolean) => void;

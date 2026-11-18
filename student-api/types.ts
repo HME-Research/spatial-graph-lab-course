@@ -5,7 +5,7 @@ export interface FacadeParameters {
   readonly windowFraction: number;
 }
 
-/** `projects/<id>/types/<file>.ts` default export: one programme/node type. */
+/** `toolkits/<id>/types/<file>.ts` default export: one programme/node type. */
 export interface NodeTypeDefinition<A extends AttributeSpecs = AttributeSpecs> {
   /** The document `typeId`, e.g. "gallery": lowercase letters, digits and "-", starting with a letter. */
   readonly id: string;

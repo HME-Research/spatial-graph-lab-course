@@ -18,6 +18,6 @@ export * from './discover';
 export * from './run';
 export * from './transform';
 export { applyTransformationV2, type TransformationPreviewV2 } from './transformV2';
-export { PROJECT_GLOBS } from './projectGlobs';
+export { TOOLKIT_GLOBS } from './toolkitGlobs';
 /** Student API types the application shell needs (only app/extensions may import `@student-api`). */
-export type { AnalysisResult, AttributeSpec, AttributeSpecs, ProjectAttributeSpec, SpatialOperation } from '@student-api';
+export type { AnalysisResult, AttributeSpec, AttributeSpecs, ToolkitAttributeSpec, SpatialOperation } from '@student-api';

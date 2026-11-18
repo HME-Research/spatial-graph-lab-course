@@ -17,16 +17,16 @@ import {
   type SpatialAlgorithmContext,
   type SpatialOperation,
 } from '@student-api';
-import type { ActiveProject } from './activate';
+import type { ActiveToolkit } from './activate';
 import { applyTransformation } from './transform';
 import { runAlgorithm, type RunOutcome } from './run';
-import { expectDiagnostic, expectExtOk, galleryType, labDoc, labProject } from './test-fixtures';
+import { expectDiagnostic, expectExtOk, galleryType, labDoc, labToolkit } from './test-fixtures';
 
-const ALG = 'projects/lab/algorithms/t.ts';
+const ALG = 'toolkits/lab/algorithms/t.ts';
 
 /** A lab project whose single algorithm `t` returns `operations` (spatial). */
 async function transforming(operations: readonly SpatialOperation[] | ((ctx: SpatialAlgorithmContext) => readonly SpatialOperation[])) {
-  return labProject({
+  return labToolkit({
     [ALG]: {
       default: defineSpatialAlgorithm({
         id: 't',
@@ -43,7 +43,7 @@ function preview(outcome: RunOutcome) {
 }
 
 /** Runs `t` and asserts the given document was not changed in any way. */
-function runUnchanged(doc: DesignDocument, project: ActiveProject, params?: unknown) {
+function runUnchanged(doc: DesignDocument, project: ActiveToolkit, params?: unknown) {
   const before = serializeDesign(doc);
   const snapshot = structuredClone(doc);
   const result = runAlgorithm(doc, project, 't', params);
@@ -70,7 +70,7 @@ describe('generic graph analysis', () => {
 
   it('sees only ids, endpoints and the policy — no spatial or typed fields', async () => {
     let seen: GraphAlgorithmContext | undefined;
-    const project = await labProject({
+    const project = await labToolkit({
       [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', run: (ctx) => ((seen = ctx), { kind: 'analysis', nodeValues: {} }) }) },
     });
     expectExtOk(runUnchanged(labDoc(), project));
@@ -81,7 +81,7 @@ describe('generic graph analysis', () => {
   });
 
   it('runs on the design and returns validated node values', async () => {
-    const project = await labProject({ [ALG]: { default: depth } });
+    const project = await labToolkit({ [ALG]: { default: depth } });
     const outcome = expectExtOk(runUnchanged(labDoc(), project));
     expect(outcome).toEqual({ kind: 'analysis', result: { kind: 'analysis', nodeValues: { g1: 0, g2: 1, s1: 1, k1: null } } });
     const fromS1 = expectExtOk(runAlgorithm(labDoc(), project, 't', { start: 's1' })).kind === 'analysis';
@@ -102,7 +102,7 @@ describe('generic graph analysis', () => {
   });
 
   it('rejects analysis values for nodes that do not exist', async () => {
-    const project = await labProject({
+    const project = await labToolkit({
       [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', run: () => ({ kind: 'analysis', nodeValues: { ghost: 1 } }) }) },
     });
     expectDiagnostic(runUnchanged(labDoc(), project), 'unknown-node-reference');
@@ -110,7 +110,7 @@ describe('generic graph analysis', () => {
 
   it('a graph algorithm may not return a transformation', async () => {
     const run = () => ({ kind: 'transformation', operations: [] }) as unknown as AnalysisResult;
-    const project = await labProject({ [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', run }) } });
+    const project = await labToolkit({ [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', run }) } });
     expect(expectDiagnostic(runUnchanged(labDoc(), project), 'invalid-result').message).toContain('graph algorithms must return');
   });
 });
@@ -155,8 +155,8 @@ describe('spatial algorithm input', () => {
     expectDiagnostic(runAlgorithm(labDoc(), mismatch, 't'), 'type-mismatch');
 
     const brokenDef = { id: 'gallery', label: 'G', attributes: { daylight: { kind: 'enum', values: [] } } };
-    const broken = await labProject({
-      'projects/lab/types/gallery.ts': { default: brokenDef },
+    const broken = await labToolkit({
+      'toolkits/lab/types/gallery.ts': { default: brokenDef },
       [ALG]: {
         default: defineSpatialAlgorithm({
           id: 't',
@@ -212,8 +212,8 @@ describe('add-node', () => {
   });
 
   it('rejects a type whose definition is broken', async () => {
-    const project = await labProject({
-      'projects/lab/types/studio.ts': { default: { id: 'studio', label: 'S', facade: { windowFraction: -1 } } },
+    const project = await labToolkit({
+      'toolkits/lab/types/studio.ts': { default: { id: 'studio', label: 'S', facade: { windowFraction: -1 } } },
       [ALG]: {
         default: defineSpatialAlgorithm({
           id: 't',
@@ -254,7 +254,7 @@ describe('atomic transformations', () => {
   });
 
   it('applyTransformation never mutates its input, on success or failure', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const doc = labDoc();
     const before = serializeDesign(doc);
     expectExtOk(applyTransformation(doc, project, [{ op: 'add-node', id: 'g3', grid: [2, 0, 0], typeId: 'gallery' }]));
@@ -263,7 +263,7 @@ describe('atomic transformations', () => {
   });
 
   it('the final schema-v1 validation is authoritative (e.g. the node limit)', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const full = expectOk(
       validateDocument({
         schemaVersion: 1,
@@ -338,7 +338,7 @@ describe('result and parameter validation', () => {
     ['returns extra fields', () => ({ kind: 'transformation', operations: [], extra: 1 }), 'invalid-result'],
     ['returns a non-primitive value', () => ({ kind: 'transformation', operations: [{ op: 'set-node-attribute', nodeId: 'g1', key: 'daylight', value: { a: 1 } }] }), 'invalid-result'],
   ])('a spatial algorithm that %s is rejected', async (_name, run, code) => {
-    const project = await labProject({ [ALG]: { default: { id: 't', label: 'T', scope: 'spatial', run } } });
+    const project = await labToolkit({ [ALG]: { default: { id: 't', label: 'T', scope: 'spatial', run } } });
     expectDiagnostic(runUnchanged(labDoc(), project), code);
   });
 
@@ -354,7 +354,7 @@ describe('result and parameter validation', () => {
 
   it('validates parameters and applies defaults', async () => {
     let params: unknown;
-    const project = await labProject({
+    const project = await labToolkit({
       [ALG]: {
         default: defineSpatialAlgorithm({
           id: 't',
@@ -374,7 +374,7 @@ describe('result and parameter validation', () => {
   });
 
   it('reports unknown and disabled algorithms', async () => {
-    const project = await labProject({ [ALG]: { default: { id: 't', label: 'T', run: () => null } } });
+    const project = await labToolkit({ [ALG]: { default: { id: 't', label: 'T', run: () => null } } });
     expectDiagnostic(runAlgorithm(labDoc(), project, 'nope'), 'unknown-algorithm');
     expectDiagnostic(runAlgorithm(labDoc(), project, 't'), 'algorithm-disabled');
   });
@@ -407,7 +407,7 @@ describe('future student exercise (written only against @student-api)', () => {
   });
 
   it('is supported atomically by the current API', async () => {
-    const project = await labProject({ [ALG]: { default: extendGallery } });
+    const project = await labToolkit({ [ALG]: { default: extendGallery } });
     const p = preview(expectExtOk(runUnchanged(labDoc(), project)));
     expect(p.after.nodes.at(-1)).toEqual({ id: 'gallery-1', grid: [-1, 0, 0], typeId: 'gallery', attributes: { daylight: 'medium' } });
     expect(p.after.edges.at(-1)).toEqual({ id: 'door-1', source: 'g1', target: 'gallery-1', kind: 'door', attributes: {} });

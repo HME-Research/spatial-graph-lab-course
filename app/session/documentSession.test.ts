@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { resolveFaces } from '@app/building';
 import { applyGraphCommand, parseDesignJson, serializeDesign, type DesignDocument, type GraphCommand } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
-import { activate, PROJECT_GLOBS, type ActiveProject, type TransformationPreview } from '@app/extensions';
+import { activate, TOOLKIT_GLOBS, type ActiveToolkit, type TransformationPreview } from '@app/extensions';
 import { NO_SELECTION, reconcileSelection, selectEdge, selectNode } from '@core/viewer/selection';
 import builtInText from '../document/examples/two-storey-example.json?raw';
 import { applyPreview, isStale, listAlgorithms, runEntry } from './algorithmSession';
@@ -23,12 +23,12 @@ import {
 import { canRedo, canUndo, HISTORY_LIMIT, redoLabel, undoLabel } from './history';
 
 const builtIn = expectOk(parseDesignJson(builtInText));
-let example: ActiveProject;
+let example: ActiveToolkit;
 
 beforeAll(async () => {
-  const { activation } = await activate(PROJECT_GLOBS, { query: 'example-gallery' });
+  const { activation } = await activate(TOOLKIT_GLOBS, { query: 'example-gallery' });
   if (activation.status !== 'active') throw new Error('example-gallery did not activate');
-  example = activation.project;
+  example = activation.toolkit;
 });
 
 const open = (doc: DesignDocument = builtIn) => openDocument(doc, 'test', null);

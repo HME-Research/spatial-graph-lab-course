@@ -2,7 +2,7 @@ import { z, type core as zcore } from 'zod';
 import { formatIssuePath, typeIdSchema } from '@app/document';
 
 /**
- * Runtime validation of student definition objects (the default exports of project files).
+ * Runtime validation of student definition objects (the default exports of toolkit files).
  * TypeScript types are erased at runtime and Vite does not type-check in development, so every
  * definition is checked here before it is registered. Unknown fields are rejected (strict
  * objects), so typos and unsupported options are reported instead of silently ignored.
@@ -61,12 +61,12 @@ export const attributeSpecSchema = z
 
 export const attributeSpecsSchema = z.record(z.string().min(1, { error: 'attribute names must not be empty' }), attributeSpecSchema);
 
-/** A project-wide field spec (`defineProject({ attributes })`): an attribute spec plus label and help text. */
+/** A project-wide field spec (`defineToolkit({ attributes })`): an attribute spec plus label and help text. */
 const fieldText = {
   label: z.string({ error: 'label must be text' }).min(1, { error: 'label must not be empty' }).max(100).optional(),
   description: z.string({ error: 'description must be text' }).max(500).optional(),
 };
-export const projectAttributeSpecSchema = z
+export const toolkitAttributeSpecSchema = z
   .discriminatedUnion(
     'kind',
     [
@@ -83,13 +83,13 @@ const label = z.string({ error: 'label must be text' }).min(1, { error: 'label m
 
 const attributeNameSchema = z.string().min(1, { error: 'attribute names must not be empty' });
 
-export const projectDefinitionSchema = z.strictObject({
+export const toolkitDefinitionSchema = z.strictObject({
   name: z.string({ error: 'name must be text' }).min(1, { error: 'name must not be empty' }).max(200),
   defaultDesign: z.string().min(1).optional(),
   attributes: z
     .strictObject({
-      nodes: z.record(attributeNameSchema, projectAttributeSpecSchema).optional(),
-      edges: z.record(attributeNameSchema, projectAttributeSpecSchema).optional(),
+      nodes: z.record(attributeNameSchema, toolkitAttributeSpecSchema).optional(),
+      edges: z.record(attributeNameSchema, toolkitAttributeSpecSchema).optional(),
     })
     .optional(),
 });

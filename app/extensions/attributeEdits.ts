@@ -1,5 +1,5 @@
 import type { AttributeValue } from '@app/document';
-import type { ActiveProject } from './activate';
+import type { ActiveToolkit } from './activate';
 import {
   checkFieldValue,
   describeField,
@@ -128,7 +128,7 @@ export interface FieldUsage {
  * edited) version replaces the file's version.
  */
 export function designSamples(
-  project: Pick<ActiveProject, 'designs'> | null,
+  project: Pick<ActiveToolkit, 'designs'> | null,
   open: { readonly doc: Omit<DesignSample, 'id' | 'label'>; readonly source: string } | null,
 ): DesignSample[] {
   const out: DesignSample[] = [];
@@ -373,7 +373,7 @@ export interface AlgorithmReference {
  * access). A heuristic on the loaded function source: it can miss computed keys and report
  * unrelated words. Shown as a warning only; algorithms are never edited.
  */
-export function algorithmReferences(project: Pick<ActiveProject, 'algorithms'> | null, keys: readonly string[]): AlgorithmReference[] {
+export function algorithmReferences(project: Pick<ActiveToolkit, 'algorithms'> | null, keys: readonly string[]): AlgorithmReference[] {
   if (!project || keys.length === 0) return [];
   const out: AlgorithmReference[] = [];
   for (const entry of project.algorithms) {

@@ -5,17 +5,17 @@ import { metricsLabDoc } from '@app/metrics/test-fixtures';
 import { resolveWithPreferences } from '@app/spatial';
 import { defineSpatialAlgorithm, type MetricInfo, type SpatialAlgorithmContext, type SpatialOperation } from '@student-api';
 import { runAlgorithm, runAlgorithmV2 } from './run';
-import { expectDiagnostic, expectExtOk, labDoc, labProject } from './test-fixtures';
+import { expectDiagnostic, expectExtOk, labDoc, labToolkit } from './test-fixtures';
 
 /**
  * Student API `ctx.metrics` (workstream M): read-only calculated values in spatial algorithms,
  * the same values the app shows, never written to the design.
  */
 
-const ALG = 'projects/lab/algorithms/m.ts';
+const ALG = 'toolkits/lab/algorithms/m.ts';
 
 async function withAlgorithm(run: (ctx: SpatialAlgorithmContext) => readonly SpatialOperation[] | void) {
-  return labProject({
+  return labToolkit({
     [ALG]: {
       default: defineSpatialAlgorithm({
         id: 'm',
@@ -47,7 +47,7 @@ const daylightFromFacade = defineSpatialAlgorithm({
 
 describe('ctx.metrics in spatial algorithms', () => {
   it('the documented example runs: values are the app’s hand-checked façade lengths', async () => {
-    const project = await labProject({ 'projects/lab/algorithms/daylight-from-facade.ts': { default: daylightFromFacade } });
+    const project = await labToolkit({ 'toolkits/lab/algorithms/daylight-from-facade.ts': { default: daylightFromFacade } });
     const doc = metricsLabDoc();
     const preview = expectExtOk(runAlgorithmV2(doc, project, 'daylight-from-facade'));
     if (preview.kind !== 'transformation') throw new Error('expected a transformation');

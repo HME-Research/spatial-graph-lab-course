@@ -16,7 +16,7 @@ import {
   type GridCoord,
 } from '@app/document';
 import type { SpatialOperation } from '@student-api';
-import type { ActiveProject, RegisteredNodeType } from './activate';
+import type { ActiveToolkit, RegisteredNodeType } from './activate';
 import { checkValue, describeSpec, specFor } from './attributes';
 import { checkConformance, findNodeType, findRegressions } from './conformance';
 import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionIssueCode, type ExtensionResult } from './diagnostics';
@@ -69,7 +69,7 @@ export function opError(index: number, code: ExtensionIssueCode, message: string
 }
 
 /** The node's type, if it is registered and valid; otherwise a diagnostic explaining why not. */
-export function writableType(project: ActiveProject, typeId: string, index: number, what: string): RegisteredNodeType | ExtensionDiagnostic {
+export function writableType(project: ActiveToolkit, typeId: string, index: number, what: string): RegisteredNodeType | ExtensionDiagnostic {
   const type = findNodeType(project, typeId);
   if (!type) return opError(index, 'type-not-registered', `${what}: type "${typeId}" is not a node type of project "${project.id}"`);
   if (!type.status.ok) return opError(index, 'broken-node-type', `${what}: type "${typeId}" (${type.file}) is invalid and cannot be used`);
@@ -85,7 +85,7 @@ export function checkAttributeWrite(type: RegisteredNodeType, key: string, value
   return null;
 }
 
-function addNode(draft: Draft, project: ActiveProject, op: Extract<SpatialOperation, { op: 'add-node' }>, i: number): Check {
+function addNode(draft: Draft, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'add-node' }>, i: number): Check {
   const what = `add-node "${op.id}"`;
   const id = idSchema.safeParse(op.id);
   if (!id.success) return opError(i, 'invalid-id', `${what}: ${id.error.issues[0]?.message ?? 'invalid id'}`);
@@ -156,7 +156,7 @@ function addEdge(draft: Draft, op: Extract<SpatialOperation, { op: 'add-edge' }>
   return null;
 }
 
-function setNodeAttribute(draft: Draft, project: ActiveProject, op: Extract<SpatialOperation, { op: 'set-node-attribute' }>, i: number): Check {
+function setNodeAttribute(draft: Draft, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'set-node-attribute' }>, i: number): Check {
   const what = `set-node-attribute "${op.nodeId}.${op.key}"`;
   const node = draft.nodes.get(op.nodeId);
   if (!node) return opError(i, 'missing-node', `${what}: node "${op.nodeId}" does not exist`);
@@ -171,7 +171,7 @@ function setNodeAttribute(draft: Draft, project: ActiveProject, op: Extract<Spat
 /** Apply `operations` atomically to `doc` (see module comment). Never mutates `doc`. */
 export function applyTransformation(
   doc: DesignDocument,
-  project: ActiveProject,
+  project: ActiveToolkit,
   operations: readonly SpatialOperation[],
   summary?: string,
 ): ExtensionResult<TransformationPreview> {
@@ -203,7 +203,7 @@ export function applyTransformation(
         diagnostic(
           'final-document-invalid',
           'error',
-          { kind: 'project', id: project.id },
+          { kind: 'toolkit', id: project.id },
           `the transformed design is invalid: ${formatIssuePath(issue.path)} — ${issue.message} (${issue.code})`,
           { detail: String(n) },
         ),

@@ -6,7 +6,7 @@ import { typeColor } from '@core/viewer/appearance';
 import { checkValue, effectiveAttributes } from './attributes';
 import { checkConformance, findRegressions, typeAppearance } from './conformance';
 import { diagnostic } from './diagnostics';
-import { labDoc, labProject } from './test-fixtures';
+import { labDoc, labToolkit } from './test-fixtures';
 
 describe('attribute semantics', () => {
   const spec = { kind: 'enum', values: ['high', 'low'], default: 'low' } as const;
@@ -31,7 +31,7 @@ describe('attribute semantics', () => {
 
 describe('conformance', () => {
   it('reports each case with its severity and a stable identity', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const ds = checkConformance(labDoc(), project);
     expect(ds.map((d) => [d.id, d.severity])).toEqual([
       ['invalid-attribute-value|node:g2|daylight', 'warning'],
@@ -43,13 +43,13 @@ describe('conformance', () => {
   });
 
   it('missing declared attributes produce no diagnostic', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const doc = labDoc();
     expect(checkConformance(doc, project).some((d) => d.subject.kind === 'node' && d.subject.id === 's1')).toBe(false);
   });
 
   it('marks nodes of a broken type as errors and skips their attribute checks', async () => {
-    const project = await labProject({ 'projects/lab/types/gallery.ts': { default: { id: 'gallery', label: '' } } });
+    const project = await labToolkit({ 'toolkits/lab/types/gallery.ts': { default: { id: 'gallery', label: '' } } });
     const ds = checkConformance(labDoc(), project);
     expect(ds.filter((d) => d.code === 'broken-node-type').map((d) => [d.id, d.severity])).toEqual([
       ['broken-node-type|node:g1', 'error'],
@@ -59,7 +59,7 @@ describe('conformance', () => {
   });
 
   it('does not warn about unknown types when the project defines no types, or without a project', async () => {
-    const project = await labProject({ 'projects/lab/types/gallery.ts': undefined, 'projects/lab/types/studio.ts': undefined });
+    const project = await labToolkit({ 'toolkits/lab/types/gallery.ts': undefined, 'toolkits/lab/types/studio.ts': undefined });
     expect(project.nodeTypes).toEqual([]);
     // Phase 02: values outside the (here empty) project schema are reported as information only.
     const ds = checkConformance(labDoc(), project);
@@ -69,7 +69,7 @@ describe('conformance', () => {
   });
 
   it('identities are stable when nodes are reordered or unrelated nodes are added', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const doc = labDoc();
     const ids = (d: typeof doc) => checkConformance(d, project).map((x) => x.id).sort();
     const reordered = { ...doc, nodes: [...doc.nodes].reverse() };
@@ -81,7 +81,7 @@ describe('conformance', () => {
   });
 
   it('never changes the document', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     const doc = labDoc();
     const before = serializeDesign(doc);
     checkConformance(doc, project);
@@ -114,12 +114,12 @@ describe('type appearance (existing gallery/studio/storage behaviour preserved)'
   });
 
   it('uses a declared façade, falls back only for undefined types, and flags broken types', async () => {
-    const project = await labProject();
+    const project = await labToolkit();
     expect(typeAppearance(project, 'gallery')).toEqual({ status: 'ok', color: typeColor('gallery'), facade: { windowFraction: 0.6 } });
     expect(typeAppearance(project, 'studio')).toEqual({ status: 'ok', color: typeColor('studio'), facade: exampleFacadeProvider('studio') });
     expect(typeAppearance(project, 'kiosk')).toEqual({ status: 'ok', color: typeColor('kiosk'), facade: exampleFacadeProvider('kiosk') });
 
-    const broken = await labProject({ 'projects/lab/types/gallery.ts': { default: { id: 'gallery', label: 'G', facade: { windowFraction: 2 } } } });
+    const broken = await labToolkit({ 'toolkits/lab/types/gallery.ts': { default: { id: 'gallery', label: 'G', facade: { windowFraction: 2 } } } });
     const a = typeAppearance(broken, 'gallery');
     expect(a.status).toBe('broken');
     expect('facade' in a).toBe(false);

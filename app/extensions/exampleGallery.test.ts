@@ -5,9 +5,9 @@ import { expectOk } from '@app/document/test-fixtures';
 import { migrateV1toV2, serializeDesignV2 } from '@app/document/v2';
 import { typeColor } from '@core/viewer/appearance';
 import builtInText from '../document/examples/two-storey-example.json?raw';
-import { activate, resolveStartupDesign, type ActiveProject } from './activate';
+import { activate, resolveStartupDesign, type ActiveToolkit } from './activate';
 import { checkConformance, typeAppearance } from './conformance';
-import { PROJECT_GLOBS } from './projectGlobs';
+import { TOOLKIT_GLOBS } from './toolkitGlobs';
 import { runAlgorithm } from './run';
 import { expectExtOk } from './test-fixtures';
 
@@ -16,17 +16,17 @@ import { expectExtOk } from './test-fixtures';
  * existing gallery/studio/storage behaviour and that its algorithms give the documented results.
  */
 
-let project: ActiveProject;
+let project: ActiveToolkit;
 const builtIn = expectOk(parseDesignJson(builtInText));
 
 beforeAll(async () => {
-  const { activation, discovery } = await activate(PROJECT_GLOBS, {});
+  const { activation, discovery } = await activate(TOOLKIT_GLOBS, {});
   expect(discovery).toEqual([]);
   if (activation.status !== 'active') throw new Error(`example-gallery did not activate: ${JSON.stringify(activation)}`);
-  project = activation.project;
+  project = activation.toolkit;
 });
 
-describe('projects/example-gallery', () => {
+describe('toolkits/example-gallery', () => {
   it('is selected by default and activates without diagnostics', () => {
     expect(project.id).toBe('example-gallery');
     expect(project.diagnostics).toEqual([]);
@@ -44,14 +44,14 @@ describe('projects/example-gallery', () => {
 
   it('teaching copy of the design has not drifted from the built-in example', () => {
     const copy = project.designs.find((d) => d.id === 'two-storey-example')!;
-    expect(copy.file).toBe('projects/example-gallery/designs/two-storey-example.json');
+    expect(copy.file).toBe('toolkits/example-gallery/designs/two-storey-example.json');
     expect(copy.sourceVersion).toBe(1);
     expect(copy.result.ok && serializeDesignV2(copy.result.value)).toBe(serializeDesignV2(migrateV1toV2(builtIn)));
   });
 
   it('starts with its default design (the same content as the built-in example)', () => {
-    const start = resolveStartupDesign({ status: 'active', project }, { doc: migrateV1toV2(builtIn), source: 'built-in' });
-    expect(start.source).toBe('projects/example-gallery/designs/two-storey-example.json');
+    const start = resolveStartupDesign({ status: 'active', toolkit: project }, { doc: migrateV1toV2(builtIn), source: 'built-in' });
+    expect(start.source).toBe('toolkits/example-gallery/designs/two-storey-example.json');
     expect(start.doc && serializeDesignV2(start.doc)).toBe(serializeDesignV2(migrateV1toV2(builtIn)));
   });
 
