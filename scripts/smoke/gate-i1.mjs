@@ -638,7 +638,7 @@ await step(4, 'five-views-layouts-maximise', async () => {
   await setLayout(2);
   out.push(await layoutCheck('layout2'));
   const modes = await evaluate(`[...document.querySelectorAll('select[aria-label="View shown in panel 1"] option')].map((o) => o.value)`);
-  expect(modes.join(',') === 'graph2d,graph3d,voxels,architecture,plan', `view modes on offer: ${modes}`);
+  expect(modes.join(',') === 'graph2d,graph3d,voxels,architecture,plan,data', `view modes on offer: ${modes}`);
   return `${modes.length} view modes; ${out.join(' | ')}`;
 });
 

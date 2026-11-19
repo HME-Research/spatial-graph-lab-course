@@ -52,8 +52,9 @@ export interface ViewDisplay extends DisplaySettings {
 
 /** Which view modes use each field (documentation for panels; resolution does not depend on it). */
 export const DISPLAY_FIELD_VIEWS: Readonly<Record<keyof DisplaySettings, readonly DisplayViewMode[]>> = Object.freeze({
-  labels: DISPLAY_VIEW_MODES,
-  legend: DISPLAY_VIEW_MODES,
+  // The Data view draws no picture: labels and legend do not apply to it.
+  labels: DISPLAY_VIEW_MODES.filter((m) => m !== 'data'),
+  legend: DISPLAY_VIEW_MODES.filter((m) => m !== 'data'),
   roofs: ['architecture'],
   colourPreset: ['voxels', 'architecture'],
   lighting: ['graph3d', 'voxels', 'architecture'],
