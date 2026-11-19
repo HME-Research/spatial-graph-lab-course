@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import type { DesignDocumentV2 } from '@app/document';
-import type { ActiveToolkit } from '@app/extensions';
+import { runUploadedAnalysis, type ActiveToolkit, type StoredUpload } from '@app/extensions';
 import { isStale, listAlgorithms, runEntryV2, type AttributesVersion, type HostResolution } from '@app/session/algorithmSession';
 import type { DocumentVersion } from '@app/session/documentSession';
 import { CollapsibleSection } from '@app/ui';
 import { SourceTag } from '@app/ui/SourceTag';
-import { ALGORITHM_TAB_LABELS, ANALYSE_SECTION_IDS, ANALYSE_SECTIONS, sourceTag, type AnalyseSectionId } from '@app/ui/analysisSections';
+import { ALGORITHM_TAB_LABELS, ANALYSE_SECTION_IDS, ANALYSE_SECTIONS, analyseSectionFor, sourceTag, type AnalyseSectionId } from '@app/ui/analysisSections';
 import type { Explainer } from '@app/ui/guideContracts';
 import { ExplainerWindow } from '@app/ui/guide';
 import { sameSelection, type Selection } from '@core/viewer/selection';
@@ -28,10 +28,14 @@ import {
   type AnalysisItem,
   type PickState,
   type SourceFilter,
+  yoursKey,
 } from './analyseModel';
 import { analysisResultAnswer, runBuiltInAnalysis, type AnalysisAnswer, type AnalysisOutcome } from './builtIns';
-import { ANALYSE_VS_TRANSFORM, analysisExplainer, sectionExplainer } from './explainers';
+import { ANALYSE_VS_TRANSFORM, analysisExplainer, sectionExplainer, uploadedExplainer } from './explainers';
+import { addUpload, uploadEntries, useUploadedAnalyses } from './uploads';
 import './analysis.css';
+
+const NO_UPLOADS: readonly StoredUpload[] = [];
 
 /**
  * The analysis result shown in the panel and on the model (owned by the shell, never part of the
@@ -60,6 +64,10 @@ export interface AnalysePanelProps {
   readonly shownBuiltIns: readonly string[];
   /** Change the listed built-ins (the "+" catalogue); absent: no "+". */
   readonly onShownBuiltIns?: (ids: readonly string[]) => void;
+  /** The student's uploaded analyses (project `settings.uploadedAnalyses`); absent: none. */
+  readonly uploads?: readonly StoredUpload[];
+  /** Store a new list of uploads (add, replace, remove); absent: uploading is not offered. */
+  readonly onUploads?: (uploads: readonly StoredUpload[]) => void;
   readonly attributes?: AttributesVersion;
   readonly resolution?: HostResolution;
 }
@@ -73,23 +81,90 @@ export interface AnalysePanelProps {
  * big answer, a short label and at most one small line; its nodes and edges are highlighted in
  * every view. Analyses never change the design.
  */
-export function AnalysePanel({ project, version, selection, shown, onShow, shownBuiltIns, onShownBuiltIns, attributes, resolution }: AnalysePanelProps) {
+export function AnalysePanel({
+  project,
+  version,
+  selection,
+  shown,
+  onShow,
+  shownBuiltIns,
+  onShownBuiltIns,
+  uploads = NO_UPLOADS,
+  onUploads,
+  attributes,
+  resolution,
+}: AnalysePanelProps) {
   const [filter, setFilter] = useState<SourceFilter>('all');
   const [pick, setPick] = useState<PickState | null>(null);
   const [failure, setFailure] = useState<{ readonly key: string; readonly messages: readonly string[] } | null>(null);
   const [catalogue, setCatalogue] = useState<AnalyseSectionId | null>(null);
   const [explainer, setExplainer] = useState<Explainer | null>(null);
+  /** The uploaded analysis whose worker is running (one at a time). */
+  const [running, setRunning] = useState<string | null>(null);
+  /** Result of the last upload / replace: where to show it (`catalogue` or an item key) and what. */
+  const [uploadNotice, setUploadNotice] = useState<{ readonly at: string; readonly ok: boolean; readonly lines: readonly string[] } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  /** The upload a chosen file replaces (null: a new upload). */
+  const replacing = useRef<string | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
+  const loaded = useUploadedAnalyses(uploads);
   const toolkitName = project && project.algorithms.length > 0 ? project.definition.name : null;
   const entries = useMemo(() => listAlgorithms(project).filter((a) => a.scope === 'graph'), [project]);
-  const items = useMemo(
-    () => analysisItems(shownBuiltIns, toolkitName !== null ? { name: toolkitName, analyses: entries.map((e) => ({ id: e.id, label: e.label, inputs: e.inputs, enabled: e.enabled, problems: e.problems })) } : null),
-    [shownBuiltIns, toolkitName, entries],
+  const items = analysisItems(
+    shownBuiltIns,
+    toolkitName !== null ? { name: toolkitName, analyses: entries.map((e) => ({ id: e.id, label: e.label, inputs: e.inputs, enabled: e.enabled, problems: e.problems })) } : null,
+    uploadEntries(loaded),
   );
   const bySection = itemsBySection(items, filter);
+  const loadedUpload = (item: AnalysisItem) => (item.source.kind === 'yours' ? loaded.find((u) => u.stored.id === item.id) : undefined);
+
+  /** Show an outcome bound to the document version (and attribute revision) it ran on. */
+  const finish = (item: AnalysisItem, outcome: AnalysisOutcome, at: DocumentVersion<DesignDocumentV2>, attributesRevision: number | undefined) => {
+    if (outcome.ok) {
+      setFailure(null);
+      onShow({
+        key: item.key,
+        title: item.name,
+        answer: outcome.answer,
+        doc: at.doc,
+        revision: at.revision,
+        ...(attributesRevision !== undefined && { attributesRevision }),
+      });
+    } else {
+      onShow(null);
+      setFailure({ key: item.key, messages: outcome.messages });
+    }
+  };
+
+  /** An uploaded analysis runs in a worker: asynchronous, stopped after the timeout. */
+  const runUpload = async (item: AnalysisItem, inputs: readonly number[], at: DocumentVersion<DesignDocumentV2>) => {
+    const upload = loadedUpload(item);
+    if (!upload || upload.status === 'loading' || !upload.status.ok) return;
+    const attributesRevision = attributes?.revision;
+    setRunning(item.key);
+    setFailure(null);
+    const result = await runUploadedAnalysis(upload.status, upload.stored.fileName, at.doc, inputs);
+    if (!mounted.current) return;
+    setRunning((current) => (current === item.key ? null : current));
+    finish(item, result.ok ? { ok: true, answer: analysisResultAnswer(item.name, result.result) } : { ok: false, messages: result.messages }, at, attributesRevision);
+  };
 
   const run = (item: AnalysisItem, inputs: readonly number[]) => {
     if (!version) return;
+    setPick(null);
+    if (item.source.kind === 'yours') {
+      void runUpload(item, inputs, version);
+      return;
+    }
     let outcome: AnalysisOutcome;
     if (item.source.kind === 'built-in') outcome = runBuiltInAnalysis(item.id, version.doc, inputs);
     else {
@@ -102,21 +177,48 @@ export function AnalysePanel({ project, version, selection, shown, onShow, shown
           ? { ok: true, answer: analysisResultAnswer(item.name, result.value.result) }
           : { ok: false, messages: ['This algorithm returned a transformation; it belongs in Transform.'] };
     }
-    setPick(null);
-    if (outcome.ok) {
-      setFailure(null);
-      onShow({
-        key: item.key,
-        title: item.name,
-        answer: outcome.answer,
-        doc: version.doc,
-        revision: version.revision,
-        ...(attributes && { attributesRevision: attributes.revision }),
-      });
-    } else {
-      onShow(null);
-      setFailure({ key: item.key, messages: outcome.messages });
+    finish(item, outcome, version, attributes?.revision);
+  };
+
+  // ── Uploading (P4 item I) ──
+  const chooseFile = (replaceId: string | null) => {
+    replacing.current = replaceId;
+    setUploadNotice(null);
+    fileInput.current?.click();
+  };
+
+  const onFileChosen = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    const replaceId = replacing.current;
+    replacing.current = null;
+    input.value = '';
+    if (!file || !onUploads) return;
+    const at = replaceId === null ? 'catalogue' : yoursKey(replaceId);
+    setUploading(true);
+    const check = await addUpload(file, loaded, replaceId);
+    if (!mounted.current) return;
+    setUploading(false);
+    if (!check.ok) {
+      setUploadNotice({ at, ok: false, lines: [`Could not ${replaceId === null ? 'add' : 'replace with'} ${file.name}:`, ...check.problems] });
+      return;
     }
+    if (replaceId !== null && shown?.key === yoursKey(replaceId)) onShow(null);
+    if (replaceId !== null && failure?.key === yoursKey(replaceId)) setFailure(null);
+    onUploads(check.uploads);
+    const section = ANALYSE_SECTIONS[analyseSectionFor(check.definition.inputs)].title;
+    setUploadNotice({ at, ok: true, lines: [`${replaceId === null ? 'Added' : 'Replaced with'} “${check.definition.label}” (Yours) in ${section}.`] });
+  };
+
+  const removeUpload = (uploadId: string) => {
+    if (!onUploads) return;
+    const key = yoursKey(uploadId);
+    if (shown?.key === key) onShow(null);
+    if (failure?.key === key) setFailure(null);
+    if (pick?.itemKey === key) setPick(null);
+    setConfirmRemove(null);
+    setUploadNotice(null);
+    onUploads(uploads.filter((u) => u.id !== uploadId));
   };
 
   const findItem = (key: string) => items.find((i) => i.key === key);
@@ -219,6 +321,20 @@ export function AnalysePanel({ project, version, selection, shown, onShow, shown
                     <input type="checkbox" checked={c.shown} onChange={(e) => onShownBuiltIns(setAnalysisShown(shownBuiltIns, c.id, e.currentTarget.checked))} /> {c.name}
                   </label>
                 ))}
+                {onUploads && (
+                  <div className="sgl-analyse-upload">
+                    <button
+                      type="button"
+                      data-upload="new"
+                      disabled={uploading}
+                      title="Add your own graph analysis: one .ts file written with defineGraphAlgorithm (template in Guide › Toolkits & JSON)"
+                      onClick={() => chooseFile(null)}
+                    >
+                      {uploading ? 'Checking the file…' : 'Upload your own (.ts)…'}
+                    </button>
+                    {uploadNotice?.at === 'catalogue' && <UploadNotice notice={uploadNotice} />}
+                  </div>
+                )}
                 <button type="button" onClick={() => setCatalogue(null)}>
                   Done
                 </button>
@@ -231,24 +347,76 @@ export function AnalysePanel({ project, version, selection, shown, onShow, shown
               <ul className="sgl-analyse-items">
                 {list.map((item) => {
                   const ready = item.section === 'queries' || item.section === 'network' || (hint !== null && 'inputs' in hint);
-                  const info = item.source.kind === 'built-in' ? analysisExplainer(item.id) : undefined;
+                  const upload = loadedUpload(item);
+                  const uploadReady = upload && upload.status !== 'loading' && upload.status.ok ? upload.status : undefined;
+                  const info =
+                    item.source.kind === 'built-in'
+                      ? analysisExplainer(item.id)
+                      : upload && uploadReady
+                        ? uploadedExplainer({ uploadId: upload.stored.id, fileName: upload.stored.fileName, definition: uploadReady.definition })
+                        : undefined;
                   const picking = pick?.itemKey === item.key ? pick : null;
+                  const isRunning = running === item.key;
+                  const loading = upload?.status === 'loading';
                   return (
                     <li key={item.key} className="sgl-analyse-item" data-analysis={item.key}>
                       <div className="sgl-analyse-row">
                         <button
                           type="button"
-                          className={shown?.key === item.key || picking ? 'sgl-analyse-run active' : 'sgl-analyse-run'}
-                          disabled={!version || !item.enabled || !ready}
+                          className={shown?.key === item.key || picking || isRunning ? 'sgl-analyse-run active' : 'sgl-analyse-run'}
+                          disabled={!version || !item.enabled || !ready || isRunning}
                           title={!item.enabled ? item.problems.join('\n') : item.section === 'queries' ? 'Pick the inputs, then see the answer' : 'Run'}
                           onClick={() => activate(item)}
                         >
                           {item.name}
                         </button>
-                        <SourceTag text={sourceTag(item.source)} />
+                        <SourceTag text={sourceTag(item.source)} {...(upload && { title: `Uploaded from ${upload.stored.fileName}` })} />
                         {info && <InfoButton label={item.name} onClick={() => setExplainer(info)} />}
+                        {upload && onUploads && (
+                          <>
+                            <button
+                              type="button"
+                              className="sgl-analyse-mini"
+                              aria-label={`Replace ${item.name} with a new version`}
+                              title="Replace with a new version of the file (keeps its place)"
+                              disabled={uploading}
+                              onClick={() => chooseFile(upload.stored.id)}
+                            >
+                              ↻
+                            </button>
+                            <button
+                              type="button"
+                              className="sgl-analyse-mini"
+                              aria-label={`Remove ${item.name}`}
+                              title="Remove this uploaded analysis from the project"
+                              onClick={() => setConfirmRemove(upload.stored.id)}
+                            >
+                              ✕
+                            </button>
+                          </>
+                        )}
                       </div>
-                      {!item.enabled && <p className="sgl-error sgl-analyse-small">Disabled: {item.problems[0] ?? 'invalid definition'}</p>}
+                      {loading && <p className="sgl-analyse-small">Loading {upload.stored.fileName}…</p>}
+                      {!item.enabled && !loading && <p className="sgl-error sgl-analyse-small">Disabled: {item.problems[0] ?? 'invalid definition'}</p>}
+                      {isRunning && (
+                        <p className="sgl-analyse-small" role="status">
+                          Running…
+                        </p>
+                      )}
+                      {upload && confirmRemove === upload.stored.id && (
+                        <div className="sgl-analyse-confirm" role="group" aria-label={`Remove ${item.name}?`}>
+                          <span>Remove “{item.name}” from this project? The file on your computer is not changed.</span>
+                          <div className="sgl-buttons">
+                            <button type="button" onClick={() => removeUpload(upload.stored.id)}>
+                              Remove
+                            </button>
+                            <button type="button" onClick={() => setConfirmRemove(null)}>
+                              Keep
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {uploadNotice?.at === item.key && <UploadNotice notice={uploadNotice} />}
                       {picking && (
                         <PickPrompt
                           state={picking}
@@ -286,9 +454,30 @@ export function AnalysePanel({ project, version, selection, shown, onShow, shown
         );
       })}
       {explainer && <ExplainerWindow explainer={explainer} open onClose={() => setExplainer(null)} />}
+      {onUploads && (
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".ts,.js"
+          hidden
+          data-upload-input
+          aria-label="Upload an analysis (.ts)"
+          onChange={(event) => void onFileChosen(event)}
+        />
+      )}
     </div>
   );
+}
 
+/** What happened to the last upload / replacement. */
+function UploadNotice({ notice }: { readonly notice: { readonly ok: boolean; readonly lines: readonly string[] } }) {
+  return (
+    <div className={notice.ok ? 'sgl-analyse-small sgl-analyse-upload-ok' : 'sgl-error sgl-analyse-small'} role={notice.ok ? 'status' : 'alert'} data-upload-notice={notice.ok ? 'ok' : 'error'}>
+      {notice.lines.map((line, n) => (
+        <div key={n}>{line}</div>
+      ))}
+    </div>
+  );
 }
 
 function InfoButton({ label, onClick }: { readonly label: string; readonly onClick: () => void }) {

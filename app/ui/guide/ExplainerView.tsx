@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import type { Explainer } from '../guideContracts';
+import { useState, type ReactNode } from 'react';
+import type { Explainer, GuideDownload } from '../guideContracts';
 import { FloatingWindow } from '../floating';
 import './guide.css';
 
@@ -33,6 +33,15 @@ export function ExplainerView({
           {renderDiagram?.(explainer.diagram)}
         </div>
       )}
+      {explainer.downloads && explainer.downloads.length > 0 && (
+        <ul className="sgl-explainer-downloads" aria-label="Downloads">
+          {explainer.downloads.map((d) => (
+            <li key={d.fileName}>
+              <DownloadButton download={d} />
+            </li>
+          ))}
+        </ul>
+      )}
       {explainer.learnMore && (
         <p className="sgl-explainer-more">
           <a href={explainer.learnMore.url} target="_blank" rel="noopener noreferrer">
@@ -41,6 +50,35 @@ export function ExplainerView({
         </p>
       )}
     </article>
+  );
+}
+
+/** Save a text file: loaded on click, handed to the browser as a download (nothing is uploaded). */
+function DownloadButton({ download }: { readonly download: GuideDownload }) {
+  const [problem, setProblem] = useState<string | null>(null);
+  const save = async () => {
+    setProblem(null);
+    try {
+      const text = await download.load();
+      const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = download.fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setProblem(`Could not load ${download.fileName}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+  return (
+    <>
+      <button type="button" className="sgl-explainer-download" data-download={download.fileName} onClick={() => void save()}>
+        ⤓ {download.label}
+      </button>
+      {problem && <span className="sgl-error"> {problem}</span>}
+    </>
   );
 }
 

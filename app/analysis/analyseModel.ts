@@ -21,21 +21,22 @@ import {
 
 /** One analysis as the panel lists it, from any source. */
 export interface AnalysisItem {
-  /** Unique in the panel: `built-in:<id>` or `toolkit:<algorithm id>` (`yours:<id>` later, item I). */
+  /** Unique in the panel: `built-in:<id>`, `toolkit:<algorithm id>` or `yours:<upload id>`. */
   readonly key: string;
-  /** Built-in id or the algorithm id. */
+  /** Built-in id, the toolkit algorithm id, or the upload id (`settings.uploadedAnalyses[].id`). */
   readonly id: string;
   readonly name: string;
   readonly inputs: AnalysisInputs;
   readonly section: AnalyseSectionId;
   readonly source: AlgorithmSource;
-  /** False for a toolkit analysis whose definition is invalid (listed with its problems). */
+  /** False for a toolkit analysis or an upload whose definition is invalid (listed with its problems), or an upload still loading. */
   readonly enabled: boolean;
   readonly problems: readonly string[];
 }
 
 export const builtInKey = (id: string) => `built-in:${id}`;
 export const toolkitKey = (id: string) => `toolkit:${id}`;
+export const yoursKey = (uploadId: string) => `yours:${uploadId}`;
 
 /** The built-ins listed when the project never chose (`shownAtStart`), in catalogue order. */
 export const DEFAULT_SHOWN_ANALYSES: readonly string[] = BUILT_IN_ANALYSES.filter((a) => a.shownAtStart).map((a) => a.id);
@@ -73,8 +74,27 @@ export interface ToolkitAnalysisEntry {
   readonly problems: readonly string[];
 }
 
-/** The listed items: shown built-ins first (catalogue order), then the toolkit's analyses (file order). */
-export function analysisItems(shown: readonly string[], toolkit: { readonly name: string; readonly analyses: readonly ToolkitAnalysisEntry[] } | null): readonly AnalysisItem[] {
+/**
+ * An uploaded analysis as the panel needs it. One that failed (or is still loading) has no inputs
+ * that can be trusted: it is listed, disabled, in Network with its reason.
+ */
+export interface UploadedAnalysisEntry {
+  readonly uploadId: string;
+  readonly label: string;
+  readonly inputs: AnalysisInputs;
+  readonly enabled: boolean;
+  readonly problems: readonly string[];
+}
+
+/**
+ * The listed items: shown built-ins first (catalogue order), then the toolkit's analyses (file
+ * order), then the student's uploads (upload order).
+ */
+export function analysisItems(
+  shown: readonly string[],
+  toolkit: { readonly name: string; readonly analyses: readonly ToolkitAnalysisEntry[] } | null,
+  uploads: readonly UploadedAnalysisEntry[] = [],
+): readonly AnalysisItem[] {
   const listed = new Set(shown);
   const builtIns: AnalysisItem[] = BUILT_IN_ANALYSES.filter((a) => listed.has(a.id)).map((a) => ({
     key: builtInKey(a.id),
@@ -96,7 +116,17 @@ export function analysisItems(shown: readonly string[], toolkit: { readonly name
     enabled: a.enabled,
     problems: a.problems,
   }));
-  return [...builtIns, ...fromToolkit];
+  const yours: AnalysisItem[] = uploads.map((u) => ({
+    key: yoursKey(u.uploadId),
+    id: u.uploadId,
+    name: u.label,
+    inputs: u.inputs,
+    section: analyseSectionFor(u.inputs),
+    source: { kind: 'yours' },
+    enabled: u.enabled,
+    problems: u.problems,
+  }));
+  return [...builtIns, ...fromToolkit, ...yours];
 }
 
 export const SOURCE_FILTERS = ['all', 'built-in', 'toolkit', 'yours'] as const;

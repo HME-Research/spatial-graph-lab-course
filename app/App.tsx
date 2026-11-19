@@ -12,6 +12,7 @@ import {
   isProjectFunction,
   type AttributeCollection,
   type ExtensionDiagnostic,
+  type StoredUpload,
   type TransformationPreviewV2,
 } from '@app/extensions';
 import { createIndexedDbProjectStore, facadeAssetsOf, type ProjectIssue } from '@app/project';
@@ -213,6 +214,8 @@ export function App() {
   /** The built-ins listed in Analyse (`settings.analyses`, P4), validated at runtime; absent = defaults. */
   const storedAnalyses = openProject?.meta.settings.analyses;
   const shownBuiltIns = useMemo(() => sanitizeShownAnalyses(storedAnalyses), [storedAnalyses]);
+  /** The student's uploaded analyses (`settings.uploadedAnalyses`, P4 item I): source text, compiled by the Analyse panel. */
+  const uploadedAnalyses = openProject?.meta.settings.uploadedAnalyses;
   /** The project's imported façades (`assets`): drawn by the Building, managed in the Designer. */
   const storedAssets = openProject?.meta.assets;
   const facadeLibrary = useMemo(() => (storedAssets ? facadeLibraryOf(facadeAssetsOf(storedAssets)) : EMPTY_FACADE_LIBRARY), [storedAssets]);
@@ -746,6 +749,8 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                           onShow={setShownAnalysis}
                           shownBuiltIns={shownBuiltIns}
                           {...(openProject && { onShownBuiltIns: (ids: readonly string[]) => controller.setShownAnalyses(ids) })}
+                          {...(uploadedAnalyses && { uploads: uploadedAnalyses })}
+                          {...(openProject && { onUploads: (list: readonly StoredUpload[]) => controller.setUploadedAnalyses(list) })}
                           {...(attributesVersion && { attributes: attributesVersion })}
                           {...(port && { resolution: port })}
                         />

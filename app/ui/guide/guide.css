@@ -77,3 +77,14 @@
 .sgl-about-version {
   color: var(--muted, #62625c);
 }
+.sgl-explainer-downloads {
+  list-style: none;
+  margin: 0 0 var(--space-2, 8px);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+.sgl-explainer-download {
+  align-self: flex-start;
+}

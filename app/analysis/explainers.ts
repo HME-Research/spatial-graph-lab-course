@@ -162,3 +162,27 @@ export const sectionExplainer = (section: string): Explainer | undefined => SECT
 
 /** The explainer of a built-in analysis. */
 export const analysisExplainer = (id: string): Explainer | undefined => ANALYSIS_EXPLAINERS.find((e) => e.id === id);
+
+/** "Start (a node), Steps (a number)" — the inputs of an analysis in words. */
+export function describeInputs(inputs: readonly { readonly kind: 'node' | 'edge' | 'number'; readonly label: string }[]): string {
+  if (inputs.length === 0) return 'none: it reads the whole graph';
+  return inputs.map((i) => `${i.label} (${i.kind === 'node' ? 'a node' : i.kind === 'edge' ? 'an edge' : 'a number'})`).join(', ');
+}
+
+/**
+ * The ⓘ of an uploaded analysis, built from its own definition: its label, its description (or a
+ * plain fallback), its inputs and the file it came from. No diagram or link.
+ */
+export function uploadedExplainer(upload: {
+  readonly uploadId: string;
+  readonly fileName: string;
+  readonly definition: { readonly label: string; readonly description?: string; readonly inputs: readonly { readonly kind: 'node' | 'edge' | 'number'; readonly label: string }[] };
+}): Explainer {
+  const { label, description, inputs } = upload.definition;
+  return {
+    id: `yours-${upload.uploadId}`,
+    title: label,
+    summary: description ?? 'Your own analysis (it has no description: add `description: "…"` to its definition).',
+    example: `Inputs: ${describeInputs(inputs)}. Uploaded from ${upload.fileName}.`,
+  };
+}

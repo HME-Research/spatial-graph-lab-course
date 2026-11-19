@@ -38,6 +38,8 @@ export interface Explainer {
   readonly diagram?: string;
   /** One reliable external link. */
   readonly learnMore?: { readonly label: string; readonly url: string };
+  /** Files the student can save (e.g. a template); each is loaded only when clicked. */
+  readonly downloads?: readonly GuideDownload[];
   /**
    * Optional screenshot of the real app, shown under the diagram. Captured by a script (so it can
    * be retaken when the UI changes); the numbered markers are drawn by the Guide over the image
@@ -49,6 +51,15 @@ export interface Explainer {
     /** Marker centres as fractions (0–1) of the image width/height. */
     readonly markers: readonly { readonly n: number; readonly x: number; readonly y: number }[];
   };
+}
+
+/** A text file offered by the Guide (P4 item I: the analysis template and the AI prompt). */
+export interface GuideDownload {
+  readonly label: string;
+  /** Name the browser saves it under. */
+  readonly fileName: string;
+  /** The file text, loaded on click (a lazy `?raw` import, so the main bundle does not carry it). */
+  readonly load: () => Promise<string>;
 }
 
 /** Props of the shared movable / resizable / minimisable window. */

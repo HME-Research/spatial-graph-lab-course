@@ -64,6 +64,16 @@ export const GUIDE_CONTENT: readonly GuideTabContent[] = [
         summary: 'A toolkit supplies room types, designs and algorithms; designs are saved as JSON.',
         example: 'Placeholder: open a design file, change it, save it again.',
       },
+      {
+        id: 'toolkits-downloads',
+        title: 'Downloads: write your own analysis',
+        summary: 'Start from the template, or give the prompt to an AI assistant, then upload the .ts file in Analyse (+ › Upload your own).',
+        example: 'The template finds every node exactly k steps from a start node; change what run() returns to make it your own.',
+        downloads: [
+          { label: 'Template analysis (.ts)', fileName: 'graph-analysis-template.ts', load: () => import('../../../docs/templates/graph-analysis-template.ts?raw').then((m) => m.default) },
+          { label: 'Prompt for an AI assistant (.md)', fileName: 'ALGORITHM-PROMPT.md', load: () => import('../../../docs/ALGORITHM-PROMPT.md?raw').then((m) => m.default) },
+        ],
+      },
     ],
   },
   {
