@@ -188,11 +188,13 @@ describe('the gallery test toolkit on schema v2', () => {
   const design = () => expectOk(readDesignJson(TWO_STOREY_TEXT)).doc;
 
   it('access-depth counts relationship steps from the entrance', () => {
-    expect(expectExtOk(runAlgorithmV2(design(), toolkit, 'access-depth'))).toEqual({
+    expect(expectExtOk(runAlgorithmV2(design(), toolkit, 'access-depth', undefined, { inputs: [1] }))).toEqual({
       kind: 'analysis',
       result: {
         kind: 'analysis',
-        summary: '0 room(s) cannot be reached from room 1.',
+        value: 0,
+        text: '0 room(s) cannot be reached from room 1.',
+        highlightNodes: [1],
         // entry-gallery 1, studio-ground 2, reading-gallery 3, store 4, studio-upper 5, gallery-upper 6
         nodeValues: { 1: 0, 2: 1, 3: 1, 4: 2, 5: 1, 6: 2 },
       },

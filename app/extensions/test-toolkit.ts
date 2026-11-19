@@ -49,14 +49,13 @@ export const studio = defineNodeType({
   attributes: { occupancy: { kind: 'number', min: 0 }, public: { kind: 'boolean', default: false } },
 });
 
-/** Graph analysis: relationship steps from a start room (breadth-first). */
+/** Graph analysis (Node section: one node input): relationship steps from a start room (breadth-first). */
 export const accessDepth = defineGraphAlgorithm({
   id: 'access-depth',
   label: 'Access depth from a room',
-  // Room 1 is the entrance gallery of the two-storey design.
-  parameters: { start: { kind: 'number', default: 1 } },
-  run({ graph, params }) {
-    const start = params.start ?? -1;
+  inputs: [{ kind: 'node', label: 'Start' }],
+  run({ graph, inputs }) {
+    const start = inputs[0] ?? -1;
     const depth = new Map<number, number>();
     if (graph.nodes.some((n) => n.id === start)) {
       depth.set(start, 0);
@@ -76,7 +75,9 @@ export const accessDepth = defineGraphAlgorithm({
     const unreachable = graph.nodes.length - depth.size;
     return {
       kind: 'analysis',
-      summary: depth.size === 0 ? `Start room ${start} does not exist.` : `${unreachable} room(s) cannot be reached from room ${start}.`,
+      value: unreachable,
+      text: `${unreachable} room(s) cannot be reached from room ${start}.`,
+      highlightNodes: [start],
       nodeValues,
     };
   },

@@ -55,10 +55,11 @@ export interface GraphSource {
   readonly edges: readonly { readonly id: number; readonly source: number; readonly target: number }[];
 }
 
-export function buildGraphContext<P extends AttributeSpecs>(doc: GraphSource, params: AttributesOf<P>): GraphAlgorithmContext<P> {
+/** A graph analysis context: ids and endpoints only, and the (already checked) picked inputs. */
+export function buildGraphContext(doc: GraphSource, inputs: readonly number[]): GraphAlgorithmContext {
   const nodes: NodeRecord[] = doc.nodes.map((n) => ({ id: n.id }));
   const edges: EdgeRecord[] = doc.edges.map((e) => ({ id: e.id, source: e.source, target: e.target }));
-  return freezeDeep({ graph: { policy: { ...SPATIAL_GRAPH_POLICY }, nodes, edges }, params: structuredClone(params) });
+  return freezeDeep({ graph: { policy: { ...SPATIAL_GRAPH_POLICY }, nodes, edges }, inputs: [...inputs] });
 }
 
 const isGrid = (g: unknown): g is GridCoord =>

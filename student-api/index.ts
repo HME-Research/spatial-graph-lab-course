@@ -42,6 +42,7 @@ export {
 export {
   defineGraphAlgorithm,
   defineSpatialAlgorithm,
+  type AnalysisInput,
   type AnalysisResult,
   type AttributeFieldInfo,
   type GraphAlgorithm,

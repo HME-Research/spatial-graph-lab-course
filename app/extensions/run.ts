@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { type AttributeValue, attributeValueSchema, type DesignDocumentV2 } from '@app/document';
 import type { SpatialResolution } from '@app/spatial';
-import type { AnalysisResult, AttributeSpecs, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
+import type { AnalysisInput, AnalysisResult, AttributeSpecs, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
 import type { ActiveToolkit } from './activate';
 import { checkValue, describeSpec, specFor } from './attributes';
 import { buildGraphContext, buildSpatialContextV2, ExtensionRunError, type GraphSource } from './context';
@@ -20,11 +20,98 @@ import { applyTransformationV2, type TransformationPreviewV2 } from './transform
 /** Upper bound on operations in one transformation (a safety limit, not a contract field). */
 export const MAX_OPERATIONS = 10_000;
 
-const analysisSchema = z.strictObject({
-  kind: z.literal('analysis'),
-  summary: z.string().max(2000).optional(),
-  nodeValues: z.record(z.string(), attributeValueSchema),
-});
+const idList = (what: string) =>
+  z.array(z.int({ error: `${what} must contain whole-number ids` }), { error: `${what} must be a list of ids` }).max(100_000);
+
+const analysisSchema = z
+  .strictObject({
+    kind: z.literal('analysis'),
+    value: z.number({ error: 'value must be a number' }).refine(Number.isFinite, { error: 'value must be a finite number' }).optional(),
+    text: z.string({ error: 'text must be text' }).max(300, { error: 'text must be at most 300 characters (one short line)' }).optional(),
+    highlightNodes: idList('highlightNodes').optional(),
+    highlightEdges: idList('highlightEdges').optional(),
+    nodeValues: z.record(z.string(), attributeValueSchema, { error: 'nodeValues must be an object of node id → value' }).optional(),
+  })
+  .refine(
+    (r) => r.value !== undefined || r.text !== undefined || r.highlightNodes !== undefined || r.highlightEdges !== undefined || r.nodeValues !== undefined,
+    { error: 'an analysis must return at least one of value, text, highlightNodes, highlightEdges or nodeValues' },
+  );
+
+/**
+ * The picked inputs of a graph analysis, checked against its declared `inputs`: one value per
+ * input, node / edge ids that exist in `doc`, numbers within min/max (a missing number takes its
+ * default). Readable diagnostics instead of a run.
+ */
+export function checkAnalysisInputs(
+  declared: readonly AnalysisInput[],
+  raw: unknown,
+  doc: GraphSource,
+  algorithmId: string,
+): ExtensionResult<readonly number[]> {
+  const subject = { kind: 'algorithm', id: algorithmId } as const;
+  const given: unknown = raw === undefined ? [] : raw;
+  if (!Array.isArray(given)) return fail([diagnostic('invalid-input', 'error', subject, 'inputs must be a list of ids and numbers')]);
+  const problems: ExtensionDiagnostic[] = [];
+  const out: number[] = [];
+  const nodes = new Set(doc.nodes.map((n) => n.id));
+  const edges = new Set(doc.edges.map((e) => e.id));
+  if (given.length > declared.length) {
+    problems.push(diagnostic('invalid-input', 'error', subject, `${given.length} inputs were given, but the analysis takes ${declared.length}`));
+  }
+  declared.forEach((input, index) => {
+    const value: unknown = (given as unknown[])[index] ?? (input.kind === 'number' ? input.default : undefined);
+    const fault = (message: string) => {
+      problems.push(diagnostic('invalid-input', 'error', subject, `${input.label}: ${message}`, { detail: String(index) }));
+    };
+    if (input.kind === 'number') {
+      if (typeof value !== 'number' || !Number.isFinite(value)) return fault('type a number');
+      if (input.min !== undefined && value < input.min) return fault(`must be at least ${input.min}`);
+      if (input.max !== undefined && value > input.max) return fault(`must be at most ${input.max}`);
+      out.push(value);
+      return;
+    }
+    if (typeof value !== 'number' || !Number.isInteger(value)) return fault(`pick ${input.kind === 'node' ? 'a node' : 'an edge'}`);
+    if (!(input.kind === 'node' ? nodes : edges).has(value)) return fault(`there is no ${input.kind} ${value}`);
+    out.push(value);
+  });
+  return problems.length > 0 ? fail(problems) : ok(out);
+}
+
+/** Validate a graph analysis's raw result against `doc` (shape, then every id must exist). */
+export function validateAnalysisResult(raw: unknown, doc: GraphSource, algorithmId: string): ExtensionResult<AnalysisResult> {
+  const subject = { kind: 'algorithm', id: algorithmId } as const;
+  const kind = typeof raw === 'object' && raw !== null ? (raw as { kind?: unknown }).kind : undefined;
+  if (kind !== 'analysis') return invalidResult(algorithmId, ['graph algorithms must return { kind: "analysis", value, text, highlightNodes, highlightEdges or nodeValues }']);
+  const parsed = analysisSchema.safeParse(raw);
+  if (!parsed.success) return invalidResult(algorithmId, zodMessages(parsed.error.issues));
+  const nodes = new Set(doc.nodes.map((n) => n.id));
+  const edges = new Set(doc.edges.map((e) => e.id));
+  const problems: ExtensionDiagnostic[] = [];
+  const data = parsed.data;
+  // nodeValues keys are read from the raw object so that unusual keys (e.g. "__proto__") are not lost.
+  const rawValues = (raw as { nodeValues?: object }).nodeValues;
+  for (const k of rawValues ? Object.keys(rawValues) : []) {
+    if (!(/^(0|[1-9][0-9]*)$/.test(k) && nodes.has(Number(k)))) {
+      problems.push(diagnostic('unknown-node-reference', 'error', subject, `nodeValues refers to node ${JSON.stringify(k)}, which does not exist`, { detail: k }));
+    }
+  }
+  for (const id of data.highlightNodes ?? []) {
+    if (!nodes.has(id)) problems.push(diagnostic('unknown-node-reference', 'error', subject, `highlightNodes refers to node ${id}, which does not exist`, { detail: `n${id}` }));
+  }
+  for (const id of data.highlightEdges ?? []) {
+    if (!edges.has(id)) problems.push(diagnostic('unknown-edge-reference', 'error', subject, `highlightEdges refers to edge ${id}, which does not exist`, { detail: `e${id}` }));
+  }
+  if (problems.length > 0) return fail(problems);
+  // Zod's output is a fresh copy: later changes by the algorithm to its own objects have no effect.
+  return ok({
+    kind: 'analysis',
+    ...(data.value !== undefined && { value: data.value }),
+    ...(data.text !== undefined && { text: data.text }),
+    ...(data.highlightNodes !== undefined && { highlightNodes: [...new Set(data.highlightNodes)] }),
+    ...(data.highlightEdges !== undefined && { highlightEdges: [...new Set(data.highlightEdges)] }),
+    ...(data.nodeValues !== undefined && { nodeValues: data.nodeValues }),
+  });
+}
 
 const attributesRecord = z.record(z.string().min(1, { error: 'attribute names must not be empty' }), attributeValueSchema);
 
@@ -111,6 +198,8 @@ export interface RunOptions {
    * preferences, so `ctx.metrics` matches what the views show. Omitted: `resolveRelationships(doc)`.
    */
   readonly spatial?: SpatialResolution;
+  /** The picked inputs of a graph analysis, in declaration order (checked by `checkAnalysisInputs`). */
+  readonly inputs?: readonly unknown[];
 }
 
 function runWith<D extends GraphSource, Preview>(
@@ -129,42 +218,39 @@ function runWith<D extends GraphSource, Preview>(
     return fail([diagnostic('algorithm-disabled', 'error', subject, `algorithm "${algorithmId}" (${entry.file}) is invalid and disabled`)]);
   }
   const algorithm = entry.definition;
-  const parameters = validateParameters(algorithm.parameters ?? {}, params, algorithmId);
-  if (!parameters.ok) return parameters;
-
-  let raw: unknown;
-  try {
-    raw =
-      algorithm.scope === 'graph'
-        ? algorithm.run(buildGraphContext(doc, parameters.value))
-        : algorithm.run(adapter.spatialContext(doc, project, algorithmId, parameters.value as never, schema, options.spatial));
-  } catch (error) {
+  const failed = (error: unknown) => {
     if (error instanceof ExtensionRunError) return fail([error.diagnostic]);
     const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     return fail([diagnostic('run-failed', 'error', subject, `algorithm "${algorithmId}" failed: ${detail}`)]);
+  };
+
+  if (algorithm.scope === 'graph') {
+    // Graph analyses take inputs, never parameters.
+    if (params !== undefined && (typeof params !== 'object' || params === null || Object.keys(params).length > 0)) {
+      return fail([diagnostic('invalid-parameter', 'error', subject, 'graph analyses take no parameters (they declare inputs)')]);
+    }
+    const inputs = checkAnalysisInputs(algorithm.inputs, options.inputs, doc, algorithmId);
+    if (!inputs.ok) return inputs;
+    let raw: unknown;
+    try {
+      raw = algorithm.run(buildGraphContext(doc, inputs.value));
+    } catch (error) {
+      return failed(error);
+    }
+    const result = validateAnalysisResult(raw, doc, algorithmId);
+    return result.ok ? ok({ kind: 'analysis', result: result.value }) : result;
+  }
+
+  const parameters = validateParameters(algorithm.parameters ?? {}, params, algorithmId);
+  if (!parameters.ok) return parameters;
+  let raw: unknown;
+  try {
+    raw = algorithm.run(adapter.spatialContext(doc, project, algorithmId, parameters.value as never, schema, options.spatial));
+  } catch (error) {
+    return failed(error);
   }
 
   const kind = typeof raw === 'object' && raw !== null ? (raw as { kind?: unknown }).kind : undefined;
-  if (algorithm.scope === 'graph') {
-    if (kind !== 'analysis') return invalidResult(algorithmId, ['graph algorithms must return { kind: "analysis", nodeValues }']);
-    const parsed = analysisSchema.safeParse(raw);
-    if (!parsed.success) return invalidResult(algorithmId, zodMessages(parsed.error.issues));
-    const known = new Set(doc.nodes.map((n) => n.id));
-    // Keys are read from the raw object so that unusual keys (e.g. "__proto__") are not lost.
-    const unknown = Object.keys((raw as { nodeValues: object }).nodeValues).filter((k) => !(/^(0|[1-9][0-9]*)$/.test(k) && known.has(Number(k))));
-    if (unknown.length > 0) {
-      return fail(
-        unknown.map((k) => diagnostic('unknown-node-reference', 'error', subject, `nodeValues refers to node ${JSON.stringify(k)}, which does not exist`, { detail: k })),
-      );
-    }
-    const result: AnalysisResult = {
-      kind: 'analysis',
-      nodeValues: parsed.data.nodeValues,
-      ...(parsed.data.summary !== undefined && { summary: parsed.data.summary }),
-    };
-    return ok({ kind: 'analysis', result });
-  }
-
   if (kind !== 'transformation') return invalidResult(algorithmId, ['spatial algorithms must return { kind: "transformation", operations }']);
   const parsed = transformationSchema.safeParse(raw);
   if (!parsed.success) return invalidResult(algorithmId, zodMessages(parsed.error.issues));

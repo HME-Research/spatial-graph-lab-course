@@ -334,7 +334,7 @@ describe('algorithm reference warnings (heuristic)', () => {
       label: 'Reads',
       run: (ctx) => ({ kind: 'transformation', operations: ctx.design.nodes.filter((n) => n.attributes['daylight'] === 'high').map(() => ({ op: 'add-edge', source: 1, target: 2, kind: 'access' }) as const) }),
     });
-    const other = defineGraphAlgorithm({ id: 'other', label: 'Other', run: ({ graph }) => ({ kind: 'analysis', nodeValues: Object.fromEntries(graph.nodes.map((n) => [n.id, 1])) }) });
+    const other = defineGraphAlgorithm({ id: 'other', label: 'Other', inputs: [], run: ({ graph }) => ({ kind: 'analysis', nodeValues: Object.fromEntries(graph.nodes.map((n) => [n.id, 1])) }) });
     const project = await labToolkit({ 'toolkits/lab/algorithms/reads.ts': { default: reads }, 'toolkits/lab/algorithms/other.ts': { default: other } });
     expect(algorithmReferences(project, ['daylight'])).toEqual([{ algorithmId: 'reads', file: 'toolkits/lab/algorithms/reads.ts', keys: ['daylight'] }]);
     expect(algorithmReferences(project, ['capacity'])).toEqual([]);

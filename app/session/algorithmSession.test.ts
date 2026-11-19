@@ -10,7 +10,6 @@ import { metricsLabDoc } from '@app/metrics/test-fixtures';
 import { resolveWithPreferences } from '@app/spatial';
 import builtInText from '../document/test-designs/two-storey.json?raw';
 import {
-  analysisRows,
   applyPreviewV2,
   describePreview,
   draftsToParameters,
@@ -107,23 +106,18 @@ describe('algorithm parameters', () => {
 });
 
 describe('generic analysis results', () => {
-  it('shows the summary and node values and does not modify the document', () => {
+  it('passes the picked inputs, returns the answer and node values, and does not modify the document', () => {
     const before = serializeDesignV2(builtIn);
-    const run = runEntryV2(at(builtIn), example, entry(example, 'access-depth'), { start: '4' });
+    const run = runEntryV2(at(builtIn), example, entry(example, 'access-depth'), {}, undefined, undefined, [4]);
     expect(serializeDesignV2(builtIn)).toBe(before);
     if (!run.outcome.ok || run.outcome.value.kind !== 'analysis') throw new Error('expected an analysis');
     const { result } = run.outcome.value;
-    expect(result.summary).toBe('0 room(s) cannot be reached from room 4.');
-    expect(analysisRows(result.nodeValues, run.doc, builtIn)).toEqual([
-      { nodeId: 1, value: 2, exists: true }, // entry-gallery
-      { nodeId: 2, value: 1, exists: true }, // studio-ground
-      { nodeId: 3, value: 3, exists: true }, // reading-gallery
-      { nodeId: 4, value: 0, exists: true }, // store
-      { nodeId: 5, value: 3, exists: true }, // studio-upper
-      { nodeId: 6, value: 2, exists: true }, // gallery-upper
-    ]);
+    expect(result.text).toBe('0 room(s) cannot be reached from room 4.');
+    expect(result.highlightNodes).toEqual([4]);
+    // entry-gallery 1, studio-ground 2, reading-gallery 3, store 4, studio-upper 5, gallery-upper 6
+    expect(result.nodeValues).toEqual({ 1: 2, 2: 1, 3: 3, 4: 0, 5: 3, 6: 2 });
+    expect(entry(example, 'access-depth').inputs).toEqual([{ kind: 'node', label: 'Start' }]);
     const smaller = expectOk(applyDesignCommand(builtIn, { type: 'remove-node', nodeId: 4 }));
-    expect(analysisRows(result.nodeValues, run.doc, smaller).find((r) => r.nodeId === 4)!.exists).toBe(false);
     expect(isStale(run, at(builtIn))).toBe(false);
     expect(isStale(run, at(smaller, 2))).toBe(true);
   });

@@ -12,6 +12,7 @@ import {
   type ExtensionResult,
   type ProjectAttributeSchema,
 } from '@app/extensions';
+import type { AnalysisInput } from '@app/ui/analysisSections';
 import type { SpatialResolution } from '@app/spatial';
 import type { DocumentVersion } from './documentSession';
 
@@ -30,15 +31,31 @@ export interface AlgorithmEntry {
   readonly enabled: boolean;
   /** Why it is disabled (diagnostic messages); empty when enabled. */
   readonly problems: readonly string[];
-  /** Declared parameters, in declaration order (only for enabled algorithms). */
+  /** Declared parameters of a transformation, in declaration order (only for enabled spatial algorithms). */
   readonly parameters: readonly (readonly [string, AttributeSpec])[];
+  /**
+   * Declared inputs of a graph analysis (P4). For a disabled analysis, the inputs as far as they can
+   * be read (else none), so it can still be listed in a section with its problems.
+   */
+  readonly inputs: readonly AnalysisInput[];
+}
+
+const INPUT_KINDS: readonly unknown[] = ['node', 'edge', 'number'];
+
+/** Inputs of an unvalidated definition, read defensively (only well-formed entries). */
+function readInputs(raw: unknown): AnalysisInput[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((i: unknown) => {
+    const r = i as { kind?: unknown; label?: unknown } | null;
+    return r && INPUT_KINDS.includes(r.kind) && typeof r.label === 'string' ? [{ kind: r.kind, label: r.label } as AnalysisInput] : [];
+  });
 }
 
 export function listAlgorithms(project: ActiveToolkit | null): AlgorithmEntry[] {
   if (!project) return [];
   return project.algorithms.map((a) => {
     // Disabled definitions are unvalidated student data: read their fields defensively.
-    const raw = a.definition as { label?: unknown; scope?: unknown };
+    const raw = a.definition as { label?: unknown; scope?: unknown; inputs?: unknown };
     const enabled = a.status.ok;
     const ids = new Set(a.status.ok ? [] : a.status.diagnosticIds);
     return {
@@ -48,7 +65,8 @@ export function listAlgorithms(project: ActiveToolkit | null): AlgorithmEntry[] 
       file: a.file,
       enabled,
       problems: project.diagnostics.filter((d) => ids.has(d.id)).map((d) => d.message),
-      parameters: enabled ? Object.entries(a.definition.parameters ?? {}) : [],
+      parameters: enabled && a.definition.scope === 'spatial' ? Object.entries(a.definition.parameters ?? {}) : [],
+      inputs: enabled && a.definition.scope === 'graph' ? a.definition.inputs : raw.scope === 'graph' ? readInputs(raw.inputs) : [],
     };
   });
 }
@@ -125,6 +143,8 @@ export function runEntryV2(
   drafts: ParameterDrafts,
   attributes?: AttributesVersion,
   resolution?: HostResolution,
+  /** The picked inputs of a graph analysis (ids and numbers, in declaration order). */
+  inputs?: readonly number[],
 ): AlgorithmRunV2 {
   const { doc, revision } = version;
   const spatial = resolution && resolution.doc === doc ? resolution.spatial : undefined;
@@ -137,6 +157,7 @@ export function runEntryV2(
     outcome: runAlgorithmV2(doc, project, entry.id, draftsToParameters(entry, drafts), {
       ...(attributes && { attributes: attributes.schema }),
       ...(spatial && { spatial }),
+      ...(inputs && { inputs }),
     }),
   };
 }
@@ -156,23 +177,6 @@ export const isStale = (
   run.revision !== current.revision ||
   // A project attribute change (fields, defaults) can change what the algorithm read.
   (attributesRevision !== undefined && run.attributesRevision !== undefined && run.attributesRevision !== attributesRevision);
-
-export interface AnalysisRow {
-  readonly nodeId: number;
-  readonly value: AttributeValue;
-  /** False when the node has since been deleted from the current document. */
-  readonly exists: boolean;
-}
-
-/** Node values in the document's node order (values for unknown ids are not possible: the runtime rejects them). */
-type HasNodes = { readonly nodes: readonly { readonly id: number }[] };
-
-export function analysisRows(nodeValues: Readonly<Record<number, AttributeValue>>, ranOn: HasNodes, current: HasNodes | null): AnalysisRow[] {
-  const present = new Set(current?.nodes.map((n) => n.id) ?? []);
-  return ranOn.nodes
-    .filter((n) => Object.prototype.hasOwnProperty.call(nodeValues, n.id))
-    .map((n) => ({ nodeId: n.id, value: nodeValues[n.id]!, exists: present.has(n.id) }));
-}
 
 export interface PreviewSummary {
   /** New rooms with the ids the app gave them. */

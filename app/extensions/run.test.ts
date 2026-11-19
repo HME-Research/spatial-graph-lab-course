@@ -56,10 +56,10 @@ describe('generic graph analysis', () => {
   const depth = defineGraphAlgorithm({
     id: 't',
     label: 'Depth',
-    parameters: { start: { kind: 'number', default: 1 } },
-    run: ({ graph, params }) => {
-      const seen = new Map([[params.start ?? -1, 0]]);
-      const queue = [params.start ?? -1];
+    inputs: [{ kind: 'node', label: 'Start' }],
+    run: ({ graph, inputs }) => {
+      const seen = new Map([[inputs[0] ?? -1, 0]]);
+      const queue = [inputs[0] ?? -1];
       while (queue.length) {
         const id = queue.shift()!;
         for (const n of neighbours(graph, id)) if (!seen.has(n)) (seen.set(n, seen.get(id)! + 1), queue.push(n));
@@ -71,7 +71,7 @@ describe('generic graph analysis', () => {
   it('sees only ids, endpoints and the policy — no spatial or typed fields', async () => {
     let seen: GraphAlgorithmContext | undefined;
     const project = await labToolkit({
-      [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', run: (ctx) => ((seen = ctx), { kind: 'analysis', nodeValues: {} }) }) },
+      [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', inputs: [], run: (ctx) => ((seen = ctx), { kind: 'analysis', nodeValues: {} }) }) },
     });
     expectExtOk(runUnchanged(labDoc(), project));
     expect(seen!.graph.nodes.every((n) => Object.keys(n).join() === 'id')).toBe(true);
@@ -82,9 +82,9 @@ describe('generic graph analysis', () => {
 
   it('runs on the design and returns validated node values', async () => {
     const project = await labToolkit({ [ALG]: { default: depth } });
-    const outcome = expectExtOk(runUnchanged(labDoc(), project));
+    const outcome = expectExtOk(runAlgorithmV2(labDoc(), project, 't', undefined, { inputs: [1] }));
     expect(outcome).toEqual({ kind: 'analysis', result: { kind: 'analysis', nodeValues: { 1: 0, 2: 1, 3: 1, 4: null } } });
-    const fromS1 = expectExtOk(runAlgorithmV2(labDoc(), project, 't', { start: 3 })).kind === 'analysis';
+    const fromS1 = expectExtOk(runAlgorithmV2(labDoc(), project, 't', undefined, { inputs: [3] })).kind === 'analysis';
     expect(fromS1).toBe(true);
   });
 
@@ -97,24 +97,24 @@ describe('generic graph analysis', () => {
         { id: 2, source: 2, target: 2 },
       ],
     };
-    const result = depth.run({ graph: social, params: { start: 1 } }) as AnalysisResult;
+    const result = depth.run({ graph: social, inputs: [1] }) as AnalysisResult;
     expect(result.nodeValues).toEqual({ 1: 0, 2: 1 });
   });
 
   it('rejects analysis values for nodes that do not exist', async () => {
     const project = await labToolkit({
-      [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', run: () => ({ kind: 'analysis', nodeValues: { 99: 1 } }) }) },
+      [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', inputs: [], run: () => ({ kind: 'analysis', nodeValues: { 99: 1 } }) }) },
     });
     expectDiagnostic(runUnchanged(labDoc(), project), 'unknown-node-reference');
     const named = await labToolkit({
-      [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', run: () => ({ kind: 'analysis', nodeValues: { g1: 1 } }) }) },
+      [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', inputs: [], run: () => ({ kind: 'analysis', nodeValues: { g1: 1 } }) }) },
     });
     expectDiagnostic(runUnchanged(labDoc(), named), 'unknown-node-reference'); // keys are node ids, not names
   });
 
   it('a graph algorithm may not return a transformation', async () => {
     const run = () => ({ kind: 'transformation', operations: [] }) as unknown as AnalysisResult;
-    const project = await labToolkit({ [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', run }) } });
+    const project = await labToolkit({ [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', inputs: [], run }) } });
     expect(expectDiagnostic(runUnchanged(labDoc(), project), 'invalid-result').message).toContain('graph algorithms must return');
   });
 });
@@ -416,5 +416,75 @@ describe('future student exercise (written only against @student-api)', () => {
     const p = preview(expectExtOk(runUnchanged(labDoc(), project)));
     expect(p.after.nodes.at(-1)).toEqual({ id: 5, grid: [-1, 0, 0], size: [1, 1, 1], typeId: 'gallery', attributes: { daylight: 'medium' } });
     expect(p.after.edges.at(-1)).toEqual({ id: 3, source: 1, target: 5, kind: 'access', attributes: {} });
+  });
+});
+
+describe('graph analysis inputs and results (P4)', () => {
+  const echo = (inputs: Parameters<typeof defineGraphAlgorithm>[0]['inputs'], result: (ctx: GraphAlgorithmContext) => unknown) =>
+    labToolkit({ [ALG]: { default: defineGraphAlgorithm({ id: 't', label: 'T', inputs, run: (ctx) => result(ctx) as AnalysisResult }) } });
+
+  it('passes the picked inputs in order; a missing number takes its default', async () => {
+    let seen: readonly number[] = [];
+    const project = await echo(
+      [
+        { kind: 'node', label: 'From' },
+        { kind: 'edge', label: 'Via' },
+        { kind: 'number', label: 'Steps', min: 1, default: 2 },
+      ],
+      (ctx) => ((seen = ctx.inputs), { kind: 'analysis', value: 1 }),
+    );
+    expectExtOk(runAlgorithmV2(labDoc(), project, 't', undefined, { inputs: [3, 2] }));
+    expect(seen).toEqual([3, 2, 2]);
+  });
+
+  it.each<[string, unknown[], string]>([
+    ['an unknown node', [99, 1, 2], 'From: there is no node 99'],
+    ['an unknown edge', [1, 99, 2], 'Via: there is no edge 99'],
+    ['a number below min', [1, 1, 0], 'Steps: must be at least 1'],
+    ['a missing node', [], 'From: pick a node'],
+    ['text for a number', [1, 1, 'x'], 'Steps: type a number'],
+    ['too many inputs', [1, 1, 2, 4], '4 inputs were given'],
+  ])('refuses %s with a readable reason and does not run', async (_name, inputs, message) => {
+    let runs = 0;
+    const project = await echo(
+      [
+        { kind: 'node', label: 'From' },
+        { kind: 'edge', label: 'Via' },
+        { kind: 'number', label: 'Steps', min: 1 },
+      ],
+      () => (runs++, { kind: 'analysis', value: 1 }),
+    );
+    expect(expectDiagnostic(runAlgorithmV2(labDoc(), project, 't', undefined, { inputs }), 'invalid-input').message).toContain(message);
+    expect(runs).toBe(0);
+  });
+
+  it('accepts value, text and highlights; refuses unknown ids, wrong types and empty results', async () => {
+    const ok = await echo([], () => ({ kind: 'analysis', value: 2, text: 'two', highlightNodes: [1, 1, 2], highlightEdges: [2] }));
+    expect(expectExtOk(runAlgorithmV2(labDoc(), ok, 't'))).toEqual({
+      kind: 'analysis',
+      result: { kind: 'analysis', value: 2, text: 'two', highlightNodes: [1, 2], highlightEdges: [2] },
+    });
+    const node = await echo([], () => ({ kind: 'analysis', highlightNodes: [42] }));
+    expect(expectDiagnostic(runAlgorithmV2(labDoc(), node, 't'), 'unknown-node-reference').message).toContain('highlightNodes refers to node 42');
+    const edge = await echo([], () => ({ kind: 'analysis', highlightEdges: [42] }));
+    expect(expectDiagnostic(runAlgorithmV2(labDoc(), edge, 't'), 'unknown-edge-reference').message).toContain('highlightEdges refers to edge 42');
+    const wrong = await echo([], () => ({ kind: 'analysis', value: 'three' }));
+    expect(expectDiagnostic(runAlgorithmV2(labDoc(), wrong, 't'), 'invalid-result').message).toContain('value must be a number');
+    const empty = await echo([], () => ({ kind: 'analysis' }));
+    expect(expectDiagnostic(runAlgorithmV2(labDoc(), empty, 't'), 'invalid-result').message).toContain('at least one of');
+  });
+
+  it('requires inputs on graph analyses and refuses parameters', async () => {
+    const missing = await labToolkit({ [ALG]: { default: { id: 't', label: 'T', scope: 'graph', run: () => ({ kind: 'analysis', value: 1 }) } } });
+    expect(missing.algorithms[0]!.status.ok).toBe(false);
+    expect(missing.diagnostics.map((d) => d.message).join()).toContain('inputs must be a list');
+    const params = await labToolkit({
+      [ALG]: { default: { id: 't', label: 'T', scope: 'graph', inputs: [], parameters: { k: { kind: 'number' } }, run: () => ({ kind: 'analysis', value: 1 }) } },
+    });
+    expect(params.diagnostics.map((d) => d.message).join()).toContain('graph analyses take no parameters');
+    const badInput = await labToolkit({
+      [ALG]: { default: { id: 't', label: 'T', scope: 'graph', inputs: [{ kind: 'room', label: 'R' }], run: () => ({ kind: 'analysis', value: 1 }) } },
+    });
+    expect(badInput.diagnostics.map((d) => d.message).join()).toContain('an input kind must be "node", "edge" or "number"');
   });
 });

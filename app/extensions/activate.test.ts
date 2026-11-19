@@ -11,7 +11,7 @@ import { fakeGlobs, galleryType, LAB_FILES, labToolkit, LOAD_FAILS } from './tes
 // The schema-v2 two-storey test design stands in for the built-in example.
 const builtInDoc = expectOk(validateDocumentV2(exampleJson));
 const builtIn = { doc: builtInDoc, source: 'app/document/test-designs/two-storey.json' };
-const analysis = () => ({ kind: 'analysis' as const, nodeValues: {} });
+const analysis = () => ({ kind: 'analysis' as const, value: 1 });
 
 describe('toolkit discovery', () => {
   it('groups glob entries by toolkit folder, sorted, ignoring test files', () => {
@@ -72,7 +72,7 @@ describe('toolkit selection', () => {
 describe('toolkit activation', () => {
   it('activates a valid toolkit with plain-data registries', async () => {
     const toolkit = await labToolkit({
-      'toolkits/lab/algorithms/a.ts': { default: defineGraphAlgorithm({ id: 'a', label: 'A', run: analysis }) },
+      'toolkits/lab/algorithms/a.ts': { default: defineGraphAlgorithm({ id: 'a', label: 'A', inputs: [], run: analysis }) },
     });
     expect(toolkit.id).toBe('lab');
     expect(toolkit.definition).toEqual({ name: 'Lab' });
@@ -133,8 +133,8 @@ describe('toolkit activation', () => {
     const copy = defineNodeType({ id: 'studio', label: 'Studio again' });
     const toolkit = await labToolkit({
       'toolkits/lab/types/studio-2.ts': { default: copy },
-      'toolkits/lab/algorithms/a.ts': { default: defineGraphAlgorithm({ id: 'dup', label: 'A', run: analysis }) },
-      'toolkits/lab/algorithms/b.ts': { default: defineGraphAlgorithm({ id: 'dup', label: 'B', run: analysis }) },
+      'toolkits/lab/algorithms/a.ts': { default: defineGraphAlgorithm({ id: 'dup', label: 'A', inputs: [], run: analysis }) },
+      'toolkits/lab/algorithms/b.ts': { default: defineGraphAlgorithm({ id: 'dup', label: 'B', inputs: [], run: analysis }) },
     });
     const studios = toolkit.nodeTypes.filter((t) => t.id === 'studio');
     expect(studios.map((t) => t.status.ok)).toEqual([false, false]);

@@ -85,7 +85,7 @@ describe('toolkit activation in the application', () => {
     const counted = { kind: 'analysis' as const, nodeValues: {} };
     const globs = fakeGlobs({
       ...LAB_FILES,
-      'toolkits/lab/algorithms/a.ts': { default: { id: 'a', label: 'A', scope: 'graph', run: () => (runs++, counted) } },
+      'toolkits/lab/algorithms/a.ts': { default: { id: 'a', label: 'A', scope: 'graph', inputs: [], run: () => (runs++, counted) } },
       'toolkits/lab/algorithms/b.ts': {
         default: { id: 'b', label: 'B', scope: 'spatial', run: () => (runs++, { kind: 'transformation', operations: [] }) },
       },

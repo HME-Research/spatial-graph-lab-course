@@ -31,8 +31,8 @@ describe('Student API runtime helpers', () => {
     expect(defineToolkit(project)).toBe(project);
     const type = { id: 'gallery', label: 'Gallery' };
     expect(defineNodeType(type)).toBe(type);
-    const run = () => ({ kind: 'analysis' as const, nodeValues: {} });
-    expect(defineGraphAlgorithm({ id: 'g', label: 'G', run })).toEqual({ id: 'g', label: 'G', run, scope: 'graph' });
+    const run = () => ({ kind: 'analysis' as const, value: 1 });
+    expect(defineGraphAlgorithm({ id: 'g', label: 'G', inputs: [], run })).toEqual({ id: 'g', label: 'G', inputs: [], run, scope: 'graph' });
     const runT = () => ({ kind: 'transformation' as const, operations: [] });
     expect(defineSpatialAlgorithm({ id: 's', label: 'S', run: runT }).scope).toBe('spatial');
   });
@@ -82,15 +82,20 @@ describe('Student API compile-time inference', () => {
     expectTypeOf<A['note']>().toEqualTypeOf<string | undefined>();
   });
 
-  it('types algorithm parameters', () => {
+  it('types analysis inputs and results', () => {
     defineGraphAlgorithm({
       id: 'p',
       label: 'P',
-      parameters: { start: { kind: 'text' } },
+      inputs: [
+        { kind: 'node', label: 'From' },
+        { kind: 'number', label: 'Steps', min: 1 },
+      ],
       run(ctx) {
-        expectTypeOf(ctx.params.start).toEqualTypeOf<string | undefined>();
-        return { kind: 'analysis', nodeValues: {} };
+        expectTypeOf(ctx.inputs).toEqualTypeOf<readonly number[]>();
+        return { kind: 'analysis', value: ctx.inputs[1] ?? 0, highlightNodes: [ctx.inputs[0] ?? 0] };
       },
     });
+    // @ts-expect-error inputs are required
+    defineGraphAlgorithm({ id: 'q', label: 'Q', run: () => ({ kind: 'analysis', value: 1 }) });
   });
 });

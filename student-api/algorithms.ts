@@ -8,8 +8,9 @@ import type { NodeTypeDefinition } from './types';
  * the application validates (shape, references, operation permissions and semantics, final
  * document validity and conformance) before anything is shown or applied.
  *
- * - Graph algorithms are generic analyses: they see ids and endpoints only.
- * - Spatial algorithms transform the spatial design document through operations.
+ * - Graph algorithms are generic analyses (the Analyse tab): they see ids and endpoints only and
+ *   declare the inputs the student picks (P4).
+ * - Spatial algorithms (the Transform tab) transform the spatial design document through operations.
  */
 
 interface AlgorithmDefinitionBase<P extends AttributeSpecs> {
@@ -22,24 +23,60 @@ interface AlgorithmDefinitionBase<P extends AttributeSpecs> {
 
 // ── Generic graph analysis ──────────────────────────────────────────────────────────────────
 
-export interface GraphAlgorithmContext<P extends AttributeSpecs = AttributeSpecs> {
+/**
+ * One input an analysis needs, in order. Nodes and edges are picked by the student in any view;
+ * numbers are typed. The app places the analysis from this list alone: no inputs → Analyse ›
+ * Network; one node → Node; one edge → Edge (both run on the current selection); anything else →
+ * Queries (the student picks each input in turn). Same shape as the app's `AnalysisInput`
+ * (mirrored here: the Student API never imports app code).
+ */
+export type AnalysisInput =
+  | { readonly kind: 'node'; readonly label: string }
+  | { readonly kind: 'edge'; readonly label: string }
+  | { readonly kind: 'number'; readonly label: string; readonly min?: number; readonly max?: number; readonly default?: number };
+
+export interface GraphAlgorithmContext {
   /** A fresh copy for this run: ids, endpoints and the graph policy only. */
   readonly graph: Graph<NodeRecord, EdgeRecord>;
-  readonly params: AttributesOf<P>;
+  /**
+   * The picked inputs, in the order of `inputs`: a node id, an edge id or a number each. Example:
+   * `inputs: [{ kind: 'node', label: 'From' }, { kind: 'node', label: 'To' }]` →
+   * `const [from, to] = ctx.inputs;`. The app checks them before `run` (existing ids, numbers
+   * within min/max). Empty for a Network analysis.
+   */
+  readonly inputs: readonly number[];
 }
 
+/**
+ * What an analysis shows. Give at least one field. The app shows `value` (else `text`) as the big
+ * answer, and `text` as a small line under a value; it highlights `highlightNodes` and
+ * `highlightEdges` in every view and colours the nodes by `nodeValues`. Every id must exist.
+ */
 export interface AnalysisResult {
   readonly kind: 'analysis';
-  readonly summary?: string;
-  /** One value per node id (every key must be an existing node id; `nodeValues[node.id] = …`). */
-  readonly nodeValues: { readonly [nodeId: number]: AttributeValue };
+  /** The answer as a number, e.g. a count or a number of steps. */
+  readonly value?: number;
+  /** A short answer or explanation (one line), e.g. "No path between 3 and 9". */
+  readonly text?: string;
+  /** Node ids to highlight. */
+  readonly highlightNodes?: readonly number[];
+  /** Edge ids to highlight. */
+  readonly highlightEdges?: readonly number[];
+  /** One value per node id, shown as colours (every key must be an existing node id: `nodeValues[node.id] = …`). */
+  readonly nodeValues?: { readonly [nodeId: number]: AttributeValue };
 }
 
-export interface GraphAlgorithmDefinition<P extends AttributeSpecs = AttributeSpecs> extends AlgorithmDefinitionBase<P> {
-  run(ctx: GraphAlgorithmContext<P>): AnalysisResult;
+/** A graph analysis. It has no `parameters`: numbers it needs are `{ kind: 'number' }` inputs. */
+export interface GraphAlgorithmDefinition {
+  /** Unique within the project: lowercase letters, digits and "-", starting with a letter. */
+  readonly id: string;
+  readonly label: string;
+  /** REQUIRED: the exact, ordered inputs the student picks (`[]` = the whole network). */
+  readonly inputs: readonly AnalysisInput[];
+  run(ctx: GraphAlgorithmContext): AnalysisResult;
 }
 
-export interface GraphAlgorithm<P extends AttributeSpecs = AttributeSpecs> extends GraphAlgorithmDefinition<P> {
+export interface GraphAlgorithm extends GraphAlgorithmDefinition {
   readonly scope: 'graph';
 }
 
@@ -197,9 +234,7 @@ export interface SpatialAlgorithm<P extends AttributeSpecs = AttributeSpecs> ext
 
 // ── Registration helpers (the default export of each `algorithms/<file>.ts`) ────────────────
 
-export const defineGraphAlgorithm = <const P extends AttributeSpecs = Record<never, never>>(
-  algorithm: GraphAlgorithmDefinition<P>,
-): GraphAlgorithm<P> => ({ ...algorithm, scope: 'graph' });
+export const defineGraphAlgorithm = (algorithm: GraphAlgorithmDefinition): GraphAlgorithm => ({ ...algorithm, scope: 'graph' });
 
 export const defineSpatialAlgorithm = <const P extends AttributeSpecs = Record<never, never>>(
   algorithm: SpatialAlgorithmDefinition<P>,

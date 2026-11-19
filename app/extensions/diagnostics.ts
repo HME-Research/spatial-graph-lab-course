@@ -42,11 +42,13 @@ export type ExtensionIssueCode =
   | 'unknown-algorithm'
   | 'algorithm-disabled'
   | 'invalid-parameter'
+  | 'invalid-input'
   | 'run-failed'
   | 'type-not-registered'
   | 'type-mismatch'
   | 'invalid-result'
   | 'unknown-node-reference'
+  | 'unknown-edge-reference'
   | 'unknown-metric'
   // transformation operations
   | 'invalid-id'

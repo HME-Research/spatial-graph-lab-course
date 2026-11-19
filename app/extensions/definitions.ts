@@ -108,15 +108,53 @@ export const nodeTypeDefinitionSchema = z.strictObject({
 /** Algorithm ids use the same pattern as node type ids. */
 export const algorithmIdSchema = typeIdSchema;
 
-export const algorithmDefinitionSchema = z.strictObject({
-  id: algorithmIdSchema,
-  label,
-  parameters: attributeSpecsSchema.optional(),
-  scope: z.enum(['graph', 'spatial'], {
-    error: 'missing scope: create the algorithm with defineGraphAlgorithm or defineSpatialAlgorithm',
-  }),
-  run: z.custom<(...args: never[]) => unknown>((v) => typeof v === 'function', { error: 'run must be a function' }),
-});
+/** At most this many inputs per analysis (a sanity limit, not a contract field). */
+export const MAX_ANALYSIS_INPUTS = 8;
+
+const inputLabel = z.string({ error: 'an input label must be text' }).trim().min(1, { error: 'an input label must not be empty' }).max(40);
+
+/** One declared analysis input (Student API `AnalysisInput`). */
+export const analysisInputSchema = z
+  .discriminatedUnion(
+    'kind',
+    [
+      z.strictObject({ kind: z.literal('node'), label: inputLabel }),
+      z.strictObject({ kind: z.literal('edge'), label: inputLabel }),
+      z.strictObject({ kind: z.literal('number'), label: inputLabel, min: finite.optional(), max: finite.optional(), default: finite.optional() }),
+    ],
+    { error: 'an input kind must be "node", "edge" or "number"' },
+  )
+  .superRefine((input, ctx) => {
+    if (input.kind !== 'number') return;
+    refineSpec({ kind: 'number', min: input.min, max: input.max, default: input.default }, ctx);
+  });
+
+const run = z.custom<(...args: never[]) => unknown>((v) => typeof v === 'function', { error: 'run must be a function' });
+
+export const algorithmDefinitionSchema = z.discriminatedUnion(
+  'scope',
+  [
+    z.strictObject({
+      id: algorithmIdSchema,
+      label,
+      scope: z.literal('graph'),
+      inputs: z
+        .array(analysisInputSchema, { error: 'inputs must be a list such as [{ kind: "node", label: "Node" }] (use [] for the whole graph)' })
+        .max(MAX_ANALYSIS_INPUTS, { error: `an analysis has at most ${MAX_ANALYSIS_INPUTS} inputs` }),
+      parameters: z.never({ error: 'graph analyses take no parameters: ask for a number with an input { kind: "number", label: "…" }' }).optional(),
+      run,
+    }),
+    z.strictObject({
+      id: algorithmIdSchema,
+      label,
+      scope: z.literal('spatial'),
+      parameters: attributeSpecsSchema.optional(),
+      inputs: z.never({ error: 'inputs are for graph analyses (defineGraphAlgorithm); a transformation uses parameters' }).optional(),
+      run,
+    }),
+  ],
+  { error: 'missing scope: create the algorithm with defineGraphAlgorithm or defineSpatialAlgorithm' },
+);
 
 /** Zod issues as readable one-line messages (path first). */
 export function zodMessages(issues: readonly zcore.$ZodIssue[]): string[] {
