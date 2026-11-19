@@ -13,6 +13,18 @@ export type RecentState =
 export const recentStateOf = (list: RecentList): RecentState =>
   list.status === 'ok' ? { status: 'ready', items: list.items, unsaved: list.unsaved ?? [] } : { status: 'unavailable', message: list.message };
 
+/**
+ * What the Project panel's New project does (owner 2026-11-19): with any toolkit available it asks,
+ * with the same toolkit choice as Welcome's Create project, preselecting `defaultToolkitId` (the
+ * same default as Welcome: normally none, "No toolkit"); without toolkits it creates a project
+ * with no toolkit at once.
+ */
+export const newProjectStart = (
+  toolkitCount: number,
+  defaultToolkitId: string | null,
+): { readonly kind: 'ask'; readonly toolkitId: string | null } | { readonly kind: 'create'; readonly toolkitId: null } =>
+  toolkitCount > 0 ? { kind: 'ask', toolkitId: defaultToolkitId } : { kind: 'create', toolkitId: null };
+
 /** A toolkit (`toolkits/<id>`) that can supply types and algorithms for a new project. */
 export interface DefinitionChoice {
   readonly id: string;
