@@ -961,3 +961,22 @@
   font-size: var(--text-sm, 13px);
   color: var(--muted, #62625c);
 }
+
+/* Source tag (Programme P4): `Toolkit: <name>` / `Yours` / `Built-in`. Shared by custom attributes
+   (Attributes, Properties) and algorithm sources (Analyse / Transform): see SourceTag.tsx. */
+.sgl-source-tag {
+  display: inline-block;
+  flex: none;
+  max-width: 14em;
+  padding: 0 6px;
+  border: 1px solid var(--line, #e1e1dc);
+  border-radius: 999px;
+  font-size: var(--text-xs, 12px);
+  line-height: 18px;
+  color: var(--muted, #62625c);
+  background: transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}

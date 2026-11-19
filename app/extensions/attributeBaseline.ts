@@ -202,3 +202,18 @@ export function mergeBaseline(
   }
   return { schema: normaliseSchema({ nodes: next.nodes, edges: next.edges, nodeTypeDefaults }), added };
 }
+
+/**
+ * Whether `field` (of the schema in use) is one the toolkit's files declare: the origin of a custom
+ * attribute (Programme P4, item C). Derived, never stored: a field comes from the toolkit when one
+ * of its keys (current or former, ignoring case) is a key of a baseline field of the same
+ * collection — exactly the rule `mergeBaseline` uses to decide that a baseline field is already
+ * present. So the origin survives renames (label-only renames keep the key; key renames keep the
+ * old key in `formerKeys`), reloads, saved/opened project files and exported/imported attribute
+ * records, because all of them keep the keys and the baseline is re-derived from the files.
+ */
+export function isBaselineField(field: Pick<AttributeField, 'key' | 'formerKeys'>, collection: AttributeCollection, baseline: ProjectAttributeSchema): boolean {
+  if (baseline[collection].length === 0) return false;
+  const own = new Set([field.key, ...(field.formerKeys ?? [])].map((k) => k.toLowerCase()));
+  return baseline[collection].some((b) => own.has(b.key.toLowerCase()));
+}
