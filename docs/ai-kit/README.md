@@ -5,7 +5,7 @@ This folder is everything an AI assistant needs to write an analysis for *Spatia
 1. Open an AI assistant that accepts files (for example Claude) and **attach the zip**.
 2. Copy the short prompt in `YOUR-PROMPT.md` and fill in your idea and what you will pick.
 3. Save the answer as a `.ts` file (the name the assistant suggests).
-4. In the app, open **Analyse** and choose **Upload your own (.ts)** (for now it is the last item of a section's **+** menu). It appears in Node, Edge, Network or Queries, depending on what it asks you to pick, tagged **Yours**.
+4. In the app, open **Analyse** and choose **Upload your own (.ts)**, the button at the very top of the tab. It appears in Node, Edge, Network or Queries, depending on what it asks you to pick, tagged **Yours**.
 5. If the app refuses the file, paste the app's message back to the assistant and ask it to fix exactly that.
 
 What's inside:

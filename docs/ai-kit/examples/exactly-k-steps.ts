@@ -1,7 +1,7 @@
 // A graph analysis for Spatial Graph Lab.
 //
 // Use it in either of two ways (the same file works in both):
-//   1. Analyse › + › "Upload your own (.ts)…" in the app, or
+//   1. Analyse › "Upload your own (.ts)" (at the top of the tab) in the app, or
 //   2. save it as toolkits/<your-toolkit>/algorithms/exactly-k-steps.ts.
 //
 // An analysis only READS the graph: node ids and edges (each edge has a source and a target).

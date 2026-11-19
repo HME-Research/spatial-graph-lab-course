@@ -174,8 +174,13 @@ export default defineSpatialAlgorithm({
   id: 'grow-to-target-area',
   label: 'Grow to target area',
   parameters: {
-    // How many houses there should be, a whole number. Empty: as many as are drawn.
-    houses: { kind: 'number', min: 1 },
+    // A whole number. `label` and `description` are what Transform shows for this parameter.
+    houses: {
+      kind: 'number',
+      min: 1,
+      label: 'Houses',
+      description: 'How many houses to make. Empty: as many as you drew. More than you drew: House 1 is copied until there are this many.',
+    },
   },
   run(ctx) {
     const drawn = ctx.design.nodes;

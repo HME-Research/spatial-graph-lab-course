@@ -5,11 +5,12 @@ import { isStale, listAlgorithms, runEntryV2, type AttributesVersion, type HostR
 import type { DocumentVersion } from '@app/session/documentSession';
 import { CollapsibleSection } from '@app/ui';
 import { SourceTag } from '@app/ui/SourceTag';
-import { ALGORITHM_TAB_LABELS, ANALYSE_SECTION_IDS, ANALYSE_SECTIONS, analyseSectionFor, sourceTag, type AnalyseSectionId } from '@app/ui/analysisSections';
+import { ALGORITHM_TAB_LABELS, ANALYSE_SECTION_IDS, ANALYSE_SECTIONS, sourceTag, type AnalyseSectionId } from '@app/ui/analysisSections';
 import type { Explainer } from '@app/ui/guideContracts';
 import { ExplainerWindow } from '@app/ui/guide';
 import { sameSelection, type Selection } from '@core/viewer/selection';
 import {
+  aiKitUrl,
   allPicked,
   analysisItems,
   applyPick,
@@ -25,6 +26,11 @@ import {
   SOURCE_FILTER_LABELS,
   SOURCE_FILTERS,
   startPick,
+  TEMPLATE_FILE_NAME,
+  UPLOAD_BUTTON_LABEL,
+  UPLOAD_INFO,
+  UPLOAD_NOTE,
+  uploadLandingSection,
   type AnalysisItem,
   type PickState,
   type SourceFilter,
@@ -79,7 +85,9 @@ export interface AnalysePanelProps {
  * the first matching input, and selecting in ANY view fills the next one (pick mode goes through the
  * shared selection, so views know nothing about analyses); Esc cancels. One result at a time: a
  * big answer, a short label and at most one small line; its nodes and edges are highlighted in
- * every view. Analyses never change the design.
+ * every view. Analyses never change the design. At the very top, ONE "Upload your own (.ts)" button
+ * (with an ⓘ: what an analysis reads, the AI kit and the template); after an upload, the section it
+ * landed in opens and is brought into view.
  */
 export function AnalysePanel({
   project,
@@ -101,9 +109,16 @@ export function AnalysePanel({
   const [explainer, setExplainer] = useState<Explainer | null>(null);
   /** The uploaded analysis whose worker is running (one at a time). */
   const [running, setRunning] = useState<string | null>(null);
-  /** Result of the last upload / replace: where to show it (`catalogue` or an item key) and what. */
+  /** Result of the last upload / replace: where to show it (`top`: under the Upload button, or an item key) and what. */
   const [uploadNotice, setUploadNotice] = useState<{ readonly at: string; readonly ok: boolean; readonly lines: readonly string[] } | null>(null);
   const [uploading, setUploading] = useState(false);
+  /** The ⓘ of the Upload button (inline, under it). */
+  const [uploadInfo, setUploadInfo] = useState(false);
+  /** The section to open and bring into view after an upload (`n` grows with each request). */
+  const [reveal, setReveal] = useState<{ readonly section: AnalyseSectionId; readonly n: number } | null>(null);
+  /** The uploaded item to scroll to once it is listed in the section it landed in (it is prepared asynchronously). */
+  const [scrollTo, setScrollTo] = useState<{ readonly key: string; readonly section: AnalyseSectionId } | null>(null);
+  const root = useRef<HTMLDivElement>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   /** The upload a chosen file replaces (null: a new upload). */
@@ -194,7 +209,7 @@ export function AnalysePanel({
     replacing.current = null;
     input.value = '';
     if (!file || !onUploads) return;
-    const at = replaceId === null ? 'catalogue' : yoursKey(replaceId);
+    const at = replaceId === null ? 'top' : yoursKey(replaceId);
     setUploading(true);
     const check = await addUpload(file, loaded, replaceId);
     if (!mounted.current) return;
@@ -206,9 +221,22 @@ export function AnalysePanel({
     if (replaceId !== null && shown?.key === yoursKey(replaceId)) onShow(null);
     if (replaceId !== null && failure?.key === yoursKey(replaceId)) setFailure(null);
     onUploads(check.uploads);
-    const section = ANALYSE_SECTIONS[analyseSectionFor(check.definition.inputs)].title;
-    setUploadNotice({ at, ok: true, lines: [`${replaceId === null ? 'Added' : 'Replaced with'} “${check.definition.label}” (Yours) in ${section}.`] });
+    const landing = uploadLandingSection(check.definition.inputs);
+    setUploadNotice({ at, ok: true, lines: [`${replaceId === null ? 'Added' : 'Replaced with'} “${check.definition.label}” (Yours) in ${ANALYSE_SECTIONS[landing].title}.`] });
+    // Open the section it landed in (even if it was collapsed) and bring it into view; once the
+    // upload is listed there (after its worker has loaded it), scroll to the item itself.
+    setReveal((current) => ({ section: landing, n: (current?.n ?? 0) + 1 }));
+    const uploadId = replaceId ?? check.uploads.at(-1)?.id;
+    if (uploadId !== undefined) setScrollTo({ key: yoursKey(uploadId), section: landing });
   };
+
+  useEffect(() => {
+    if (!scrollTo) return;
+    const item = root.current?.querySelector(`[data-section="analyse-${scrollTo.section}"] [data-analysis="${CSS.escape(scrollTo.key)}"]`);
+    if (!item) return;
+    setScrollTo(null);
+    item.scrollIntoView({ block: 'nearest' });
+  });
 
   const removeUpload = (uploadId: string) => {
     if (!onUploads) return;
@@ -269,7 +297,29 @@ export function AnalysePanel({
   const stale = shown ? isStale(shown, version, attributes?.revision) : false;
 
   return (
-    <div className="sgl-analyse">
+    <div className="sgl-analyse" ref={root}>
+      {onUploads && (
+        <div className="sgl-analyse-upload" data-upload-block>
+          <div className="sgl-analyse-upload-row">
+            <button type="button" data-upload="new" disabled={uploading} onClick={() => chooseFile(null)}>
+              {uploading ? 'Checking the file…' : UPLOAD_BUTTON_LABEL}
+            </button>
+            <button
+              type="button"
+              className="sgl-info-button"
+              aria-label="About uploading your own analysis"
+              title="About uploading your own analysis"
+              aria-expanded={uploadInfo}
+              onClick={() => setUploadInfo(!uploadInfo)}
+            >
+              ⓘ
+            </button>
+          </div>
+          <p className="sgl-help sgl-analyse-upload-note">{UPLOAD_NOTE}</p>
+          {uploadInfo && <UploadInfo />}
+          {uploadNotice?.at === 'top' && <UploadNotice notice={uploadNotice} />}
+        </div>
+      )}
       <p className="sgl-help sgl-tab-intro">
         {ALGORITHM_TAB_LABELS.analyse.summary} <InfoButton label="Analyse vs Transform" onClick={() => setExplainer(ANALYSE_VS_TRANSFORM)} />
       </p>
@@ -296,6 +346,7 @@ export function AnalysePanel({
             title={meta.title}
             meta={meta.subtitle}
             defaultOpen={meta.openByDefault}
+            {...(reveal?.section === section && { reveal: reveal.n })}
             actions={
               <>
                 {sectionInfo && <InfoButton label={`${meta.title} section`} onClick={() => setExplainer(sectionInfo)} />}
@@ -315,30 +366,7 @@ export function AnalysePanel({
             }
           >
             {catalogue === section && onShownBuiltIns && (
-              <div className="sgl-analyse-catalogue" role="group" aria-label={`Built-in ${meta.title} analyses`}>
-                {catalogueFor(section, shownBuiltIns).map((c) => (
-                  <label key={c.id}>
-                    <input type="checkbox" checked={c.shown} onChange={(e) => onShownBuiltIns(setAnalysisShown(shownBuiltIns, c.id, e.currentTarget.checked))} /> {c.name}
-                  </label>
-                ))}
-                {onUploads && (
-                  <div className="sgl-analyse-upload">
-                    <button
-                      type="button"
-                      data-upload="new"
-                      disabled={uploading}
-                      title="Add your own graph analysis: one .ts file written with defineGraphAlgorithm (template in Guide › Toolkits & JSON)"
-                      onClick={() => chooseFile(null)}
-                    >
-                      {uploading ? 'Checking the file…' : 'Upload your own (.ts)…'}
-                    </button>
-                    {uploadNotice?.at === 'catalogue' && <UploadNotice notice={uploadNotice} />}
-                  </div>
-                )}
-                <button type="button" onClick={() => setCatalogue(null)}>
-                  Done
-                </button>
-              </div>
+              <AnalyseCatalogue section={section} shownBuiltIns={shownBuiltIns} onShownBuiltIns={onShownBuiltIns} onDone={() => setCatalogue(null)} />
             )}
             {hint && 'hint' in hint && list.length > 0 && <p className="sgl-help sgl-analyse-hint">{hint.hint}</p>}
             {list.length === 0 ? (
@@ -465,6 +493,77 @@ export function AnalysePanel({
           onChange={(event) => void onFileChosen(event)}
         />
       )}
+    </div>
+  );
+}
+
+/** A section's "+" menu: its built-ins to list or hide (uploading is the button at the top of the tab). */
+export function AnalyseCatalogue({
+  section,
+  shownBuiltIns,
+  onShownBuiltIns,
+  onDone,
+}: {
+  readonly section: AnalyseSectionId;
+  readonly shownBuiltIns: readonly string[];
+  readonly onShownBuiltIns: (ids: readonly string[]) => void;
+  readonly onDone: () => void;
+}) {
+  return (
+    <div className="sgl-analyse-catalogue" role="group" aria-label={`Built-in ${ANALYSE_SECTIONS[section].title} analyses`}>
+      {catalogueFor(section, shownBuiltIns).map((c) => (
+        <label key={c.id}>
+          <input type="checkbox" checked={c.shown} onChange={(e) => onShownBuiltIns(setAnalysisShown(shownBuiltIns, c.id, e.currentTarget.checked))} /> {c.name}
+        </label>
+      ))}
+      <button type="button" onClick={onDone}>
+        Done
+      </button>
+    </div>
+  );
+}
+
+/**
+ * The ⓘ of "Upload your own (.ts)": what an analysis can read, and how to start — the AI kit (a zip
+ * served from `public/downloads/`) or the template (loaded only when clicked).
+ */
+export function UploadInfo() {
+  const [problem, setProblem] = useState<string | null>(null);
+  const saveTemplate = async () => {
+    setProblem(null);
+    try {
+      const text = (await import('../../docs/templates/graph-analysis-template.ts?raw')).default;
+      const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = TEMPLATE_FILE_NAME;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setProblem(`Could not load the template: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+  return (
+    <div className="sgl-analyse-upload-info" data-upload-info>
+      <p>{UPLOAD_INFO}</p>
+      <p>Get started:</p>
+      <ul>
+        <li>
+          <a href={aiKitUrl(import.meta.env.BASE_URL)} download data-download="ai-kit">
+            ⤓ AI kit (.zip)
+          </a>{' '}
+          — attach it to an AI assistant and describe your idea.
+        </li>
+        <li>
+          <button type="button" className="sgl-analyse-link" data-download="template" onClick={() => void saveTemplate()}>
+            ⤓ Template (.ts)
+          </button>{' '}
+          — change it yourself, then upload it here.
+        </li>
+      </ul>
+      {problem && <p className="sgl-error">{problem}</p>}
     </div>
   );
 }

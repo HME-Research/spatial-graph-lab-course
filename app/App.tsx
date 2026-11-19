@@ -368,8 +368,12 @@ export function App() {
         // No toolkit: the built-in example's settings (never the default toolkit's, which activation would pick).
         if (id === null) return { ok: true, ...builtInExample() };
         const start = await startToolkit(TOOLKIT_GLOBS, { query: id, env: null }, builtInExample());
-        const signature = activeToolkitOf(start.session)?.attributeBaseline.signature;
-        if (start.startup.doc) return { ok: true, doc: start.startup.doc, source: start.startup.source, ...(signature !== undefined && { attributeSignature: signature }) };
+        // Only the design's Building settings are used (Create starts with an empty graph); the
+        // toolkit's custom attributes are added to the new project (owner decision 2026-11-19).
+        const baseline = activeToolkitOf(start.session)?.attributeBaseline;
+        if (start.startup.doc) {
+          return { ok: true, doc: start.startup.doc, source: start.startup.source, ...(baseline && { attributeSignature: baseline.signature, attributeSchema: baseline.schema }) };
+        }
         return { ok: false, message: `The starting design of ${id === null ? 'the built-in example' : `toolkit “${toolkitLabel(id)}”`} (${start.startup.source}) could not be loaded.` };
       },
     }),

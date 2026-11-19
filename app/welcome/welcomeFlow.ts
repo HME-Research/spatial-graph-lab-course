@@ -1,5 +1,5 @@
 import type { DesignDocumentV2 } from '@app/document';
-import { EMPTY_ATTRIBUTE_SCHEMA, makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
+import { EMPTY_ATTRIBUTE_SCHEMA, makeAttributeRecord, serializeAttributeRecord, type ProjectAttributeSchema } from '@app/extensions/projectAttributes';
 import { formatProjectIssues, readProjectFile, serializeProjectFile, type ProjectFileV2, type ProjectIssue } from '@app/project';
 import { blankDesign, checkName, newProjectFromDesign, readProjectOrDesign, type ProjectOrigin } from '@app/session/projectStore';
 import type { LeaveOptions, ProjectController } from '@app/session/projectStoreController';
@@ -22,6 +22,12 @@ export type StartingDesign =
        * is not reported as "the toolkit files changed". Absent when the toolkit did not activate.
        */
       readonly attributeSignature?: string;
+      /**
+       * The toolkit's custom attributes (`ActiveToolkit.attributeBaseline.schema`: the fields its
+       * `toolkit.ts` and Functions declare, with each Function's defaults). A created project starts
+       * with exactly these (owner decision 2026-11-19). Absent: no custom attributes.
+       */
+      readonly attributeSchema?: ProjectAttributeSchema;
     }
   | { readonly ok: false; readonly message: string };
 
@@ -67,26 +73,27 @@ async function openNew(
 }
 
 /**
- * The minimal starting state of a CREATED project (owner decision, UI refinement 2026-11-17): one
- * scenario with an empty graph (no rooms; the toolkit's Building settings are kept), only the
- * required attributes (Function, Level: no custom attributes) and no calculated attributes shown.
- * Students add attributes explicitly. The attributes declared by the toolkit's types stay
- * available through Attributes → Advanced → "Add attributes from the toolkit files".
+ * The starting state of a CREATED project (owner decisions 2026-11-17 and 2026-11-19): one scenario
+ * with an EMPTY graph (no rooms; the toolkit's Building settings are kept; its `defaultDesign` is
+ * never copied in), no calculated attributes shown, and — with a toolkit — exactly that toolkit's
+ * custom attributes (`attributeSchema`: e.g. House's Target area and Priority, with each Function's
+ * defaults), tagged `Toolkit: <name>`. Without a toolkit: only the required attributes.
  */
 export function minimalProjectFile(
   file: ProjectFileV2,
   attributeSignature: string | undefined,
+  attributeSchema: ProjectAttributeSchema = EMPTY_ATTRIBUTE_SCHEMA,
 ): { readonly ok: true; readonly value: ProjectFileV2 } | { readonly ok: false; readonly issues: readonly ProjectIssue[] } {
   const attributes =
     file.toolkit !== null && attributeSignature !== undefined
-      ? (JSON.parse(serializeAttributeRecord(makeAttributeRecord(file.toolkit.id, EMPTY_ATTRIBUTE_SCHEMA, attributeSignature))) as unknown)
+      ? (JSON.parse(serializeAttributeRecord(makeAttributeRecord(file.toolkit.id, attributeSchema, attributeSignature))) as unknown)
       : file.attributes;
   // Re-read the result: validated exactly like a stored or imported file.
   const read = readProjectFile(serializeProjectFile({ ...file, attributes, settings: { ...file.settings, calculatedFields: [] } }));
   return read.ok ? { ok: true, value: read.value } : { ok: false, issues: read.issues };
 }
 
-/** Create project: an EMPTY graph with only the required attributes (see `minimalProjectFile`). */
+/** Create project: an EMPTY graph with the chosen toolkit's custom attributes, if any (see `minimalProjectFile`). */
 export async function createProject(host: WelcomeHost, rawName: string, toolkitId: string | null, options: LeaveOptions = {}): Promise<FlowOutcome> {
   const name = checkName(rawName, 'project');
   if (!name.ok) return failed('new project', name.message);
@@ -94,7 +101,7 @@ export async function createProject(host: WelcomeHost, rawName: string, toolkitI
   if (!start.ok) return failed('new project', start.message);
   const file = newProjectFromDesign(blankDesign(start.doc, name.value), { name: name.value, toolkit: toolkitId === null ? null : { id: toolkitId } });
   if (!file.ok) return failed('new project', `The new project could not be created: ${formatProjectIssues(file.issues)}`, file.issues);
-  const minimal = minimalProjectFile(file.value, start.attributeSignature);
+  const minimal = minimalProjectFile(file.value, start.attributeSignature, start.attributeSchema);
   if (!minimal.ok) return failed('new project', `The new project could not be created: ${formatProjectIssues(minimal.issues)}`, minimal.issues);
   return openNew(host, minimal.value, { kind: 'created', label: 'new project' }, options);
 }

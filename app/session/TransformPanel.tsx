@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import type { DesignDocumentV2 } from '@app/document';
-import type { ActiveToolkit, AttributeSpec, ExtensionDiagnostic, TransformationPreviewV2 } from '@app/extensions';
+import type { ActiveToolkit, ExtensionDiagnostic, ParameterSpec, TransformationPreviewV2 } from '@app/extensions';
 import { ALGORITHM_TAB_LABELS, sourceTag, type AlgorithmSource } from '@app/ui/analysisSections';
 import { ExplainerWindow } from '@app/ui/guide';
 import { SourceTag } from '@app/ui/SourceTag';
@@ -12,6 +12,7 @@ import {
   formatValue,
   isStale,
   listAlgorithms,
+  parameterLabel,
   parameterProblems,
   runEntryV2,
   type AlgorithmRunV2,
@@ -194,23 +195,27 @@ export function TransformPanel({
   );
 }
 
-function ParameterField({
+/** One parameter: its label (else the key), its description under it, and a control by kind. */
+export function ParameterField({
   name,
   spec,
   draft,
   onChange,
 }: {
   readonly name: string;
-  readonly spec: AttributeSpec;
+  readonly spec: ParameterSpec;
   readonly draft: string;
   readonly onChange: (value: string) => void;
 }) {
+  const descriptionId = useId();
+  const shown = parameterLabel(name, spec);
+  const described = shown.description !== null ? { 'aria-describedby': descriptionId } : {};
   const hint = spec.default !== undefined ? `default ${JSON.stringify(spec.default)}` : 'no default';
   let control;
   if (spec.kind === 'enum' || spec.kind === 'boolean') {
     const options = spec.kind === 'enum' ? spec.values.map((v) => [v, v] as const) : ([['true', 'yes (true)'], ['false', 'no (false)']] as const);
     control = (
-      <select aria-label={`Parameter ${name}`} value={draft} onChange={(e) => onChange(e.currentTarget.value)}>
+      <select aria-label={`Parameter ${name}`} {...described} value={draft} onChange={(e) => onChange(e.currentTarget.value)}>
         <option value="">— {hint}</option>
         {options.map(([value, text]) => (
           <option key={value} value={value}>
@@ -223,6 +228,7 @@ function ParameterField({
     control = (
       <input
         aria-label={`Parameter ${name}`}
+        {...described}
         type={spec.kind === 'number' ? 'number' : 'text'}
         step="any"
         value={draft}
@@ -232,11 +238,14 @@ function ParameterField({
     );
   }
   return (
-    <label className="sgl-typed">
-      <span>
-        <code>{name}</code>
-      </span>
+    <label className="sgl-typed" data-parameter={name}>
+      <span className="sgl-parameter-label">{shown.isKey ? <code>{name}</code> : shown.label}</span>
       {control}
+      {shown.description !== null && (
+        <span id={descriptionId} className="sgl-help sgl-parameter-description">
+          {shown.description}
+        </span>
+      )}
     </label>
   );
 }

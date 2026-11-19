@@ -7,8 +7,8 @@ import {
   type TransformationPreviewV2,
   validateParameters,
   type ActiveToolkit,
-  type AttributeSpec,
   type ExtensionDiagnostic,
+  type ParameterSpec,
   type ExtensionResult,
   type ProjectAttributeSchema,
 } from '@app/extensions';
@@ -31,8 +31,11 @@ export interface AlgorithmEntry {
   readonly enabled: boolean;
   /** Why it is disabled (diagnostic messages); empty when enabled. */
   readonly problems: readonly string[];
-  /** Declared parameters of a transformation, in declaration order (only for enabled spatial algorithms). */
-  readonly parameters: readonly (readonly [string, AttributeSpec])[];
+  /**
+   * Declared parameters of a transformation, in declaration order (only for enabled spatial
+   * algorithms), each with its optional `label` and `description` (see `parameterLabel`).
+   */
+  readonly parameters: readonly (readonly [string, ParameterSpec])[];
   /**
    * Declared inputs of a graph analysis (P4). For a disabled analysis, the inputs as far as they can
    * be read (else none), so it can still be listed in a section with its problems.
@@ -69,6 +72,13 @@ export function listAlgorithms(project: ActiveToolkit | null): AlgorithmEntry[] 
       inputs: enabled && a.definition.scope === 'graph' ? a.definition.inputs : raw.scope === 'graph' ? readInputs(raw.inputs) : [],
     };
   });
+}
+
+/** What Transform shows for a parameter: its label (else the key) and its description, if any. */
+export function parameterLabel(key: string, spec: ParameterSpec): { readonly label: string; readonly description: string | null; readonly isKey: boolean } {
+  const label = spec.label?.trim();
+  const description = spec.description?.trim();
+  return { label: label ? label : key, description: description ? description : null, isKey: !label };
 }
 
 /** Form drafts for parameters: name → text. An empty draft means "use the default". */

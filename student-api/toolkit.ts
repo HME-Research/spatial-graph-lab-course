@@ -26,8 +26,10 @@ export interface ToolkitAttributes {
 export interface ToolkitDefinition {
   readonly name: string;
   /**
-   * Design id (file name without `.json` in `designs/`) loaded at startup. Omitted: the built-in
-   * example is loaded. Set but missing or invalid: an error is shown and nothing is loaded.
+   * Design id (file name without `.json` in `designs/`). A project created with this toolkit takes
+   * its Building settings (its graph starts empty, with the toolkit's custom attributes), and
+   * `npm run check:toolkit` runs your algorithms on it. Omitted: the built-in example's settings are
+   * used. Set but missing or invalid: an error is shown and the project is not created.
    */
   readonly defaultDesign?: string;
   /** Custom node and edge fields for projects made with this toolkit (see `ToolkitAttributes`). */

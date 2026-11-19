@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import './ui.css';
 
 export interface CollapsibleSectionProps {
@@ -21,6 +21,11 @@ export interface CollapsibleSectionProps {
   readonly className?: string;
   /** Stable hook for tests and the smoke harness. */
   readonly sectionId?: string;
+  /**
+   * Reveal request: each NEW value (a counter; 0 or absent = none) opens the section (remembered
+   * like a click) and scrolls it into view, e.g. after something was added to it.
+   */
+  readonly reveal?: number;
 }
 
 /** The toggle button press (pure): collapse an open section, open a collapsed one. */
@@ -68,7 +73,7 @@ export function writeSectionOpen(id: string | undefined, open: boolean, storage:
  * Open state of a disclosure that STICKS: it starts from the user's last choice for `id` (in this
  * browser), else `defaultOpen`; every toggle is remembered. Without an id it is only local state.
  */
-export function useRememberedOpen(id: string | undefined, defaultOpen: boolean): readonly [boolean, () => void] {
+export function useRememberedOpen(id: string | undefined, defaultOpen: boolean): readonly [boolean, () => void, () => void] {
   const [open, setOpen] = useState(() => readSectionOpen(id, defaultOpen));
   const toggle = () =>
     setOpen((current) => {
@@ -76,8 +81,16 @@ export function useRememberedOpen(id: string | undefined, defaultOpen: boolean):
       writeSectionOpen(id, next);
       return next;
     });
-  return [open, toggle] as const;
+  /** Open it (remembered, like the user opening it). */
+  const openNow = () => {
+    writeSectionOpen(id, true);
+    setOpen(true);
+  };
+  return [open, toggle, openNow] as const;
 }
+
+/** Whether a `reveal` prop value is a new reveal request (pure). */
+export const isNewReveal = (previous: number | undefined, next: number | undefined): boolean => next !== undefined && next !== 0 && next !== previous;
 
 /**
  * Collapsible section (WAI-ARIA disclosure pattern): the heading contains one button with
@@ -94,9 +107,23 @@ export function CollapsibleSection({
   variant = 'default',
   className,
   sectionId,
+  reveal,
 }: CollapsibleSectionProps) {
   // Collapsed by default; once the user opens or closes a section (by `sectionId`), that choice sticks.
-  const [open, toggle] = useRememberedOpen(sectionId, defaultOpen);
+  const [open, toggle, openNow] = useRememberedOpen(sectionId, defaultOpen);
+  const sectionRef = useRef<HTMLElement>(null);
+  const lastReveal = useRef(reveal);
+  useEffect(() => {
+    const isNew = isNewReveal(lastReveal.current, reveal);
+    lastReveal.current = reveal;
+    if (!isNew) return;
+    openNow();
+    // After the section has opened (next frame), bring it into view.
+    const frame = requestAnimationFrame(() => sectionRef.current?.scrollIntoView({ block: 'nearest' }));
+    return () => cancelAnimationFrame(frame);
+    // Only a new reveal value acts; `openNow` is recreated each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reveal]);
   const id = useId();
   const bodyId = `${id}-body`;
   const Heading = level === 3 ? 'h3' : 'h4';
@@ -104,7 +131,7 @@ export function CollapsibleSection({
     .filter(Boolean)
     .join(' ');
   return (
-    <section className={classes} data-section={sectionId}>
+    <section ref={sectionRef} className={classes} data-section={sectionId}>
       <div className="sgl-csection-head">
         <Heading className="sgl-csection-title">
           <button type="button" className="sgl-csection-toggle" aria-expanded={open} aria-controls={bodyId} onClick={toggle}>
