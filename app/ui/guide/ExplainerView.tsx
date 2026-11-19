@@ -53,9 +53,23 @@ export function ExplainerView({
   );
 }
 
-/** Save a text file: loaded on click, handed to the browser as a download (nothing is uploaded). */
+/**
+ * Save a file: a served file through a plain download link (`href`, binary allowed), or a text
+ * file loaded on click and handed to the browser as a download (nothing is uploaded).
+ */
 function DownloadButton({ download }: { readonly download: GuideDownload }) {
   const [problem, setProblem] = useState<string | null>(null);
+  const note = download.note ? <span className="sgl-explainer-download-note"> — {download.note}</span> : null;
+  if ('href' in download) {
+    return (
+      <>
+        <a className="sgl-explainer-download" href={download.href} download={download.fileName} data-download={download.fileName}>
+          ⤓ {download.label}
+        </a>
+        {note}
+      </>
+    );
+  }
   const save = async () => {
     setProblem(null);
     try {
@@ -77,6 +91,7 @@ function DownloadButton({ download }: { readonly download: GuideDownload }) {
       <button type="button" className="sgl-explainer-download" data-download={download.fileName} onClick={() => void save()}>
         ⤓ {download.label}
       </button>
+      {note}
       {problem && <span className="sgl-error"> {problem}</span>}
     </>
   );

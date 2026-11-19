@@ -152,7 +152,8 @@ export const UPLOAD_INFO =
   'An analysis only reads room ids and the relationships between them. It never sees functions, sizes or positions, and it never changes your design.';
 
 /** The AI kit, served from `public/downloads/` (built by `npm run build:ai-kit`). */
-export const AI_KIT_PATH = 'downloads/spatial-graph-lab-ai-kit.zip';
+export const AI_KIT_FILE_NAME = 'spatial-graph-lab-ai-kit.zip';
+export const AI_KIT_PATH = `downloads/${AI_KIT_FILE_NAME}`;
 /** The AI kit's URL under the app's base path (`import.meta.env.BASE_URL`, '/' by default). */
 export const aiKitUrl = (base: string): string => `${base.endsWith('/') ? base : `${base}/`}${AI_KIT_PATH}`;
 /** File name the analysis template is saved under. */

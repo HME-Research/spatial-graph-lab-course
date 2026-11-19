@@ -4,8 +4,11 @@ import { describe, expect, it } from 'vitest';
 import { isNewReveal } from '@app/ui/Section';
 import { ANALYSE_SECTION_IDS } from '@app/ui/analysisSections';
 import { NO_SELECTION } from '@core/viewer/selection';
-import { AI_KIT_PATH, aiKitUrl, UPLOAD_BUTTON_LABEL, UPLOAD_INFO, UPLOAD_NOTE, uploadLandingSection } from './analyseModel';
-import { AnalyseCatalogue, AnalysePanel, UploadInfo, type AnalysePanelProps } from './AnalysePanel';
+import { ExplainerView } from '@app/ui/guide';
+import type { GuideDownload } from '@app/ui/guideContracts';
+import { AI_KIT_FILE_NAME, AI_KIT_PATH, aiKitUrl, TEMPLATE_FILE_NAME, UPLOAD_BUTTON_LABEL, UPLOAD_INFO, UPLOAD_NOTE, uploadLandingSection } from './analyseModel';
+import { AnalyseCatalogue, AnalysePanel, type AnalysePanelProps } from './AnalysePanel';
+import { UPLOAD_EXPLAINER_ID, uploadExplainer } from './uploadExplainer';
 
 /**
  * "Upload your own (.ts)" is ONE button at the very top of the Analyse tab (owner, 19 November
@@ -32,8 +35,10 @@ describe('Upload your own analysis: one button at the top of Analyse', () => {
     expect(UPLOAD_BUTTON_LABEL).toBe('Upload your own (.ts)');
     expect(html).toContain(UPLOAD_NOTE);
     expect(html).toContain('aria-label="About uploading your own analysis"');
-    // The ⓘ text is shown only when asked for.
-    expect(html).not.toContain('data-upload-info');
+    // The ⓘ opens the shared pop-up explainer window; there is no inline panel any more.
+    expect(html).toMatch(/aria-label="About uploading your own analysis"[^>]*aria-haspopup="dialog"/);
+    expect(html).not.toContain('sgl-analyse-upload-info');
+    expect(html).not.toContain(UPLOAD_INFO);
   });
 
   it('is not offered when the project cannot store uploads', () => {
@@ -49,17 +54,35 @@ describe('Upload your own analysis: one button at the top of Analyse', () => {
     }
   });
 
-  it('its ⓘ says what an analysis reads and links the AI kit (served from public/) and the template', () => {
-    const html = renderToStaticMarkup(createElement(UploadInfo));
-    expect(html).toContain(UPLOAD_INFO);
+  it('its ⓘ is a pop-up explainer: what an analysis reads, the AI kit (a plain link, served from public/) and the template', () => {
+    const explainer = uploadExplainer(import.meta.env.BASE_URL);
+    expect(explainer.id).toBe(UPLOAD_EXPLAINER_ID);
+    expect(explainer.summary).toBe(UPLOAD_INFO);
     expect(UPLOAD_INFO).toContain('room ids and the relationships');
-    expect(html).toContain(`href="${aiKitUrl(import.meta.env.BASE_URL)}"`);
-    expect(html).toMatch(/<a [^>]*download=""/);
-    expect(html).toContain('data-download="template"');
+    const [kit, template] = explainer.downloads as readonly GuideDownload[];
+    expect(kit).toMatchObject({ fileName: AI_KIT_FILE_NAME, href: aiKitUrl(import.meta.env.BASE_URL) });
+    expect(template).toMatchObject({ fileName: TEMPLATE_FILE_NAME });
+    expect(template && 'load' in template).toBe(true);
+    expect(uploadExplainer('/lab/').downloads?.[0]).toMatchObject({ href: '/lab/downloads/spatial-graph-lab-ai-kit.zip' });
+    // Rendered by the shared explainer view: the zip as a download link, the template as a button.
+    const html = renderToStaticMarkup(createElement(ExplainerView, { explainer }));
+    expect(html).toContain(UPLOAD_INFO);
+    expect(html).toContain(
+      `<a class="sgl-explainer-download" href="${aiKitUrl(import.meta.env.BASE_URL)}" download="${AI_KIT_FILE_NAME}" data-download="${AI_KIT_FILE_NAME}">⤓ AI kit (.zip)</a>`,
+    );
+    expect(html).toContain('— attach it to an AI assistant and describe your idea.');
+    expect(html).toMatch(/<button type="button" class="sgl-explainer-download" data-download="graph-analysis-template.ts">⤓ Template \(.ts\)<\/button>/);
+    expect(html).toContain('— change it yourself, then upload it here.');
     expect(aiKitUrl('/')).toBe('/downloads/spatial-graph-lab-ai-kit.zip');
     expect(aiKitUrl('/lab')).toBe('/lab/downloads/spatial-graph-lab-ai-kit.zip');
     expect(aiKitUrl('./')).toBe('./downloads/spatial-graph-lab-ai-kit.zip');
     expect(fs.existsSync(new URL(`../../public/${AI_KIT_PATH}`, import.meta.url))).toBe(true);
+  });
+
+  it('the template download loads the real template text on click', async () => {
+    const template = uploadExplainer('/').downloads?.[1];
+    if (!template || !('load' in template)) throw new Error('expected a text download');
+    expect(await template.load()).toContain('defineGraphAlgorithm');
   });
 
   it('opens the section the upload landed in, from its inputs', () => {
