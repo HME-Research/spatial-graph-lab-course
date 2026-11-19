@@ -27,5 +27,5 @@
       "@student-api": ["./student-api/index.ts"]
     }
   },
-  "include": ["core", "app", "student-api", "toolkits", "docs/templates", "vite.config.ts"]
+  "include": ["core", "app", "student-api", "toolkits", "docs/templates", "docs/ai-kit/examples", "vite.config.ts"]
 }
