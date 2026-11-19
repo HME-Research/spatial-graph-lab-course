@@ -360,7 +360,7 @@ function RunResult({
   return (
     <section className="sgl-section algorithm-result">
       <h4>Preview: {run.label}</h4>
-      {preview.summary && <p>{preview.summary}</p>}
+      {preview.summary && <p style={{ whiteSpace: 'pre-line' }}>{preview.summary}</p>}
       {empty ? (
         <p className="meta">No changes to apply.</p>
       ) : (
