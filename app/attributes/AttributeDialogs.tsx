@@ -439,6 +439,7 @@ export function EditAttributeDialog({
   references,
   apply,
   onDelete,
+  deleteBlocked,
   onClose,
 }: {
   readonly collection: AttributeCollection;
@@ -451,6 +452,8 @@ export function EditAttributeDialog({
   readonly references: readonly string[];
   readonly apply: ApplyEdits;
   readonly onDelete: () => void;
+  /** Why this attribute cannot be deleted (a toolkit attribute, P4); Delete is then disabled. */
+  readonly deleteBlocked?: string | null;
   readonly onClose: () => void;
 }) {
   const id = useId();
@@ -562,9 +565,20 @@ export function EditAttributeDialog({
       dialogId="edit-attribute"
       footer={
         <>
-          <button type="button" className="sgl-danger sgl-dialog-footer-start" onClick={onDelete}>
-            Delete…
-          </button>
+          {deleteBlocked ? (
+            <span className="sgl-dialog-footer-start" title={deleteBlocked}>
+              <button type="button" className="sgl-danger" disabled aria-describedby={`${id}-delete-blocked`}>
+                Delete…
+              </button>
+              <span className="sgl-visually-hidden" id={`${id}-delete-blocked`}>
+                {deleteBlocked}
+              </span>
+            </span>
+          ) : (
+            <button type="button" className="sgl-danger sgl-dialog-footer-start" onClick={onDelete}>
+              Delete…
+            </button>
+          )}
           <button type="button" onClick={onClose}>
             Cancel
           </button>
@@ -707,6 +721,8 @@ export function AttributeInfoDialog({
   typeText,
   text,
   calculated,
+  section = 'Required',
+  noun,
   onRemove,
   onClose,
 }: {
@@ -715,13 +731,17 @@ export function AttributeInfoDialog({
   readonly text: string;
   /** A calculated attribute: explains read-only values and offers removal from the list. */
   readonly calculated?: CatalogueMetric;
+  /** The section title of a built-in attribute (P4): Identity, Required by the app, Geometry. */
+  readonly section?: string;
+  /** Who has the attribute: 'node' or 'edge' (default: from the name). */
+  readonly noun?: 'node' | 'edge';
   readonly onRemove?: () => void;
   readonly onClose: () => void;
 }) {
   return (
     <Dialog
       title={name}
-      lead={calculated ? `Calculated · ${typeText}` : `${typeText} · Required`}
+      lead={calculated ? `Calculated · ${typeText}` : `${typeText} · ${section}`}
       onClose={onClose}
       dialogId="attribute-info"
       closeOnBackdrop
@@ -744,7 +764,7 @@ export function AttributeInfoDialog({
           Worked out from each scenario; it cannot be typed in. Removing it from the list only hides it here, in Properties and in Colour by. The calculation stays available to algorithms and can be added again.
         </p>
       ) : (
-        <p className="sgl-dialog-hint">Every {name === 'Relationship' ? 'edge' : 'node'} has this attribute. It cannot be removed.</p>
+        <p className="sgl-dialog-hint">Every {noun ?? (name === 'Relationship' ? 'edge' : 'node')} has this attribute. It cannot be removed.</p>
       )}
     </Dialog>
   );

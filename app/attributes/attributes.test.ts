@@ -20,8 +20,10 @@ import {
   keyHasIncompatibleValues,
   keyStem,
   scenarioSamples,
+  sectionedRows,
   storedValueCount,
 } from './attributeList';
+import { EDGE_BUILT_IN_ATTRIBUTES, NODE_BUILT_IN_ATTRIBUTES } from './sections';
 import { AddAttributeDialog, AttributeInfoDialog, DeleteAttributeDialog, EditAttributeDialog, studentMessage } from './AttributeDialogs';
 import { AttributesPanel } from './AttributesPanel';
 import { CustomAttributes } from './CustomAttributes';
@@ -82,22 +84,35 @@ describe('attributes model (values)', () => {
 });
 
 describe('unified attribute list', () => {
-  it('Node: Function and Level first, then custom in project order, then shown calculated in catalogue order', () => {
+  it('Node: the five sections in order — Identity, Required, Geometry, Custom (project order), Calculated (catalogue order)', () => {
     const rows = attributeRows('nodes', schema, ['degree', 'area', 'route-length']);
     expect(rows.map((r) => `${r.kind}:${r.name}:${r.typeText}`)).toEqual([
+      'identity:ID:Number',
       'required:Function:Choice',
-      'required:Level:Number',
+      'geometry:Position X:Number',
+      'geometry:Position Y:Number',
+      'geometry:Level:Number',
+      'geometry:Size X:Number',
+      'geometry:Size Y:Number',
+      'geometry:Floors:Number',
       'custom:Capacity:Number',
       'custom:Public:Yes/No',
       'calculated:Area:Calculated',
       'calculated:Degree:Calculated',
     ]);
+    // Membership and order follow sections.ts exactly.
+    expect(rows.filter((r) => r.kind !== 'custom' && r.kind !== 'calculated').map((r) => r.id)).toEqual(NODE_BUILT_IN_ATTRIBUTES.map((a) => a.id));
+    expect(sectionedRows(rows).map((g) => g.section)).toEqual(['identity', 'required', 'geometry', 'custom', 'calculated']);
+    // Empty sections are left out.
+    expect(sectionedRows(attributeRows('nodes', EMPTY_ATTRIBUTE_SCHEMA, [])).map((g) => g.section)).toEqual(['identity', 'required', 'geometry']);
   });
 
-  it('Edge: the real required attribute (Relationship) first, nothing invented, then edge attributes', () => {
+  it('Edge: Identity (ID, Source, Target), then Relationship, nothing invented, no Geometry, then edge attributes', () => {
     const rows = attributeRows('edges', schema, DEFAULT_ENABLED_METRICS);
-    expect(rows[0]).toMatchObject({ kind: 'required', name: 'Relationship' });
+    expect(rows.slice(0, 4).map((r) => `${r.kind}:${r.name}`)).toEqual(['identity:ID', 'identity:Source', 'identity:Target', 'required:Relationship']);
     expect(rows.filter((r) => r.kind === 'required')).toHaveLength(1);
+    expect(rows.some((r) => r.kind === 'geometry')).toBe(false);
+    expect(rows.filter((r) => r.kind !== 'custom' && r.kind !== 'calculated').map((r) => r.id)).toEqual(EDGE_BUILT_IN_ATTRIBUTES.map((a) => a.id));
     expect(rows.map((r) => r.name)).toContain('Weight');
     expect(rows.find((r) => r.kind === 'calculated')).toMatchObject({ id: 'resolution-status' });
   });
@@ -219,27 +234,71 @@ describe('Attributes panel', () => {
     return renderToStaticMarkup(createElement(AttributesPanel, { session, project, doc: docOf({ daylight: 'high' }), source: 'd.json', onChange: () => {}, onCalculatedFields: () => {}, ...over }));
   };
 
-  it('shows one compact list with Node | Edge, required first, and one Add attribute button', async () => {
+  it('shows the five sections with Node | Edge, in order, and one Add attribute button', async () => {
     const html = await render({ calculatedFields: ['area', 'degree'] });
-    for (const text of ['>Node<', '>Edge<', 'aria-label="Node attributes"', '>Function<', '>Level<', 'aria-label="Required: cannot be removed"', '>Daylight<', '>Area<', '>Degree<', '+</span> Add attribute']) {
+    for (const text of ['>Node<', '>Edge<', 'aria-label="Node attributes: Identity"', '>ID<', '>Function<', '>Level<', '>Floors<', 'aria-label="Required: cannot be removed"', '>Daylight<', '>Area<', '>Degree<', '+</span> Add attribute']) {
       expect(html, text).toContain(text);
     }
-    expect(html.indexOf('>Function<')).toBeLessThan(html.indexOf('>Daylight<'));
+    const sections = [...html.matchAll(/data-attribute-section="([^"]+)"/g)].map((m) => m[1]);
+    expect(sections).toEqual(['identity', 'required', 'geometry', 'custom', 'calculated']);
+    expect(html.indexOf('>Function<')).toBeLessThan(html.indexOf('>Position X<'));
+    expect(html.indexOf('>Floors<')).toBeLessThan(html.indexOf('>Daylight<'));
     expect(html.indexOf('>Daylight<')).toBeLessThan(html.indexOf('>Area<'));
-    // No separate sections, no internal ids, no permanent large forms.
-    for (const old of ['System fields', 'Custom attributes', 'sgl-csection-text">Calculated', 'Add a node field', 'Undo field change', '<code>daylight</code>', 'Kind']) expect(html, old).not.toContain(old);
+    // Each section: a small title and an ⓘ with its summary and a link into the Guide.
+    expect(html).toContain('<h4 class="sgl-attr-section-title">Required by the app</h4>');
+    expect(html).toContain('data-help-topic="section-geometry"');
+    expect(html.split('More in the guide →').length).toBe(6);
+    // The sections are not collapsible (only Advanced below them is); no internal ids, no permanent large forms.
+    expect(html.slice(0, html.indexOf('data-section="attributes-advanced"'))).not.toContain('sgl-csection-toggle');
+    for (const old of ['System fields', 'Custom attributes', 'Add a node field', 'Undo field change', '<code>daylight</code>', 'Kind']) expect(html, old).not.toContain(old);
     expect(html.split('Add attribute').length).toBe(2);
     // Small icon undo/redo for attribute changes only.
     expect(html).toContain('aria-label="No attribute change to undo"');
   });
 
-  it('custom rows can be deleted (with confirmation); calculated rows are only removed from the list', async () => {
-    const html = await render({ calculatedFields: ['area'] });
-    expect(html).toContain('aria-label="Delete attribute Daylight…"');
+  it('edges: Identity (ID, Source, Target) and Relationship; no Geometry section', async () => {
+    const html = await render({ collection: 'edges', calculatedFields: [] });
+    const sections = [...html.matchAll(/data-attribute-section="([^"]+)"/g)].map((m) => m[1]);
+    expect(sections).toEqual(['identity', 'required']);
+    for (const text of ['>ID<', '>Source<', '>Target<', '>Relationship<']) expect(html, text).toContain(text);
+  });
+
+  it('toolkit attributes are tagged and cannot be deleted; yours are tagged and can; calculated rows are only removed from the list', async () => {
+    const project = await labToolkit();
+    const base = loadAttributeSession(null, project);
+    const added = editAttributesBatch(base, [{ type: 'add-field', collection: 'nodes', field: { key: 'finish', label: 'Finish', kind: 'text' } }], 'Add');
+    if (!added.ok) throw new Error(added.reason);
+    const html = await render({ session: added.session, calculatedFields: ['area'] });
+    expect(html).toContain('<span class="sgl-source-tag">Toolkit: Lab</span>');
+    expect(html).toContain('<span class="sgl-source-tag">Yours</span>');
+    expect(html).not.toContain('aria-label="Delete attribute Daylight…"');
+    expect(html).toMatch(/sgl-attr-delete-blocked" title="Comes from the toolkit “Lab”, so it cannot be deleted/);
+    expect(html).toContain('aria-label="Delete attribute Finish…"');
     expect(html).toContain('aria-label="Remove Area from the list"');
     expect(html).toContain('Remove from the list (the calculation stays available)');
+    expect(html).toContain('aria-label="Calculated: cannot be typed in"');
     expect(html).not.toContain('aria-label="Delete attribute Function');
     expect(html).toContain('aria-label="Required: cannot be removed"');
+  });
+
+  it('the edit dialog of a toolkit attribute disables Delete and says why', () => {
+    const field = schema.nodes[0]!;
+    const html = renderToStaticMarkup(
+      createElement(EditAttributeDialog, {
+        collection: 'nodes',
+        schema,
+        field,
+        samples: [],
+        functions: [],
+        references: [],
+        apply: () => null,
+        onDelete: () => {},
+        deleteBlocked: 'Comes from the toolkit “Lab”, so it cannot be deleted.',
+        onClose: () => {},
+      }),
+    );
+    expect(html).toMatch(/<button type="button" class="sgl-danger" disabled=""[^>]*>Delete…<\/button>/);
+    expect(html).toContain('Comes from the toolkit “Lab”, so it cannot be deleted.');
   });
 
   it('the Function row opens the Functions pop-up when the host offers it', async () => {

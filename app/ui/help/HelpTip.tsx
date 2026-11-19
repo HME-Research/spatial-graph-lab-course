@@ -15,11 +15,14 @@ export function HelpTip({
   topicId,
   topic: custom,
   children,
+  mark = '?',
 }: {
   readonly topicId?: string;
   readonly topic?: HelpTopic;
   /** Optional extra content inside the pinned panel (e.g. a link to docs). */
   readonly children?: ReactNode;
+  /** The trigger's visible mark: '?' (help, default) or 'i' (section information, P4). */
+  readonly mark?: '?' | 'i';
 }) {
   const topic = custom ?? (topicId ? helpTopic(topicId) : undefined);
   const [state, dispatch] = useReducer(helpReducer, HELP_CLOSED);
@@ -66,7 +69,7 @@ export function HelpTip({
         onBlur={() => dispatch('blur')}
         onClick={() => dispatch('toggle')}
       >
-        ?
+        {mark}
       </button>
       <span role="tooltip" id={tipId} className="sgl-helptip-hint" hidden={!hintVisible(state)}>
         {topic.summary}
@@ -74,10 +77,12 @@ export function HelpTip({
       <span id={panelId} className="sgl-helptip-panel" role="region" aria-label={topic.title} hidden={!state.open}>
         <strong>{topic.title}</strong>
         <span className="sgl-helptip-summary">{topic.summary}</span>
-        <details>
-          <summary>More details</summary>
-          <span className="sgl-helptip-details">{topic.details}</span>
-        </details>
+        {topic.details !== '' && (
+          <details>
+            <summary>More details</summary>
+            <span className="sgl-helptip-details">{topic.details}</span>
+          </details>
+        )}
         {children}
       </span>
     </span>

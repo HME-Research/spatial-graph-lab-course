@@ -6,6 +6,7 @@ import {
   resolveEdgeAttributes,
   resolveNodeAttributes,
   type AttributeCollection,
+  type AttributeField,
   type EffectiveAttribute,
   type ProjectAttributeSchema,
 } from '@app/extensions';
@@ -23,6 +24,8 @@ import {
   sourceText,
 } from './attributesModel';
 import { HelpTip } from '@app/ui/help';
+import { SourceTag } from '@app/ui/SourceTag';
+import { customAttributeTag, type CustomAttributeSource } from './sections';
 import './attributes.css';
 
 type Stored = { readonly [key: string]: AttributeValue };
@@ -57,7 +60,10 @@ export function CustomAttributes({
   showHeader = true,
   before,
   after,
+  sourceOf,
 }: {
+  /** Where each attribute comes from (P4): shown as a `Toolkit: <name>` / `Yours` tag on its row. */
+  readonly sourceOf?: (field: AttributeField) => CustomAttributeSource;
   readonly collection: AttributeCollection;
   readonly item: { readonly id: number; readonly typeId?: string; readonly attributes: Stored };
   readonly schema: ProjectAttributeSchema;
@@ -102,7 +108,14 @@ export function CustomAttributes({
         </p>
       ) : null}
       {resolved.map((r) => (
-        <FieldValue key={`${r.field.id}:${JSON.stringify(r.storedValue)}:${r.storedKey ?? ''}`} r={r} typeId={item.typeId} send={(v) => send(r, v)} onError={onError} />
+        <FieldValue
+          key={`${r.field.id}:${JSON.stringify(r.storedValue)}:${r.storedKey ?? ''}`}
+          r={r}
+          typeId={item.typeId}
+          send={(v) => send(r, v)}
+          onError={onError}
+          {...(sourceOf && { tag: customAttributeTag(sourceOf(r.field)) })}
+        />
       ))}
       {after}
       {Object.keys(outside).length > 0 && (
@@ -127,11 +140,14 @@ function FieldValue({
   typeId,
   send,
   onError,
+  tag,
 }: {
   readonly r: EffectiveAttribute;
   readonly typeId: string | undefined;
   readonly send: (value: AttributeValue | undefined) => boolean;
   readonly onError: (message: string) => void;
+  /** Source tag text (P4): `Toolkit: <name>` or `Yours`. */
+  readonly tag?: string;
 }) {
   const { field } = r;
   const id = useId();
@@ -196,6 +212,7 @@ Identifier: ${field.key}` : `Identifier: ${field.key}`}
       </label>
       <div className="sgl-field-control">{control}</div>
       <div className="sgl-field-meta">
+        {tag !== undefined && <SourceTag text={tag} />}
         <span id={`${id}-src`} className={`sgl-field-src sgl-field-src-${source.tone}`} title={`Effective value: ${formatFieldValue(r.value)}`}>
           {source.chip}
         </span>

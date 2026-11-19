@@ -445,3 +445,54 @@ button.sgl-attr-add {
   min-height: var(--hit-compact, 32px);
   padding: 0 var(--space-3, 12px);
 }
+
+/* Attribute sections (Programme P4): thin divider, small title, ⓘ. Not collapsible. */
+.sgl-attr-section {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding-top: 6px;
+  margin-top: 6px;
+  border-top: 1px solid var(--line, #e1e1dc);
+}
+.sgl-attr-section:first-of-type {
+  margin-top: 0;
+}
+.sgl-attr-section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.sgl-attr-section-title {
+  margin: 0;
+  font-size: var(--text-xs, 12px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted, #62625c);
+}
+.sgl-attr-section-actions {
+  margin-left: auto;
+}
+.sgl-guide-more {
+  display: block;
+  margin-top: 6px;
+}
+.sgl-field .sgl-attr-lock {
+  width: auto;
+}
+.sgl-field-locked .sgl-field-value {
+  color: var(--muted, #62625c);
+}
+.sgl-field-control .sgl-locked-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sgl-attr-delete-blocked {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.sgl-attr-row .sgl-source-tag {
+  margin-left: 6px;
+}

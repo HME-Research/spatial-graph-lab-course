@@ -30,9 +30,13 @@ import {
 } from '@app/session/projectAttributeStore';
 import { DEFAULT_ENABLED_METRICS, setMetricEnabled, type CatalogueMetric, type EnabledMetricIds } from '@app/metrics';
 import { CollapsibleSection, HorizontalTabs } from '@app/ui';
-import { attributeRows, metricValueText, scenarioSamples, type AttributeRow } from './attributeList';
+import { SourceTag } from '@app/ui/SourceTag';
+import { attributeRows, metricValueText, scenarioSamples, sectionedRows, type AttributeRow } from './attributeList';
 import { AddAttributeDialog, AttributeInfoDialog, DeleteAttributeDialog, EditAttributeDialog, studentMessage, type ApplyEdits } from './AttributeDialogs';
-import { HideIcon, LockIcon, PencilIcon, TrashIcon } from './FunctionsDialog';
+import { AttributeSection, RowLock } from './AttributeSection';
+import { sourceResolver, toolkitDeleteReason, toolkitDeleteRefusal } from './attributeSources';
+import { ATTRIBUTE_SECTIONS, canDeleteCustomAttribute, customAttributeTag } from './sections';
+import { HideIcon, PencilIcon, TrashIcon } from './FunctionsDialog';
 import './attributes.css';
 
 /** One scenario of the open project, for counting and validating stored values. */
@@ -49,10 +53,11 @@ type OpenDialog =
   | { readonly kind: 'info'; readonly row: AttributeRow };
 
 /**
- * The project's attributes (UI refinement 2026-11-17): ONE list per Node | Edge, in which required,
- * custom and calculated attributes appear alike (required first, then custom in project order,
- * then calculated in catalogue order). One "+ Add attribute" opens a dialog (Custom or Calculated);
- * a custom row opens its edit dialog; calculated and required rows open a short information view.
+ * The project's attributes (UI refinement 2026-11-17; sections: Programme P4): ONE list per
+ * Node | Edge in the five sections of `sections.ts` — Identity, Required by the app, Geometry
+ * (nodes), Custom (project order, each tagged `Toolkit: <name>` or `Yours`; toolkit attributes
+ * cannot be deleted), Calculated (catalogue order). One "+ Add attribute" opens a dialog (Custom
+ * or Calculated); a custom row opens its edit dialog; other rows open a short information view.
  *
  * Internally nothing is merged: custom attributes are the project attribute schema (with their own
  * Undo/Redo, ↶ ↷ here), calculated ones are the project's shown metric ids (`settings.calculatedFields`;
@@ -114,10 +119,19 @@ export function AttributesPanel({
     );
   }
   const schema = currentSchema(session);
-  const rows = attributeRows(collection, schema, calculatedFields);
+  const sourceOf = sourceResolver(collection, project);
+  const rows = attributeRows(collection, schema, calculatedFields, undefined, sourceOf);
   const functionChoices = functions ?? project.nodeTypes.filter((t) => t.status.ok).map((t) => ({ id: t.id, label: t.definition.label }));
+  /** Why a custom attribute cannot be deleted (it comes from the toolkit), or null. */
+  const deleteBlockedOf = (fieldId: string): string | null => {
+    const field = schema[collection].find((f) => f.id === fieldId);
+    const source = field ? sourceOf(field) : null;
+    return source && source.kind === 'toolkit' && !canDeleteCustomAttribute(source) ? toolkitDeleteReason(source.toolkitName) : null;
+  };
 
   const apply: ApplyEdits = (edits: readonly SchemaEdit[], label: string) => {
+    const refusal = toolkitDeleteRefusal(edits, schema, project);
+    if (refusal) return refusal;
     const result = editAttributesBatch(session, edits, label, { usage: samples });
     if (!result.ok) return result.reason;
     onChange(result.session);
@@ -208,27 +222,35 @@ export function AttributesPanel({
             description: c === 'nodes' ? 'Attributes of every node (room)' : 'Attributes of every edge (relationship), Access and Open alike',
           }))}
         >
-          <ul className="sgl-attr-list" aria-label={`${collection === 'nodes' ? 'Node' : 'Edge'} attributes`}>
-            {rows.map((row) => (
-              <AttributeListRow
-                key={`${row.kind}:${row.id}`}
-                row={row}
-                onOpen={() => {
-                  if (row.kind === 'custom') setDialog({ kind: 'edit', fieldId: row.id });
-                  else if (row.kind === 'required' && row.id === 'function' && onManageFunctions) onManageFunctions();
-                  else setDialog({ kind: 'info', row });
-                }}
-                onRemove={
-                  row.kind === 'custom'
-                    ? () => setDialog({ kind: 'delete', fieldId: row.id })
-                    : row.kind === 'calculated' && onCalculatedFields
-                      ? () => showCalculated(row.metric, false)
-                      : undefined
-                }
-                {...(row.kind === 'required' && row.id === 'function' && onManageFunctions && { onEdit: onManageFunctions })}
-              />
-            ))}
-          </ul>
+          {sectionedRows(rows).map(({ section, rows: sectionRows }) => (
+            <AttributeSection key={section} section={section}>
+              <ul className="sgl-attr-list" aria-label={`${collection === 'nodes' ? 'Node' : 'Edge'} attributes: ${ATTRIBUTE_SECTIONS[section].title}`}>
+                {sectionRows.map((row) => {
+                  const blocked = row.kind === 'custom' ? deleteBlockedOf(row.id) : null;
+                  return (
+                    <AttributeListRow
+                      key={`${row.kind}:${row.id}`}
+                      row={row}
+                      deleteBlocked={blocked}
+                      onOpen={() => {
+                        if (row.kind === 'custom') setDialog({ kind: 'edit', fieldId: row.id });
+                        else if (row.kind === 'required' && row.id === 'function' && onManageFunctions) onManageFunctions();
+                        else setDialog({ kind: 'info', row });
+                      }}
+                      onRemove={
+                        row.kind === 'custom' && blocked === null
+                          ? () => setDialog({ kind: 'delete', fieldId: row.id })
+                          : row.kind === 'calculated' && onCalculatedFields
+                            ? () => showCalculated(row.metric, false)
+                            : undefined
+                      }
+                      {...(row.kind === 'required' && row.id === 'function' && onManageFunctions && { onEdit: onManageFunctions })}
+                    />
+                  );
+                })}
+              </ul>
+            </AttributeSection>
+          ))}
           <button type="button" className="sgl-attr-add" onClick={() => setDialog({ kind: 'add' })}>
             <span aria-hidden="true">+</span> Add attribute
           </button>
@@ -314,11 +336,12 @@ export function AttributesPanel({
           functions={functionChoices}
           references={referencesOf(dialog.fieldId)}
           apply={apply}
+          deleteBlocked={deleteBlockedOf(dialog.fieldId)}
           onDelete={() => setDialog({ kind: 'delete', fieldId: dialog.fieldId })}
           onClose={() => setDialog(null)}
         />
       )}
-      {dialog?.kind === 'delete' && fieldOf(dialog.fieldId) && (
+      {dialog?.kind === 'delete' && fieldOf(dialog.fieldId) && deleteBlockedOf(dialog.fieldId) === null && (
         <DeleteAttributeDialog
           collection={collection}
           field={fieldOf(dialog.fieldId)!}
@@ -335,6 +358,7 @@ export function AttributesPanel({
           typeText={dialog.row.kind === 'calculated' ? metricValueText(dialog.row.metric) : dialog.row.typeText}
           text={dialog.row.kind === 'calculated' ? dialog.row.metric.definition : dialog.row.info}
           {...(dialog.row.kind === 'calculated' && { calculated: dialog.row.metric })}
+          {...(dialog.row.kind !== 'calculated' && { section: ATTRIBUTE_SECTIONS[dialog.row.kind].title, noun: collection === 'nodes' ? ('node' as const) : ('edge' as const) })}
           {...(dialog.row.kind === 'calculated' &&
             onCalculatedFields && {
               onRemove: () => {
@@ -350,25 +374,46 @@ export function AttributesPanel({
 }
 
 /** One compact row: name, a subtle type indicator, and the lock or the remove action. */
-function AttributeListRow({ row, onOpen, onRemove, onEdit }: { readonly row: AttributeRow; readonly onOpen: () => void; readonly onRemove?: (() => void) | undefined; readonly onEdit?: () => void }) {
+const LOCK_TITLES = {
+  identity: 'Identity: cannot be changed or removed',
+  required: 'Required: cannot be removed',
+  geometry: 'Geometry: cannot be removed',
+  calculated: 'Calculated: cannot be typed in',
+} as const;
+
+function AttributeListRow({
+  row,
+  onOpen,
+  onRemove,
+  onEdit,
+  deleteBlocked = null,
+}: {
+  readonly row: AttributeRow;
+  readonly onOpen: () => void;
+  readonly onRemove?: (() => void) | undefined;
+  readonly onEdit?: () => void;
+  /** A toolkit attribute: why it has no delete action. */
+  readonly deleteBlocked?: string | null;
+}) {
   const title =
     row.kind === 'custom'
       ? `${row.name} · ${row.typeText}${row.field.description ? ` — ${row.field.description}` : ''}. Click to edit.`
       : row.kind === 'calculated'
         ? `${row.name} · calculated (${metricValueText(row.metric)}). ${row.metric.definition}`
-        : `${row.name} · ${row.typeText} · required. ${row.info}`;
+        : `${row.name} · ${row.typeText} · ${ATTRIBUTE_SECTIONS[row.kind].title.toLowerCase()}. ${row.info}`;
   return (
     <li className={`sgl-attr-row is-${row.kind}`} data-attribute={row.id} data-attribute-kind={row.kind}>
       <button type="button" className="sgl-attr-main" onClick={onOpen} title={title}>
         <span className="sgl-attr-name">{row.name}</span>
-        {row.kind === 'required' && (
-          <span className="sgl-attr-lock" role="img" aria-label="Required: cannot be removed" title="Required: cannot be removed">
-            <LockIcon />
-          </span>
-        )}
+        {row.kind !== 'custom' && <RowLock title={LOCK_TITLES[row.kind]} />}
+        {row.kind === 'custom' && <SourceTag text={customAttributeTag(row.source)} />}
         <span className={`sgl-attr-type${row.kind === 'calculated' ? ' is-calculated' : ''}`}>{row.typeText}</span>
       </button>
-      {onEdit ? (
+      {deleteBlocked ? (
+        <span className="sgl-attr-remove-placeholder sgl-attr-delete-blocked" title={deleteBlocked} aria-label={deleteBlocked} role="img">
+          <TrashIcon />
+        </span>
+      ) : onEdit ? (
         <button type="button" className="sgl-icon-action sgl-attr-remove" onClick={onEdit} aria-label="Add or remove functions" title="Add or remove functions">
           <PencilIcon />
         </button>

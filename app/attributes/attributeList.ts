@@ -9,12 +9,19 @@ import {
   type ProjectAttributeSchema,
 } from '@app/extensions';
 import { METRIC_CATALOGUE, type CatalogueMetric, type EnabledMetricIds } from '@app/metrics';
+import {
+  ATTRIBUTE_SECTION_IDS,
+  EDGE_BUILT_IN_ATTRIBUTES,
+  NODE_BUILT_IN_ATTRIBUTES,
+  type AttributeSectionId,
+  type BuiltInAttribute,
+  type CustomAttributeSource,
+} from './sections';
 
 /**
- * Pure model of the Attributes panel (UI refinement 2026-11-17): ONE list per collection that
- * students read as "attributes". Required attributes come first, then the project's custom
- * attributes in project order, then the calculated attributes shown for the project in catalogue
- * order. The internal distinctions (system-backed, schema field, metric) stay here, for what each
+ * Pure model of the Attributes panel (UI refinement 2026-11-17; sections: Programme P4): ONE list
+ * per collection that students read as "attributes", grouped into the five sections of
+ * `sections.ts` (Identity, Required by the app, Geometry, Custom, Calculated). The internal distinctions (system-backed, schema field, metric) stay here, for what each
  * row may do; the list itself never shows identifiers.
  */
 
@@ -33,29 +40,58 @@ export const TYPE_HELP: Readonly<Record<FieldKind, string>> = {
   enum: 'One of a fixed list of options.',
 };
 
-export interface RequiredAttribute {
-  readonly id: string;
-  readonly name: string;
+/** A built-in row (Identity, Required by the app, Geometry): not a schema field, never deleted. */
+export interface BuiltInRowInfo {
   readonly typeText: string;
   readonly info: string;
 }
 
 /**
- * Required attributes of the actual graph model: a node's Function (`typeId`) and Level
- * (`grid[2]`); an edge's relationship (`kind`, Access or Open). Nothing is invented to mirror the
- * Node list.
+ * Short information on each built-in attribute of the real graph model (`sections.ts` gives the
+ * membership and order): a node's id, Function (`typeId`) and geometry (`grid` / `size`); an
+ * edge's id, endpoints and relationship (`kind`, Access or Open). Nothing is invented.
  */
-export const REQUIRED_ATTRIBUTES: Readonly<Record<AttributeCollection, readonly RequiredAttribute[]>> = {
-  nodes: [
-    { id: 'function', name: 'Function', typeText: 'Choice', info: 'What the room is used for. Every node has one; choose it in Properties. Add more functions here.' },
-    { id: 'level', name: 'Level', typeText: 'Number', info: 'The storey the room stands on. Edit it in Properties, or move the room.' },
-  ],
-  edges: [{ id: 'relationship', name: 'Relationship', typeText: 'Choice', info: 'Access (a door or floor opening) or Open (no wall between the rooms). Choose it in Properties.' }],
+export const BUILT_IN_INFO: Readonly<Record<AttributeCollection, Readonly<Record<string, BuiltInRowInfo>>>> = {
+  nodes: {
+    id: { typeText: 'Number', info: 'The node’s permanent number. The app gives it when the node is created; it never changes and is never reused.' },
+    function: { typeText: 'Choice', info: 'What the room is used for. Every node has one; choose it in Properties. Add more functions here.' },
+    'position-x': { typeText: 'Number', info: 'Where the room’s lowest corner is along x, in cells. Edit it in Properties, or move the room.' },
+    'position-y': { typeText: 'Number', info: 'Where the room’s lowest corner is along y, in cells. Edit it in Properties, or move the room.' },
+    level: { typeText: 'Number', info: 'The storey the room stands on. Edit it in Properties, or move the room.' },
+    'size-x': { typeText: 'Number', info: 'How many cells the room spans along x. Edit it in Properties, or resize the room.' },
+    'size-y': { typeText: 'Number', info: 'How many cells the room spans along y. Edit it in Properties, or resize the room.' },
+    floors: { typeText: 'Number', info: 'How many storeys tall the room is. Edit it in Properties, or resize the room.' },
+  },
+  edges: {
+    id: { typeText: 'Number', info: 'The edge’s permanent number. The app gives it when the edge is created; it never changes and is never reused.' },
+    source: { typeText: 'Node', info: 'The node the edge starts from. It never changes: to join other nodes, add another edge.' },
+    target: { typeText: 'Node', info: 'The node the edge leads to. It never changes: to join other nodes, add another edge.' },
+    relationship: { typeText: 'Choice', info: 'Access (a door or floor opening) or Open (no wall between the rooms). Choose it in Properties.' },
+  },
 };
 
+export const builtInAttributes = (collection: AttributeCollection): readonly BuiltInAttribute[] =>
+  collection === 'nodes' ? NODE_BUILT_IN_ATTRIBUTES : EDGE_BUILT_IN_ATTRIBUTES;
+
+export type BuiltInRow = {
+  readonly kind: BuiltInAttribute['section'];
+  readonly id: string;
+  readonly name: string;
+  readonly typeText: string;
+  readonly info: string;
+};
+
+/** A row's `kind` is its section (`sections.ts`). */
 export type AttributeRow =
-  | { readonly kind: 'required'; readonly id: string; readonly name: string; readonly typeText: string; readonly info: string }
-  | { readonly kind: 'custom'; readonly id: string; readonly name: string; readonly typeText: string; readonly field: AttributeField }
+  | BuiltInRow
+  | {
+      readonly kind: 'custom';
+      readonly id: string;
+      readonly name: string;
+      readonly typeText: string;
+      readonly field: AttributeField;
+      readonly source: CustomAttributeSource;
+    }
   | { readonly kind: 'calculated'; readonly id: string; readonly name: string; readonly typeText: string; readonly metric: CatalogueMetric };
 
 /** What a calculated attribute's values are, in plain words: "Number · m²", "Yes/No", "Text". */
@@ -65,21 +101,30 @@ export function metricValueText(metric: Pick<CatalogueMetric, 'valueKind' | 'uni
   return metric.unit ? `Number · ${metric.unit}` : 'Number';
 }
 
-/** The unified list for one collection. */
+/**
+ * The list for one collection, in section order: Identity, Required by the app, Geometry (nodes
+ * only), Custom in project order (each with its source), Calculated in catalogue order.
+ */
 export function attributeRows(
   collection: AttributeCollection,
   schema: ProjectAttributeSchema,
   enabledMetrics: EnabledMetricIds,
   catalogue: readonly CatalogueMetric[] = METRIC_CATALOGUE,
+  sourceOf: (field: AttributeField) => CustomAttributeSource = () => ({ kind: 'yours' }),
 ): AttributeRow[] {
   const on = new Set(enabledMetrics);
   return [
-    ...REQUIRED_ATTRIBUTES[collection].map((r) => ({ kind: 'required' as const, ...r })),
-    ...schema[collection].map((field) => ({ kind: 'custom' as const, id: field.id, name: field.label, typeText: TYPE_LABELS[field.kind], field })),
+    ...builtInAttributes(collection).map((b): BuiltInRow => ({ kind: b.section, id: b.id, name: b.name, ...BUILT_IN_INFO[collection][b.id]! })),
+    ...schema[collection].map((field) => ({ kind: 'custom' as const, id: field.id, name: field.label, typeText: TYPE_LABELS[field.kind], field, source: sourceOf(field) })),
     ...catalogue
       .filter((m) => m.collection === collection && on.has(m.id))
       .map((metric) => ({ kind: 'calculated' as const, id: metric.id, name: metric.label, typeText: 'Calculated', metric })),
   ];
+}
+
+/** The rows grouped by section, in section order; empty sections are left out. */
+export function sectionedRows(rows: readonly AttributeRow[]): { readonly section: AttributeSectionId; readonly rows: readonly AttributeRow[] }[] {
+  return ATTRIBUTE_SECTION_IDS.map((section) => ({ section, rows: rows.filter((r) => r.kind === section) })).filter((g) => g.rows.length > 0);
 }
 
 /** Calculated attributes that can still be added (not yet shown), optionally filtered by text. */
@@ -115,8 +160,8 @@ export function attributeNameProblem(
   const n = norm(name);
   if (n === '') return 'Enter a name.';
   if (name.trim().length > MAX_ATTRIBUTE_NAME) return `Use at most ${MAX_ATTRIBUTE_NAME} characters.`;
-  const required = REQUIRED_ATTRIBUTES[collection].find((r) => norm(r.name) === n);
-  if (required) return `“${required.name}” is a required attribute. Choose another name.`;
+  const builtIn = builtInAttributes(collection).find((r) => norm(r.name) === n);
+  if (builtIn) return `“${builtIn.name}” is a ${builtIn.section === 'required' ? 'required' : 'built-in'} attribute. Choose another name.`;
   const other = schema[collection].find((f) => f.id !== selfId && norm(f.label) === n);
   if (other) return `There is already an attribute called “${other.label}”.`;
   const metric = catalogue.find((m) => m.collection === collection && norm(m.label) === n);
