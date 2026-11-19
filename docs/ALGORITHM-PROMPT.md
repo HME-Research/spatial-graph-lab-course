@@ -53,4 +53,4 @@ export default defineGraphAlgorithm({
 
 ---
 
-Save the answer as a `.ts` file and upload it in **Analyse › + › Upload your own (.ts)…**, or put it in `toolkits/<your-toolkit>/algorithms/`. If the app refuses it, paste the app's message back to the assistant.
+Save the answer as a `.ts` file and upload it with **Upload your own (.ts)** at the top of **Analyse**, or put it in `toolkits/<your-toolkit>/algorithms/`. If the app refuses it, paste the app's message back to the assistant.

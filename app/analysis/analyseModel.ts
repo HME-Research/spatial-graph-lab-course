@@ -142,6 +142,25 @@ export function itemsBySection(items: readonly AnalysisItem[], filter: SourceFil
   return out;
 }
 
+// ── Uploading your own analysis (one button at the top of the tab) ──────────────────────────
+
+export const UPLOAD_BUTTON_LABEL = 'Upload your own (.ts)';
+/** The plain note under the button. */
+export const UPLOAD_NOTE = 'It appears in Node, Edge, Network or Queries, depending on what it asks you to pick.';
+/** The ⓘ of the button: what an analysis can read, then how to get started. */
+export const UPLOAD_INFO =
+  'An analysis only reads room ids and the relationships between them. It never sees functions, sizes or positions, and it never changes your design.';
+
+/** The AI kit, served from `public/downloads/` (built by `npm run build:ai-kit`). */
+export const AI_KIT_PATH = 'downloads/spatial-graph-lab-ai-kit.zip';
+/** The AI kit's URL under the app's base path (`import.meta.env.BASE_URL`, '/' by default). */
+export const aiKitUrl = (base: string): string => `${base.endsWith('/') ? base : `${base}/`}${AI_KIT_PATH}`;
+/** File name the analysis template is saved under. */
+export const TEMPLATE_FILE_NAME = 'graph-analysis-template.ts';
+
+/** The section a new upload lands in (from its inputs): the one to open and bring into view. */
+export const uploadLandingSection = (inputs: AnalysisInputs): AnalyseSectionId => analyseSectionFor(inputs);
+
 // ── Running on the selection (Node / Edge) ──────────────────────────────────────────────────
 
 /**

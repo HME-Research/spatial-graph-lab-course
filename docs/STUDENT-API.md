@@ -191,7 +191,7 @@ An analysis may also have a `description` (optional, one or two plain sentences,
 
 ### Uploading an analysis (no toolkit needed)
 
-The same file also works without a toolkit: in **Analyse**, open any section's **+** and choose **Upload your own (.ts)…**. The analysis appears in the section its `inputs` give, tagged **Yours**, and runs, picks and highlights exactly like a built-in. ↻ replaces it with a new version of the file (it keeps its place); ✕ removes it from the project. Start from the template or the AI prompt in **Guide › Toolkits & JSON › Downloads** (`docs/templates/graph-analysis-template.ts`, `docs/ALGORITHM-PROMPT.md`).
+The same file also works without a toolkit: in **Analyse**, choose **Upload your own (.ts)** at the top of the tab. The analysis appears in the section its `inputs` give (that section opens), tagged **Yours**, and runs, picks and highlights exactly like a built-in. ↻ replaces it with a new version of the file (it keeps its place); ✕ removes it from the project. Start from the template or the AI prompt in **Guide › Toolkits & JSON › Downloads** (`docs/templates/graph-analysis-template.ts`, `docs/ALGORITHM-PROMPT.md`).
 
 Rules and limits for uploads:
 - One `.ts` (or `.js`) file, at most 100 KB, at most 20 uploads per project. Types are removed when it is loaded; nothing is type-checked, the app checks everything at runtime.
