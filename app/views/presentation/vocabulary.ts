@@ -1,4 +1,4 @@
-import type { ConnectorStyle, RelationshipKind } from '@app/document';
+import { ROOF_STYLES, WALL_STYLES, type EffectiveCorridorLook, type RelationshipKind, type RoofStyle } from '@app/document';
 import type { ResolutionStatus, UnresolvedReason } from '@app/spatial';
 import { SELECTION_COLOR } from '@core/viewer/appearance';
 
@@ -113,18 +113,35 @@ export const KIND_PRESENTATION: Readonly<Record<RelationshipKind, KindPresentati
 };
 
 export interface ConnectorPresentation {
-  readonly style: ConnectorStyle;
+  readonly look: EffectiveCorridorLook;
   readonly label: string;
   readonly summary: string;
 }
 
-export const CONNECTOR_ORDER: readonly ConnectorStyle[] = ['enclosed', 'covered', 'deck'];
+/** Every corridor look (walls × roof) in legend order: Enclosed first; Flat, Pergola, None. */
+export const CONNECTOR_ORDER: readonly EffectiveCorridorLook[] = WALL_STYLES.flatMap((walls) => ROOF_STYLES.map((roof) => ({ walls, roof })));
 
-export const CONNECTOR_PRESENTATION: Readonly<Record<ConnectorStyle, ConnectorPresentation>> = {
-  enclosed: { style: 'enclosed', label: 'Enclosed corridor', summary: 'Roof and two side walls.' },
-  covered: { style: 'covered', label: 'Covered walkway', summary: 'Roof, open sides (default).' },
-  deck: { style: 'deck', label: 'Open deck', summary: 'Floor only, no roof or walls.' },
+/** Stable key of a corridor look, e.g. `open-flat`. */
+export const corridorLookKey = (look: EffectiveCorridorLook): string => `${look.walls}-${look.roof}`;
+
+const CORRIDOR_ROOF_WORDS: Readonly<Record<RoofStyle, string>> = { flat: 'flat roof', pergola: 'pergola roof', none: 'no roof' };
+const CORRIDOR_SUMMARY: Readonly<Record<string, string>> = {
+  'enclosed-flat': 'Side walls and a flat roof.',
+  'enclosed-pergola': 'Side walls under open pergola slats.',
+  'enclosed-none': 'Side walls, open to the sky.',
+  'open-flat': 'A flat roof on slim posts, open sides (default).',
+  'open-pergola': 'Pergola slats on slim posts, open sides.',
+  'open-none': 'Floor only, no roof or walls.',
 };
+
+/** Label and one-line summary of a corridor look (the Corridors card's Walls + Roof). */
+export function connectorPresentation(look: EffectiveCorridorLook): ConnectorPresentation {
+  return {
+    look,
+    label: `${look.walls === 'enclosed' ? 'Enclosed' : 'Open'} corridor, ${CORRIDOR_ROOF_WORDS[look.roof]}`,
+    summary: CORRIDOR_SUMMARY[corridorLookKey(look)] ?? '',
+  };
+}
 
 /** Short reason text for each unresolved reason (the engine's `message` stays available as detail). */
 export const UNRESOLVED_REASON_TEXT: Readonly<Record<UnresolvedReason, string>> = {

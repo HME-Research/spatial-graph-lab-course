@@ -3,7 +3,7 @@
 //
 // Drives the REAL app (dev or production preview) through the complete workshop workflow on real
 // schema-v2 data with the real resolver: add node, connect, move/resize, corridor generation,
-// connector style, Designer façade/roof, an algorithm, undo/redo, export/re-import; plus failure
+// corridor walls / roof, Designer façade/roof, an algorithm, undo/redo, export/re-import; plus failure
 // cases (room collision, corridor displacement Cancel/confirm, unresolved route, invalid JSON,
 // unsupported version, unknown type, stale transformation preview) and four-view coordination.
 //
@@ -282,30 +282,30 @@ await step('workflow/connect-generates-enclosed-corridor', async () => {
   expect(shown, 'relationship link in Properties');
   const text = await waitFor(`/In the building/i.test(__wf.props()) && __wf.props()`, 'relationship Properties');
   expect(/Connected via route/.test(text), `status: ${text.slice(0, 300)}`);
-  const style = await evaluate(`document.querySelector('select[aria-label="Corridor style"]')?.value ?? null`);
-  expect(style === 'enclosed', `default style ${style}`);
+  const walls = await evaluate(`document.querySelector('select[aria-label="Corridor walls"]')?.value ?? null`);
+  expect(walls === '', `corridor walls follow the design default: ${walls}`);
   await evaluate(`__wf.panel2('voxels'); true`);
   const info = await waitFor(`/connector cells/.test(__wf.voxelInfo()) && __wf.voxelInfo()`, 'connector cells in Voxels');
   expect(/3 connector cells/.test(info), `voxels: ${info}`);
   await screenshot(`10-corridor-voxels-${vw}x${vh}`);
   await evaluate(`__wf.panel2('architecture'); true`);
   await delay(600);
-  await screenshot(`11-corridor-building-enclosed-${vw}x${vh}`);
-  return `routed, default enclosed; Voxels "${info.split('\n').pop()}"`;
+  await screenshot(`11-corridor-building-default-${vw}x${vh}`);
+  return `routed, design default (open + flat); Voxels "${info.split('\n').pop()}"`;
 });
 
-await step('workflow/change-connector-style', async () => {
-  await evaluate(`__wf.setValue(document.querySelector('select[aria-label="Corridor style"]'), 'covered'); true`);
-  await waitFor(`/connector style/.test(__wf.undoTitle())`, 'the style change to be recorded');
+await step('workflow/change-corridor-look', async () => {
+  await evaluate(`__wf.setValue(document.querySelector('select[aria-label="Corridor walls"]'), 'enclosed'); true`);
+  await waitFor(`/corridor walls/.test(__wf.undoTitle())`, 'the walls change to be recorded');
   undoLabels.push(await evaluate('__wf.undoTitle()'));
   await delay(600);
-  await screenshot(`12-corridor-building-covered-${vw}x${vh}`);
-  await evaluate(`__wf.setValue(document.querySelector('select[aria-label="Corridor style"]'), 'deck'); true`);
-  await waitFor(`document.querySelector('select[aria-label="Corridor style"]').value === 'deck'`, 'deck');
+  await screenshot(`12-corridor-building-enclosed-${vw}x${vh}`);
+  await evaluate(`__wf.setValue(document.querySelector('select[aria-label="Corridor roof"]'), 'none'); true`);
+  await waitFor(`document.querySelector('select[aria-label="Corridor roof"]').value === 'none'`, 'no roof');
   undoLabels.push(await evaluate('__wf.undoTitle()'));
   await delay(600);
-  await screenshot(`13-corridor-building-deck-${vw}x${vh}`);
-  return 'enclosed → covered → deck, one undo step each';
+  await screenshot(`13-corridor-building-enclosed-no-roof-${vw}x${vh}`);
+  return 'design default → own Enclosed walls → own no roof, one undo step each';
 });
 
 await step('workflow/resize-via-properties', async () => {
@@ -412,8 +412,8 @@ await step('workflow/export-v2', async () => {
   expect(d.schemaVersion === 2, `schemaVersion ${d.schemaVersion}`);
   const room = d.nodes.find((n) => n.id === newId);
   expect(room && JSON.stringify(room.size) === '[2,1,1]' && JSON.stringify(room.grid) === '[5,0,0]', `new room ${JSON.stringify(room)}`);
-  const corridor = d.edges.find((e) => (e.source === newId || e.target === newId) && e.connectorStyle);
-  expect(corridor?.connectorStyle === 'deck', `connector edge ${JSON.stringify(corridor)}`);
+  const corridor = d.edges.find((e) => (e.source === newId || e.target === newId) && e.corridor);
+  expect(corridor?.corridor?.walls === 'enclosed' && corridor?.corridor?.roof === 'none', `connector edge ${JSON.stringify(corridor)}`);
   // Function cards ("Style rooms by", 2026-11-18): settings.styles.function.groups[].look.
   const cards = (d.settings?.styles?.function?.groups ?? []).map((g) => g.look);
   expect(d.settings?.styleBy === 'function', `styleBy ${d.settings?.styleBy}`);

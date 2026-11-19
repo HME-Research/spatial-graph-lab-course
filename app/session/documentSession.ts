@@ -1,5 +1,5 @@
 import { type DesignDocumentV2, type GraphIssue, nodeLabel, relationshipLabel } from '@app/document';
-import { applyDesignCommand, type DesignCommand } from '@app/spatial';
+import { applyDesignCommand, type CorridorPatch, type DesignCommand } from '@app/spatial';
 import { createHistory, record, redo, undo, type History } from './history';
 
 /**
@@ -124,6 +124,25 @@ export const isModified = (session: DocumentSession<object> | null): boolean =>
 // ---------------------------------------------------------------------------------------------
 // Labels
 
+const CORRIDOR_VALUE_WORDS: Readonly<Record<string, string>> = { enclosed: 'Enclosed', open: 'Open', flat: 'Flat', pergola: 'Pergola', none: 'None' };
+
+/**
+ * Undo label of a corridor change: of the Corridors card (`connection` absent) or of one
+ * relationship's own corridor ("connection 3 → 7").
+ */
+function corridorPatchLabel(patch: CorridorPatch, connection?: string): string {
+  const keys = (['walls', 'roof'] as const).filter((k) => patch[k] !== undefined);
+  const of = connection ? ` of ${connection}` : '';
+  if (keys.length === 1) {
+    const key = keys[0]!;
+    const value = patch[key];
+    if (value !== null && value !== undefined) return `Set the corridor ${key}${of} to ${CORRIDOR_VALUE_WORDS[value] ?? value}`;
+    return connection ? `Use the design's corridor ${key} for ${connection}` : `Reset the corridor ${key}`;
+  }
+  if (keys.length > 0 && keys.every((k) => patch[k] === null)) return connection ? `Use the design's corridor look for ${connection}` : 'Reset the Corridors card';
+  return `Change the corridor look${of}`;
+}
+
 /**
  * Short label for a schema-v2 command, in the app's vocabulary (rooms, connections, Building), using
  * the room ids (P4: the id is the label) of the document the command applies to.
@@ -170,10 +189,10 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       return `Change connection ${connection(command.edgeId)} to ${command.kind === 'open' ? 'Open' : 'Access'}`;
     case 'set-edge-attributes':
       return `Edit the attributes of connection ${connection(command.edgeId)}`;
-    case 'set-connector-style':
-      return `Change the connector style of ${connection(command.edgeId)}`;
+    case 'set-edge-corridor':
+      return corridorPatchLabel(command.patch, `connection ${connection(command.edgeId)}`);
     case 'set-corridors':
-      return command.patch.style === undefined ? 'Change the corridor roof' : command.patch.roof === undefined ? 'Change the corridor style' : 'Change the corridor settings';
+      return corridorPatchLabel(command.patch);
     case 'set-style-by':
       return 'Change what the rooms are styled by';
     case 'set-style-mode':

@@ -1,5 +1,5 @@
 import { VIEW_MODE_LABELS, VIEW_MODES, type ViewMode } from '@app/views/contracts';
-import type { ConnectorStyle, RelationshipKind } from '@app/document';
+import type { EffectiveCorridorLook, RelationshipKind, RoofStyle, WallStyle } from '@app/document';
 import type { EdgeResolution, UnresolvedReason } from '@app/spatial';
 
 /**
@@ -99,11 +99,24 @@ export const RELATIONSHIP_KIND_CHOICES: readonly Choice<RelationshipKind>[] = [
   },
 ];
 
-export const CONNECTOR_STYLE_CHOICES: readonly Choice<ConnectorStyle>[] = [
-  { value: 'enclosed', label: 'Enclosed', description: 'Floor, roof and side walls.' },
-  { value: 'covered', label: 'Covered', description: 'Floor and roof on posts, open at the sides.' },
-  { value: 'deck', label: 'Deck', description: 'Floor only, open to the sky.' },
+/** Walls of a generated corridor (the same words as a room card's walls). */
+export const CORRIDOR_WALL_CHOICES: readonly Choice<WallStyle>[] = [
+  { value: 'enclosed', label: 'Enclosed', description: 'A side wall on each side.' },
+  { value: 'open', label: 'Open', description: 'Open sides; slim posts carry the roof (no roof: no posts).' },
 ];
+
+/** Roof of a generated corridor (the same words as a room card's roof). */
+export const CORRIDOR_ROOF_CHOICES: readonly Choice<RoofStyle>[] = [
+  { value: 'flat', label: 'Flat', description: 'A flat roof.' },
+  { value: 'pergola', label: 'Pergola (open slats)', description: 'Open slats across the corridor, like a room pergola.' },
+  { value: 'none', label: 'None (open top)', description: 'No roof, open to the sky.' },
+];
+
+const CORRIDOR_WALL_WORDS: Readonly<Record<WallStyle, string>> = { enclosed: 'side walls', open: 'open sides' };
+const CORRIDOR_ROOF_WORDS: Readonly<Record<RoofStyle, string>> = { flat: 'a flat roof', pergola: 'a pergola roof', none: 'no roof' };
+
+/** "open sides and a flat roof": a corridor look in words. */
+export const corridorLookText = (look: EffectiveCorridorLook): string => `${CORRIDOR_WALL_WORDS[look.walls]} and ${CORRIDOR_ROOF_WORDS[look.roof]}`;
 
 export const labelOfChoice = <T extends string>(choices: readonly Choice<T>[], value: T): string =>
   choices.find((c) => c.value === value)?.label ?? value;
@@ -152,10 +165,9 @@ export function describeResolution(resolution: EdgeResolution): ResolutionText {
       };
     case 'routed': {
       const n = resolution.route.cells.length;
-      const style = labelOfChoice(CONNECTOR_STYLE_CHOICES, resolution.route.style).toLowerCase();
       return {
         title: 'Connected via route',
-        detail: `Joined by a generated ${style} corridor, ${n} cell${n === 1 ? '' : 's'} long, on storey ${resolution.route.level}.`,
+        detail: `Joined by a generated corridor (${corridorLookText(resolution.route.look)}), ${n} cell${n === 1 ? '' : 's'} long, on storey ${resolution.route.level}.`,
         tone: 'ok',
       };
     }

@@ -59,10 +59,10 @@ describe('beginner vocabulary', () => {
         ],
         from: { nodeId: 1, cell: [0, 0, 1], direction: '+x' },
         to: { nodeId: 2, cell: [3, 0, 1], direction: '-x' },
-        style: 'covered',
+        look: { walls: 'open', roof: 'flat' },
       },
     };
-    expect(describeResolution(routed).detail).toBe('Joined by a generated covered corridor, 2 cells long, on storey 1.');
+    expect(describeResolution(routed).detail).toBe('Joined by a generated corridor (open sides and a flat roof), 2 cells long, on storey 1.');
     for (const reason of Object.keys(UNRESOLVED_REASON_TEXT) as (keyof typeof UNRESOLVED_REASON_TEXT)[]) {
       const text = describeResolution({ ...base, status: 'unresolved', reason, message: 'x' });
       expect(text).toMatchObject({ title: 'Unresolved', tone: 'warning' });

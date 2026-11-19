@@ -1,5 +1,5 @@
 import { FACE_DIRECTIONS, FACE_DIRECTION_OFFSETS, gridKey, neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial';
-import { footprintCells, type ConnectorStyle, type DesignDocumentV2, type RoomNode } from '@app/document';
+import { footprintCells, type DesignDocumentV2, type RoomNode, type WallStyle } from '@app/document';
 import type { EdgeResolution, RoomFace, SpatialResolution } from '@app/spatial';
 import type { FaceCondition, ResolvedFace } from './contracts';
 import { connectionCondition, directionOrientation } from './resolve';
@@ -112,8 +112,8 @@ const byId = (a: { id: number }, b: { id: number }) => a.id - b.id;
 export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialResolution): BuildingFace[] {
   const direct = directFaceConditions(spatial.edges);
   const endpoints = routeEndpointFaces(spatial.edges);
-  const routeStyle = new Map<number, ConnectorStyle>();
-  for (const r of spatial.edges) if (r.status === 'routed') routeStyle.set(r.edgeId, r.route.style);
+  const routeWalls = new Map<number, WallStyle>();
+  for (const r of spatial.edges) if (r.status === 'routed') routeWalls.set(r.edgeId, r.route.look.walls);
   const typeOf = new Map(doc.nodes.map((n) => [n.id, n.typeId]));
   const faces: BuildingFace[] = [];
 
@@ -144,11 +144,11 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
             condition = e.condition;
             edgeId = e.edgeId;
             // The end of an open-air connector is outside too: façade colour, glass door.
-            outside = routeStyle.get(occupant.edgeId) !== 'enclosed';
+            outside = routeWalls.get(occupant.edgeId) !== 'enclosed';
           } else {
             // Beside an open-sided connector a wall is still outside: keep its façade (colour, windows).
             const wall = direction !== '+z' && direction !== '-z';
-            condition = wall && routeStyle.get(occupant.edgeId) !== 'enclosed' ? 'exterior' : 'solid';
+            condition = wall && routeWalls.get(occupant.edgeId) !== 'enclosed' ? 'exterior' : 'solid';
           }
         }
 

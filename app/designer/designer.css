@@ -844,3 +844,37 @@
   flex: 1;
   min-width: 0;
 }
+
+/* Source tag ("Set here" / "Built-in default" / "Uses Default") on the label row, control below (2026-11-19). */
+.sgl-designer-field.sgl-designer-sourced {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 2px;
+}
+.sgl-designer-sourced-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+.sgl-designer-field .sgl-designer-sourced-head label,
+.sgl-designer-sourced-head .sgl-designer-label {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+}
+.sgl-designer-sourced-head .sgl-designer-source {
+  flex: none;
+  white-space: nowrap;
+}
+.sgl-designer-sourced > select {
+  width: 100%;
+}
+
+/* The Corridors card swatch: the colour of generated connector cells (legend CONNECTOR_CELL_COLOR). */
+.sgl-designer-swatch--corridor {
+  border: 1px solid #8a826f;
+  background: #cfc6b3;
+}

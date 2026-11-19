@@ -1,6 +1,6 @@
 import {
-  type ConnectorStyle,
-  connectorStyleOf,
+  corridorLookOf,
+  type CorridorLook,
   type DesignDocumentV2,
   functionStyleSettings,
   type Look,
@@ -32,7 +32,7 @@ import { representativeFaceIndex, resolveBuildingFaces, toResolvedFace, unitFace
 // Room ids: a = 1, b = 2, c = 3, up = 4, dn = 5 (and r = 1, s = 2, t = 1, g = 1, low = 1, obstacle x = 3);
 // edges ab = 1, ac = 2. Face ids start with the owner room's id.
 type N = { id: number; grid: GridCoord; size?: [number, number, number]; typeId?: string };
-type E = { id: number; source: number; target: number; kind?: RelationshipKind; connectorStyle?: ConnectorStyle };
+type E = { id: number; source: number; target: number; kind?: RelationshipKind; corridor?: CorridorLook };
 
 function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown> = {}): DesignDocumentV2 {
   return expectOk(
@@ -45,7 +45,7 @@ function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown>
         source: e.source,
         target: e.target,
         kind: e.kind ?? 'access',
-        ...(e.connectorStyle ? { connectorStyle: e.connectorStyle } : {}),
+        ...(e.corridor ? { corridor: e.corridor } : {}),
       })),
       settings: functionStyleSettings(typeAppearance as Record<string, Look>),
     }),
@@ -63,7 +63,7 @@ function withRoute(
   base: SpatialResolution = resolveRelationships(doc),
 ): SpatialResolution {
   const edge = doc.edges.find((e) => e.id === spec.edgeId)!;
-  const route: ConnectorRoute = { ...spec, level: spec.cells[0]![2], style: connectorStyleOf(edge, doc.settings) };
+  const route: ConnectorRoute = { ...spec, level: spec.cells[0]![2], look: corridorLookOf(edge, doc.settings) };
   const edges: EdgeResolution[] = base.edges.map((r) =>
     r.edgeId === spec.edgeId ? { edgeId: r.edgeId, kind: r.kind, status: 'routed', route } : r,
   );
@@ -75,11 +75,16 @@ const H = DEFAULT_CELL_SIZE.vertical;
 const count = <T extends { part: string }>(els: readonly T[], part: string) => els.filter((e) => e.part === part).length;
 const facesOf = (els: readonly ArchitecturalElement[], faceId: string) => els.filter((e) => e.faceId === faceId);
 
-/** Two rooms 3 cells apart on x, joined by `ab`, with the straight route between them. */
-function corridorFixture(style?: ConnectorStyle, kind: RelationshipKind = 'access', extra: N[] = []) {
+// Corridor looks (walls + roof) used by the fixtures.
+const ENCLOSED: CorridorLook = { walls: 'enclosed' };
+const OPEN_FLAT: CorridorLook = { walls: 'open', roof: 'flat' };
+const OPEN_NONE: CorridorLook = { walls: 'open', roof: 'none' };
+
+/** Two rooms 3 cells apart on x, joined by `ab` (with its own corridor look, if given), with the straight route between them. */
+function corridorFixture(corridor?: CorridorLook, kind: RelationshipKind = 'access', extra: N[] = []) {
   const doc = v2(
     [{ id: 1, grid: [0, 0, 0] }, { id: 2, grid: [4, 0, 0], typeId: 'studio' }, ...extra],
-    [{ id: 1, source: 1, target: 2, kind, ...(style ? { connectorStyle: style } : {}) }],
+    [{ id: 1, source: 1, target: 2, kind, ...(corridor ? { corridor } : {}) }],
   );
   const spatial = withRoute(doc, {
     edgeId: 1,
@@ -274,20 +279,20 @@ describe('unresolved relationships', () => {
 // ── straight connectors ─────────────────────────────────────────────────────────────────────
 
 describe('straight connectors', () => {
-  it.each<[ConnectorStyle | undefined, ConnectorStyle, Record<string, number>]>([
-    [undefined, 'covered', { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 0, 'connector-post': 8 }],
-    ['enclosed', 'enclosed', { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 6, 'connector-post': 0 }],
-    ['covered', 'covered', { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 0, 'connector-post': 8 }],
-    ['deck', 'deck', { 'connector-floor': 3, 'connector-roof': 0, 'connector-wall': 0, 'connector-post': 0 }],
-  ])('style %s → %s surface counts', (style, effective, expected) => {
-    const { model } = corridorFixture(style);
+  it.each<[string, CorridorLook | undefined, CorridorLook, Record<string, number>]>([
+    ['built-in', undefined, { walls: 'open', roof: 'flat' }, { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 0, 'connector-post': 8 }],
+    ['enclosed', ENCLOSED, { walls: 'enclosed', roof: 'flat' }, { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 6, 'connector-post': 0 }],
+    ['open + flat', OPEN_FLAT, { walls: 'open', roof: 'flat' }, { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 0, 'connector-post': 8 }],
+    ['open + none', OPEN_NONE, { walls: 'open', roof: 'none' }, { 'connector-floor': 3, 'connector-roof': 0, 'connector-wall': 0, 'connector-post': 0 }],
+  ])('%s → surface counts', (_name, corridor, effective, expected) => {
+    const { model } = corridorFixture(corridor);
     for (const [part, n] of Object.entries(expected)) expect(count(model.connectors, part)).toBe(n);
-    expect(model.connectors.every((c) => c.style === effective)).toBe(true);
-    expect(model.relationships[0]).toMatchObject({ status: 'routed', geometry: 'connector', connectorStyle: effective });
+    expect(model.connectors.every((c) => c.look.walls === effective.walls && c.look.roof === effective.roof)).toBe(true);
+    expect(model.relationships[0]).toMatchObject({ status: 'routed', geometry: 'connector', corridor: effective });
   });
 
   it('enclosed: side walls run along the route; both ends are open', () => {
-    const { model } = corridorFixture('enclosed');
+    const { model } = corridorFixture(ENCLOSED);
     const walls = model.connectors.filter((c) => c.part === 'connector-wall');
     // ±y side walls: normal along Three Z, at z = ∓W/2, x within the gap between the rooms.
     expect(walls.every((w) => Math.abs(Math.abs(w.position[2]) - W / 2) < 1e-9 && w.size[2] < W)).toBe(true);
@@ -304,26 +309,26 @@ describe('straight connectors', () => {
   });
 
   it('endpoint faces of an enclosed route become a door (access) or full opening (open), never glazed', () => {
-    const access = corridorFixture('enclosed').model;
+    const access = corridorFixture(ENCLOSED).model;
     expect(access.faces.find((f) => f.id === '1:+x')).toMatchObject({ condition: 'door', edgeId: 1, via: 'route' });
     expect(access.faces.find((f) => f.id === '2:-x')).toMatchObject({ condition: 'door', edgeId: 1, via: 'route' });
     expect(facesOf(access.elements, '1:+x').map((e) => e.part)).toEqual(['wall', 'wall', 'wall']);
 
-    const open = corridorFixture('enclosed', 'open').model;
+    const open = corridorFixture(ENCLOSED, 'open').model;
     expect(facesOf(open.elements, '1:+x').map((e) => e.part)).toEqual(['threshold']);
     expect(facesOf(open.elements, '2:-x').map((e) => e.part)).toEqual(['threshold']);
   });
 
   it('a room beside the route keeps its own solid wall; the connector omits that side', () => {
-    const { model } = corridorFixture('enclosed', 'access', [{ id: 3, grid: [2, 1, 0] }]);
+    const { model } = corridorFixture(ENCLOSED, 'access', [{ id: 3, grid: [2, 1, 0] }]);
     expect(count(model.connectors, 'connector-wall')).toBe(5);
     expect(model.faces.find((f) => f.id === '3:-y')).toMatchObject({ condition: 'solid', via: 'route', edgeId: null });
     expect(facesOf(model.elements, '3:-y').map((e) => e.part)).toEqual(['wall']);
   });
 
   it('the end wall of an open-air route is outside (façade colour) with a closed glass door; enclosed is not', () => {
-    for (const style of ['deck', 'covered'] as const) {
-      const { model } = corridorFixture(style);
+    for (const look of [OPEN_NONE, OPEN_FLAT]) {
+      const { model } = corridorFixture(look);
       expect(model.faces.find((f) => f.id === '1:+x')).toMatchObject({ condition: 'door', outside: true, edgeId: 1 });
       const parts = facesOf(model.elements, '1:+x');
       expect(parts.map((e) => e.part)).toEqual(['wall', 'wall', 'wall', 'glazing']);
@@ -332,35 +337,38 @@ describe('straight connectors', () => {
       const glass = parts.find((e) => e.part === 'glazing')!;
       expect(glass.size[1]).toBeCloseTo(Math.min(2.2, H * 0.8), 9);
       // An `open` relationship has no end wall: still just a threshold.
-      expect(facesOf(corridorFixture(style, 'open').model.elements, '1:+x').map((e) => e.part)).toEqual(['threshold']);
+      expect(facesOf(corridorFixture(look, 'open').model.elements, '1:+x').map((e) => e.part)).toEqual(['threshold']);
     }
-    const enclosed = corridorFixture('enclosed').model;
+    const enclosed = corridorFixture(ENCLOSED).model;
     expect(enclosed.faces.find((f) => f.id === '1:+x')!.outside).toBeUndefined();
     expect(facesOf(enclosed.elements, '1:+x').map((e) => e.part)).toEqual(['wall', 'wall', 'wall']);
   });
 
-  it.each(['deck', 'covered'] as const)('a room beside a %s route keeps its façade wall (exterior, glazed)', (style) => {
-    const { model } = corridorFixture(style, 'access', [{ id: 3, grid: [2, 1, 0] }]);
+  it.each([
+    ['open + none', OPEN_NONE],
+    ['open + flat', OPEN_FLAT],
+  ] as const)('a room beside an %s route keeps its façade wall (exterior, glazed)', (_name, look) => {
+    const { model } = corridorFixture(look, 'access', [{ id: 3, grid: [2, 1, 0] }]);
     expect(model.faces.find((f) => f.id === '3:-y')).toMatchObject({ condition: 'exterior', via: 'route', edgeId: null });
     expect(facesOf(model.elements, '3:-y').some((e) => e.part === 'glazing')).toBe(true);
     // Only walls keep the façade: a room above the route still has a plain solid underside.
-    const above = corridorFixture(style, 'access', [{ id: 4, grid: [2, 0, 1] }]).model;
+    const above = corridorFixture(look, 'access', [{ id: 4, grid: [2, 0, 1] }]).model;
     expect(above.faces.find((f) => f.id === '4:-z')!.condition).toBe('solid');
   });
 
   it('a room above the route has no roof doubling; a room below the route loses its roof there', () => {
-    const above = corridorFixture('enclosed', 'access', [{ id: 4, grid: [2, 0, 1] }]).model;
+    const above = corridorFixture(ENCLOSED, 'access', [{ id: 4, grid: [2, 0, 1] }]).model;
     expect(count(above.connectors, 'connector-roof')).toBe(2);
     expect(above.faces.find((f) => f.id === '4:-z')!.condition).toBe('solid');
 
-    const below = corridorFixture('enclosed', 'access', [{ id: 5, grid: [2, 0, -1] }]).model;
+    const below = corridorFixture(ENCLOSED, 'access', [{ id: 5, grid: [2, 0, -1] }]).model;
     expect(count(below.connectors, 'connector-floor')).toBe(2);
     expect(below.faces.find((f) => f.id === '5:+z')!.condition).toBe('solid');
     expect(below.elements.some((e) => e.ownerNodeId === 5 && e.part === 'roof')).toBe(false);
   });
 
   it('connectors are pickable as their relationship and never reference a node', () => {
-    const { model } = corridorFixture('covered');
+    const { model } = corridorFixture(OPEN_FLAT);
     expect(model.connectors.every((c) => c.target.kind === 'edge' && c.target.id === 1)).toBe(true);
     expect(isConnectorHighlighted(model.connectors[0]!, selectEdge(1))).toBe(true);
     expect(isConnectorHighlighted(model.connectors[0]!, selectNode(1))).toBe(false);
@@ -393,7 +401,7 @@ describe('straight connectors', () => {
   });
 
   it('a y-axis covered connector places posts at every cell boundary on both sides', () => {
-    const doc = v2([{ id: 1, grid: [0, 0, 0] }, { id: 2, grid: [0, 3, 0] }], [{ id: 1, source: 1, target: 2, connectorStyle: 'covered' }]);
+    const doc = v2([{ id: 1, grid: [0, 0, 0] }, { id: 2, grid: [0, 3, 0] }], [{ id: 1, source: 1, target: 2, corridor: OPEN_FLAT }]);
     const spatial = withRoute(doc, {
       edgeId: 1,
       axis: 'y',
@@ -427,16 +435,16 @@ describe('integration: real straight routing', () => {
     const real = buildBuildingV2(doc); // no injected spatial → resolveRelationships(doc)
     const r = resolveRelationships(doc).byEdge.get(1)!;
     expect(r.status).toBe('routed');
-    expect(real.relationships.map((x) => [x.edgeId, x.geometry, x.connectorStyle])).toEqual([[1, 'connector', 'covered']]);
+    expect(real.relationships.map((x) => [x.edgeId, x.geometry, x.corridor])).toEqual([[1, 'connector', { walls: 'open', roof: 'flat' }]]);
     expect(real.connectors).toEqual(handBuilt.connectors);
   });
 
-  it.each<[ConnectorStyle, string, number]>([
-    ['enclosed', 'connector-wall', 6],
-    ['covered', 'connector-post', 8],
-    ['deck', 'connector-roof', 0],
-  ])('real route honours connector style %s', (style, part, n) => {
-    const { doc } = corridorFixture(style);
+  it.each<[string, CorridorLook, string, number]>([
+    ['enclosed', ENCLOSED, 'connector-wall', 6],
+    ['open + flat', OPEN_FLAT, 'connector-post', 8],
+    ['open + none', OPEN_NONE, 'connector-roof', 0],
+  ])('real route honours the corridor look %s', (_name, look, part, n) => {
+    const { doc } = corridorFixture(look);
     expect(count(buildBuildingV2(doc).connectors, part)).toBe(n);
   });
 

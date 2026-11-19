@@ -9,7 +9,7 @@ import { pickHandlers } from '@core/viewer/three/picking';
 import type { ViewMode } from '../contracts';
 import { RelationshipLegend } from '../presentation/LegendViews';
 import { CONNECTOR_CELL_COLOR, relationshipLegend } from '../presentation/legend';
-import { connectorStylesInUse, presentEdgeById, summarizeRelationships } from '../presentation/relationships';
+import { corridorLooksInUse, presentEdgeById, summarizeRelationships } from '../presentation/relationships';
 import { ANALYSIS_HIGHLIGHT, type LineToken } from '../presentation/vocabulary';
 import { dashIntervals } from './edgeStyle';
 import type { EdgeItem } from './sceneModel';
@@ -183,7 +183,7 @@ export function ViewRelationshipLegend({
     () =>
       relationshipLegend(view, {
         statusCounts: summarizeRelationships(design.spatial).counts,
-        connectorStyles: connectorStylesInUse(design.spatial),
+        corridorLooks: corridorLooksInUse(design.spatial),
         compact: true,
       }),
     [view, design.spatial],

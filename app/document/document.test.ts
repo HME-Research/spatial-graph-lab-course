@@ -14,7 +14,7 @@ import {
   serializeDesignV2,
   sharedFaces,
   validateDocumentV2,
-  connectorStyleOf,
+  corridorLookOf,
   type DesignDocumentV2,
 } from './index';
 import { v2Raw } from './test-fixtures';
@@ -33,16 +33,16 @@ describe('reading and writing', () => {
     expect(serializeDesignV2(back.doc)).toBe(text);
   });
 
-  it('round-trips v2-only data (size, id counters, connector style, appearance overrides)', () => {
+  it('round-trips v2-only data (size, id counters, corridor look, appearance overrides)', () => {
     const raw = v2Raw();
-    raw.edges[0]!.connectorStyle = 'deck';
+    raw.edges[0]!.corridor = { roof: 'none' };
     raw.settings = functionStyleSettings({ gallery: { windowFraction: 0.3 }, studio: { roof: 'none' } });
     const doc = expectOk(readDesign(raw)).doc;
     const back = expectOk(readDesignJson(serializeDesignV2(doc))).doc;
     expect(back).toEqual(doc);
     expect(back.nodes[0]!.size).toEqual([2, 3, 1]);
     expect(back.nodes[1]!.size).toEqual([1, 1, 1]); // default filled in on read
-    expect(back.edges[0]!.connectorStyle).toBe('deck');
+    expect(back.edges[0]!.corridor).toEqual({ roof: 'none' });
     expect([back.nextNodeId, back.nextEdgeId]).toEqual([3, 2]); // filled on read: largest id + 1
   });
 
@@ -195,7 +195,7 @@ describe('labels and appearance settings', () => {
     });
     expect(fnLook(doc, 'studio', { windowFraction: 0.25 }).windowFraction).toBe(0.25);
     expect(fnLook(doc, 'constructor', { windowFraction: 0.1 }).windowFraction).toBe(0.1);
-    expect(connectorStyleOf(doc.edges[0]!, doc.settings)).toBe('covered');
+    expect(corridorLookOf(doc.edges[0]!, doc.settings)).toEqual({ walls: 'open', roof: 'flat' });
   });
 
   it('window layout is stored per type (default repeat), round-trips, and unknown layouts are rejected', () => {

@@ -48,14 +48,14 @@ export interface JsonBlock {
   readonly lines: readonly JsonLine[];
 }
 
-/** Stored key of a node/edge record → its section. `connectorStyle` belongs to the relationship (Required). */
+/** Stored key of a node/edge record → its section. `corridor` (its own walls / roof) belongs to the relationship (Required). */
 const RECORD_KEY_SECTION: Readonly<Record<string, StoredSectionId>> = {
   id: 'identity',
   source: 'identity',
   target: 'identity',
   typeId: 'required',
   kind: 'required',
-  connectorStyle: 'required',
+  corridor: 'required',
   grid: 'geometry',
   size: 'geometry',
   attributes: 'custom',

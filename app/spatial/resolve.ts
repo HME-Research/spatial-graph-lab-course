@@ -1,6 +1,6 @@
 import { gridKey, type GridCoord } from '@core/spatial';
 import {
-  connectorStyleOf,
+  corridorLookOf,
   footprintCells,
   levelRange,
   roomContact,
@@ -89,6 +89,6 @@ function resolveOne(
   return {
     ...base,
     status: 'routed',
-    route: { edgeId: edge.id, axis: c.axis, level: c.level, cells: c.cells, from: c.from, to: c.to, style: connectorStyleOf(edge, settings) },
+    route: { edgeId: edge.id, axis: c.axis, level: c.level, cells: c.cells, from: c.from, to: c.to, look: corridorLookOf(edge, settings) },
   };
 }

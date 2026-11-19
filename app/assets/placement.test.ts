@@ -223,8 +223,8 @@ describe('regression: imported façades never change the Building elements', () 
 });
 
 describe('door / open bay variants (optional per function)', () => {
-  /** a and b two cells apart, joined by an open-air (deck) connector of `kind`; c touches a directly (interior door). */
-  function linked(kind: 'access' | 'open', facade: FacadeModule, connectorStyle: 'deck' | 'enclosed' = 'deck'): DesignDocumentV2 {
+  /** a and b two cells apart, joined by an open-air (open sides, no roof) connector of `kind`; c touches a directly (interior door). */
+  function linked(kind: 'access' | 'open', facade: FacadeModule, walls: 'open' | 'enclosed' = 'open'): DesignDocumentV2 {
     return expectOk(
       validateDocumentV2({
         schemaVersion: 2,
@@ -235,7 +235,7 @@ describe('door / open bay variants (optional per function)', () => {
           { id: 3, grid: [0, 1, 0], size: [1, 1, 1], typeId: 'gallery' },
         ],
         edges: [
-          { id: 1, source: 1, target: 2, kind, connectorStyle },
+          { id: 1, source: 1, target: 2, kind, corridor: walls === 'open' ? { walls: 'open', roof: 'none' } : { walls: 'enclosed' } },
           { id: 2, source: 1, target: 3, kind: 'access' },
         ],
         settings: functionStyleSettings({ gallery: { facade } }),

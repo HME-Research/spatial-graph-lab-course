@@ -4,7 +4,7 @@ import {
   type Attributes,
   bandIndex,
   canonicalFacadeModule,
-  type ConnectorStyle,
+  type CorridorLook,
   DEFAULT_RELATIONSHIP_KIND,
   type DesignDocumentV2,
   type DiagramPosition,
@@ -60,7 +60,8 @@ export interface NewRelationship {
   readonly target: number;
   /** Omitted: `access`. The rooms need NOT touch (unresolved is valid). */
   readonly kind?: RelationshipKind;
-  readonly connectorStyle?: ConnectorStyle;
+  /** Its own corridor walls / roof (absent fields use the design's Corridors card). */
+  readonly corridor?: CorridorLook;
   readonly attributes?: Attributes;
 }
 
@@ -74,10 +75,19 @@ export interface LookPatch {
   readonly facade?: FacadeModule | 'none' | null;
 }
 
-/** Change of the design-wide corridor settings: a value sets the field, `null` clears it, absent keeps it. */
+/** Change of a corridor look (the Corridors card or one relationship's own): a value sets the field, `null` clears it (inherit again), absent keeps it. */
 export interface CorridorPatch {
-  readonly style?: ConnectorStyle | null;
+  readonly walls?: WallStyle | null;
   readonly roof?: RoofStyle | null;
+}
+
+/** `current` with `patch` applied, or undefined when no field is left (fixed key order `walls`, `roof`). */
+export function patchCorridor(current: CorridorLook | undefined, patch: CorridorPatch): CorridorLook | undefined {
+  const pick = <K extends keyof CorridorPatch>(key: K) => (patch[key] === undefined ? current?.[key] : (patch[key] ?? undefined));
+  const walls = pick('walls');
+  const roof = pick('roof');
+  if (walls === undefined && roof === undefined) return undefined;
+  return { ...(walls === undefined ? {} : { walls }), ...(roof === undefined ? {} : { roof }) };
 }
 
 export type DesignCommand =
@@ -107,11 +117,14 @@ export type DesignCommand =
   | { readonly type: 'change-edge-kind'; readonly edgeId: number; readonly kind: RelationshipKind }
   /** Replaces the edge's stored custom attributes (additive after Gate 0; see docs/PROJECT-ATTRIBUTES.md). */
   | { readonly type: 'set-edge-attributes'; readonly edgeId: number; readonly attributes: Attributes }
-  /** `null` removes the explicit style (the design's corridor style applies, else the built-in default). */
-  | { readonly type: 'set-connector-style'; readonly edgeId: number; readonly style: ConnectorStyle | null }
   /**
-   * Design-wide corridor settings (Building Designer → Corridors, 2026-11-19). Only the fields
-   * given change; `null` clears a field (built-in default). An empty result removes `corridors`.
+   * One relationship's own corridor walls / roof (Properties). Only the fields given change; `null`
+   * clears a field (the design's Corridors card applies). An empty result removes `corridor`.
+   */
+  | { readonly type: 'set-edge-corridor'; readonly edgeId: number; readonly patch: CorridorPatch }
+  /**
+   * The Corridors look card (Building Designer, 2026-11-19): walls and roof of every corridor. Only
+   * the fields given change; `null` clears a field (built-in default). An empty result removes `corridors`.
    */
   | { readonly type: 'set-corridors'; readonly patch: CorridorPatch }
   /**
@@ -264,12 +277,13 @@ export function applyDesignCommand(
     case 'add-edge': {
       const e = command.edge;
       const id = doc.nextEdgeId;
+      const corridor = patchCorridor(e.corridor, {});
       const edge = {
         id,
         source: e.source,
         target: e.target,
         kind: e.kind ?? DEFAULT_RELATIONSHIP_KIND,
-        ...(e.connectorStyle === undefined ? {} : { connectorStyle: e.connectorStyle }),
+        ...(corridor ? { corridor } : {}),
         attributes: { ...e.attributes },
       };
       return validate({ ...doc, nextEdgeId: id + 1, edges: [...doc.edges, edge] });
@@ -304,19 +318,16 @@ export function applyDesignCommand(
       return mapEdge(command.edgeId, (e) => ({ ...e, kind: command.kind }));
     case 'set-edge-attributes':
       return mapEdge(command.edgeId, (e) => ({ ...e, attributes: { ...command.attributes } }));
-    case 'set-connector-style':
+    case 'set-edge-corridor':
       return mapEdge(command.edgeId, (e) => {
-        const { connectorStyle: _old, ...rest } = e;
-        return command.style === null ? rest : { ...rest, connectorStyle: command.style };
+        const { corridor: old, ...rest } = e;
+        const corridor = patchCorridor(old, command.patch);
+        return corridor ? { ...rest, corridor } : rest;
       });
     case 'set-corridors': {
-      const current = doc.settings.corridors ?? {};
-      const pick = <K extends keyof CorridorPatch>(key: K) => (command.patch[key] === undefined ? current[key] : (command.patch[key] ?? undefined));
-      const style = pick('style');
-      const roof = pick('roof');
-      const { corridors: _old, ...settings } = doc.settings;
-      const corridors = { ...(style === undefined ? {} : { style }), ...(roof === undefined ? {} : { roof }) };
-      return validate({ ...doc, settings: Object.keys(corridors).length === 0 ? settings : { ...settings, corridors } });
+      const { corridors: old, ...settings } = doc.settings;
+      const corridors = patchCorridor(old, command.patch);
+      return validate({ ...doc, settings: corridors ? { ...settings, corridors } : settings });
     }
     case 'set-style-by': {
       const setup = setupOf(doc, command.by);

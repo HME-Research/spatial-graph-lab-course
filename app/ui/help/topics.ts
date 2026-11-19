@@ -51,12 +51,12 @@ const topics = [
   },
   {
     id: 'connector-style',
-    title: 'Connector style',
-    summary: 'A generated connector can be an enclosed corridor, a covered walkway or an open deck.',
+    title: 'Corridors',
+    summary: 'A generated corridor has walls (Enclosed or Open) and a roof (Flat, Pergola or None), like a room card.',
     details:
-      'Enclosed: roof and two side walls. Covered (default): roof on posts, open sides. Deck: floor only. ' +
-      'The style and the roof (Flat, Pergola or None) of every corridor are set for the whole design in Building Designer → Corridors; one relationship can use its own style in Properties. ' +
-      'The style only matters when the relationship is Connected via route. Connector cells are reserved, so rooms cannot be placed on them without confirmation.',
+      'Walls: Enclosed puts a side wall on each side; Open leaves the sides open, with slim posts where there is a roof to carry. Roof: Flat, Pergola (open slats) or None. ' +
+      'The default is Open with a Flat roof; Open with no roof is just the floor. Set every corridor with the Corridors card in Building Designer → Looks; one relationship can set its own walls or roof in Properties ("Design default" follows the card). ' +
+      'A corridor is only built when the relationship is Connected via route. Corridor cells are reserved, so rooms cannot be placed on them without confirmation.',
   },
   {
     id: 'room-size',

@@ -35,7 +35,7 @@ export function metricsLabDoc(): DesignDocumentV2 {
     ],
     edges: [
       { id: 1, source: 1, target: 2, kind: 'access', attributes: {} },
-      { id: 2, source: 2, target: 3, kind: 'access', connectorStyle: 'enclosed', attributes: {} },
+      { id: 2, source: 2, target: 3, kind: 'access', corridor: { walls: 'enclosed' }, attributes: {} },
       { id: 3, source: 1, target: 5, kind: 'open', attributes: {} },
       { id: 4, source: 3, target: 5, kind: 'access', attributes: {} },
       { id: 5, source: 1, target: 3, kind: 'access', attributes: {} },

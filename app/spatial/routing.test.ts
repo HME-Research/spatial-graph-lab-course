@@ -12,7 +12,7 @@ import {
 } from './index';
 
 type N = { id: number; grid: [number, number, number]; size?: [number, number, number]; typeId?: string };
-type E = { id: number; source: number; target: number; kind?: 'access' | 'open'; connectorStyle?: string };
+type E = { id: number; source: number; target: number; kind?: 'access' | 'open'; corridor?: { walls?: 'enclosed' | 'open'; roof?: 'flat' | 'pergola' | 'none' } };
 
 const make = (nodes: N[], edges: E[]): DesignDocumentV2 =>
   expectOk(
@@ -129,7 +129,7 @@ describe('straight connector routing', () => {
       ],
       from: { nodeId: 1, cell: [0, 0, 0], direction: '+x' },
       to: { nodeId: 2, cell: [4, 0, 0], direction: '-x' },
-      style: 'covered',
+      look: { walls: 'open', roof: 'flat' },
     });
   });
 
@@ -211,13 +211,13 @@ describe('straight connector routing', () => {
     expect(r.occupancy.at([2, 0, 0])).toEqual({ kind: 'route', edgeId: 1 });
   });
 
-  it('keeps each relationship kind and connector style; routes open relationships too', () => {
-    for (const style of ['enclosed', 'covered', 'deck'] as const) {
-      const r = resolveRelationships(pair({ id: 2, grid: [3, 0, 0] }, [], { connectorStyle: style, kind: 'open' })).byEdge.get(1)!;
-      expect(r.status === 'routed' && [r.kind, r.route.style]).toEqual(['open', style]);
+  it('keeps each relationship kind and corridor look; routes open relationships too', () => {
+    for (const look of [{ walls: 'enclosed', roof: 'flat' }, { walls: 'open', roof: 'flat' }, { walls: 'open', roof: 'none' }, { walls: 'enclosed', roof: 'pergola' }] as const) {
+      const r = resolveRelationships(pair({ id: 2, grid: [3, 0, 0] }, [], { corridor: look, kind: 'open' })).byEdge.get(1)!;
+      expect(r.status === 'routed' && [r.kind, r.route.look]).toEqual(['open', look]);
     }
     const dflt = resolveRelationships(pair({ id: 2, grid: [3, 0, 0] })).byEdge.get(1)!;
-    expect(dflt.status === 'routed' && dflt.route.style).toBe('covered');
+    expect(dflt.status === 'routed' && dflt.route.look).toEqual({ walls: 'open', roof: 'flat' });
   });
 
   it('an unresolved relationship is still a valid document (warning, not a validation failure)', () => {

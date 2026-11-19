@@ -52,7 +52,7 @@ function labDocV2(typeAppearance: Record<string, unknown> = {}): DesignDocumentV
       ],
       edges: [
         { id: 1, source: 1, target: 2, kind: 'access' },
-        { id: 2, source: 1, target: 4, kind: 'open', connectorStyle: 'deck' },
+        { id: 2, source: 1, target: 4, kind: 'open', corridor: { roof: 'none' } },
       ],
       settings: functionStyleSettings(typeAppearance as Record<string, Look>),
     }),
@@ -286,16 +286,16 @@ describe('designer persistence and history', () => {
 });
 
 describe('selected relationship summary', () => {
-  it('summarises the selected relationship connector style for Properties', () => {
+  it('summarises the selected relationship corridor look for Properties', () => {
     const doc = labDocV2();
     const spatial = resolveRelationships(doc);
     expect(selectedRelationship(doc, selectEdge(2), spatial)).toMatchObject({
       edgeId: 2,
       label: '1 → 4',
-      style: 'deck',
-      styleIsDefault: false,
+      corridor: { walls: 'open', roof: 'none' },
+      corridorIsDefault: false,
     });
-    expect(selectedRelationship(doc, selectEdge(1), spatial)).toMatchObject({ style: 'covered', styleIsDefault: true, status: 'direct' });
+    expect(selectedRelationship(doc, selectEdge(1), spatial)).toMatchObject({ corridor: { walls: 'open', roof: 'flat' }, corridorIsDefault: true, status: 'direct' });
     expect(selectedRelationship(doc, selectNode(1), spatial)).toBeNull();
     expect(selectedRelationship(doc, selectEdge(999), spatial)).toBeNull();
   });
@@ -335,7 +335,7 @@ describe('DesignerPanel (static render)', () => {
     const doc = labDocV2({ studio: { windowLayout: 'stretch', windowFraction: 0.4 } });
     const html = renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(doc) }));
     const heads = html.match(/<button type="button" class="sgl-designer-type-head"[^>]*>/g) ?? [];
-    expect(heads.length).toBe(2); // Default + the studio card
+    expect(heads.length).toBe(3); // Default + the studio card + Corridors
     for (const head of heads) expect(head).toContain('aria-expanded="false"');
     expect(html).toMatch(/id="sgl-designer-studio-body" class="sgl-designer-type-body" hidden=""/);
     expect(html).toMatch(/40 % · Stretch · Flat roof · 1 room · changed/);
@@ -387,8 +387,11 @@ describe('DesignerPanel (static render)', () => {
     const noRooms = { nodes: [] };
     const context = buildProjectViewContext(project, noRooms);
     const facades = { assets: [], add: () => ({ ok: true as const }), remove: () => ({ ok: true as const }), rename: () => ({ ok: true as const }), setMaterials: () => ({ ok: true as const }) };
-    const html = renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(labDocV2({ studio: { walls: 'open' } })), project: context, facades }));
+    const full = renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(labDocV2({ studio: { walls: 'open' } })), project: context, facades }));
+    // Room cards only: the Corridors card (last in the list) has its own Walls and Roof (corridors.test.ts).
+    const html = full.slice(0, full.indexOf('<article class="sgl-designer-type sgl-designer-corridors"'));
     const cards = html.split('<article').length - 1;
+    expect(cards).toBe(2);
     // Two collapsible subsections per card (open by default): Façade (geometry: Open / Automatic / Import) and Roof.
     expect(html.split('>Façade</button></h5>').length - 1).toBe(cards);
     expect(html.split('>Roof</button></h5>').length - 1).toBe(cards);

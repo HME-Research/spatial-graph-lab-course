@@ -44,7 +44,7 @@ import type { CameraState, GroundGrid } from '@core/viewer/three/viewport';
  * geometry step (app/building) in the shared SceneCanvas (camera fitting, orbit controls, picking).
  *
  * The model is `buildBuildingV2(design.doc, design.spatial)`:
- * multicell rooms, direct openings, generated straight connectors (enclosed / covered / deck),
+ * multicell rooms, direct openings, generated straight connectors (walls enclosed / open × roof flat / pergola / none),
  * flat roofs on exposed tops and windows from the Designer's per-type rules. Connectors are part
  * of the camera bounds and picking (a connector selects its relationship). Unresolved
  * relationships build nothing and are drawn as short-dashed red lines. The snapped gizmo moves and
@@ -465,9 +465,9 @@ const LEGEND: readonly (readonly [label: string, color: string])[] = [
 ];
 
 const CONNECTOR_LEGEND: readonly (readonly [label: string, color: string])[] = [
-  ['Connector floor / deck', COLORS.connectorFloor],
+  ['Corridor floor', COLORS.connectorFloor],
   ['Corridor wall (enclosed)', COLORS.connectorWall],
-  ['Walkway post (covered)', COLORS.connectorPost],
+  ['Corridor post (open sides)', COLORS.connectorPost],
 ];
 
 function Overlay({

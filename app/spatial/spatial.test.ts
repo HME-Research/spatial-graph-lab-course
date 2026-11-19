@@ -80,7 +80,7 @@ const fakeRouter: RelationshipResolver = (d) => {
             cells,
             from: { nodeId: e.source, cell: [1, 0, 0], direction: '+x' },
             to: { nodeId: e.target, cell: [5, 0, 0], direction: '-x' },
-            style: 'enclosed',
+            look: { walls: 'enclosed', roof: 'flat' },
           },
         },
   );
@@ -136,12 +136,26 @@ describe('applyDesignCommand (frozen v2 command shapes)', () => {
     expect(next.nextEdgeId).toBe(3);
   });
 
-  it('changes kind and connector style; null restores the default', () => {
+  it('changes kind and the relationship’s own corridor fields; null clears a field, none left removes `corridor`', () => {
     let d = expectOk(applyDesignCommand(doc(), { type: 'change-edge-kind', edgeId: 1, kind: 'open' }));
-    d = expectOk(applyDesignCommand(d, { type: 'set-connector-style', edgeId: 1, style: 'covered' }));
-    expect(d.edges[0]).toMatchObject({ kind: 'open', connectorStyle: 'covered' });
-    d = expectOk(applyDesignCommand(d, { type: 'set-connector-style', edgeId: 1, style: null }));
-    expect('connectorStyle' in d.edges[0]!).toBe(false);
+    d = expectOk(applyDesignCommand(d, { type: 'set-edge-corridor', edgeId: 1, patch: { walls: 'enclosed' } }));
+    expect(d.edges[0]).toMatchObject({ kind: 'open', corridor: { walls: 'enclosed' } });
+    d = expectOk(applyDesignCommand(d, { type: 'set-edge-corridor', edgeId: 1, patch: { roof: 'pergola' } }));
+    expect(d.edges[0]!.corridor).toEqual({ walls: 'enclosed', roof: 'pergola' });
+    d = expectOk(applyDesignCommand(d, { type: 'set-edge-corridor', edgeId: 1, patch: { walls: null } }));
+    expect(d.edges[0]!.corridor).toEqual({ roof: 'pergola' });
+    d = expectOk(applyDesignCommand(d, { type: 'set-edge-corridor', edgeId: 1, patch: { roof: null } }));
+    expect('corridor' in d.edges[0]!).toBe(false);
+    // Runtime validation: an unknown value from an untyped caller is refused.
+    expect(applyDesignCommand(d, { type: 'set-edge-corridor', edgeId: 1, patch: { roof: 'pitched' } } as never).ok).toBe(false);
+  });
+
+  it('add-edge keeps a given corridor look (validated)', () => {
+    const d = expectOk(applyDesignCommand(doc(), { type: 'remove-edge', edgeId: 1 }));
+    const n = expectOk(applyDesignCommand(d, { type: 'add-edge', edge: { source: 2, target: 1, corridor: { roof: 'none' } } }));
+    expect(n.edges.at(-1)!.corridor).toEqual({ roof: 'none' });
+    const plain = expectOk(applyDesignCommand(d, { type: 'add-edge', edge: { source: 2, target: 1, corridor: {} } }));
+    expect('corridor' in plain.edges.at(-1)!).toBe(false);
   });
 
   it('patches and resets per-type appearance overrides', () => {

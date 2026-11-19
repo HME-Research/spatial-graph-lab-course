@@ -1,5 +1,5 @@
 import {
-  type ConnectorStyle,
+  type CorridorLook,
   type DesignDocumentV2,
   functionStyleSettings,
   type Look,
@@ -31,7 +31,7 @@ import { resolveBuildingFaces, toResolvedFace } from './multicellFaces';
  */
 
 type N = { id: number; grid: GridCoord; size?: [number, number, number]; typeId?: string };
-type E = { id: number; source: number; target: number; kind?: RelationshipKind; connectorStyle?: ConnectorStyle };
+type E = { id: number; source: number; target: number; kind?: RelationshipKind; corridor?: CorridorLook };
 
 function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown> = {}): DesignDocumentV2 {
   return expectOk(
@@ -44,7 +44,7 @@ function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown>
         source: e.source,
         target: e.target,
         kind: e.kind ?? 'access',
-        ...(e.connectorStyle ? { connectorStyle: e.connectorStyle } : {}),
+        ...(e.corridor ? { corridor: e.corridor } : {}),
       })),
       settings: functionStyleSettings(typeAppearance as Record<string, Look>),
     }),
@@ -119,10 +119,10 @@ const FIXTURES: Readonly<Record<string, DesignDocumentV2>> = {
     ],
     [
       { id: 1, source: 1, target: 2, kind: 'access' }, // ab
-      { id: 3, source: 3, target: 4, kind: 'open', connectorStyle: 'covered' }, // cd
-      { id: 4, source: 6, target: 5, kind: 'access', connectorStyle: 'deck' }, // ef
-      { id: 5, source: 7, target: 8, kind: 'access', connectorStyle: 'enclosed' }, // gh
-      { id: 6, source: 9, target: 10, kind: 'open', connectorStyle: 'covered' }, // ij
+      { id: 3, source: 3, target: 4, kind: 'open', corridor: { walls: 'open', roof: 'flat' } }, // cd
+      { id: 4, source: 6, target: 5, kind: 'access', corridor: { walls: 'open', roof: 'none' } }, // ef
+      { id: 5, source: 7, target: 8, kind: 'access', corridor: { walls: 'enclosed' } }, // gh
+      { id: 6, source: 9, target: 10, kind: 'open', corridor: { walls: 'open', roof: 'flat' } }, // ij
       { id: 2, source: 1, target: 12, kind: 'access' }, // al
       { id: 7, source: 13, target: 14, kind: 'access' }, // st
     ],

@@ -6,7 +6,7 @@ import { useEnabledMetrics } from '@app/views/three/enabledMetrics';
 import { EMPTY_ATTRIBUTE_SCHEMA } from '@app/extensions';
 import { buildingFacesV2, exampleFacadeProvider } from '@app/building';
 import { designUsesFacadeModules, facadeAssetIdsOf, layoutFacadeModules, type FacadeAssetV1 } from '@app/assets';
-import { CONNECTOR_STYLES, FACADE_VARIANTS, ROOF_STYLES, WINDOW_LAYOUTS, type ConnectorStyle, type FacadeModule, type FacadeVariant, type FacadeVariantKind } from '@app/document';
+import { FACADE_VARIANTS, ROOF_STYLES, WALL_STYLES, WINDOW_LAYOUTS, type FacadeModule, type FacadeVariant, type FacadeVariantKind } from '@app/document';
 import type { DesignPort } from '@app/spatial';
 import type { ProjectViewContext } from '@app/views/project';
 import { typeColor } from '@core/viewer/appearance';
@@ -15,12 +15,12 @@ import {
   addCardEdit,
   addNoun,
   bandDividersEdit,
-  CONNECTOR_STYLE_LABELS,
-  corridorsSummary,
-  type CorridorsSummary,
+  corridorCard,
+  type CorridorCardRow,
   resetCorridorsEdit,
   setCorridorRoofEdit,
-  setCorridorStyleEdit,
+  setCorridorWallsEdit,
+  WALL_LABELS,
   designerCards,
   removeCardEdit,
   styleAttributeName,
@@ -58,7 +58,7 @@ import './designer.css';
  * Designer panel (06-designer): per-design, per-node-type window coverage and roof.
  *
  * Reads the v2 document from `design.doc` and changes it ONLY through `design.onCommand` with the
- * `set-look` command (and `set-corridors` for the Corridors section): one committed change
+ * `set-look` command (and `set-corridors` for the Corridors card): one committed change
  * (slider release, Enter, blur, roof choice, reset) = one command = one history step. Without a v2 port (before integration) it
  * shows a notice instead of controls.
  */
@@ -69,7 +69,7 @@ export interface DesignerPanelProps {
   readonly project?: ProjectViewContext;
   /** Unused since the Defaults section was removed (2026-11-17); kept so callers stay valid. */
   readonly selection?: Selection;
-  /** Unused since the Defaults section was removed (2026-11-17); connector styles are in Properties. */
+  /** Unused since the Defaults section was removed (2026-11-17); one relationship's corridor is in Properties. */
   readonly onShowRelationship?: (edgeId: number) => void;
   /** The project's imported façades (3DM). Absent: the imported-façade controls are not shown. */
   readonly facades?: DesignerFacades;
@@ -275,6 +275,14 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
         <ul className="sgl-designer-list">
           {renderCard(cards.defaultCard)}
           {cards.cards.map(renderCard)}
+          <li key="corridors">
+            <CorridorCard
+              card={corridorCard(doc, spatial)}
+              onWalls={(walls) => send(setCorridorWallsEdit(doc, walls))}
+              onRoof={(roof) => send(setCorridorRoofEdit(doc, roof))}
+              onReset={() => send(resetCorridorsEdit(doc))}
+            />
+          </li>
         </ul>
         {cards.missingCount > 0 && cards.attribute.status !== 'removed' && (
           <p className="sgl-designer-source">
@@ -292,90 +300,144 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
         )}
         {facades && <FacadeLibraryFooter facades={facades} usedHere={usedHere} />}
       </CollapsibleSection>
-
-      <CorridorsSection
-        corridors={corridorsSummary(doc)}
-        onStyle={(style) => send(setCorridorStyleEdit(doc, style))}
-        onRoof={(roof) => send(setCorridorRoofEdit(doc, roof))}
-        onReset={() => send(resetCorridorsEdit(doc))}
-      />
     </div>
   );
 }
 
-const CORRIDOR_STYLE_HELP: Readonly<Record<ConnectorStyle, string>> = {
-  enclosed: 'Floor, roof and side walls',
-  covered: 'Floor and roof on slim posts, open at the sides',
-  deck: 'Floor only, open to the sky (no roof)',
+/** A field whose source tag ("Set here", "Built-in default", "Uses Default") sits on the label row, so it never wraps alone under the control. */
+function SourcedField({ labelId, htmlFor, label, title, source, children }: {
+  readonly labelId?: string;
+  readonly htmlFor?: string;
+  readonly label: string;
+  readonly title: string;
+  readonly source: string;
+  readonly children: ReactNode;
+}) {
+  return (
+    <div className="sgl-designer-field sgl-designer-sourced">
+      <div className="sgl-designer-sourced-head">
+        {htmlFor ? (
+          <label htmlFor={htmlFor} title={title}>
+            {label}
+          </label>
+        ) : (
+          <span className="sgl-designer-label" id={labelId} title={title}>
+            {label}
+          </span>
+        )}
+        <span className="sgl-designer-source">{source}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Roof style select of a card (rooms and corridors): Flat / Pergola (open slats) / None (open top). */
+function RoofField({ id, title, roof, source, onRoof }: { readonly id: string; readonly title: string; readonly roof: string; readonly source: string; readonly onRoof: (roof: string) => void }) {
+  return (
+    <SourcedField htmlFor={id} label="Style" title={title} source={source}>
+      <select id={id} value={roof} onChange={(e) => onRoof(e.currentTarget.value)}>
+        {ROOF_STYLES.map((r) => (
+          <option key={r} value={r}>
+            {ROOF_LABELS[r]}
+          </option>
+        ))}
+      </select>
+    </SourcedField>
+  );
+}
+
+const CORRIDOR_WALL_HELP: Readonly<Record<string, string>> = {
+  enclosed: 'A side wall on each side; the ends open into the rooms',
+  open: 'Open sides; slim posts carry the roof',
 };
 
 /**
- * Corridors (2026-11-19): the style and roof of every corridor generated between related rooms
- * that do not touch. A relationship's own style (Properties) still wins over the style here.
+ * The Corridors card (owner 2026-11-19, "Corridors as a look card"): built like a room card, after
+ * the room cards whatever "Style rooms by" is (corridors are not grouped by room values). Walls
+ * (Enclosed / Open) and Roof (Flat / Pergola / None) of every generated corridor; windows and
+ * imported façades do not apply to corridors. One relationship can still set its own in Properties.
  */
-function CorridorsSection({
-  corridors,
-  onStyle,
+function CorridorCard({
+  card,
+  onWalls,
   onRoof,
   onReset,
 }: {
-  readonly corridors: CorridorsSummary;
-  readonly onStyle: (style: string) => void;
+  readonly card: CorridorCardRow;
+  readonly onWalls: (walls: string) => void;
   readonly onRoof: (roof: string) => void;
   readonly onReset: () => void;
 }) {
-  const source = (setHere: boolean) => (setHere ? 'Set here' : 'Built-in default');
-  const { overrideCount } = corridors;
+  const [open, toggleOpen] = useRememberedOpen('designer-card:corridors', false);
+  const idBase = 'sgl-designer-corridors';
+  const { effective, setHere, overrideCount, corridorCount } = card;
+  const source = (here: boolean) => (here ? 'Set here' : 'Built-in default');
   return (
-    <CollapsibleSection title="Corridors" sectionId="designer-corridors" defaultOpen meta={CONNECTOR_STYLE_LABELS[corridors.style]}>
-      <p className="sgl-help">
-        Corridors are built automatically between related rooms that do not touch. Choose how they look for the whole design.
-      </p>
-      <div className="sgl-designer-field">
-        <label htmlFor="sgl-designer-corridor-style" title="How every generated corridor is built, unless a relationship sets its own style">
-          Style
-        </label>
-        <select id="sgl-designer-corridor-style" value={corridors.style} title={CORRIDOR_STYLE_HELP[corridors.style]} onChange={(e) => onStyle(e.currentTarget.value)}>
-          {CONNECTOR_STYLES.map((s) => (
-            <option key={s} value={s} title={CORRIDOR_STYLE_HELP[s]}>
-              {CONNECTOR_STYLE_LABELS[s]}
-            </option>
-          ))}
-        </select>
-        <span className="sgl-designer-source">{source(corridors.styleSetHere)}</span>
+    <article className="sgl-designer-type sgl-designer-corridors" data-card="corridors" aria-labelledby={`${idBase}-name`}>
+      <div className="sgl-designer-type-titlebar">
+        <h4 className="sgl-designer-type-title">
+          <button type="button" className="sgl-designer-type-head" aria-expanded={open} aria-controls={`${idBase}-body`} onClick={toggleOpen}>
+            <svg className="sgl-designer-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="sgl-designer-swatch sgl-designer-swatch--corridor" aria-hidden="true" />
+            <span className="sgl-designer-type-text">
+              <span id={`${idBase}-name`} className="sgl-designer-type-name">
+                Corridors (generated)
+              </span>
+              <span className="sgl-designer-summary">
+                {effective.walls === 'open' ? 'Open sides' : 'Enclosed'} · {SHORT_ROOF[effective.roof]}
+                {corridorCount !== null ? ` · ${corridorCount} ${corridorCount === 1 ? 'corridor' : 'corridors'}` : ''}
+                {card.hasOverride ? ' · changed' : ''}
+              </span>
+            </span>
+            <FacadePreview fraction={0} layout="repeat" roof={effective.roof} walls={effective.walls} />
+          </button>
+        </h4>
       </div>
-      <div className="sgl-designer-field">
-        <label htmlFor="sgl-designer-corridor-roof" title="Roof of every Enclosed or Covered corridor. A Deck has no roof.">
-          Roof
-        </label>
-        <select id="sgl-designer-corridor-roof" value={corridors.roof} disabled={!corridors.roofApplies} onChange={(e) => onRoof(e.currentTarget.value)}>
-          {ROOF_STYLES.map((roof) => (
-            <option key={roof} value={roof}>
-              {ROOF_LABELS[roof]}
-            </option>
-          ))}
-        </select>
-        <span className="sgl-designer-source">{source(corridors.roofSetHere)}</span>
+
+      <div id={`${idBase}-body`} className="sgl-designer-type-body" hidden={!open}>
+        <p className="sgl-help">Corridors are built automatically between related rooms that don't touch.</p>
+
+        <Subsection idBase={idBase} name="walls" title="Walls" rememberId="designer-card:corridors:walls">
+          <SourcedField labelId={`${idBase}-walls`} label="Sides" title="Whether every generated corridor has a side wall on each side" source={source(setHere.walls)}>
+            <div className="sgl-segmented sgl-segmented-sm" role="radiogroup" aria-labelledby={`${idBase}-walls`}>
+              {WALL_STYLES.map((w) => (
+                <label key={w} className={effective.walls === w ? 'checked' : undefined} title={CORRIDOR_WALL_HELP[w]}>
+                  <input type="radio" name={`${idBase}-walls`} value={w} checked={effective.walls === w} onChange={() => onWalls(w)} />
+                  {WALL_LABELS[w]}
+                </label>
+              ))}
+            </div>
+          </SourcedField>
+          <p className="sgl-designer-source">
+            {effective.walls === 'enclosed'
+              ? effective.roof === 'none'
+                ? 'Side walls, open to the sky.'
+                : `${CORRIDOR_WALL_HELP.enclosed}.`
+              : effective.roof === 'none'
+                ? 'Open sides and no roof: just the floor (no posts).'
+                : `${CORRIDOR_WALL_HELP.open}.`}
+          </p>
+        </Subsection>
+
+        <Subsection idBase={idBase} name="roof" title="Roof" rememberId="designer-card:corridors:roof">
+          <RoofField id={`${idBase}-roof`} title="Roof of every generated corridor" roof={effective.roof} source={source(setHere.roof)} onRoof={onRoof} />
+        </Subsection>
+
+        <p className="sgl-designer-source">
+          {overrideCount > 0
+            ? `${overrideCount} ${overrideCount === 1 ? 'relationship sets its' : 'relationships set their'} own walls or roof in Properties.`
+            : 'One relationship can set its own walls or roof in Properties.'}
+        </p>
+        <div className="sgl-designer-card-actions">
+          <button type="button" className="sgl-designer-reset" disabled={!card.hasOverride} onClick={onReset}>
+            Reset Corridors
+          </button>
+        </div>
       </div>
-      <p className="sgl-designer-source">
-        {!corridors.roofApplies
-          ? 'A Deck has no roof; the roof is used by Enclosed and Covered corridors.'
-          : corridors.roof === 'none'
-            ? corridors.style === 'covered'
-              ? 'Covered with no roof has no posts either, so it looks like a Deck.'
-              : 'Enclosed with no roof keeps its side walls, open to the sky.'
-            : `${CORRIDOR_STYLE_HELP[corridors.style]}.`}
-      </p>
-      <p className="sgl-designer-source">
-        One relationship can still have its own style in Properties
-        {overrideCount > 0 ? ` (${overrideCount} ${overrideCount === 1 ? 'relationship does' : 'relationships do'} now)` : ''}.
-      </p>
-      <div className="sgl-designer-card-actions">
-        <button type="button" className="sgl-designer-reset" disabled={!corridors.styleSetHere && !corridors.roofSetHere} onClick={onReset}>
-          Reset corridors
-        </button>
-      </div>
-    </CollapsibleSection>
+    </article>
   );
 }
 
@@ -798,19 +860,13 @@ function CardRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
 
       <Subsection idBase={idBase} name="roof" title="Roof" rememberId={`${rememberBase}:roof`}>
 
-      <div className="sgl-designer-field">
-        <label htmlFor={`${idBase}-roof`} title="Roof on the exposed tops of rooms of this type. Pitched roofs are not available yet.">
-          Style
-        </label>
-        <select id={`${idBase}-roof`} value={row.effective.roof} onChange={(e) => onRoof(e.currentTarget.value)}>
-          {ROOF_STYLES.map((roof) => (
-            <option key={roof} value={roof}>
-              {ROOF_LABELS[roof]}
-            </option>
-          ))}
-        </select>
-        <span className="sgl-designer-source">{setHere(row.effective.source.roof) ? 'Set here' : isDefault ? 'Built-in default' : 'Uses Default'}</span>
-      </div>
+      <RoofField
+        id={`${idBase}-roof`}
+        title="Roof on the exposed tops of rooms of this type. Pitched roofs are not available yet."
+        roof={row.effective.roof}
+        source={setHere(row.effective.source.roof) ? 'Set here' : isDefault ? 'Built-in default' : 'Uses Default'}
+        onRoof={onRoof}
+      />
       </Subsection>
 
       <div className="sgl-designer-card-actions">

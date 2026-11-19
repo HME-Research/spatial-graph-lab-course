@@ -24,7 +24,7 @@ Status: implemented. Contract and persistence (phase 01); one resolver used by t
 
 `nodeTypeDefaults[typeId][fieldId]` holds type defaults for node fields.
 
-**Reserved keys** (case-insensitive) are system properties and JavaScript internals: `id`, `displayId`, `typeId`, `type`, `grid`, `size`, `position`, `diagram`, `attributes`, `source`, `target`, `kind`, `connectorStyle`, `__proto__`, `constructor`, `prototype`, `toString`, `valueOf`, `hasOwnProperty`. System properties are always shown in Properties; they are never schema fields, so they cannot be deleted or redefined.
+**Reserved keys** (case-insensitive) are system properties and JavaScript internals: `id`, `displayId`, `typeId`, `type`, `grid`, `size`, `position`, `diagram`, `attributes`, `source`, `target`, `kind`, `corridor`, `__proto__`, `constructor`, `prototype`, `toString`, `valueOf`, `hasOwnProperty`. System properties are always shown in Properties; they are never schema fields, so they cannot be deleted or redefined.
 
 ## Effective value
 `app/extensions/resolveAttributes.ts` is the only resolver. Properties, Graph 2D, conformance, the Student API and transformations all use it. For one field of one instance:

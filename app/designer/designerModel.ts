@@ -3,10 +3,8 @@ import { distortedModules, type FacadeModuleInstance } from '@app/assets';
 import {
   canonicalFacadeModule,
   sameFacadeModule,
-  connectorStyleOf,
-  corridorRoofOf,
-  corridorStyleOf,
-  CONNECTOR_STYLES,
+  corridorLookOf,
+  designCorridorLook,
   DEFAULT_GROUP,
   effectiveLook,
   lookOfGroup,
@@ -25,8 +23,8 @@ import {
   windowFractionSchema,
   WINDOW_LAYOUTS,
   WALL_STYLES,
-  type ConnectorStyle,
   type DesignDocumentV2,
+  type EffectiveCorridorLook,
   type EffectiveLook,
   type Look,
   type StyleBy,
@@ -53,7 +51,8 @@ import type { Selection } from '@core/viewer/selection';
  *   (`settings.styles.function`, 2026-11-18) and changed through `set-look` / `remove-style-group`.
  * - Looks are resolved on read with `effectiveLook` (card → Default → project → built-in); nothing is
  *   materialised into the document, and project TypeScript definitions are never rewritten.
- * - No per-room overrides. Connector style is per relationship (Properties), not per type.
+ * - No per-room overrides. Corridors have their own card (`settings.corridors`, walls + roof); one
+ *   relationship can override either field in Properties.
  */
 
 /** Where a type's project default window coverage comes from. */
@@ -806,20 +805,16 @@ export const ROOF_LABELS: Readonly<Record<RoofStyle, string>> = {
   none: 'None (open top)',
 };
 
-export const CONNECTOR_STYLE_LABELS: Readonly<Record<ConnectorStyle, string>> = {
-  enclosed: 'Enclosed',
-  covered: 'Covered',
-  deck: 'Deck',
-};
-
 /** Read-only summary of the selected relationship, so the Designer can point to Properties. */
 export interface SelectedRelationshipSummary {
   readonly edgeId: number;
   /** "01 → 02". */
   readonly label: string;
-  readonly style: ConnectorStyle;
-  readonly styleIsDefault: boolean;
-  /** Derived status; the connector style is only built when the relationship is `routed`. */
+  /** Effective corridor walls and roof (own → Corridors card → built-in). */
+  readonly corridor: EffectiveCorridorLook;
+  /** True when the relationship sets neither corridor field itself. */
+  readonly corridorIsDefault: boolean;
+  /** Derived status; the corridor is only built when the relationship is `routed`. */
   readonly status: 'direct' | 'routed' | 'unresolved' | null;
 }
 
@@ -838,62 +833,66 @@ export function selectedRelationship(
   return {
     edgeId: edge.id,
     label: `${labelOf(edge.source)} → ${labelOf(edge.target)}`,
-    style: connectorStyleOf(edge, doc.settings),
-    styleIsDefault: edge.connectorStyle === undefined,
+    corridor: corridorLookOf(edge, doc.settings),
+    corridorIsDefault: edge.corridor === undefined,
     status: spatial?.byEdge.get(edge.id)?.status ?? null,
   };
 }
 
 // ---------------------------------------------------------------------------------------------
-// Corridors (2026-11-19): design-wide style and roof of the generated connectors.
+// The Corridors card (owner 2026-11-19, "Corridors as a look card"): walls + roof of every
+// generated corridor, shown in the Looks list after the room cards whatever "Style rooms by" is.
 
-/** The Corridors section: effective values and whether the design sets them. */
-export interface CorridorsSummary {
-  readonly style: ConnectorStyle;
-  readonly styleSetHere: boolean;
-  readonly roof: RoofStyle;
-  readonly roofSetHere: boolean;
-  /** The roof is drawn for this style (enclosed, covered); a deck has none. */
-  readonly roofApplies: boolean;
-  /** Relationships with their own style (Properties), which the design style does not change. */
+/** The Corridors card: effective walls and roof and whether the card sets them. */
+export interface CorridorCardRow {
+  readonly effective: EffectiveCorridorLook;
+  /** The card sets the field (otherwise the built-in default applies). */
+  readonly setHere: { readonly walls: boolean; readonly roof: boolean };
+  /** The card sets anything (Reset is enabled). */
+  readonly hasOverride: boolean;
+  /** Relationships with their own corridor walls or roof (Properties), which the card does not change. */
   readonly overrideCount: number;
+  /** Generated corridors now (routed relationships), or null without a spatial resolution. */
+  readonly corridorCount: number | null;
 }
 
-export function corridorsSummary(doc: DesignDocumentV2): CorridorsSummary {
+export function corridorCard(doc: DesignDocumentV2, spatial?: Pick<SpatialResolution, 'edges'>): CorridorCardRow {
   const c = doc.settings.corridors;
-  const style = corridorStyleOf(doc.settings);
+  const setHere = { walls: c?.walls !== undefined, roof: c?.roof !== undefined };
   return {
-    style,
-    styleSetHere: c?.style !== undefined,
-    roof: corridorRoofOf(doc.settings),
-    roofSetHere: c?.roof !== undefined,
-    roofApplies: style !== 'deck',
-    overrideCount: doc.edges.filter((e) => e.connectorStyle !== undefined).length,
+    effective: designCorridorLook(doc.settings),
+    setHere,
+    hasOverride: setHere.walls || setHere.roof,
+    overrideCount: doc.edges.filter((e) => e.corridor !== undefined).length,
+    corridorCount: spatial ? spatial.edges.filter((r) => r.status === 'routed').length : null,
   };
 }
 
-/** Set the design's corridor style (choosing the effective value while unset stores nothing). */
-export function setCorridorStyleEdit(doc: DesignDocumentV2, style: string): DesignerEdit {
-  if (!(CONNECTOR_STYLES as readonly string[]).includes(style)) {
-    return { kind: 'invalid', message: `Corridor style must be one of: ${CONNECTOR_STYLES.join(', ')}.` };
+/** Set the corridors' walls (choosing the effective value while unset stores nothing). */
+export function setCorridorWallsEdit(doc: DesignDocumentV2, walls: string): DesignerEdit {
+  if (!(WALL_STYLES as readonly string[]).includes(walls)) {
+    return { kind: 'invalid', message: `Walls must be one of: ${WALL_STYLES.join(', ')}.` };
   }
-  if (corridorStyleOf(doc.settings) === style) return UNCHANGED;
-  const s = style as ConnectorStyle;
-  return { kind: 'command', command: { type: 'set-corridors', patch: { style: s } }, label: `Set corridors to ${CONNECTOR_STYLE_LABELS[s]}` };
+  const stored = doc.settings.corridors?.walls;
+  if (stored !== undefined ? stored === walls : designCorridorLook(doc.settings).walls === walls) return UNCHANGED;
+  const w = walls as WallStyle;
+  return { kind: 'command', command: { type: 'set-corridors', patch: { walls: w } }, label: `Set the corridor walls to ${WALL_LABELS[w]}` };
 }
 
-/** Set the roof of the design's corridors (choosing the effective value while unset stores nothing). */
+/** Set the corridors' roof (choosing the effective value while unset stores nothing). */
 export function setCorridorRoofEdit(doc: DesignDocumentV2, roof: string): DesignerEdit {
   if (!(ROOF_STYLES as readonly string[]).includes(roof)) {
     return { kind: 'invalid', message: `Roof must be one of: ${ROOF_STYLES.join(', ')}.` };
   }
-  if (corridorRoofOf(doc.settings) === roof) return UNCHANGED;
-  return { kind: 'command', command: { type: 'set-corridors', patch: { roof: roof as RoofStyle } }, label: `Set the corridor roof to ${roof}` };
+  const stored = doc.settings.corridors?.roof;
+  if (stored !== undefined ? stored === roof : designCorridorLook(doc.settings).roof === roof) return UNCHANGED;
+  const r = roof as RoofStyle;
+  return { kind: 'command', command: { type: 'set-corridors', patch: { roof: r } }, label: `Set the corridor roof to ${ROOF_LABELS[r]}` };
 }
 
-/** Back to the built-in defaults (Covered, Flat): one step; nothing to do when nothing is set. */
+/** Back to the built-in corridor look (Open, Flat): one step; nothing to do when nothing is set. */
 export function resetCorridorsEdit(doc: DesignDocumentV2): DesignerEdit {
   const c = doc.settings.corridors;
-  if (c?.style === undefined && c?.roof === undefined) return UNCHANGED;
-  return { kind: 'command', command: { type: 'set-corridors', patch: { style: null, roof: null } }, label: 'Reset the corridors' };
+  if (c?.walls === undefined && c?.roof === undefined) return UNCHANGED;
+  return { kind: 'command', command: { type: 'set-corridors', patch: { walls: null, roof: null } }, label: 'Reset the Corridors card' };
 }

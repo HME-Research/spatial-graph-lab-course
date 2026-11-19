@@ -41,11 +41,18 @@ function SwatchIcon({ swatch }: { readonly swatch: Swatch }) {
   return (
     <svg className="sgl-pres-swatch" width="34" height="14" viewBox="0 0 34 14" aria-hidden="true">
       <rect x="4" y="9" width="26" height="3" fill={swatch.color} stroke="#8a826f" strokeWidth="0.8" />
-      {(p === 'enclosed' || p === 'covered') && <rect x="4" y="2" width="26" height="2" fill="#8a826f" />}
-      {p === 'enclosed' && (
+      {p !== 'room' && p.roof === 'flat' && <rect x="4" y="2" width="26" height="2" fill="#8a826f" />}
+      {p !== 'room' && p.roof === 'pergola' && [4, 10, 16, 22, 28].map((x) => <rect key={x} x={x} y="2" width="2" height="2" fill="#8a826f" />)}
+      {p !== 'room' && p.walls === 'enclosed' && (
         <>
           <rect x="4" y="2" width="2" height="10" fill="#8a826f" />
           <rect x="28" y="2" width="2" height="10" fill="#8a826f" />
+        </>
+      )}
+      {p !== 'room' && p.walls === 'open' && p.roof !== 'none' && (
+        <>
+          <rect x="4.5" y="4" width="1" height="5" fill="#8a826f" />
+          <rect x="28.5" y="4" width="1" height="5" fill="#8a826f" />
         </>
       )}
     </svg>

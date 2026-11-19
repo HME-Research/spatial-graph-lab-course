@@ -182,7 +182,7 @@ A spatial algorithm gets the design's own records and a few helpers:
 | `ctx.…` | Meaning |
 |---|---|
 | `design.nodes` | `{ id, typeId, grid: [x, y, z], size: [sx, sy, sz], attributes }`. `id` is a whole number (also the room's label). A room is a box of whole cells: `grid` is its minimum corner, `size` its extent (`[1, 1, 1]` for one cell); z is the storey |
-| `design.edges` | `{ id, source, target, kind, connectorStyle?, attributes }`; ids are numbers; kind is `access` or `open` |
+| `design.edges` | `{ id, source, target, kind, corridor?, attributes }`; ids are numbers; kind is `access` or `open`; `corridor` (read only) is the relationship's own corridor look `{ walls?: 'enclosed' \| 'open', roof?: 'flat' \| 'pergola' \| 'none' }` (omitted fields use the design's Corridors card) |
 | `nodeAt(cell)` | id of the room whose box contains that cell, or `undefined` if the cell is free |
 | `touches(a, b)` | whether rooms `a` and `b` share a wall or floor, so a relationship between them is built directly |
 | `canRelate(a, b)` | whether a relationship between rooms `a` and `b` may be created: both exist, are different and aren't related yet. **They don't need to touch** |
@@ -310,7 +310,7 @@ Exports of `@student-api`:
 - **Definitions:** `defineToolkit`, `defineNodeType`, `defineGraphAlgorithm`, `defineSpatialAlgorithm`
 - **Graph helpers:** `neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite` (ids are numbers)
 - **Grid helpers:** `FACE_DIRECTIONS`, `neighbourCell`, `roomCells` (every cell of a room's box)
-- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `ConnectorStyle`, `SpatialOperation`, `ItemRef`, `AnalysisInput`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
+- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `CorridorLook`, `CorridorWalls`, `CorridorRoof`, `SpatialOperation`, `ItemRef`, `AnalysisInput`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
 
 **Added in P4:** `set-node-geometry` (move or resize a room in a transformation); optional `description` of a graph analysis; uploaded analyses (see "Uploading an analysis").
 

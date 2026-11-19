@@ -40,17 +40,17 @@ describe('v2 document session (one command = one history step)', () => {
     const base = currentDocument(s);
     const moved = applyDesignCommandToSession(s, { type: 'set-node-geometry', nodeId: 2, grid: [5, 0, 0], size: [1, 1, 1] });
     expect(moved.ok && moved.changed).toBe(false); // no-op: nothing recorded
-    const r = applyDesignCommandToSession(s, { type: 'set-connector-style', edgeId: 1, style: 'deck' });
+    const r = applyDesignCommandToSession(s, { type: 'set-edge-corridor', edgeId: 1, patch: { roof: 'none' } });
     if (!r.ok) throw new Error('expected ok');
     s = r.session;
-    expect(undoLabel(s.history)).toBe('Change the connector style of 1 → 2'); // readable relationship label, not the edge id
+    expect(undoLabel(s.history)).toBe('Set the corridor roof of connection 1 → 2 to None'); // readable relationship label, not the edge id
     expect(s.history.past).toHaveLength(1);
     expect(isModified(s)).toBe(true);
     s = undoDocument(s);
     expect(currentDocument(s)).toBe(base);
     expect(isModified(s)).toBe(false);
     s = redoDocument(s);
-    expect(currentDocument(s).edges[0]!.connectorStyle).toBe('deck');
+    expect(currentDocument(s).edges[0]!.corridor).toEqual({ roof: 'none' });
     expect(canRedo(s.history)).toBe(false);
   });
 

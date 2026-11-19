@@ -101,14 +101,15 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     expect(selectOptions(html, 'Room to connect to')).toEqual(['Connect to room…', '3 (studio)']);
   });
 
-  it('selected relationship: Access/Open, corridor style and plain status', () => {
+  it('selected relationship: Access/Open, corridor walls and roof, and plain status', () => {
     const design = fakePort();
     const html = render({ doc: v1(), design, selection: selectEdge(1) });
     expect(html).toContain('Relationship 1 ↔ 2');
     expect(html).toMatch(/<input type="radio" name="kind-1" checked="" value="access"\/>Access/);
     expect(html).toContain('>Open</label>');
-    expect(selectOptions(html, 'Corridor style')).toEqual(['Design default (Covered)', 'Enclosed', 'Covered', 'Deck']);
-    expect(html).toContain('Joined by a generated covered corridor, 3 cells long, on storey 0.');
+    expect(selectOptions(html, 'Corridor walls')).toEqual(['Design default (Open)', 'Enclosed', 'Open']);
+    expect(selectOptions(html, 'Corridor roof')).toEqual(['Design default (Flat)', 'Flat', 'Pergola (open slats)', 'None (open top)']);
+    expect(html).toContain('Joined by a generated corridor (open sides and a flat roof), 3 cells long, on storey 0.');
     expect(html).toContain('>Remove connection</button>');
   });
 
@@ -122,8 +123,9 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     expect(html).toContain('role="status"');
     expect(html).not.toContain('role="alert"');
     expect(html).toContain('Technical details');
-    // No corridor, so no corridor style control.
-    expect(html).not.toContain('aria-label="Corridor style"');
+    // No corridor, so no corridor walls / roof controls.
+    expect(html).not.toContain('aria-label="Corridor walls"');
+    expect(html).not.toContain('aria-label="Corridor roof"');
   });
 
   it('summarises the scenario when nothing is selected (student vocabulary; the schema only as a tooltip)', () => {

@@ -11,7 +11,7 @@ import { VIEW_MODES } from '../contracts';
 import {
   analysisNodeStyle,
   conciseIssues,
-  connectorStylesInUse,
+  corridorLooksInUse,
   contrastRatio,
   ERROR_TONE,
   presentAnalysis,
@@ -44,7 +44,9 @@ const direct = (edgeId: number, kind: 'access' | 'open', contact: 'horizontal' |
   contact,
   faces: [],
 });
-const routed = (edgeId: number, style: 'enclosed' | 'covered' | 'deck', cells = 3): EdgeResolution => ({
+type Walls = 'enclosed' | 'open';
+type Roof = 'flat' | 'pergola' | 'none';
+const routed = (edgeId: number, walls: Walls, roof: Roof, cells = 3): EdgeResolution => ({
   edgeId,
   kind: 'access',
   status: 'routed',
@@ -55,7 +57,7 @@ const routed = (edgeId: number, style: 'enclosed' | 'covered' | 'deck', cells = 
     cells: Array.from({ length: cells }, (_, i) => [i + 1, 0, 0] as const),
     from: { nodeId: 1, cell: [0, 0, 0], direction: [1, 0, 0] } as never,
     to: { nodeId: 2, cell: [cells + 1, 0, 0], direction: [-1, 0, 0] } as never,
-    style,
+    look: { walls, roof },
   },
 });
 const unresolved = (edgeId: number, reason: UnresolvedReason): EdgeResolution => ({
@@ -149,10 +151,11 @@ describe('relationship presentation', () => {
     expect(d.reason).toBeNull();
     expect(presentRelationship(direct(2, 'open', 'vertical')).built).toMatch(/void/);
 
-    const r = presentRelationship(routed(3, 'covered', 4));
+    const r = presentRelationship(routed(3, 'open', 'flat', 4));
     expect(r.statusLabel).toBe('Connected via route');
-    expect(r.built).toBe('Covered walkway (4 cells)');
-    expect(presentRelationship(routed(4, 'deck', 1)).built).toBe('Open deck (1 cell)');
+    expect(r.built).toBe('Open corridor, flat roof (4 cells)');
+    expect(presentRelationship(routed(4, 'open', 'none', 1)).built).toBe('Open corridor, no roof (1 cell)');
+    expect(presentRelationship(routed(5, 'enclosed', 'pergola', 2)).built).toBe('Enclosed corridor, pergola roof (2 cells)');
 
     const u = presentRelationship(unresolved(5, 'different-level'));
     expect(u.statusLabel).toBe('Unresolved');
@@ -172,16 +175,21 @@ describe('relationship presentation', () => {
     const spatial = spatialOf([
       direct(1, 'access', 'horizontal'),
       unresolved(9, 'not-aligned'),
-      routed(2, 'enclosed'),
+      routed(2, 'enclosed', 'flat'),
       unresolved(3, 'blocked-by-room'),
-      routed(4, 'deck'),
+      routed(4, 'open', 'none'),
+      routed(6, 'enclosed', 'flat'),
     ]);
     const s = summarizeRelationships(spatial);
-    expect(s.counts).toEqual({ direct: 1, routed: 2, unresolved: 2 });
+    expect(s.counts).toEqual({ direct: 1, routed: 3, unresolved: 2 });
     expect(s.unresolvedIds).toEqual([9, 3]);
-    expect(s.sentence).toBe('5 relationships: 1 direct, 2 via route, 2 unresolved.');
+    expect(s.sentence).toBe('6 relationships: 1 direct, 3 via route, 2 unresolved.');
     expect(summarizeRelationships(spatialOf([])).sentence).toBe('No relationships yet.');
-    expect(connectorStylesInUse(spatial)).toEqual(['enclosed', 'deck']);
+    // Distinct looks, in legend order (enclosed first; flat, pergola, none).
+    expect(corridorLooksInUse(spatial)).toEqual([
+      { walls: 'enclosed', roof: 'flat' },
+      { walls: 'open', roof: 'none' },
+    ]);
   });
 
   it('works on a real resolution of a valid v2 document (direct + separated)', () => {
@@ -233,20 +241,23 @@ describe('view legends', () => {
     }
   });
 
-  it('shows connector styles only in building views and filters by use and counts', () => {
+  it('shows corridor looks only in building views and filters by use and counts', () => {
     expect(relationshipLegend('graph2d').sections.map((s) => s.id)).toEqual(['status', 'kind', 'selection']);
     expect(relationshipLegend('architecture').sections.map((s) => s.id)).toEqual(['status', 'kind', 'connector', 'selection']);
     const compact = relationshipLegend('voxels', {
       compact: true,
-      connectorStyles: ['deck'],
+      corridorLooks: [{ walls: 'open', roof: 'none' }],
       statusCounts: { direct: 2, routed: 0, unresolved: 1 },
     });
     expect(compact.sections.map((s) => s.id)).toEqual(['status', 'connector']);
+    expect(compact.sections[1]!.items.map((i) => [i.id, i.label])).toEqual([['connector:open-none', 'Open corridor, no roof']]);
+    // Without a filter every walls × roof combination is listed.
+    expect(relationshipLegend('architecture').sections.find((s) => s.id === 'connector')!.items).toHaveLength(6);
     expect(compact.sections[0]!.items.map((i) => [i.id, i.count])).toEqual([
       ['status:direct', 2],
       ['status:unresolved', 1],
     ]);
-    expect(relationshipLegend('architecture', { connectorStyles: [] }).sections.map((s) => s.id)).not.toContain('connector');
+    expect(relationshipLegend('architecture', { corridorLooks: [] }).sections.map((s) => s.id)).not.toContain('connector');
   });
 
   it('renders accessible legend markup with focusable items', () => {

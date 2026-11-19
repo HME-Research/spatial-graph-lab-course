@@ -7,7 +7,6 @@ import {
   typeIdSchema,
 } from './primitives';
 import {
-  CONNECTOR_STYLES,
   DEFAULT_ROOM_SIZE,
   FACADE_ASSET_REF_PATTERN,
   FACADE_PLACEMENTS,
@@ -30,13 +29,13 @@ import {
  * - `grid` is the room's MINIMUM corner cell [x, y, z] (z up); `size` is [sx, sy, sz], positive
  *   integers. The room occupies every cell grid + [0..sx-1, 0..sy-1, 0..sz-1].
  * - Edge `kind` is relationship intent (`access` | `open`), independent of adjacency.
- * - `connectorStyle` is optional; `undefined` means the design's corridor style, else
- *   DEFAULT_CONNECTOR_STYLE (resolved on read, `connectorStyleOf`).
+ * - Edge `corridor` is optional (`{ walls?, roof? }`); each absent field uses the design's corridor
+ *   card, else the built-in default (resolved on read, `corridorLookOf`).
  * - `settings.styleBy` / `settings.styles` (2026-11-18, replaced `typeAppearance`): the rooms are
  *   styled by ONE attribute; each attribute's setup (Default, value cards or number bands) is
  *   remembered. Effective looks are resolved on read (`settings.ts`), never materialised.
- * - `settings.corridors` (optional, additive 2026-11-19): design-wide `style` and `roof` of the
- *   generated corridors; each field absent = built-in default. Omitted when empty.
+ * - `settings.corridors` (optional, 2026-11-19): the Corridors look card, `{ walls?, roof? }` of
+ *   every generated corridor; each field absent = built-in default. Omitted when empty.
  * - `diagram.positions` stay independent 2D diagram coordinates.
  */
 
@@ -62,15 +61,21 @@ export const relationshipKindSchema = z.enum(RELATIONSHIP_KINDS, {
   error: `edge kind must be one of: ${RELATIONSHIP_KINDS.join(', ')}`,
 });
 
-export const connectorStyleSchema = z.enum(CONNECTOR_STYLES, {
-  error: `connectorStyle must be one of: ${CONNECTOR_STYLES.join(', ')}`,
-});
-
 export const windowLayoutSchema = z.enum(WINDOW_LAYOUTS, { error: `windowLayout must be one of: ${WINDOW_LAYOUTS.join(', ')}` });
 
 export const wallStyleSchema = z.enum(WALL_STYLES, { error: `walls must be one of: ${WALL_STYLES.join(', ')}` });
 
 export const roofStyleSchema = z.enum(ROOF_STYLES, { error: `roof must be one of: ${ROOF_STYLES.join(', ')}` });
+
+/**
+ * Look of a generated corridor (owner 2026-11-19, "Corridors as a look card"): walls and roof, each
+ * optional (absent = inherit). Used by the design's Corridors card (`settings.corridors`) and by
+ * one relationship's own override (edge `corridor`).
+ */
+export const corridorLookSchema = z.strictObject({
+  walls: wallStyleSchema.optional(),
+  roof: roofStyleSchema.optional(),
+});
 
 export const windowFractionSchema = z
   .number({ error: 'windowFraction must be a number' })
@@ -91,7 +96,8 @@ export const relationshipEdgeSchema = z.strictObject({
   source: itemIdSchema,
   target: itemIdSchema,
   kind: relationshipKindSchema,
-  connectorStyle: connectorStyleSchema.optional(),
+  /** This relationship's own corridor walls / roof (Properties); absent fields use the design's. */
+  corridor: corridorLookSchema.optional(),
   attributes: attributesSchema.default({}),
 });
 
@@ -187,23 +193,13 @@ export const styleSetupSchema = z
 export const styleValueKey = (value: string | number | boolean): string =>
   typeof value === 'string' ? `s:${value.trim().toLowerCase()}` : `${typeof value}:${String(value)}`;
 
-/**
- * Design-wide settings of the generated corridors (Building Designer → Corridors, 2026-11-19).
- * `style`: used by every relationship without its own `connectorStyle`. `roof`: the roof of every
- * corridor whose style has one (enclosed, covered). Absent fields use the built-in defaults.
- */
-export const corridorSettingsSchema = z.strictObject({
-  style: connectorStyleSchema.optional(),
-  roof: roofStyleSchema.optional(),
-});
-
 export const designSettingsSchema = z.strictObject({
   /** The attribute the rooms are styled by. */
   styleBy: styleBySchema.default('function'),
   /** Remembered setup per attribute (switching `styleBy` back restores it). */
   styles: z.record(styleBySchema, styleSetupSchema).default({}),
-  /** Design-wide corridor style and roof (optional; absent = built-in defaults). */
-  corridors: corridorSettingsSchema.optional(),
+  /** The Corridors look card: walls and roof of every generated corridor (absent = built-in defaults). */
+  corridors: corridorLookSchema.optional(),
 });
 
 /** The counter value that follows every id in `items` (1 for none). */
@@ -260,5 +256,6 @@ export function canonicalFacadeModule(m: FacadeModule): FacadeModule {
 export const sameFacadeModule = (a: FacadeModule | null | undefined, b: FacadeModule | null | undefined): boolean =>
   (a ?? null) === (b ?? null) || (!!a && !!b && JSON.stringify(canonicalFacadeModule(a)) === JSON.stringify(canonicalFacadeModule(b)));
 export type DesignSettings = z.infer<typeof designSettingsSchema>;
-export type CorridorSettings = z.infer<typeof corridorSettingsSchema>;
+/** Stored corridor look (each field optional = inherit). */
+export type CorridorLook = z.infer<typeof corridorLookSchema>;
 export type DesignDocumentV2 = z.infer<typeof designDocumentV2Schema>;

@@ -1,17 +1,21 @@
 import type { FacadeSpec } from '@app/building';
 import type {
   AttributeValue as DocumentAttributeValue,
-  ConnectorStyle as DocumentConnectorStyle,
+  CorridorLook as DocumentCorridorLook,
   GridCoord as DocumentGridCoord,
   RelationshipEdge,
   RelationshipKind as DocumentRelationshipKind,
   RoomNode,
+  RoofStyle,
   RoomSize as DocumentRoomSize,
+  WallStyle,
 } from '@app/document';
 import type { ComputedMetric, MetricValue, MetricValueKind } from '@app/metrics';
 import type {
   AttributeValue,
-  ConnectorStyle,
+  CorridorLook,
+  CorridorRoof,
+  CorridorWalls,
   FacadeParameters,
   GridCoord,
   MetricInfo,
@@ -34,7 +38,10 @@ type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 export const contractGuards = {
   attributeValue: true satisfies Equals<AttributeValue, DocumentAttributeValue>,
   relationshipKind: true satisfies Equals<RelationshipKind, DocumentRelationshipKind>,
-  connectorStyle: true satisfies Equals<ConnectorStyle, DocumentConnectorStyle>,
+  corridorWalls: true satisfies Equals<CorridorWalls, WallStyle>,
+  corridorRoof: true satisfies Equals<CorridorRoof, RoofStyle>,
+  corridorLookKeys: true satisfies Equals<keyof CorridorLook, keyof DocumentCorridorLook>,
+  corridorLookAssignable: true satisfies (DocumentCorridorLook extends CorridorLook ? true : false),
   facade: true satisfies Equals<keyof FacadeParameters, keyof FacadeSpec>,
   facadeValue: true satisfies Equals<FacadeParameters['windowFraction'], FacadeSpec['windowFraction']>,
   gridCoord: true satisfies Equals<Mutable<GridCoord>, DocumentGridCoord>,

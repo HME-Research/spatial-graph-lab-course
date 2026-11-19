@@ -1,5 +1,5 @@
 import type { GridCoord } from '@core/spatial';
-import type { ConnectorStyle, DesignDocumentV2, GraphIssue, RelationshipKind, RoomSize, SharedFace } from '@app/document';
+import type { DesignDocumentV2, EffectiveCorridorLook, GraphIssue, RelationshipKind, RoomSize, SharedFace } from '@app/document';
 
 /**
  * Spatial relationship resolution, occupancy and spatial edits — FROZEN Gate 0 contract
@@ -51,8 +51,8 @@ export interface ConnectorRoute {
   readonly from: RoomFace;
   /** Face of the edge's TARGET room where the connector ends. */
   readonly to: RoomFace;
-  /** Effective style (`connectorStyleOf(edge, doc.settings)`: own style → design corridor style → default). */
-  readonly style: ConnectorStyle;
+  /** Effective walls and roof (`corridorLookOf(edge, doc.settings)`: own → the Corridors card → built-in, per field). */
+  readonly look: EffectiveCorridorLook;
 }
 
 interface ResolutionBase {
@@ -62,7 +62,7 @@ interface ResolutionBase {
 
 /**
  * Derived per-edge result. (The gate text's `{ status, reason?, routeCells?, connectorStyle? }`
- * is this discriminated union: `routeCells` = `route.cells`, `connectorStyle` = `route.style`.)
+ * is this discriminated union: `routeCells` = `route.cells`, the corridor's walls and roof = `route.look`.)
  * - direct: the rooms touch. `faces` = every shared unit face seen from the SOURCE room.
  *   horizontal access → door; horizontal open → no wall; vertical access → slab opening + access
  *   marker; vertical open → slab void (`connectionCondition` in app/building names these face conditions).

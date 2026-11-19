@@ -15,7 +15,7 @@ Shared interfaces for the seven parallel MVP branches (`01-graph-ui` … `07-tea
   "nextNodeId": 3,
   "nextEdgeId": 2,
   "nodes": [{ "id": 1, "grid": [0,0,0], "size": [2,3,1], "typeId": "gallery", "attributes": {} }],
-  "edges": [{ "id": 1, "source": 1, "target": 2, "kind": "access", "connectorStyle": "covered", "attributes": {} }],
+  "edges": [{ "id": 1, "source": 1, "target": 2, "kind": "access", "corridor": { "walls": "enclosed" }, "attributes": {} }],
   "diagram": { "positions": { "1": [0, 0] } },
   "settings": { "styleBy": "function", "styles": { "function": { "default": { "windowFraction": 0.3 }, "groups": [{ "value": "gallery", "look": { "roof": "pergola" } }] } } }
 }
@@ -29,12 +29,12 @@ Shared interfaces for the seven parallel MVP branches (`01-graph-ui` … `07-tea
 | `grid` | **Minimum corner** cell `[x,y,z]`, z up. Independent of `diagram.positions`. |
 | `size` | `[sx,sy,sz]` integers 1…`MAX_ROOM_SIZE` (32); default `[1,1,1]` (filled on read, always written). Room = every cell `grid + [0..sx-1, 0..sy-1, 0..sz-1]`. |
 | `kind` | `RelationshipKind = 'access' \| 'open'`; `DEFAULT_RELATIONSHIP_KIND = 'access'`. **No adjacency requirement.** |
-| `connectorStyle` | Optional `'enclosed' \| 'covered' \| 'deck'`; read with `connectorStyleOf(edge, doc.settings)`: own style → `settings.corridors.style` → built-in `covered` (since 2026-11-19; `deck` from 2026-11-17, `enclosed` before). Used only when the edge is routed. |
-| `settings.corridors` | Optional (additive 2026-11-19), Building Designer → Corridors: `{ style?: ConnectorStyle, roof?: 'flat' \| 'pergola' \| 'none' }`, written only when a field is set. `style` = the design's corridor style; `roof` (default `flat`, `corridorRoofOf(settings)`) = roof of every enclosed or covered corridor (`pergola` = slats like a room pergola; `none` = no roof; covered + none has no posts, i.e. looks like a deck). A deck never has a roof. |
+| `corridor` | Optional `CorridorLook` = `{ walls?: 'enclosed' \| 'open', roof?: 'flat' \| 'pergola' \| 'none' }` (strict; written only when a field is set, key order `walls`, `roof`): this relationship's own corridor look (Properties). Read with `corridorLookOf(edge, doc.settings)`, per field: own value → `settings.corridors` → built-in (`walls: 'open'`, `roof: 'flat'`). Used only when the edge is routed. Replaced `connectorStyle` on 2026-11-19 (no migration: not yet distributed). |
+| `settings.corridors` | Optional `CorridorLook` (2026-11-19, "Corridors as a look card"): the Corridors card in Building Designer → Looks, the walls and roof of every generated corridor; written only when a field is set. `designCorridorLook(settings)` resolves it against the built-in default (`DEFAULT_CORRIDOR_LOOK` = open + flat). Geometry: `enclosed` = a side wall on each side; `open` = open sides with posts only where there is a roof; roof `flat` slab, `pergola` slats (like a room pergola), `none` (open + none = floor only). |
 | `settings.styleBy` / `settings.styles` | **Style rooms by** (owner 2026-11-18; replaced `typeAppearance`, old files are not read). `styleBy` = `'function'` (default) | `'level'` | `'attribute:<field id>'` | `'metric:<metric id>'`: the ONE attribute that decides each room's look. `styles[styleBy]` = that attribute's setup, remembered per attribute: `{ default?: Look, groups?: [{ value: string | number | boolean, look: Look }], dividers?: number[], bands?: Look[], mode?: 'values' | 'bands' }`. A number can keep both value cards and bands; `mode` says which is active (absent = bands when `dividers` are stored, else value cards; S3, 2026-11-19). Each room falls in exactly one card: with bands active, the band holding its number (band i = `[dividers[i-1], dividers[i])`, ends open); otherwise the value card it equals (text trimmed, case-insensitive); else **Default** (also without a value). Validation: card values unique, dividers strictly ascending, `bands.length = dividers.length + 1`, `mode: 'bands'` needs dividers. Resolved per room on read by `nodeLooks(doc, base, values?)`: each look field card → Default → `base(typeId)` (toolkit window coverage) → built-in. Function and Level are read from the document; custom and measured values are passed by the caller. Cards for values no room has are tolerated (no validation error). |
 | `Look` | `{ windowFraction?: [0,1], windowLayout?: 'repeat' | 'stretch', walls?: 'enclosed' | 'open', roof?: 'flat' | 'pergola' | 'none', facade?: FacadeModule }`; absent = inherit. `stretch` = one window per façade (room side over all its bays and storeys, inset by an even frame, same glazed share); `walls: 'open'` leaves out the room's exterior walls and windows (shared walls stay); `pergola` = open slats. `facade` = optional imported module, or `'none'` on a card (no module even when Default has one; 2026-11-18) — module = `{ assetId, placement: 'repeat' | 'stretch', flip?: true, door?: { assetId, flip?: true }, open?: { assetId, flip?: true } }` (`flip` turns it round; `door` / `open` replace the façade bays where an open-air connector meets the room). Rooms with `walls: 'open'` never get a module. `assetId` names a PROJECT asset (CONTRACTS-V3 §2); an unknown id draws nothing (the Designer warns). |
 
-Types: `DesignDocumentV2`, `RoomNode`, `RelationshipEdge`, `RoomSize`, `Look`, `StyleBy`, `StyleSetup`, `StyleGroup`, `DesignSettings`, `RelationshipKind`, `ConnectorStyle`, `RoofStyle`.
+Types: `DesignDocumentV2`, `RoomNode`, `RelationshipEdge`, `RoomSize`, `Look`, `StyleBy`, `StyleSetup`, `StyleGroup`, `DesignSettings`, `RelationshipKind`, `CorridorLook`, `EffectiveCorridorLook`, `WallStyle`, `RoofStyle`.
 
 ## 2. Validation — `validateDocumentV2(input, options?)`
 
@@ -65,14 +65,14 @@ type EdgeResolution =
   | { edgeId; kind; status: 'direct'; contact: 'horizontal' | 'vertical'; faces: SharedFace[] } // faces seen from SOURCE
   | { edgeId; kind; status: 'routed'; route: ConnectorRoute }
   | { edgeId; kind; status: 'unresolved'; reason: UnresolvedReason; message: string };
-interface ConnectorRoute { edgeId; axis: 'x'|'y'; level; cells: GridCoord[]; from: RoomFace; to: RoomFace; style: ConnectorStyle }
+interface ConnectorRoute { edgeId; axis: 'x'|'y'; level; cells: GridCoord[]; from: RoomFace; to: RoomFace; look: EffectiveCorridorLook /* { walls, roof }, both resolved */ }
 type UnresolvedReason = 'different-level' | 'not-aligned' | 'blocked-by-room' | 'blocked-by-route'
                       | 'endpoint-clearance' | 'routing-unavailable' /* Gate 0 stub only */;
 type CellOccupant = { kind: 'room'; nodeId } | { kind: 'route'; edgeId };
 interface Occupancy { cells: ReadonlyMap<gridKey, CellOccupant>; at(cell) }
 ```
 
-The gate's `{ status, reason?, routeCells?, connectorStyle? }` is this union: `routeCells` = `route.cells`, `connectorStyle` = `route.style`.
+The gate's `{ status, reason?, routeCells?, connectorStyle? }` is this union: `routeCells` = `route.cells`, `connectorStyle` = `route.look` (walls + roof).
 
 **Semantics**
 - **Direct** means the footprints share at least one unit face.
@@ -110,11 +110,11 @@ type DesignCommand =
   | { type: 'set-node-type'; nodeId; typeId }
   | { type: 'set-node-attributes'; nodeId; attributes }
   | { type: 'set-diagram-position'; nodeId; position }      // never moves the room
-  | { type: 'add-edge'; edge: { source; target; kind?; connectorStyle?; attributes? } } // id ← doc.nextEdgeId; kind ← 'access'
+  | { type: 'add-edge'; edge: { source; target; kind?; corridor?; attributes? } } // id ← doc.nextEdgeId; kind ← 'access'
   | { type: 'remove-edge'; edgeId }
   | { type: 'change-edge-kind'; edgeId; kind: 'access' | 'open' }
-  | { type: 'set-connector-style'; edgeId; style: ConnectorStyle | null }   // null → the design's corridor style
-  | { type: 'set-corridors'; patch: { style?: ConnectorStyle | null; roof?: RoofStyle | null } } // null clears a field; empty → `corridors` removed
+  | { type: 'set-edge-corridor'; edgeId; patch: { walls?: WallStyle | null; roof?: RoofStyle | null } } // null → the Corridors card; empty → `corridor` removed
+  | { type: 'set-corridors'; patch: { walls?: WallStyle | null; roof?: RoofStyle | null } } // the Corridors card; null clears a field; empty → `corridors` removed
   | { type: 'set-style-by'; by: StyleBy; dividers?: number[] } // every setup stays remembered; dividers = starting bands, stored only when `by` has none
   | { type: 'set-style-mode'; by; mode: 'values' | 'bands'; dividers?: number[] } // both kinds remembered; switching to bands without stored bands creates them from dividers
   | { type: 'set-look'; by; group: {kind:'default'} | {kind:'value', value} | {kind:'band', index}; patch: LookPatch } // null → inherit; a value card is created when missing and kept when empty; Default is removed when empty

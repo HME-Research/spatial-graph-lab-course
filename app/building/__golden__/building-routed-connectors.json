@@ -9249,7 +9249,10 @@
     {
       "id": "1:route:0:connector-floor:0",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         1,
@@ -9274,7 +9277,10 @@
     {
       "id": "1:route:0:connector-roof:1",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         1,
@@ -9299,7 +9305,10 @@
     {
       "id": "1:route:0:connector-post:2",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         1,
@@ -9324,7 +9333,10 @@
     {
       "id": "1:route:0:connector-post:3",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         1,
@@ -9349,7 +9361,10 @@
     {
       "id": "1:route:1:connector-floor:0",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         2,
@@ -9374,7 +9389,10 @@
     {
       "id": "1:route:1:connector-roof:1",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         2,
@@ -9399,7 +9417,10 @@
     {
       "id": "1:route:1:connector-post:2",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -9424,7 +9445,10 @@
     {
       "id": "1:route:1:connector-post:3",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -9449,7 +9473,10 @@
     {
       "id": "1:route:2:connector-floor:0",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         3,
@@ -9474,7 +9501,10 @@
     {
       "id": "1:route:2:connector-roof:1",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         3,
@@ -9499,7 +9529,10 @@
     {
       "id": "1:route:2:connector-post:2",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -9524,7 +9557,10 @@
     {
       "id": "1:route:2:connector-post:3",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -9549,7 +9585,10 @@
     {
       "id": "1:route:2:connector-post:4",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -9574,7 +9613,10 @@
     {
       "id": "1:route:2:connector-post:5",
       "edgeId": 1,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -9599,7 +9641,10 @@
     {
       "id": "3:route:0:connector-floor:0",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         1,
@@ -9624,7 +9669,10 @@
     {
       "id": "3:route:0:connector-roof:1",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         1,
@@ -9649,7 +9697,10 @@
     {
       "id": "3:route:0:connector-post:2",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         1,
@@ -9674,7 +9725,10 @@
     {
       "id": "3:route:0:connector-post:3",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         1,
@@ -9699,7 +9753,10 @@
     {
       "id": "3:route:1:connector-floor:0",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         2,
@@ -9724,7 +9781,10 @@
     {
       "id": "3:route:1:connector-roof:1",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         2,
@@ -9749,7 +9809,10 @@
     {
       "id": "3:route:1:connector-post:2",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -9774,7 +9837,10 @@
     {
       "id": "3:route:1:connector-post:3",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -9799,7 +9865,10 @@
     {
       "id": "3:route:2:connector-floor:0",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         3,
@@ -9824,7 +9893,10 @@
     {
       "id": "3:route:2:connector-roof:1",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         3,
@@ -9849,7 +9921,10 @@
     {
       "id": "3:route:2:connector-post:2",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -9874,7 +9949,10 @@
     {
       "id": "3:route:2:connector-post:3",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -9899,7 +9977,10 @@
     {
       "id": "3:route:2:connector-post:4",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -9924,7 +10005,10 @@
     {
       "id": "3:route:2:connector-post:5",
       "edgeId": 3,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -9949,7 +10033,10 @@
     {
       "id": "4:route:0:connector-floor:0",
       "edgeId": 4,
-      "style": "deck",
+      "look": {
+        "walls": "open",
+        "roof": "none"
+      },
       "part": "connector-floor",
       "cell": [
         4,
@@ -9974,7 +10061,10 @@
     {
       "id": "4:route:1:connector-floor:0",
       "edgeId": 4,
-      "style": "deck",
+      "look": {
+        "walls": "open",
+        "roof": "none"
+      },
       "part": "connector-floor",
       "cell": [
         3,
@@ -9999,7 +10089,10 @@
     {
       "id": "4:route:2:connector-floor:0",
       "edgeId": 4,
-      "style": "deck",
+      "look": {
+        "walls": "open",
+        "roof": "none"
+      },
       "part": "connector-floor",
       "cell": [
         2,
@@ -10024,7 +10117,10 @@
     {
       "id": "5:route:0:connector-floor:0",
       "edgeId": 5,
-      "style": "enclosed",
+      "look": {
+        "walls": "enclosed",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         1,
@@ -10049,7 +10145,10 @@
     {
       "id": "5:route:0:connector-roof:1",
       "edgeId": 5,
-      "style": "enclosed",
+      "look": {
+        "walls": "enclosed",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         1,
@@ -10074,7 +10173,10 @@
     {
       "id": "5:route:0:connector-wall:2",
       "edgeId": 5,
-      "style": "enclosed",
+      "look": {
+        "walls": "enclosed",
+        "roof": "flat"
+      },
       "part": "connector-wall",
       "cell": [
         1,
@@ -10099,7 +10201,10 @@
     {
       "id": "5:route:0:connector-wall:3",
       "edgeId": 5,
-      "style": "enclosed",
+      "look": {
+        "walls": "enclosed",
+        "roof": "flat"
+      },
       "part": "connector-wall",
       "cell": [
         1,
@@ -10124,7 +10229,10 @@
     {
       "id": "5:route:1:connector-floor:0",
       "edgeId": 5,
-      "style": "enclosed",
+      "look": {
+        "walls": "enclosed",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         2,
@@ -10149,7 +10257,10 @@
     {
       "id": "5:route:1:connector-wall:1",
       "edgeId": 5,
-      "style": "enclosed",
+      "look": {
+        "walls": "enclosed",
+        "roof": "flat"
+      },
       "part": "connector-wall",
       "cell": [
         2,
@@ -10174,7 +10285,10 @@
     {
       "id": "5:route:1:connector-wall:2",
       "edgeId": 5,
-      "style": "enclosed",
+      "look": {
+        "walls": "enclosed",
+        "roof": "flat"
+      },
       "part": "connector-wall",
       "cell": [
         2,
@@ -10199,7 +10313,10 @@
     {
       "id": "5:route:2:connector-floor:0",
       "edgeId": 5,
-      "style": "enclosed",
+      "look": {
+        "walls": "enclosed",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         3,
@@ -10224,7 +10341,10 @@
     {
       "id": "5:route:2:connector-roof:1",
       "edgeId": 5,
-      "style": "enclosed",
+      "look": {
+        "walls": "enclosed",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         3,
@@ -10249,7 +10369,10 @@
     {
       "id": "5:route:2:connector-wall:2",
       "edgeId": 5,
-      "style": "enclosed",
+      "look": {
+        "walls": "enclosed",
+        "roof": "flat"
+      },
       "part": "connector-wall",
       "cell": [
         3,
@@ -10274,7 +10397,10 @@
     {
       "id": "5:route:2:connector-wall:3",
       "edgeId": 5,
-      "style": "enclosed",
+      "look": {
+        "walls": "enclosed",
+        "roof": "flat"
+      },
       "part": "connector-wall",
       "cell": [
         3,
@@ -10299,7 +10425,10 @@
     {
       "id": "6:route:0:connector-floor:0",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         1,
@@ -10324,7 +10453,10 @@
     {
       "id": "6:route:0:connector-roof:1",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         1,
@@ -10349,7 +10481,10 @@
     {
       "id": "6:route:0:connector-post:2",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         1,
@@ -10374,7 +10509,10 @@
     {
       "id": "6:route:0:connector-post:3",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         1,
@@ -10399,7 +10537,10 @@
     {
       "id": "6:route:1:connector-floor:0",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         2,
@@ -10424,7 +10565,10 @@
     {
       "id": "6:route:1:connector-roof:1",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         2,
@@ -10449,7 +10593,10 @@
     {
       "id": "6:route:1:connector-post:2",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -10474,7 +10621,10 @@
     {
       "id": "6:route:1:connector-post:3",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -10499,7 +10649,10 @@
     {
       "id": "6:route:2:connector-floor:0",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         3,
@@ -10524,7 +10677,10 @@
     {
       "id": "6:route:2:connector-roof:1",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         3,
@@ -10549,7 +10705,10 @@
     {
       "id": "6:route:2:connector-post:2",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -10574,7 +10733,10 @@
     {
       "id": "6:route:2:connector-post:3",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -10599,7 +10761,10 @@
     {
       "id": "6:route:2:connector-post:4",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -10624,7 +10789,10 @@
     {
       "id": "6:route:2:connector-post:5",
       "edgeId": 6,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         3,
@@ -10649,7 +10817,10 @@
     {
       "id": "7:route:0:connector-floor:0",
       "edgeId": 7,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         2,
@@ -10674,7 +10845,10 @@
     {
       "id": "7:route:0:connector-roof:1",
       "edgeId": 7,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         2,
@@ -10699,7 +10873,10 @@
     {
       "id": "7:route:0:connector-post:2",
       "edgeId": 7,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -10724,7 +10901,10 @@
     {
       "id": "7:route:0:connector-post:3",
       "edgeId": 7,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -10749,7 +10929,10 @@
     {
       "id": "7:route:1:connector-floor:0",
       "edgeId": 7,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-floor",
       "cell": [
         2,
@@ -10774,7 +10957,10 @@
     {
       "id": "7:route:1:connector-roof:1",
       "edgeId": 7,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-roof",
       "cell": [
         2,
@@ -10799,7 +10985,10 @@
     {
       "id": "7:route:1:connector-post:2",
       "edgeId": 7,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -10824,7 +11013,10 @@
     {
       "id": "7:route:1:connector-post:3",
       "edgeId": 7,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -10849,7 +11041,10 @@
     {
       "id": "7:route:1:connector-post:4",
       "edgeId": 7,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -10874,7 +11069,10 @@
     {
       "id": "7:route:1:connector-post:5",
       "edgeId": 7,
-      "style": "covered",
+      "look": {
+        "walls": "open",
+        "roof": "flat"
+      },
       "part": "connector-post",
       "cell": [
         2,
@@ -10926,7 +11124,10 @@
         "1:route:2:connector-post:4",
         "1:route:2:connector-post:5"
       ],
-      "connectorStyle": "covered"
+      "corridor": {
+        "walls": "open",
+        "roof": "flat"
+      }
     },
     {
       "edgeId": 3,
@@ -10950,7 +11151,10 @@
         "3:route:2:connector-post:4",
         "3:route:2:connector-post:5"
       ],
-      "connectorStyle": "covered"
+      "corridor": {
+        "walls": "open",
+        "roof": "flat"
+      }
     },
     {
       "edgeId": 4,
@@ -10969,7 +11173,10 @@
         "4:route:1:connector-floor:0",
         "4:route:2:connector-floor:0"
       ],
-      "connectorStyle": "deck"
+      "corridor": {
+        "walls": "open",
+        "roof": "none"
+      }
     },
     {
       "edgeId": 5,
@@ -10994,7 +11201,10 @@
         "5:route:2:connector-wall:2",
         "5:route:2:connector-wall:3"
       ],
-      "connectorStyle": "enclosed"
+      "corridor": {
+        "walls": "enclosed",
+        "roof": "flat"
+      }
     },
     {
       "edgeId": 6,
@@ -11018,7 +11228,10 @@
         "6:route:2:connector-post:4",
         "6:route:2:connector-post:5"
       ],
-      "connectorStyle": "covered"
+      "corridor": {
+        "walls": "open",
+        "roof": "flat"
+      }
     },
     {
       "edgeId": 2,
@@ -11052,7 +11265,10 @@
         "7:route:1:connector-post:4",
         "7:route:1:connector-post:5"
       ],
-      "connectorStyle": "covered"
+      "corridor": {
+        "walls": "open",
+        "roof": "flat"
+      }
     }
   ]
 }

@@ -1,7 +1,9 @@
-import type { ConnectorStyle, RelationshipKind } from '@app/document';
+import type { EffectiveCorridorLook, RelationshipKind } from '@app/document';
 import type { EdgeResolution, ResolutionStatus, SpatialResolution } from '@app/spatial';
 import {
-  CONNECTOR_PRESENTATION,
+  CONNECTOR_ORDER,
+  connectorPresentation,
+  corridorLookKey,
   KIND_PRESENTATION,
   relationshipLine,
   STATUS_ORDER,
@@ -22,7 +24,7 @@ export interface RelationshipPresentation {
   readonly kindLabel: string;
   readonly statusLabel: string;
   readonly line: LineToken;
-  /** What gets built, in plain words ("door in the shared wall", "Covered walkway (4 cells)"). */
+  /** What gets built, in plain words ("door in the shared wall", "Open corridor, flat roof (4 cells)"). */
   readonly built: string;
   /** Short reason for unresolved relationships, otherwise null. */
   readonly reason: string | null;
@@ -55,7 +57,7 @@ export function presentRelationship(resolution: EdgeResolution): RelationshipPre
       };
     }
     case 'routed': {
-      const connector = CONNECTOR_PRESENTATION[resolution.route.style];
+      const connector = connectorPresentation(resolution.route.look);
       const cells = resolution.route.cells.length;
       const built = `${connector.label} (${cells} ${cells === 1 ? 'cell' : 'cells'})`;
       return {
@@ -114,9 +116,9 @@ export function summarizeRelationships(spatial: SpatialResolution): Relationship
   return { total, counts, unresolvedIds, sentence };
 }
 
-/** Connector styles actually used by routed relationships (legend filtering), in legend order. */
-export function connectorStylesInUse(spatial: SpatialResolution): ConnectorStyle[] {
-  const used = new Set<ConnectorStyle>();
-  for (const r of spatial.edges) if (r.status === 'routed') used.add(r.route.style);
-  return (['enclosed', 'covered', 'deck'] as const).filter((s) => used.has(s));
+/** Corridor looks (walls + roof) actually used by routed relationships (legend filtering), in legend order. */
+export function corridorLooksInUse(spatial: SpatialResolution): EffectiveCorridorLook[] {
+  const used = new Set<string>();
+  for (const r of spatial.edges) if (r.status === 'routed') used.add(corridorLookKey(r.route.look));
+  return CONNECTOR_ORDER.filter((look) => used.has(corridorLookKey(look)));
 }

@@ -1,11 +1,11 @@
-import { DEFAULT_CONNECTOR_STYLE, DEFAULT_CORRIDOR_ROOF, DEFAULT_ROOF_STYLE, DEFAULT_WALL_STYLE, DEFAULT_WINDOW_LAYOUT, FACADE_VARIANTS, type ConnectorStyle, type RoofStyle, type WallStyle, type WindowLayout } from './constants';
+import { DEFAULT_CORRIDOR_ROOF, DEFAULT_CORRIDOR_WALLS, DEFAULT_ROOF_STYLE, DEFAULT_WALL_STYLE, DEFAULT_WINDOW_LAYOUT, FACADE_VARIANTS, type RoofStyle, type WallStyle, type WindowLayout } from './constants';
 import {
   styleValueKey,
+  type CorridorLook,
   type DesignDocumentV2,
   type DesignSettings,
   type FacadeModule,
   type Look,
-  type RelationshipEdge,
   type RoomNode,
   type StyleBy,
   type StyleMode,
@@ -185,23 +185,34 @@ export const sameGroup = (a: StyleGroupRef, b: StyleGroupRef): boolean =>
   a.kind === b.kind && (a.kind === 'default' || (a.kind === 'value' ? styleValueKey(a.value) === styleValueKey((b as typeof a).value) : a.index === (b as typeof a).index));
 
 // ---------------------------------------------------------------------------------------------
-// Corridors (generated straight connectors): Building Designer → Corridors (2026-11-19).
+// Corridors (generated straight connectors): the Corridors look card (owner 2026-11-19).
 
 type CorridorSettingsHolder = Pick<DesignSettings, 'corridors'> | undefined;
 
-/** The design's corridor style: `settings.corridors.style`, else the built-in default (`covered`). */
-export const corridorStyleOf = (settings?: CorridorSettingsHolder): ConnectorStyle => settings?.corridors?.style ?? DEFAULT_CONNECTOR_STYLE;
+/** A corridor's resolved look: both fields known. */
+export interface EffectiveCorridorLook {
+  readonly walls: WallStyle;
+  readonly roof: RoofStyle;
+}
 
-/** The roof of the design's corridors that have one (enclosed, covered): `settings.corridors.roof`, else `flat`. */
-export const corridorRoofOf = (settings?: CorridorSettingsHolder): RoofStyle => settings?.corridors?.roof ?? DEFAULT_CORRIDOR_ROOF;
+/** Built-in corridor look: open sides on slim posts under a flat roof. */
+export const DEFAULT_CORRIDOR_LOOK: EffectiveCorridorLook = Object.freeze({ walls: DEFAULT_CORRIDOR_WALLS, roof: DEFAULT_CORRIDOR_ROOF });
+
+/** The design's Corridors card, resolved: each field `settings.corridors`, else the built-in default. */
+export const designCorridorLook = (settings?: CorridorSettingsHolder): EffectiveCorridorLook => ({
+  walls: settings?.corridors?.walls ?? DEFAULT_CORRIDOR_WALLS,
+  roof: settings?.corridors?.roof ?? DEFAULT_CORRIDOR_ROOF,
+});
 
 /**
- * Effective connector style of one relationship: its own `connectorStyle` (Properties) → the
- * design's corridor style (`settings`) → the built-in default (`covered` since 2026-11-19; `deck`
- * from 2026-11-17, `enclosed` before). Pass `undefined` settings only to skip the design step.
+ * Effective look of one relationship's corridor, per field: the relationship's own `corridor`
+ * (Properties) → the design's Corridors card (`settings.corridors`) → the built-in default
+ * (walls `open`, roof `flat`). Pass `undefined` settings only to skip the design step.
  */
-export const connectorStyleOf = (edge: Pick<RelationshipEdge, 'connectorStyle'>, settings: CorridorSettingsHolder): ConnectorStyle =>
-  edge.connectorStyle ?? corridorStyleOf(settings);
+export const corridorLookOf = (edge: { readonly corridor?: CorridorLook | undefined }, settings: CorridorSettingsHolder): EffectiveCorridorLook => {
+  const design = designCorridorLook(settings);
+  return { walls: edge.corridor?.walls ?? design.walls, roof: edge.corridor?.roof ?? design.roof };
+};
 
 /** The function cards of a design as `typeId → look` (the `function` setup's value cards). */
 export function functionLooks(settings: Pick<DesignSettings, 'styles'>): Record<string, Look> {

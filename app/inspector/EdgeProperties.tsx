@@ -1,8 +1,10 @@
 import { HelpTip } from '@app/ui/help';
-import { connectorStyleOf, corridorStyleOf, nodeLabel, type ConnectorStyle, type RelationshipKind } from '@app/document';
+import { corridorLookOf, designCorridorLook, nodeLabel, type RelationshipKind } from '@app/document';
 import {
   CollapsibleSection,
-  CONNECTOR_STYLE_CHOICES,
+  CORRIDOR_ROOF_CHOICES,
+  CORRIDOR_WALL_CHOICES,
+  corridorLookText,
   labelOfChoice,
   InfoButton,
   describeResolution,
@@ -10,6 +12,7 @@ import {
   IssueFeedback,
   RELATIONSHIP_KIND_CHOICES,
   UNDO_HINT,
+  type Choice,
 } from '@app/ui';
 import { nodeTypeStatus } from '@app/views/project';
 import { selectNode } from '@core/viewer/selection';
@@ -64,19 +67,40 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   };
   const resolution = design.spatial.byEdge.get(edge.id);
   const status = resolution ? describeResolution(resolution) : null;
-  const style = connectorStyleOf(edge, design.doc.settings);
-  // The design's corridor style (Building Designer → Corridors), used while the edge sets none.
-  const designStyle = corridorStyleOf(design.doc.settings);
-  const designDefaultLabel = `Design default (${labelOfChoice(CONNECTOR_STYLE_CHOICES, designStyle)})`;
+  // Each corridor field: this relationship's own value → the design's Corridors card → built-in.
+  const look = corridorLookOf(edge, design.doc.settings);
+  const designLook = designCorridorLook(design.doc.settings);
+  const own = edge.corridor ?? {};
+  const ownCount = (own.walls === undefined ? 0 : 1) + (own.roof === undefined ? 0 : 1);
 
   const setKind = (kind: RelationshipKind) => {
     if (kind !== edge.kind) runV2({ type: 'change-edge-kind', edgeId, kind });
   };
-  // '' = Design default (removes the edge's own style); a style is stored as the edge's own.
-  const setStyle = (next: ConnectorStyle | '') => {
-    const stored = edge.connectorStyle ?? '';
-    if (next !== stored) runV2({ type: 'set-connector-style', edgeId, style: next === '' ? null : next });
+  // '' = Design default (clears this relationship's own value); a value is stored as its own.
+  const setCorridor = (field: 'walls' | 'roof', next: string) => {
+    if (next === (own[field] ?? '')) return;
+    runV2({ type: 'set-edge-corridor', edgeId, patch: { [field]: next === '' ? null : next } });
   };
+  const corridorField = <T extends string>(field: 'walls' | 'roof', title: string, choices: readonly Choice<T>[], designValue: T) => (
+    <div className="sgl-corridor-field">
+      <label htmlFor={`sgl-edge-${edgeId}-corridor-${field}`}>{title}</label>
+      <select
+        id={`sgl-edge-${edgeId}-corridor-${field}`}
+        value={own[field] ?? ''}
+        aria-label={`Corridor ${field}`}
+        onChange={(e) => setCorridor(field, e.currentTarget.value)}
+      >
+        <option value="" title="The Corridors card of the whole design (Building Designer → Looks)">
+          Design default ({labelOfChoice(choices, designValue)})
+        </option>
+        {choices.map((c) => (
+          <option key={c.value} value={c.value} title={c.description}>
+            {c.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 
   const schema = project?.attributes;
   const outsideCount = schema ? Object.keys(attributesOutsideSchema(schema, 'edges', edge.attributes)).length : 0;
@@ -180,29 +204,23 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
         </section>
 
         {resolution?.status === 'routed' ? (
-          <fieldset className="sgl-section">
-            <legend>Corridor style</legend>
+          <fieldset className="sgl-section sgl-corridor">
+            <legend>Corridor</legend>
             <HelpTip topicId="connector-style" />
-            <select value={edge.connectorStyle ?? ''} aria-label="Corridor style" onChange={(e) => setStyle(e.currentTarget.value as ConnectorStyle | '')}>
-              <option value="" title="The corridor style of the whole design (Building Designer → Corridors)">
-                {designDefaultLabel}
-              </option>
-              {CONNECTOR_STYLE_CHOICES.map((c) => (
-                <option key={c.value} value={c.value} title={c.description}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+            {corridorField('walls', 'Walls', CORRIDOR_WALL_CHOICES, designLook.walls)}
+            {corridorField('roof', 'Roof', CORRIDOR_ROOF_CHOICES, designLook.roof)}
             <p className="sgl-help">
-              {CONNECTOR_STYLE_CHOICES.find((c) => c.value === style)?.description}
-              {edge.connectorStyle === undefined ? ' Change it for the whole design in Building Designer → Corridors.' : ' Set for this relationship only.'}
+              This corridor: {corridorLookText(look)}.{' '}
+              {ownCount === 0
+                ? 'Change every corridor with the Corridors card in Building Designer → Looks.'
+                : `${ownCount === 2 ? 'Both are' : 'One is'} set for this relationship only; Design default follows the Corridors card.`}
             </p>
           </fieldset>
         ) : (
-          edge.connectorStyle !== undefined && (
+          ownCount > 0 && (
             <p className="sgl-help">
-              Corridor style “{CONNECTOR_STYLE_CHOICES.find((c) => c.value === edge.connectorStyle)?.label}” is stored. It is
-              used only when a corridor is generated.
+              This relationship has its own corridor {[own.walls && `walls (${labelOfChoice(CORRIDOR_WALL_CHOICES, own.walls)})`, own.roof && `roof (${labelOfChoice(CORRIDOR_ROOF_CHOICES, own.roof)})`].filter(Boolean).join(' and ')}. It
+              is used only when a corridor is generated.
             </p>
           )
         )}

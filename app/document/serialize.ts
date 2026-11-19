@@ -1,11 +1,15 @@
 import { fail, issue, ok, type Result } from './errors';
-import { canonicalFacadeModule, type CorridorSettings, type DesignDocumentV2, type Look } from './schema';
+import { canonicalFacadeModule, type CorridorLook, type DesignDocumentV2, type Look } from './schema';
 
-/** `{ corridors }` with its set fields in a fixed order, or undefined when nothing is set. */
-const corridorsOf = (c: CorridorSettings | undefined): { corridors: CorridorSettings } | undefined =>
-  c && (c.style !== undefined || c.roof !== undefined)
-    ? { corridors: { ...(c.style === undefined ? {} : { style: c.style }), ...(c.roof === undefined ? {} : { roof: c.roof }) } }
+/** A corridor look with its set fields in a fixed order (`walls`, `roof`), or undefined when nothing is set. */
+const canonicalCorridor = (c: CorridorLook | undefined): CorridorLook | undefined =>
+  c && (c.walls !== undefined || c.roof !== undefined)
+    ? { ...(c.walls === undefined ? {} : { walls: c.walls }), ...(c.roof === undefined ? {} : { roof: c.roof }) }
     : undefined;
+const corridorField = <K extends string>(key: K, c: CorridorLook | undefined): { [P in K]?: CorridorLook } => {
+  const canonical = canonicalCorridor(c);
+  return (canonical ? { [key]: canonical } : {}) as { [P in K]?: CorridorLook };
+};
 
 /** Canonical look: fixed key order, only fields that are set. */
 const canonicalLook = (a: Look): Look => ({
@@ -70,7 +74,7 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
       source: e.source,
       target: e.target,
       kind: e.kind,
-      ...(e.connectorStyle === undefined ? {} : { connectorStyle: e.connectorStyle }),
+      ...corridorField('corridor', e.corridor),
       attributes: { ...e.attributes },
     })),
     diagram: { positions: { ...doc.diagram.positions } },
@@ -88,8 +92,8 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
           },
         ]),
       ),
-      // Design-wide corridors (2026-11-19): written only when something is set.
-      ...(corridorsOf(doc.settings.corridors) ?? {}),
+      // The Corridors look card (2026-11-19): written only when something is set.
+      ...corridorField('corridors', doc.settings.corridors),
     },
   };
   return `${JSON.stringify(canonical, null, 2)}\n`;

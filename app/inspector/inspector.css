@@ -463,3 +463,18 @@ button.link-button:hover:not(:disabled) {
 .sgl-panel-actions {
   padding-top: var(--space-3, 12px);
 }
+
+/* Corridor walls / roof of one relationship (2026-11-19): label column + select, wrapping cleanly when narrow. */
+.sgl-corridor-field {
+  display: grid;
+  grid-template-columns: 4.5em minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-1, 4px) var(--space-2, 8px);
+  margin-bottom: var(--space-1, 4px);
+}
+
+.sgl-corridor-field select {
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}

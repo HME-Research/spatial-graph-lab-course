@@ -1,9 +1,10 @@
-import type { ConnectorStyle } from '@app/document';
+import type { EffectiveCorridorLook } from '@app/document';
 import type { ResolutionStatus } from '@app/spatial';
 import type { ViewMode } from '../contracts';
 import {
   CONNECTOR_ORDER,
-  CONNECTOR_PRESENTATION,
+  connectorPresentation,
+  corridorLookKey,
   KIND_ORDER,
   KIND_PRESENTATION,
   relationshipLine,
@@ -25,7 +26,7 @@ export const CONNECTOR_CELL_COLOR = '#cfc6b3';
 export type Swatch =
   | { readonly shape: 'line'; readonly line: LineToken }
   | { readonly shape: 'ring'; readonly color: string }
-  | { readonly shape: 'cell'; readonly color: string; readonly pattern: ConnectorStyle | 'room' };
+  | { readonly shape: 'cell'; readonly color: string; readonly pattern: EffectiveCorridorLook | 'room' };
 
 export interface LegendItem {
   /** Stable id, e.g. `status:unresolved`; also used as `data-legend-item` in the DOM. */
@@ -54,8 +55,8 @@ export interface ViewLegend {
 export interface RelationshipLegendOptions {
   /** Status counts; when given, statuses with 0 relationships are dropped (Unresolved always stays visible when > 0). */
   readonly statusCounts?: Readonly<Record<ResolutionStatus, number>>;
-  /** Connector styles in use; when given, only these are listed. */
-  readonly connectorStyles?: readonly ConnectorStyle[];
+  /** Corridor looks (walls + roof) in use; when given, only these are listed. */
+  readonly corridorLooks?: readonly EffectiveCorridorLook[];
   /** Laptop / narrow panels: hide the selection section and kind explanations. */
   readonly compact?: boolean;
 }
@@ -114,15 +115,15 @@ function kindSection(view: ViewMode): LegendSection {
   };
 }
 
-function connectorSection(styles: readonly ConnectorStyle[]): LegendSection {
+function connectorSection(looks: readonly EffectiveCorridorLook[]): LegendSection {
   return {
     id: 'connector',
-    title: 'Connector style',
-    items: styles.map((s) => ({
-      id: `connector:${s}`,
-      label: CONNECTOR_PRESENTATION[s].label,
-      summary: CONNECTOR_PRESENTATION[s].summary,
-      swatch: { shape: 'cell', color: CONNECTOR_CELL_COLOR, pattern: s },
+    title: 'Corridors',
+    items: looks.map((look) => ({
+      id: `connector:${corridorLookKey(look)}`,
+      label: connectorPresentation(look).label,
+      summary: connectorPresentation(look).summary,
+      swatch: { shape: 'cell', color: CONNECTOR_CELL_COLOR, pattern: look },
       helpTopic: 'connector-style',
     })),
   };
@@ -143,15 +144,15 @@ const SELECTION_SECTION: LegendSection = {
 
 /**
  * Legend for one view. Graph views explain line styles (status + kind); building views explain
- * what is physically built (status + connector styles; kind in full mode).
+ * what is physically built (status + corridor looks; kind in full mode).
  */
 export function relationshipLegend(view: ViewMode, opts: RelationshipLegendOptions = {}): ViewLegend {
   const building = view === 'voxels' || view === 'architecture';
   const sections: LegendSection[] = [statusSection(view, opts)];
   if (!building || !opts.compact) sections.push(kindSection(view));
   if (building) {
-    const styles = opts.connectorStyles ?? CONNECTOR_ORDER;
-    if (styles.length > 0) sections.push(connectorSection(styles));
+    const looks = opts.corridorLooks ?? CONNECTOR_ORDER;
+    if (looks.length > 0) sections.push(connectorSection(looks));
   }
   if (!opts.compact) sections.push(SELECTION_SECTION);
   return { view, title: VIEW_TITLE[view], sections: sections.filter((s) => s.items.length > 0) };

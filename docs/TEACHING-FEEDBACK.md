@@ -23,7 +23,7 @@ A relationship has a **kind**, which is what the designer intends: **Access** or
 | Rejected document / import / command | Error tone (`ERROR_TONE`) | not a line colour, never the unresolved red |
 | Out-of-date analysis | Warning tone (`WARNING_TONE`) | — |
 
-The tokens are in `vocabulary.ts`: `relationshipLine(kind, status, contact)`, `UNRESOLVED_LINE`, `STATUS_PRESENTATION`, `KIND_PRESENTATION`, `CONNECTOR_PRESENTATION` and `UNRESOLVED_REASON_TEXT`. Tests check that the unresolved colour has at least 4.5:1 contrast on white and on the app background, and that it differs from the selection pink and the error tone.
+The tokens are in `vocabulary.ts`: `relationshipLine(kind, status, contact)`, `UNRESOLVED_LINE`, `STATUS_PRESENTATION`, `KIND_PRESENTATION`, `connectorPresentation(look)` (with `CONNECTOR_ORDER`, every walls × roof combination) and `UNRESOLVED_REASON_TEXT`. Tests check that the unresolved colour has at least 4.5:1 contrast on white and on the app background, and that it differs from the selection pink and the error tone.
 
 ### Gate 1 decision (supersedes the proposal below)
 
@@ -43,15 +43,15 @@ When v2 is wired, **dashes are reserved for Unresolved**. Kind moves to line wid
 presentRelationship(resolution: EdgeResolution): RelationshipPresentation
 presentEdgeById(spatial: SpatialResolution, edgeId: string): RelationshipPresentation | null   // unknown id → null
 summarizeRelationships(spatial): { total, counts, unresolvedIds, sentence }                  // "5 relationships: 3 direct, 1 via route, 1 unresolved."
-connectorStylesInUse(spatial): ConnectorStyle[]
+corridorLooksInUse(spatial): EffectiveCorridorLook[]   // distinct { walls, roof } in legend order
 ```
 
-`RelationshipPresentation` contains `statusLabel`, `kindLabel`, `line`, `built` (for example "door in the shared wall" or "Covered walkway (4 cells)"), the short `reason`, the engine `detail`, and a one-line `tooltip`. Graph UI edge popovers and the Properties panel should show `tooltip` and put `detail` behind "More details".
+`RelationshipPresentation` contains `statusLabel`, `kindLabel`, `line`, `built` (for example "door in the shared wall" or "Open corridor, flat roof (4 cells)"), the short `reason`, the engine `detail`, and a one-line `tooltip`. Graph UI edge popovers and the Properties panel should show `tooltip` and put `detail` behind "More details".
 
 ## 3. Legends (`legend.ts`, `LegendViews.tsx`)
 
 ```ts
-relationshipLegend(view: ViewMode, { statusCounts?, connectorStyles?, compact? }): ViewLegend
+relationshipLegend(view: ViewMode, { statusCounts?, corridorLooks?, compact? }): ViewLegend
 isCompactPanel(panelWidth)          // < 560 px → compact (laptops in split view)
 <RelationshipLegend legend={…} helpDetails={HELP_DETAILS} defaultOpen? />
 ```
@@ -122,7 +122,7 @@ Suggested placements, to be wired by their owners:
 ## 7. Integration checklist (Gate 1)
 
 1. Graph 2D and 3D edge renderers: when `props.design` is present, use `presentEdgeById(design.spatial, edge.id).line`. Use `.tooltip` in aria-labels and popovers.
-2. Mount `RelationshipLegend` in each view, passing `relationshipLegend(mode, { statusCounts: summarizeRelationships(design.spatial).counts, connectorStyles: connectorStylesInUse(design.spatial), compact: isCompactPanel(width) })`. In v1 mode, keep the existing legends.
+2. Mount `RelationshipLegend` in each view, passing `relationshipLegend(mode, { statusCounts: summarizeRelationships(design.spatial).counts, corridorLooks: corridorLooksInUse(design.spatial), compact: isCompactPanel(width) })`. In v1 mode, keep the existing legends.
 3. Add `analysis: AnalysisPresentation | null` to App state, built as in §4. Pass it to the views through a new optional prop or context. That is a root decision, because `ViewProps` is frozen. Renderers use `analysisNodeStyle`.
 4. Replace the long load-failure list in `App.tsx` with `conciseIssues(failure.issues, { action: \`load ${failure.source}\` })`, and keep the full list behind "More details".
 5. Place `HelpTip`s as in §6. Then run the smoke harness with `--feature help --feature legend --feature analysis-overlay --feature v2`.

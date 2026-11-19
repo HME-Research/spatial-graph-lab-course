@@ -48,18 +48,25 @@ export interface SpatialNode extends NodeRecord {
   readonly attributes: { readonly [key: string]: AttributeValue };
 }
 
+/** Walls of a generated corridor: `enclosed` (a side wall on each side) or `open` (open sides). */
+export type CorridorWalls = 'enclosed' | 'open';
+
+/** Roof of a generated corridor: `flat`, `pergola` (open slats) or `none` (open to the sky). */
+export type CorridorRoof = 'flat' | 'pergola' | 'none';
+
 /**
- * Look of a generated straight connector when the rooms do not touch:
- * `enclosed` (roof + side walls), `covered` (roof, open sides), `deck` (floor only).
+ * A relationship's own corridor look, used only when the rooms do not touch and a straight
+ * corridor is generated. Each omitted field uses the design's Corridors card (Building Designer),
+ * whose built-in default is open walls with a flat roof.
  */
-export type ConnectorStyle = 'enclosed' | 'covered' | 'deck';
+export interface CorridorLook {
+  readonly walls?: CorridorWalls | undefined;
+  readonly roof?: CorridorRoof | undefined;
+}
 
 export interface SpatialEdge extends EdgeRecord {
   readonly kind: RelationshipKind;
-  /**
-   * Omitted: the design's corridor style (Building Designer → Corridors; `covered` unless changed).
-   * Only used if the relationship needs a generated connector.
-   */
-  readonly connectorStyle?: ConnectorStyle | undefined;
+  /** Omitted: the design's Corridors card. Only used if the relationship needs a generated corridor. */
+  readonly corridor?: CorridorLook | undefined;
   readonly attributes: { readonly [key: string]: AttributeValue };
 }

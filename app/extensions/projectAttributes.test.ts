@@ -219,7 +219,7 @@ describe('schema edits', () => {
   it('rejects duplicate (any case), reserved and malformed keys', () => {
     const schema = base();
     expect(refused(edit(schema, { type: 'add-field', collection: 'nodes', field: { key: 'Capacity', kind: 'text' } }))).toMatch(/already uses/);
-    for (const key of ['id', 'typeId', 'grid', 'size', 'source', 'kind', 'connectorStyle', '__proto__', 'constructor']) {
+    for (const key of ['id', 'typeId', 'grid', 'size', 'source', 'kind', 'corridor', '__proto__', 'constructor']) {
       expect(keyConflict(schema, 'nodes', key)).not.toBeNull();
     }
     expect(refused(edit(schema, { type: 'add-field', collection: 'nodes', field: { key: '2nd', kind: 'text' } }))).toMatch(/not a valid key/);

@@ -1,7 +1,7 @@
 /** Shared helpers for Properties tests (imported by *.test.ts only). */
 import type { GridCoord } from '@core/spatial';
 import { expectOk } from '@app/document/test-fixtures';
-import { connectorStyleOf, footprintsOverlap, validateDocumentV2, type DesignDocumentV2 } from '@app/document';
+import { corridorLookOf, footprintsOverlap, validateDocumentV2, type DesignDocumentV2 } from '@app/document';
 import {
   applyDesignCommand,
   buildOccupancy,
@@ -59,7 +59,7 @@ export const fixedCorridorResolver: RelationshipResolver = (doc) => {
         cells: CORRIDOR,
         from: { nodeId: 1, cell: [1, 0, 0], direction: '+x' },
         to: { nodeId: 2, cell: [5, 0, 0], direction: '-x' },
-        style: connectorStyleOf(doc.edges.find((e) => e.id === 1) ?? {}, doc.settings),
+        look: corridorLookOf(doc.edges.find((e) => e.id === 1) ?? {}, doc.settings),
       },
     };
   });

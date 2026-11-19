@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  connectorStyleOf,
-  corridorRoofOf,
-  corridorStyleOf,
-  DEFAULT_CONNECTOR_STYLE,
+  corridorLookOf,
+  DEFAULT_CORRIDOR_LOOK,
   DEFAULT_CORRIDOR_ROOF,
+  DEFAULT_CORRIDOR_WALLS,
+  designCorridorLook,
   readDesignJson,
   serializeDesignV2,
   validateDocumentV2,
-  type ConnectorStyle,
-  type CorridorSettings,
+  type CorridorLook,
   type DesignDocumentV2,
 } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
@@ -19,13 +18,13 @@ import { selectEdge } from '@core/viewer/selection';
 import { buildBuildingV2 } from './buildingV2';
 import { OPENING_PROPORTIONS } from './faceLayout';
 
-/** Design-wide corridors (Building Designer → Corridors, 2026-11-19): schema, resolution, geometry. */
+/** Corridors as a look card (owner 2026-11-19): schema, resolution per field, geometry of walls × roof. */
 
 const W = DEFAULT_CELL_SIZE.horizontal;
 const H = DEFAULT_CELL_SIZE.vertical;
 
 /** Rooms 1 at x=0 and 2 at x=4, related by edge 1: the real resolver routes a 3-cell corridor along x. */
-function raw(corridors?: unknown, connectorStyle?: ConnectorStyle) {
+function raw(corridors?: unknown, corridor?: unknown) {
   return {
     schemaVersion: 2,
     metadata: { name: 'corridors' },
@@ -33,82 +32,105 @@ function raw(corridors?: unknown, connectorStyle?: ConnectorStyle) {
       { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery', attributes: {} },
       { id: 2, grid: [4, 0, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} },
     ],
-    edges: [{ id: 1, source: 1, target: 2, kind: 'access', ...(connectorStyle ? { connectorStyle } : {}), attributes: {} }],
+    edges: [{ id: 1, source: 1, target: 2, kind: 'access', ...(corridor === undefined ? {} : { corridor }), attributes: {} }],
     diagram: { positions: {} },
     settings: { styleBy: 'function', styles: {}, ...(corridors === undefined ? {} : { corridors }) },
   };
 }
-const doc = (corridors?: CorridorSettings, own?: ConnectorStyle): DesignDocumentV2 => expectOk(validateDocumentV2(raw(corridors, own)));
+const doc = (corridors?: CorridorLook, own?: CorridorLook): DesignDocumentV2 => expectOk(validateDocumentV2(raw(corridors, own)));
 const parts = (d: DesignDocumentV2) => {
   const counts: Record<string, number> = {};
   for (const c of buildBuildingV2(d).connectors) counts[c.part] = (counts[c.part] ?? 0) + 1;
   return counts;
 };
 
-describe('settings.corridors: schema and file round trip', () => {
-  it('is optional and additive: a design without it is valid and written without it', () => {
+describe('settings.corridors and edge corridor: schema and file round trip', () => {
+  it('are optional: a design without them is valid and written without them', () => {
     const d = doc();
     expect(d.settings.corridors).toBeUndefined();
-    expect(serializeDesignV2(d)).not.toContain('"corridors":');
+    expect(d.edges[0]!.corridor).toBeUndefined();
+    const text = serializeDesignV2(d);
+    expect(text).not.toContain('"corridors":');
+    expect(text).not.toContain('"corridor":');
   });
 
-  it('round-trips style and roof exactly, in a fixed key order', () => {
-    const d = doc({ roof: 'pergola', style: 'enclosed' });
+  it('round-trip walls and roof exactly, in a fixed key order (card and relationship)', () => {
+    const d = doc({ roof: 'pergola', walls: 'enclosed' }, { roof: 'none', walls: 'open' });
     const text = serializeDesignV2(d);
-    expect(text).toContain('"corridors": {\n      "style": "enclosed",\n      "roof": "pergola"\n    }');
+    expect(text).toContain('"corridors": {\n      "walls": "enclosed",\n      "roof": "pergola"\n    }');
+    expect(text).toContain('"corridor": {\n        "walls": "open",\n        "roof": "none"\n      }');
     const read = expectOk(readDesignJson(text)).doc;
-    expect(read.settings.corridors).toEqual({ style: 'enclosed', roof: 'pergola' });
+    expect(read.settings.corridors).toEqual({ walls: 'enclosed', roof: 'pergola' });
+    expect(read.edges[0]!.corridor).toEqual({ walls: 'open', roof: 'none' });
     expect(serializeDesignV2(read)).toBe(text);
   });
 
-  it('an empty corridors object is accepted and not written back', () => {
-    expect(serializeDesignV2(doc({}))).not.toContain('"corridors":');
+  it('one field alone round-trips; empty objects are accepted and not written back', () => {
+    const one = serializeDesignV2(doc({ roof: 'none' }, { walls: 'enclosed' }));
+    expect(one).toContain('"corridors": {\n      "roof": "none"\n    }');
+    expect(one).toContain('"corridor": {\n        "walls": "enclosed"\n      }');
+    const empty = serializeDesignV2(doc({}, {}));
+    expect(empty).not.toContain('"corridors":');
+    expect(empty).not.toContain('"corridor":');
   });
 
   it.each([
-    [{ style: 'tunnel' }, 'connectorStyle must be one of'],
+    [{ walls: 'glass' }, 'walls must be one of'],
     [{ roof: 'pitched' }, 'roof must be one of'],
+    [{ style: 'covered' }, ''],
     [{ colour: 'red' }, ''],
     ['covered', ''],
-  ])('rejects invalid corridors %j', (corridors, message) => {
-    const r = validateDocumentV2(raw(corridors));
-    expect(r.ok).toBe(false);
-    if (!r.ok && message) expect(r.issues.map((i) => i.message).join(' ')).toContain(message);
+  ])('rejects invalid corridors %j (card and relationship)', (value, message) => {
+    for (const r of [validateDocumentV2(raw(value)), validateDocumentV2(raw(undefined, value))]) {
+      expect(r.ok).toBe(false);
+      if (!r.ok && message) expect(r.issues.map((i) => i.message).join(' ')).toContain(message);
+    }
+  });
+
+  it('the retired connectorStyle field is refused (strict edge schema)', () => {
+    const r = raw();
+    const bad = { ...r, edges: r.edges.map((e) => ({ ...e, connectorStyle: 'covered' })) };
+    expect(validateDocumentV2(bad).ok).toBe(false);
   });
 });
 
-describe('corridor style resolution: relationship → design → built-in', () => {
-  it('built-in defaults are Covered and Flat', () => {
-    expect(DEFAULT_CONNECTOR_STYLE).toBe('covered');
+describe('corridor look resolution, per field: relationship → Corridors card → built-in', () => {
+  it('built-in defaults are Open walls and a Flat roof', () => {
+    expect(DEFAULT_CORRIDOR_WALLS).toBe('open');
     expect(DEFAULT_CORRIDOR_ROOF).toBe('flat');
-    expect(corridorStyleOf(undefined)).toBe('covered');
-    expect(corridorRoofOf(undefined)).toBe('flat');
+    expect(DEFAULT_CORRIDOR_LOOK).toEqual({ walls: 'open', roof: 'flat' });
+    expect(designCorridorLook(undefined)).toEqual({ walls: 'open', roof: 'flat' });
+    expect(designCorridorLook({ corridors: {} })).toEqual({ walls: 'open', roof: 'flat' });
   });
 
-  it('the relationship’s own style wins, then the design’s style, then Covered', () => {
-    expect(connectorStyleOf({}, undefined)).toBe('covered');
-    expect(connectorStyleOf({}, { corridors: {} })).toBe('covered');
-    expect(connectorStyleOf({}, { corridors: { style: 'enclosed' } })).toBe('enclosed');
-    expect(connectorStyleOf({ connectorStyle: 'deck' }, { corridors: { style: 'enclosed' } })).toBe('deck');
+  it('each field independently: own value, then the card, then built-in', () => {
+    expect(corridorLookOf({}, undefined)).toEqual({ walls: 'open', roof: 'flat' });
+    expect(corridorLookOf({}, { corridors: { walls: 'enclosed' } })).toEqual({ walls: 'enclosed', roof: 'flat' });
+    expect(corridorLookOf({ corridor: { roof: 'pergola' } }, { corridors: { walls: 'enclosed' } })).toEqual({ walls: 'enclosed', roof: 'pergola' });
+    expect(corridorLookOf({ corridor: { walls: 'open' } }, { corridors: { walls: 'enclosed', roof: 'none' } })).toEqual({ walls: 'open', roof: 'none' });
+    expect(corridorLookOf({ corridor: { walls: 'enclosed', roof: 'none' } }, { corridors: { walls: 'open', roof: 'pergola' } })).toEqual({
+      walls: 'enclosed',
+      roof: 'none',
+    });
   });
 
-  it('the resolver gives each route its effective style', () => {
-    const route = (d: DesignDocumentV2) => {
+  it('the resolver gives each route its effective look', () => {
+    const look = (d: DesignDocumentV2) => {
       const r = resolveRelationships(d).byEdge.get(1)!;
-      return r.status === 'routed' ? r.route.style : null;
+      return r.status === 'routed' ? r.route.look : null;
     };
-    expect(route(doc())).toBe('covered');
-    expect(route(doc({ style: 'enclosed' }))).toBe('enclosed');
-    expect(route(doc({ style: 'enclosed' }, 'deck'))).toBe('deck');
+    expect(look(doc())).toEqual({ walls: 'open', roof: 'flat' });
+    expect(look(doc({ walls: 'enclosed' }))).toEqual({ walls: 'enclosed', roof: 'flat' });
+    expect(look(doc({ walls: 'enclosed' }, { roof: 'none' }))).toEqual({ walls: 'enclosed', roof: 'none' });
   });
 });
 
-describe('corridor geometry by roof', () => {
-  it('default (covered, flat): one roof slab per cell on posts', () => {
+describe('corridor geometry: walls × roof', () => {
+  it('default (open + flat): one roof slab per cell on posts', () => {
     expect(parts(doc())).toEqual({ 'connector-floor': 3, 'connector-roof': 3, 'connector-post': 8 });
   });
 
-  it('pergola: slats across the corridor, sized and counted like a room pergola bay; posts stay; picking selects the relationship', () => {
+  it('open + pergola: slats across the corridor, sized and counted like a room pergola bay; posts stay; picking selects the relationship', () => {
     const model = buildBuildingV2(doc({ roof: 'pergola' }));
     const slats = model.connectors.filter((c) => c.part === 'connector-roof');
     const n = OPENING_PROPORTIONS.pergolaSlats;
@@ -126,30 +148,38 @@ describe('corridor geometry by roof', () => {
     expect(Math.min(...first) - w / 2).toBeCloseTo(0.5 * W, 9);
     expect(Math.max(...first) + w / 2).toBeCloseTo(1.5 * W, 9);
     expect(new Set(slats.map((s) => s.id)).size).toBe(slats.length);
-    expect(slats.every((s) => s.target.kind === 'edge' && s.target.id === 1 && s.style === 'covered')).toBe(true);
-    expect(model.connectors.every((c) => c.target.kind === selectEdge(1).kind)).toBe(true);
+    expect(slats.every((s) => s.target.kind === 'edge' && s.target.id === 1 && s.look.roof === 'pergola' && s.look.walls === 'open')).toBe(true);
+    expect(model.connectors.every((c) => JSON.stringify(c.target) === JSON.stringify(selectEdge(1)))).toBe(true);
   });
 
-  it('covered + none: no roof and no posts (drawn like a deck)', () => {
+  it('open + none: the floor only (no roof, so no posts)', () => {
     expect(parts(doc({ roof: 'none' }))).toEqual({ 'connector-floor': 3 });
-    expect(parts(doc({ roof: 'none' }))).toEqual(parts(doc({ style: 'deck' })));
+    expect(parts(doc({ walls: 'open', roof: 'none' }))).toEqual({ 'connector-floor': 3 });
   });
 
-  it('enclosed: flat / pergola / none roof; the side walls always stay', () => {
-    expect(parts(doc({ style: 'enclosed' }))).toEqual({ 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 6 });
-    expect(parts(doc({ style: 'enclosed', roof: 'pergola' }))).toEqual({
+  it('enclosed: flat / pergola / none roof; the side walls always stay and there are no posts', () => {
+    expect(parts(doc({ walls: 'enclosed' }))).toEqual({ 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 6 });
+    expect(parts(doc({ walls: 'enclosed', roof: 'pergola' }))).toEqual({
       'connector-floor': 3,
       'connector-roof': 3 * OPENING_PROPORTIONS.pergolaSlats,
       'connector-wall': 6,
     });
-    expect(parts(doc({ style: 'enclosed', roof: 'none' }))).toEqual({ 'connector-floor': 3, 'connector-wall': 6 });
+    expect(parts(doc({ walls: 'enclosed', roof: 'none' }))).toEqual({ 'connector-floor': 3, 'connector-wall': 6 });
   });
 
-  it('a deck never gets a roof, whatever the corridor roof', () => {
-    for (const roof of ['flat', 'pergola', 'none'] as const) expect(parts(doc({ style: 'deck', roof }))).toEqual({ 'connector-floor': 3 });
+  it('the relationship’s own field mixes with the card’s other field', () => {
+    // Card: enclosed + pergola; the relationship opens its walls only → open + pergola.
+    expect(parts(doc({ walls: 'enclosed', roof: 'pergola' }, { walls: 'open' }))).toEqual({
+      'connector-floor': 3,
+      'connector-roof': 3 * OPENING_PROPORTIONS.pergolaSlats,
+      'connector-post': 8,
+    });
+    // Card: open + none; the relationship sets a flat roof only → open + flat (posts return).
+    expect(parts(doc({ roof: 'none' }, { roof: 'flat' }))).toEqual({ 'connector-floor': 3, 'connector-roof': 3, 'connector-post': 8 });
   });
 
-  it('the relationship’s own style uses the design’s corridor roof', () => {
-    expect(parts(doc({ style: 'deck', roof: 'pergola' }, 'covered'))['connector-roof']).toBe(3 * OPENING_PROPORTIONS.pergolaSlats);
+  it('the building reports each corridor’s effective look', () => {
+    const model = buildBuildingV2(doc({ walls: 'enclosed' }, { roof: 'pergola' }));
+    expect(model.relationships[0]).toMatchObject({ geometry: 'connector', corridor: { walls: 'enclosed', roof: 'pergola' } });
   });
 });

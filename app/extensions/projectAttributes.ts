@@ -17,7 +17,7 @@ import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionResult } 
  *   it are still read; nothing in any design is rewritten.
  * - Node types may give a field a different default (`nodeTypeDefaults[typeId][fieldId]`). Type
  *   defaults never add or remove fields. Edges have schema defaults only.
- * - System properties (ids, type, geometry, endpoints, kind, connector style …) are reserved and
+ * - System properties (ids, type, geometry, endpoints, kind, corridor …) are reserved and
  *   can never be schema fields.
  *
  * Pure: no storage, React or Three.js. Persistence lives in app/session/projectAttributeStore.ts.
@@ -83,7 +83,7 @@ export const RESERVED_ATTRIBUTE_KEYS: readonly string[] = [
   'source',
   'target',
   'kind',
-  'connectorstyle',
+  'corridor',
   // JavaScript object internals
   '__proto__',
   'constructor',

@@ -1,4 +1,4 @@
-import { corridorRoofOf, nodeLooks, type ConnectorStyle, type DesignDocumentV2, type NodeLook, type StyleValues } from '@app/document';
+import { nodeLooks, type DesignDocumentV2, type EffectiveCorridorLook, type WallStyle, type NodeLook, type StyleValues } from '@app/document';
 import { resolveRelationships, type ResolutionStatus, type SpatialResolution, type UnresolvedReason } from '@app/spatial';
 import type { FacadeProvider } from './contracts';
 import type { RoofStyleProvider, WallStyleProvider, WindowLayoutProvider } from './faceLayout';
@@ -57,7 +57,8 @@ export interface RelationshipBuildInfo {
   readonly geometry: RelationshipGeometry;
   /** Ids of every room element / connector element generated for this relationship. */
   readonly elementIds: readonly string[];
-  readonly connectorStyle?: ConnectorStyle;
+  /** Routed only: the corridor's effective walls and roof (`route.look`). */
+  readonly corridor?: EffectiveCorridorLook;
   readonly reason?: UnresolvedReason;
   readonly message?: string;
 }
@@ -116,8 +117,8 @@ export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Option
     ...(options.slabThickness !== undefined ? { slabThickness: options.slabThickness } : {}),
   });
 
-  const styleByEdge = new Map<number, ConnectorStyle>();
-  for (const r of spatial.edges) if (r.status === 'routed') styleByEdge.set(r.edgeId, r.route.style);
+  const wallsByEdge = new Map<number, WallStyle>();
+  for (const r of spatial.edges) if (r.status === 'routed') wallsByEdge.set(r.edgeId, r.route.look.walls);
 
   const connectors: ConnectorElement[] = [];
   const relationships: RelationshipBuildInfo[] = [];
@@ -129,16 +130,15 @@ export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Option
         break;
       case 'routed': {
         const built = buildConnector(r.route, spatial.occupancy, {
-          styleOfEdge: (id) => styleByEdge.get(id),
-          roof: corridorRoofOf(doc.settings),
+          wallsOfEdge: (id) => wallsByEdge.get(id),
           ...(options.cell ? { cell: options.cell } : {}),
           ...(options.wallThickness !== undefined ? { wallThickness: options.wallThickness } : {}),
           ...(options.slabThickness !== undefined ? { slabThickness: options.slabThickness } : {}),
           ...(options.postSize !== undefined ? { postSize: options.postSize } : {}),
         });
-        const connectorStyle = r.route.style; // effective style, `connectorStyleOf(edge, doc.settings)` per contract
+        const corridor = r.route.look; // effective look, `corridorLookOf(edge, doc.settings)` per contract
         if (built === null) {
-          relationships.push({ edgeId: r.edgeId, status: r.status, geometry: 'route-rejected', elementIds: [], connectorStyle });
+          relationships.push({ edgeId: r.edgeId, status: r.status, geometry: 'route-rejected', elementIds: [], corridor });
         } else {
           connectors.push(...built);
           relationships.push({
@@ -146,7 +146,7 @@ export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Option
             status: r.status,
             geometry: 'connector',
             elementIds: [...own, ...built.map((c) => c.id)],
-            connectorStyle,
+            corridor,
           });
         }
         break;
