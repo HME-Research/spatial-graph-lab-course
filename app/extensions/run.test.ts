@@ -5,6 +5,7 @@ import {
   defineGraphAlgorithm,
   defineNodeType,
   defineSpatialAlgorithm,
+  edgesBetween,
   FACE_DIRECTIONS,
   getNode,
   neighbourCell,
@@ -486,5 +487,49 @@ describe('graph analysis inputs and results (P4)', () => {
       [ALG]: { default: { id: 't', label: 'T', scope: 'graph', inputs: [{ kind: 'room', label: 'R' }], run: () => ({ kind: 'analysis', value: 1 }) } },
     });
     expect(badInput.diagnostics.map((d) => d.message).join()).toContain('an input kind must be "node", "edge" or "number"');
+  });
+});
+
+describe('docs/STUDENT-API.md analysis examples', () => {
+  const countNeighbours = defineGraphAlgorithm({
+    id: 'count-neighbours',
+    label: 'Count neighbours',
+    inputs: [{ kind: 'node', label: 'Node' }],
+    run({ graph, inputs }) {
+      const node = inputs[0]!; // one value per input, in order: never missing
+      const around = neighbours(graph, node);
+      return { kind: 'analysis', value: around.length, highlightNodes: around };
+    },
+  });
+  const directlyConnected = defineGraphAlgorithm({
+    id: 'directly-connected',
+    label: 'Directly connected?',
+    inputs: [
+      { kind: 'node', label: 'From' },
+      { kind: 'node', label: 'To' },
+    ],
+    run({ graph, inputs }) {
+      const from = inputs[0]!;
+      const to = inputs[1]!;
+      const edges = edgesBetween(graph, from, to);
+      return {
+        kind: 'analysis',
+        text: edges.length > 0 ? 'Yes, they share an edge' : 'No direct edge',
+        highlightNodes: [from, to],
+        highlightEdges: edges.map((e) => e.id),
+      };
+    },
+  });
+
+  it('run as documented on the lab design', async () => {
+    const project = await labToolkit({ 'toolkits/lab/algorithms/a.ts': { default: countNeighbours }, 'toolkits/lab/algorithms/b.ts': { default: directlyConnected } });
+    expect(expectExtOk(runAlgorithmV2(labDoc(), project, 'count-neighbours', undefined, { inputs: [1] }))).toEqual({
+      kind: 'analysis',
+      result: { kind: 'analysis', value: 2, highlightNodes: [2, 3] },
+    });
+    expect(expectExtOk(runAlgorithmV2(labDoc(), project, 'directly-connected', undefined, { inputs: [1, 2] }))).toEqual({
+      kind: 'analysis',
+      result: { kind: 'analysis', text: 'Yes, they share an edge', highlightNodes: [1, 2], highlightEdges: [1] },
+    });
   });
 });

@@ -388,33 +388,26 @@ if (wants('undo-redo')) {
 if (wants('analysis')) {
   await check('analysis/run', async () => {
     await ensureDesign();
-    const opened = await evaluate(`(() => { const t = document.querySelector('#sidebar-tab-algorithms'); if (!t) return false; t.click(); return true; })()`);
-    if (!opened) return fail('Algorithms tab (#sidebar-tab-algorithms) not found');
+    // P4: the built-in Degree (Analyse › Node) runs on the selected node.
+    const opened = await evaluate(`(() => { const t = document.querySelector('#sidebar-tab-analyse'); if (!t) return false; t.click(); return true; })()`);
+    if (!opened) return fail('Analyse tab (#sidebar-tab-analyse) not found');
+    const node = await nodeCenter(0);
+    if (!node) return skip('no node to select');
+    await clickAt(node.x, node.y);
     await delay(200);
-    const list = await evaluate(`[...document.querySelectorAll('.algorithm-item')].map((b, i) => ({ i, label: b.querySelector('.algorithm-label')?.textContent, tag: b.querySelector('.algorithm-tag')?.textContent }))`);
-    const target = list.find((a) => /graph|analysis/i.test(a.tag ?? ''));
-    if (!target) return skip(`no enabled graph analysis in the active project (found: ${list.map((a) => `${a.label} [${a.tag}]`).join(', ') || 'none'})`);
-    await evaluate(`document.querySelectorAll('.algorithm-item')[${target.i}].click()`);
-    await delay(150);
-    const run = await clickButton('Run', `document.querySelector('.algorithms')`);
-    if (run !== 'clicked') return fail(`Run button ${run} for "${target.label}"`);
-    const result = await waitFor(
-      `(() => { const r = document.querySelector('.algorithm-result'); if (!r) return null;
-        return { heading: r.querySelector('h4')?.textContent ?? '', rows: r.querySelectorAll('tbody tr').length, alert: r.getAttribute('role') === 'alert', text: r.textContent.slice(0, 200) }; })()`,
-      'an algorithm result',
-    );
+    const ran = await evaluate(`(() => { const b = document.querySelector('[data-analysis="built-in:degree"] .sgl-analyse-run'); if (!b || b.disabled) return false; b.click(); return true; })()`);
+    if (!ran) return fail('Degree could not be run on the selected node');
+    const result = await waitFor(`document.querySelector('.sgl-analysis-result .sgl-analysis-answer')?.textContent ?? null`, 'the Degree answer');
     const file = await screenshot('analysis-result-1366x768');
-    const data = { algorithm: target.label, result, screenshot: file };
-    if (result.alert) return fail(`"${target.label}" failed: ${result.text}`, data);
-    return result.rows > 0 ? pass(`"${target.label}": ${result.rows} value row(s) shown`, data) : fail(`"${target.label}" showed no value rows`, data);
+    return /^\d+$/.test(result) ? pass(`Degree = ${result}`, { screenshot: file }) : fail(`unexpected answer "${result}"`, { screenshot: file });
   });
 
   await check('analysis/stale-after-edit', async () => {
-    const hasResult = await evaluate(`!!document.querySelector('.algorithm-result tbody tr')`);
+    const hasResult = await evaluate(`!!document.querySelector('.sgl-analysis-result')`);
     if (!hasResult) return skip('no analysis result to mark stale');
     const node = await nodeCenter(1) ?? (await nodeCenter(0));
     await drag(node.x, node.y, -50, 30);
-    const warning = await waitFor(`document.querySelector('.algorithm-result .sgl-warning')?.textContent ?? null`, 'the stale-result warning after an edit');
+    const warning = await waitFor(`document.querySelector('.sgl-analysis-result .sgl-analysis-stale')?.textContent ?? null`, 'the stale-result warning after an edit');
     const file = await screenshot('analysis-stale-1366x768');
     return pass(`stale warning shown: "${warning.trim()}"`, { screenshot: file });
   });

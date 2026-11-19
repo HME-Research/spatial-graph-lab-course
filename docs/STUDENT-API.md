@@ -11,9 +11,9 @@ How to write your own node types, designs and algorithms for Spatial Graph Lab. 
 3. **Write an algorithm.** Add a file in `algorithms/`: `defineGraphAlgorithm` for an analysis that only reads the graph, or `defineSpatialAlgorithm` for a transformation that returns operations (see [Algorithms](#4-algorithms)).
 4. **Check it.** `npm run check:toolkit -- -t my-toolkit` loads your toolkit exactly as the app does and fails with a readable message if a definition or design is invalid, or if an algorithm fails on your default design. `npm run typecheck` checks your TypeScript.
 5. **Run the app.** `npm run dev`, then open the printed URL with `?toolkit=my-toolkit` (for example `http://localhost:5173/?toolkit=my-toolkit`), or choose your toolkit when you create a new project. The header shows a problem count; the **Project** section of the left rail lists every problem in your toolkit files and keeps it visible until you fix it (the page reloads when you save a file).
-6. **Run an algorithm.** In the **Algorithms** section of the left rail, choose an algorithm, fill in any parameters (empty means "use the default") and press **Run**.
-   - An *analysis* colours the rooms in Graph 2D, Graph 3D and Voxels and lists a value per room; click a room to select it. **Clear** removes the colours and values. It never changes the design.
-   - A *transformation* shows a **preview**: the rooms, connections and attribute values it would add or change. Nothing changes until you press **Apply**. **Discard** throws the preview away. If you edit the design after running, the preview can no longer be applied: run it again.
+6. **Run an algorithm.** Analyses are in **Analyse**, transformations in **Transform** (left rail).
+   - An *analysis* appears in the Analyse section its inputs decide (tagged `Toolkit: <name>`): **Node** and **Edge** analyses run on the selected node or edge; a **Queries** analysis asks you to pick each input in any view (Esc cancels). The answer is shown big, with its nodes and edges highlighted in every view. **Clear** removes it. It never changes the design.
+   - A *transformation* (Transform) shows a **preview**: the rooms, connections and attribute values it would add or change. Nothing changes until you press **Apply**. **Discard** throws the preview away. If you edit the design after running, the preview can no longer be applied: run it again.
    - Disabled algorithms (invalid definitions) are marked **disabled**; select one to see why.
 7. **Edit attributes.** Select a room or relationship: **Properties** (right) lists every project field with its value and where it comes from (set here, the type's default, the field default). Add, rename or delete fields in the **Attributes** section (Nodes / Edges); values that are not project fields are listed separately and kept as they are.
 8. **Export.** **Export JSON** downloads the current design. To make it a toolkit design, save it as `toolkits/my-toolkit/designs/<name>.json`; set `defaultDesign: '<name>'` to open it at startup. The header marks a design *modified* until it is exported, and the app asks before discarding unexported changes.
@@ -101,18 +101,60 @@ An algorithm never changes the design directly. It returns a result, and the app
 
 ### Generic graph analysis
 
-A graph algorithm sees **only node ids and edges** (`graph.nodes: {id}[]`, `graph.edges: {id, source, target}[]`, `graph.policy`; ids are whole numbers), so it works on any graph. It returns one value per node (`nodeValues[node.id] = …`).
+A graph algorithm (an *analysis*, shown in **Analyse**) sees **only node ids and edges** (`graph.nodes: {id}[]`, `graph.edges: {id, source, target}[]`, `graph.policy`; ids are whole numbers), so it works on any graph.
+
+**Inputs (required).** List what the student picks, in order. Each input is `{ kind: 'node' | 'edge' | 'number', label }` (a number may also have `min`, `max`, `default`). The list decides where the analysis appears:
+
+| `inputs` | Analyse section | How the student gives them |
+|---|---|---|
+| `[]` | Network | nothing: the whole graph |
+| one node | Node | the selected node |
+| one edge | Edge | the selected edge |
+| anything else | Queries | picked one at a time in any view; numbers typed |
+
+`ctx.inputs` holds the picked values in the same order (node ids, edge ids, numbers). The app checks them before `run`.
+
+**Result.** Return `{ kind: 'analysis', … }` with at least one of: `value` (a number, shown big), `text` (one short line), `highlightNodes` / `highlightEdges` (ids, highlighted in every view) and `nodeValues` (one value per node id, shown as colours). Unknown ids or wrong types are refused with a message.
+
+A node analysis (runs on the selected node):
 
 ```ts
 import { defineGraphAlgorithm, neighbours } from '@student-api';
 
 export default defineGraphAlgorithm({
-  id: 'degree',
-  label: 'Number of connections',
-  run({ graph }) {
-    const nodeValues: Record<number, number> = {};
-    for (const n of graph.nodes) nodeValues[n.id] = neighbours(graph, n.id).length;
-    return { kind: 'analysis', summary: 'Connections per room', nodeValues };
+  id: 'count-neighbours',
+  label: 'Count neighbours',
+  inputs: [{ kind: 'node', label: 'Node' }],
+  run({ graph, inputs }) {
+    const node = inputs[0]!; // one value per input, in order: never missing
+    const around = neighbours(graph, node);
+    return { kind: 'analysis', value: around.length, highlightNodes: around };
+  },
+});
+```
+
+A two-node query (the student picks From, then To):
+
+```ts
+import { defineGraphAlgorithm, edgesBetween } from '@student-api';
+
+export default defineGraphAlgorithm({
+  id: 'directly-connected',
+  label: 'Directly connected?',
+  inputs: [
+    { kind: 'node', label: 'From' },
+    { kind: 'node', label: 'To' },
+  ],
+  run({ graph, inputs }) {
+    const from = inputs[0]!;
+    const to = inputs[1]!;
+    const edges = edgesBetween(graph, from, to);
+    return {
+      kind: 'analysis',
+      text: edges.length > 0 ? 'Yes, they share an edge' : 'No direct edge',
+      highlightNodes: [from, to],
+      highlightEdges: edges.map((e) => e.id),
+    };
   },
 });
 ```
@@ -239,7 +281,7 @@ Graph algorithms see only ids and endpoints, so they have no `ctx.metrics`.
 
 ## 5. Parameters
 
-Algorithms may declare `parameters` using the same kinds as attributes. For example, `parameters: { start: { kind: 'number', default: 1 } }` (a room id) is read as `ctx.params.start`. Values are checked before `run` is called.
+Transformations (`defineSpatialAlgorithm`) may declare `parameters` using the same kinds as attributes. For example, `parameters: { count: { kind: 'number', default: 1 } }` is read as `ctx.params.count`. Values are checked before `run` is called. Analyses take no parameters: a number they need is a `{ kind: 'number' }` input.
 
 ## 6. Checks and limits
 
@@ -254,7 +296,7 @@ Exports of `@student-api`:
 - **Definitions:** `defineToolkit`, `defineNodeType`, `defineGraphAlgorithm`, `defineSpatialAlgorithm`
 - **Graph helpers:** `neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite` (ids are numbers)
 - **Grid helpers:** `FACE_DIRECTIONS`, `neighbourCell`, `roomCells` (every cell of a room's box)
-- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `ConnectorStyle`, `SpatialOperation`, `ItemRef`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
+- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `ConnectorStyle`, `SpatialOperation`, `ItemRef`, `AnalysisInput`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
 
 **Added in P4:** `set-node-geometry` (move or resize a room in a transformation).
 

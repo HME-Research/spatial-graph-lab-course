@@ -350,13 +350,13 @@ await step('workflow/designer-windows-and-roof', async () => {
 
 let edgesBeforeAlgorithm = 0;
 await step('workflow/run-transformation-and-apply', async () => {
-  await evaluate(`__wf.tab('algorithms'); true`);
+  await evaluate(`__wf.tab('transform'); true`);
   edgesBeforeAlgorithm = await evaluate('__wf.edges()');
   const picked = await evaluate(`(() => { const b = [...document.querySelectorAll('.algorithm-item')].find((x) => /storage|store/i.test(x.textContent)); if (!b) return false; b.click(); return true; })()`);
   expect(picked, 'connect-storage-to-galleries in the list');
-  expect((await evaluate(`__wf.click('Run', document.querySelector('#sidebar-panel-algorithms'))`)) === 'clicked', 'Run');
-  await waitFor(`/preview:/i.test(document.querySelector('#sidebar-panel-algorithms').innerText)`, 'the preview');
-  expect((await evaluate(`__wf.click('Apply', document.querySelector('#sidebar-panel-algorithms'))`)) === 'clicked', 'Apply');
+  expect((await evaluate(`__wf.click('Run', document.querySelector('#sidebar-panel-transform'))`)) === 'clicked', 'Run');
+  await waitFor(`/preview:/i.test(document.querySelector('#sidebar-panel-transform').innerText)`, 'the preview');
+  expect((await evaluate(`__wf.click('Apply', document.querySelector('#sidebar-panel-transform'))`)) === 'clicked', 'Apply');
   await waitFor(`/Apply “/.test(__wf.undoTitle())`, 'the apply to be recorded');
   undoLabels.push(await evaluate('__wf.undoTitle()'));
   const after = await evaluate('__wf.edges()');
@@ -460,21 +460,21 @@ await step('fail/unresolved-route-after-displacement', async () => {
 });
 
 await step('fail/stale-transformation-preview', async () => {
-  await evaluate(`__wf.tab('algorithms'); true`);
+  await evaluate(`__wf.tab('transform'); true`);
   await evaluate(`(() => { const b = [...document.querySelectorAll('.algorithm-item')].find((x) => /daylight/i.test(x.textContent)); b?.click(); return true; })()`);
-  expect((await evaluate(`__wf.click('Run', document.querySelector('#sidebar-panel-algorithms'))`)) === 'clicked', 'Run');
-  await waitFor(`/preview:/i.test(document.querySelector('#sidebar-panel-algorithms').innerText)`, 'the preview');
+  expect((await evaluate(`__wf.click('Run', document.querySelector('#sidebar-panel-transform'))`)) === 'clicked', 'Run');
+  await waitFor(`/preview:/i.test(document.querySelector('#sidebar-panel-transform').innerText)`, 'the preview');
   // Change the shown document elsewhere (one undo or redo step), which makes the preview stale.
   const viaUndo = await evaluate('__wf.canUndo()');
   expect(viaUndo || (await evaluate('__wf.canRedo()')), 'neither undo nor redo is available');
   await evaluate(`document.querySelectorAll('.history-actions button')[${viaUndo ? 0 : 1}].click(); true`);
-  await waitFor(`/can no longer be applied/.test(document.querySelector('#sidebar-panel-algorithms').innerText)`, 'the stale message');
-  const disabled = await evaluate(`__wf.button('Apply', document.querySelector('#sidebar-panel-algorithms'))?.disabled === true`);
+  await waitFor(`/can no longer be applied/.test(document.querySelector('#sidebar-panel-transform').innerText)`, 'the stale message');
+  const disabled = await evaluate(`__wf.button('Apply', document.querySelector('#sidebar-panel-transform'))?.disabled === true`);
   expect(disabled, 'Apply still enabled on a stale preview');
   await evaluate(`document.querySelectorAll('.history-actions button')[${viaUndo ? 1 : 0}].click(); true`);
   // Returning to the same content does not make the old preview current again (revision-bound).
   await delay(200);
-  const stillStale = await evaluate(`/can no longer be applied/.test(document.querySelector('#sidebar-panel-algorithms').innerText)`);
+  const stillStale = await evaluate(`/can no longer be applied/.test(document.querySelector('#sidebar-panel-transform').innerText)`);
   expect(stillStale, 'preview became applicable again after returning to the same content');
   return `stale after ${viaUndo ? 'undo' : 'redo'}: message shown, Apply disabled; still stale after returning`;
 });

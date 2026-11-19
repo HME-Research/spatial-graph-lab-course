@@ -3,7 +3,7 @@
 Additive to `docs/CONTRACTS-V2.md`. The v2 design schema (`app/document/v2/schema.ts`) is **unchanged**: every v2 file written before Gate F reads identically and is written identically. Everything new lives beside it. Change these contracts only on root `main`, through the integration owner. Workstreams propose changes as a diff in their report.
 
 ## 1. Shell (`app/workspace/**`, `app/Workspace.tsx`, `app/App.tsx`)
-- **Seven left destinations, in order:** Project, Attributes, Building Designer, Algorithms, Scenarios, Camera, Display (`SIDEBAR_SECTIONS`, `app/workspace/destinations.ts`). The id `designer` is kept for Building Designer. This supersedes the earlier "exactly four destinations" rule. There is no 8th destination. The right side shows Properties only.
+- **Eight left destinations, in order (P4: Analyse and Transform replace Algorithms):** Project, Attributes, Building Designer, Analyse, Transform, Scenarios, Camera, Display (`SIDEBAR_SECTIONS`, `app/workspace/destinations.ts`). The id `designer` is kept for Building Designer. This supersedes the earlier "exactly four destinations" rule. There is no 9th destination. The right side shows Properties only.
 - **Panel slots:** `DESTINATION_PANELS` (`app/workspace/panelSlots.ts`) maps `scenarios | camera | display` to components in the owning workstream folders. Those components read `useWorkspaceServices()`, which provides `design`, `selection`, `onSelect`, `viewports` and `cameraBus`. Workstreams replace component bodies, never the map. Services are extended additively at integration.
 - **Panes:**
   - Left width defaults to 300 px, clamped to 240–560. It is a keyboard-operable separator, with a centred collapse chevron.
