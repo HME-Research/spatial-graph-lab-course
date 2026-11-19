@@ -1,4 +1,4 @@
-import { defineSpatialAlgorithm, roomCells, uniqueId, type GridCoord, type SpatialOperation, type SpatialNode } from '@student-api';
+import { defineSpatialAlgorithm, roomCells, uniqueId, type GridCoord, type SpatialOperation } from '@student-api';
 
 /** LEVEL 2: explicit programme rules. An edge means ACCESS; touching alone does not create one. */
 const directions: ReadonlyArray<GridCoord> = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0]];
