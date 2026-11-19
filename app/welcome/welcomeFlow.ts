@@ -1,10 +1,8 @@
 import type { DesignDocumentV2 } from '@app/document';
 import { EMPTY_ATTRIBUTE_SCHEMA, makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import { formatProjectIssues, readProjectFile, serializeProjectFile, type ProjectFileV2, type ProjectIssue } from '@app/project';
-import type { KeyValueStorage } from '@app/session/projectAttributeStore';
 import { blankDesign, checkName, newProjectFromDesign, readProjectOrDesign, type ProjectOrigin } from '@app/session/projectStore';
 import type { LeaveOptions, ProjectController } from '@app/session/projectStoreController';
-import { seedLegacyAttributes } from './legacyAttributes';
 
 /**
  * Welcome / Project Files actions as UI-independent async steps (workstream B). The shell supplies
@@ -33,11 +31,6 @@ export interface WelcomeHost {
   readonly startingDesign: (toolkitId: string | null) => Promise<StartingDesign>;
   /** Toolkit referenced by projects made from a plain design file. */
   readonly defaultToolkitId: string | null;
-  /**
-   * Browser storage holding attribute schemas saved before local projects existed
-   * (`sgl:project-attributes:<codeProjectId>`). Read only, to seed NEW projects once. null = none.
-   */
-  readonly legacyAttributes?: KeyValueStorage | null;
 }
 
 export type FlowOutcome =
@@ -56,22 +49,20 @@ export type FlowOutcome =
 
 const failed = (source: string, message: string, issues: readonly ProjectIssue[] = []): FlowOutcome => ({ ok: false, source, message, issues });
 
-/** Open `file` (seeded with legacy attributes when it is new and references a toolkit). */
+/** Open `file` as the shown project. */
 async function openNew(
   host: WelcomeHost,
   file: ProjectFileV2,
   origin: ProjectOrigin,
-  options: { readonly exported?: boolean; readonly seed: boolean } & LeaveOptions,
+  options: { readonly exported?: boolean } & LeaveOptions,
 ): Promise<FlowOutcome> {
-  const seeded = options.seed ? seedLegacyAttributes(file, host.legacyAttributes ?? null) : { file, notice: null };
-  const opened = await host.controller.open(seeded.file, origin, {
+  const opened = await host.controller.open(file, origin, {
     ...(options.exported !== undefined && { exported: options.exported }),
     ...(options.discard !== undefined && { discard: options.discard }),
   });
   if (!opened.ok) {
     return { ok: false, source: origin.label, message: opened.message, issues: [], ...(opened.needsConfirmation && { needsConfirmation: true as const }) };
   }
-  if (seeded.notice) host.controller.notify(seeded.notice);
   return { ok: true, projectId: opened.project.meta.projectId };
 }
 
@@ -105,7 +96,7 @@ export async function createProject(host: WelcomeHost, rawName: string, toolkitI
   if (!file.ok) return failed('new project', `The new project could not be created: ${formatProjectIssues(file.issues)}`, file.issues);
   const minimal = minimalProjectFile(file.value, start.attributeSignature);
   if (!minimal.ok) return failed('new project', `The new project could not be created: ${formatProjectIssues(minimal.issues)}`, minimal.issues);
-  return openNew(host, minimal.value, { kind: 'created', label: 'new project' }, { ...options, seed: false });
+  return openNew(host, minimal.value, { kind: 'created', label: 'new project' }, options);
 }
 
 export const EXAMPLE_PROJECT_NAME = 'Example – graph only (no toolkit)';
@@ -128,13 +119,13 @@ export async function tryExample(host: WelcomeHost, example: DesignDocumentV2, e
   const file = newProjectFromDesign(example, { name: EXAMPLE_PROJECT_NAME, toolkit: null });
   if (!file.ok) return failed(exampleSource, `The example could not be opened: ${formatProjectIssues(file.issues)}`, file.issues);
   const withFunctions: ProjectFileV2 = { ...file.value, settings: { ...file.value.settings, functions: functionsOfDesign(example) } };
-  return openNew(host, withFunctions, { kind: 'example', label: exampleSource }, { ...options, seed: true });
+  return openNew(host, withFunctions, { kind: 'example', label: exampleSource }, options);
 }
 
 /**
  * Open a chosen file: a project file opens as that project (a separate copy if this browser already
  * has a project with its id; its own attribute record is kept); a design file (v1/v2) becomes a new
- * project with one scenario (seeded with legacy attributes of its toolkit, if any).
+ * project with one scenario.
  */
 export async function openProjectText(host: WelcomeHost, text: string, fileName: string, options: LeaveOptions = {}): Promise<FlowOutcome> {
   const stem = fileName.replace(/\.json$/i, '').replace(/\.project$/i, '');
@@ -142,5 +133,5 @@ export async function openProjectText(host: WelcomeHost, text: string, fileName:
   if (!read.ok) return failed(fileName, `${fileName} could not be opened: ${formatProjectIssues(read.issues)}`, read.issues);
   const file = read.kind === 'design' && read.file.name.trim() === '' ? { ...read.file, name: stem } : read.file;
   const isProject = read.kind === 'project';
-  return openNew(host, file, { kind: isProject ? 'opened-file' : 'imported-design', label: fileName }, { ...options, exported: isProject, seed: !isProject });
+  return openNew(host, file, { kind: isProject ? 'opened-file' : 'imported-design', label: fileName }, { ...options, exported: isProject });
 }

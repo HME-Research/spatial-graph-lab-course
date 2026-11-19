@@ -116,15 +116,6 @@ const APPLE = typeof navigator !== 'undefined' && isApplePlatform(navigator.plat
  */
 const NO_STORAGE: KeyValueStorage = { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
 
-/** The browser's localStorage, used READ-ONLY to seed new projects from pre-project attribute schemas. */
-function legacyBrowserStorage(): KeyValueStorage | null {
-  try {
-    return typeof window !== 'undefined' ? window.localStorage : null;
-  } catch {
-    return null;
-  }
-}
-
 /** Project-file issues share the `{path, code, message}` shape; unknown codes get the generic hint. */
 const asGraphIssues = (issues: readonly ProjectIssue[]): readonly GraphIssue[] => issues as unknown as readonly GraphIssue[];
 
@@ -363,8 +354,6 @@ export function App() {
     () => ({
       controller,
       defaultToolkitId: toolkits.defaultId,
-      // Read only: attribute schemas saved before local projects existed seed NEW projects once.
-      legacyAttributes: legacyBrowserStorage(),
       startingDesign: async (id) => {
         // No toolkit: the built-in example's settings (never the default toolkit's, which activation would pick).
         if (id === null) return { ok: true, ...builtInExample() };

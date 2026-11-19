@@ -2,10 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { readDesign, serializeDesignV2 } from '@app/document';
-import { makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import { createLocalStorageKeptMarks, createMemoryKeptMarks, createMemoryProjectStore, readProjectFile, serializeProjectFile } from '@app/project';
-import { attributeStorageKey } from '@app/session/projectAttributeStore';
-import { readLegacyAttributeRecord } from './legacyAttributes';
 import { fileOf, twoRooms } from '@app/session/projectStore.fixtures';
 import { createProjectController, showsWelcome } from '@app/session/projectStoreController';
 import { ProjectControllerContext } from '@app/session/projectStoreContext';
@@ -234,59 +231,6 @@ describe('Welcome flow', () => {
     });
     expect(message).toMatch(/blocked by browser/);
     expect(h.controller.getState().project!.exportedSignature).toBeNull();
-  });
-});
-
-describe('legacy attribute seed (one-time, read-only)', () => {
-  /** A localStorage stand-in that records every write attempt. */
-  function legacyStorage(entries: Record<string, string>) {
-    const data = new Map(Object.entries(entries));
-    const writes: string[] = [];
-    return {
-      writes,
-      data,
-      getItem: (k: string) => data.get(k) ?? null,
-      setItem: (k: string) => void writes.push(`set ${k}`),
-      removeItem: (k: string) => void writes.push(`remove ${k}`),
-    };
-  }
-  const legacyText = (projectId: string) =>
-    serializeAttributeRecord(
-      makeAttributeRecord(projectId, { nodes: [{ id: 'cost', key: 'cost', label: 'Cost', kind: 'number' }], edges: [], nodeTypeDefaults: {} }, 'legacy-baseline'),
-    );
-
-  it('never seeds Create project (required attributes only) and never touches the legacy record', async () => {
-    const storage = legacyStorage({ [attributeStorageKey('starter')]: legacyText('starter') });
-    const h = { ...host(), legacyAttributes: storage };
-    expect((await createProject(h, 'Not seeded', 'starter')).ok).toBe(true);
-    const attrs = h.controller.getState().project!.meta.attributes as { projectId: string; schema: { nodes: { key: string }[] } };
-    expect(attrs.projectId).toBe('starter');
-    expect(attrs.schema.nodes).toEqual([]);
-    expect(storage.writes).toEqual([]);
-    expect(storage.data.get(attributeStorageKey('starter'))).toBe(legacyText('starter'));
-  });
-
-  it('seeds design-file imports, but never Try Example (no toolkit) or an opened project file', async () => {
-    const storage = legacyStorage({ [attributeStorageKey('gallery')]: legacyText('gallery') });
-    const h = { ...host(), legacyAttributes: storage };
-    await tryExample(h, example(), 'example.json');
-    expect(h.controller.getState().project!.meta.attributes).toBeNull();
-    await openProjectText(h, serializeDesignV2(example()), 'house.json');
-    expect(h.controller.getState().project!.meta.attributes).not.toBeNull();
-    await openProjectText(h, serializeProjectFile(fileOf()), 'p.project.json');
-    expect(h.controller.getState().project!.meta.attributes).toBeNull();
-    expect(storage.writes).toEqual([]);
-  });
-
-  it('ignores an unreadable legacy record with a short notice', async () => {
-    const storage = legacyStorage({ [attributeStorageKey('gallery')]: '{ broken' });
-    const h = { ...host(), legacyAttributes: storage };
-    expect((await openProjectText(h, serializeDesignV2(example()), 'house.json')).ok).toBe(true);
-    expect(h.controller.getState().project!.meta.attributes).toBeNull();
-    expect(h.controller.getState().notice).toMatch(/could not be read/);
-    expect(readLegacyAttributeRecord(storage, 'gallery').kind).toBe('unreadable');
-    expect(readLegacyAttributeRecord(null, 'gallery').kind).toBe('none');
-    expect(storage.writes).toEqual([]);
   });
 });
 
