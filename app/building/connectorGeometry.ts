@@ -1,9 +1,10 @@
 import { FACE_DIRECTION_OFFSETS, neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial';
-import type { ConnectorStyle } from '@app/document';
+import { DEFAULT_CORRIDOR_ROOF, type ConnectorStyle, type RoofStyle } from '@app/document';
 import type { ConnectorRoute, Occupancy } from '@app/spatial';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '@core/viewer/coordinates';
 import { selectEdge, type Selection } from '@core/viewer/selection';
 import { DEFAULT_SLAB_THICKNESS, DEFAULT_WALL_THICKNESS, faceCentre } from './geometry';
+import { OPENING_PROPORTIONS } from './faceLayout';
 
 /**
  * Straight connector geometry (03-building). Pure: ConnectorRoute → axis-aligned world boxes.
@@ -13,9 +14,14 @@ import { DEFAULT_SLAB_THICKNESS, DEFAULT_WALL_THICKNESS, faceCentre } from './ge
  * and it refuses (returns null) a route whose cells are not reserved for that edge.
  *
  * Per route cell, by style:
- * - `enclosed` (default): floor + roof + one wall on each side;
- * - `covered`: floor + roof + posts at every cell boundary, sides open;
+ * - `enclosed`: floor + roof + one wall on each side;
+ * - `covered` (built-in default): floor + roof + posts at every cell boundary, sides open;
  * - `deck`: floor only.
+ * The roof (enclosed, covered) follows the design's corridor roof (`options.roof`): `flat` = one
+ * slab per cell; `pergola` = open slats across the corridor, the same count and width per cell as
+ * a room pergola's bay (`OPENING_PROPORTIONS.pergola*`); `none` = no roof part. A covered corridor
+ * without a roof has no posts either (nothing to carry), so it is drawn like a deck; an enclosed
+ * one keeps its side walls. Roof parts (slab or slats) are all `connector-roof`.
  * The two ENDS are always open (the room endpoint faces carry the door / opening).
  * A floor, roof, side wall or post is omitted where a room already provides that surface
  * (room cell directly below / above / beside), so no surface is doubled. Between two parallel
@@ -46,6 +52,8 @@ export interface ConnectorOptions {
   readonly wallThickness?: number;
   readonly slabThickness?: number;
   readonly postSize?: number;
+  /** The design's corridor roof (`corridorRoofOf(doc.settings)`); absent: `flat`. Ignored for decks. */
+  readonly roof?: RoofStyle;
   /** Effective style of another route by edge id (for walls shared by parallel routes). */
   readonly styleOfEdge?: (edgeId: number) => ConnectorStyle | undefined;
 }
@@ -78,8 +86,10 @@ export function buildConnector(route: ConnectorRoute, occupancy: Occupancy, opti
   const slabT = options.slabThickness ?? DEFAULT_SLAB_THICKNESS;
   const post = options.postSize ?? DEFAULT_POST_SIZE;
   const style = route.style;
+  const roof = options.roof ?? DEFAULT_CORRIDOR_ROOF;
   const target = selectEdge(route.edgeId);
   const out: ConnectorElement[] = [];
+  const axisIndex = route.axis === 'x' ? 0 : 2; // route axis in Three space (grid y → Three Z)
 
   const isRoom = (c: GridCoord) => occupancy.at(c)?.kind === 'room';
 
@@ -91,7 +101,23 @@ export function buildConnector(route: ConnectorRoute, occupancy: Occupancy, opti
 
     if (!isRoom(neighbourCell(cell, '-z'))) emit('connector-floor', [centre[0], centre[1] - H / 2, centre[2]], [W, slabT, W]);
     if (style === 'deck') return;
-    if (!isRoom(neighbourCell(cell, '+z'))) emit('connector-roof', [centre[0], centre[1] + H / 2, centre[2]], [W, slabT, W]);
+    if (style === 'covered' && roof === 'none') return; // no roof to carry: no posts (looks like a deck)
+    if (roof !== 'none' && !isRoom(neighbourCell(cell, '+z'))) {
+      const y = centre[1] + H / 2;
+      if (roof === 'flat') emit('connector-roof', [centre[0], y, centre[2]], [W, slabT, W]);
+      else {
+        // Pergola: slats across the corridor, evenly spaced along it (as a room pergola's bay).
+        const count = OPENING_PROPORTIONS.pergolaSlats;
+        const w = W * OPENING_PROPORTIONS.pergolaSlatFraction;
+        const step = (W - w) / (count - 1);
+        for (let k = 0; k < count; k++) {
+          const p: [number, number, number] = [centre[0], y, centre[2]];
+          p[axisIndex] += -W / 2 + w / 2 + k * step;
+          const size: [number, number, number] = axisIndex === 0 ? [w, slabT, W] : [W, slabT, w];
+          emit('connector-roof', p, size);
+        }
+      }
+    }
 
     for (const side of SIDES[route.axis]) {
       const neighbour = occupancy.at(neighbourCell(cell, side));
@@ -108,7 +134,6 @@ export function buildConnector(route: ConnectorRoute, occupancy: Occupancy, opti
       } else {
         // covered: posts at this cell's start boundary, plus the end boundary on the last cell.
         const wall = faceCentre(cell, side, cellSize);
-        const axisIndex = route.axis === 'x' ? 0 : 2;
         const step = route.cells.length > 1 ? Math.sign(spatialToThree(route.cells[1]!, cellSize)[axisIndex] - spatialToThree(route.cells[0]!, cellSize)[axisIndex]) : 1;
         const boundaries = i === route.cells.length - 1 ? [-1, 1] : [-1];
         for (const b of boundaries) {

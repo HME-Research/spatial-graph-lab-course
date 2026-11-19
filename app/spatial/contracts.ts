@@ -51,7 +51,7 @@ export interface ConnectorRoute {
   readonly from: RoomFace;
   /** Face of the edge's TARGET room where the connector ends. */
   readonly to: RoomFace;
-  /** Effective style (`connectorStyleOf(edge)`). */
+  /** Effective style (`connectorStyleOf(edge, doc.settings)`: own style → design corridor style → default). */
   readonly style: ConnectorStyle;
 }
 

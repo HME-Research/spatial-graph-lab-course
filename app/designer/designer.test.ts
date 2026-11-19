@@ -295,7 +295,7 @@ describe('selected relationship summary', () => {
       style: 'deck',
       styleIsDefault: false,
     });
-    expect(selectedRelationship(doc, selectEdge(1), spatial)).toMatchObject({ style: 'deck', styleIsDefault: true, status: 'direct' });
+    expect(selectedRelationship(doc, selectEdge(1), spatial)).toMatchObject({ style: 'covered', styleIsDefault: true, status: 'direct' });
     expect(selectedRelationship(doc, selectNode(1), spatial)).toBeNull();
     expect(selectedRelationship(doc, selectEdge(999), spatial)).toBeNull();
   });

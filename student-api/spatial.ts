@@ -49,14 +49,17 @@ export interface SpatialNode extends NodeRecord {
 }
 
 /**
- * Look of a generated straight connector when the rooms do not touch (default `enclosed`):
+ * Look of a generated straight connector when the rooms do not touch:
  * `enclosed` (roof + side walls), `covered` (roof, open sides), `deck` (floor only).
  */
 export type ConnectorStyle = 'enclosed' | 'covered' | 'deck';
 
 export interface SpatialEdge extends EdgeRecord {
   readonly kind: RelationshipKind;
-  /** Omitted: `enclosed`. Only used if the relationship needs a generated connector. */
+  /**
+   * Omitted: the design's corridor style (Building Designer → Corridors; `covered` unless changed).
+   * Only used if the relationship needs a generated connector.
+   */
   readonly connectorStyle?: ConnectorStyle | undefined;
   readonly attributes: { readonly [key: string]: AttributeValue };
 }

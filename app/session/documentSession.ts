@@ -172,6 +172,8 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       return `Edit the attributes of connection ${connection(command.edgeId)}`;
     case 'set-connector-style':
       return `Change the connector style of ${connection(command.edgeId)}`;
+    case 'set-corridors':
+      return command.patch.style === undefined ? 'Change the corridor roof' : command.patch.roof === undefined ? 'Change the corridor style' : 'Change the corridor settings';
     case 'set-style-by':
       return 'Change what the rooms are styled by';
     case 'set-style-mode':

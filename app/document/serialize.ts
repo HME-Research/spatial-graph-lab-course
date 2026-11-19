@@ -1,5 +1,11 @@
 import { fail, issue, ok, type Result } from './errors';
-import { canonicalFacadeModule, type DesignDocumentV2, type Look } from './schema';
+import { canonicalFacadeModule, type CorridorSettings, type DesignDocumentV2, type Look } from './schema';
+
+/** `{ corridors }` with its set fields in a fixed order, or undefined when nothing is set. */
+const corridorsOf = (c: CorridorSettings | undefined): { corridors: CorridorSettings } | undefined =>
+  c && (c.style !== undefined || c.roof !== undefined)
+    ? { corridors: { ...(c.style === undefined ? {} : { style: c.style }), ...(c.roof === undefined ? {} : { roof: c.roof }) } }
+    : undefined;
 
 /** Canonical look: fixed key order, only fields that are set. */
 const canonicalLook = (a: Look): Look => ({
@@ -82,6 +88,8 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
           },
         ]),
       ),
+      // Design-wide corridors (2026-11-19): written only when something is set.
+      ...(corridorsOf(doc.settings.corridors) ?? {}),
     },
   };
   return `${JSON.stringify(canonical, null, 2)}\n`;

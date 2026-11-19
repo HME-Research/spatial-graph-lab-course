@@ -74,6 +74,12 @@ export interface LookPatch {
   readonly facade?: FacadeModule | 'none' | null;
 }
 
+/** Change of the design-wide corridor settings: a value sets the field, `null` clears it, absent keeps it. */
+export interface CorridorPatch {
+  readonly style?: ConnectorStyle | null;
+  readonly roof?: RoofStyle | null;
+}
+
 export type DesignCommand =
   /** A new room taking connector cells needs `confirmRouteDisplacement`, like a move (phase 07, A11). */
   | { readonly type: 'add-node'; readonly node: NewRoom; readonly diagramPosition?: DiagramPosition; readonly confirmRouteDisplacement?: boolean }
@@ -101,8 +107,13 @@ export type DesignCommand =
   | { readonly type: 'change-edge-kind'; readonly edgeId: number; readonly kind: RelationshipKind }
   /** Replaces the edge's stored custom attributes (additive after Gate 0; see docs/PROJECT-ATTRIBUTES.md). */
   | { readonly type: 'set-edge-attributes'; readonly edgeId: number; readonly attributes: Attributes }
-  /** `null` removes the explicit style (default `enclosed` applies). */
+  /** `null` removes the explicit style (the design's corridor style applies, else the built-in default). */
   | { readonly type: 'set-connector-style'; readonly edgeId: number; readonly style: ConnectorStyle | null }
+  /**
+   * Design-wide corridor settings (Building Designer → Corridors, 2026-11-19). Only the fields
+   * given change; `null` clears a field (built-in default). An empty result removes `corridors`.
+   */
+  | { readonly type: 'set-corridors'; readonly patch: CorridorPatch }
   /**
    * Style rooms by another attribute; every attribute's setup stays remembered. `dividers`: starting
    * number bands, stored only when that attribute has no bands yet (same undo step).
@@ -298,6 +309,15 @@ export function applyDesignCommand(
         const { connectorStyle: _old, ...rest } = e;
         return command.style === null ? rest : { ...rest, connectorStyle: command.style };
       });
+    case 'set-corridors': {
+      const current = doc.settings.corridors ?? {};
+      const pick = <K extends keyof CorridorPatch>(key: K) => (command.patch[key] === undefined ? current[key] : (command.patch[key] ?? undefined));
+      const style = pick('style');
+      const roof = pick('roof');
+      const { corridors: _old, ...settings } = doc.settings;
+      const corridors = { ...(style === undefined ? {} : { style }), ...(roof === undefined ? {} : { roof }) };
+      return validate({ ...doc, settings: Object.keys(corridors).length === 0 ? settings : { ...settings, corridors } });
+    }
     case 'set-style-by': {
       const setup = setupOf(doc, command.by);
       const settings = { ...doc.settings, styleBy: command.by };

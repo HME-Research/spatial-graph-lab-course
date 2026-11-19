@@ -18,14 +18,17 @@ export type RelationshipKind = (typeof RELATIONSHIP_KINDS)[number];
 export const DEFAULT_RELATIONSHIP_KIND: RelationshipKind = 'access';
 
 /**
- * Appearance of a generated straight connector (per relationship; ignored for direct contact).
- * - `enclosed`: floor + roof + two side walls (default).
- * - `covered`: floor + roof, open sides.
+ * Appearance of a generated straight connector ("corridor"; ignored for direct contact).
+ * - `enclosed`: floor + roof + two side walls.
+ * - `covered` (built-in default since 2026-11-19; was `deck` from 2026-11-17, `enclosed` before):
+ *   floor + roof on posts, open sides.
  * - `deck`: floor only.
+ * One corridor's style: the relationship's own `connectorStyle` → the design's corridor style
+ * (`settings.corridors.style`, Building Designer → Corridors) → DEFAULT_CONNECTOR_STYLE.
  */
 export const CONNECTOR_STYLES = ['enclosed', 'covered', 'deck'] as const;
 export type ConnectorStyle = (typeof CONNECTOR_STYLES)[number];
-export const DEFAULT_CONNECTOR_STYLE: ConnectorStyle = 'deck';
+export const DEFAULT_CONNECTOR_STYLE: ConnectorStyle = 'covered';
 
 /**
  * Roof of a node type's exposed upward faces (per design, per type). `flat` is the default;
@@ -36,6 +39,14 @@ export const DEFAULT_CONNECTOR_STYLE: ConnectorStyle = 'deck';
 export const ROOF_STYLES = ['flat', 'pergola', 'none'] as const;
 export type RoofStyle = (typeof ROOF_STYLES)[number];
 export const DEFAULT_ROOF_STYLE: RoofStyle = 'flat';
+
+/**
+ * Roof of every generated corridor whose style has one (`enclosed`, `covered`), design-wide
+ * (`settings.corridors.roof`, additive 2026-11-19): `flat` slab (default), `pergola` slats, or
+ * `none`. A covered corridor without a roof has no posts either, so it looks like a deck; an
+ * enclosed corridor without a roof keeps its side walls (open to the sky). Deck never has a roof.
+ */
+export const DEFAULT_CORRIDOR_ROOF: RoofStyle = 'flat';
 
 /**
  * How a node type's exterior windows are placed along its walls (per design, per type; additive

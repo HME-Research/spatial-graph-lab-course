@@ -107,8 +107,8 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     expect(html).toContain('Relationship 1 ↔ 2');
     expect(html).toMatch(/<input type="radio" name="kind-1" checked="" value="access"\/>Access/);
     expect(html).toContain('>Open</label>');
-    expect(selectOptions(html, 'Corridor style')).toEqual(['Enclosed', 'Covered', 'Deck']);
-    expect(html).toContain('Joined by a generated enclosed corridor, 3 cells long, on storey 0.');
+    expect(selectOptions(html, 'Corridor style')).toEqual(['Design default (Covered)', 'Enclosed', 'Covered', 'Deck']);
+    expect(html).toContain('Joined by a generated covered corridor, 3 cells long, on storey 0.');
     expect(html).toContain('>Remove connection</button>');
   });
 

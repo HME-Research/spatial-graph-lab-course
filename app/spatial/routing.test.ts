@@ -129,7 +129,7 @@ describe('straight connector routing', () => {
       ],
       from: { nodeId: 1, cell: [0, 0, 0], direction: '+x' },
       to: { nodeId: 2, cell: [4, 0, 0], direction: '-x' },
-      style: 'deck',
+      style: 'covered',
     });
   });
 
@@ -217,7 +217,7 @@ describe('straight connector routing', () => {
       expect(r.status === 'routed' && [r.kind, r.route.style]).toEqual(['open', style]);
     }
     const dflt = resolveRelationships(pair({ id: 2, grid: [3, 0, 0] })).byEdge.get(1)!;
-    expect(dflt.status === 'routed' && dflt.route.style).toBe('deck');
+    expect(dflt.status === 'routed' && dflt.route.style).toBe('covered');
   });
 
   it('an unresolved relationship is still a valid document (warning, not a validation failure)', () => {

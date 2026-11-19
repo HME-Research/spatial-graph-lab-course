@@ -121,8 +121,8 @@ export interface ConnectorPresentation {
 export const CONNECTOR_ORDER: readonly ConnectorStyle[] = ['enclosed', 'covered', 'deck'];
 
 export const CONNECTOR_PRESENTATION: Readonly<Record<ConnectorStyle, ConnectorPresentation>> = {
-  enclosed: { style: 'enclosed', label: 'Enclosed corridor', summary: 'Roof and two side walls (default).' },
-  covered: { style: 'covered', label: 'Covered walkway', summary: 'Roof, open sides.' },
+  enclosed: { style: 'enclosed', label: 'Enclosed corridor', summary: 'Roof and two side walls.' },
+  covered: { style: 'covered', label: 'Covered walkway', summary: 'Roof, open sides (default).' },
   deck: { style: 'deck', label: 'Open deck', summary: 'Floor only, no roof or walls.' },
 };
 

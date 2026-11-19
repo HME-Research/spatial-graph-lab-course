@@ -30,10 +30,13 @@ import {
  * - `grid` is the room's MINIMUM corner cell [x, y, z] (z up); `size` is [sx, sy, sz], positive
  *   integers. The room occupies every cell grid + [0..sx-1, 0..sy-1, 0..sz-1].
  * - Edge `kind` is relationship intent (`access` | `open`), independent of adjacency.
- * - `connectorStyle` is optional; `undefined` means DEFAULT_CONNECTOR_STYLE (resolved on read).
+ * - `connectorStyle` is optional; `undefined` means the design's corridor style, else
+ *   DEFAULT_CONNECTOR_STYLE (resolved on read, `connectorStyleOf`).
  * - `settings.styleBy` / `settings.styles` (2026-11-18, replaced `typeAppearance`): the rooms are
  *   styled by ONE attribute; each attribute's setup (Default, value cards or number bands) is
  *   remembered. Effective looks are resolved on read (`settings.ts`), never materialised.
+ * - `settings.corridors` (optional, additive 2026-11-19): design-wide `style` and `roof` of the
+ *   generated corridors; each field absent = built-in default. Omitted when empty.
  * - `diagram.positions` stay independent 2D diagram coordinates.
  */
 
@@ -184,11 +187,23 @@ export const styleSetupSchema = z
 export const styleValueKey = (value: string | number | boolean): string =>
   typeof value === 'string' ? `s:${value.trim().toLowerCase()}` : `${typeof value}:${String(value)}`;
 
+/**
+ * Design-wide settings of the generated corridors (Building Designer → Corridors, 2026-11-19).
+ * `style`: used by every relationship without its own `connectorStyle`. `roof`: the roof of every
+ * corridor whose style has one (enclosed, covered). Absent fields use the built-in defaults.
+ */
+export const corridorSettingsSchema = z.strictObject({
+  style: connectorStyleSchema.optional(),
+  roof: roofStyleSchema.optional(),
+});
+
 export const designSettingsSchema = z.strictObject({
   /** The attribute the rooms are styled by. */
   styleBy: styleBySchema.default('function'),
   /** Remembered setup per attribute (switching `styleBy` back restores it). */
   styles: z.record(styleBySchema, styleSetupSchema).default({}),
+  /** Design-wide corridor style and roof (optional; absent = built-in defaults). */
+  corridors: corridorSettingsSchema.optional(),
 });
 
 /** The counter value that follows every id in `items` (1 for none). */
@@ -245,4 +260,5 @@ export function canonicalFacadeModule(m: FacadeModule): FacadeModule {
 export const sameFacadeModule = (a: FacadeModule | null | undefined, b: FacadeModule | null | undefined): boolean =>
   (a ?? null) === (b ?? null) || (!!a && !!b && JSON.stringify(canonicalFacadeModule(a)) === JSON.stringify(canonicalFacadeModule(b)));
 export type DesignSettings = z.infer<typeof designSettingsSchema>;
+export type CorridorSettings = z.infer<typeof corridorSettingsSchema>;
 export type DesignDocumentV2 = z.infer<typeof designDocumentV2Schema>;

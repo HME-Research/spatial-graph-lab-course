@@ -4,6 +4,9 @@ import {
   canonicalFacadeModule,
   sameFacadeModule,
   connectorStyleOf,
+  corridorRoofOf,
+  corridorStyleOf,
+  CONNECTOR_STYLES,
   DEFAULT_GROUP,
   effectiveLook,
   lookOfGroup,
@@ -835,8 +838,62 @@ export function selectedRelationship(
   return {
     edgeId: edge.id,
     label: `${labelOf(edge.source)} → ${labelOf(edge.target)}`,
-    style: connectorStyleOf(edge),
+    style: connectorStyleOf(edge, doc.settings),
     styleIsDefault: edge.connectorStyle === undefined,
     status: spatial?.byEdge.get(edge.id)?.status ?? null,
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Corridors (2026-11-19): design-wide style and roof of the generated connectors.
+
+/** The Corridors section: effective values and whether the design sets them. */
+export interface CorridorsSummary {
+  readonly style: ConnectorStyle;
+  readonly styleSetHere: boolean;
+  readonly roof: RoofStyle;
+  readonly roofSetHere: boolean;
+  /** The roof is drawn for this style (enclosed, covered); a deck has none. */
+  readonly roofApplies: boolean;
+  /** Relationships with their own style (Properties), which the design style does not change. */
+  readonly overrideCount: number;
+}
+
+export function corridorsSummary(doc: DesignDocumentV2): CorridorsSummary {
+  const c = doc.settings.corridors;
+  const style = corridorStyleOf(doc.settings);
+  return {
+    style,
+    styleSetHere: c?.style !== undefined,
+    roof: corridorRoofOf(doc.settings),
+    roofSetHere: c?.roof !== undefined,
+    roofApplies: style !== 'deck',
+    overrideCount: doc.edges.filter((e) => e.connectorStyle !== undefined).length,
+  };
+}
+
+/** Set the design's corridor style (choosing the effective value while unset stores nothing). */
+export function setCorridorStyleEdit(doc: DesignDocumentV2, style: string): DesignerEdit {
+  if (!(CONNECTOR_STYLES as readonly string[]).includes(style)) {
+    return { kind: 'invalid', message: `Corridor style must be one of: ${CONNECTOR_STYLES.join(', ')}.` };
+  }
+  if (corridorStyleOf(doc.settings) === style) return UNCHANGED;
+  const s = style as ConnectorStyle;
+  return { kind: 'command', command: { type: 'set-corridors', patch: { style: s } }, label: `Set corridors to ${CONNECTOR_STYLE_LABELS[s]}` };
+}
+
+/** Set the roof of the design's corridors (choosing the effective value while unset stores nothing). */
+export function setCorridorRoofEdit(doc: DesignDocumentV2, roof: string): DesignerEdit {
+  if (!(ROOF_STYLES as readonly string[]).includes(roof)) {
+    return { kind: 'invalid', message: `Roof must be one of: ${ROOF_STYLES.join(', ')}.` };
+  }
+  if (corridorRoofOf(doc.settings) === roof) return UNCHANGED;
+  return { kind: 'command', command: { type: 'set-corridors', patch: { roof: roof as RoofStyle } }, label: `Set the corridor roof to ${roof}` };
+}
+
+/** Back to the built-in defaults (Covered, Flat): one step; nothing to do when nothing is set. */
+export function resetCorridorsEdit(doc: DesignDocumentV2): DesignerEdit {
+  const c = doc.settings.corridors;
+  if (c?.style === undefined && c?.roof === undefined) return UNCHANGED;
+  return { kind: 'command', command: { type: 'set-corridors', patch: { style: null, roof: null } }, label: 'Reset the corridors' };
 }

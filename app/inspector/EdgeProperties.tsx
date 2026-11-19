@@ -1,8 +1,9 @@
 import { HelpTip } from '@app/ui/help';
-import { connectorStyleOf, nodeLabel, type ConnectorStyle, type RelationshipKind } from '@app/document';
+import { connectorStyleOf, corridorStyleOf, nodeLabel, type ConnectorStyle, type RelationshipKind } from '@app/document';
 import {
   CollapsibleSection,
   CONNECTOR_STYLE_CHOICES,
+  labelOfChoice,
   InfoButton,
   describeResolution,
   Feedback,
@@ -63,14 +64,18 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   };
   const resolution = design.spatial.byEdge.get(edge.id);
   const status = resolution ? describeResolution(resolution) : null;
-  const style = connectorStyleOf(edge);
+  const style = connectorStyleOf(edge, design.doc.settings);
+  // The design's corridor style (Building Designer → Corridors), used while the edge sets none.
+  const designStyle = corridorStyleOf(design.doc.settings);
+  const designDefaultLabel = `Design default (${labelOfChoice(CONNECTOR_STYLE_CHOICES, designStyle)})`;
 
   const setKind = (kind: RelationshipKind) => {
     if (kind !== edge.kind) runV2({ type: 'change-edge-kind', edgeId, kind });
   };
-  // `style` already includes the default, so choosing the effective value sends nothing.
-  const setStyle = (next: ConnectorStyle) => {
-    if (next !== style) runV2({ type: 'set-connector-style', edgeId, style: next });
+  // '' = Design default (removes the edge's own style); a style is stored as the edge's own.
+  const setStyle = (next: ConnectorStyle | '') => {
+    const stored = edge.connectorStyle ?? '';
+    if (next !== stored) runV2({ type: 'set-connector-style', edgeId, style: next === '' ? null : next });
   };
 
   const schema = project?.attributes;
@@ -178,14 +183,20 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
           <fieldset className="sgl-section">
             <legend>Corridor style</legend>
             <HelpTip topicId="connector-style" />
-            <select value={style} aria-label="Corridor style" onChange={(e) => setStyle(e.currentTarget.value as ConnectorStyle)}>
+            <select value={edge.connectorStyle ?? ''} aria-label="Corridor style" onChange={(e) => setStyle(e.currentTarget.value as ConnectorStyle | '')}>
+              <option value="" title="The corridor style of the whole design (Building Designer → Corridors)">
+                {designDefaultLabel}
+              </option>
               {CONNECTOR_STYLE_CHOICES.map((c) => (
                 <option key={c.value} value={c.value} title={c.description}>
                   {c.label}
                 </option>
               ))}
             </select>
-            <p className="sgl-help">{CONNECTOR_STYLE_CHOICES.find((c) => c.value === style)?.description}</p>
+            <p className="sgl-help">
+              {CONNECTOR_STYLE_CHOICES.find((c) => c.value === style)?.description}
+              {edge.connectorStyle === undefined ? ' Change it for the whole design in Building Designer → Corridors.' : ' Set for this relationship only.'}
+            </p>
           </fieldset>
         ) : (
           edge.connectorStyle !== undefined && (

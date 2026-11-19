@@ -6,7 +6,7 @@ import { useEnabledMetrics } from '@app/views/three/enabledMetrics';
 import { EMPTY_ATTRIBUTE_SCHEMA } from '@app/extensions';
 import { buildingFacesV2, exampleFacadeProvider } from '@app/building';
 import { designUsesFacadeModules, facadeAssetIdsOf, layoutFacadeModules, type FacadeAssetV1 } from '@app/assets';
-import { FACADE_VARIANTS, ROOF_STYLES, WINDOW_LAYOUTS, type FacadeModule, type FacadeVariant, type FacadeVariantKind } from '@app/document';
+import { CONNECTOR_STYLES, FACADE_VARIANTS, ROOF_STYLES, WINDOW_LAYOUTS, type ConnectorStyle, type FacadeModule, type FacadeVariant, type FacadeVariantKind } from '@app/document';
 import type { DesignPort } from '@app/spatial';
 import type { ProjectViewContext } from '@app/views/project';
 import { typeColor } from '@core/viewer/appearance';
@@ -15,6 +15,12 @@ import {
   addCardEdit,
   addNoun,
   bandDividersEdit,
+  CONNECTOR_STYLE_LABELS,
+  corridorsSummary,
+  type CorridorsSummary,
+  resetCorridorsEdit,
+  setCorridorRoofEdit,
+  setCorridorStyleEdit,
   designerCards,
   removeCardEdit,
   styleAttributeName,
@@ -52,8 +58,8 @@ import './designer.css';
  * Designer panel (06-designer): per-design, per-node-type window coverage and roof.
  *
  * Reads the v2 document from `design.doc` and changes it ONLY through `design.onCommand` with the
- * `set-look` command: one committed change (slider release, Enter, blur, roof
- * choice, reset) = one command = one history step. Without a v2 port (before integration) it
+ * `set-look` command (and `set-corridors` for the Corridors section): one committed change
+ * (slider release, Enter, blur, roof choice, reset) = one command = one history step. Without a v2 port (before integration) it
  * shows a notice instead of controls.
  */
 export interface DesignerPanelProps {
@@ -286,7 +292,90 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
         )}
         {facades && <FacadeLibraryFooter facades={facades} usedHere={usedHere} />}
       </CollapsibleSection>
+
+      <CorridorsSection
+        corridors={corridorsSummary(doc)}
+        onStyle={(style) => send(setCorridorStyleEdit(doc, style))}
+        onRoof={(roof) => send(setCorridorRoofEdit(doc, roof))}
+        onReset={() => send(resetCorridorsEdit(doc))}
+      />
     </div>
+  );
+}
+
+const CORRIDOR_STYLE_HELP: Readonly<Record<ConnectorStyle, string>> = {
+  enclosed: 'Floor, roof and side walls',
+  covered: 'Floor and roof on slim posts, open at the sides',
+  deck: 'Floor only, open to the sky (no roof)',
+};
+
+/**
+ * Corridors (2026-11-19): the style and roof of every corridor generated between related rooms
+ * that do not touch. A relationship's own style (Properties) still wins over the style here.
+ */
+function CorridorsSection({
+  corridors,
+  onStyle,
+  onRoof,
+  onReset,
+}: {
+  readonly corridors: CorridorsSummary;
+  readonly onStyle: (style: string) => void;
+  readonly onRoof: (roof: string) => void;
+  readonly onReset: () => void;
+}) {
+  const source = (setHere: boolean) => (setHere ? 'Set here' : 'Built-in default');
+  const { overrideCount } = corridors;
+  return (
+    <CollapsibleSection title="Corridors" sectionId="designer-corridors" defaultOpen meta={CONNECTOR_STYLE_LABELS[corridors.style]}>
+      <p className="sgl-help">
+        Corridors are built automatically between related rooms that do not touch. Choose how they look for the whole design.
+      </p>
+      <div className="sgl-designer-field">
+        <label htmlFor="sgl-designer-corridor-style" title="How every generated corridor is built, unless a relationship sets its own style">
+          Style
+        </label>
+        <select id="sgl-designer-corridor-style" value={corridors.style} title={CORRIDOR_STYLE_HELP[corridors.style]} onChange={(e) => onStyle(e.currentTarget.value)}>
+          {CONNECTOR_STYLES.map((s) => (
+            <option key={s} value={s} title={CORRIDOR_STYLE_HELP[s]}>
+              {CONNECTOR_STYLE_LABELS[s]}
+            </option>
+          ))}
+        </select>
+        <span className="sgl-designer-source">{source(corridors.styleSetHere)}</span>
+      </div>
+      <div className="sgl-designer-field">
+        <label htmlFor="sgl-designer-corridor-roof" title="Roof of every Enclosed or Covered corridor. A Deck has no roof.">
+          Roof
+        </label>
+        <select id="sgl-designer-corridor-roof" value={corridors.roof} disabled={!corridors.roofApplies} onChange={(e) => onRoof(e.currentTarget.value)}>
+          {ROOF_STYLES.map((roof) => (
+            <option key={roof} value={roof}>
+              {ROOF_LABELS[roof]}
+            </option>
+          ))}
+        </select>
+        <span className="sgl-designer-source">{source(corridors.roofSetHere)}</span>
+      </div>
+      <p className="sgl-designer-source">
+        {!corridors.roofApplies
+          ? 'A Deck has no roof; the roof is used by Enclosed and Covered corridors.'
+          : corridors.roof === 'none'
+            ? corridors.style === 'covered'
+              ? 'Covered with no roof has no posts either, so it looks like a Deck.'
+              : 'Enclosed with no roof keeps its side walls, open to the sky.'
+            : `${CORRIDOR_STYLE_HELP[corridors.style]}.`}
+      </p>
+      <p className="sgl-designer-source">
+        One relationship can still have its own style in Properties
+        {overrideCount > 0 ? ` (${overrideCount} ${overrideCount === 1 ? 'relationship does' : 'relationships do'} now)` : ''}.
+      </p>
+      <div className="sgl-designer-card-actions">
+        <button type="button" className="sgl-designer-reset" disabled={!corridors.styleSetHere && !corridors.roofSetHere} onClick={onReset}>
+          Reset corridors
+        </button>
+      </div>
+    </CollapsibleSection>
   );
 }
 

@@ -63,7 +63,7 @@ function withRoute(
   base: SpatialResolution = resolveRelationships(doc),
 ): SpatialResolution {
   const edge = doc.edges.find((e) => e.id === spec.edgeId)!;
-  const route: ConnectorRoute = { ...spec, level: spec.cells[0]![2], style: connectorStyleOf(edge) };
+  const route: ConnectorRoute = { ...spec, level: spec.cells[0]![2], style: connectorStyleOf(edge, doc.settings) };
   const edges: EdgeResolution[] = base.edges.map((r) =>
     r.edgeId === spec.edgeId ? { edgeId: r.edgeId, kind: r.kind, status: 'routed', route } : r,
   );
@@ -275,7 +275,7 @@ describe('unresolved relationships', () => {
 
 describe('straight connectors', () => {
   it.each<[ConnectorStyle | undefined, ConnectorStyle, Record<string, number>]>([
-    [undefined, 'deck', { 'connector-floor': 3, 'connector-roof': 0, 'connector-wall': 0, 'connector-post': 0 }],
+    [undefined, 'covered', { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 0, 'connector-post': 8 }],
     ['enclosed', 'enclosed', { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 6, 'connector-post': 0 }],
     ['covered', 'covered', { 'connector-floor': 3, 'connector-roof': 3, 'connector-wall': 0, 'connector-post': 8 }],
     ['deck', 'deck', { 'connector-floor': 3, 'connector-roof': 0, 'connector-wall': 0, 'connector-post': 0 }],
@@ -427,7 +427,7 @@ describe('integration: real straight routing', () => {
     const real = buildBuildingV2(doc); // no injected spatial → resolveRelationships(doc)
     const r = resolveRelationships(doc).byEdge.get(1)!;
     expect(r.status).toBe('routed');
-    expect(real.relationships.map((x) => [x.edgeId, x.geometry, x.connectorStyle])).toEqual([[1, 'connector', 'deck']]);
+    expect(real.relationships.map((x) => [x.edgeId, x.geometry, x.connectorStyle])).toEqual([[1, 'connector', 'covered']]);
     expect(real.connectors).toEqual(handBuilt.connectors);
   });
 

@@ -5,6 +5,7 @@ import {
   levelRange,
   roomContact,
   sharedFaces,
+  type DesignDocumentV2,
   type RelationshipEdge,
   type RoomNode,
 } from '@app/document';
@@ -37,7 +38,7 @@ export const resolveRelationships: RelationshipResolver = (doc) => {
     const a = byId.get(edge.source);
     const b = byId.get(edge.target);
     if (!a || !b) throw new Error(`resolveRelationships expects a validated document (edge "${edge.id}")`);
-    const r = resolveOne(edge, a, b, cells);
+    const r = resolveOne(edge, a, b, cells, doc.settings);
     if (r.status === 'routed') {
       for (const cell of r.route.cells) cells.set(gridKey(cell), { kind: 'route', edgeId: edge.id });
     }
@@ -63,6 +64,7 @@ function resolveOne(
   a: RoomNode,
   b: RoomNode,
   occupied: ReadonlyMap<string, CellOccupant>,
+  settings: DesignDocumentV2['settings'] | undefined,
 ): EdgeResolution {
   const base = { edgeId: edge.id, kind: edge.kind } as const;
   const contact = roomContact(a, b);
@@ -87,6 +89,6 @@ function resolveOne(
   return {
     ...base,
     status: 'routed',
-    route: { edgeId: edge.id, axis: c.axis, level: c.level, cells: c.cells, from: c.from, to: c.to, style: connectorStyleOf(edge) },
+    route: { edgeId: edge.id, axis: c.axis, level: c.level, cells: c.cells, from: c.from, to: c.to, style: connectorStyleOf(edge, settings) },
   };
 }

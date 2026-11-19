@@ -1,4 +1,4 @@
-import { nodeLooks, type ConnectorStyle, type DesignDocumentV2, type NodeLook, type StyleValues } from '@app/document';
+import { corridorRoofOf, nodeLooks, type ConnectorStyle, type DesignDocumentV2, type NodeLook, type StyleValues } from '@app/document';
 import { resolveRelationships, type ResolutionStatus, type SpatialResolution, type UnresolvedReason } from '@app/spatial';
 import type { FacadeProvider } from './contracts';
 import type { RoofStyleProvider, WallStyleProvider, WindowLayoutProvider } from './faceLayout';
@@ -130,12 +130,13 @@ export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Option
       case 'routed': {
         const built = buildConnector(r.route, spatial.occupancy, {
           styleOfEdge: (id) => styleByEdge.get(id),
+          roof: corridorRoofOf(doc.settings),
           ...(options.cell ? { cell: options.cell } : {}),
           ...(options.wallThickness !== undefined ? { wallThickness: options.wallThickness } : {}),
           ...(options.slabThickness !== undefined ? { slabThickness: options.slabThickness } : {}),
           ...(options.postSize !== undefined ? { postSize: options.postSize } : {}),
         });
-        const connectorStyle = r.route.style; // effective style, `connectorStyleOf(edge)` per contract
+        const connectorStyle = r.route.style; // effective style, `connectorStyleOf(edge, doc.settings)` per contract
         if (built === null) {
           relationships.push({ edgeId: r.edgeId, status: r.status, geometry: 'route-rejected', elementIds: [], connectorStyle });
         } else {
