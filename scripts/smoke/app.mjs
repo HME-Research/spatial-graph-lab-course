@@ -353,18 +353,19 @@ export async function openSession({ url, viewport = { width: 1366, height: 768 }
   }
   /**
    * Screenshot to `filePath` (relative paths go into the output folder). Options: `clip` ({x,y,width,height}
-   * in CSS px, or a CSS selector), `format` ('png' | 'webp' | 'jpeg'), `quality` (webp/jpeg).
+   * in CSS px, or a CSS selector), `format` ('png' | 'webp' | 'jpeg'), `quality` (webp/jpeg), `scale`
+   * (e.g. 0.75 for a smaller image; without a clip the whole viewport is scaled).
    * Returns { file, data } (data = base64).
    */
-  async function screenshot(filePath, { clip = null, format = null, quality } = {}) {
+  async function screenshot(filePath, { clip = null, format = null, quality, scale = 1 } = {}) {
     const file = isAbsolute(filePath) ? filePath : join(outDir, filePath);
     const fmt = format ?? (/\.webp$/i.test(file) ? 'webp' : /\.jpe?g$/i.test(file) ? 'jpeg' : 'png');
-    const box = typeof clip === 'string' ? await rect(clip) : clip;
+    const box = (typeof clip === 'string' ? await rect(clip) : clip) ?? (scale !== 1 ? { x: 0, y: 0, width: viewport.width, height: viewport.height } : null);
     if (typeof clip === 'string' && !box) throw new Error(`screenshot clip: nothing matches ${clip}`);
     const { data } = await page.send('Page.captureScreenshot', {
       format: fmt,
       ...(quality !== undefined && fmt !== 'png' && { quality }),
-      ...(box && { clip: { x: box.x, y: box.y, width: box.width, height: box.height, scale: 1 } }),
+      ...(box && { clip: { x: box.x, y: box.y, width: box.width, height: box.height, scale } }),
     });
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, Buffer.from(data, 'base64'));
@@ -446,9 +447,21 @@ const WELCOME = '.sgl-welcome';
 
 /** Reload the app (session URL, or `target`) and wait for the Welcome screen. */
 export async function gotoWelcome(s, target = s.url) {
-  await s.goto(target);
-  await s.waitFor(`!!document.querySelector('${WELCOME}[open]') || !!document.querySelector('${WELCOME}')`, 20_000, 'the Welcome screen');
-  await s.waitFor(`!document.querySelector('${WELCOME} .sgl-welcome-busy')`, 20_000, 'Welcome to be ready');
+  for (let attempt = 1; ; attempt++) {
+    await s.goto(target);
+    await s.waitFor(`!!document.querySelector('${WELCOME}[open]') || !!document.querySelector('${WELCOME}')`, 20_000, 'the Welcome screen');
+    await s.waitFor(`!document.querySelector('${WELCOME} .sgl-welcome-busy')`, 20_000, 'Welcome to be ready');
+    // Wait until Welcome has read the stored projects (Recent). Known issue (P4, 2026-11-19): in a
+    // fresh headless profile, right after a reload, the list sometimes never finishes ("Looking for
+    // saved projects…") and Create project then hangs; another reload clears it. Recorded in notes.
+    try {
+      await s.waitFor(`!/Looking for saved projects/.test(document.querySelector('${WELCOME}')?.innerText ?? '')`, 8_000, 'Welcome to list the saved projects');
+      return;
+    } catch (e) {
+      if (attempt >= 3) throw e;
+      s.notes.push('Welcome kept "Looking for saved projects…" after a reload; reloaded again (app issue)');
+    }
+  }
 }
 
 /** Wait until a project is shown: Welcome gone, `nodes` nodes in Graph 2D (or any number when null), toolkit activated. */

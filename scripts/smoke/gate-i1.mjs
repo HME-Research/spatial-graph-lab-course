@@ -430,8 +430,12 @@ await runScript({ name: 'gate-i1', usage: USAGE, url: 'http://localhost:5291/', 
     await setViewMode(s, 3, 'data');
     await delay(1000);
     out.push(await layoutCheck('layout4-graph2d-building-graph3d-data'));
-    // With a room selected (the room editor shown in the 3D views).
+    // With a room selected (the room editor shown in the 3D views). In layout 4 at 1280x720 the
+    // Graph 2D panel is small and its overlays can cover the node: select it maximised, then restore.
+    await s.click('Maximise', { within: '.view-panel[data-panel="0"]' });
+    await delay(500);
     await selectNode(s, '2');
+    await s.click('Restore', { within: '.view-panel[data-panel="0"]' });
     await delay(800);
     out.push(await layoutCheck('layout4-room-selected'));
     for (let i = 0; i < 4; i++) {

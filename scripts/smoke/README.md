@@ -194,7 +194,7 @@ try {
 | `clickElement(finderExpr, what?)` | A real click on the element a page expression returns. |
 | `clickAt(x, y, { button?, settle? })`, `moveTo(x, y)`, `drag(x, y, dx, dy, { steps? })`, `key(name)` | Raw input in CSS px. |
 | `rect(selector)` | Bounding rectangle `{x, y, width, height}` in CSS px, or null. |
-| `screenshot(filePath, { clip?, format?, quality? })` | `clip` is a rect or a CSS selector; `format` is `png`, `webp` or `jpeg` (by default taken from the file extension). A relative path goes into `out`. Returns `{ file, data }`. |
+| `screenshot(filePath, { clip?, format?, quality?, scale? })` | `clip` is a rect or a CSS selector; `format` is `png`, `webp` or `jpeg` (by default taken from the file extension); `scale` (e.g. 0.75) makes a smaller image, of the whole viewport when there is no clip. A relative path goes into `out`. Returns `{ file, data }`. |
 | `setFiles(selector, paths)` | Fills a file input (Open project / import). |
 | `goto(url?)` | Navigate and wait until the document is complete. |
 | `download(trigger)` | Runs `trigger()` and returns the path of the new file in `downloadDir`. |
@@ -205,7 +205,7 @@ try {
 
 | Helper | What it does |
 |---|---|
-| `gotoWelcome(s, url?)` | Reload and wait for Welcome to be ready. |
+| `gotoWelcome(s, url?)` | Reload and wait for Welcome to be ready, including its list of saved projects. If that list never finishes ("Looking for saved projects…", a known intermittent issue right after a reload in a fresh headless profile, after which Create project hangs), it reloads again (at most 3 tries) and records a `NOTE`. |
 | `tryExample(s)` | Welcome → **Try example** (it reloads first when Welcome is not shown). Waits for 5 rooms and 4 edges in Graph 2D. |
 | `openWithToolkit(s, toolkitId = 'house', designFile?)` | Loads `?toolkit=<id>`, then Welcome → Open project with `toolkits/<id>/designs/<id>.json`. A design file becomes a new project that uses that toolkit. Waits for its rooms and edges. Use it for the house example **with** the house toolkit (the Transform, the custom attributes targetArea and priority). |
 | `createProject(s, { toolkit? })` | Welcome → **Create project**, with the toolkit chosen in the Welcome picker (or `?toolkit=`). Today this gives an empty graph. |
@@ -226,3 +226,14 @@ try {
 Pure helpers, unit-tested in `lib.test.mjs`: `parseViewport`, `resolveViewMode`, `railId`, `parseCliArgs`, `urlWithToolkit`, `defaultOutDir`, `VIEW_MODES`, `RAIL`. Paths: `REPO_ROOT`, `EXAMPLE_DESIGN_FILE`, `HOUSE_DESIGN_FILE` (read-only).
 
 The page helper `window.__sgl` gives, among others, `nodes()`, `edgeIds()`, `undoTitle()`, `canUndo()`, `props()`, `railText(id)`, `geo('position.x')`, `triple('size')`, `setTriple(part, [x, y, z])`, `panel(i)`, `graphPanel()`, `panelMode(i, mode)`, `legendCount(i, 'status:direct')`, `planOpenings(i)`, `wallPanel(i)`, `pose(i)`, `canvas(i)`, `wallHover(i)`, `setValue(el, v)`, `enter(el)`, `byText(text, scope)` and `rect(el)`.
+
+## Guide screenshots (`scripts/guide-shots.mjs`)
+
+Captures the app screenshots of the Guide (How-to entries and the Panels tab) with `app.mjs`. Like the smoke scripts it **never starts or stops a server**: start the app yourself and pass `--url`. Unlike them it **writes into the repository**, on purpose: one WebP per entry to `public/guide/<entry id>.webp` (whole-app shots at 0.75 scale, panel shots at full size, quality 80) and the numbered marker centres, as fractions (0–1) of each image, to `app/ui/guide/screenshots.json`. The Guide draws the markers over the image; their numbers are the entry’s step numbers. Alt text is written by hand in `app/ui/guide/screenshots.ts`.
+
+```powershell
+node scripts/guide-shots.mjs --url http://localhost:5180/
+node scripts/guide-shots.mjs --url http://localhost:5180/ --only howto-connect,panel-analyse   # retake some
+```
+
+Each capture prints PASS or FAIL (a missing marker target fails it, with `FAIL-<id>.png` in `--out`); the others still run. Rerun it whenever the UI changes, then run the tests (`app/ui/guide/guideContent.test.ts` checks that every image exists and every marker is inside it) and look at the Guide.

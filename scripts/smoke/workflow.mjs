@@ -18,6 +18,7 @@
 
 import {
   delay,
+  dismissNotices,
   expandSection,
   expect,
   createRunner,
@@ -234,6 +235,10 @@ await runScript({ name: 'workflow', usage: USAGE, url: 'http://localhost:5181/',
     await openRail(s, 'Project');
     await s.setFiles('#sidebar-panel-project input[type="file"]', exported.file);
     await s.waitFor(`!__sgl.canUndo() && __sgl.nodes().length === ${exported.json.nodes.length}`, 15_000, 'the re-imported project (fresh history)');
+    // The 'separate copy' notice appears above the workspace and shifts it: dismiss it before clicking Export.
+    await delay(500);
+    await dismissNotices(s);
+    await delay(300);
     const again = await exportProject();
     // Re-opened in the same browser the project is a separate copy; its scenario design is identical.
     expect(JSON.stringify(again.json) === JSON.stringify(exported.json), 're-exported scenario design differs from the imported one');
