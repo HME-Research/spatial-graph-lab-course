@@ -6,6 +6,7 @@ import type { AnalysisPresentation } from '@app/views/presentation';
 import { AnalysisLegend } from '@app/views/presentation/LegendViews';
 import { VIEW_COMPONENTS } from '@app/views/registry';
 import { EditPanelOwnerContext, PanelIndexContext } from '@app/views/three/editing/editPanelOwner';
+import { DataCellEditorContext } from '@app/views/data/cellEditing';
 import { ViewportCameraContext, type ViewportCamera } from '@app/views/viewportCamera';
 import { ViewportDisplay } from '@app/display/DisplayProvider';
 import { ChevronIcon, PROPERTIES_DESCRIPTION, PROPERTIES_LABEL, PropertiesIcon, SidebarNav, VIEW_CAPTIONS, ViewModeSelect, type SidebarSection } from '@app/ui';
@@ -28,6 +29,7 @@ import {
   type ViewportState,
 } from '@app/workspace/viewports';
 import { PropertiesPanel } from './inspector/Inspector';
+import { TableCellEditor } from './inspector/TableCellEditor';
 
 /** Kept for existing importers; the value lives in `app/workspace/panes.ts`. */
 export { LEFT_AUTO_COLLAPSE_BELOW } from '@app/workspace/panes';
@@ -152,6 +154,8 @@ export function Workspace({
 
         {view ? (
           <EditPanelOwnerContext.Provider value={editOwner}>
+          {/* P4 G: the Data view's table edits through the same models and commands as Properties. */}
+          <DataCellEditorContext.Provider value={TableCellEditor}>
             <div className={panelsClass}>
               {mounted.map((index) => {
                 const info = infos[index]!;
@@ -181,6 +185,7 @@ export function Workspace({
                 );
               })}
             </div>
+          </DataCellEditorContext.Provider>
           </EditPanelOwnerContext.Provider>
         ) : (
           <div className="panels panels-empty">{empty ?? <p className="meta">No design is open.</p>}</div>

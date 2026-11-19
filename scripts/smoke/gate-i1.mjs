@@ -147,11 +147,23 @@ window.__g = {
   nodes() { return [...document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node')].map((n) => n.getAttribute('data-id')); },
   edgeCount() { return document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__edge').length; },
   props() { return document.querySelector('#sidebar-panel-properties')?.innerText ?? ''; },
-  field(prefix, axis) { return document.querySelector('input[aria-label="' + prefix + ' ' + axis + '"]') ?? document.querySelector('input[aria-label^="' + prefix + ' ' + axis + ' "]'); },
-  triple(prefix) { return ['x','y','z'].map((a) => Number(this.field(prefix, a)?.value)); },
-  setTriple(prefix, values) {
-    ['x','y','z'].forEach((a, i) => this.setValue(this.field(prefix, a), values[i]));
-    this.enter(this.field(prefix, 'z'));
+  // Geometry rows of Properties (P4): Position X, Position Y, Level / Size X, Size Y, Floors, each its own field.
+  GEO: { position: ['position-x', 'position-y', 'level'], size: ['size-x', 'size-y', 'floors'] },
+  geo(id) { return (document.querySelector('#sidebar-panel-properties') ?? document).querySelector('.sgl-field[data-attribute="' + id + '"] input'); },
+  field(part, axis) { return this.geo(this.GEO[part][['x', 'y', 'z'].indexOf(axis)]); },
+  triple(part) { return this.GEO[part].map((id) => Number(this.geo(id)?.value)); },
+  // One edit per changed axis: each row is its own command and undo step (a 3-axis change is up to
+  // three steps, applied x, y, z in order). Returns the number of edits sent.
+  setTriple(part, values) {
+    let sent = 0;
+    this.GEO[part].forEach((id, i) => {
+      const el = this.geo(id);
+      if (!el || Number(el.value) === values[i]) return;
+      this.setValue(el, values[i]);
+      this.enter(el);
+      sent += 1;
+    });
+    return sent;
   },
   panelMode(panel, mode) { const s = document.querySelector('select[aria-label="View shown in panel ' + panel + '"]'); if (!s) return null; if (mode && s.value !== mode) this.setValue(s, mode); return s.value; },
   scenario() { return document.querySelector('.sgl-identity-scenario')?.textContent ?? null; },
@@ -181,16 +193,16 @@ async function selectNode(id) {
   if (!c) throw new Error(`node ${id} not in Graph 2D`);
   await clickAt(c.x, c.y);
   await evaluate(`document.querySelector('.view-panel[data-panel="0"] .sgl-popover button[aria-label="Close details"]')?.click(); true`);
-  await waitFor(`__g.field('Position (lowest corner)', 'x') !== null && new RegExp(${JSON.stringify(id)}).test(__g.props())`, `Properties of ${id}`);
+  await waitFor(`__g.field('position', 'x') !== null && new RegExp(${JSON.stringify(id)}).test(__g.props())`, `Properties of ${id}`);
 }
 async function moveRoom(id, grid) {
   await selectNode(id);
-  await evaluate(`__g.setTriple('Position (lowest corner)', ${JSON.stringify(grid)}); true`);
-  await waitFor(`__g.triple('Position (lowest corner)').join(',') === ${JSON.stringify(grid.join(','))} && /Move room/.test(__g.undoTitle())`, `${id} at ${grid}`);
+  await evaluate(`__g.setTriple('position', ${JSON.stringify(grid)}); true`);
+  await waitFor(`__g.triple('position').join(',') === ${JSON.stringify(grid.join(','))} && /Move room/.test(__g.undoTitle())`, `${id} at ${grid}`);
 }
 async function positionOf(id) {
   await selectNode(id);
-  return evaluate(`__g.triple('Position (lowest corner)')`);
+  return evaluate(`__g.triple('position')`);
 }
 async function openTab(id) {
   const ok = await evaluate(`__g.tab(${JSON.stringify(id)})`);
@@ -620,7 +632,7 @@ await step(4, 'five-views-layouts-maximise', async () => {
   // With a room selected (the room gizmo / editor shown) at 4 viewports. Selected from the Plan
   // (panel 4): in a quarter-size Graph 2D the node may sit under its legend.
   await evaluate(`document.querySelector('.view-panel[data-panel="3"] [data-node-id="store"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })); true`);
-  await waitFor(`/store/.test(__g.props()) && __g.field('Position (lowest corner)', 'x') !== null`, 'store selected from the Plan');
+  await waitFor(`/store/.test(__g.props()) && __g.field('position', 'x') !== null`, 'store selected from the Plan');
   await delay(1000);
   out.push(await layoutCheck('layout4-room-selected'));
   for (let i = 1; i <= 4; i++) {

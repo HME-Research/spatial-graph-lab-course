@@ -22,7 +22,25 @@ import {
   scenarioSamples,
   sectionedRows,
   storedValueCount,
+  toolkitMergeNotice,
 } from './attributeList';
+
+describe('Add toolkit attributes notice', () => {
+  it('counts attributes and Function defaults separately (house: 2 attributes, 12 defaults)', () => {
+    const added = [
+      'node field "targetArea"',
+      'node field "priority"',
+      ...['living', 'kitchen', 'bedroom', 'bath', 'entrance', 'circulation'].flatMap((t) => [
+        `default of "targetArea" for type "${t}"`,
+        `default of "priority" for type "${t}"`,
+      ]),
+    ];
+    expect(toolkitMergeNotice(added)).toBe('Added 2 attributes and 12 Function defaults from the toolkit.');
+    expect(toolkitMergeNotice(['edge field "width"'])).toBe('Added 1 attribute from the toolkit.');
+    expect(toolkitMergeNotice(['default of "priority" for type "bath"'])).toBe('Added 1 Function default from the toolkit.');
+    expect(toolkitMergeNotice([])).toBe('Nothing new to add from the toolkit.');
+  });
+});
 import { EDGE_BUILT_IN_ATTRIBUTES, NODE_BUILT_IN_ATTRIBUTES } from './sections';
 import { AddAttributeDialog, AttributeInfoDialog, DeleteAttributeDialog, EditAttributeDialog, studentMessage } from './AttributeDialogs';
 import { AttributesPanel } from './AttributesPanel';

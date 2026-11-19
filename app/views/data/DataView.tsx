@@ -1,60 +1,48 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
+import {
+  createContext,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
 import { ATTRIBUTE_SECTIONS, type AttributeSectionId } from '@app/attributes/sections';
 import { EMPTY_ATTRIBUTE_SCHEMA } from '@app/extensions';
 import { defaultMetricEvaluator } from '@app/metrics';
-import { selectEdge, selectionEmphasis, selectNode, type Emphasis, type Selection, type SelectionHandler } from '@core/viewer/selection';
+import { selectionEmphasis, type Emphasis, type Selection, type SelectionHandler } from '@core/viewer/selection';
 import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
 import { useEnabledMetrics } from '../three/enabledMetrics';
-import {
-  columnGroups,
-  edgeTable,
-  jsonBlocks,
-  jsonLines,
-  nodeTable,
-  type DataCell,
-  type DataColumn,
-  type DataRow,
-  type DataTable,
-  type JsonBlock,
-  type RecordRef,
-  type StoredSectionId,
-} from './dataModel';
+import { DataCellEditorContext, type CellEditorProps, type CellMove } from './cellEditing';
+import { columnGroups, edgeTable, nodeTable, type DataCell, type DataColumn, type DataRow, type DataTable, type StoredSectionId } from './dataModel';
+import { edgeEmphasis, nodeEmphasis, revealIn, revealSideways, selectionOf, type RowEmphasis } from './dataSelection';
+import { JsonPane } from './JsonPane';
 import './data.css';
 
 /**
- * Data view (Programme P4, worktree D): the same graph as text and as a table. A graph does not
- * have to be a diagram. Selection is shared both ways with every other view; the view is
- * read-only and never issues a command (table editing comes later, through the validated
- * commands — cells are rendered by `DataCellView` so an editor can be slotted in there).
+ * Data view (Programme P4): the same graph as text and as a table. A graph does not have to be a
+ * diagram. Selection is shared both ways with every other view.
+ *
+ * - JSON (worktree D): exactly as saved; read-only (`JsonPane`).
+ * - Table (worktree G): Function / Relationship, Geometry and Custom cells are editable; Identity
+ *   and Calculated are locked. The view never builds or sends a command itself: the cell editor is
+ *   provided by the shell (`DataCellEditorContext`) and uses the same validated commands as
+ *   Properties, so every edit is one undo step. Without that provider the table is read-only.
  */
 
 export const DATA_FORMATS = ['json', 'table'] as const;
 export type DataFormat = (typeof DATA_FORMATS)[number];
 const FORMAT_LABELS: Readonly<Record<DataFormat, string>> = { json: 'JSON', table: 'Table' };
 const FORMAT_TITLES: Readonly<Record<DataFormat, string>> = {
-  json: 'The design exactly as it is saved: stored values only, no calculated values or defaults.',
+  json: 'The design exactly as it is saved: stored values only, no calculated values or defaults. Read-only.',
   table: 'One row per node and per edge; columns grouped by attribute section.',
 };
-
-type RowEmphasis = 'primary' | 'secondary' | null;
-
-const nodeEmphasis = (e: Emphasis, id: number): RowEmphasis => (e.primaryNodes.has(id) ? 'primary' : e.secondaryNodes.has(id) ? 'secondary' : null);
-const edgeEmphasis = (e: Emphasis, id: number): RowEmphasis => (e.edges.has(id) ? 'primary' : null);
-const recordEmphasis = (e: Emphasis, r: RecordRef): RowEmphasis => (r.collection === 'nodes' ? nodeEmphasis(e, r.id) : edgeEmphasis(e, r.id));
-const selectionOf = (collection: 'nodes' | 'edges', id: number): Selection => (collection === 'nodes' ? selectNode(id) : selectEdge(id));
-
-/**
- * Scroll `container` (only — never the page) so `el` is visible below `topInset` px (a sticky
- * header). `start`: bring the element's top into view when any part of it is hidden.
- */
-function revealIn(container: HTMLElement, el: HTMLElement, topInset: number, start: boolean): void {
-  const c = container.getBoundingClientRect();
-  const r = el.getBoundingClientRect();
-  const top = c.top + topInset;
-  if (r.top < top || (start && r.bottom > c.bottom)) container.scrollTop += r.top - top - (start ? 24 : 4);
-  else if (r.bottom > c.bottom) container.scrollTop += r.bottom - c.bottom + 4;
-}
 
 export function DataView({ design, selection, onSelect, project }: ViewProps) {
   const memory = useRemembered<DataFormat>('format:data');
@@ -64,6 +52,7 @@ export function DataView({ design, selection, onSelect, project }: ViewProps) {
     memory?.save(f);
   };
   const emphasis = useMemo(() => selectionEmphasis(selection, design.doc.edges), [selection, design.doc.edges]);
+  const editable = useContext(DataCellEditorContext) !== null && format === 'table';
 
   return (
     <div className="sgl-dataview" data-view-surface="data" data-data-format={format}>
@@ -76,14 +65,20 @@ export function DataView({ design, selection, onSelect, project }: ViewProps) {
           ))}
         </div>
         <SectionKey format={format} />
-        <span className="sgl-dataview-readonly" title="Change the design in Properties or in the other views. This view only shows it.">
-          Read-only
-        </span>
+        {editable ? (
+          <span className="sgl-dataview-readonly" title="Click a cell, or press Enter on it, to edit. Enter or Tab applies, Esc cancels. Identity and Calculated are locked.">
+            Click a cell to edit
+          </span>
+        ) : (
+          <span className="sgl-dataview-readonly" title="The JSON shows the design exactly as saved. Change it in the Table, in Properties or in the other views.">
+            Read-only
+          </span>
+        )}
       </div>
       {format === 'json' ? (
         <JsonPane design={design} emphasis={emphasis} selection={selection} onSelect={onSelect} />
       ) : (
-        <TablePane design={design} schema={project?.attributes ?? EMPTY_ATTRIBUTE_SCHEMA} emphasis={emphasis} selection={selection} onSelect={onSelect} />
+        <TablePane design={design} project={project} emphasis={emphasis} selection={selection} onSelect={onSelect} />
       )}
     </div>
   );
@@ -114,112 +109,63 @@ function SectionKey({ format }: { readonly format: DataFormat }) {
   );
 }
 
-// ── JSON ─────────────────────────────────────────────────────────────────────────────────────
+// ── Table ────────────────────────────────────────────────────────────────────────────────────
 
-const KEY_LINE = /^(\s*)("(?:[^"\\]|\\.)*")(: ?)(.*)$/;
-
-function JsonPane({
-  design,
-  emphasis,
-  selection,
-  onSelect,
-}: {
-  readonly design: ViewProps['design'];
-  readonly emphasis: Emphasis;
-  readonly selection: Selection;
-  readonly onSelect: SelectionHandler;
-}) {
-  const lines = useMemo(() => jsonLines(design.doc), [design.doc]);
-  const blocks = useMemo(() => jsonBlocks(lines), [lines]);
-  const scroller = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = scroller.current;
-    if (!container || selection.kind === 'none') return;
-    const el = container.querySelector<HTMLElement>(`[data-record="${selection.kind === 'node' ? 'nodes' : 'edges'}:${selection.id}"]`);
-    if (el) revealIn(container, el, 0, true);
-  }, [selection, blocks]);
-
-  const onClick = (event: MouseEvent<HTMLDivElement>) => {
-    const el = (event.target as HTMLElement).closest<HTMLElement>('[data-record]');
-    if (!el) return;
-    const [collection, id] = el.dataset.record!.split(':') as ['nodes' | 'edges', string];
-    onSelect(selectionOf(collection, Number(id)));
-  };
-
-  return (
-    <div
-      ref={scroller}
-      className="sgl-dataview-scroll sgl-dataview-json"
-      role="region"
-      aria-label="Design as JSON, as saved"
-      tabIndex={0}
-      onClick={onClick}
-      style={{ '--sgl-dataview-ln': `${String(lines.length).length}ch` } as CSSProperties}
-    >
-      <div className="sgl-dataview-code">
-        {blocks.map((b) => (
-          <JsonBlockView key={b.key} block={b} emphasis={b.record ? recordEmphasis(emphasis, b.record) : null} />
-        ))}
-      </div>
-    </div>
-  );
+/** The cell being edited. */
+interface EditingCell {
+  readonly collection: 'nodes' | 'edges';
+  readonly rowId: number;
+  readonly columnId: string;
+  readonly initialText?: string;
 }
 
-const JsonBlockView = memo(function JsonBlockView({ block, emphasis }: { readonly block: JsonBlock; readonly emphasis: RowEmphasis }) {
-  const lines = block.lines.map((l) => {
-    const m = KEY_LINE.exec(l.text);
-    return (
-      <div key={l.number} className="sgl-dataview-line" data-section={l.section ?? undefined}>
-        <span className="sgl-dataview-mark" aria-hidden="true" />
-        <span className="sgl-dataview-ln" aria-hidden="true">
-          {l.number}
-        </span>
-        <span className="sgl-dataview-text">
-          {m ? (
-            <>
-              {m[1]}
-              <span className="sgl-dataview-key-name">{m[2]}</span>
-              {m[3]}
-              {m[4]}
-            </>
-          ) : (
-            l.text
-          )}
-        </span>
-      </div>
-    );
-  });
-  if (!block.record) return <>{lines}</>;
-  const label = `${block.record.collection === 'nodes' ? 'Node' : 'Edge'} ${block.record.id}`;
-  return (
-    <div className="sgl-dataview-record" data-record={`${block.record.collection}:${block.record.id}`} data-emphasis={emphasis ?? undefined} title={`${label}: click to select`}>
-      {lines}
-    </div>
-  );
-});
+/** What the cell being edited needs from the table (read only by `EditingCellSlot`). */
+interface EditSession {
+  readonly Editor: ComponentType<CellEditorProps>;
+  readonly design: ViewProps['design'];
+  readonly project: ViewProps['project'];
+  readonly editing: EditingCell | null;
+  readonly onClose: (move: CellMove) => void;
+  readonly onFeedback: (feedback: ReactNode | null) => void;
+}
 
-// ── Table ────────────────────────────────────────────────────────────────────────────────────
+const EditSessionContext = createContext<EditSession | null>(null);
+
+/** Editable cells of a table in reading order (rows, then columns). */
+const editableCells = (scope: ParentNode): HTMLElement[] => [...scope.querySelectorAll<HTMLElement>('tbody [data-editable]')];
 
 function TablePane({
   design,
-  schema,
+  project,
   emphasis,
   selection,
   onSelect,
 }: {
   readonly design: ViewProps['design'];
-  readonly schema: NonNullable<ViewProps['project']>['attributes'];
+  readonly project: ViewProps['project'];
   readonly emphasis: Emphasis;
   readonly selection: Selection;
   readonly onSelect: SelectionHandler;
 }) {
   const enabled = useEnabledMetrics();
+  const Editor = useContext(DataCellEditorContext);
   const { doc, spatial } = design;
-  const inputs = useMemo(() => ({ ctx: { doc, spatial }, schema, enabled, evaluator: defaultMetricEvaluator }), [doc, spatial, schema, enabled]);
+  const schema = project?.attributes ?? EMPTY_ATTRIBUTE_SCHEMA;
+  const toolkit = project?.project ?? null;
+  const inputs = useMemo(
+    () => ({ ctx: { doc, spatial }, schema, enabled, evaluator: defaultMetricEvaluator, toolkit }),
+    [doc, spatial, schema, enabled, toolkit],
+  );
   const nodes = useMemo(() => nodeTable(inputs), [inputs]);
   const edges = useMemo(() => edgeTable(inputs), [inputs]);
   const scroller = useRef<HTMLDivElement>(null);
+  const [editing, setEditing] = useState<EditingCell | null>(null);
+  const [feedback, setFeedback] = useState<ReactNode | null>(null);
+  /** Where the focus goes once the editor is gone. */
+  const focusAfter = useRef<HTMLElement | null>(null);
+
+  // A message (or a corridor confirmation) belongs to the document it was made for.
+  useEffect(() => setFeedback(null), [doc]);
 
   useEffect(() => {
     const container = scroller.current;
@@ -229,10 +175,64 @@ function TablePane({
     if (el) revealIn(container, el, head?.offsetHeight ?? 0, false);
   }, [selection, nodes, edges]);
 
+  const focusCell = useCallback((el: HTMLElement) => {
+    el.focus({ preventScroll: true });
+    const container = scroller.current;
+    if (!container) return;
+    const table = el.closest('table');
+    revealIn(container, el, table?.tHead?.offsetHeight ?? 0, false);
+    revealSideways(container, el, table?.querySelector<HTMLElement>('tbody [data-column="id"]')?.offsetWidth ?? 0);
+  }, []);
+
+  useEffect(() => {
+    if (editing !== null || !focusAfter.current) return;
+    const el = focusAfter.current;
+    focusAfter.current = null;
+    if (el.isConnected) focusCell(el);
+  }, [editing, focusCell]);
+
+  const startEdit = useCallback(
+    (cell: EditingCell) => {
+      if (!Editor) return;
+      setEditing((current) =>
+        current && current.collection === cell.collection && current.rowId === cell.rowId && current.columnId === cell.columnId ? current : cell,
+      );
+      onSelect(selectionOf(cell.collection, cell.rowId));
+    },
+    [Editor, onSelect],
+  );
+
+  const session = useMemo((): EditSession | null => {
+    if (!Editor) return null;
+    const onClose = (move: CellMove) => {
+      const container = scroller.current;
+      if (editing && container && move !== 'none') {
+        const here = container.querySelector<HTMLElement>(`tr[data-row="${editing.collection}:${editing.rowId}"] > [data-column="${CSS.escape(editing.columnId)}"]`);
+        const table = here?.closest('table');
+        if (here && table) {
+          const all = editableCells(table);
+          const i = all.indexOf(here);
+          focusAfter.current = move === 'stay' ? here : (all[move === 'next' ? i + 1 : i - 1] ?? here);
+        }
+      }
+      setEditing(null);
+    };
+    return { Editor, design, project, editing, onClose, onFeedback: setFeedback };
+  }, [Editor, design, project, editing]);
+
+  const tables = (
+    <>
+      <DataTableView table={nodes} title="Nodes" emphasis={emphasis} selection={selection} onSelect={onSelect} editing={editing} canEdit={Editor !== null} onStartEdit={startEdit} />
+      <DataTableView table={edges} title="Edges" emphasis={emphasis} selection={selection} onSelect={onSelect} editing={editing} canEdit={Editor !== null} onStartEdit={startEdit} />
+    </>
+  );
+
   return (
-    <div ref={scroller} className="sgl-dataview-scroll sgl-dataview-tables">
-      <DataTableView table={nodes} title="Nodes" emphasis={emphasis} selection={selection} onSelect={onSelect} />
-      <DataTableView table={edges} title="Edges" emphasis={emphasis} selection={selection} onSelect={onSelect} />
+    <div className="sgl-dataview-table-pane">
+      {feedback !== null && <div className="sgl-dataview-feedback">{feedback}</div>}
+      <div ref={scroller} className="sgl-dataview-scroll sgl-dataview-tables">
+        {session ? <EditSessionContext.Provider value={session}>{tables}</EditSessionContext.Provider> : tables}
+      </div>
     </div>
   );
 }
@@ -246,6 +246,10 @@ function LockIcon() {
   );
 }
 
+const lockedSection = (section: AttributeSectionId): boolean => !ATTRIBUTE_SECTIONS[section].editable;
+
+/** A key that types a character (starts editing with it). */
+const typesCharacter = (event: KeyboardEvent): boolean => event.key.length === 1 && event.key !== ' ' && !event.ctrlKey && !event.metaKey && !event.altKey;
 
 function DataTableView({
   table,
@@ -253,12 +257,19 @@ function DataTableView({
   emphasis,
   selection,
   onSelect,
+  editing,
+  canEdit,
+  onStartEdit,
 }: {
   readonly table: DataTable;
   readonly title: string;
   readonly emphasis: Emphasis;
   readonly selection: Selection;
   readonly onSelect: SelectionHandler;
+  readonly editing: EditingCell | null;
+  /** A cell editor is available (otherwise the table is read-only). */
+  readonly canEdit: boolean;
+  readonly onStartEdit: (cell: EditingCell) => void;
 }) {
   const { collection, columns, rows } = table;
   const groups = useMemo(() => columnGroups(columns), [columns]);
@@ -267,25 +278,82 @@ function DataTableView({
   const selectedHere = (collection === 'nodes' && selection.kind === 'node') || (collection === 'edges' && selection.kind === 'edge') ? (selection as { id: number }).id : null;
   const tabbableId = selectedHere !== null && rows.some((r) => r.id === selectedHere) ? selectedHere : (rows[0]?.id ?? null);
   const select = useCallback((id: number) => onSelect(selectionOf(collection, id)), [onSelect, collection]);
+  const startEdit = (rowId: number, columnId: string, initialText?: string) =>
+    onStartEdit({ collection, rowId, columnId, ...(initialText !== undefined && { initialText }) });
 
   const onKeyDown = (event: KeyboardEvent<HTMLTableSectionElement>) => {
-    const row = (event.target as HTMLElement).closest('tr');
+    const target = event.target as HTMLElement;
+    // The editor handles its own keys.
+    if (target.closest('[data-editing]')) return;
+    const row = target.closest('tr');
     if (!row) return;
+    const rowId = Number(row.dataset.id);
+    const cellsOf = (tr: Element | null) => (tr ? [...tr.querySelectorAll<HTMLElement>(':scope > [data-editable]')] : []);
+    const focus = (el: Element | null | undefined) => {
+      if (el instanceof HTMLElement) {
+        event.preventDefault();
+        el.focus();
+      }
+    };
+
+    // A focused editable cell.
+    if (target !== row && target.matches('[data-editable]')) {
+      const own = cellsOf(row);
+      const i = own.indexOf(target);
+      const column = target.dataset.column!;
+      const sameColumn = (tr: Element | null) => tr?.querySelector<HTMLElement>(`:scope > [data-column="${CSS.escape(column)}"]`);
+      switch (event.key) {
+        case 'ArrowLeft':
+          return focus(i > 0 ? own[i - 1] : row);
+        case 'ArrowRight':
+          return focus(own[i + 1]);
+        case 'ArrowUp':
+          return focus(sameColumn(row.previousElementSibling));
+        case 'ArrowDown':
+          return focus(sameColumn(row.nextElementSibling));
+        case 'Escape':
+          return focus(row);
+        case 'Enter':
+        case 'F2':
+          event.preventDefault();
+          return startEdit(rowId, column);
+        default:
+          if (typesCharacter(event)) {
+            event.preventDefault();
+            startEdit(rowId, column, event.key);
+          }
+          return;
+      }
+    }
+
+    // A focused row (worktree D's navigation; ArrowRight enters its first editable cell).
     let next: Element | null = null;
     if (event.key === 'ArrowDown') next = row.nextElementSibling;
     else if (event.key === 'ArrowUp') next = row.previousElementSibling;
     else if (event.key === 'Home') next = row.parentElement?.firstElementChild ?? null;
     else if (event.key === 'End') next = row.parentElement?.lastElementChild ?? null;
+    else if (event.key === 'ArrowRight') next = cellsOf(row)[0] ?? null;
     else if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      select(Number(row.dataset.id));
+      select(rowId);
       return;
     } else return;
-    event.preventDefault();
-    if (next instanceof HTMLElement) next.focus();
+    focus(next);
+  };
+
+  /** A click selects the row everywhere; on an editable cell it also starts editing that cell. */
+  const onClick = (event: MouseEvent<HTMLTableSectionElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('[data-editing]')) return; // inside the editor
+    const row = target.closest<HTMLElement>('tr[data-id]');
+    if (!row) return;
+    const cell = target.closest<HTMLElement>('[data-editable]');
+    if (cell) startEdit(Number(row.dataset.id), cell.dataset.column!);
+    else select(Number(row.dataset.id));
   };
 
   const emphasisOf = (id: number) => (collection === 'nodes' ? nodeEmphasis(emphasis, id) : edgeEmphasis(emphasis, id));
+  const editingHere = editing?.collection === collection ? editing : null;
 
   return (
     <section className="sgl-dataview-table-wrap" aria-label={title}>
@@ -301,7 +369,7 @@ function DataTableView({
               {groups.map((g) => (
                 <th key={g.section} scope="colgroup" colSpan={g.span} data-section={g.section} title={ATTRIBUTE_SECTIONS[g.section].summary}>
                   {SECTION_HEAD[g.section]}
-                  {g.section === 'calculated' && <LockIcon />}
+                  {lockedSection(g.section) && <LockIcon />}
                 </th>
               ))}
             </tr>
@@ -309,14 +377,30 @@ function DataTableView({
               {columns.map((c) => (
                 <th key={c.id} scope="col" data-section={c.section} data-column={c.id} title={c.title} className={cellClass(c, starts)}>
                   {c.label}
-                  {c.section === 'calculated' && <LockIcon />}
+                  {!c.editable && <LockIcon />}
+                  {/* The shared `.sgl-source-tag` style of app/ui/SourceTag (views may not import the shell's component). */}
+                  {c.tag !== undefined && (
+                    <span className="sgl-source-tag sgl-dataview-tag" title={c.tag === 'Yours' ? 'Added in this project: you can delete it in Attributes.' : 'Comes from the toolkit: it cannot be deleted.'}>
+                      {c.tag}
+                    </span>
+                  )}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody onKeyDown={onKeyDown}>
+          <tbody onKeyDown={onKeyDown} onClick={onClick}>
             {rows.map((r) => (
-              <DataRowView key={r.id} collection={collection} row={r} columns={columns} starts={starts} emphasis={emphasisOf(r.id)} tabbable={r.id === tabbableId} onSelect={select} />
+              <DataRowView
+                key={r.id}
+                collection={collection}
+                row={r}
+                columns={columns}
+                starts={starts}
+                emphasis={emphasisOf(r.id)}
+                tabbable={r.id === tabbableId}
+                canEdit={canEdit}
+                editingColumn={editingHere?.rowId === r.id ? editingHere.columnId : null}
+              />
             ))}
           </tbody>
         </table>
@@ -332,7 +416,8 @@ const DataRowView = memo(function DataRowView({
   starts,
   emphasis,
   tabbable,
-  onSelect,
+  canEdit,
+  editingColumn,
 }: {
   readonly collection: 'nodes' | 'edges';
   readonly row: DataRow;
@@ -340,7 +425,9 @@ const DataRowView = memo(function DataRowView({
   readonly starts: ReadonlySet<string>;
   readonly emphasis: RowEmphasis;
   readonly tabbable: boolean;
-  readonly onSelect: (id: number) => void;
+  readonly canEdit: boolean;
+  /** The column of this row being edited, if any. */
+  readonly editingColumn: string | null;
 }) {
   return (
     <tr
@@ -349,10 +436,18 @@ const DataRowView = memo(function DataRowView({
       data-emphasis={emphasis ?? undefined}
       aria-current={emphasis === 'primary' ? 'true' : undefined}
       tabIndex={tabbable ? 0 : -1}
-      onClick={() => onSelect(row.id)}
     >
       {columns.map((c) => (
-        <DataCellView key={c.id} column={c} cell={row.cells[c.id]!} className={cellClass(c, starts)} />
+        <DataCellView
+          key={c.id}
+          collection={collection}
+          rowId={row.id}
+          column={c}
+          cell={row.cells[c.id]!}
+          className={cellClass(c, starts)}
+          editable={canEdit && c.editable}
+          editing={editingColumn === c.id}
+        />
       ))}
     </tr>
   );
@@ -363,21 +458,66 @@ const cellClass = (c: DataColumn, starts: ReadonlySet<string>): string | undefin
 
 const ORIGIN_HINT: Partial<Record<DataCell['origin'], string>> = { 'type-default': 'from type', default: 'default', invalid: 'invalid' };
 
-/** One read-only cell. Worktree G slots its editors in here (Identity and Calculated stay locked). */
-function DataCellView({ column, cell, className }: { readonly column: DataColumn; readonly cell: DataCell; readonly className: string | undefined }) {
+/** One cell: the value, or its editor while it is edited. Locked cells are never focusable. */
+function DataCellView({
+  collection,
+  rowId,
+  column,
+  cell,
+  className,
+  editable,
+  editing,
+}: {
+  readonly collection: 'nodes' | 'edges';
+  readonly rowId: number;
+  readonly column: DataColumn;
+  readonly cell: DataCell;
+  readonly className: string | undefined;
+  readonly editable: boolean;
+  readonly editing: boolean;
+}) {
   const hint = ORIGIN_HINT[cell.origin];
   const Cell = column.id === 'id' ? 'th' : 'td';
+  const title = editable ? `${cell.title ? `${cell.title}\n` : ''}Click or press Enter to edit.` : cell.title;
   return (
     <Cell
       {...(Cell === 'th' && { scope: 'row' })}
       data-section={column.section}
       data-column={column.id}
       data-origin={cell.origin}
+      data-editable={editable || undefined}
+      data-editing={editing || undefined}
+      tabIndex={editable && !editing ? -1 : undefined}
       className={className}
-      title={cell.title}
+      title={editing ? undefined : title}
     >
-      {cell.text}
-      {hint && <span className="sgl-dataview-hint">{hint}</span>}
+      {editing ? (
+        <EditingCellSlot collection={collection} rowId={rowId} column={column} />
+      ) : (
+        <>
+          {cell.text}
+          {hint && <span className="sgl-dataview-hint">{hint}</span>}
+        </>
+      )}
     </Cell>
+  );
+}
+
+function EditingCellSlot({ collection, rowId, column }: { readonly collection: 'nodes' | 'edges'; readonly rowId: number; readonly column: DataColumn }) {
+  const session = useContext(EditSessionContext);
+  if (!session || !session.editing) return null;
+  const { Editor, design, project, editing, onClose, onFeedback } = session;
+  return (
+    <Editor
+      design={design}
+      project={project}
+      collection={collection}
+      itemId={rowId}
+      columnId={column.id}
+      label={`${collection === 'nodes' ? 'Node' : 'Edge'} ${rowId}: ${column.label}`}
+      {...(editing.initialText !== undefined && { initialText: editing.initialText })}
+      onClose={onClose}
+      onFeedback={onFeedback}
+    />
   );
 }

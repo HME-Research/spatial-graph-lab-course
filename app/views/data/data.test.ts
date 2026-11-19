@@ -9,12 +9,15 @@ import { createMetricEvaluator, DEFAULT_ENABLED_METRICS, enabledMetrics } from '
 import { resolveRelationships, type DesignPort } from '@app/spatial';
 import { NO_SELECTION, selectEdge, selectNode, type Selection } from '@core/viewer/selection';
 import { VIEW_MODES } from '../contracts';
+import type { ProjectViewContext } from '../project';
 import { createPanelMemory, PanelMemoryContext } from '../panelMemory';
 import { VIEW_COMPONENTS } from '../registry';
 import { columnGroups, edgeTable, jsonBlocks, jsonLines, nodeTable } from './dataModel';
 import { DataView } from './DataView';
 import dataViewSource from './DataView.tsx?raw';
 import dataModelSource from './dataModel.ts?raw';
+import jsonPaneSource from './JsonPane.tsx?raw';
+import { DataCellEditorContext, type CellEditorProps } from './cellEditing';
 
 function house(): DesignDocumentV2 {
   const read = readDesign(houseJson);
@@ -55,6 +58,13 @@ const inputs = (doc: DesignDocumentV2, schema = SCHEMA) => ({
   enabled: DEFAULT_ENABLED_METRICS,
   evaluator: createMetricEvaluator(),
 });
+
+/** The active toolkit as far as the Data view needs it: its name and the attributes its files declare. */
+const TOOLKIT = {
+  definition: { name: 'House' },
+  attributeBaseline: { schema: { nodes: [{ id: 't1', key: 'targetArea', label: 'Target area', kind: 'number' }], edges: [], nodeTypeDefaults: {} } },
+  nodeTypes: [],
+};
 
 describe('data view mode', () => {
   it('is registered as the last view mode, "Data", with a plain (non-lazy) component', () => {
@@ -159,15 +169,18 @@ describe('tables', () => {
 });
 
 describe('DataView', () => {
-  const render = (selection: Selection, format: 'json' | 'table', onCommand = vi.fn(), onSelect = vi.fn()) => {
+  /** `editor`: a stand-in for the shell's cell editor (`DataCellEditorContext`); none = read-only table. */
+  const render = (selection: Selection, format: 'json' | 'table', onCommand = vi.fn(), onSelect = vi.fn(), editor?: (props: CellEditorProps) => null) => {
     const memory = createPanelMemory();
     memory.set('format:data', format);
+    const view = createElement(DataView, {
+      design: port(houseWithAttributes(), onCommand),
+      selection,
+      onSelect,
+      project: { project: TOOLKIT, conformance: [], facade: () => ({ windowFraction: 0 }), attributes: SCHEMA } as unknown as ProjectViewContext,
+    });
     const html = renderToStaticMarkup(
-      createElement(
-        PanelMemoryContext.Provider,
-        { value: memory },
-        createElement(DataView, { design: port(houseWithAttributes(), onCommand), selection, onSelect, project: { project: null, conformance: [], facade: () => ({ windowFraction: 0 }), attributes: SCHEMA } }),
-      ),
+      createElement(PanelMemoryContext.Provider, { value: memory }, editor ? createElement(DataCellEditorContext.Provider, { value: editor }, view) : view),
     );
     return { html, onCommand, onSelect };
   };
@@ -208,10 +221,50 @@ describe('DataView', () => {
     expect(table).toContain('aria-label="Edges: one row per edge"');
   });
 
-  it('never issues a command', () => {
+  it('never sends a command itself: edits go only through the provided cell editor', () => {
     const onCommand = vi.fn();
-    for (const sel of [NO_SELECTION, selectNode(2), selectEdge(5)]) for (const f of ['json', 'table'] as const) render(sel, f, onCommand);
+    const editor = vi.fn(() => null);
+    for (const sel of [NO_SELECTION, selectNode(2), selectEdge(5)]) for (const f of ['json', 'table'] as const) render(sel, f, onCommand, vi.fn(), editor);
     expect(onCommand).not.toHaveBeenCalled();
+    // Nothing is being edited until a cell is clicked (or Enter is pressed on it).
+    expect(editor).not.toHaveBeenCalled();
     for (const source of [dataViewSource, dataModelSource]) expect(source).not.toMatch(/onCommand|onScenarioCommand|proposeEdit/);
+  });
+
+  it('keeps the JSON read-only: no editor, no editable lines, no command', () => {
+    const onCommand = vi.fn();
+    const json = render(selectNode(4), 'json', onCommand, vi.fn(), () => null).html;
+    expect(json).not.toMatch(/data-editable|<input|<select|contenteditable/);
+    expect(json).toContain('Read-only');
+    expect(onCommand).not.toHaveBeenCalled();
+    expect(jsonPaneSource).not.toMatch(/onCommand|onScenarioCommand|proposeEdit|DataCellEditorContext|cellEditing/);
+  });
+
+  it('marks Function, Geometry and Custom cells (and Relationship) editable; Identity and Calculated locked and not focusable', () => {
+    const table = render(NO_SELECTION, 'table', vi.fn(), vi.fn(), () => null).html;
+    expect(table).toContain('Click a cell to edit');
+    const cells = (column: string) => [...table.matchAll(new RegExp(`<t[dh][^>]*data-column="${column}"[^>]*>`, 'g'))].map((m) => m[0]).filter((c) => !c.includes('scope="col"'));
+    for (const column of ['function', 'position-x', 'position-y', 'level', 'size-x', 'size-y', 'floors', 'custom:f1', 'relationship', 'custom:f2']) {
+      expect(cells(column).length, column).toBeGreaterThan(0);
+      for (const c of cells(column)) expect(c, column).toMatch(/data-editable="true"[^>]*tabindex="-1"/);
+    }
+    for (const column of ['id', 'source', 'target', `calc:${enabledMetrics(DEFAULT_ENABLED_METRICS, 'nodes')[0]!.id}`]) {
+      expect(cells(column).length, column).toBeGreaterThan(0);
+      for (const c of cells(column)) expect(c, column).not.toMatch(/data-editable|tabindex/);
+    }
+    // Locked columns carry the lock in their header.
+    expect(table).toMatch(/data-column="id"[^>]*>ID<svg class="sgl-dataview-lock"/);
+  });
+
+  it('is read-only without a cell editor', () => {
+    const table = render(NO_SELECTION, 'table').html;
+    expect(table).not.toContain('data-editable');
+    expect(table).toContain('Read-only');
+  });
+
+  it('tags custom column headers with their source (Toolkit: <name> / Yours)', () => {
+    const table = render(NO_SELECTION, 'table').html;
+    expect(table).toMatch(/data-column="custom:f1"[^>]*>Target area<span class="sgl-source-tag sgl-dataview-tag"[^>]*>Toolkit: House<\/span>/);
+    expect(table).toMatch(/data-column="custom:f2"[^>]*>Note<span class="sgl-source-tag sgl-dataview-tag"[^>]*>Yours<\/span>/);
   });
 });
