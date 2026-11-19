@@ -31,7 +31,7 @@ import {
 import { DEFAULT_ENABLED_METRICS, setMetricEnabled, type CatalogueMetric, type EnabledMetricIds } from '@app/metrics';
 import { CollapsibleSection, HorizontalTabs } from '@app/ui';
 import { SourceTag } from '@app/ui/SourceTag';
-import { attributeRows, metricValueText, scenarioSamples, sectionedRows, type AttributeRow } from './attributeList';
+import { attributeRows, metricValueText, scenarioSamples, sectionedRows, toolkitMergeNotice, type AttributeRow } from './attributeList';
 import { AddAttributeDialog, AttributeInfoDialog, DeleteAttributeDialog, EditAttributeDialog, studentMessage, type ApplyEdits } from './AttributeDialogs';
 import { AttributeSection, RowLock } from './AttributeSection';
 import { sourceResolver, toolkitDeleteReason, toolkitDeleteRefusal } from './attributeSources';
@@ -280,7 +280,7 @@ export function AttributesPanel({
             onClick={() => {
               const merged = mergeFilesIntoSession(session, project);
               onChange(merged.session);
-              setNotice({ tone: 'ok', text: merged.added.length ? `Added ${merged.added.length} attribute${merged.added.length === 1 ? '' : 's'} from the toolkit.` : 'Nothing new to add from the toolkit.' });
+              setNotice({ tone: 'ok', text: toolkitMergeNotice(merged.added) });
             }}
             title="Add the attributes that the toolkit's functions declare and this project does not have yet"
           >

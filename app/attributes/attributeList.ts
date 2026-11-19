@@ -94,6 +94,23 @@ export type AttributeRow =
     }
   | { readonly kind: 'calculated'; readonly id: string; readonly name: string; readonly typeText: string; readonly metric: CatalogueMetric };
 
+/**
+ * The notice after "Add toolkit attributes". `mergeBaseline` lists both new fields
+ * ('node field "x"' / 'edge field "x"') and new per-Function defaults ('default of …'); only the
+ * fields are attributes, so they are counted separately (a toolkit with 2 attributes and 6
+ * Functions must not report "14 attributes").
+ */
+export function toolkitMergeNotice(added: readonly string[]): string {
+  const fields = added.filter((a) => /^(node|edge) field /.test(a)).length;
+  const defaults = added.length - fields;
+  if (added.length === 0) return 'Nothing new to add from the toolkit.';
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  if (fields === 0) return `Added ${plural(defaults, 'Function default')} from the toolkit.`;
+  return defaults === 0
+    ? `Added ${plural(fields, 'attribute')} from the toolkit.`
+    : `Added ${plural(fields, 'attribute')} and ${plural(defaults, 'Function default')} from the toolkit.`;
+}
+
 /** What a calculated attribute's values are, in plain words: "Number · m²", "Yes/No", "Text". */
 export function metricValueText(metric: Pick<CatalogueMetric, 'valueKind' | 'unit'>): string {
   if (metric.valueKind === 'boolean') return 'Yes/No';
