@@ -3,6 +3,8 @@ import { metricRows } from '@app/metrics';
 import type { DesignPort } from '@app/spatial';
 import { useEnabledMetrics } from '@app/views/three/enabledMetrics';
 import { selectEdge, selectNode } from '@core/viewer/selection';
+import { AttributeSection, RowLock } from '@app/attributes/AttributeSection';
+import type { AttributeSectionId } from '@app/attributes/sections';
 
 /**
  * One row of the unified attribute list in Properties (same order and kinds as the Attributes
@@ -18,26 +20,44 @@ export function FieldRow({
   control,
   meta,
   metricId,
+  locked,
   children,
 }: {
   readonly attributeId: string;
-  readonly kind: 'required' | 'custom' | 'calculated';
+  /** The row's section (`sections.ts`). */
+  readonly kind: AttributeSectionId;
   readonly label: ReactNode;
   readonly title?: string;
   readonly htmlFor?: string;
   readonly control: ReactNode;
   readonly meta?: ReactNode;
   readonly metricId?: string;
+  /** A locked row (Identity, Calculated): the lock's explanation. */
+  readonly locked?: string;
   /** Full-width notes under the row (warnings, checks). */
   readonly children?: ReactNode;
 }) {
   const Label = htmlFor === undefined ? 'span' : 'label';
   return (
-    <div className={`sgl-field sgl-field-${kind}`} data-attribute={attributeId} data-attribute-kind={kind} data-metric={metricId}>
+    <div
+      className={`sgl-field sgl-field-${kind}${locked !== undefined ? ' sgl-field-locked' : ''}`}
+      data-attribute={attributeId}
+      data-attribute-kind={kind}
+      data-metric={metricId}
+    >
       <Label className="sgl-field-label" title={title} {...(htmlFor !== undefined && { htmlFor })}>
         {label}
       </Label>
-      <div className="sgl-field-control">{control}</div>
+      <div className="sgl-field-control">
+        {locked !== undefined ? (
+          <span className="sgl-locked-value">
+            {control}
+            <RowLock title={locked} />
+          </span>
+        ) : (
+          control
+        )}
+      </div>
       {meta !== undefined && meta !== null && meta !== false && <div className="sgl-field-meta">{meta}</div>}
       {children}
     </div>
@@ -63,8 +83,10 @@ export function CalculatedRows({
   const enabled = useEnabledMetrics();
   const selection = collection === 'nodes' ? selectNode(itemId) : selectEdge(itemId);
   const rows = metricRows(selection, { doc: design.doc, spatial: design.spatial }, enabled);
+  if (rows.length === 0) return null;
+  // The Calculated section (P4): last, every row locked.
   return (
-    <>
+    <AttributeSection section="calculated">
       {rows.map((r) => (
         <FieldRow
           key={r.id}
@@ -74,9 +96,9 @@ export function CalculatedRows({
           label={r.label}
           title={r.definition ? `${r.definition}\nCalculated from the design: read-only, not saved.` : 'Calculated from the design: read-only, not saved.'}
           control={<span className="sgl-field-value">{r.text}</span>}
-          meta="calculated"
+          locked="Calculated: cannot be typed in"
         />
       ))}
-    </>
+    </AttributeSection>
   );
 }

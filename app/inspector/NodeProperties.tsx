@@ -1,31 +1,31 @@
 import { HelpTip } from '@app/ui/help';
 import { useContext, useEffect, useMemo, useState } from 'react';
+import { AttributeSection } from '@app/attributes/AttributeSection';
+import { sourceResolver } from '@app/attributes/attributeSources';
 import { CustomAttributes, ManageAttributesLink } from '@app/attributes/CustomAttributes';
 import { ManageFunctionsContext, OpenAttributesContext } from '@app/attributes/navigation';
+import { NODE_BUILT_IN_ATTRIBUTES } from '@app/attributes/sections';
 import { MAX_ROOM_SIZE, nodeLabel, type RoomNode } from '@app/document';
-import { findNodeType } from '@app/extensions';
+import { attributesOutsideSchema, findNodeType } from '@app/extensions';
 import { nodeTypeStatus } from '@app/views/project';
-import { formatGrid } from '@app/views/graph2d/diagram';
-import {
-  CollapsibleSection,
-  describeResolution,
-  IssueFeedback,
-  labelOfChoice,
-  POSITION_HELP,
-  SIZE_HELP,
-  RELATIONSHIP_KIND_CHOICES,
-  RouteConfirm,
-  UNDO_HINT,
-} from '@app/ui';
+import { CollapsibleSection, describeResolution, IssueFeedback, labelOfChoice, RELATIONSHIP_KIND_CHOICES, RouteConfirm, UNDO_HINT } from '@app/ui';
 import { typeColor } from '@core/viewer/appearance';
 import { selectEdge, selectNode } from '@core/viewer/selection';
 import { CalculatedRows, FieldRow } from './CalculatedValues';
 import { AttributesForm, NodeChecks, StoredData, TypedAttributesForm, TypeStatusNote } from './AttributeEditors';
-import { CommitInput, TripleField, TypeSelect, type CommitOutcome } from './fields';
+import { CommitInput, TypeSelect, type CommitOutcome } from './fields';
 import { messageContextFor, useCommands, type PanelProps } from './panelSupport';
-import { planGeometryEdit, POSITION_BOUNDS, tripleKey, typeMenu, type Triple, type TripleBounds } from './propertiesModel';
+import { GEOMETRY_ROWS, geometryDraftEdit, planGeometryEdit, typeMenu, type Triple } from './propertiesModel';
 
-const SIZE_BOUNDS: TripleBounds = { names: ['x', 'y', 'z'], min: 1, max: MAX_ROOM_SIZE };
+/** Tooltips of the Geometry rows. */
+const GEOMETRY_TITLES: Readonly<Record<string, string>> = {
+  'position-x': 'Where the room’s lowest corner is along x, in cells. Changing it moves the room.',
+  'position-y': 'Where the room’s lowest corner is along y, in cells. Changing it moves the room.',
+  level: 'The storey the room stands on (its z position). Changing it moves the room.',
+  'size-x': `How many cells the room spans along x (1–${MAX_ROOM_SIZE}). Changing it resizes the room.`,
+  'size-y': `How many cells the room spans along y (1–${MAX_ROOM_SIZE}). Changing it resizes the room.`,
+  floors: `How many storeys tall the room is (1–${MAX_ROOM_SIZE}). Changing it resizes the room.`,
+};
 
 type GeometryRequest = { readonly grid?: Triple; readonly size?: Triple };
 
@@ -37,7 +37,11 @@ interface PendingConfirmation {
 
 const toCoord = (t: Triple): [number, number, number] => [t[0], t[1], t[2]];
 
-/** Properties of one room: one attribute list (Function, Level, custom, calculated), geometry, relationships. */
+/**
+ * Properties of one room, in the five attribute sections (Programme P4, `sections.ts`): Identity
+ * (id, locked), Required by the app (Function), Geometry (Position X/Y, Level, Size X/Y, Floors from
+ * `grid` / `size`), Custom (tagged by source), Calculated (locked); then relationships.
+ */
 export function NodeProperties(props: PanelProps & { readonly nodeId: number }) {
   const { design, project, nodeId } = props;
   const { issues, showIssues, clearIssues, runShared, runV2 } = useCommands(props);
@@ -120,90 +124,112 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
     setResetKey((k) => k + 1);
   };
 
-  const moveTo = (grid: Triple): CommitOutcome =>
-    editGeometry({ grid }, 'move');
-
-  /** Level is the room's z (storey): editing it moves the room up or down, like Position z. */
-  const commitLevel = (draft: string): boolean => {
-    const z = Number(draft);
-    if (draft.trim() === '' || !Number.isInteger(z)) {
-      showIssues([{ path: ['grid', 2], code: 'schema', message: 'Level must be a whole number.' }]);
+  /**
+   * One Geometry row (Position X/Y, Level, Size X/Y, Floors): the other axes keep their stored
+   * values; the edit goes through the same preview and `set-node-geometry` command as the
+   * move/resize gizmo, so a refused edit (overlap, size limit) shows why and changes nothing, and a
+   * successful one is one undo step.
+   */
+  const commitGeometry = (rowId: string, name: string) => (draft: string): boolean => {
+    const decision = geometryDraftEdit(node, rowId, name, draft, MAX_ROOM_SIZE);
+    if (decision.kind === 'unchanged') return true;
+    if (decision.kind === 'invalid') {
+      showIssues([{ path: [rowId.startsWith('size') || rowId === 'floors' ? 'size' : 'grid'], code: 'schema', message: `${decision.message}.` }]);
       return false;
     }
-    return moveTo([node.grid[0], node.grid[1], z]) !== 'refused';
+    return editGeometry(decision.request, decision.request.size ? 'resize' : 'move') !== 'refused';
   };
 
   const functionName = typeStatus.kind === 'registered' ? typeStatus.label : node.typeId;
-  const requiredRows = (
-    <>
-      <FieldRow
-        attributeId="function"
-        kind="required"
-        label="Function"
-        title="What the room is used for. Every room has one."
-        control={
-          /* Re-keyed on the stored value so the menu resets after any change (or undo). */
-          <TypeSelect key={node.typeId} current={node.typeId} menu={menu} onChange={(typeId) => runShared({ type: 'set-node-type', nodeId, typeId })} />
-        }
-        meta={
-          manageFunctions && (
-            <button type="button" className="sgl-link" onClick={manageFunctions} title="Add or remove the functions this project offers">
-              Edit functions
-            </button>
-          )
-        }
-      >
-        <TypeStatusNote status={typeStatus} typeId={node.typeId} projectId={active?.id ?? null} />
-        <NodeChecks checks={checks} />
-      </FieldRow>
-      <FieldRow
-        attributeId="level"
-        kind="required"
-        label="Level"
-        title="The storey the room stands on (its z position). Changing it moves the room."
-        control={<CommitInput key={`level:${node.grid[2]}:${resetKey}`} label="Level" type="number" stored={String(node.grid[2])} placeholder="" onCommit={commitLevel} />}
-      />
-    </>
-  );
-  const calculatedRows = design ? <CalculatedRows design={design} collection="nodes" itemId={nodeId} /> : undefined;
+  const geometryName = (id: string) => NODE_BUILT_IN_ATTRIBUTES.find((a) => a.id === id)?.name ?? id;
+  const schema = project?.attributes;
+  const sourceOf = sourceResolver('nodes', active);
+  const outsideCount = schema ? Object.keys(attributesOutsideSchema(schema, 'nodes', node.attributes)).length : 0;
+  const showCustom = schema ? schema.nodes.length > 0 || outsideCount > 0 : true;
+  const manageLink = project && openAttributes ? <ManageAttributesLink onManage={() => openAttributes('nodes')} /> : undefined;
 
   return (
     <div className="sgl-panel">
       <div className="sgl-title">
         <span className="sgl-swatch" style={{ background: typeColor(node.typeId) }} aria-hidden="true" />
         Room <span className="sgl-room-label">{label}</span>
-        {label !== node.id && <code className="sgl-id" title="Permanent id (never changes)">{node.id}</code>}
       </div>
 
       <IssueFeedback issues={issues} context={context} onDismiss={clearIssues} />
       {pending && <RouteConfirm relationships={pending.relationships} action={pending.action} onCancel={cancelPending} onConfirm={confirmPending} />}
 
-      <CollapsibleSection
-        title="Attributes"
-        sectionId="attributes"
-        defaultOpen={false}
-        meta={functionName}
-        actions={design && v2Node && project && openAttributes ? <ManageAttributesLink onManage={() => openAttributes('nodes')} /> : undefined}
-      >
-        {design && v2Node && project ? (
-          <CustomAttributes
-            collection="nodes"
-            item={v2Node}
-            schema={project.attributes}
-            run={runV2}
-            onError={(message) => showIssues([{ path: ['attributes'], code: 'schema', message }])}
-            showHeader={false}
-            before={requiredRows}
-            after={calculatedRows}
-            {...(openAttributes && { onManage: () => openAttributes('nodes') })}
+      <div className="sgl-attr-sections" data-section="attributes">
+        <AttributeSection section="identity">
+          <FieldRow
+            attributeId="id"
+            kind="identity"
+            label="ID"
+            title="The node’s permanent number: never changes, never reused."
+            control={<span className="sgl-field-value">{node.id}</span>}
+            locked="Identity: cannot be changed"
           />
-        ) : (
-          <>
-            <section className="sgl-section sgl-custom-attributes" aria-label="Attributes">
-              {requiredRows}
-              {calculatedRows}
-            </section>
-            {specs ? (
+        </AttributeSection>
+
+        <AttributeSection section="required" {...(!showCustom && manageLink && { actions: manageLink })}>
+          <FieldRow
+            attributeId="function"
+            kind="required"
+            label="Function"
+            title="What the room is used for. Every room has one."
+            control={
+              /* Re-keyed on the stored value so the menu resets after any change (or undo). */
+              <TypeSelect key={node.typeId} current={node.typeId} menu={menu} onChange={(typeId) => runShared({ type: 'set-node-type', nodeId, typeId })} />
+            }
+            meta={
+              manageFunctions && (
+                <button type="button" className="sgl-link" onClick={manageFunctions} title="Add or remove the functions this project offers">
+                  Edit functions
+                </button>
+              )
+            }
+          >
+            <TypeStatusNote status={typeStatus} typeId={node.typeId} projectId={active?.id ?? null} />
+            <NodeChecks checks={checks} />
+          </FieldRow>
+        </AttributeSection>
+
+        <AttributeSection section="geometry">
+          {GEOMETRY_ROWS.map((row) => {
+            const stored = node[row.part][row.axis];
+            const name = geometryName(row.id);
+            return (
+              <FieldRow
+                key={row.id}
+                attributeId={row.id}
+                kind="geometry"
+                label={name}
+                title={GEOMETRY_TITLES[row.id] ?? name}
+                control={
+                  <CommitInput key={`${row.id}:${stored}:${resetKey}`} label={name} type="number" stored={String(stored)} placeholder="" onCommit={commitGeometry(row.id, name)} />
+                }
+              />
+            );
+          })}
+          <div className="sgl-help-row sgl-field-help">
+            <span className="sgl-help">In cells, from the room’s lowest corner. Dragging its node in Graph 2D only tidies the diagram.</span>
+            <HelpTip topicId="graph-vs-grid" />
+            <HelpTip topicId="room-size" />
+          </div>
+        </AttributeSection>
+
+        {showCustom && (
+          <AttributeSection section="custom" {...(manageLink && { actions: manageLink })}>
+            {project && schema ? (
+              <CustomAttributes
+                collection="nodes"
+                item={node}
+                schema={schema}
+                run={runV2}
+                onError={(message) => showIssues([{ path: ['attributes'], code: 'schema', message }])}
+                showHeader={false}
+                sourceOf={sourceOf}
+              />
+            ) : specs ? (
               <>
                 <TypedAttributesForm node={node} specs={specs} label={functionName} run={runShared} onLocalError={showIssues} />
                 <AttributesForm key={`other:${JSON.stringify(node.attributes)}`} node={node} specs={specs} run={runShared} onLocalError={showIssues} />
@@ -211,55 +237,11 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
             ) : (
               <AttributesForm key={JSON.stringify(node.attributes)} node={node} specs={null} run={runShared} onLocalError={showIssues} />
             )}
-          </>
+          </AttributeSection>
         )}
-      </CollapsibleSection>
 
-      <CollapsibleSection
-        title="Geometry"
-        sectionId="geometry"
-        defaultOpen={false}
-        meta={`at ${formatGrid(node.grid)}${v2Node ? ` · ${v2Node.size.join('×')}` : ''}`}
-      >
-        <TripleField
-          key={`grid:${tripleKey(node.grid)}:${resetKey}`}
-          legend={design ? 'Position (lowest corner)' : 'Position (cell)'}
-          info={POSITION_HELP}
-          axes={['x', 'y', 'z']}
-          bounds={POSITION_BOUNDS}
-          stored={node.grid}
-          onCommit={moveTo}
-          onEscape={() => {
-            if (pending?.action === 'move') cancelPending();
-          }}
-          footer={
-            <div className="sgl-help-row sgl-field-help">
-              {!design && <span className="sgl-help">The target cell must be empty and every relationship must keep touching.</span>}
-              <HelpTip topicId="graph-vs-grid" />
-            </div>
-          }
-        />
-
-        {design && v2Node && (
-          <TripleField
-            key={`size:${tripleKey(v2Node.size)}:${resetKey}`}
-            legend="Size (cells)"
-            info={SIZE_HELP}
-            axes={['x', 'y', 'z']}
-            bounds={SIZE_BOUNDS}
-            stored={v2Node.size}
-            onCommit={(size) => editGeometry({ size }, 'resize')}
-            onEscape={() => {
-              if (pending?.action === 'resize') cancelPending();
-            }}
-            footer={
-              <div className="sgl-help-row sgl-field-help">
-                <HelpTip topicId="room-size" />
-              </div>
-            }
-          />
-        )}
-      </CollapsibleSection>
+        <CalculatedRows design={design} collection="nodes" itemId={nodeId} />
+      </div>
 
       <CollapsibleSection title="Relationships" sectionId="relationships" defaultOpen={false} meta={String(incidentCount(props, nodeId))}>
         <RelationshipsV2 {...props} nodeId={nodeId} runV2={runV2} />
