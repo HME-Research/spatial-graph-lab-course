@@ -28,6 +28,7 @@ const LIGHTING_LABELS: Readonly<Record<LightingPreset, string>> = { default: 'De
 const NO_SETTINGS: Readonly<Partial<Record<DisplayViewMode, string>>> = {
   graph2d: 'Graph 2D has no display settings yet.',
   plan: 'The Plan view has no display settings yet.',
+  data: 'The Data view shows text and tables: it has no display settings.',
 };
 
 /**

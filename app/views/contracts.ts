@@ -39,11 +39,13 @@ export type ViewComponent = ComponentType<ViewProps>;
 export type InspectorProps = ViewProps;
 
 /**
- * Five view modes (Gate F). `plan` is the architectural floor plan of one storey (workstream C,
- * `app/views/plan`: an SVG drawn from the shared face layout, `svg[data-view-surface="plan"]`).
+ * Six view modes (Gate F; `data` added in P4). `plan` is the architectural floor plan of one storey
+ * (workstream C, `app/views/plan`: an SVG drawn from the shared face layout,
+ * `svg[data-view-surface="plan"]`). `data` shows the same graph as JSON text and as tables
+ * (`app/views/data`, `[data-view-surface="data"]`): no picture, no camera, no display settings.
  * Graph 2D keeps its non-spatial diagram meaning.
  */
-export const VIEW_MODES = ['graph2d', 'graph3d', 'voxels', 'architecture', 'plan'] as const;
+export const VIEW_MODES = ['graph2d', 'graph3d', 'voxels', 'architecture', 'plan', 'data'] as const;
 export type ViewMode = (typeof VIEW_MODES)[number];
 
 export const VIEW_MODE_LABELS: Readonly<Record<ViewMode, string>> = {
@@ -52,4 +54,5 @@ export const VIEW_MODE_LABELS: Readonly<Record<ViewMode, string>> = {
   voxels: 'Voxels',
   architecture: 'Building',
   plan: 'Plan',
+  data: 'Data',
 };
