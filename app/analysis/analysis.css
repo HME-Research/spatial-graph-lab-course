@@ -1,21 +1,6 @@
 /* Analyse and Transform tabs (Programme P4). */
 
-/*
- * Source tag (Built-in · Toolkit: <name> · Yours): small, rounded, bordered.
- * TODO(P4 merge): unify with the shared tag class from worktree C (attribute sections).
- */
-.sgl-source-tag {
-  display: inline-block;
-  flex: none;
-  padding: 0 6px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  font-size: var(--text-xs);
-  line-height: 18px;
-  color: var(--muted);
-  background: var(--panel);
-  white-space: nowrap;
-}
+/* Source tags use the shared SourceTag component (.sgl-source-tag in app/ui/ui.css). */
 
 .sgl-info-button {
   border: none;
@@ -184,4 +169,19 @@ ul.sgl-analyse-small {
 }
 .sgl-analysis-result .sgl-buttons {
   margin-top: var(--space-2);
+}
+
+/* Section heads: the subtitle sits on its own line under the title (narrow panes). */
+.sgl-analyse-section .sgl-csection-toggle {
+  flex-wrap: wrap;
+  row-gap: 0;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  text-align: left;
+}
+.sgl-analyse-section .sgl-csection-meta {
+  flex-basis: 100%;
+  padding-left: 20px;
+  font-size: var(--text-xs);
+  line-height: 1.3;
 }

@@ -3,6 +3,7 @@ import type { DesignDocumentV2 } from '@app/document';
 import type { ActiveToolkit, AttributeSpec, ExtensionDiagnostic, TransformationPreviewV2 } from '@app/extensions';
 import { ALGORITHM_TAB_LABELS, sourceTag, type AlgorithmSource } from '@app/ui/analysisSections';
 import { ExplainerWindow } from '@app/ui/guide';
+import { SourceTag } from '@app/ui/SourceTag';
 import { ANALYSE_VS_TRANSFORM } from '@app/analysis/explainers';
 import '@app/analysis/analysis.css';
 import { selectNode, type SelectionHandler } from '@core/viewer/selection';
@@ -131,7 +132,7 @@ export function TransformPanel({
                 <span className="algorithm-text">
                   <span className="algorithm-label">{a.label}</span>
                   <span className="algorithm-meta">
-                    {source && <span className="sgl-source-tag">{sourceTag(source)}</span>}
+                    {source && <SourceTag text={sourceTag(source)} />}
                     {!a.enabled && <span className="algorithm-tag effect-unavailable">Disabled</span>}
                   </span>
                 </span>

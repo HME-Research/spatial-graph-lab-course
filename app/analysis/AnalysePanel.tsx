@@ -4,6 +4,7 @@ import type { ActiveToolkit } from '@app/extensions';
 import { isStale, listAlgorithms, runEntryV2, type AttributesVersion, type HostResolution } from '@app/session/algorithmSession';
 import type { DocumentVersion } from '@app/session/documentSession';
 import { CollapsibleSection } from '@app/ui';
+import { SourceTag } from '@app/ui/SourceTag';
 import { ALGORITHM_TAB_LABELS, ANALYSE_SECTION_IDS, ANALYSE_SECTIONS, sourceTag, type AnalyseSectionId } from '@app/ui/analysisSections';
 import type { Explainer } from '@app/ui/guideContracts';
 import { ExplainerWindow } from '@app/ui/guide';
@@ -244,7 +245,7 @@ export function AnalysePanel({ project, version, selection, shown, onShow, shown
                         >
                           {item.name}
                         </button>
-                        <span className="sgl-source-tag">{sourceTag(item.source)}</span>
+                        <SourceTag text={sourceTag(item.source)} />
                         {info && <InfoButton label={item.name} onClick={() => setExplainer(info)} />}
                       </div>
                       {!item.enabled && <p className="sgl-error sgl-analyse-small">Disabled: {item.problems[0] ?? 'invalid definition'}</p>}
