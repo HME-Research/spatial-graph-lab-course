@@ -2,12 +2,10 @@ import type { ThreeEvent } from '@react-three/fiber';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BoxGeometry } from 'three';
 import {
-  buildArchitecture,
   buildBuildingV2,
   elementBounds,
   isConnectorHighlighted,
   isElementHighlighted,
-  resolveFaces,
   type ArchitecturalElement,
   type ConnectorElement,
 } from '@app/building';
@@ -43,13 +41,13 @@ import type { CameraState, GroundGrid } from '@core/viewer/three/viewport';
  * Building view (internal mode id `architecture`). Renders boxes produced by the pure resolver +
  * geometry step (app/building) in the shared SceneCanvas (camera fitting, orbit controls, picking).
  *
- * With the design port (schema v2) the model is `buildBuildingV2(design.doc, design.spatial)`:
+ * The model is `buildBuildingV2(design.doc, design.spatial)`:
  * multicell rooms, direct openings, generated straight connectors (enclosed / covered / deck),
  * flat roofs on exposed tops and windows from the Designer's per-type rules. Connectors are part
  * of the camera bounds and picking (a connector selects its relationship). Unresolved
  * relationships build nothing and are drawn as short-dashed red lines. The snapped gizmo moves and
- * resizes the selected room (one command per completed gesture). Without the port it keeps its
- * v1 behaviour. Geometry depends on the document only; selection only changes colours.
+ * resizes the selected room (one command per completed gesture). Geometry depends on the document
+ * only; selection only changes colours.
  */
 
 type Bounds = ReturnType<typeof elementBounds>;
@@ -107,18 +105,18 @@ const LIGHTING = (
   </>
 );
 
-export function ArchitectureView({ doc, selection, onSelect, project, design }: ViewProps) {
+export function ArchitectureView({ selection, onSelect, project, design }: ViewProps) {
   // Geometry depends on the document (and its derived resolution) and the project's façades only.
   const facade = project?.facade ?? NO_PROJECT_FACADE;
-  const v2Doc = design?.doc;
-  const v2Spatial = design?.spatial;
+  const v2Doc = design.doc;
+  const v2Spatial = design.spatial;
   // "Style rooms by" a custom attribute or a measured value: the rooms' values (S3).
   const styleValues = useStyleValues(v2Doc, v2Spatial, project?.attributes);
   const v2 = useMemo(
-    () => (v2Doc && v2Spatial ? buildBuildingV2(v2Doc, { spatial: v2Spatial, facade, ...(styleValues && { styleValues }) }) : null),
+    () => buildBuildingV2(v2Doc, { spatial: v2Spatial, facade, ...(styleValues && { styleValues }) }),
     [v2Doc, v2Spatial, facade, styleValues],
   );
-  const elements = useMemo(() => (v2 ? v2.elements : buildArchitecture(resolveFaces(doc), { facade })), [v2, doc, facade]);
+  const elements = v2.elements;
   const connectors = v2?.connectors ?? NO_CONNECTORS;
   // Imported façade modules: an extra layer on exterior walls (the elements above are unchanged).
   const library = useFacadeLibrary();
@@ -126,7 +124,7 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
     () => (v2 && v2Doc ? layoutFacadeModules(v2.faces, v2.looks, library.sizeOf) : EMPTY_FACADE_MODULES),
     [v2, v2Doc, library],
   );
-  const broken = useMemo(() => brokenTypeIds(project?.project ?? null, v2Doc ?? doc), [project, v2Doc, doc]);
+  const broken = useMemo(() => brokenTypeIds(project?.project ?? null, v2Doc), [project, v2Doc]);
   const bounds = useMemo(() => elementBounds([...elements, ...connectors]), [elements, connectors]);
   const framing = useMemo(() => framingFor(bounds), [bounds]);
   const grid = useMemo(() => groundGridFor(bounds), [bounds]);
@@ -134,7 +132,7 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
   const viewportCamera = useViewportCamera();
   // Roof visibility is the Display setting (per scenario and view mode; default shown) when the app provides
   // one; without a provider: v1 open-top, v2 shown. Either way it is a view cutaway only.
-  const [showRoofs, setShowRoofs] = useRoofsDisplay(design !== undefined);
+  const [showRoofs, setShowRoofs] = useRoofsDisplay(true);
   const [fitRequest, setFitRequest] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
@@ -153,10 +151,8 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
   const tube = useUnitCylinder();
   const unresolved = useMemo(
     () =>
-      v2Doc && v2Spatial
-        ? buildEdgeItems(v2Doc.nodes, doc.edges).filter((e) => v2Spatial.byEdge.get(e.id)?.status === 'unresolved')
-        : [],
-    [v2Doc, v2Spatial, doc.edges],
+      buildEdgeItems(v2Doc.nodes, v2Doc.edges).filter((e) => v2Spatial.byEdge.get(e.id)?.status === 'unresolved'),
+    [v2Doc, v2Spatial],
   );
   const roofsHiddenByDesigner = useMemo(
     () => (v2 ? [...v2.looks.values()].some((l) => l.look.roof === 'none') : false),
@@ -224,7 +220,7 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
             showRoofs={showRoofs}
             onToggleRoofs={setShowRoofs}
             onFit={() => setFitRequest((n) => n + 1)}
-            v2={design !== undefined}
+            v2
             connectors={connectors.length > 0}
             roofsHiddenByDesigner={roofsHiddenByDesigner}
             hint={
@@ -257,7 +253,7 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
       {modules.instances.length > 0 && (
         <FacadeModules instances={modules.instances} assets={library.byId} selection={selection} pick={pick} setHovered={setHovered} />
       )}
-      <StoreyLabels nodes={v2Doc?.nodes ?? doc.nodes} bounds={bounds} />
+      <StoreyLabels nodes={v2Doc.nodes} bounds={bounds} />
       {design && faces && activeWall !== null && faces.get(activeWall) && (
         // Pinned beside the clicked wall (follows it when the camera moves), not docked over the view.
         <WallPanelAnchor face={faces.get(activeWall)!}>

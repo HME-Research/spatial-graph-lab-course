@@ -1,9 +1,7 @@
-import {  } from '@app/document/v2';
 import { describe, expect, it } from 'vitest';
-import exampleDesign from '../document/examples/two-storey-example.json';
-import { validateDocument } from '@app/document';
+import exampleDesign from '../document/test-designs/two-storey.json';
 import { expectOk } from '@app/document/test-fixtures';
-import { migrateV1toV2, readDesign, readDesignJson, serializeDesignV2, validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesign, readDesignJson, serializeDesignV2, validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
 import { v2Raw } from '@app/document/v2/test-fixtures';
 import { resolveRelationships } from '@app/spatial';
 import { buildNodeItems, cellBounds, includeBoxes, storeyLevels } from '@app/views/three/sceneModel';
@@ -22,44 +20,17 @@ import {
   versionOf,
 } from './documentSession';
 import { canRedo, canUndo, undoLabel } from './history';
-import { designCommandFromLegacy, legacyProjection } from './legacyBridge';
 
-/** Gate 1: the shell stores and edits schema v2; these pin the pure integration pieces. */
+/** The shell stores and edits schema-v2 documents; these pin the pure integration pieces. */
 
 const v2 = (): DesignDocumentV2 => expectOk(validateDocumentV2(v2Raw()));
 const example = (): DesignDocumentV2 => expectOk(readDesign(exampleDesign)).doc;
 
-describe('legacy projection for the frozen ViewProps.doc', () => {
-  it('keeps ids, cells, types, attributes and diagram, and is cached per document', () => {
-    const doc = example();
-    const p = legacyProjection(doc);
-    expect(p.schemaVersion).toBe(1);
-    expect(p.nodes.map((n) => [n.id, n.grid, n.typeId])).toEqual(doc.nodes.map((n) => [n.id, n.grid, n.typeId]));
-    expect(p.diagram).toBe(doc.diagram);
-    expect(legacyProjection(doc)).toBe(p);
-  });
-
-  it('recovers the original v1 kinds for direct relationships of a migrated v1 design', () => {
-    const v1 = expectOk(validateDocument(exampleDesign));
-    const p = legacyProjection(migrateV1toV2(v1));
-    expect(p.edges.map((e) => [e.id, e.kind])).toEqual(v1.edges.map((e) => [e.id, e.kind]));
-  });
-
-  it('maps separated relationships to door (Access) / open (Open) and keeps selection reconcilable', () => {
+describe('selection against the stored document (views read it directly)', () => {
+  it('keeps existing ids and drops removed ones', () => {
     const doc = v2();
-    expect(legacyProjection(doc).edges.map((e) => e.kind)).toEqual(['door']);
-    expect(reconcileSelection(selectEdge('ab'), legacyProjection(doc))).toEqual(selectEdge('ab'));
-    expect(reconcileSelection(selectNode('gone'), legacyProjection(doc))).toEqual(NO_SELECTION);
-  });
-});
-
-describe('v1 view commands translated to v2', () => {
-  it('maps move-node to set-node-geometry and legacy kinds to relationship kinds', () => {
-    expect(designCommandFromLegacy({ type: 'move-node', nodeId: 'a', grid: [1, 2, 3] })).toEqual({ type: 'set-node-geometry', nodeId: 'a', grid: [1, 2, 3] });
-    expect(designCommandFromLegacy({ type: 'change-edge-kind', edgeId: 'e', kind: 'atrium' })).toEqual({ type: 'change-edge-kind', edgeId: 'e', kind: 'open' });
-    const add = designCommandFromLegacy({ type: 'add-edge', edge: { id: 'e', source: 'a', target: 'b', kind: 'vertical-access' } });
-    expect(add).toMatchObject({ type: 'add-edge', edge: { kind: 'access' } });
-    expect(designCommandFromLegacy({ type: 'remove-edge', edgeId: 'e' })).toEqual({ type: 'remove-edge', edgeId: 'e' });
+    expect(reconcileSelection(selectEdge('ab'), doc)).toEqual(selectEdge('ab'));
+    expect(reconcileSelection(selectNode('gone'), doc)).toEqual(NO_SELECTION);
   });
 });
 

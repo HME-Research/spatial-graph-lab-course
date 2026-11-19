@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { Attributes, GraphNode } from '@app/document';
-import { validateDocument } from '@app/document';
+import { validateDocumentV2 } from '@app/document/v2';
+import type { Attributes } from '@app/document';
+import type { RoomNode } from '@app/document/v2';
 import { expectOk, threeRooms } from '@app/document/test-fixtures';
-import example from '../../document/examples/two-storey-example.json';
+import example from '../../document/test-designs/two-storey.json';
 import { typeColor } from '@core/viewer/appearance';
 import {
   attributeKeys,
@@ -19,7 +20,8 @@ import {
   resolveColoring,
 } from './colorBy';
 
-const node = (id: string, attributes: Attributes, typeId = 'room'): GraphNode => ({
+const node = (id: string, attributes: Attributes, typeId = 'room'): RoomNode => ({
+  size: [1, 1, 1],
   id,
   grid: [Number(id.replace(/\D/g, '') || 0), 0, 0],
   typeId,
@@ -43,7 +45,7 @@ describe('colour by type', () => {
 describe('colour by access group', () => {
   it('gives each connected component its own colour', () => {
     const nodes = [node('n1', {}), node('n2', {}), node('n5', {})];
-    const edges = [{ id: 'e', source: 'n1', target: 'n2', kind: 'door' as const, attributes: {} }];
+    const edges = [{ id: 'e', source: 'n1', target: 'n2', kind: 'access' as const, attributes: {} }];
     const c = resolveColoring(nodes, edges, { kind: 'group' });
     expect(c.colorOf.get('n1')).toBe(c.colorOf.get('n2'));
     expect(c.colorOf.get('n5')).not.toBe(c.colorOf.get('n1'));
@@ -56,7 +58,7 @@ describe('colour by access group', () => {
 
 describe('colour by attribute', () => {
   it('categorical strings, with missing and null values shown as an explicit fallback', () => {
-    const doc = expectOk(validateDocument(example));
+    const doc = expectOk(validateDocumentV2(example));
     const c = resolveColoring(doc.nodes, doc.edges, { kind: 'attribute', key: 'daylight' });
     // store has daylight: null; studio-ground and studio-upper have no daylight key
     expect([...c.missing].sort()).toEqual(['store', 'studio-ground', 'studio-upper']);
@@ -72,7 +74,7 @@ describe('colour by attribute', () => {
   });
 
   it('booleans are categorical (false before true)', () => {
-    const doc = expectOk(validateDocument(example));
+    const doc = expectOk(validateDocumentV2(example));
     const c = resolveColoring(doc.nodes, doc.edges, { kind: 'attribute', key: 'public' });
     expect(c.legend.map((e) => e.label)).toEqual(['false', 'true']);
     expect(c.missing.size).toBe(0);

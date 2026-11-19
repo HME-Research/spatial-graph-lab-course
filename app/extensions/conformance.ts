@@ -1,5 +1,5 @@
 import { exampleFacadeProvider, type FacadeSpec } from '@app/building';
-import type { AttributeValue, DesignDocument } from '@app/document';
+import type { AttributeValue } from '@app/document';
 import type { DesignDocumentV2 } from '@app/document/v2';
 import { typeColor } from '@core/viewer/appearance';
 import type { ActiveToolkit, RegisteredNodeType } from './activate';
@@ -33,7 +33,7 @@ import { attributesOutsideSchema, resolveEdgeAttributes, resolveNodeAttributes, 
 export const findNodeType = (project: ActiveToolkit, typeId: string): RegisteredNodeType | undefined =>
   project.nodeTypes.find((t) => t.id === typeId);
 
-type CheckedDocument = (Pick<DesignDocument, 'nodes'> | Pick<DesignDocumentV2, 'nodes'>) & {
+type CheckedDocument = Pick<DesignDocumentV2, 'nodes'> & {
   readonly edges?: readonly { readonly id: string; readonly attributes: { readonly [key: string]: AttributeValue } }[];
 };
 

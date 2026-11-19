@@ -7,7 +7,7 @@ This is a reproducible browser check for Spatial Graph Lab. It needs only **Node
 - It **never starts or stops Node/Vite**. Start the app yourself, on your own port.
 - It launches one private headless browser with a temporary profile, and only ever closes that process.
 - It never writes into the repository. Screenshots, `report.md`, `report.json` and downloads go to `--out`. The default is `%TEMP%\spatial-graph-lab-smoke\<timestamp>` on Windows, or the OS temp dir elsewhere.
-- Imports use a temporary invalid file and the read-only `app/document/examples/two-storey-example.json`. Confirm dialogs ("discard changes?") are accepted inside the private browser only.
+- Imports use a temporary invalid file and the read-only `app/document/examples/house.json`. Confirm dialogs ("discard changes?") are accepted inside the private browser only.
 
 ## Run
 

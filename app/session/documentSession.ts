@@ -1,4 +1,4 @@
-import { applyGraphCommand, type DesignDocument, type GraphCommand, type GraphIssue } from '@app/document';
+import type { GraphIssue } from '@app/document';
 import { nextDisplayId, nodeLabel, relationshipLabel, type DesignDocumentV2 } from '@app/document/v2';
 import { applyDesignCommand, type DesignCommand } from '@app/spatial';
 import { createHistory, record, redo, undo, type History } from './history';
@@ -9,7 +9,7 @@ import { createHistory, record, redo, undo, type History } from './history';
  *
  * Only the document is in history. Selection, cameras, panel layout and algorithm results are not.
  */
-export interface DocumentSession<D extends object = DesignDocument> {
+export interface DocumentSession<D extends object = DesignDocumentV2> {
   readonly history: History<D>;
   /** Where the document was loaded from (shown in the project bar). */
   readonly source: string;
@@ -24,7 +24,7 @@ export interface DocumentSession<D extends object = DesignDocument> {
 }
 
 /** The document and the revision it is shown at; what an algorithm result is bound to. */
-export interface DocumentVersion<D extends object = DesignDocument> {
+export interface DocumentVersion<D extends object = DesignDocumentV2> {
   readonly doc: D;
   readonly revision: number;
 }
@@ -82,17 +82,9 @@ export function commitDocument<D extends object>(session: DocumentSession<D>, ne
   return history === session.history ? session : { ...session, history, revision: session.revision + 1 };
 }
 
-export type SessionCommandOutcome<D extends object = DesignDocument> =
+export type SessionCommandOutcome<D extends object = DesignDocumentV2> =
   | { readonly ok: true; readonly session: DocumentSession<D>; readonly changed: boolean }
   | { readonly ok: false; readonly issues: readonly GraphIssue[] };
-
-/** Apply one v1 graph command and record it. Failed commands leave the session (and history) untouched. */
-export function applyCommand(session: DocumentSession, command: GraphCommand): SessionCommandOutcome {
-  const result = applyGraphCommand(currentDocument(session), command);
-  if (!result.ok) return { ok: false, issues: result.issues };
-  const next = commitDocument(session, result.value, commandLabel(command));
-  return { ok: true, session: next, changed: next !== session };
-}
 
 /**
  * Apply one schema-v2 command (`applyDesignCommand`, which validates the result) and record it as
@@ -132,34 +124,6 @@ export const isModified = (session: DocumentSession<object> | null): boolean =>
 
 // ---------------------------------------------------------------------------------------------
 // Labels
-
-/** Short human-readable label for a command, shown in the Undo/Redo tooltips. */
-export function commandLabel(command: GraphCommand): string {
-  switch (command.type) {
-    case 'add-node':
-      return `Add node ${command.node.id}`;
-    case 'remove-node':
-      return `Delete node ${command.nodeId}`;
-    case 'move-node':
-      return `Move ${command.nodeId} to [${command.grid.join(', ')}]`;
-    case 'set-node-type':
-      return `Change the type of ${command.nodeId}`;
-    case 'set-node-attributes':
-      return `Edit the attributes of ${command.nodeId}`;
-    case 'set-diagram-position':
-      return `Move ${command.nodeId} in the diagram`;
-    case 'add-edge':
-      return `Add ${command.edge.kind} ${command.edge.id}`;
-    case 'remove-edge':
-      return `Delete edge ${command.edgeId}`;
-    case 'change-edge-kind':
-      return `Change ${command.edgeId} to ${command.kind}`;
-    default: {
-      const unreachable: never = command;
-      throw new Error(`unknown graph command ${JSON.stringify(unreachable)}`);
-    }
-  }
-}
 
 /**
  * Short label for a schema-v2 command, in the app's vocabulary (rooms, connections, Building), using

@@ -1,12 +1,10 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import exampleDesign from '../../document/examples/two-storey-example.json';
-import { validateDocument } from '@app/document';
-import { expectOk } from '@app/document/test-fixtures';
+import exampleDesign from '../../document/test-designs/two-storey.json';
 import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
 import { resolveRelationships } from '@app/spatial';
-import { modelFromV1, modelFromV2 } from './diagramModel';
+import { modelFromV2 } from './diagramModel';
 import { checkedEdgeIds, invalidConnectionRows, NO_INVALID_CONNECTIONS, removeInvalidCommand, removeSummary } from './invalidConnections';
 import { LEGEND_OPEN_MIN_HEIGHT, LEGEND_OPEN_MIN_WIDTH, legendStartsOpen } from './legendPlacement';
 import { menuItems } from './NodeContextMenu';
@@ -60,11 +58,10 @@ describe('Remove invalid connections (pure)', () => {
     expect(removeInvalidCommand(rows, new Set(['gone']))).toEqual({ type: 'remove-edges', edgeIds: ['ac', 'bc', 'ad'] });
   });
 
-  it('a design without unresolved relationships (or a v1 model) has nothing to remove', () => {
+  it('a design without unresolved relationships has nothing to remove', () => {
     const example = readDesign(exampleDesign);
     if (!example.ok) throw new Error('example');
     expect(invalidConnectionRows(model(example.value.doc))).toEqual([]);
-    expect(invalidConnectionRows(modelFromV1(expectOk(validateDocument(exampleDesign))))).toEqual([]);
     expect(NO_INVALID_CONNECTIONS).toMatch(/no invalid connections/);
   });
 
@@ -74,14 +71,13 @@ describe('Remove invalid connections (pure)', () => {
     expect(removeSummary(2, 0)).toMatch(/Nothing is selected/);
   });
 
-  it('the canvas menu offers it for v2 (with the count), not for v1', () => {
+  it('the canvas menu offers it (with the count)', () => {
     const items = menuItems(model(withInvalid()), { kind: 'pane' });
     expect(items.map((i) => i.label)).toEqual(['Add node here', 'Remove invalid connections (3)…']);
     expect(items[1]!.action).toEqual({ type: 'remove-invalid' });
     const example = readDesign(exampleDesign);
     if (!example.ok) throw new Error('example');
     expect(menuItems(model(example.value.doc), { kind: 'pane' })[1]).toMatchObject({ label: 'Remove invalid connections…', title: 'There are no invalid connections' });
-    expect(menuItems(modelFromV1(expectOk(validateDocument(exampleDesign))), { kind: 'pane' }).map((i) => i.label)).toEqual(['Add node here']);
   });
 
   it('the review list shows every row checked unless unchecked, and disables Remove with nothing checked', () => {

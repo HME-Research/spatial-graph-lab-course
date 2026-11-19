@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BoxGeometry, CylinderGeometry, EdgesGeometry, Quaternion, SphereGeometry, Vector3 } from 'three';
+import { BoxGeometry, CylinderGeometry, EdgesGeometry, SphereGeometry } from 'three';
 import { SELECTION_COLOR } from '@core/viewer/appearance';
 import type { ViewProps } from '../contracts';
 import { DEFAULT_CELL_SIZE, spatialToThree } from '@core/viewer/coordinates';
 import { NO_SELECTION } from '@core/viewer/selection';
-import { dashIntervals, EDGE_STYLES } from '../three/edgeStyle';
 import { SceneCanvas, SceneLabel } from '@core/viewer/three/SceneCanvas';
 import { LevelLabels } from '../three/LevelLabels';
-import type { EdgeItem, NodeItem } from '../three/sceneModel';
+import type { NodeItem } from '../three/sceneModel';
 import { pickHandlers, type Hover } from '@core/viewer/three/picking';
 import { useSpatialScene } from '../three/useSpatialScene';
 import { useRemembered } from '../panelMemory';
@@ -22,7 +21,7 @@ import { lineOf, RelationshipTube, tooltipOf, useSceneSource, ViewRelationshipLe
 
 /**
  * Graph 3D: node markers at their cell centres (spatialToThree) and typed edges between centres.
- * Read-only: never calls onCommand and never reads diagram positions. Selection only changes
+ * Read-only: never sends a command and never reads diagram positions. Selection only changes
  * colours/scales, so scene geometry and the camera are untouched by selection changes.
  */
 
@@ -30,11 +29,12 @@ const NODE_RADIUS = 0.36;
 /** Above this, per-node HTML labels are switched off by default (DOM cost). */
 const LABEL_LIMIT = 150;
 
-export function Graph3DView({ doc, selection, onSelect, design, project }: ViewProps) {
-  const source = useSceneSource(doc, design);
+export function Graph3DView({ selection, onSelect, design, project }: ViewProps) {
+  const doc = design.doc;
+  const source = useSceneSource(design);
   const s = useSpatialScene(source, selection, project?.attributes, design);
   const analysis = useAnalysisOverlay();
-  const labelOf = useMemo(() => new Map((design?.doc.nodes ?? []).map((n) => [n.id, nodeLabel(n)] as const)), [design]);
+  const labelOf = useMemo(() => new Map(doc.nodes.map((n) => [n.id, nodeLabel(n)] as const)), [doc]);
   const camera = useRemembered<CameraState>('camera:graph3d');
   const viewportCamera = useViewportCamera();
   const [showLabels, setShowLabels] = useState(() => doc.nodes.length <= LABEL_LIMIT);
@@ -69,15 +69,15 @@ export function Graph3DView({ doc, selection, onSelect, design, project }: ViewP
             </button>
           </ControlBar>
           <InfoPanel>
-            <HoverInfo hovered={s.hovered} doc={doc} design={design} />
+            <HoverInfo hovered={s.hovered} design={design} />
             <div className="viewer3d-count">
               {doc.nodes.length} nodes · {doc.edges.length} edges · {s.levels.length} level{s.levels.length === 1 ? '' : 's'} ·{' '}
               {s.groups.count} access group{s.groups.count === 1 ? '' : 's'}
             </div>
           </InfoPanel>
-          <Legend coloring={s.coloring} showEdges={!design}>
+          <Legend coloring={s.coloring}>
             {analysis && <div className="viewer3d-count">Fill: analysis “{analysis.title}”{analysis.stale ? ' (out of date)' : ''}</div>}
-            {design && <ViewRelationshipLegend view="graph3d" design={design} />}
+            <ViewRelationshipLegend view="graph3d" design={design} />
           </Legend>
           {doc.nodes.length === 0 ? (
             <div className="viewer3d-empty">No nodes in this scenario.</div>
@@ -102,30 +102,18 @@ export function Graph3DView({ doc, selection, onSelect, design, project }: ViewP
       {s.edgeItems.map((e) => {
         const ghost = ghostNode(nodeById.get(e.source)) || ghostNode(nodeById.get(e.target));
         const line = lineOf(design, e.id);
-        if (line) {
-          return (
-            <RelationshipTube
-              key={e.id}
-              item={e}
-              line={line}
-              geometry={geo.unitCylinder}
-              selected={s.emphasis.edges.has(e.id)}
-              hovered={s.hovered?.kind === 'edge' && s.hovered.id === e.id}
-              ghost={ghost}
-              handlers={ghost ? undefined : pickHandlers('edge', e.id, onSelect, s.setHovered)}
-              pickInset={NODE_RADIUS * 1.3}
-            />
-          );
-        }
+        if (!line) return null;
         return (
-          <EdgeMarker
+          <RelationshipTube
             key={e.id}
             item={e}
+            line={line}
             geometry={geo.unitCylinder}
             selected={s.emphasis.edges.has(e.id)}
             hovered={s.hovered?.kind === 'edge' && s.hovered.id === e.id}
             ghost={ghost}
             handlers={ghost ? undefined : pickHandlers('edge', e.id, onSelect, s.setHovered)}
+            pickInset={NODE_RADIUS * 1.3}
           />
         );
       })}
@@ -172,81 +160,21 @@ export function Graph3DView({ doc, selection, onSelect, design, project }: ViewP
   );
 }
 
-function EdgeMarker({
-  item,
-  geometry,
-  selected,
-  hovered,
-  ghost,
-  handlers,
-}: {
-  readonly item: EdgeItem;
-  readonly geometry: CylinderGeometry;
-  readonly selected: boolean;
-  readonly hovered: boolean;
-  readonly ghost: boolean;
-  readonly handlers: ReturnType<typeof pickHandlers> | undefined;
-}) {
-  const style = EDGE_STYLES[item.kind];
-  const [dx, dy, dz] = item.direction;
-  const quaternion = useMemo(
-    () => new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), new Vector3(dx, dy, dz)),
-    [dx, dy, dz],
-  );
-  const segments = useMemo(() => dashIntervals(item.length, style.dashed), [item.length, style.dashed]);
-  const radius = style.radius * (selected ? 1.9 : hovered ? 1.4 : 1);
-  // Pick volume excludes the node spheres so clicking a node never selects its edge.
-  const pickLength = Math.max(0.1, item.length - NODE_RADIUS * 2.6);
-  return (
-    <group position={[...item.mid]} quaternion={quaternion}>
-      {segments.map(([from, to]) => (
-        <mesh key={from} geometry={geometry} position={[0, (from + to) / 2 - item.length / 2, 0]} scale={[radius, to - from, radius]}>
-          <meshLambertMaterial
-            color={selected ? SELECTION_COLOR : style.color}
-            transparent
-            opacity={ghost ? 0.1 : 1}
-            depthWrite={!ghost}
-          />
-        </mesh>
-      ))}
-      {handlers && (
-        <mesh geometry={geometry} scale={[0.22, pickLength, 0.22]} {...handlers}>
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
-function HoverInfo({ hovered, doc, design }: { readonly hovered: Hover | null; readonly doc: ViewProps['doc']; readonly design: ViewProps['design'] }) {
+function HoverInfo({ hovered, design }: { readonly hovered: Hover | null; readonly design: ViewProps['design'] }) {
   if (!hovered) return <div className="viewer3d-count">Hover a node or edge</div>;
-  const tip = hovered.kind === 'edge' ? tooltipOf(design, hovered.id) : null;
-  if (tip) return <div>{tip}</div>;
-  const room = hovered.kind === 'node' ? design?.doc.nodes.find((x) => x.id === hovered.id) : undefined;
-  if (room) {
-    return (
-      <div>
-        <strong>{nodeLabel(room)}</strong> · {room.typeId} · grid [{room.grid.join(', ')}] · size {room.size.join('×')} · L{room.grid[2]}
-      </div>
-    );
+  if (hovered.kind === 'edge') {
+    const tip = tooltipOf(design, hovered.id);
+    return tip ? <div>{tip}</div> : null;
   }
-  if (hovered.kind === 'node') {
-    const n = doc.nodes.find((x) => x.id === hovered.id);
-    if (!n) return null;
-    return (
-      <div>
-        <strong>{n.id}</strong> · {n.typeId} · grid [{n.grid.join(', ')}] · L{n.grid[2]}
-      </div>
-    );
-  }
-  const e = doc.edges.find((x) => x.id === hovered.id);
-  if (!e) return null;
+  const room = design.doc.nodes.find((x) => x.id === hovered.id);
+  if (!room) return null;
   return (
     <div>
-      <strong>{e.id}</strong> · {EDGE_STYLES[e.kind].label} · {e.source} ↔ {e.target}
+      <strong>{nodeLabel(room)}</strong> · {room.typeId} · grid [{room.grid.join(', ')}] · size {room.size.join('×')} · L{room.grid[2]}
     </div>
   );
 }
+
 
 /** Geometry shared by every marker; created once per view and disposed on unmount. */
 function useSharedGeometry() {

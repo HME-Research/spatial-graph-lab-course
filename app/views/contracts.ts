@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import type { DesignDocument, GraphCommand, GraphIssue } from '@app/document';
+import type { GraphIssue } from '@app/document';
 import type { DesignPort } from '@app/spatial';
 import type { Selection, SelectionHandler } from '@core/viewer/selection';
 import type { ProjectViewContext } from './project';
@@ -17,27 +17,20 @@ export type CommandOutcome =
   | { readonly ok: false; readonly issues: readonly GraphIssue[] };
 
 /**
- * Ask the app to change the document. Synchronous: the outcome reflects validation against the
- * latest document. On failure the document is unchanged. Read-only views never call it.
+ * Props every view receives. The document is read-only input (`design.doc`); views never mutate or
+ * copy it as state, and change it only through `design.onCommand` (P4: the design port is the only
+ * source; there is no other document or command handler).
  */
-export type GraphCommandHandler = (command: GraphCommand) => CommandOutcome;
-
-/** Props every view receives. The document is read-only input; views never mutate or copy it as state. */
 export interface ViewProps {
-  readonly doc: DesignDocument;
+  /** The live design port (docs/CONTRACTS-V2.md §6): document, resolution and the command path. */
+  readonly design: DesignPort;
   readonly selection: Selection;
   readonly onSelect: SelectionHandler;
-  readonly onCommand: GraphCommandHandler;
   /**
    * Active-project information (node types, conformance, façades). Optional and read-only:
    * without it a view behaves exactly as before projects existed.
    */
   readonly project?: ProjectViewContext;
-  /**
-   * Schema-v2 port (Gate 0; docs/CONTRACTS-V2.md). Optional and supplied only by the integration
-   * owner: without it a view keeps its v1 behaviour and hides v2-only features.
-   */
-  readonly design?: DesignPort;
 }
 
 export type ViewComponent = ComponentType<ViewProps>;

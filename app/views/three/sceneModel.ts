@@ -1,4 +1,5 @@
-import { isVerticalKind, type EdgeKind, type GraphEdge, type GraphNode, type GridCoord } from '@app/document';
+import type { GridCoord } from '@app/document';
+import type { RelationshipEdge, RelationshipKind, RoomNode } from '@app/document/v2';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '@core/viewer/coordinates';
 import type { Bounds, Framing, GroundGrid } from '@core/viewer/three/viewport';
 
@@ -13,7 +14,7 @@ export interface NodeItem {
   readonly typeId: string;
   /** Minimum-corner cell. */
   readonly grid: GridCoord;
-  /** Whole cells along grid x, y, z (schema v2 rooms); [1, 1, 1] for single-cell (v1) nodes. */
+  /** Whole cells along grid x, y, z; [1, 1, 1] for a one-cell room. */
   readonly size: readonly [number, number, number];
   /** Room (footprint) centre in Three.js world space; the cell centre for a single cell. */
   readonly position: WorldPoint;
@@ -24,7 +25,7 @@ export interface NodeItem {
 }
 
 /** A node with an optional schema-v2 size (absent = one cell). */
-export type SizedNode = Pick<GraphNode, 'id' | 'typeId' | 'grid'> & { readonly size?: readonly [number, number, number] };
+export type SizedNode = Pick<RoomNode, 'id' | 'typeId' | 'grid'> & { readonly size?: readonly [number, number, number] };
 
 const UNIT_SIZE = [1, 1, 1] as const;
 const sizeOf = (n: SizedNode): readonly [number, number, number] => n.size ?? UNIT_SIZE;
@@ -37,8 +38,7 @@ const centreOf = (n: SizedNode): readonly [number, number, number] => {
 
 export interface EdgeItem {
   readonly id: string;
-  readonly kind: EdgeKind;
-  readonly vertical: boolean;
+  readonly kind: RelationshipKind;
   readonly source: string;
   readonly target: string;
   readonly start: WorldPoint;
@@ -67,7 +67,7 @@ export function buildNodeItems(nodes: readonly SizedNode[], cell: CellSize = DEF
 /** Edge segments between endpoint room centres. Edges with a missing endpoint are skipped. */
 export function buildEdgeItems(
   nodes: readonly SizedNode[],
-  edges: readonly GraphEdge[],
+  edges: readonly Pick<RelationshipEdge, 'id' | 'source' | 'target' | 'kind'>[],
   cell: CellSize = DEFAULT_CELL_SIZE,
 ): EdgeItem[] {
   const gridOf = new Map(nodes.map((n) => [n.id, centreOf(n)] as const));
@@ -84,7 +84,6 @@ export function buildEdgeItems(
     items.push({
       id: e.id,
       kind: e.kind,
-      vertical: isVerticalKind(e.kind),
       source: e.source,
       target: e.target,
       start,
@@ -195,7 +194,7 @@ export interface AccessGroups {
  * Connected components over explicit edges only. Cells that merely touch without an edge are
  * NOT connected (acceptance F). Deterministic regardless of array order.
  */
-export function accessGroups(nodes: readonly GraphNode[], edges: readonly GraphEdge[]): AccessGroups {
+export function accessGroups(nodes: readonly Pick<RoomNode, 'id'>[], edges: readonly Pick<RelationshipEdge, 'source' | 'target'>[]): AccessGroups {
   const parent = new Map(nodes.map((n) => [n.id, n.id] as const));
   const find = (id: string): string => {
     let r = id;

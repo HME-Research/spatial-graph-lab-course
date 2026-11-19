@@ -1,13 +1,12 @@
 /** Shared test helpers (imported by *.test.ts only). */
 import { expect } from 'vitest';
 import type { GraphIssue, IssueCode, Result } from './errors';
-import type { DesignDocument } from './schema';
-import { validateDocument } from './validate';
+import { validateDocumentV2, type DesignDocumentV2 } from './v2';
 
-/** Three rooms from docs/ARCHITECTURE.md: a–b horizontal door, a–c vertical atrium. */
+/** Three one-cell rooms: a–b side by side with an access relationship (a door), c above a, open to it. */
 export function threeRoomsRaw() {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     metadata: { name: 'Three rooms' },
     nodes: [
       { id: 'a', grid: [0, 0, 0], typeId: 'gallery', attributes: {} },
@@ -15,8 +14,8 @@ export function threeRoomsRaw() {
       { id: 'c', grid: [0, 0, 1], typeId: 'gallery', attributes: {} },
     ],
     edges: [
-      { id: 'ab', source: 'a', target: 'b', kind: 'door', attributes: {} },
-      { id: 'ac', source: 'a', target: 'c', kind: 'atrium', attributes: {} },
+      { id: 'ab', source: 'a', target: 'b', kind: 'access', attributes: {} },
+      { id: 'ac', source: 'a', target: 'c', kind: 'open', attributes: {} },
     ],
     diagram: { positions: { a: [20, 80], b: [180, 80], c: [100, 0] } },
   } as Record<string, unknown> & {
@@ -26,8 +25,8 @@ export function threeRoomsRaw() {
   };
 }
 
-export function threeRooms(): DesignDocument {
-  return expectOk(validateDocument(threeRoomsRaw()));
+export function threeRooms(): DesignDocumentV2 {
+  return expectOk(validateDocumentV2(threeRoomsRaw()));
 }
 
 export function expectOk<T>(result: Result<T>): T {

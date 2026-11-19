@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyGraphCommand } from '@app/document';
+import { applyDesignCommand } from '@app/spatial';
 import { expectOk, threeRooms } from '@app/document/test-fixtures';
 import {
   attributeKindOf,
@@ -54,7 +54,7 @@ describe('attribute rows', () => {
   it('produces a record the app accepts via set-node-attributes', () => {
     const parsed = rowsToAttributes(attributesToRows(attributes));
     if (!parsed.ok) throw new Error(parsed.message);
-    const next = expectOk(applyGraphCommand(threeRooms(), { type: 'set-node-attributes', nodeId: 'a', attributes: parsed.value }));
+    const next = expectOk(applyDesignCommand(threeRooms(), { type: 'set-node-attributes', nodeId: 'a', attributes: parsed.value }));
     expect(next.nodes.find((n) => n.id === 'a')!.attributes).toEqual(attributes);
   });
 });
@@ -84,14 +84,13 @@ describe('grid draft', () => {
     expect(sameGrid([1, 2, 3], [1, 2, 4])).toBe(false);
   });
 
-  it('move-node from the inspector reports collisions and broken edges without changing the document', () => {
+  it('a move from the inspector reports collisions without changing the document; a relationship may stretch', () => {
     const doc = threeRooms();
-    const collision = applyGraphCommand(doc, { type: 'move-node', nodeId: 'b', grid: [0, 0, 1] });
+    const collision = applyDesignCommand(doc, { type: 'set-node-geometry', nodeId: 'b', grid: [0, 0, 1] });
     expect(collision.ok).toBe(false);
-    if (!collision.ok) expect(collision.issues.map((i) => i.code)).toContain('duplicate-grid-cell');
-    const broken = applyGraphCommand(doc, { type: 'move-node', nodeId: 'b', grid: [5, 0, 0] });
-    expect(broken.ok).toBe(false);
-    if (!broken.ok) expect(broken.issues.map((i) => i.code)).toContain('invalid-edge-geometry');
+    if (!collision.ok) expect(collision.issues.map((i) => i.code)).toContain('room-overlap');
+    // Rooms need not touch: the relationship stays, its spatial status is derived (never an error).
+    expect(applyDesignCommand(doc, { type: 'set-node-geometry', nodeId: 'b', grid: [5, 0, 0] }).ok).toBe(true);
     expect(doc.nodes.find((n) => n.id === 'b')!.grid).toEqual([1, 0, 0]);
   });
 });

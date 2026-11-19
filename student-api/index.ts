@@ -1,7 +1,6 @@
 /**
- * Student API (version 1, schema-v2 data): the only module project code may import (`@student-api`).
- * Since schema v2, spatial records carry `size`/`displayId` and edges an `access`/`open` kind;
- * legacy v1 kinds stay accepted by `add-edge` and `canConnect` (see docs/STUDENT-API.md).
+ * Student API: the only module toolkit code may import (`@student-api`). Spatial records are the
+ * design document's own rooms (`size`) and relationships (`access` | `open`); see docs/STUDENT-API.md.
  *
  * It contains compile-time contracts, identity `define…` helpers and a few pure graph/grid
  * helpers. It performs no validation: the application validates every definition and result at
@@ -39,7 +38,6 @@ export {
   type RelationshipKind,
   type RoomSize,
   type SpatialEdge,
-  type SpatialEdgeKind,
   type SpatialNode,
 } from './spatial';
 export {

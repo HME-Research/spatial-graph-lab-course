@@ -1,7 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent, type RefObject } from 'react';
-import { EDGE_KINDS, isEdgeGeometryValid, type EdgeKind } from '@app/document';
 import { RELATIONSHIP_KINDS, type RelationshipKind } from '@app/document/v2';
-import { EDGE_KIND_LABELS } from './diagram';
 import type { DiagramModel } from './diagramModel';
 import { placeAtPoint, useDismiss, usePlacement } from './NodePopover';
 import { RELATIONSHIP_KIND_LABELS } from './edgePresentation';
@@ -23,7 +21,6 @@ export type MenuAction =
   | { readonly type: 'remove-node'; readonly nodeId: string }
   | { readonly type: 'remove-edge'; readonly edgeId: string }
   | { readonly type: 'set-relationship-kind'; readonly edgeId: string; readonly kind: RelationshipKind }
-  | { readonly type: 'set-v1-kind'; readonly edgeId: string; readonly kind: EdgeKind }
   /** Open the "Remove invalid connections" review (or explain that there is nothing to remove). */
   | { readonly type: 'remove-invalid' };
 
@@ -40,7 +37,6 @@ export interface MenuItem {
 export function menuItems(model: DiagramModel, target: MenuTarget): readonly MenuItem[] {
   if (target.kind === 'pane') {
     const add: MenuItem = { label: 'Add node here', action: { type: 'add-node' } };
-    if (model.version !== 2) return [add];
     const invalid = model.edges.filter((e) => e.resolution?.status === 'unresolved').length;
     return [
       add,
@@ -65,26 +61,12 @@ export function menuItems(model: DiagramModel, target: MenuTarget): readonly Men
   const edge = model.edges.find((e) => e.id === target.id);
   if (!edge) return [];
   const kindItems: MenuItem[] = [];
-  if (model.version === 2) {
-    for (const kind of RELATIONSHIP_KINDS) {
-      kindItems.push({
-        label: `${edge.kind === kind ? '✓ ' : ''}${RELATIONSHIP_KIND_LABELS[kind]}`,
-        action: { type: 'set-relationship-kind', edgeId: edge.id, kind },
-        disabled: edge.kind === kind,
-      });
-    }
-  } else {
-    const a = model.byNode.get(edge.source);
-    const b = model.byNode.get(edge.target);
-    for (const kind of EDGE_KINDS) {
-      const possible = !!a && !!b && isEdgeGeometryValid(kind, a.grid, b.grid);
-      kindItems.push({
-        label: `${edge.kind === kind ? '✓ ' : ''}${EDGE_KIND_LABELS[kind]}`,
-        action: { type: 'set-v1-kind', edgeId: edge.id, kind },
-        disabled: edge.kind === kind || !possible,
-        ...(possible ? {} : { title: 'Not possible for these two cells' }),
-      });
-    }
+  for (const kind of RELATIONSHIP_KINDS) {
+    kindItems.push({
+      label: `${edge.kind === kind ? '✓ ' : ''}${RELATIONSHIP_KIND_LABELS[kind]}`,
+      action: { type: 'set-relationship-kind', edgeId: edge.id, kind },
+      disabled: edge.kind === kind,
+    });
   }
   return [...kindItems, { label: 'Delete relationship', action: { type: 'remove-edge', edgeId: edge.id }, separated: true }];
 }

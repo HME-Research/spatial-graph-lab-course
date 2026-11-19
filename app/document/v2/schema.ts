@@ -6,7 +6,7 @@ import {
   idSchema,
   metadataSchema,
   typeIdSchema,
-} from '../schema';
+} from '../primitives';
 import {
   CONNECTOR_STYLES,
   DEFAULT_ROOM_SIZE,

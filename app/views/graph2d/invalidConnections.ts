@@ -20,9 +20,8 @@ export interface InvalidConnectionRow {
   readonly reasonText: string;
 }
 
-/** The unresolved relationships of a schema-v2 model, in document order. A v1 model has none. */
+/** The unresolved relationships of a model, in document order. */
 export function invalidConnectionRows(model: DiagramModel): readonly InvalidConnectionRow[] {
-  if (model.version !== 2) return [];
   const label = (id: string) => model.byNode.get(id)?.label ?? id;
   const rows: InvalidConnectionRow[] = [];
   for (const edge of model.edges) {

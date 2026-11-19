@@ -1,13 +1,13 @@
 import { functionStyleSettings, type Look } from '@app/document/v2';
 import { describe, expect, it } from 'vitest';
-import exampleJson from '../document/examples/two-storey-example.json';
-import { validateDocument } from '@app/document';
+import exampleJson from '../document/test-designs/two-storey.json';
 import { expectOk } from '@app/document/test-fixtures';
 import { readDesign, validateDocumentV2, type ConnectorStyle, type DesignDocumentV2, type RelationshipKind } from '@app/document/v2';
 import type { GridCoord } from '@core/spatial';
 import { buildBuildingV2 } from './buildingV2';
 import { buildArchitecture } from './geometry';
-import { resolveFaces } from './resolve';
+import { resolveRelationships } from '@app/spatial';
+import { resolveBuildingFaces, toResolvedFace } from './multicellFaces';
 
 /**
  * Golden geometry (Gate F, F-C). The JSON files under `__golden__/` were generated from the
@@ -156,7 +156,8 @@ describe('golden building geometry (pre-refactor output, byte-identical)', () =>
     });
   }
 
-  const v1 = expectOk(validateDocument(exampleJson));
+  // The room faces of the two-storey design (one-cell rooms), laid out with the plain geometry step.
+  const faces = resolveBuildingFaces(example, resolveRelationships(example)).map(toResolvedFace);
   const OPTION_SETS = {
     default: {},
     'custom-cell-thickness': { cell: { horizontal: 4, vertical: 3.5 }, wallThickness: 0.3, slabThickness: 0.25 },
@@ -165,8 +166,8 @@ describe('golden building geometry (pre-refactor output, byte-identical)', () =>
     },
   } as const;
   for (const [name, options] of Object.entries(OPTION_SETS)) {
-    it(`buildArchitecture (v1 example faces): ${name}`, () => {
-      expectGolden(snapshot(buildArchitecture(resolveFaces(v1), options)), `architecture-${name}.json`);
+    it(`buildArchitecture (example faces): ${name}`, () => {
+      expectGolden(snapshot(buildArchitecture(faces, options)), `architecture-${name}.json`);
     });
   }
 });

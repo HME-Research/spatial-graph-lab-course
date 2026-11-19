@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { BoxGeometry, CylinderGeometry, EdgesGeometry, Quaternion, Vector3 } from 'three';
-import type { DesignDocument, GraphEdge, GraphNode } from '@app/document';
-import type { RoomSize } from '@app/document/v2';
+import type { RelationshipEdge, RoomNode } from '@app/document/v2';
 import type { DesignPort } from '@app/spatial';
 import { SELECTION_COLOR } from '@core/viewer/appearance';
 import { DEFAULT_CELL_SIZE, spatialToThree, type WorldPoint } from '@core/viewer/coordinates';
@@ -17,36 +16,29 @@ import type { EdgeItem } from './sceneModel';
 import './v2Scene.css';
 
 /**
- * Shared schema-v2 pieces for the 3D views (Gate 1 integration). With a `DesignPort` the views draw
- * ROOMS (minimum corner + size) from `design.doc` and style relationships from the derived
- * resolution (`design.spatial`) with the one line scheme (`relationshipLine`). Without a port they
- * keep their v1 behaviour. A 3D relationship line is a relationship, never a stair or corridor.
+ * Shared pieces for the 3D views: they draw ROOMS (minimum corner + size) from `design.doc` and
+ * style relationships from the derived resolution (`design.spatial`) with the one line scheme
+ * (`relationshipLine`). A 3D relationship line is a relationship, never a stair or corridor.
  */
 
-export type SceneNode = GraphNode & { readonly size?: RoomSize };
+export type SceneNode = RoomNode;
 
-/** What a 3D view draws: rooms (sized in v2) and relationships (ids and endpoints). */
+/** What a 3D view draws: rooms and relationships. */
 export interface SceneSource {
   readonly nodes: readonly SceneNode[];
-  readonly edges: readonly GraphEdge[];
+  readonly edges: readonly RelationshipEdge[];
 }
 
-/**
- * Rooms from the v2 document when the port is present (sizes included); relationships keep the
- * v1-shaped projection only for ids and endpoints. Identity-stable per document.
- */
-export function useSceneSource(doc: DesignDocument, design: DesignPort | undefined): SceneSource {
-  const v2Nodes = design?.doc.nodes;
-  return useMemo(() => (v2Nodes ? { nodes: v2Nodes, edges: doc.edges } : doc), [v2Nodes, doc]);
+/** The rooms and relationships of the port's document. Identity-stable per document. */
+export function useSceneSource(design: DesignPort): SceneSource {
+  return design.doc;
 }
 
-/** Line token for an edge from the derived resolution, or null without a port / for an unknown edge. */
-export const lineOf = (design: DesignPort | undefined, edgeId: string): LineToken | null =>
-  design ? (presentEdgeById(design.spatial, edgeId)?.line ?? null) : null;
+/** Line token for an edge from the derived resolution, or null for an unknown edge. */
+export const lineOf = (design: DesignPort, edgeId: string): LineToken | null => presentEdgeById(design.spatial, edgeId)?.line ?? null;
 
 /** One-line tooltip for an edge from the shared presentation (status, kind, reason). */
-export const tooltipOf = (design: DesignPort | undefined, edgeId: string): string | null =>
-  design ? (presentEdgeById(design.spatial, edgeId)?.tooltip ?? null) : null;
+export const tooltipOf = (design: DesignPort, edgeId: string): string | null => presentEdgeById(design.spatial, edgeId)?.tooltip ?? null;
 
 /** A relationship drawn as a (dashed) tube with the shared line token. */
 export function RelationshipTube({

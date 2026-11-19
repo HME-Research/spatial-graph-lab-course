@@ -1,11 +1,12 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { buildArchitecture, EXAMPLE_FACADES, exampleFacadeProvider, resolveFaces } from '@app/building';
-import { parseDesignJson } from '@app/document';
+import { readDesignJson } from '@app/document/v2';
+import { buildArchitecture, EXAMPLE_FACADES, exampleFacadeProvider, resolveBuildingFaces, toResolvedFace } from '@app/building';
+import { resolveRelationships } from '@app/spatial';
 import { expectOk } from '@app/document/test-fixtures';
 import { type ActiveToolkit } from '@app/extensions';
 import { galleryToolkit } from '@app/extensions/test-toolkit';
 import { labDoc, labToolkit } from '@app/extensions/test-fixtures';
-import builtInText from '../document/examples/two-storey-example.json?raw';
+import builtInText from '../document/test-designs/two-storey.json?raw';
 import {
   BROKEN_TYPE_FACADE,
   brokenTypeIds,
@@ -15,7 +16,8 @@ import {
   typeDisplayName,
 } from './project';
 
-const builtIn = expectOk(parseDesignJson(builtInText));
+const builtIn = expectOk(readDesignJson(builtInText)).doc;
+const resolveFaces = (d: typeof builtIn) => resolveBuildingFaces(d, resolveRelationships(d)).map(toResolvedFace);
 let example: ActiveToolkit;
 
 beforeAll(async () => {
@@ -23,7 +25,7 @@ beforeAll(async () => {
 });
 
 describe('project appearance in the views', () => {
-  it('example-gallery keeps the gallery/studio/storage façades exactly, and the fallback for other types', () => {
+  it('the gallery test toolkit keeps the gallery/studio/storage façades exactly, and the fallback for other types', () => {
     const facade = projectFacadeProvider(example);
     for (const id of ['gallery', 'studio', 'storage']) expect(facade(id)).toEqual(EXAMPLE_FACADES[id]);
     expect(facade('kiosk')).toEqual(exampleFacadeProvider('kiosk'));

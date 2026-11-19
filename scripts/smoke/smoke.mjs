@@ -25,7 +25,7 @@ import {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
-const EXAMPLE_DESIGN = join(repoRoot, 'app', 'document', 'examples', 'two-storey-example.json');
+const EXAMPLE_DESIGN = join(repoRoot, 'app', 'document', 'examples', 'house.json');
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const { opts, errors } = parseArgs(process.argv.slice(2), process.env);
@@ -457,7 +457,7 @@ if (wants('import')) {
     await setFile('.sgl-project-actions input[type="file"]', EXAMPLE_DESIGN);
     await waitFor(`!document.querySelector('section.issues[role="alert"]') && document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length > 0`, 'the imported design');
     const n = await nodeCount();
-    return pass(`imported two-storey-example.json: ${n} node(s)${dialogs.length ? `; accepted dialog(s): ${dialogs.length}` : ''}`);
+    return pass(`imported house.json: ${n} node(s)${dialogs.length ? `; accepted dialog(s): ${dialogs.length}` : ''}`);
   });
 }
 

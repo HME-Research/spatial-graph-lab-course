@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LIMITS, serializeDesign, validateDocument, type DesignDocument } from '@app/document';
+import { DEFAULT_LIMITS } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
-import { migrateV1toV2 } from '@app/document/v2';
+import { validateDocumentV2, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
 import {
   defineGraphAlgorithm,
   defineNodeType,
@@ -18,8 +18,8 @@ import {
   type SpatialOperation,
 } from '@student-api';
 import type { ActiveToolkit } from './activate';
-import { applyTransformation } from './transform';
-import { runAlgorithm, type RunOutcome } from './run';
+import { applyTransformationV2 } from './transformV2';
+import { runAlgorithmV2, type RunOutcomeV2 } from './run';
 import { expectDiagnostic, expectExtOk, galleryType, labDoc, labToolkit } from './test-fixtures';
 
 const ALG = 'toolkits/lab/algorithms/t.ts';
@@ -37,17 +37,17 @@ async function transforming(operations: readonly SpatialOperation[] | ((ctx: Spa
   });
 }
 
-function preview(outcome: RunOutcome) {
+function preview(outcome: RunOutcomeV2) {
   if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
   return outcome.preview;
 }
 
 /** Runs `t` and asserts the given document was not changed in any way. */
-function runUnchanged(doc: DesignDocument, project: ActiveToolkit, params?: unknown) {
-  const before = serializeDesign(doc);
+function runUnchanged(doc: DesignDocumentV2, project: ActiveToolkit, params?: unknown) {
+  const before = serializeDesignV2(doc);
   const snapshot = structuredClone(doc);
-  const result = runAlgorithm(doc, project, 't', params);
-  expect(serializeDesign(doc)).toBe(before);
+  const result = runAlgorithmV2(doc, project, 't', params);
+  expect(serializeDesignV2(doc)).toBe(before);
   expect(doc).toEqual(snapshot);
   return result;
 }
@@ -84,7 +84,7 @@ describe('generic graph analysis', () => {
     const project = await labToolkit({ [ALG]: { default: depth } });
     const outcome = expectExtOk(runUnchanged(labDoc(), project));
     expect(outcome).toEqual({ kind: 'analysis', result: { kind: 'analysis', nodeValues: { g1: 0, g2: 1, s1: 1, k1: null } } });
-    const fromS1 = expectExtOk(runAlgorithm(labDoc(), project, 't', { start: 's1' })).kind === 'analysis';
+    const fromS1 = expectExtOk(runAlgorithmV2(labDoc(), project, 't', { start: 's1' })).kind === 'analysis';
     expect(fromS1).toBe(true);
   });
 
@@ -116,13 +116,12 @@ describe('generic graph analysis', () => {
 });
 
 describe('spatial algorithm input', () => {
-  it('exposes the document records as schema-v2 records (migrated view), including edge attributes', async () => {
+  it('exposes copies of the document records, including edge attributes', async () => {
     let seen: SpatialAlgorithmContext | undefined;
     const project = await transforming((ctx) => ((seen = ctx), []));
     const doc = labDoc();
-    expectExtOk(runAlgorithm(doc, project, 't'));
-    // Since schema v2 students always read v2 records: size [1,1,1], displayId, access/open kinds.
-    const v2 = migrateV1toV2(doc);
+    expectExtOk(runAlgorithmV2(doc, project, 't'));
+    const v2 = doc;
     expect(seen!.design.nodes).toEqual(v2.nodes);
     expect(seen!.design.edges).toEqual(v2.edges);
     expect(seen!.design.nodes.every((n) => n.size.join() === '1,1,1')).toBe(true);
@@ -131,9 +130,6 @@ describe('spatial algorithm input', () => {
     expect(seen!.design.nodes).not.toBe(doc.nodes); // a copy
     expect(seen!.nodeAt([1, 0, 0])).toBe('g2');
     expect(seen!.nodeAt([2, 0, 0])).toBeUndefined();
-    expect(seen!.canConnect('door', [0, 0, 0], [2, 0, 0])).toBe(false);
-    expect(seen!.canConnect('atrium', [0, 0, 0], [0, 0, 1])).toBe(true);
-    expect(seen!.canConnect('stair' as never, [0, 0, 0], [0, 0, 1])).toBe(false);
   });
 
   it('typed attributes: effective values with defaults; invalid stored values read as default/undefined', async () => {
@@ -142,17 +138,17 @@ describe('spatial algorithm input', () => {
       read = ctx.design.nodes.filter((n) => n.typeId === 'gallery').map((n) => ctx.attributesOf(n, galleryType));
       return [];
     });
-    expectExtOk(runAlgorithm(labDoc(), project, 't'));
+    expectExtOk(runAlgorithmV2(labDoc(), project, 't'));
     expect(read).toEqual([{ daylight: 'high', public: true }, { public: true }]);
   });
 
   it('attributesOf rejects unregistered, mismatched and broken definitions', async () => {
     const stranger = defineNodeType({ id: 'gallery', label: 'Not registered' });
     const project = await transforming((ctx) => (ctx.attributesOf(ctx.design.nodes[0]!, stranger), []));
-    expectDiagnostic(runAlgorithm(labDoc(), project, 't'), 'type-not-registered');
+    expectDiagnostic(runAlgorithmV2(labDoc(), project, 't'), 'type-not-registered');
 
     const mismatch = await transforming((ctx) => (ctx.attributesOf(getNode(ctx.design, 's1')!, galleryType), []));
-    expectDiagnostic(runAlgorithm(labDoc(), mismatch, 't'), 'type-mismatch');
+    expectDiagnostic(runAlgorithmV2(labDoc(), mismatch, 't'), 'type-mismatch');
 
     const brokenDef = { id: 'gallery', label: 'G', attributes: { daylight: { kind: 'enum', values: [] } } };
     const broken = await labToolkit({
@@ -165,7 +161,7 @@ describe('spatial algorithm input', () => {
         }),
       },
     });
-    expectDiagnostic(runAlgorithm(labDoc(), broken, 't'), 'broken-node-type');
+    expectDiagnostic(runAlgorithmV2(labDoc(), broken, 't'), 'broken-node-type');
   });
 
   it('mutation attempts on the input fail the run loudly and never reach the document', async () => {
@@ -183,14 +179,14 @@ describe('add-node', () => {
     const doc = labDoc();
     const p = preview(expectExtOk(runUnchanged(doc, project)));
     expect(p.before).toBe(doc);
-    expect(p.after.nodes.at(-1)).toEqual({ id: 'g3', grid: [2, 0, 0], typeId: 'gallery', attributes: { daylight: 'low' } });
+    expect(p.after.nodes.at(-1)).toEqual({ id: 'g3', displayId: '01', grid: [2, 0, 0], size: [1, 1, 1], typeId: 'gallery', attributes: { daylight: 'low' } });
     expect(p.after.diagram.positions).toEqual(doc.diagram.positions); // Graph 2D uses its fallback position
     expect(p.after.nodes).toHaveLength(doc.nodes.length + 1);
   });
 
   it('does not write defaults for omitted attributes', async () => {
     const project = await transforming([{ op: 'add-node', id: 's2', grid: [0, 2, 0], typeId: 'studio' }]);
-    expect(preview(expectExtOk(runAlgorithm(labDoc(), project, 't'))).after.nodes.at(-1)!.attributes).toEqual({});
+    expect(preview(expectExtOk(runAlgorithmV2(labDoc(), project, 't'))).after.nodes.at(-1)!.attributes).toEqual({});
   });
 
   it.each<[string, SpatialOperation, Parameters<typeof expectDiagnostic>[1]]>([
@@ -230,15 +226,15 @@ describe('atomic transformations', () => {
   it('add-node followed by add-edge to the new node is one valid transformation', async () => {
     const project = await transforming([
       { op: 'add-node', id: 'g3', grid: [2, 0, 0], typeId: 'gallery' },
-      { op: 'add-edge', id: 'e3', source: 'g2', target: 'g3', kind: 'door' },
+      { op: 'add-edge', id: 'e3', source: 'g2', target: 'g3', kind: 'access' },
     ]);
     const p = preview(expectExtOk(runUnchanged(labDoc(), project)));
-    expect(p.after.edges.at(-1)).toEqual({ id: 'e3', source: 'g2', target: 'g3', kind: 'door', attributes: {} });
+    expect(p.after.edges.at(-1)).toEqual({ id: 'e3', source: 'g2', target: 'g3', kind: 'access', attributes: {} });
   });
 
   it('operations are ordered: an edge to a node added later is rejected', async () => {
     const project = await transforming([
-      { op: 'add-edge', id: 'e3', source: 'g2', target: 'g3', kind: 'door' },
+      { op: 'add-edge', id: 'e3', source: 'g2', target: 'g3', kind: 'access' },
       { op: 'add-node', id: 'g3', grid: [2, 0, 0], typeId: 'gallery' },
     ]);
     expect(expectDiagnostic(runUnchanged(labDoc(), project), 'missing-node').subject).toEqual({ kind: 'operation', index: 0 });
@@ -247,26 +243,26 @@ describe('atomic transformations', () => {
   it('a failure in a later operation discards the earlier ones and keeps the original document', async () => {
     const project = await transforming([
       { op: 'add-node', id: 'g3', grid: [2, 0, 0], typeId: 'gallery' },
-      { op: 'add-edge', id: 'e3', source: 'g1', target: 'g3', kind: 'door' }, // not adjacent
+      { op: 'add-edge', id: 'e3', source: 'g1', target: 'g3', kind: 'stair' as never }, // not a relationship kind
     ]);
-    const d = expectDiagnostic(runUnchanged(labDoc(), project), 'invalid-edge-geometry');
+    const d = expectDiagnostic(runUnchanged(labDoc(), project), 'unknown-edge-kind');
     expect(d.subject).toEqual({ kind: 'operation', index: 1 });
   });
 
   it('applyTransformation never mutates its input, on success or failure', async () => {
     const project = await labToolkit();
     const doc = labDoc();
-    const before = serializeDesign(doc);
-    expectExtOk(applyTransformation(doc, project, [{ op: 'add-node', id: 'g3', grid: [2, 0, 0], typeId: 'gallery' }]));
-    expect(applyTransformation(doc, project, [{ op: 'add-node', id: 'g3', grid: [1, 0, 0], typeId: 'gallery' }]).ok).toBe(false);
-    expect(serializeDesign(doc)).toBe(before);
+    const before = serializeDesignV2(doc);
+    expectExtOk(applyTransformationV2(doc, project, [{ op: 'add-node', id: 'g3', grid: [2, 0, 0], typeId: 'gallery' }]));
+    expect(applyTransformationV2(doc, project, [{ op: 'add-node', id: 'g3', grid: [1, 0, 0], typeId: 'gallery' }]).ok).toBe(false);
+    expect(serializeDesignV2(doc)).toBe(before);
   });
 
-  it('the final schema-v1 validation is authoritative (e.g. the node limit)', async () => {
+  it('the final document validation is authoritative (e.g. the node limit)', async () => {
     const project = await labToolkit();
     const full = expectOk(
-      validateDocument({
-        schemaVersion: 1,
+      validateDocumentV2({
+        schemaVersion: 2,
         metadata: { name: 'Full' },
         nodes: Array.from({ length: DEFAULT_LIMITS.maxNodes }, (_, i) => ({
           id: `n${i}`,
@@ -277,18 +273,17 @@ describe('atomic transformations', () => {
         edges: [],
       }),
     );
-    const result = applyTransformation(full, project, [{ op: 'add-node', id: 'extra', grid: [0, 0, 1], typeId: 'studio' }]);
+    const result = applyTransformationV2(full, project, [{ op: 'add-node', id: 'extra', grid: [0, 0, 1], typeId: 'studio' }]);
     expect(expectDiagnostic(result, 'final-document-invalid').message).toContain('too-many-nodes');
     expect(full.nodes).toHaveLength(DEFAULT_LIMITS.maxNodes);
   });
 
   it.each<[string, SpatialOperation, Parameters<typeof expectDiagnostic>[1]]>([
     ['a new edge kind', { op: 'add-edge', id: 'x', source: 'g2', target: 's1', kind: 'stair' as never }, 'unknown-edge-kind'],
-    ['a duplicate edge id', { op: 'add-edge', id: 'e1', source: 'g2', target: 's1', kind: 'door' }, 'duplicate-edge-id'],
-    ['a self edge', { op: 'add-edge', id: 'x', source: 'g1', target: 'g1', kind: 'door' }, 'self-edge'],
+    ['a duplicate edge id', { op: 'add-edge', id: 'e1', source: 'g2', target: 's1', kind: 'access' }, 'duplicate-edge-id'],
+    ['a self edge', { op: 'add-edge', id: 'x', source: 'g1', target: 'g1', kind: 'access' }, 'self-edge'],
     ['a duplicate relationship', { op: 'add-edge', id: 'x', source: 'g2', target: 'g1', kind: 'open' }, 'duplicate-relationship'],
-    ['a missing endpoint', { op: 'add-edge', id: 'x', source: 'g1', target: 'ghost', kind: 'door' }, 'missing-node'],
-    ['wrong geometry for the kind', { op: 'add-edge', id: 'x', source: 'g2', target: 's1', kind: 'door' }, 'invalid-edge-geometry'],
+    ['a missing endpoint', { op: 'add-edge', id: 'x', source: 'g1', target: 'ghost', kind: 'access' }, 'missing-node'],
   ])('add-edge rejects %s', async (_name, op, code) => {
     expectDiagnostic(runUnchanged(labDoc(), await transforming([op])), code);
   });
@@ -307,7 +302,7 @@ describe('set-node-attribute and conformance non-regression', () => {
       { op: 'set-node-attribute', nodeId: 's1', key: 'public', value: true },
       { op: 'set-node-attribute', nodeId: 'g1', key: 'daylight', value: null },
     ]);
-    const p = preview(expectExtOk(runAlgorithm(labDoc(), project, 't')));
+    const p = preview(expectExtOk(runAlgorithmV2(labDoc(), project, 't')));
     expect(p.after.nodes.find((n) => n.id === 's1')!.attributes).toEqual({ occupancy: 4, public: true });
     expect(p.after.nodes.find((n) => n.id === 'g1')!.attributes).toEqual({ daylight: null, public: true });
   });
@@ -315,7 +310,6 @@ describe('set-node-attribute and conformance non-regression', () => {
   it.each<[string, SpatialOperation, Parameters<typeof expectDiagnostic>[1]]>([
     ['an undeclared (legacy) attribute', { op: 'set-node-attribute', nodeId: 'g2', key: 'legacy', value: 'x' }, 'undeclared-attribute-write'],
     ['an invalid value', { op: 'set-node-attribute', nodeId: 'g1', key: 'daylight', value: 'bright' }, 'invalid-attribute-value'],
-    ['a node of an undefined type', { op: 'set-node-attribute', nodeId: 'k1', key: 'x', value: 1 }, 'type-not-registered'],
     ['a missing node', { op: 'set-node-attribute', nodeId: 'ghost', key: 'daylight', value: 'low' }, 'missing-node'],
   ])('rejects writing %s', async (_name, op, code) => {
     expectDiagnostic(runUnchanged(labDoc(), await transforming([op])), code);
@@ -323,7 +317,7 @@ describe('set-node-attribute and conformance non-regression', () => {
 
   it('pre-existing problems are tolerated: unrelated transformations still succeed', async () => {
     const project = await transforming([{ op: 'add-node', id: 'g3', grid: [2, 0, 0], typeId: 'gallery' }]);
-    const p = preview(expectExtOk(runAlgorithm(labDoc(), project, 't')));
+    const p = preview(expectExtOk(runAlgorithmV2(labDoc(), project, 't')));
     expect(p.resolvedDiagnosticIds).toEqual([]);
     expect(p.after.nodes.find((n) => n.id === 'g2')!.attributes).toEqual({ daylight: 'bright', legacy: 'kept' });
   });
@@ -345,7 +339,7 @@ describe('result and parameter validation', () => {
   it('changes the algorithm makes to its own result afterwards have no effect', async () => {
     const ops: SpatialOperation[] = [{ op: 'add-node', id: 'g3', grid: [2, 0, 0], typeId: 'gallery' }];
     const project = await transforming(() => ops);
-    const p = preview(expectExtOk(runAlgorithm(labDoc(), project, 't')));
+    const p = preview(expectExtOk(runAlgorithmV2(labDoc(), project, 't')));
     ops.push({ op: 'add-node', id: 'g4', grid: [3, 0, 0], typeId: 'gallery' });
     (ops[0] as { id: string }).id = 'changed';
     expect(p.operations).toEqual([{ op: 'add-node', id: 'g3', grid: [2, 0, 0], typeId: 'gallery' }]);
@@ -364,19 +358,19 @@ describe('result and parameter validation', () => {
         }),
       },
     });
-    expectExtOk(runAlgorithm(labDoc(), project, 't'));
+    expectExtOk(runAlgorithmV2(labDoc(), project, 't'));
     expect(params).toEqual({ count: 2 });
-    expectExtOk(runAlgorithm(labDoc(), project, 't', { count: 5, mode: 'b' }));
+    expectExtOk(runAlgorithmV2(labDoc(), project, 't', { count: 5, mode: 'b' }));
     expect(params).toEqual({ count: 5, mode: 'b' });
-    expectDiagnostic(runAlgorithm(labDoc(), project, 't', { count: 0 }), 'invalid-parameter');
-    expectDiagnostic(runAlgorithm(labDoc(), project, 't', { other: 1 }), 'invalid-parameter');
-    expectDiagnostic(runAlgorithm(labDoc(), project, 't', 'x'), 'invalid-parameter');
+    expectDiagnostic(runAlgorithmV2(labDoc(), project, 't', { count: 0 }), 'invalid-parameter');
+    expectDiagnostic(runAlgorithmV2(labDoc(), project, 't', { other: 1 }), 'invalid-parameter');
+    expectDiagnostic(runAlgorithmV2(labDoc(), project, 't', 'x'), 'invalid-parameter');
   });
 
   it('reports unknown and disabled algorithms', async () => {
     const project = await labToolkit({ [ALG]: { default: { id: 't', label: 'T', run: () => null } } });
-    expectDiagnostic(runAlgorithm(labDoc(), project, 'nope'), 'unknown-algorithm');
-    expectDiagnostic(runAlgorithm(labDoc(), project, 't'), 'algorithm-disabled');
+    expectDiagnostic(runAlgorithmV2(labDoc(), project, 'nope'), 'unknown-algorithm');
+    expectDiagnostic(runAlgorithmV2(labDoc(), project, 't'), 'algorithm-disabled');
   });
 });
 
@@ -390,14 +384,14 @@ describe('future student exercise (written only against @student-api)', () => {
       for (const existing of galleries) {
         for (const direction of FACE_DIRECTIONS.filter((d) => d !== '+z' && d !== '-z')) {
           const cell = neighbourCell(existing.grid, direction);
-          if (ctx.nodeAt(cell) !== undefined || !ctx.canConnect('door', existing.grid, cell)) continue;
+          if (ctx.nodeAt(cell) !== undefined) continue;
           const nodeId = uniqueId(ctx.design, 'gallery');
           const edgeId = uniqueId(ctx.design, 'door', [nodeId]);
           return {
             kind: 'transformation',
             operations: [
               { op: 'add-node', id: nodeId, grid: cell, typeId: galleryType.id, attributes: { daylight: 'medium' } },
-              { op: 'add-edge', id: edgeId, source: existing.id, target: nodeId, kind: 'door' },
+              { op: 'add-edge', id: edgeId, source: existing.id, target: nodeId, kind: 'access' },
             ],
           };
         }
@@ -409,7 +403,7 @@ describe('future student exercise (written only against @student-api)', () => {
   it('is supported atomically by the current API', async () => {
     const project = await labToolkit({ [ALG]: { default: extendGallery } });
     const p = preview(expectExtOk(runUnchanged(labDoc(), project)));
-    expect(p.after.nodes.at(-1)).toEqual({ id: 'gallery-1', grid: [-1, 0, 0], typeId: 'gallery', attributes: { daylight: 'medium' } });
-    expect(p.after.edges.at(-1)).toEqual({ id: 'door-1', source: 'g1', target: 'gallery-1', kind: 'door', attributes: {} });
+    expect(p.after.nodes.at(-1)).toEqual({ id: 'gallery-1', displayId: '01', grid: [-1, 0, 0], size: [1, 1, 1], typeId: 'gallery', attributes: { daylight: 'medium' } });
+    expect(p.after.edges.at(-1)).toEqual({ id: 'door-1', source: 'g1', target: 'gallery-1', kind: 'access', attributes: {} });
   });
 });

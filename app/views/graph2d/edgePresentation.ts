@@ -1,4 +1,3 @@
-import type { EdgeKind } from '@app/document';
 import type { RelationshipKind } from '@app/document/v2';
 import type { ResolutionStatus, UnresolvedReason } from '@app/spatial';
 import {
@@ -8,7 +7,6 @@ import {
   UNRESOLVED_COLOR,
   UNRESOLVED_REASON_TEXT as SHARED_REASON_TEXT,
 } from '../presentation/vocabulary';
-import { EDGE_KIND_LABELS, EDGE_STYLES, orientationOf } from './diagram';
 import type { DiagramEdge, DiagramModel } from './diagramModel';
 
 /**
@@ -81,19 +79,7 @@ export function presentEdge(model: DiagramModel, edge: DiagramEdge): EdgePresent
   const a = model.byNode.get(edge.source)?.label ?? edge.source;
   const b = model.byNode.get(edge.target)?.label ?? edge.target;
   const pair = `${a} ↔ ${b}`;
-  if (model.version === 1) {
-    const kind = edge.kind as EdgeKind;
-    const style = EDGE_STYLES[kind];
-    return {
-      stroke: style.stroke,
-      strokeWidth: style.strokeWidth,
-      strokeDasharray: style.strokeDasharray,
-      status: 'legacy',
-      label: `${style.symbol} ${kind}`,
-      title: `${pair}: ${EDGE_KIND_LABELS[kind]} (${orientationOf(kind)})`,
-    };
-  }
-  const kind = edge.kind as RelationshipKind;
+  const kind = edge.kind;
   const resolution = edge.resolution;
   // A missing resolution means the host has not resolved this edge; show it plainly, never as an error.
   const status: ResolutionStatus = resolution?.status ?? 'direct';

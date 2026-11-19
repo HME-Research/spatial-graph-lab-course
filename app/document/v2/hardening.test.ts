@@ -6,11 +6,9 @@ import { relationshipLabel } from './display';
 describe('phase 09 hardening', () => {
   const v2 = (attributes: string) =>
     `{"schemaVersion":2,"metadata":{"name":"x"},"nodes":[{"id":"a","grid":[0,0,0],"typeId":"room","attributes":${attributes}}],"edges":[]}`;
-  const v1 = (attributes: string) =>
-    `{"schemaVersion":1,"metadata":{"name":"x"},"nodes":[{"id":"a","grid":[0,0,0],"typeId":"room","attributes":${attributes}}],"edges":[]}`;
 
-  it('refuses an attribute named __proto__ with a message instead of dropping it silently (v1 and v2)', () => {
-    for (const text of [v2('{"__proto__":"x","a":1}'), v1('{"__proto__":"x"}')]) {
+  it('refuses an attribute named __proto__ with a message instead of dropping it silently', () => {
+    for (const text of [v2('{"__proto__":"x","a":1}'), v2('{"__proto__":"x"}')]) {
       const r = readDesignJson(text);
       expect(r.ok).toBe(false);
       if (!r.ok) expect(r.issues.map((i) => i.message).join(' ')).toMatch(/__proto__/);

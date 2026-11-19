@@ -1,5 +1,5 @@
 import type { FaceDirection } from '@core/spatial';
-import type { DesignDocument, EdgeKind, GridCoord } from '@app/document';
+import type { GridCoord } from '@app/document';
 
 /**
  * Architectural face-resolution contract (workstream C). Pure data in GRID space; no React or
@@ -14,12 +14,20 @@ export { FACE_DIRECTION_OFFSETS, FACE_DIRECTIONS, type FaceDirection } from '@co
 export type FaceOrientation = 'wall' | 'slab';
 
 /**
+ * What a relationship makes of a face its rooms share (`connectionCondition`): a wall with a door
+ * (`door`), no wall (`open`), a slab void (`atrium`) or a slab opening with an access marker
+ * (`vertical-access`). Built-geometry vocabulary, not edge kinds: edges are `access` | `open`.
+ */
+export const CONNECTION_CONDITIONS = ['door', 'open', 'atrium', 'vertical-access'] as const;
+export type ConnectionCondition = (typeof CONNECTION_CONDITIONS)[number];
+
+/**
  * Boundary condition of a face.
  * - `exterior`: no occupied neighbour; façade is chosen by the owner's typeId.
- * - `solid`: occupied neighbour but no edge → internal wall (or solid slab).
- * - an EdgeKind: occupied neighbour connected by that edge (`door`, `open`, `atrium`, `vertical-access`).
+ * - `solid`: occupied neighbour but no relationship → internal wall (or solid slab).
+ * - a ConnectionCondition: the neighbour is related (see above).
  */
-export type FaceCondition = 'exterior' | 'solid' | EdgeKind;
+export type FaceCondition = 'exterior' | 'solid' | ConnectionCondition;
 
 export interface ResolvedFace {
   /** Deterministic: `${ownerNodeId}:${direction}` (IDs cannot contain ':'). */
@@ -44,12 +52,6 @@ export interface ResolvedFace {
    */
   readonly outside?: true;
 }
-
-/**
- * Pure resolver: every face of every occupied cell exactly once, sorted by ownerNodeId then
- * FACE_DIRECTIONS order. Independent of node/edge array order. Expects a validated document.
- */
-export type FaceResolver = (doc: DesignDocument) => readonly ResolvedFace[];
 
 /**
  * Provisional exterior façade parameters per node type, replaced by the validated student type

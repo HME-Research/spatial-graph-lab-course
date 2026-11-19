@@ -1,11 +1,9 @@
 import { functionStyleSettings, type Look } from '@app/document/v2';
 import { describe, expect, it } from 'vitest';
-import exampleJson from '../document/examples/two-storey-example.json';
-import { validateDocument } from '@app/document';
+import exampleJson from '../document/test-designs/two-storey.json';
 import { expectOk } from '@app/document/test-fixtures';
 import {
   connectorStyleOf,
-  migrateV1toV2,
   validateDocumentV2,
   type ConnectorStyle,
   type DesignDocumentV2,
@@ -27,7 +25,6 @@ import { buildConnector, isConnectorHighlighted, type ConnectorElement } from '.
 import { EXAMPLE_FACADES } from './facade';
 import { buildArchitecture, elementBounds, type ArchitecturalElement } from './geometry';
 import { representativeFaceIndex, resolveBuildingFaces, toResolvedFace, unitFaceKey } from './multicellFaces';
-import { resolveFaces } from './resolve';
 
 // ── fixtures ────────────────────────────────────────────────────────────────────────────────
 
@@ -95,27 +92,24 @@ function corridorFixture(style?: ConnectorStyle, kind: RelationshipKind = 'acces
   return { doc, spatial, model: buildBuildingV2(doc, { spatial }) };
 }
 
-// ── legacy compatibility ────────────────────────────────────────────────────────────────────
+// ── one-cell rooms ──────────────────────────────────────────────────────────────────────────
 
-describe('v1 → v2 legacy geometry', () => {
-  const v1 = expectOk(validateDocument(exampleJson));
-  const migrated = migrateV1toV2(v1);
+describe('one-cell rooms (the two-storey test design)', () => {
+  const example = expectOk(validateDocumentV2(exampleJson));
 
-  it('the migrated shipped example builds deep-equal to the v1 pipeline (default settings)', () => {
-    const model = buildBuildingV2(migrated);
-    expect(model.faces.map(toResolvedFace)).toEqual(resolveFaces(v1));
-    expect(model.elements).toEqual(buildArchitecture(resolveFaces(v1)));
+  it('every face is built once from the room faces; touching relationships are direct openings', () => {
+    const model = buildBuildingV2(example);
+    expect(model.elements).toEqual(buildArchitecture(model.faces.map(toResolvedFace)));
     expect(model.connectors).toEqual([]);
     expect(model.relationships.every((r) => r.status === 'direct' && r.geometry === 'opening')).toBe(true);
   });
 
-  it('the one intended difference is visibility: flat roofs on exposed tops are part of the model', () => {
-    const roofs = buildBuildingV2(migrated).elements.filter((e) => e.part === 'roof');
-    expect(roofs.length).toBeGreaterThan(0);
-    // roof: none for every type reproduces the old open-top look.
-    const types = [...new Set(migrated.nodes.map((n) => n.typeId))];
-    const open = { ...migrated, settings: functionStyleSettings(Object.fromEntries(types.map((t) => [t, { roof: 'none' as const }]))) };
-    expect(buildBuildingV2(open).elements).toEqual(buildArchitecture(resolveFaces(v1)).filter((e) => e.part !== 'roof'));
+  it('flat roofs on exposed tops are part of the model; roof: none leaves them out', () => {
+    const withRoofs = buildBuildingV2(example).elements;
+    expect(withRoofs.filter((e) => e.part === 'roof').length).toBeGreaterThan(0);
+    const types = [...new Set(example.nodes.map((n) => n.typeId))];
+    const open = { ...example, settings: functionStyleSettings(Object.fromEntries(types.map((t) => [t, { roof: 'none' as const }]))) };
+    expect(buildBuildingV2(open).elements).toEqual(withRoofs.filter((e) => e.part !== 'roof'));
   });
 });
 

@@ -4,7 +4,7 @@
  * TypeScript without type checking.
  */
 
-/** A stored attribute value: the same JSON primitives as the schema-v1 document. */
+/** A stored attribute value: the same JSON primitives as the design document. */
 export type AttributeValue = string | number | boolean | null;
 
 /** Declares one attribute of a node type, or one algorithm parameter. */

@@ -1,5 +1,5 @@
 import type { FacadeSpec } from '@app/building';
-import type { AttributeValue as DocumentAttributeValue, EdgeKind, GridCoord as DocumentGridCoord } from '@app/document';
+import type { AttributeValue as DocumentAttributeValue, GridCoord as DocumentGridCoord } from '@app/document';
 import type {
   ConnectorStyle as DocumentConnectorStyle,
   RelationshipEdge,
@@ -18,15 +18,13 @@ import type {
   RelationshipKind,
   RoomSize,
   SpatialEdge,
-  SpatialEdgeKind,
   SpatialNode,
 } from '@student-api';
 
 /**
  * Compile-time guards: the Student API declares its own types (so it never imports app/), and
  * these checks fail `npm run typecheck` if they drift from the schema-v2 document (students read
- * v2 records), the legacy v1 edge kinds (still accepted by `add-edge`/`canConnect`) or the
- * building contracts. Runtime consistency is covered by extensions tests (the spatial context's
+ * v2 records) or the building contracts. Runtime consistency is covered by extensions tests (the spatial context's
  * nodes and edges are copies of the v2 document's own records).
  */
 type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
@@ -34,7 +32,6 @@ type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
 export const contractGuards = {
   attributeValue: true satisfies Equals<AttributeValue, DocumentAttributeValue>,
-  legacyEdgeKind: true satisfies Equals<SpatialEdgeKind, EdgeKind>,
   relationshipKind: true satisfies Equals<RelationshipKind, DocumentRelationshipKind>,
   connectorStyle: true satisfies Equals<ConnectorStyle, DocumentConnectorStyle>,
   facade: true satisfies Equals<keyof FacadeParameters, keyof FacadeSpec>,

@@ -21,13 +21,6 @@ export type RoomSize = readonly [sx: number, sy: number, sz: number];
  */
 export type RelationshipKind = 'access' | 'open';
 
-/**
- * The schema-v1 relationship kinds. Still accepted by the `add-edge` operation (mapped to a
- * `RelationshipKind`: door/vertical-access → access, open/atrium → open) and by the deprecated
- * `canConnect`. Edges you read always carry a `RelationshipKind`.
- */
-export type SpatialEdgeKind = 'door' | 'open' | 'atrium' | 'vertical-access';
-
 export type { FaceDirection } from '@core/spatial';
 
 /** The six cardinal directions: '+x', '-x', '+y', '-y' (horizontal), '+z', '-z' (vertical). */

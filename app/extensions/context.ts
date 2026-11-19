@@ -1,5 +1,7 @@
-import { EDGE_KINDS, gridKey, isEdgeGeometryValid, SPATIAL_GRAPH_POLICY, unorderedPairKey, type AttributeValue, type DesignDocument, type EdgeKind } from '@app/document';
-import { footprintCells, migrateV1toV2, roomContact, type DesignDocumentV2, type RoomNode } from '@app/document/v2';
+import { unorderedPairKey } from '@core/graph';
+import { gridKey } from '@core/spatial';
+import { SPATIAL_GRAPH_POLICY, type AttributeValue } from '@app/document';
+import { footprintCells, roomContact, type DesignDocumentV2, type RoomNode } from '@app/document/v2';
 import type {
   AttributeSpecs,
   AttributesOf,
@@ -26,7 +28,7 @@ import { effectiveEdgeValues, effectiveNodeValues } from './resolveAttributes';
  * not the safety mechanism). Query functions close over private lookup tables.
  */
 
-/** Thrown inside a run to fail it with a specific diagnostic (caught by runAlgorithm). */
+/** Thrown inside a run to fail it with a specific diagnostic (caught by runAlgorithmV2). */
 export class ExtensionRunError extends Error {
   constructor(readonly diagnostic: ExtensionDiagnostic) {
     super(diagnostic.message);
@@ -41,7 +43,7 @@ export function freezeDeep<T>(value: T): T {
   return value;
 }
 
-/** The parts of a v1 or v2 document a graph analysis may see. */
+/** The parts of a document a graph analysis may see. */
 export interface GraphSource {
   readonly nodes: readonly { readonly id: string }[];
   readonly edges: readonly { readonly id: string; readonly source: string; readonly target: string }[];
@@ -55,20 +57,6 @@ export function buildGraphContext<P extends AttributeSpecs>(doc: GraphSource, pa
 
 const isGrid = (g: unknown): g is GridCoord =>
   Array.isArray(g) && g.length === 3 && g.every((c) => typeof c === 'number' && Number.isInteger(c));
-
-/**
- * Spatial context for a schema-v1 document (the running app until integration). Students always
- * see schema-v2 records: the document is migrated (`migrateV1toV2`) for the context only, so
- * edges read `access`/`open` and nodes carry `size` [1, 1, 1] and a `displayId`.
- */
-export function buildSpatialContext<P extends AttributeSpecs>(
-  doc: DesignDocument,
-  project: ActiveToolkit,
-  algorithmId: string,
-  params: AttributesOf<P>,
-): SpatialAlgorithmContext<P> {
-  return buildSpatialContextV2(migrateV1toV2(doc), project, algorithmId, params);
-}
 
 /**
  * Spatial context for a VALIDATED schema-v2 document. `spatial` is the host's resolution of `doc`
@@ -132,11 +120,6 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
     },
     canRelate: (a: string, b: string) =>
       isId(a) && isId(b) && a !== b && rooms.has(a) && rooms.has(b) && !pairs.has(unorderedPairKey(a, b)),
-    canConnect: (kind: string, a: GridCoord, b: GridCoord) =>
-      (EDGE_KINDS as readonly string[]).includes(kind) &&
-      isGrid(a) &&
-      isGrid(b) &&
-      isEdgeGeometryValid(kind as EdgeKind, [a[0], a[1], a[2]], [b[0], b[1], b[2]]),
     attributesOf<A extends AttributeSpecs>(node: SpatialNode, type: NodeTypeDefinition<A>): AttributesOf<A> {
       const entry = project.nodeTypes.find((t) => t.definition === type);
       const name = typeof type === 'object' && type !== null && typeof type.id === 'string' ? `"${type.id}"` : 'the given value';

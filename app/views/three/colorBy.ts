@@ -1,7 +1,12 @@
-import type { AttributeValue, GraphEdge, GraphNode } from '@app/document';
+import type { AttributeValue } from '@app/document';
+import type { RelationshipEdge, RoomNode } from '@app/document/v2';
 import { typeColor } from '@core/viewer/appearance';
 import { formatMetricValue, formatNumber, type ComputedMetric, type MetricContext, type MetricEvaluator, type MetricValue } from '@app/metrics';
 import { accessGroups } from './sceneModel';
+
+/** What colour-by reads of a room and a relationship. */
+type ColorNode = Pick<RoomNode, 'id' | 'typeId' | 'attributes'>;
+type ColorEdge = Pick<RelationshipEdge, 'id' | 'source' | 'target'>;
 
 /**
  * View-local colour-by logic for the 3D views (pure).
@@ -88,7 +93,7 @@ export interface Coloring {
 }
 
 /** Attribute keys used by any node, sorted. */
-export function attributeKeys(nodes: readonly GraphNode[]): string[] {
+export function attributeKeys(nodes: readonly ColorNode[]): string[] {
   const keys = new Set<string>();
   for (const n of nodes) for (const k of Object.keys(n.attributes)) keys.add(k);
   return [...keys].sort();
@@ -123,8 +128,8 @@ export function colorModeFromValue(value: string): ColorMode {
  * it does not offer, the colouring falls back to type (as `effectiveColorMode` would).
  */
 export function resolveColoring(
-  nodes: readonly GraphNode[],
-  edges: readonly GraphEdge[],
+  nodes: readonly ColorNode[],
+  edges: readonly ColorEdge[],
   mode: ColorMode,
   metrics?: MetricColorSource,
 ): Coloring {
@@ -142,7 +147,7 @@ export function resolveColoring(
   }
 }
 
-function byType(nodes: readonly GraphNode[]): Coloring {
+function byType(nodes: readonly ColorNode[]): Coloring {
   const counts = countBy(nodes, (n) => n.typeId);
   const types = [...counts.keys()].sort();
   const colours = new Set(types.map(typeColor));
@@ -155,7 +160,7 @@ function byType(nodes: readonly GraphNode[]): Coloring {
   };
 }
 
-function byGroup(nodes: readonly GraphNode[], edges: readonly GraphEdge[]): Coloring {
+function byGroup(nodes: readonly ColorNode[], edges: readonly ColorEdge[]): Coloring {
   const { groupOf, count } = accessGroups(nodes, edges);
   const color = (g: number) => CATEGORY_PALETTE[g % CATEGORY_PALETTE.length]!;
   const sizes = countBy(nodes, (n) => groupOf.get(n.id)!);
@@ -170,7 +175,7 @@ function byGroup(nodes: readonly GraphNode[], edges: readonly GraphEdge[]): Colo
   };
 }
 
-function byAttribute(nodes: readonly GraphNode[], key: string): Coloring {
+function byAttribute(nodes: readonly ColorNode[], key: string): Coloring {
   return byValues(nodes, (n) => (Object.hasOwn(n.attributes, key) ? n.attributes[key] : undefined), `Attribute “${key}”`, {
     label: String,
     booleans: false,
@@ -179,7 +184,7 @@ function byAttribute(nodes: readonly GraphNode[], key: string): Coloring {
 
 /** Missing: no value, or a number that is not finite (a calculation without a usable result). */
 function byMetric(
-  nodes: readonly GraphNode[],
+  nodes: readonly ColorNode[],
   metric: Pick<ComputedMetric, 'id' | 'label' | 'unit' | 'valueKind'>,
   values: ReadonlyMap<string, MetricValue | null>,
 ): Coloring {
@@ -204,8 +209,8 @@ interface ValueOptions {
 }
 
 function byValues(
-  nodes: readonly GraphNode[],
-  valueOf: (n: GraphNode) => AttributeValue | undefined,
+  nodes: readonly ColorNode[],
+  valueOf: (n: ColorNode) => AttributeValue | undefined,
   title: string,
   options: ValueOptions,
 ): Coloring {

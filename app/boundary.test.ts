@@ -156,7 +156,7 @@ describe('application layering', () => {
     expect(violation('./extensions/x.ts', '@app/views/contracts')).not.toBeNull();
     expect(violation('./extensions/x.ts', 'react')).not.toBeNull();
     expect(violation('./extensions/x.ts', '@core/viewer/three/SceneCanvas')).not.toBeNull();
-    expect(violation('./extensions/x.ts', '../../toolkits/example-gallery/types/gallery')).not.toBeNull();
+    expect(violation('./extensions/x.ts', '../../toolkits/house/types/kitchen')).not.toBeNull();
     expect(violation('./extensions/x.ts', '@student-api')).toBeNull();
     expect(violation('./extensions/x.ts', '@app/building')).toBeNull();
     expect(violation('./extensions/x.ts', '@core/viewer/appearance')).toBeNull();
@@ -164,8 +164,8 @@ describe('application layering', () => {
     expect(violation('./building/x.ts', '@app/document')).toBeNull();
     expect(violation('./building/x.ts', '@core/viewer/coordinates')).toBeNull();
     expect(violation('./document/x.test.ts', '../../student/designs/two-storey-example.json?raw')).not.toBeNull();
-    expect(violation('./document/x.test.ts', './examples/two-storey-example.json?raw')).toBeNull();
-    expect(violation('./views/three/x.test.ts', '../../document/examples/two-storey-example.json')).toBeNull();
+    expect(violation('./document/x.test.ts', './examples/house.json?raw')).toBeNull();
+    expect(violation('./views/three/x.test.ts', '../../document/test-designs/two-storey.json')).toBeNull();
     expect(violation('./views/x.tsx', '@react-three/fiber')).toBeNull();
     expect(violation('./inspector/x.tsx', '@app/views/graph2d/diagram')).toBeNull();
     expect(violation('./project/x.ts', '@app/display/contracts')).toBeNull();

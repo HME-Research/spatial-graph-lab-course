@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DesignDocument, GraphEdge, GraphNode } from '@app/document';
+import type { DesignDocumentV2, RelationshipEdge, RoomNode } from '@app/document/v2';
 import { threeRooms } from '@app/document/test-fixtures';
 import { DEFAULT_CELL_SIZE, spatialToThree } from '@core/viewer/coordinates';
 import {
@@ -13,13 +13,14 @@ import {
 } from './sceneModel';
 import { fitCameraToBounds } from '@core/viewer/three/viewport';
 
-const node = (id: string, grid: [number, number, number], typeId = 'room'): GraphNode => ({
+const node = (id: string, grid: [number, number, number], typeId = 'room'): RoomNode => ({
   id,
   grid,
+  size: [1, 1, 1],
   typeId,
   attributes: {},
 });
-const edge = (id: string, source: string, target: string, kind: GraphEdge['kind'] = 'door'): GraphEdge => ({
+const edge = (id: string, source: string, target: string, kind: RelationshipEdge['kind'] = 'access'): RelationshipEdge => ({
   id,
   source,
   target,
@@ -46,13 +47,13 @@ describe('buildNodeItems / buildEdgeItems', () => {
     ]);
   });
 
-  it('draws edges centre to centre and classifies horizontal vs vertical kinds', () => {
+  it('draws edges centre to centre', () => {
     const items = buildEdgeItems(threeRooms().nodes, threeRooms().edges);
     const ab = items.find((e) => e.id === 'ab')!;
     const ac = items.find((e) => e.id === 'ac')!;
-    expect(ab).toMatchObject({ vertical: false, start: [0, 1.5, 0], end: [3, 1.5, 0], length: 3, direction: [1, 0, 0] });
+    expect(ab).toMatchObject({ kind: 'access', start: [0, 1.5, 0], end: [3, 1.5, 0], length: 3, direction: [1, 0, 0] });
     expect(ab.mid).toEqual([1.5, 1.5, 0]);
-    expect(ac).toMatchObject({ vertical: true, start: [0, 1.5, 0], end: [0, 4.5, 0], length: 3, direction: [0, 1, 0] });
+    expect(ac).toMatchObject({ kind: 'open', start: [0, 1.5, 0], end: [0, 4.5, 0], length: 3, direction: [0, 1, 0] });
   });
 
   it('skips edges whose endpoint is missing instead of throwing', () => {
@@ -62,7 +63,7 @@ describe('buildNodeItems / buildEdgeItems', () => {
 
   it('ignores diagram positions and never mutates the document', () => {
     const doc = deepFreeze(threeRooms());
-    const moved: DesignDocument = { ...doc, diagram: { positions: { a: [999, -999], b: [0, 0], c: [5, 5] } } };
+    const moved: DesignDocumentV2 = { ...doc, diagram: { positions: { a: [999, -999], b: [0, 0], c: [5, 5] } } };
     expect(buildNodeItems(moved.nodes)).toEqual(buildNodeItems(doc.nodes));
     expect(buildEdgeItems(moved.nodes, moved.edges)).toEqual(buildEdgeItems(doc.nodes, doc.edges));
     // deepFreeze would make any mutation throw in strict-mode modules.

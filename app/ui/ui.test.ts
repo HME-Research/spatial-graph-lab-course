@@ -80,14 +80,6 @@ describe('plain-language messages', () => {
     expect(friendlyText(overlap, { roomLabel: room })).toBe('Room 03 overlaps room 01. Rooms cannot share cells.');
   });
 
-  it('names the occupant of a taken cell even when the issue is reported on the other room', () => {
-    // v1 reports the clash on the LATER node (index 2 = "c"); the occupant named is the earlier one.
-    const taken = issue('duplicate-grid-cell', 'cell [0, 0, 0] is already occupied by node "a"', ['nodes', 2, 'grid']);
-    const nodeIdAt = (i: number) => ['a', 'b', 'c'][i];
-    expect(friendlyText(taken, { subjectNodeId: 'c', nodeIdAt })).toBe('Cell [0, 0, 0] is already taken by room a. Rooms cannot share cells.');
-    expect(friendlyText(taken, { subjectNodeId: 'a', nodeIdAt })).toBe('Cell [0, 0, 0] is already taken by room c. Rooms cannot share cells.');
-  });
-
   it('explains a broken v1 relationship and a blocked corridor', () => {
     const geometry = issue(
       'invalid-edge-geometry',

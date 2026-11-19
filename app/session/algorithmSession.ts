@@ -1,9 +1,8 @@
-import type { AttributeValue, Attributes, DesignDocument, GridCoord } from '@app/document';
+import type { AttributeValue, Attributes, GridCoord } from '@app/document';
 import { relationshipLabel, type DesignDocumentV2 } from '@app/document/v2';
 
 export { relationshipLabel };
 import {
-  runAlgorithm,
   runAlgorithmV2,
   type RunOutcomeV2,
   type TransformationPreviewV2,
@@ -13,15 +12,13 @@ import {
   type ExtensionDiagnostic,
   type ExtensionResult,
   type ProjectAttributeSchema,
-  type RunOutcome,
-  type TransformationPreview,
 } from '@app/extensions';
 import type { SpatialResolution } from '@app/spatial';
 import type { DocumentVersion } from './documentSession';
 
 /**
  * Pure algorithm-panel logic. Execution and validation are the Stage 3A runtime's
- * (`runAlgorithm`, `validateParameters`, `applyTransformation`); this module only converts form
+ * (`runAlgorithmV2`, `validateParameters`, `applyTransformationV2`); this module only converts form
  * drafts, describes results and decides whether a preview may still be applied.
  */
 
@@ -61,7 +58,7 @@ export function listAlgorithms(project: ActiveToolkit | null): AlgorithmEntry[] 
 export type ParameterDrafts = Readonly<Record<string, string>>;
 
 /**
- * Raw parameter values from drafts, for `validateParameters`/`runAlgorithm` to check. Drafts are
+ * Raw parameter values from drafts, for `validateParameters`/`runAlgorithmV2` to check. Drafts are
  * converted by kind only (number text → number, "true"/"false" → boolean); text that is not a
  * number is passed through unchanged so that the runtime's message shows what was typed.
  */
@@ -87,7 +84,7 @@ export function parameterProblems(entry: AlgorithmEntry, drafts: ParameterDrafts
   return result.ok ? [] : result.issues;
 }
 
-export interface AlgorithmRun<D extends object = DesignDocument, O = RunOutcome> {
+export interface AlgorithmRun<D extends object = DesignDocumentV2, O = RunOutcomeV2> {
   readonly algorithmId: string;
   readonly label: string;
   /** The exact document object the algorithm ran on. */
@@ -107,18 +104,6 @@ export interface AttributesVersion {
 
 /** A run against the stored schema-v2 document (the app after Gate 1). */
 export type AlgorithmRunV2 = AlgorithmRun<DesignDocumentV2, RunOutcomeV2>;
-
-/** Run once. Never changes `doc`; a failure is reported in `outcome`. */
-export function runEntry(version: DocumentVersion, project: ActiveToolkit, entry: AlgorithmEntry, drafts: ParameterDrafts): AlgorithmRun {
-  const { doc, revision } = version;
-  return {
-    algorithmId: entry.id,
-    label: entry.label,
-    doc,
-    revision,
-    outcome: runAlgorithm(doc, project, entry.id, draftsToParameters(entry, drafts)),
-  };
-}
 
 /**
  * The host's resolution of a document (the design port's `spatial`: resolved WITH the scenario's
@@ -213,7 +198,7 @@ export interface PreviewSummary {
 
 /** What a validated preview changes, read from its operations and its before/after documents. */
 export function describePreview(
-  preview: Pick<TransformationPreview | TransformationPreviewV2, 'operations'> & {
+  preview: Pick<TransformationPreviewV2, 'operations'> & {
     readonly before: {
       readonly nodes: readonly { readonly id: string; readonly attributes: Attributes }[];
       readonly edges?: readonly { readonly id: string; readonly source: string; readonly target: string; readonly attributes: Attributes }[];
@@ -260,33 +245,18 @@ export function describePreview(
   };
 }
 
-export type ApplyOutcome<D extends object = DesignDocument> =
+export type ApplyOutcome<D extends object = DesignDocumentV2> =
   | { readonly ok: true; readonly doc: D }
   | { readonly ok: false; readonly reason: 'stale' | 'no-document' | 'needs-confirmation'; readonly message: string };
-
-/**
- * Applying a preview replaces the document with the preview's already-validated result in one
- * step. It is refused unless the current document is the exact document, at the exact revision
- * (`ranAt`), that the preview was computed from: any edit, undo, redo, load or earlier apply makes
- * a preview stale, and running the algorithm again is the new validation step.
- */
-export function applyPreview(current: DocumentVersion | null, preview: TransformationPreview, ranAt: number): ApplyOutcome {
-  if (current === null) return { ok: false, reason: 'no-document', message: 'No design is open.' };
-  if (current.doc !== preview.before || current.revision !== ranAt) {
-    return {
-      ok: false,
-      reason: 'stale',
-      message: 'The design has changed since this preview was computed, so it was not applied. Run the algorithm again.',
-    };
-  }
-  return { ok: true, doc: preview.after };
-}
 
 
 export const formatValue = (value: AttributeValue | undefined): string => (value === undefined ? '—' : JSON.stringify(value));
 
 /**
- * Schema-v2 apply: the same atomic, stale-checked replacement as `applyPreview`. In addition, a
+ * Applying a preview replaces the document with the preview's already-validated result in one
+ * step. It is refused unless the current document is the exact document, at the exact revision
+ * (`ranAt`), that the preview was computed from: any edit, undo, redo, load or earlier apply makes
+ * a preview stale, and running the algorithm again is the new validation step. In addition, a
  * preview whose new rooms take cells of generated connectors (`displacedRoutes`) is applied only
  * after the user chose "Move anyway and recalculate" (`confirmRouteDisplacement`); never silently.
  */

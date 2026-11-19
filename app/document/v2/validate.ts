@@ -4,7 +4,6 @@ import { gridKey } from '@core/spatial';
 import { DEFAULT_LIMITS, type GraphLimits } from '../constants';
 import { fail, issue, ok, type GraphIssue, type IssueCode, type Result } from '../errors';
 import { SPATIAL_GRAPH_POLICY } from '../graph';
-import type { ValidationOptions } from '../validate';
 import { MAX_ROOM_CELLS, SCHEMA_VERSION_V2 } from './constants';
 import { footprintBox, footprintCellCount, footprintCells } from './footprint';
 import { designDocumentV2Schema, type DesignDocumentV2 } from './schema';
@@ -19,7 +18,13 @@ import { designDocumentV2Schema, type DesignDocumentV2 } from './schema';
  * by app/spatial and is never a validation error.
  */
 
-export interface ValidationOptionsV2 extends ValidationOptions {
+export interface ValidationOptionsV2 {
+  /**
+   * Optional node-type registry. When supplied, every node's `typeId` must be in it.
+   * When omitted, only the typeId format is checked.
+   */
+  readonly knownTypeIds?: Iterable<string>;
+  readonly limits?: Partial<GraphLimits>;
   /** Total occupied room cells (default MAX_ROOM_CELLS). */
   readonly maxCells?: number;
 }
@@ -45,7 +50,7 @@ function byLocation(issues: readonly GraphIssue[]): GraphIssue[] {
 const mapZodIssues = (issues: readonly zcore.$ZodIssue[]): GraphIssue[] =>
   issues.map((zi) => issue(zi.path.map((p) => (typeof p === 'symbol' ? String(p) : p)), 'schema', zi.message));
 
-/** Validate an unknown value as a schema-v2 document. Never throws. Does NOT accept v1 (use readDesign). */
+/** Validate an unknown value as a schema-v2 document (the only document format). Never throws. */
 export function validateDocumentV2(input: unknown, options: ValidationOptionsV2 = {}): Result<DesignDocumentV2> {
   if (typeof input === 'object' && input !== null && !Array.isArray(input) && 'schemaVersion' in input) {
     const version = (input as { schemaVersion: unknown }).schemaVersion;
@@ -54,8 +59,7 @@ export function validateDocumentV2(input: unknown, options: ValidationOptionsV2 
         issue(
           ['schemaVersion'],
           'unsupported-schema-version',
-          `unsupported schemaVersion ${JSON.stringify(version)}; this validator reads version ${SCHEMA_VERSION_V2} ` +
-            '(version 1 files are read through readDesign, which migrates them)',
+          `unsupported schemaVersion ${JSON.stringify(version)}; this application reads version ${SCHEMA_VERSION_V2} only`,
         ),
       ]);
     }

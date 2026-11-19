@@ -1,15 +1,16 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { resolveFaces } from '@app/building';
-import { applyGraphCommand, parseDesignJson, serializeDesign, type DesignDocument, type GraphCommand } from '@app/document';
+import { applyDesignCommand, resolveRelationships, type DesignCommand } from '@app/spatial';
+import { readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
+import { resolveBuildingFaces, toResolvedFace } from '@app/building';
 import { expectOk } from '@app/document/test-fixtures';
-import { type ActiveToolkit, type TransformationPreview } from '@app/extensions';
+import { type ActiveToolkit, type TransformationPreviewV2 } from '@app/extensions';
 import { galleryToolkit } from '@app/extensions/test-toolkit';
 import { NO_SELECTION, reconcileSelection, selectEdge, selectNode } from '@core/viewer/selection';
-import builtInText from '../document/examples/two-storey-example.json?raw';
-import { applyPreview, isStale, listAlgorithms, runEntry } from './algorithmSession';
+import builtInText from '../document/test-designs/two-storey.json?raw';
+import { applyPreviewV2, isStale, listAlgorithms, runEntryV2 } from './algorithmSession';
 import {
-  applyCommand,
-  commandLabel,
+  applyDesignCommandToSession,
+  designCommandLabel,
   commitDocument,
   currentDocument,
   documentSignature,
@@ -23,18 +24,18 @@ import {
 } from './documentSession';
 import { canRedo, canUndo, HISTORY_LIMIT, redoLabel, undoLabel } from './history';
 
-const builtIn = expectOk(parseDesignJson(builtInText));
+const builtIn = expectOk(readDesignJson(builtInText)).doc;
 let example: ActiveToolkit;
 
 beforeAll(async () => {
   example = await galleryToolkit();
 });
 
-const open = (doc: DesignDocument = builtIn) => openDocument(doc, 'test', null);
+const open = (doc: DesignDocumentV2 = builtIn) => openDocument(doc, 'test', null);
 
 /** Apply a command that must succeed; returns the new session. */
-function edit(session: DocumentSession, command: GraphCommand): DocumentSession {
-  const outcome = applyCommand(session, command);
+function edit(session: DocumentSession, command: DesignCommand): DocumentSession {
+  const outcome = applyDesignCommandToSession(session, command);
   if (!outcome.ok) throw new Error(outcome.issues.map((i) => i.message).join('; '));
   return outcome.session;
 }
@@ -42,15 +43,16 @@ function edit(session: DocumentSession, command: GraphCommand): DocumentSession 
 const doc = currentDocument;
 const nodeIds = (s: DocumentSession) => doc(s).nodes.map((n) => n.id);
 
-/** Run an example-gallery transformation on the session's current version. */
+/** Run a gallery test toolkit transformation on the session's current version. */
 function previewOf(session: DocumentSession, algorithmId: string) {
   const entry = listAlgorithms(example).find((a) => a.id === algorithmId)!;
-  const run = runEntry(versionOf(session), example, entry, {});
+  const run = runEntryV2(versionOf(session), example, entry, {});
   if (!run.outcome.ok || run.outcome.value.kind !== 'transformation') throw new Error('expected a transformation');
-  return { run, preview: run.outcome.value.preview as TransformationPreview };
+  return { run, preview: run.outcome.value.preview as TransformationPreviewV2 };
 }
 
-const wallBetween = (d: DesignDocument, a: string, b: string) =>
+const resolveFaces = (d: DesignDocumentV2) => resolveBuildingFaces(d, resolveRelationships(d)).map(toResolvedFace);
+const wallBetween = (d: DesignDocumentV2, a: string, b: string) =>
   resolveFaces(d).find((f) => [f.ownerNodeId, f.neighbourNodeId].sort().join() === [a, b].sort().join())!.condition;
 
 function deepFreeze<T>(value: T): T {
@@ -65,30 +67,30 @@ describe('document signature', () => {
   it('is deterministic and independent of object key order, but not of node/edge order', () => {
     const reordered = JSON.parse(builtInText) as { nodes: { attributes: Record<string, unknown> }[] };
     reordered.nodes[0]!.attributes = { public: true, daylight: 'high' }; // same content, other key order
-    const twin = expectOk(parseDesignJson(JSON.stringify(reordered)));
+    const twin = expectOk(readDesignJson(JSON.stringify(reordered))).doc;
     expect(twin).not.toBe(builtIn);
     expect(documentSignature(twin)).toBe(documentSignature(builtIn));
     expect(documentSignature(builtIn)).toBe(documentSignature(builtIn));
 
-    const changed = expectOk(applyGraphCommand(builtIn, { type: 'set-diagram-position', nodeId: 'store', position: [361, 300] }));
+    const changed = expectOk(applyDesignCommand(builtIn, { type: 'set-diagram-position', nodeId: 'store', position: [361, 300] }));
     expect(documentSignature(changed)).not.toBe(documentSignature(builtIn));
 
     const swapped = JSON.parse(builtInText) as { nodes: unknown[] };
     swapped.nodes.reverse();
-    expect(documentSignature(expectOk(parseDesignJson(JSON.stringify(swapped))))).not.toBe(documentSignature(builtIn));
+    expect(documentSignature(expectOk(readDesignJson(JSON.stringify(swapped))).doc)).not.toBe(documentSignature(builtIn));
   });
 });
 
 describe('every supported edit is one undoable step', () => {
-  const cases: readonly (readonly [string, readonly GraphCommand[]])[] = [
+  const cases: readonly (readonly [string, readonly DesignCommand[]])[] = [
     ['add node', [{ type: 'add-node', node: { id: 'n1', grid: [2, 0, 0], typeId: 'gallery', attributes: {} }, diagramPosition: [500, 140] }]],
     ['delete node', [{ type: 'remove-node', nodeId: 'store' }]],
-    ['add edge', [{ type: 'add-edge', edge: { id: 'e1', source: 'reading-gallery', target: 'store', kind: 'door' } }]],
+    ['add edge', [{ type: 'add-edge', edge: { id: 'e1', source: 'reading-gallery', target: 'store', kind: 'access' } }]],
     ['delete edge', [{ type: 'remove-edge', edgeId: 'upper-door' }]],
     ['change edge', [{ type: 'change-edge-kind', edgeId: 'upper-door', kind: 'open' }]],
     ['node type', [{ type: 'set-node-type', nodeId: 'store', typeId: 'studio' }]],
     ['attributes', [{ type: 'set-node-attributes', nodeId: 'store', attributes: { daylight: 'low', public: false } }]],
-    ['grid move', [{ type: 'remove-edge', edgeId: 'studio-to-store' }, { type: 'move-node', nodeId: 'store', grid: [2, 1, 0] }]],
+    ['grid move', [{ type: 'remove-edge', edgeId: 'studio-to-store' }, { type: 'set-node-geometry', nodeId: 'store', grid: [2, 1, 0] }]],
     ['diagram drag', [{ type: 'set-diagram-position', nodeId: 'store', position: [10, 20] }]],
   ];
 
@@ -102,7 +104,7 @@ describe('every supported edit is one undoable step', () => {
         docs.push(doc(s));
       }
       expect(s.history.past).toHaveLength(commands.length);
-      expect(undoLabel(s.history)).toBe(commandLabel(commands[commands.length - 1]!));
+      expect(undoLabel(s.history)).toBe(designCommandLabel(commands[commands.length - 1]!, docs[docs.length - 2]!));
       expect(isModified(s)).toBe(true);
       // Undo walks back through the exact snapshots; redo walks forward again.
       for (let i = commands.length - 1; i >= 0; i--) {
@@ -123,7 +125,7 @@ describe('every supported edit is one undoable step', () => {
     const deleted = edit(open(), { type: 'remove-node', nodeId: 'studio-ground' });
     expect(doc(deleted).edges.map((e) => e.id)).toEqual(['entry-to-reading', 'entry-up', 'upper-door']);
     const restored = undoDocument(deleted);
-    expect(serializeDesign(doc(restored))).toBe(serializeDesign(builtIn));
+    expect(serializeDesignV2(doc(restored))).toBe(serializeDesignV2(builtIn));
     expect(doc(restored).edges.filter((e) => e.source === 'studio-ground' || e.target === 'studio-ground').map((e) => e.id)).toEqual([
       'entry-to-studio',
       'studio-to-store',
@@ -138,7 +140,7 @@ describe('every supported edit is one undoable step', () => {
     expect(doc(undoDocument(s)).diagram.positions['store']).toEqual([360, 300]);
     expect(doc(undoDocument(s)).nodes.find((n) => n.id === 'store')!.grid).toEqual([1, 1, 0]);
     // A drag that ends where it started is a no-op.
-    const back = applyCommand(s, { type: 'set-diagram-position', nodeId: 'store', position: [10, 20] });
+    const back = applyDesignCommandToSession(s, { type: 'set-diagram-position', nodeId: 'store', position: [10, 20] });
     expect(back.ok && back.changed).toBe(false);
   });
 });
@@ -146,16 +148,16 @@ describe('every supported edit is one undoable step', () => {
 describe('failed and no-op commands are not recorded', () => {
   it('an invalid command leaves the session and history untouched', () => {
     const s = edit(open(), { type: 'set-diagram-position', nodeId: 'store', position: [1, 1] });
-    const outcome = applyCommand(s, { type: 'add-edge', edge: { id: 'bad', source: 'entry-gallery', target: 'gallery-upper', kind: 'door' } });
+    const outcome = applyDesignCommandToSession(s, { type: 'add-edge', edge: { id: 'bad', source: 'entry-gallery', target: 'ghost', kind: 'access' } });
     expect(outcome.ok).toBe(false);
-    expect(applyCommand(s, { type: 'remove-node', nodeId: 'missing' }).ok).toBe(false);
+    expect(applyDesignCommandToSession(s, { type: 'remove-node', nodeId: 'missing' }).ok).toBe(false);
     expect(s.history.past).toHaveLength(1);
     expect(canRedo(s.history)).toBe(false);
   });
 
   it('a command that produces identical content returns the same session (no step, no redo loss)', () => {
     const s = undoDocument(edit(open(), { type: 'set-node-type', nodeId: 'store', typeId: 'studio' }));
-    const same = applyCommand(s, { type: 'set-node-attributes', nodeId: 'store', attributes: { public: false, daylight: null } });
+    const same = applyDesignCommandToSession(s, { type: 'set-node-attributes', nodeId: 'store', attributes: { public: false, daylight: null } });
     expect(same.ok && same.session).toBe(s);
     expect(same.ok && same.changed).toBe(false);
     expect(canRedo(s.history)).toBe(true);
@@ -183,7 +185,7 @@ describe('failed and no-op commands are not recorded', () => {
 
 describe('clean-state tracking', () => {
   it('follows the last loaded or exported content across edits, undo, redo and exports', () => {
-    const at = (n: number): GraphCommand => ({ type: 'set-diagram-position', nodeId: 'store', position: [n, 0] });
+    const at = (n: number): DesignCommand => ({ type: 'set-diagram-position', nodeId: 'store', position: [n, 0] });
     let s = open();
     expect(isModified(s)).toBe(false);
     s = edit(s, at(1));
@@ -238,7 +240,7 @@ describe('transformations and previews', () => {
   it('one Apply is one history step, regardless of its operation count, and undo/redo change the opening', () => {
     const s0 = open();
     const { run, preview } = previewOf(s0, 'connect-storage-to-galleries');
-    const applied = applyPreview(versionOf(s0), preview, run.revision);
+    const applied = applyPreviewV2(versionOf(s0), preview, run.revision);
     if (!applied.ok) throw new Error(applied.message);
     const s1 = commitDocument(s0, applied.doc, `Apply “${run.label}”`);
     expect(s1.history.past).toHaveLength(1);
@@ -253,10 +255,10 @@ describe('transformations and previews', () => {
     let many = builtIn;
     for (const command of [
       { type: 'add-node', node: { id: 'n1', grid: [2, 0, 0], typeId: 'gallery', attributes: {} } },
-      { type: 'add-edge', edge: { id: 'e1', source: 'studio-ground', target: 'n1', kind: 'door' } },
+      { type: 'add-edge', edge: { id: 'e1', source: 'studio-ground', target: 'n1', kind: 'access' } },
       { type: 'set-node-attributes', nodeId: 'store', attributes: { daylight: 'low', public: false } },
-    ] satisfies GraphCommand[]) {
-      many = expectOk(applyGraphCommand(many, command));
+    ] satisfies DesignCommand[]) {
+      many = expectOk(applyDesignCommand(many, command));
     }
     const atomic = commitDocument(s0, many, 'Apply “many”');
     expect(atomic.history.past).toHaveLength(1);
@@ -270,22 +272,22 @@ describe('transformations and previews', () => {
 
     const undone = undoDocument(s0);
     expect(isStale(run, versionOf(undone))).toBe(true);
-    expect(applyPreview(versionOf(undone), preview, run.revision)).toMatchObject({ ok: false, reason: 'stale' });
+    expect(applyPreviewV2(versionOf(undone), preview, run.revision)).toMatchObject({ ok: false, reason: 'stale' });
 
     const redone = redoDocument(undone);
     expect(doc(redone)).toBe(doc(s0)); // the identical snapshot…
     expect(isStale(run, versionOf(redone))).toBe(true); // …but the result is still stale
-    expect(applyPreview(versionOf(redone), preview, run.revision)).toMatchObject({ ok: false, reason: 'stale' });
+    expect(applyPreviewV2(versionOf(redone), preview, run.revision)).toMatchObject({ ok: false, reason: 'stale' });
 
     // Running again (the new validation step) makes it applicable.
     const again = previewOf(redone, 'daylight-from-exposure');
-    expect(applyPreview(versionOf(redone), again.preview, again.run.revision).ok).toBe(true);
+    expect(applyPreviewV2(versionOf(redone), again.preview, again.run.revision).ok).toBe(true);
   });
 
   it('an analysis becomes stale on edits, undo and redo', () => {
     const s0 = open();
     const entry = listAlgorithms(example).find((a) => a.id === 'access-depth')!;
-    const run = runEntry(versionOf(s0), example, entry, { start: 'store' });
+    const run = runEntryV2(versionOf(s0), example, entry, { start: 'store' });
     const s1 = edit(s0, { type: 'remove-edge', edgeId: 'upper-door' });
     expect(isStale(run, versionOf(s0))).toBe(false);
     expect(isStale(run, versionOf(s1))).toBe(true);
@@ -297,7 +299,7 @@ describe('transformations and previews', () => {
     const s0 = open();
     const { run, preview } = previewOf(s0, 'daylight-from-exposure');
     const reopened = openDocument(builtIn, 'again', s0); // same document object, new revision
-    expect(applyPreview(versionOf(reopened), preview, run.revision)).toMatchObject({ ok: false, reason: 'stale' });
+    expect(applyPreviewV2(versionOf(reopened), preview, run.revision)).toMatchObject({ ok: false, reason: 'stale' });
   });
 });
 
@@ -307,7 +309,7 @@ describe('selection after undo/redo', () => {
     expect(reconcileSelection(selectNode('n1'), doc(undoDocument(added)))).toEqual(NO_SELECTION);
     expect(reconcileSelection(selectNode('store'), doc(undoDocument(added)))).toEqual(selectNode('store'));
 
-    const removedEdge = edit(open(), { type: 'add-edge', edge: { id: 'e1', source: 'reading-gallery', target: 'store', kind: 'door' } });
+    const removedEdge = edit(open(), { type: 'add-edge', edge: { id: 'e1', source: 'reading-gallery', target: 'store', kind: 'access' } });
     expect(reconcileSelection(selectEdge('e1'), doc(undoDocument(removedEdge)))).toEqual(NO_SELECTION);
     expect(reconcileSelection(selectEdge('e1'), doc(redoDocument(undoDocument(removedEdge))))).toEqual(selectEdge('e1'));
   });
@@ -315,7 +317,7 @@ describe('selection after undo/redo', () => {
 
 describe('StrictMode safety', () => {
   it('transitions are pure: frozen inputs are never mutated and repeated calls give equal results', () => {
-    const frozenDoc = deepFreeze(expectOk(parseDesignJson(builtInText)));
+    const frozenDoc = deepFreeze(expectOk(readDesignJson(builtInText)).doc);
     const base = deepFreeze(edit(openDocument(frozenDoc, 'frozen', null), { type: 'set-diagram-position', nodeId: 'store', position: [1, 1] }));
     const before = JSON.stringify(base);
     const transitions = [
@@ -328,7 +330,7 @@ describe('StrictMode safety', () => {
     for (const step of transitions) {
       const first = step(base);
       const second = step(base); // what React StrictMode does with an updater
-      expect(serializeDesign(doc(second))).toBe(serializeDesign(doc(first)));
+      expect(serializeDesignV2(doc(second))).toBe(serializeDesignV2(doc(first)));
       expect({ ...second, history: null }).toEqual({ ...first, history: null });
       expect(second.history.past.length).toBe(first.history.past.length);
     }

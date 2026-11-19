@@ -1,8 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import exampleJson from '../../document/examples/two-storey-example.json';
-import { validateDocument } from '@app/document';
+import exampleJson from '../../document/test-designs/two-storey.json';
 import { expectOk } from '@app/document/test-fixtures';
 import { readDesign } from '@app/document/v2';
 import { resolveRelationships, type DesignPort } from '@app/spatial';
@@ -13,14 +12,13 @@ import { staleWallHover, WHEEL_DELTA_LINE, WHEEL_DELTA_PAGE, WHEEL_DELTA_PIXEL, 
 /** Wave 2 (D) fixes in the Plan: wheel deltaMode, stale wall hover, the open wall highlight. */
 
 const example = expectOk(readDesign(exampleJson)).doc;
-const v1Example = expectOk(validateDocument(exampleJson));
 const port: DesignPort = {
   doc: example,
   spatial: resolveRelationships(example),
   onCommand: () => ({ ok: true }),
   proposeEdit: () => ({ status: 'rejected', issues: [], collidingRooms: [] }),
 };
-const baseProps = { doc: v1Example, selection: NO_SELECTION, onSelect: () => {}, onCommand: () => ({ ok: true }) as const, design: port };
+const baseProps = { selection: NO_SELECTION, onSelect: () => {}, design: port };
 
 describe('plan wheel zoom honours deltaMode', () => {
   it('pixel deltas are unchanged; line deltas are scaled so one notch zooms like a pixel notch', () => {

@@ -1,8 +1,8 @@
 import { FACE_DIRECTIONS, FACE_DIRECTION_OFFSETS, gridKey, neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial';
-import { footprintCells, v1KindFor, type ConnectorStyle, type DesignDocumentV2, type RoomNode } from '@app/document/v2';
+import { footprintCells, type ConnectorStyle, type DesignDocumentV2, type RoomNode } from '@app/document/v2';
 import type { EdgeResolution, RoomFace, SpatialResolution } from '@app/spatial';
 import type { FaceCondition, ResolvedFace } from './contracts';
-import { directionOrientation } from './resolve';
+import { connectionCondition, directionOrientation } from './resolve';
 
 /**
  * Schema-v2 face resolution for MULTI-CELL rooms (03-building). Pure, grid space only.
@@ -23,8 +23,8 @@ import { directionOrientation } from './resolve';
  * reserves or computes cells of its own. Shared-face portions are handled naturally because the
  * unit is one cell face: rooms with different extents share exactly the faces they touch.
  *
- * Direct relationships keep the v1 face conditions (`v1KindFor`): door / open / atrium /
- * vertical-access. To give ONE opening per relationship, an `access` edge (door or slab
+ * Direct relationships give their shared faces a connection condition (`connectionCondition`):
+ * door / open / atrium / vertical-access. To give ONE opening per relationship, an `access` edge (door or slab
  * opening) opens a single representative unit face — the lowest storey, then the middle of the
  * deterministic shared-face order; its other shared faces are solid. `open` removes the wall
  * (or voids the slab) on every shared unit face.
@@ -76,7 +76,7 @@ function directFaceConditions(resolutions: readonly EdgeResolution[]): Map<strin
   const out = new Map<string, DirectFace>();
   for (const r of resolutions) {
     if (r.status !== 'direct') continue;
-    const kind = v1KindFor(r.kind, r.contact);
+    const kind = connectionCondition(r.kind, r.contact);
     if (kind === null) continue;
     if (r.kind === 'access') {
       // Gate F: the student's preferred face (resolveWithPreferences), else the representative one.

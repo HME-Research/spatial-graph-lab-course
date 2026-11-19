@@ -1,14 +1,11 @@
 import { functionLooks, functionStyleSettings } from './index';
 import { describe, expect, it } from 'vitest';
-import exampleJson from '../examples/two-storey-example.json?raw';
-import { isFaceAdjacent } from '../adjacency';
-import { parseDesignJson, serializeDesign } from '../serialize';
-import { expectIssue, expectOk, threeRoomsRaw } from '../test-fixtures';
+import exampleJson from '../test-designs/two-storey.json?raw';
+import { expectIssue, expectOk } from '../test-fixtures';
 import {
   effectiveLook,
   styleSetupOf,
   footprintCells,
-  migrateV1toV2,
   nextDisplayId,
   nodeLabel,
   readDesign,
@@ -16,7 +13,6 @@ import {
   roomContact,
   serializeDesignV2,
   sharedFaces,
-  v1KindFor,
   validateDocumentV2,
   connectorStyleOf,
   type DesignDocumentV2,
@@ -27,62 +23,13 @@ import { v2Raw } from './test-fixtures';
 const fnLook = (doc: Pick<DesignDocumentV2, 'settings'>, typeId: string, base: { windowFraction: number }) =>
   effectiveLook(styleSetupOf(doc.settings, 'function'), { kind: 'value', value: typeId }, base);
 
-describe('v1 → v2 migration (frozen mapping)', () => {
-  const v1 = expectOk(parseDesignJson(exampleJson));
-  const v2 = migrateV1toV2(v1);
-
-  it('maps all four v1 edge kinds explicitly', () => {
-    const kinds = Object.fromEntries(v1.edges.map((e, i) => [e.kind, v2.edges[i]!.kind]));
-    expect(kinds).toEqual({ door: 'access', 'vertical-access': 'access', open: 'open', atrium: 'open' });
-  });
-
-  it('keeps ids, cells, types, attributes and diagram positions; sizes are 1×1×1', () => {
-    expect(v2.nodes.map((n) => [n.id, n.grid, n.typeId, n.attributes])).toEqual(
-      v1.nodes.map((n) => [n.id, n.grid, n.typeId, n.attributes]),
-    );
-    expect(v2.nodes.every((n) => n.size.join() === '1,1,1')).toBe(true);
-    expect(v2.edges.map((e) => [e.id, e.source, e.target, e.attributes])).toEqual(
-      v1.edges.map((e) => [e.id, e.source, e.target, e.attributes]),
-    );
-    expect(v2.diagram).toEqual(v1.diagram);
-    expect(v2.metadata).toEqual(v1.metadata);
-    expect(v2.settings).toEqual({ styleBy: 'function', styles: {} });
-    expect(v2.edges.some((e) => 'connectorStyle' in e)).toBe(false);
-  });
-
-  it('assigns display ids once, from the v1 order', () => {
-    expect(v2.nodes.map((n) => n.displayId)).toEqual(['01', '02', '03', '04', '05', '06']);
-  });
-
-  it('loses no direct-contact semantics: v1KindFor recovers every original kind', () => {
-    for (const [i, e] of v1.edges.entries()) {
-      const a = v2.nodes.find((n) => n.id === e.source)!;
-      const b = v2.nodes.find((n) => n.id === e.target)!;
-      expect(isFaceAdjacent(a.grid, b.grid)).toBe(true);
-      expect(v1KindFor(v2.edges[i]!.kind, roomContact(a, b))).toBe(e.kind);
-    }
-  });
-
-  it('is pure and deterministic', () => {
-    const before = serializeDesign(v1);
-    expect(serializeDesignV2(migrateV1toV2(v1))).toBe(serializeDesignV2(v2));
-    expect(serializeDesign(v1)).toBe(before);
-  });
-
-  it('produces a valid v2 document', () => {
-    expect(expectOk(validateDocumentV2(v2))).toEqual(v2);
-  });
-});
-
-describe('reading and writing (compatibility policy)', () => {
-  it('reads v1 (migrated) and v2, and always writes v2', () => {
-    const fromV1 = expectOk(readDesignJson(exampleJson));
-    expect(fromV1.sourceVersion).toBe(1);
-    const text = serializeDesignV2(fromV1.doc);
+describe('reading and writing', () => {
+  it('reads schema v2 and writes the same canonical text', () => {
+    const read = expectOk(readDesignJson(exampleJson));
+    const text = serializeDesignV2(read.doc);
     expect(text.startsWith('{\n  "schemaVersion": 2,')).toBe(true);
     const back = expectOk(readDesignJson(text));
-    expect(back.sourceVersion).toBe(2);
-    expect(back.doc).toEqual(fromV1.doc);
+    expect(back.doc).toEqual(read.doc);
     expect(serializeDesignV2(back.doc)).toBe(text);
   });
 
@@ -112,8 +59,8 @@ describe('reading and writing (compatibility policy)', () => {
     expect(text.indexOf('"door"')).toBeLessThan(text.indexOf('"open"'));
   });
 
-  it('reports invalid v1 input with the unchanged v1 issues', () => {
-    const raw = threeRoomsRaw();
+  it('reports invalid input with its issues', () => {
+    const raw = v2Raw();
     raw.edges[0]!.target = 'ghost';
     expectIssue(readDesign(raw), 'dangling-edge', ['edges', 0, 'target']);
   });
@@ -122,10 +69,6 @@ describe('reading and writing (compatibility policy)', () => {
     const r = readDesign({ ...v2Raw(), schemaVersion: 3 });
     expectIssue(r, 'unsupported-schema-version', ['schemaVersion']);
     expectIssue(readDesignJson('{ nope'), 'invalid-json', []);
-  });
-
-  it('leaves the v1 parser strictly v1 (golden behaviour)', () => {
-    expectIssue(parseDesignJson(JSON.stringify(v2Raw())), 'unsupported-schema-version', ['schemaVersion']);
   });
 });
 
@@ -169,8 +112,10 @@ describe('v2 validation is structural, not spatial feasibility', () => {
     expectIssue(validateDocumentV2(far), 'coordinate-out-of-range', ['nodes', 1, 'size', 0]);
   });
 
-  it('rejects a v1 document (must go through readDesign)', () => {
-    expectIssue(validateDocumentV2(threeRoomsRaw()), 'unsupported-schema-version', ['schemaVersion']);
+  it('rejects a schema-v1 document: v1 is retired and never read (P4)', () => {
+    const v1 = { ...v2Raw(), schemaVersion: 1 }; // v1 refused
+    expectIssue(validateDocumentV2(v1), 'unsupported-schema-version', ['schemaVersion']);
+    expectIssue(readDesign(v1), 'unsupported-schema-version', ['schemaVersion']);
   });
 });
 

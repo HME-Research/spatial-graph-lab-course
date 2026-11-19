@@ -264,7 +264,6 @@ describe('designer persistence and history', () => {
     const text = serializeDesignV2(doc);
     expect(text).not.toMatch(/"studio":/); // inherited types are not written
     const read = expectOk(readDesignJson(text));
-    expect(read.sourceVersion).toBe(2);
     expect(functionLooks(read.doc.settings)).toEqual({ gallery: { windowFraction: 0.35 }, kiosk: { roof: 'none' } });
     expect(serializeDesignV2(read.doc)).toBe(text);
   });
@@ -347,16 +346,16 @@ describe('DesignerPanel (static render)', () => {
     expect(html).toContain('data-diagram="repeat-stretch"');
   });
 
-  it('explains that it is unavailable without a v2 port', () => {
+  it('explains that it is unavailable without an open design', () => {
     const html = renderToStaticMarkup(createElement(DesignerPanel, {}));
-    expect(html).toMatch(/needs a schema-v2 design/);
+    expect(html).toMatch(/Open a project to style its rooms/);
     expect(html).not.toMatch(/<input/);
   });
 
   it('renders one row per type with window coverage, roof, reset and warnings', async () => {
     const project = await labToolkit();
-    const v1Placeholder = { schemaVersion: 1 as const, metadata: { name: 'x' }, nodes: [], edges: [], diagram: { positions: {} } };
-    const context = buildProjectViewContext(project, v1Placeholder);
+    const noRooms = { nodes: [] };
+    const context = buildProjectViewContext(project, noRooms);
     const doc = labDocV2({ gallery: { windowFraction: 0.35 }, kiosk: {} });
     const html = renderToStaticMarkup(
       createElement(DesignerPanel, { design: fakePort(doc), project: context, selection: selectEdge('e2'), onShowRelationship: () => {} }),
@@ -382,8 +381,8 @@ describe('DesignerPanel (static render)', () => {
 
   it('each function card has Façade and Roof subsections; façade geometry Open / Automatic / Import (Automatic by default)', async () => {
     const project = await labToolkit();
-    const v1Placeholder = { schemaVersion: 1 as const, metadata: { name: 'x' }, nodes: [], edges: [], diagram: { positions: {} } };
-    const context = buildProjectViewContext(project, v1Placeholder);
+    const noRooms = { nodes: [] };
+    const context = buildProjectViewContext(project, noRooms);
     const facades = { assets: [], add: () => ({ ok: true as const }), remove: () => ({ ok: true as const }), rename: () => ({ ok: true as const }), setMaterials: () => ({ ok: true as const }) };
     const html = renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(labDocV2({ studio: { walls: 'open' } })), project: context, facades }));
     const cards = html.split('<article').length - 1;
@@ -412,8 +411,8 @@ describe('DesignerPanel (static render)', () => {
 
   it('Import layout: façade menu and Import .3dm… on one row; Outside and Placement on one row; optional Door / Open bays', async () => {
     const project = await labToolkit();
-    const v1Placeholder = { schemaVersion: 1 as const, metadata: { name: 'x' }, nodes: [], edges: [], diagram: { positions: {} } };
-    const context = buildProjectViewContext(project, v1Placeholder);
+    const noRooms = { nodes: [] };
+    const context = buildProjectViewContext(project, noRooms);
     const A = 'facade-0123456789abcdef';
     const D = 'facade-00000000000000aa';
     const asset = (id: string, name: string) =>

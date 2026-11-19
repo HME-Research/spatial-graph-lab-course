@@ -49,10 +49,8 @@ export interface RegisteredDesign {
   /** File name without `.json`. */
   readonly id: string;
   readonly file: string;
-  /** Read with `readDesignJson`: v1 files are validated with the v1 rules, then migrated; v2 files validated as v2. */
+  /** Read and validated with `readDesignJson`. */
   readonly result: Result<DesignDocumentV2>;
-  /** Schema version of the file on disk (the file itself is never rewritten). */
-  readonly sourceVersion?: 1 | 2;
 }
 
 export interface ActiveToolkit {
@@ -192,17 +190,16 @@ export async function activateToolkit(source: ToolkitSource): Promise<Activation
   const designs: RegisteredDesign[] = [];
   for (const d of source.designs) {
     let result: Result<DesignDocumentV2>;
-    let sourceVersion: 1 | 2 | undefined;
+
     try {
       const read = readDesignJson(await d.load());
       if (read.ok) {
         result = { ok: true, value: read.value.doc };
-        sourceVersion = read.value.sourceVersion;
       } else result = read;
     } catch (error) {
       result = { ok: false, issues: [{ path: [], code: 'invalid-json', message: error instanceof Error ? error.message : String(error) }] };
     }
-    designs.push({ id: d.stem, file: d.file, result, ...(sourceVersion !== undefined && { sourceVersion }) });
+    designs.push({ id: d.stem, file: d.file, result });
     if (!result.ok) {
       diagnostics.push(
         diagnostic('invalid-design', 'error', { kind: 'file', path: d.file }, `design ${d.file} is invalid (${result.issues.length} problem${result.issues.length === 1 ? '' : 's'}) and cannot be loaded`),

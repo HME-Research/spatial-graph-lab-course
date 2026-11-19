@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import exampleJson from '../document/examples/two-storey-example.json';
-import { validateDocument, type DesignDocument, type EdgeKind } from '@app/document';
+import exampleJson from '../document/test-designs/two-storey.json';
+import { validateDocumentV2, type DesignDocumentV2, type RelationshipKind } from '@app/document/v2';
+import { resolveRelationships } from '@app/spatial';
 import { expectOk } from '@app/document/test-fixtures';
 import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
 import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
@@ -16,15 +17,17 @@ import {
   rectsAroundHole,
   type ArchitecturalElement,
 } from './geometry';
-import { resolveFaces } from './resolve';
+import { resolveBuildingFaces, toResolvedFace } from './multicellFaces';
+
+const resolveFaces = (d: DesignDocumentV2) => resolveBuildingFaces(d, resolveRelationships(d)).map(toResolvedFace);
 
 type N = [id: string, grid: [number, number, number], typeId?: string];
-type E = [id: string, source: string, target: string, kind: EdgeKind];
+type E = [id: string, source: string, target: string, kind: RelationshipKind];
 
-function doc(nodes: N[], edges: E[] = []): DesignDocument {
+function doc(nodes: N[], edges: E[] = []): DesignDocumentV2 {
   return expectOk(
-    validateDocument({
-      schemaVersion: 1,
+    validateDocumentV2({
+      schemaVersion: 2,
       metadata: { name: 'test' },
       nodes: nodes.map(([id, grid, typeId]) => ({ id, grid, typeId: typeId ?? 'gallery' })),
       edges: edges.map(([id, source, target, kind]) => ({ id, source, target, kind })),
@@ -32,7 +35,7 @@ function doc(nodes: N[], edges: E[] = []): DesignDocument {
   );
 }
 
-const build = (d: DesignDocument) => buildArchitecture(resolveFaces(d));
+const build = (d: DesignDocumentV2) => buildArchitecture(resolveFaces(d));
 const ofFace = (els: readonly ArchitecturalElement[], faceId: string) => els.filter((e) => e.faceId === faceId);
 const parts = (els: readonly ArchitecturalElement[]) => els.map((e) => e.part);
 /** Area of a box projected on the plane perpendicular to world axis `n`. */
@@ -89,7 +92,7 @@ describe('buildArchitecture', () => {
   });
 
   it('a door wall leaves a floor-level opening and selects its edge', () => {
-    const els = ofFace(build(doc([['a', [0, 0, 0]], ['b', [0, 1, 0]]], [['ab', 'a', 'b', 'door']])), 'a:+y');
+    const els = ofFace(build(doc([['a', [0, 0, 0]], ['b', [0, 1, 0]]], [['ab', 'a', 'b', 'access']])), 'a:+y');
     expect(els.length).toBe(3); // two jambs and a lintel
     expect(els.every((e) => e.part === 'wall' && e.edgeId === 'ab')).toBe(true);
     expect(els.every((e) => e.target.kind === 'edge' && e.target.id === 'ab')).toBe(true);
@@ -118,8 +121,8 @@ describe('buildArchitecture', () => {
   });
 
   it('atrium and vertical-access both open the slab but are geometrically distinct', () => {
-    const atrium = ofFace(build(doc([['a', [0, 0, 0]], ['c', [0, 0, 1]]], [['ac', 'a', 'c', 'atrium']])), 'a:+z');
-    const access = ofFace(build(doc([['a', [0, 0, 0]], ['c', [0, 0, 1]]], [['ac', 'a', 'c', 'vertical-access']])), 'a:+z');
+    const atrium = ofFace(build(doc([['a', [0, 0, 0]], ['c', [0, 0, 1]]], [['ac', 'a', 'c', 'open']])), 'a:+z');
+    const access = ofFace(build(doc([['a', [0, 0, 0]], ['c', [0, 0, 1]]], [['ac', 'a', 'c', 'access']])), 'a:+z');
 
     const slabArea = (els: ArchitecturalElement[]) => els.filter((e) => e.part === 'slab').reduce((s, e) => s + areaAcross(e, 1), 0);
     expect(W * W - slabArea(atrium)).toBeCloseTo(openingArea('atrium', 'slab'), 6);
@@ -133,14 +136,14 @@ describe('buildArchitecture', () => {
   });
 
   it('vertical-access geometry does not depend on which storey authors the slab', () => {
-    const low = build(doc([['a', [0, 0, 0]], ['b', [0, 0, 1]]], [['e', 'a', 'b', 'vertical-access']]));
-    const high = build(doc([['b', [0, 0, 0]], ['a', [0, 0, 1]]], [['e', 'a', 'b', 'vertical-access']]));
+    const low = build(doc([['a', [0, 0, 0]], ['b', [0, 0, 1]]], [['e', 'a', 'b', 'access']]));
+    const high = build(doc([['b', [0, 0, 0]], ['a', [0, 0, 1]]], [['e', 'a', 'b', 'access']]));
     const geo = (els: ArchitecturalElement[], faceId: string) => ofFace(els, faceId).map((e) => [e.part, e.position, e.size]);
     expect(geo(high, 'a:-z')).toEqual(geo(low, 'a:+z'));
   });
 
   it('element IDs are unique and output is deterministic for the example design', () => {
-    const d = expectOk(validateDocument(exampleJson));
+    const d = expectOk(validateDocumentV2(exampleJson));
     const a = build(d);
     expect(new Set(a.map((e) => e.id)).size).toBe(a.length);
     expect(build({ ...d, nodes: [...d.nodes].reverse(), edges: [...d.edges].reverse() })).toEqual(a);
@@ -158,7 +161,7 @@ describe('buildArchitecture', () => {
 });
 
 describe('selection', () => {
-  const els = build(doc([['a', [0, 0, 0]], ['b', [1, 0, 0]], ['c', [0, 1, 0]]], [['ab', 'a', 'b', 'door']]));
+  const els = build(doc([['a', [0, 0, 0]], ['b', [1, 0, 0]], ['c', [0, 1, 0]]], [['ab', 'a', 'b', 'access']]));
 
   it('faces with an edge target the edge; other faces target their owner node', () => {
     for (const e of els) expect(e.target).toEqual(e.edgeId ? selectEdge(e.edgeId) : selectNode(e.ownerNodeId));

@@ -15,9 +15,7 @@ import {
 } from './wallPanelModel';
 import { WallActionPanel } from './WallActionPanel';
 import { PlanWallView } from './PlanWallView';
-import exampleJson from '../../../document/examples/two-storey-example.json';
-import { validateDocument } from '@app/document';
-import { expectOk } from '@app/document/test-fixtures';
+import exampleJson from '../../../document/test-designs/two-storey.json';
 import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 
 /*
@@ -206,7 +204,7 @@ describe('Plan with the wall interaction (the registry Plan view)', () => {
     onCommand: () => ({ ok: true }),
     proposeEdit: () => ({ status: 'rejected', issues: [], collidingRooms: [] }),
   };
-  const baseProps = { doc: expectOk(validateDocument(exampleJson)), selection: NO_SELECTION, onSelect: () => {}, onCommand: () => ({ ok: true }) as const, design: port };
+  const baseProps = { selection: NO_SELECTION, onSelect: () => {}, design: port };
   it('offers the wall targets (reading gallery | store has no relationship)', () => {
     const html = renderToStaticMarkup(createElement(PlanWallView, baseProps));
     expect(html).toContain('data-view-surface="plan"');

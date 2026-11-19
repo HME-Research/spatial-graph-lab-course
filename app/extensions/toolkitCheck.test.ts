@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { validateDocument } from '@app/document';
-import { migrateV1toV2, type DesignDocumentV2 } from '@app/document/v2';
-import exampleDesign from '../document/examples/two-storey-example.json';
+import { type DesignDocumentV2, validateDocumentV2 } from '@app/document/v2';
+import exampleDesign from '../document/test-designs/two-storey.json';
 import { activateToolkit, type ActiveToolkit } from './activate';
 import { checkConformance } from './conformance';
 import { discoverToolkits } from './discover';
@@ -55,9 +54,9 @@ describe.each(toolkits.map((p) => [p.id, p] as const))('toolkit "%s"', (_id, sou
   it('every enabled algorithm runs on the default design with default parameters', async () => {
     const toolkit = await active();
     const chosen = toolkit.designs.find((d) => d.id === toolkit.definition.defaultDesign);
-    const builtIn = validateDocument(exampleDesign);
+    const builtIn = validateDocumentV2(exampleDesign);
     // The app runs algorithms on the stored schema-v2 document (v1 files are migrated on load).
-    const doc: DesignDocumentV2 | undefined = chosen?.result.ok ? chosen.result.value : builtIn.ok ? migrateV1toV2(builtIn.value) : undefined;
+    const doc: DesignDocumentV2 | undefined = chosen?.result.ok ? chosen.result.value : builtIn.ok ? builtIn.value : undefined;
     expect(doc).toBeDefined();
     for (const algorithm of toolkit.algorithms.filter((a) => a.status.ok)) {
       const outcome = runAlgorithmV2(doc!, toolkit, algorithm.id);

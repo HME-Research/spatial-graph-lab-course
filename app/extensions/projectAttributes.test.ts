@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readDesign, readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
 import { defineGraphAlgorithm, defineNodeType, defineToolkit, defineSpatialAlgorithm } from '@student-api';
-import exampleV1 from '../document/examples/two-storey-example.json';
+import exampleV1 from '../document/test-designs/two-storey.json';
 import { activate, type ActiveToolkit } from './activate';
 import { deriveAttributeBaseline, humanizeKey, mergeBaseline } from './attributeBaseline';
 import { algorithmReferences, applySchemaEdit, designSamples, fieldUsage, keyConflict, type EditOutcome, type SchemaEdit } from './attributeEdits';

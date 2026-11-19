@@ -1,20 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EDGE_KINDS, isVerticalKind } from '@app/document';
-import { SELECTION_COLOR } from '@core/viewer/appearance';
-import { dashIntervals, EDGE_LEGEND_ORDER, EDGE_STYLES, HORIZONTAL_EDGE_COLOR, VERTICAL_EDGE_COLOR } from './edgeStyle';
-
-describe('edge styles', () => {
-  it('distinguish vertical from horizontal kinds by colour, and kinds within a family by dash', () => {
-    for (const k of EDGE_KINDS) {
-      expect(EDGE_STYLES[k].color).toBe(isVerticalKind(k) ? VERTICAL_EDGE_COLOR : HORIZONTAL_EDGE_COLOR);
-      expect(EDGE_STYLES[k].color).not.toBe(SELECTION_COLOR);
-    }
-    expect(EDGE_STYLES.door.dashed).not.toBe(EDGE_STYLES.open.dashed);
-    expect(EDGE_STYLES.atrium.dashed).not.toBe(EDGE_STYLES['vertical-access'].dashed);
-    expect([...EDGE_LEGEND_ORDER].sort()).toEqual([...EDGE_KINDS].sort());
-    expect(EDGE_LEGEND_ORDER.slice(0, 2).every((k) => !isVerticalKind(k))).toBe(true);
-  });
-});
+import { dashIntervals } from './edgeStyle';
 
 describe('dashIntervals', () => {
   it('returns one full interval when solid', () => {

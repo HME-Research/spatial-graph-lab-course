@@ -98,7 +98,7 @@ export const connectStorage = defineSpatialAlgorithm({
         if (edgesBetween(ctx.design, room.id, other.id).length > 0) continue;
         const id = uniqueId(ctx.design, 'door', newIds);
         newIds.push(id);
-        operations.push({ op: 'add-edge', id, source: room.id, target: other.id, kind: 'door' });
+        operations.push({ op: 'add-edge', id, source: room.id, target: other.id, kind: 'access' });
       }
     }
     return { kind: 'transformation', summary: `${operations.length} door(s) added.`, operations };

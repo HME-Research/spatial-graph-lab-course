@@ -122,7 +122,7 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
     return (
       <div className="sgl-designer" aria-label="Designer">
         <p className="sgl-designer-notice">
-          The Designer needs a schema-v2 design. It becomes available once the app stores v2 documents.
+          Open a project to style its rooms.
         </p>
       </div>
     );

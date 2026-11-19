@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
 import { makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
-import exampleV1 from '../document/examples/two-storey-example.json';
+import twoStorey from '../document/test-designs/two-storey.json';
 import {
   PROJECT_FILE_FORMAT,
   createIndexedDbProjectStore,
@@ -60,7 +60,7 @@ const attributeRecord = () =>
   JSON.parse(
     serializeAttributeRecord(
       makeAttributeRecord(
-        'example-gallery',
+        'gallery',
         { nodes: [{ id: 'area', key: 'area', label: 'Area', kind: 'number', min: 0 }], edges: [], nodeTypeDefaults: {} },
         'files-signature',
         '2026-11-16T09:00:00.000Z',
@@ -78,7 +78,7 @@ function twoScenarioState(): ProjectState {
       description: 'Two options',
       createdAt: '2026-11-16T09:00:00.000Z',
       updatedAt: '2026-11-16T10:00:00.000Z',
-      toolkit: { id: 'example-gallery' },
+      toolkit: { id: 'gallery' },
       attributes: attributeRecord(),
       settings: { display: { labels: true, legend: false, roofs: true, colourPreset: 'neutral', lighting: 'soft' } },
       assets: { policy: 'none' },
@@ -135,17 +135,11 @@ describe('project file', () => {
     ]);
   });
 
-  it('migrates a version 1 file: definition { projectId } becomes toolkit { id }; written back as version 2', () => {
+  it('reads only format version 2: an older project file is refused, not migrated (P4)', () => {
     const current = JSON.parse(serializeProjectFile(validFile())) as Record<string, unknown>;
     const { toolkit, ...rest } = current;
     const v1 = { ...rest, version: 1, definition: toolkit === null ? null : { projectId: (toolkit as { id: string }).id } };
-    const read = okValue(readProjectFile(JSON.stringify(v1)));
-    expect(read.version).toBe(2);
-    expect(read.toolkit).toEqual(toolkit);
-    expect(serializeProjectFile(read)).toBe(serializeProjectFile(validFile()));
-    expect(okValue(readProjectFile({ ...v1, definition: null })).toolkit).toBeNull();
-    // A version 1 file that already uses the version 2 key is not silently accepted.
-    expect(codes(readProjectFile({ ...rest, version: 1, toolkit }))).toContain('schema');
+    expect(codes(readProjectFile(JSON.stringify(v1)))).toEqual(['unsupported-version']);
   });
 
   it('reads text and parsed values alike', () => {
@@ -236,8 +230,8 @@ describe('legacy design import', () => {
     return { newId: () => 'proj-new', newScenarioId: () => `scn-${++n}`, now: () => '2026-11-16T12:00:00.000Z' };
   };
 
-  it('wraps a schema v1 design into one scenario "Scenario 1" (migrated to v2)', () => {
-    const file = okValue(projectFromLegacyDesign(exampleV1, { ...ids(), toolkit: { id: 'example-gallery' } }));
+  it('wraps a design into one scenario "Scenario 1"', () => {
+    const file = okValue(projectFromLegacyDesign(twoStorey, { ...ids(), toolkit: { id: 'gallery' } }));
     expect(file.projectId).toBe('proj-new');
     expect(file.name).toBe('Two-storey example');
     expect(file.scenarios).toHaveLength(1);
@@ -245,7 +239,7 @@ describe('legacy design import', () => {
     expect(file.scenarios[0]!.design.schemaVersion).toBe(2);
     expect(file.activeScenarioId).toBe('scn-1');
     expect(file.createdAt).toBe('2026-11-16T12:00:00.000Z');
-    expect(file.toolkit).toEqual({ id: 'example-gallery' });
+    expect(file.toolkit).toEqual({ id: 'gallery' });
   });
 
   it('wraps a schema v2 design and keeps it exactly', () => {
@@ -256,7 +250,7 @@ describe('legacy design import', () => {
 
   it('refuses an invalid design or an invalid injected id', () => {
     expect(codes(projectFromLegacyDesign({ schemaVersion: 2, nodes: 'x' }, ids()))).toContain('invalid-design');
-    expect(codes(projectFromLegacyDesign(exampleV1, { ...ids(), newId: () => 'not an id!' }))).toContain('schema');
+    expect(codes(projectFromLegacyDesign(twoStorey, { ...ids(), newId: () => 'not an id!' }))).toContain('schema');
   });
 });
 
@@ -345,7 +339,7 @@ describe('project store', () => {
   it('a wrong-format file never replaces the current state', () => {
     let current: ProjectFileV2 = validFile();
     const before = serializeProjectFile(current);
-    const attributeFile = serializeAttributeRecord(makeAttributeRecord('example-gallery', { nodes: [], edges: [], nodeTypeDefaults: {} }, 'x'));
+    const attributeFile = serializeAttributeRecord(makeAttributeRecord('gallery', { nodes: [], edges: [], nodeTypeDefaults: {} }, 'x'));
     for (const text of [attributeFile, JSON.stringify(designA()), 'not json', JSON.stringify({ ...rawFile(), version: 9 })]) {
       const read = readProjectFile(text);
       if (read.ok) current = read.value;
@@ -410,7 +404,7 @@ describe('project store', () => {
     store.records.set('bad', 'x');
     const list = await store.list();
     expect(list.map((s) => s.projectId)).toEqual(['new', 'mid', 'old', 'bad']);
-    expect(list[0]).toMatchObject({ status: 'ok', name: 'new', scenarioCount: 2, toolkitId: 'example-gallery' });
+    expect(list[0]).toMatchObject({ status: 'ok', name: 'new', scenarioCount: 2, toolkitId: 'gallery' });
   });
 
   it('reports missing IndexedDB as unavailable without throwing', async () => {

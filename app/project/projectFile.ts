@@ -18,7 +18,7 @@ import { toolkitIdSchema } from '@app/extensions/discover';
 import { canonicalFacadeAsset, FACADE_LIMITS, facadeAssetsBytes, formatBytes, readFacadeAsset, type FacadeAssetV1 } from '@app/assets';
 
 /**
- * Project file v1 (Gate F, F-B; root-owned). Pure.
+ * Project file (format version 2; Gate F, F-B; root-owned). Pure.
  *
  * One local project = several scenarios (complete design alternatives) + the project-wide
  * attribute record + project display defaults. This is the JSON that is exported/imported and the
@@ -61,7 +61,7 @@ export interface ProjectFileV2 {
   readonly createdAt: string;
   /** ISO 8601. */
   readonly updatedAt: string;
-  /** The toolkit (`toolkits/<id>`) the project was started from, supplying its types and algorithms: referenced, never embedded. Version 1 files called this `definition: { projectId }`. */
+  /** The toolkit (`toolkits/<id>`) the project was started from, supplying its types and algorithms: referenced, never embedded. */
   readonly toolkit: { readonly id: string } | null;
   /**
    * The project-attribute record (`exportAttributeFile` shape, `app/extensions/projectAttributes.ts`),
@@ -233,18 +233,6 @@ const projectShape = z.strictObject({
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 /**
- * Version 1 → 2 (toolkit terminology, 17 November 2026): `definition: { projectId } | null` became
- * `toolkit: { id } | null`; nothing else changed. Unrecognised shapes are passed through renamed
- * so the version 2 schema reports them. Pure: the input is not modified.
- */
-function migrateProjectFileV1(raw: Record<string, unknown>): Record<string, unknown> {
-  const { definition, ...rest } = raw;
-  const toolkit = isRecord(definition) && Object.keys(definition).length === 1 && 'projectId' in definition ? { id: definition.projectId } : definition;
-  // A version 1 file's toolkit comes only from `definition` (a missing one is reported as missing).
-  return { ...rest, version: PROJECT_FILE_VERSION, toolkit };
-}
-
-/**
  * Read a project file from JSON text or an already parsed value. Never throws. On success the
  * returned file is a fresh, normalised copy (designs as v2, canonical attribute record).
  */
@@ -260,10 +248,9 @@ export function readProjectFile(input: unknown): ProjectResult<ProjectFileV2> {
   if (!isRecord(raw) || raw.format !== PROJECT_FILE_FORMAT) {
     return fail([projectIssue(['format'], 'wrong-format', `not a Spatial Graph Lab project file (format must be "${PROJECT_FILE_FORMAT}")`)]);
   }
-  if (raw.version === 1) raw = migrateProjectFileV1(raw);
-  if (!isRecord(raw) || raw.version !== PROJECT_FILE_VERSION) {
+  if (raw.version !== PROJECT_FILE_VERSION) {
     return fail([
-      projectIssue(['version'], 'unsupported-version', `unsupported project file version ${JSON.stringify(isRecord(raw) ? raw.version : undefined)}; this application reads versions 1 and ${PROJECT_FILE_VERSION}`),
+      projectIssue(['version'], 'unsupported-version', `unsupported project file version ${JSON.stringify(raw.version)}; this application reads version ${PROJECT_FILE_VERSION} only`),
     ]);
   }
   if (!('attributes' in raw)) return fail([projectIssue(['attributes'], 'schema', 'attributes is required (null when not customised)')]);
@@ -477,7 +464,7 @@ export interface LegacyImportOptions extends IdClockOptions {
 }
 
 /**
- * Wrap a design file (schema v1 or v2 JSON value, read through `readDesign`) into a new project
+ * Wrap a design file (a JSON value, read through `readDesign`) into a new project
  * with one scenario "Scenario 1". The result is validated as a whole project file.
  */
 export function projectFromLegacyDesign(design: unknown, options: LegacyImportOptions = {}): ProjectResult<ProjectFileV2> {

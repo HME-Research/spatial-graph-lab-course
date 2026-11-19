@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyGraphCommand, serializeDesign, type GraphNode } from '@app/document';
+import { applyDesignCommand } from '@app/spatial';
+import { serializeDesignV2, type RoomNode } from '@app/document/v2';
 import { expectOk } from '@app/document/test-fixtures';
 import { checkConformance } from '@app/extensions';
 import { galleryType, labDoc, labToolkit, studioType } from '@app/extensions/test-fixtures';
@@ -20,7 +21,7 @@ function parsed<T>(r: ParseResult<T>): T {
   if (!r.ok) throw new Error(r.message);
   return r.value;
 }
-const node = (id: string): GraphNode => labDoc().nodes.find((n) => n.id === id)!;
+const node = (id: string): RoomNode => labDoc().nodes.find((n) => n.id === id)!;
 
 describe('typed attribute fields', () => {
   it('one field per declared attribute, with status, default hint and description', () => {
@@ -60,7 +61,7 @@ describe('typed attribute edits', () => {
     const g2 = doc.nodes.find((n) => n.id === 'g2')!;
     const command = parsed(setTypedAttributeCommand(g2, gallerySpecs, 'public', false));
     expect(command).toEqual({ type: 'set-node-attributes', nodeId: 'g2', attributes: { daylight: 'bright', legacy: 'kept', public: false } });
-    const next = expectOk(applyGraphCommand(doc, command));
+    const next = expectOk(applyDesignCommand(doc, command));
     expect(next.nodes.find((n) => n.id === 'g2')!.attributes).toEqual({ daylight: 'bright', legacy: 'kept', public: false });
   });
 
@@ -69,9 +70,9 @@ describe('typed attribute edits', () => {
     const doc = labDoc();
     expect(checkConformance(doc, project).map((d) => d.id)).toContain('invalid-attribute-value|node:g2|daylight');
     const g2 = doc.nodes.find((n) => n.id === 'g2')!;
-    const next = expectOk(applyGraphCommand(doc, parsed(setTypedAttributeCommand(g2, gallerySpecs, 'daylight', 'low'))));
+    const next = expectOk(applyDesignCommand(doc, parsed(setTypedAttributeCommand(g2, gallerySpecs, 'daylight', 'low'))));
     expect(next.nodes.find((n) => n.id === 'g2')!.attributes).toEqual({ daylight: 'low', legacy: 'kept' });
-    expect(serializeDesign(next)).toContain('"daylight": "low"');
+    expect(serializeDesignV2(next)).toContain('"daylight": "low"');
     expect(checkConformance(next, project).map((d) => d.id)).not.toContain('invalid-attribute-value|node:g2|daylight');
   });
 

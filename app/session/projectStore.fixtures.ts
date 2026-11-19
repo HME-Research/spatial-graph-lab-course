@@ -31,7 +31,7 @@ let seq = 0;
 export const fixtureIds = () => ({ newId: () => `project-f${++seq}`, newScenarioId: () => `scenario-f${++seq}`, now: () => '2026-11-16T10:00:00.000Z' });
 
 export function fileOf(doc: DesignDocumentV2 = twoRooms()): ProjectFileV2 {
-  const r = newProjectFromDesign(doc, { ...fixtureIds(), name: 'Test project', toolkit: { id: 'example-gallery' } });
+  const r = newProjectFromDesign(doc, { ...fixtureIds(), name: 'Test project', toolkit: { id: 'gallery' } });
   if (!r.ok) throw new Error(JSON.stringify(r.issues));
   return r.value;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { validateDocumentV2, serializeDesignV2 } from '@app/document/v2';
 import { exampleFacadeProvider } from '@app/building';
-import { serializeDesign, validateDocument } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
 import { typeColor } from '@core/viewer/appearance';
 import { checkValue, effectiveAttributes } from './attributes';
@@ -74,7 +74,7 @@ describe('conformance', () => {
     const ids = (d: typeof doc) => checkConformance(d, project).map((x) => x.id).sort();
     const reordered = { ...doc, nodes: [...doc.nodes].reverse() };
     const extended = expectOk(
-      validateDocument({ ...doc, nodes: [{ id: 'aa', grid: [9, 9, 0], typeId: 'studio', attributes: {} }, ...doc.nodes] }),
+      validateDocumentV2({ ...doc, nodes: [{ id: 'aa', grid: [9, 9, 0], typeId: 'studio', attributes: {} }, ...doc.nodes] }),
     );
     expect(ids(reordered)).toEqual(ids(doc));
     expect(ids(extended)).toEqual(ids(doc));
@@ -83,9 +83,9 @@ describe('conformance', () => {
   it('never changes the document', async () => {
     const project = await labToolkit();
     const doc = labDoc();
-    const before = serializeDesign(doc);
+    const before = serializeDesignV2(doc);
     checkConformance(doc, project);
-    expect(serializeDesign(doc)).toBe(before);
+    expect(serializeDesignV2(doc)).toBe(before);
   });
 });
 

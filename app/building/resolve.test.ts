@@ -1,17 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import exampleJson from '../document/examples/two-storey-example.json';
-import { addEdge, changeEdgeKind, removeNode, validateDocument, type DesignDocument, type EdgeKind } from '@app/document';
+import exampleJson from '../document/test-designs/two-storey.json';
 import { expectOk, threeRooms } from '@app/document/test-fixtures';
+import { validateDocumentV2, type DesignDocumentV2, type RelationshipKind } from '@app/document/v2';
+import { applyDesignCommand, resolveRelationships, type DesignCommand } from '@app/spatial';
 import { FACE_DIRECTIONS, type ResolvedFace } from './contracts';
-import { buildCellIndex, neighbourSlots, resolveFaces } from './resolve';
+import { resolveBuildingFaces, toResolvedFace } from './multicellFaces';
+import { connectionCondition } from './resolve';
+
+/**
+ * Face resolution of one-cell rooms (acceptance tests C–F and J of docs/ARCHITECTURE.md), through
+ * the room face resolver the Building and the Plan use.
+ */
+const resolveFaces = (d: DesignDocumentV2): ResolvedFace[] => resolveBuildingFaces(d, resolveRelationships(d)).map(toResolvedFace);
+const apply = (d: DesignDocumentV2, command: DesignCommand) => expectOk(applyDesignCommand(d, command));
 
 type N = [id: string, grid: [number, number, number], typeId?: string];
-type E = [id: string, source: string, target: string, kind: EdgeKind];
+type E = [id: string, source: string, target: string, kind: RelationshipKind];
 
-function doc(nodes: N[], edges: E[] = []): DesignDocument {
+function doc(nodes: N[], edges: E[] = []): DesignDocumentV2 {
   return expectOk(
-    validateDocument({
-      schemaVersion: 1,
+    validateDocumentV2({
+      schemaVersion: 2,
       metadata: { name: 'test' },
       nodes: nodes.map(([id, grid, typeId]) => ({ id, grid, typeId: typeId ?? 'gallery' })),
       edges: edges.map(([id, source, target, kind]) => ({ id, source, target, kind })),
@@ -26,17 +35,13 @@ const face = (faces: readonly ResolvedFace[], id: string) => {
 };
 const shared = (faces: readonly ResolvedFace[]) => faces.filter((f) => f.neighbourNodeId !== null);
 
-describe('neighbour slots', () => {
-  it('identifies occupied and unoccupied neighbouring cells in FACE_DIRECTIONS order', () => {
-    const d = doc([
-      ['a', [0, 0, 0]],
-      ['b', [1, 0, 0]],
-      ['c', [0, 0, 1]],
-    ]);
-    const slots = neighbourSlots(buildCellIndex(d), d.nodes[0]!);
-    expect(slots.map((s) => s.direction)).toEqual([...FACE_DIRECTIONS]);
-    expect(slots.map((s) => s.node?.id ?? null)).toEqual(['b', null, null, null, 'c', null]);
-    expect(slots[1]!.cell).toEqual([-1, 0, 0]);
+describe('connectionCondition', () => {
+  it('maps a relationship and the contact of its rooms to the built face condition', () => {
+    expect(connectionCondition('access', 'horizontal')).toBe('door');
+    expect(connectionCondition('open', 'horizontal')).toBe('open');
+    expect(connectionCondition('access', 'vertical')).toBe('vertical-access');
+    expect(connectionCondition('open', 'vertical')).toBe('atrium');
+    expect(connectionCondition('access', null)).toBeNull();
   });
 });
 
@@ -71,20 +76,20 @@ describe('resolveFaces', () => {
   it('D: a door changes only that shared wall; changing to open removes the partition condition', () => {
     const base = doc([['a', [0, 0, 0]], ['b', [1, 0, 0]], ['c', [0, 1, 0]]]);
     const before = resolveFaces(base);
-    const withDoor = expectOk(addEdge(base, { id: 'ab', source: 'a', target: 'b', kind: 'door' }));
+    const withDoor = apply(base, { type: 'add-edge', edge: { id: 'ab', source: 'a', target: 'b', kind: 'access' } });
     const doorFaces = resolveFaces(withDoor);
     expect(face(doorFaces, 'a:+x')).toMatchObject({ condition: 'door', edgeId: 'ab', neighbourNodeId: 'b' });
     // Every other face is unchanged.
     expect(doorFaces.filter((f) => f.id !== 'a:+x')).toEqual(before.filter((f) => f.id !== 'a:+x'));
     expect(face(doorFaces, 'a:+y').condition).toBe('solid');
 
-    const open = resolveFaces(expectOk(changeEdgeKind(withDoor, 'ab', 'open')));
+    const open = resolveFaces(apply(withDoor, { type: 'change-edge-kind', edgeId: 'ab', kind: 'open' }));
     expect(face(open, 'a:+x')).toMatchObject({ condition: 'open', edgeId: 'ab' });
   });
 
   it('E: removing a neighbour turns the survivor boundary into a type-specific exterior face', () => {
-    const base = doc([['a', [0, 0, 0], 'storage'], ['b', [1, 0, 0], 'studio']], [['ab', 'a', 'b', 'door']]);
-    const faces = resolveFaces(expectOk(removeNode(base, 'a')));
+    const base = doc([['a', [0, 0, 0], 'storage'], ['b', [1, 0, 0], 'studio']], [['ab', 'a', 'b', 'access']]);
+    const faces = resolveFaces(apply(base, { type: 'remove-node', nodeId: 'a' }));
     expect(faces).toHaveLength(6);
     expect(face(faces, 'b:-x')).toMatchObject({ condition: 'exterior', ownerTypeId: 'studio', edgeId: null, neighbourNodeId: null });
   });
@@ -111,7 +116,7 @@ describe('resolveFaces', () => {
     expect(face(atrium, 'a:+z')).toMatchObject({ condition: 'atrium', edgeId: 'ac' });
     expect(face(atrium, 'a:+x')).toMatchObject({ condition: 'door', edgeId: 'ab' });
 
-    const access = resolveFaces(doc([['up', [0, 0, 1]], ['low', [0, 0, 0]]], [['v', 'low', 'up', 'vertical-access']]));
+    const access = resolveFaces(doc([['up', [0, 0, 1]], ['low', [0, 0, 0]]], [['v', 'low', 'up', 'access']]));
     // 'low' < 'up', so the lower cell authors its ceiling.
     expect(face(access, 'low:+z')).toMatchObject({ condition: 'vertical-access', edgeId: 'v', neighbourNodeId: 'up' });
     expect(face(access, 'up:+z').condition).toBe('exterior');
@@ -136,8 +141,8 @@ describe('resolveFaces', () => {
   });
 
   it('J: output is independent of node and edge array order, and sorted by owner then direction', () => {
-    const d = expectOk(validateDocument(exampleJson));
-    const shuffled: DesignDocument = { ...d, nodes: [...d.nodes].reverse(), edges: [...d.edges].reverse() };
+    const d = expectOk(validateDocumentV2(exampleJson));
+    const shuffled: DesignDocumentV2 = { ...d, nodes: [...d.nodes].reverse(), edges: [...d.edges].reverse() };
     const a = resolveFaces(d);
     expect(resolveFaces(shuffled)).toEqual(a);
     const order = a.map((f) => [f.ownerNodeId, FACE_DIRECTIONS.indexOf(f.direction)] as const);
@@ -146,7 +151,7 @@ describe('resolveFaces', () => {
   });
 
   it('resolves the two-storey example design', () => {
-    const faces = resolveFaces(expectOk(validateDocument(exampleJson)));
+    const faces = resolveFaces(expectOk(validateDocumentV2(exampleJson)));
     const between = (x: string, y: string) =>
       faces.find((f) => (f.ownerNodeId === x && f.neighbourNodeId === y) || (f.ownerNodeId === y && f.neighbourNodeId === x));
     expect(between('reading-gallery', 'store')).toMatchObject({ condition: 'solid', edgeId: null });

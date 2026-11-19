@@ -1,7 +1,6 @@
 import { HelpTip } from '@app/ui/help';
-import { EDGE_KINDS, isEdgeGeometryValid, type EdgeKind } from '@app/document';
 import { connectorStyleOf, nodeLabel, type ConnectorStyle, type RelationshipKind } from '@app/document/v2';
-import { EDGE_KIND_LABELS, EDGE_STYLES, formatGrid, orientationOf } from '@app/views/graph2d/diagram';
+import { formatGrid } from '@app/views/graph2d/diagram';
 import {
   CollapsibleSection,
   CONNECTOR_STYLE_CHOICES,
@@ -22,7 +21,7 @@ import { messageContextFor, useCommands, type PanelProps } from './panelSupport'
 
 /** Properties of one relationship. v2 (with the design port): Access/Open, status, connector. */
 export function EdgeProperties(props: PanelProps & { readonly edgeId: string }) {
-  return props.design ? <EdgePropertiesV2 {...props} /> : <EdgePropertiesV1 {...props} />;
+  return <EdgePropertiesV2 {...props} />;
 }
 
 function RemoveConnection({ onRemove }: { readonly onRemove: () => void }) {
@@ -177,69 +176,6 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: string }) {
           )
         )}
       </CollapsibleSection>
-
-      <RemoveConnection onRemove={() => runShared({ type: 'remove-edge', edgeId })} />
-      <StoredData record={edge} />
-    </div>
-  );
-}
-
-function EdgePropertiesV1(props: PanelProps & { readonly edgeId: string }) {
-  const { doc, onSelect, edgeId } = props;
-  const { issues, clearIssues, runShared, runV1 } = useCommands(props);
-  const edge = doc.edges.find((e) => e.id === edgeId);
-  if (!edge) return null;
-  const source = doc.nodes.find((n) => n.id === edge.source);
-  const target = doc.nodes.find((n) => n.id === edge.target);
-  const validFor = (kind: EdgeKind) => source !== undefined && target !== undefined && isEdgeGeometryValid(kind, source.grid, target.grid);
-
-  return (
-    <div className="sgl-panel">
-      <div className="sgl-title">
-        Relationship {edge.source} ↔ {edge.target}
-      </div>
-
-      <IssueFeedback issues={issues} context={messageContextFor(props)} onDismiss={clearIssues} />
-
-      <section className="sgl-section">
-        <h4>Connects</h4>
-        <ul className="sgl-list">
-          {[source, target].map(
-            (n, i) =>
-              n && (
-                <li key={i}>
-                  <button type="button" className="sgl-link" onClick={() => onSelect(selectNode(n.id))} title="Show this room">
-                    room {n.id}
-                  </button>{' '}
-                  <span className="meta">
-                    {n.typeId} · at {formatGrid(n.grid)}
-                  </span>
-                </li>
-              ),
-          )}
-        </ul>
-        <p className="sgl-help">
-          A {orientationOf(edge.kind)} relationship{orientationOf(edge.kind) === 'vertical' ? ' between storeys' : ''}. It
-          describes access, not a designed staircase or corridor.
-        </p>
-      </section>
-
-      <section className="sgl-section">
-        <h4>Kind</h4>
-        <select
-          value={edge.kind}
-          aria-label="Relationship kind"
-          onChange={(e) => runV1({ type: 'change-edge-kind', edgeId: edge.id, kind: e.currentTarget.value as EdgeKind })}
-        >
-          {EDGE_KINDS.map((kind) => (
-            <option key={kind} value={kind} disabled={!validFor(kind)}>
-              {EDGE_STYLES[kind].symbol} {EDGE_KIND_LABELS[kind]}
-              {validFor(kind) ? '' : ' (needs differently placed rooms)'}
-            </option>
-          ))}
-        </select>
-        <p className="sgl-help">Door and Open join rooms side by side on one storey; Atrium and Vertical access join stacked rooms.</p>
-      </section>
 
       <RemoveConnection onRemove={() => runShared({ type: 'remove-edge', edgeId })} />
       <StoredData record={edge} />

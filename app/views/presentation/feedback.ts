@@ -27,7 +27,6 @@ export const ISSUE_HINTS: Readonly<Record<IssueCode, string>> = {
   'unsupported-schema-version': 'This file was made for a different version of the app.',
   schema: 'A field is missing or has the wrong kind of value.',
   'duplicate-node-id': 'Two rooms use the same id. Every room id must be unique.',
-  'duplicate-grid-cell': 'Two rooms are placed in the same grid cell.',
   'coordinate-out-of-range': 'A room is placed too far from the origin.',
   'too-many-nodes': 'The design has more rooms than the app allows.',
   'unknown-node-type': 'A room uses a type the active project does not define.',

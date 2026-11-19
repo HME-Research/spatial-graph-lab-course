@@ -1,7 +1,7 @@
 /** Shared helpers for app/extensions tests (imported by *.test.ts only). */
 import { expect } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
-import { validateDocument, type DesignDocument } from '@app/document';
+import { validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
 import { defineNodeType, defineToolkit } from '@student-api';
 import { activate, type ActiveToolkit } from './activate';
 import type { ExtensionDiagnostic, ExtensionIssueCode, ExtensionResult } from './diagnostics';
@@ -66,10 +66,10 @@ export async function labToolkit(extra: Readonly<Record<string, unknown>> = {}):
  * g1, g2 (galleries) and s1 (studio) on storey 0, plus k1 of a type the lab toolkit does not define.
  * g2 has an invalid daylight value and an undeclared legacy attribute; e1 has an edge attribute.
  */
-export function labDoc(): DesignDocument {
+export function labDoc(): DesignDocumentV2 {
   return expectOk(
-    validateDocument({
-      schemaVersion: 1,
+    validateDocumentV2({
+      schemaVersion: 2,
       metadata: { name: 'Lab' },
       nodes: [
         { id: 'g1', grid: [0, 0, 0], typeId: 'gallery', attributes: { daylight: 'high', public: true } },
@@ -78,7 +78,7 @@ export function labDoc(): DesignDocument {
         { id: 'k1', grid: [5, 5, 0], typeId: 'kiosk', attributes: {} },
       ],
       edges: [
-        { id: 'e1', source: 'g1', target: 'g2', kind: 'door', attributes: { width: 0.9 } },
+        { id: 'e1', source: 'g1', target: 'g2', kind: 'access', attributes: { width: 0.9 } },
         { id: 'e2', source: 'g1', target: 's1', kind: 'open', attributes: {} },
       ],
       diagram: { positions: { g1: [0, 0] } },

@@ -9,7 +9,6 @@ export type IssueCode =
   | 'unsupported-schema-version'
   | 'schema'
   | 'duplicate-node-id'
-  | 'duplicate-grid-cell'
   | 'coordinate-out-of-range'
   | 'too-many-nodes'
   | 'unknown-node-type'
@@ -20,7 +19,7 @@ export type IssueCode =
   | 'invalid-edge-geometry'
   | 'unknown-node-position'
   | 'not-found'
-  // Schema v2 (Gate 0, additive; never produced by the v1 validator):
+  // Room footprints and connectors:
   | 'room-overlap'
   | 'duplicate-display-id'
   | 'too-many-cells'

@@ -15,7 +15,7 @@ import {
 } from '@app/extensions';
 import { createIndexedDbProjectStore, facadeAssetsOf, type ProjectIssue } from '@app/project';
 import { proposeSpatialEdit, resolveWithPreferences, type DesignCommand, type DesignPort, type ScenarioCommand } from '@app/spatial';
-import type { CommandOutcome, GraphCommandHandler } from '@app/views/contracts';
+import type { CommandOutcome } from '@app/views/contracts';
 import { conciseIssues, presentAnalysis, type AnalysisPresentation } from '@app/views/presentation';
 import { buildProjectViewContext, projectFacadeProvider } from '@app/views/project';
 import { NO_SELECTION, reconcileSelection, selectEdge, type Selection } from '@core/viewer/selection';
@@ -27,7 +27,6 @@ import { AlgorithmPanel } from './session/AlgorithmPanel';
 import { applyPreviewV2, isStale, type AlgorithmRunV2, type ApplyOutcome } from './session/algorithmSession';
 import { currentDocument, type DocumentVersion } from './session/documentSession';
 import { canRedo, canUndo, createHistory, redoLabel, undoLabel } from './session/history';
-import { designCommandFromLegacy, legacyProjection } from './session/legacyBridge';
 import { ProjectPanel, projectStatus } from './session/ProjectPanel';
 import { OpenAttributesContext } from './attributes/navigation';
 import type { SidebarSection } from '@app/ui';
@@ -88,9 +87,8 @@ import { DEFAULT_VIEWPORT_STATE, deriveViewports, type ViewportState } from '@ap
  * Every view, Properties and the Designer receive the same live `DesignPort` (`design`) of the
  * ACTIVE scenario: `spatial` is resolved once per content with its face preferences, `onCommand`
  * is the only way to change it and records exactly one history step per successful change. The
- * toolkit (`toolkits/<id>`) named by the local project's `definition` supplies types and
- * algorithms. The frozen v1 `doc` / `onCommand` props carry a read-only projection and a v1→v2
- * command translation (legacyBridge).
+ * toolkit (`toolkits/<id>`) named by the local project's `toolkit` supplies types and
+ * algorithms; without one the project's own registry is used (`projectOnlyToolkit`).
  */
 
 const EXAMPLE_LABEL = 'app/document/examples/house.json';
@@ -336,9 +334,7 @@ export function App() {
   const content = current ? currentDocument(current) : null;
   const doc = content?.design ?? null;
   const version = useMemo<DocumentVersion<Doc> | null>(() => (current ? { doc: currentDocument(current).design, revision: current.revision } : null), [current]);
-  /** Read-only v1-shaped projection for the frozen `ViewProps.doc` (identity-stable per document). */
-  const viewDoc = doc ? legacyProjection(doc) : null;
-  const selection = viewDoc ? reconcileSelection(rawSelection, viewDoc) : NO_SELECTION;
+  const selection = doc ? reconcileSelection(rawSelection, doc) : NO_SELECTION;
   /** Project functions (`settings.functions`) and removed toolkit functions merged into the toolkit's types. */
   const projectFunctions = openProject?.meta.settings.functions;
   const hiddenFunctions = openProject?.meta.settings.hiddenFunctions;
@@ -451,7 +447,6 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
   const onDesignCommand = useCallback((command: DesignCommand): CommandOutcome => onScenarioCommand(command), [onScenarioCommand]);
 
   /** Frozen v1 command handler: translated to the v2 command, so it edits the same stored document. */
-  const onCommand = useCallback<GraphCommandHandler>((command) => onDesignCommand(designCommandFromLegacy(command)), [onDesignCommand]);
 
   /** Pure move/resize preview against the LATEST document (a gizmo re-checks on release). */
   const proposeEdit = useCallback<DesignPort['proposeEdit']>(
@@ -507,7 +502,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
       const moved = action === 'undo' ? controller.undo() : controller.redo();
       const open = controller.getState().project;
       if (!moved || !open) return;
-      const nextDoc = legacyProjection(currentDocument(activeSession(open)).design);
+      const nextDoc = currentDocument(activeSession(open)).design;
       setSelection((sel) => reconcileSelection(sel, nextDoc));
     },
     [controller],
@@ -681,8 +676,8 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                 <ManageFunctionsContext.Provider value={project ? () => setFunctionsOpen(true) : null}>
                   <Workspace
                     view={
-                      doc && viewDoc && port
-                        ? { doc: viewDoc, design: port, selection, onSelect: select, onCommand, ...(projectContext && { project: projectContext }) }
+                      doc && port
+                        ? { design: port, selection, onSelect: select, ...(projectContext && { project: projectContext }) }
                         : null
                     }
                     leftTab={leftTab}

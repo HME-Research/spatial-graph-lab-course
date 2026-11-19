@@ -2,18 +2,10 @@ import { HelpTip } from '@app/ui/help';
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { CustomAttributes, ManageAttributesLink } from '@app/attributes/CustomAttributes';
 import { ManageFunctionsContext, OpenAttributesContext } from '@app/attributes/navigation';
-import type { EdgeKind, GraphNode } from '@app/document';
 import { MAX_ROOM_SIZE, nodeLabel, type RoomNode } from '@app/document/v2';
 import { findNodeType } from '@app/extensions';
 import { nodeTypeStatus } from '@app/views/project';
-import {
-  EDGE_KIND_LABELS,
-  EDGE_STYLES,
-  formatGrid,
-  neighbourConnections,
-  nextFreeId,
-  orientationOf,
-} from '@app/views/graph2d/diagram';
+import { formatGrid, nextFreeId } from '@app/views/graph2d/diagram';
 import {
   CollapsibleSection,
   describeResolution,
@@ -47,17 +39,16 @@ const toCoord = (t: Triple): [number, number, number] => [t[0], t[1], t[2]];
 
 /** Properties of one room: one attribute list (Function, Level, custom, calculated), geometry, relationships. */
 export function NodeProperties(props: PanelProps & { readonly nodeId: string }) {
-  const { doc, design, project, nodeId } = props;
-  const { issues, showIssues, clearIssues, runShared, runV1, runV2 } = useCommands(props);
+  const { design, project, nodeId } = props;
+  const { issues, showIssues, clearIssues, runShared, runV2 } = useCommands(props);
   const [pending, setPending] = useState<PendingConfirmation | null>(null);
   /** Bumped to reset the geometry drafts after Cancel. */
   const [resetKey, setResetKey] = useState(0);
   const openAttributes = useContext(OpenAttributesContext);
   const manageFunctions = useContext(ManageFunctionsContext);
 
-  const v2Node: RoomNode | undefined = design?.doc.nodes.find((n) => n.id === nodeId);
-  const v1Node: GraphNode | undefined = doc.nodes.find((n) => n.id === nodeId);
-  const node = design ? v2Node : v1Node;
+  const v2Node: RoomNode | undefined = design.doc.nodes.find((n) => n.id === nodeId);
+  const node = v2Node;
 
   // A stale confirmation must never be applied to a different document.
   const currentDoc = design?.doc;
@@ -65,8 +56,8 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
 
   const active = project?.project ?? null;
   const typesInDesign = useMemo(
-    () => (design ? design.doc.nodes.map((n) => n.typeId) : doc.nodes.map((n) => n.typeId)),
-    [design, doc],
+    () => design.doc.nodes.map((n) => n.typeId),
+    [design],
   );
   if (!node) return null;
 
@@ -130,7 +121,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
   };
 
   const moveTo = (grid: Triple): CommitOutcome =>
-    design ? editGeometry({ grid }, 'move') : runV1({ type: 'move-node', nodeId, grid: toCoord(grid) }) ? 'applied' : 'refused';
+    editGeometry({ grid }, 'move');
 
   /** Level is the room's z (storey): editing it moves the room up or down, like Position z. */
   const commitLevel = (draft: string): boolean => {
@@ -271,7 +262,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
       </CollapsibleSection>
 
       <CollapsibleSection title="Relationships" sectionId="relationships" defaultOpen={false} meta={String(incidentCount(props, nodeId))}>
-        {design ? <RelationshipsV2 {...props} nodeId={nodeId} runV2={runV2} /> : <ConnectionsV1 {...props} nodeId={nodeId} runV1={runV1} />}
+        <RelationshipsV2 {...props} nodeId={nodeId} runV2={runV2} />
       </CollapsibleSection>
 
       <section className="sgl-section sgl-panel-actions">
@@ -285,13 +276,13 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
         </button>
       </section>
 
-      <StoredData record={node} diagramPosition={(design ? design.doc : doc).diagram.positions[nodeId] ?? null} />
+      <StoredData record={node} diagramPosition={design.doc.diagram.positions[nodeId] ?? null} />
     </div>
   );
 }
 
-const incidentCount = ({ doc, design }: PanelProps, nodeId: string): number =>
-  (design ? design.doc.edges : doc.edges).filter((e) => e.source === nodeId || e.target === nodeId).length;
+const incidentCount = ({ design }: PanelProps, nodeId: string): number =>
+  design.doc.edges.filter((e) => e.source === nodeId || e.target === nodeId).length;
 
 /** v2: every relationship of the room with its spatial status, and "Connect to…". */
 function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { readonly nodeId: string; readonly runV2: ReturnType<typeof useCommands>['runV2'] }) {
@@ -357,60 +348,3 @@ function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { rea
   );
 }
 
-/** v1: incident edges and face-adjacent neighbours that could be connected. */
-function ConnectionsV1({ doc, onSelect, nodeId, runV1 }: PanelProps & { readonly nodeId: string; readonly runV1: ReturnType<typeof useCommands>['runV1'] }) {
-  const incident = doc.edges.filter((e) => e.source === nodeId || e.target === nodeId);
-  const neighbours = useMemo(() => neighbourConnections(doc, nodeId), [doc, nodeId]);
-  const unconnected = neighbours.filter((n) => !n.existingEdge);
-  const connect = (targetId: string, kind: EdgeKind) => {
-    const id = nextFreeId('edge', doc.edges.map((e) => e.id));
-    runV1({ type: 'add-edge', edge: { id, source: nodeId, target: targetId, kind } });
-  };
-  return (
-    <section className="sgl-section">
-      {incident.length === 0 && <p className="meta">No relationships yet.</p>}
-      <ul className="sgl-list">
-        {incident.map((e) => {
-          const other = e.source === nodeId ? e.target : e.source;
-          return (
-            <li key={e.id}>
-              <button type="button" className="sgl-link" onClick={() => onSelect(selectEdge(e.id))} title="Show this relationship">
-                {EDGE_STYLES[e.kind].symbol} {EDGE_KIND_LABELS[e.kind]}
-              </button>{' '}
-              with{' '}
-              <button type="button" className="sgl-link" onClick={() => onSelect(selectNode(other))} title="Show this room">
-                room {other}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      {unconnected.length > 0 && (
-        <>
-          <p className="sgl-help">Touching rooms without a relationship (a solid wall separates them):</p>
-          <ul className="sgl-list">
-            {unconnected.map((n) => (
-              <li key={n.target.id}>
-                room <code>{n.target.id}</code> {formatGrid(n.target.grid)}
-                <div className="sgl-buttons">
-                  {n.kinds
-                    .filter((k) => k.valid)
-                    .map((k) => (
-                      <button
-                        key={k.kind}
-                        type="button"
-                        onClick={() => connect(n.target.id, k.kind)}
-                        title={`Add a ${orientationOf(k.kind)} “${EDGE_KIND_LABELS[k.kind]}” relationship`}
-                      >
-                        + {EDGE_KIND_LABELS[k.kind]}
-                      </button>
-                    ))}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </section>
-  );
-}

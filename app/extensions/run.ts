@@ -1,16 +1,14 @@
 import { z } from 'zod';
-import { attributeValueSchema, type AttributeValue, type DesignDocument } from '@app/document';
+import { attributeValueSchema, type AttributeValue } from '@app/document';
 import type { DesignDocumentV2 } from '@app/document/v2';
 import type { SpatialResolution } from '@app/spatial';
 import type { AnalysisResult, AttributeSpecs, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
 import type { ActiveToolkit } from './activate';
 import { checkValue, describeSpec, specFor } from './attributes';
-import { migrateV1toV2 } from '@app/document/v2';
 import { buildGraphContext, buildSpatialContextV2, ExtensionRunError, type GraphSource } from './context';
 import { EMPTY_ATTRIBUTE_SCHEMA, type ProjectAttributeSchema } from './projectAttributes';
 import { zodMessages } from './definitions';
 import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionResult } from './diagnostics';
-import { applyTransformation, type TransformationPreview } from './transform';
 import { applyTransformationV2, type TransformationPreviewV2 } from './transformV2';
 
 /**
@@ -19,10 +17,6 @@ import { applyTransformationV2, type TransformationPreviewV2 } from './transform
  * semantics, final document, conformance) and returns either an analysis or a transformation
  * preview. It never changes application state: applying a preview is the caller's decision.
  */
-
-export type RunOutcome =
-  | { readonly kind: 'analysis'; readonly result: AnalysisResult }
-  | { readonly kind: 'transformation'; readonly preview: TransformationPreview };
 
 /** Upper bound on operations in one transformation (a safety limit, not a contract field). */
 export const MAX_OPERATIONS = 10_000;
@@ -113,7 +107,6 @@ export interface RunOptions {
   /**
    * The host's spatial resolution of the run's (v2) document, with the scenario's face
    * preferences, so `ctx.metrics` matches what the views show. Omitted: `resolveRelationships(doc)`.
-   * Ignored for schema-v1 runs (their context reads a migrated copy).
    */
   readonly spatial?: SpatialResolution;
 }
@@ -179,20 +172,10 @@ function runWith<D extends GraphSource, Preview>(
   return preview.ok ? ok({ kind: 'transformation', preview: preview.value }) : preview;
 }
 
-const V1_ADAPTER: RunAdapter<DesignDocument, TransformationPreview> = {
-  spatialContext: (doc, project, id, params, schema) => buildSpatialContextV2(migrateV1toV2(doc), project, id, params, schema),
-  apply: (doc, project, operations, summary) => applyTransformation(doc, project, operations, summary),
-};
-
 const V2_ADAPTER: RunAdapter<DesignDocumentV2, TransformationPreviewV2> = {
   spatialContext: (doc, project, id, params, schema, spatial) => buildSpatialContextV2(doc, project, id, params, schema, spatial),
   apply: (doc, project, operations, summary, schema) => applyTransformationV2(doc, project, operations, summary, schema),
 };
-
-/** Run an algorithm against the schema-v1 document (today's app; see `runAlgorithmV2`). */
-export function runAlgorithm(doc: DesignDocument, project: ActiveToolkit, algorithmId: string, params?: unknown): ExtensionResult<RunOutcome> {
-  return runWith(V1_ADAPTER, doc, project, algorithmId, params);
-}
 
 export type RunOutcomeV2 =
   | { readonly kind: 'analysis'; readonly result: AnalysisResult }

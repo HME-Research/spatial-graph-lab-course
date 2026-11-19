@@ -78,13 +78,6 @@ const DRAG_THRESHOLD = 4;
 export const levelName = (level: number) => `Level ${level}`;
 
 export function PlanView({ selection, onSelect, project, design, onWallTarget, activeWall = null }: PlanViewProps) {
-  if (!design) {
-    return (
-      <div className="sgl-plan sgl-plan-message">
-        <p>The Plan needs the schema-v2 design, which this host does not provide.</p>
-      </div>
-    );
-  }
   return (
     <PlanCanvas
       design={design}

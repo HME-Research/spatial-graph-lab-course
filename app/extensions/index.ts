@@ -16,7 +16,6 @@ export * from './definitions';
 export * from './diagnostics';
 export * from './discover';
 export * from './run';
-export * from './transform';
 export { applyTransformationV2, type TransformationPreviewV2 } from './transformV2';
 export { TOOLKIT_GLOBS } from './toolkitGlobs';
 /** Student API types the application shell needs (only app/extensions may import `@student-api`). */

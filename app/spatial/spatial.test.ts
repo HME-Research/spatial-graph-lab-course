@@ -1,6 +1,6 @@
 import { functionLooks } from '@app/document/v2';
 import { describe, expect, it } from 'vitest';
-import exampleJson from '../document/examples/two-storey-example.json?raw';
+import exampleJson from '../document/test-designs/two-storey.json?raw';
 import { expectIssue, expectOk } from '../document/test-fixtures';
 import { readDesignJson, serializeDesignV2, validateDocumentV2, type DesignDocumentV2 } from '../document/v2';
 import { v2Raw } from '../document/v2/test-fixtures';

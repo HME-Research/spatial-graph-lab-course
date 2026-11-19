@@ -1,34 +1,12 @@
-import { EDGE_KINDS, isVerticalKind, type EdgeKind } from '@app/document';
-
 /**
- * Visual encoding of edge kinds in the 3D views (pure).
- * Colour family separates horizontal (blue-grey) from vertical (orange) relationships;
- * the dash pattern separates the two kinds within each family. A 3D edge is drawn between
- * cell centres as a relationship marker, never as a staircase or corridor.
+ * Line helpers for relationships in the 3D views (pure). Relationship lines are styled by the
+ * shared presentation (`relationshipLine`); a 3D edge is a relationship marker, never a staircase
+ * or corridor.
  */
-export interface EdgeStyle {
-  readonly label: string;
-  readonly color: string;
-  readonly dashed: boolean;
-  /** Tube radius in metres. */
-  readonly radius: number;
-}
 
+/** Same-storey (horizontal) and between-storeys (vertical) relationship colours. */
 export const HORIZONTAL_EDGE_COLOR = '#2f5878';
 export const VERTICAL_EDGE_COLOR = '#d0621b';
-
-export const EDGE_STYLES: Readonly<Record<EdgeKind, EdgeStyle>> = {
-  door: { label: 'door (horizontal)', color: HORIZONTAL_EDGE_COLOR, dashed: false, radius: 0.07 },
-  open: { label: 'open (horizontal)', color: HORIZONTAL_EDGE_COLOR, dashed: true, radius: 0.07 },
-  'vertical-access': { label: 'vertical access (vertical)', color: VERTICAL_EDGE_COLOR, dashed: false, radius: 0.09 },
-  atrium: { label: 'atrium (vertical)', color: VERTICAL_EDGE_COLOR, dashed: true, radius: 0.09 },
-};
-
-/** Legend order: horizontal kinds first, then vertical. */
-export const EDGE_LEGEND_ORDER: readonly EdgeKind[] = [
-  ...EDGE_KINDS.filter((k) => !isVerticalKind(k)),
-  ...EDGE_KINDS.filter((k) => isVerticalKind(k)),
-];
 
 /**
  * Dash intervals `[from, to]` (distances from the start) covering `[0, length]`, symmetric about

@@ -87,11 +87,3 @@ export const MAX_ROOM_SIZE = 32;
 
 /** Total occupied room cells in one document (sparse-grid safety limit, in addition to maxNodes). */
 export const MAX_ROOM_CELLS = 20000;
-
-/** v1 → v2 edge-kind mapping (see migrateV1toV2). Direction comes from the rooms' contact. */
-export const V1_KIND_TO_RELATIONSHIP = {
-  door: 'access',
-  'vertical-access': 'access',
-  open: 'open',
-  atrium: 'open',
-} as const satisfies Record<string, RelationshipKind>;

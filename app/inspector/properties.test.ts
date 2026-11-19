@@ -1,8 +1,8 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
 import { expectOk } from '@app/document/test-fixtures';
-import { validateDocument, type DesignDocument } from '@app/document';
 import type { ActiveToolkit } from '@app/extensions';
 import { labDoc, labToolkit } from '@app/extensions/test-fixtures';
 import type { InspectorProps } from '@app/views/contracts';
@@ -10,13 +10,14 @@ import { buildProjectViewContext } from '@app/views/project';
 import { selectEdge, selectNode, NO_SELECTION, type Selection } from '@core/viewer/selection';
 import { OpenAttributesContext } from '@app/attributes/navigation';
 import { EnabledMetricsContext } from '@app/views/three/enabledMetrics';
+import { resolveRelationships } from '@app/spatial';
 import { Inspector } from './Inspector';
 import { corridorRaw, fakePort } from './test-fixtures';
 
-const noop = () => ({ ok: true }) as const;
-
-function render(props: Partial<InspectorProps> & { readonly doc: DesignDocument; readonly selection: Selection }): string {
-  return renderToStaticMarkup(createElement(Inspector, { onSelect: () => {}, onCommand: noop, ...props }));
+/** Renders Properties for `doc` (through a port on it unless `design` is given). */
+function render(props: Partial<InspectorProps> & { readonly doc: DesignDocumentV2; readonly selection: Selection }): string {
+  const { doc, ...rest } = props;
+  return renderToStaticMarkup(createElement(Inspector, { onSelect: () => {}, design: fakePort(doc, resolveRelationships), ...rest }));
 }
 
 /** Option elements of the select labelled `label`. */
@@ -25,9 +26,9 @@ function selectOptions(html: string, label: string): string[] {
   return [...select.matchAll(/<option[^>]*>([^<]*)<\/option>/g)].map((m) => m[1]!);
 }
 
-describe('Properties panel, schema v1 (today)', () => {
+describe('Properties panel: one-cell rooms', () => {
   let project: ActiveToolkit;
-  let doc: DesignDocument;
+  let doc: DesignDocumentV2;
   beforeAll(async () => {
     project = await labToolkit();
     doc = labDoc();
@@ -43,18 +44,16 @@ describe('Properties panel, schema v1 (today)', () => {
 
   it('edits the position directly, without Apply or Move buttons', () => {
     const html = render({ doc, selection: selectNode(doc.nodes[0]!.id) });
-    expect(html).toContain('aria-label="Position (cell) x"');
-    expect(html).toContain('aria-label="Position (cell) z (storey)"');
+    expect(html).toContain('aria-label="Position (lowest corner) x"');
+    expect(html).toContain('aria-label="Position (lowest corner) z (storey)"');
     expect(html).not.toMatch(/>(Apply|Move|Set)<\/button>/);
     // The explanation is reachable from the fields (tooltip + accessible description).
     expect(html).toMatch(/aria-describedby="[^"]+"/);
     expect(html).toContain('Dragging its node in Graph 2D only tidies the diagram'); // phase 08 (O02): one sentence
-    // Size is a schema-v2 feature: hidden without the port.
-    expect(html).not.toContain('Size (cells)');
   });
 
   it('keeps an unknown type visible with a warning', async () => {
-    const legacy = expectOk(validateDocument({ ...structuredClone(doc), nodes: doc.nodes.map((n, i) => (i === 0 ? { ...n, typeId: 'legacy-thing' } : n)) }));
+    const legacy = expectOk(validateDocumentV2({ ...structuredClone(doc), nodes: doc.nodes.map((n, i) => (i === 0 ? { ...n, typeId: 'legacy-thing' } : n)) }));
     const html = render({ doc: legacy, selection: selectNode(legacy.nodes[0]!.id), project: buildProjectViewContext(project, legacy) });
     expect(selectOptions(html, 'Room type')[0]).toBe('legacy-thing: not defined in this project');
     expect(html).toContain('does not offer the function “legacy-thing”');
@@ -191,7 +190,7 @@ describe('Properties grouping (wave 1)', () => {
         createElement(
           EnabledMetricsContext.Provider,
           { value: ids },
-          createElement(Inspector, { onSelect: () => {}, onCommand: noop, doc: v1(), design: fakePort(), selection: selectNode('a') }),
+          createElement(Inspector, { onSelect: () => {}, design: fakePort(), selection: selectNode('a') }),
         ),
       );
     const html = withIds(['volume', 'has-exterior-facade']);
@@ -217,7 +216,7 @@ describe('Properties grouping (wave 1)', () => {
       createElement(
         OpenAttributesContext.Provider,
         { value: () => {} },
-        createElement(Inspector, { onSelect: () => {}, onCommand: noop, doc: v1(), design, project: context, selection: selectNode('a') }),
+        createElement(Inspector, { onSelect: () => {}, design, project: context, selection: selectNode('a') }),
       ),
     );
     const attributes = sectionBody(html, 'attributes');

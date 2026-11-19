@@ -5,13 +5,12 @@ import { resolveRelationships } from '@app/spatial';
 import { defineSpatialAlgorithm, roomCells, type SpatialAlgorithmContext, type SpatialOperation } from '@student-api';
 import type { ActiveToolkit } from './activate';
 import { galleryToolkit, TWO_STOREY_TEXT } from './test-toolkit';
-import { runAlgorithm, runAlgorithmV2 } from './run';
-import { expectDiagnostic, expectExtOk, labDoc, labToolkit } from './test-fixtures';
+import { runAlgorithmV2 } from './run';
+import { expectDiagnostic, expectExtOk, labToolkit } from './test-fixtures';
 
 /**
- * Student API on schema v2 (docs/CONTRACTS-V2.md §7): the shipped example algorithms keep
- * working on v2 documents, legacy kinds are mapped, the new queries are distinct from the
- * deprecated `canConnect`, and transformations are validated with `validateDocumentV2`.
+ * Student API on the design document (docs/CONTRACTS-V2.md §7): footprint-aware queries, only the
+ * relationship kinds access/open, and transformations validated with `validateDocumentV2`.
  */
 
 const ALG = 'toolkits/lab/algorithms/t.ts';
@@ -45,7 +44,7 @@ function labV2(): DesignDocumentV2 {
 }
 
 describe('spatial context on a v2 document', () => {
-  it('nodeAt uses footprints; touches and canRelate are distinct from the deprecated canConnect', async () => {
+  it('nodeAt uses footprints; touches and canRelate answer different questions', async () => {
     let seen: SpatialAlgorithmContext | undefined;
     const project = await transforming((ctx) => ((seen = ctx), []));
     expectExtOk(runAlgorithmV2(labV2(), project, 't'));
@@ -64,9 +63,8 @@ describe('spatial context on a v2 document', () => {
     expect(ctx.canRelate('g2', 'g1')).toBe(false); // already related
     expect(ctx.canRelate('g1', 'g1')).toBe(false);
     expect(ctx.canRelate('g1', 'ghost')).toBe(false);
-    // canConnect keeps its v1 cell meaning.
-    expect(ctx.canConnect('door', [1, 1, 0], [2, 1, 0])).toBe(true);
-    expect(ctx.canConnect('door', [0, 0, 0], [0, 5, 0])).toBe(false);
+    // The retired schema-v1 cell query is gone (P4).
+    expect(Object.keys(ctx).some((k) => k.startsWith('canConn'))).toBe(false);
   });
 });
 
@@ -79,15 +77,9 @@ describe('transformations on a v2 document', () => {
     expect(resolveRelationships(outcome.preview.after).byEdge.get('e2')!.status).toBe('routed');
   });
 
-  it.each([
-    ['door', 'access'],
-    ['vertical-access', 'access'],
-    ['open', 'open'],
-    ['atrium', 'open'],
-  ] as const)('maps the legacy kind %s to %s', async (legacy, kind) => {
-    const project = await transforming([{ op: 'add-edge', id: 'e2', source: 'g1', target: 's1', kind: legacy }]);
-    const outcome = expectExtOk(runAlgorithmV2(labV2(), project, 't'));
-    expect(outcome.kind === 'transformation' && outcome.preview.after.edges.at(-1)!.kind).toBe(kind);
+  it.each(['door', 'vertical-access', 'atrium'])('refuses the retired schema-v1 kind %s (P4)', async (legacy) => {
+    const project = await transforming([{ op: 'add-edge', id: 'e2', source: 'g1', target: 's1', kind: legacy as never }]);
+    expectDiagnostic(runAlgorithmV2(labV2(), project, 't'), 'unknown-edge-kind');
   });
 
   it('rejects unknown kinds, overlapping rooms and invalid sizes', async () => {
@@ -135,26 +127,6 @@ describe('transformations on a v2 document', () => {
     ]);
     expectExtOk(runAlgorithmV2(doc, project, 't'));
     expect(JSON.stringify(doc)).toBe(before);
-  });
-});
-
-describe('v1 runner compatibility with the v2 Student API', () => {
-  it('maps access to door / vertical-access on touching rooms and refuses non-touching rooms', async () => {
-    const run = async (op: SpatialOperation) => runAlgorithm(labDoc(), await transforming([op]), 't');
-    // labDoc: g1 [0,0,0], g2 [1,0,0] (related), s1 [0,1,0] (related), k1 [5,5,0].
-    const add = await run({ op: 'add-node', id: 'up', grid: [1, 0, 1], typeId: 'gallery' });
-    expect(add.ok).toBe(true);
-    const door = await transforming([
-      { op: 'add-node', id: 'n', grid: [2, 0, 0], typeId: 'gallery' },
-      { op: 'add-node', id: 'up', grid: [2, 0, 1], typeId: 'gallery' },
-      { op: 'add-edge', id: 'x1', source: 'g2', target: 'n', kind: 'access' },
-      { op: 'add-edge', id: 'x2', source: 'n', target: 'up', kind: 'access' },
-    ]);
-    const outcome = expectExtOk(runAlgorithm(labDoc(), door, 't'));
-    expect(outcome.kind === 'transformation' && outcome.preview.after.edges.slice(-2).map((e) => e.kind)).toEqual(['door', 'vertical-access']);
-    expectDiagnostic(await run({ op: 'add-edge', id: 'x', source: 'g1', target: 'k1', kind: 'access' }), 'invalid-edge-geometry');
-    expectDiagnostic(await run({ op: 'add-node', id: 'n', grid: [9, 9, 0], size: [2, 1, 1], typeId: 'gallery' }), 'invalid-size');
-    expect((await run({ op: 'add-node', id: 'n', grid: [9, 9, 0], size: [1, 1, 1], typeId: 'gallery' })).ok).toBe(true);
   });
 });
 

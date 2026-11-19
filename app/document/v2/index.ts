@@ -6,7 +6,6 @@
 export * from './constants';
 export * from './display';
 export * from './footprint';
-export * from './migrate';
 export * from './schema';
 export * from './serialize';
 export * from './settings';

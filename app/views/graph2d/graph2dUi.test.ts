@@ -1,18 +1,16 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import exampleDesign from '../../document/examples/two-storey-example.json';
-import { applyGraphCommand, validateDocument, type DesignDocument } from '@app/document';
+import exampleDesign from '../../document/test-designs/two-storey.json';
 import { expectOk } from '@app/document/test-fixtures';
-import { migrateV1toV2, readDesignJson, serializeDesignV2, validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesignJson, serializeDesignV2, validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
 import { v2Raw } from '@app/document/v2/test-fixtures';
-import { applyDesignCommand, resolveRelationships, type DesignCommand, type EdgeResolution, type SpatialResolution } from '@app/spatial';
-import { circleBorderPoint, circleSegment, defaultV1ConnectionKind, resolveDiagramPositions, suggestFreeCellV2 } from './diagram';
+import { applyDesignCommand, resolveRelationships, type EdgeResolution, type SpatialResolution } from '@app/spatial';
+import { circleBorderPoint, circleSegment, resolveDiagramPositions, suggestFreeCellV2 } from './diagram';
 import {
   addNodeRequest,
   connectRequest,
   diagramPositionCommand,
-  modelFromV1,
   modelFromV2,
   type DiagramModel,
   type ModelCommand,
@@ -36,12 +34,11 @@ import { placeAtPoint, placeBeside, popoverRows } from './NodePopover';
 
 const v2Doc = (raw: unknown = v2Raw()): DesignDocumentV2 => expectOk(validateDocumentV2(raw));
 const v2Model = (doc: DesignDocumentV2): DiagramModel => modelFromV2(doc, resolveRelationships(doc));
-const v1Example = (): DesignDocument => expectOk(validateDocument(exampleDesign));
+const oneCellExample = (): DesignDocumentV2 => expectOk(validateDocumentV2(exampleDesign));
 
 /** Apply a model command to the document it targets (what the host does through the port). */
-function applyV2(doc: DesignDocumentV2, mc: ModelCommand): DesignDocumentV2 {
-  expect(mc.version).toBe(2);
-  return expectOk(applyDesignCommand(doc, mc.command as DesignCommand));
+function applyV2(doc: DesignDocumentV2, command: ModelCommand): DesignDocumentV2 {
+  return expectOk(applyDesignCommand(doc, command));
 }
 
 /** n rooms on storey 0 in a row with gaps (never touching), n-1 chain relationships. */
@@ -95,15 +92,8 @@ describe('display ids', () => {
     expect(v2Model(reordered).byNode.get('b')?.label).toBe('02');
   });
 
-  it('falls back to the permanent id for legacy (v1) data, deterministically', () => {
-    const doc = v1Example();
-    const labels = modelFromV1(doc).nodes.map((n) => n.label);
-    expect(labels).toEqual(doc.nodes.map((n) => n.id));
-    expect(modelFromV1(v1Example()).nodes.map((n) => n.label)).toEqual(labels);
-  });
-
   it('keeps other display ids on deletion, type change and export/import', () => {
-    let doc = migrateV1toV2(v1Example());
+    let doc = oneCellExample();
     const before = new Map(v2Model(doc).nodes.map((n) => [n.id, n.label]));
     doc = expectOk(applyDesignCommand(doc, { type: 'remove-node', nodeId: 'entry-gallery' }));
     doc = expectOk(applyDesignCommand(doc, { type: 'set-node-type', nodeId: 'store', typeId: 'archive' }));
@@ -136,10 +126,7 @@ describe('connectRequest', () => {
     const request = connectRequest(v2Model(doc), 'a', 'b');
     expect(request.status).toBe('command');
     if (request.status !== 'command') return;
-    expect(request.command).toEqual({
-      version: 2,
-      command: { type: 'add-edge', edge: { id: 'edge-1', source: 'a', target: 'b' } },
-    });
+    expect(request.command).toEqual({ type: 'add-edge', edge: { id: 'edge-1', source: 'a', target: 'b' } });
     const next = applyV2(doc, request.command);
     expect(next.edges).toEqual([expect.objectContaining({ id: 'edge-1', kind: 'access' })]);
   });
@@ -168,20 +155,6 @@ describe('connectRequest', () => {
     expect(connectRequest(model, 'a', 'zzz').status).toBe('refused');
   });
 
-  it('v1: defaults to door / vertical access for touching cells and explains non-touching cells', () => {
-    expect(defaultV1ConnectionKind([0, 0, 0], [1, 0, 0])).toBe('door');
-    expect(defaultV1ConnectionKind([0, 0, 0], [0, 0, 1])).toBe('vertical-access');
-    expect(defaultV1ConnectionKind([0, 0, 0], [2, 0, 0])).toBeNull();
-    const doc = v1Example();
-    const model = modelFromV1(doc);
-    // reading-gallery [0,1,0] and store [1,1,0] touch but are not connected.
-    const ok = connectRequest(model, 'reading-gallery', 'store');
-    if (ok.status !== 'command' || ok.command.version !== 1) throw new Error('expected a v1 command');
-    expect(ok.command.command).toMatchObject({ type: 'add-edge', edge: { kind: 'door' } });
-    expect(expectOk(applyGraphCommand(doc, ok.command.command)).edges).toHaveLength(doc.edges.length + 1);
-    const refused = connectRequest(model, 'reading-gallery', 'gallery-upper');
-    expect(refused.status).toBe('refused');
-  });
 });
 
 describe('diagram drag', () => {
@@ -192,14 +165,6 @@ describe('diagram drag', () => {
     expect(next.nodes).toEqual(doc.nodes);
   });
 
-  it('changes only the diagram position, never the room cell (v1)', () => {
-    const doc = v1Example();
-    const mc = diagramPositionCommand(modelFromV1(doc), 'store', [9, 9]);
-    if (mc.version !== 1) throw new Error('expected a v1 command');
-    const next = expectOk(applyGraphCommand(doc, mc.command));
-    expect(next.nodes).toEqual(doc.nodes);
-    expect(next.diagram.positions['store']).toEqual([9, 9]);
-  });
 });
 
 // ── Edge presentation ───────────────────────────────────────────────────────────────────────
@@ -241,12 +206,6 @@ describe('edge presentation', () => {
     expect(p.status).toBe('routed');
     expect(p.stroke).toBe(ROUTED_STROKE);
     expect(p.label).toBe('Access · Connected via route');
-  });
-
-  it('keeps the v1 kind styles for v1 documents', () => {
-    const model = modelFromV1(v1Example());
-    const atrium = model.edges.find((e) => e.kind === 'atrium')!;
-    expect(presentEdge(model, atrium)).toMatchObject({ status: 'legacy', strokeDasharray: '10 5' });
   });
 
   it('explains every status in the legend, including the muted red dashed unresolved line', () => {
@@ -356,7 +315,7 @@ describe('popoverRows', () => {
   });
 
   it('flags a broken type without hiding the node', () => {
-    const model = modelFromV1(v1Example());
+    const model = v2Model(oneCellExample());
     const rows = popoverRows(model, model.nodes[0]!, { brokenType: true, attributeKeys: ['public'] });
     expect(rows.find((r) => r.tone === 'warning')).toBeDefined();
     // Selected attribute keys first.
@@ -382,12 +341,6 @@ describe('context menu items', () => {
     expect(items[1]!.action).toEqual({ type: 'set-relationship-kind', edgeId: 'ab', kind: 'open' });
   });
 
-  it('v1 edge menu disables kinds the cells cannot take', () => {
-    const items = menuItems(modelFromV1(v1Example()), { kind: 'edge', id: 'entry-to-studio' });
-    const byLabel = new Map(items.map((i) => [i.label.replace('✓ ', ''), i]));
-    expect(byLabel.get('Open (no wall)')?.disabled).toBe(false);
-    expect(byLabel.get('Atrium (open void)')?.disabled).toBe(true);
-  });
 });
 
 // ── Scale ───────────────────────────────────────────────────────────────────────────────────
@@ -407,7 +360,7 @@ describe('6, 20 and 50 node diagrams', () => {
       expect(model.edges).toHaveLength(n - 1);
       for (const edge of model.edges) expect(presentEdge(model, edge).status).not.toBe('legacy');
       // A further room still finds a free cell.
-      expect(suggestFreeCellV2(doc, model.version === 2 ? model.spatial.occupancy : (undefined as never))).toBeDefined();
+      expect(suggestFreeCellV2(doc, model.spatial.occupancy)).toBeDefined();
     });
   }
 });

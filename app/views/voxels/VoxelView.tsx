@@ -42,8 +42,9 @@ import {
 const GAP = DEFAULT_CELL_SIZE.horizontal * 0.06;
 const BASE_OPACITY = 0.38;
 
-export function VoxelView({ doc, selection, onSelect, design, project }: ViewProps) {
-  const source = useSceneSource(doc, design);
+export function VoxelView({ selection, onSelect, design, project }: ViewProps) {
+  const doc = design.doc;
+  const source = useSceneSource(design);
   const s = useSpatialScene(source, selection, project?.attributes, design);
   const camera = useRemembered<CameraState>('camera:voxels');
   const viewportCamera = useViewportCamera();
@@ -103,7 +104,7 @@ export function VoxelView({ doc, selection, onSelect, design, project }: ViewPro
             </button>
           </ControlBar>
           <InfoPanel>
-            <HoverInfo hovered={s.hovered} doc={doc} design={design} attributeKey={s.colorMode.kind === 'attribute' ? s.colorMode.key : null} />
+            <HoverInfo hovered={s.hovered} design={design} attributeKey={s.colorMode.kind === 'attribute' ? s.colorMode.key : null} />
             <div className="viewer3d-count">
               {doc.nodes.length} {design ? 'rooms' : 'cells'}
               {connectors.length > 0 && ` · ${connectors.length} connector cells`} · {s.levels.length} level{s.levels.length === 1 ? '' : 's'} ·{' '}
@@ -193,12 +194,10 @@ export function VoxelView({ doc, selection, onSelect, design, project }: ViewPro
 
 function HoverInfo({
   hovered,
-  doc,
   design,
   attributeKey,
 }: {
   readonly hovered: Hover | null;
-  readonly doc: ViewProps['doc'];
   readonly design: ViewProps['design'];
   readonly attributeKey: string | null;
 }) {
@@ -207,14 +206,12 @@ function HoverInfo({
     const tip = tooltipOf(design, hovered.id);
     return tip ? <div>{tip}</div> : null;
   }
-  const room = design?.doc.nodes.find((x) => x.id === hovered.id);
-  const n = doc.nodes.find((x) => x.id === hovered.id);
+  const n = design.doc.nodes.find((x) => x.id === hovered.id);
   if (!n) return null;
   const value = attributeKey === null ? undefined : n.attributes[attributeKey];
   return (
     <div>
-      <strong>{room ? nodeLabel(room) : n.id}</strong> · {n.typeId} · grid [{n.grid.join(', ')}]
-      {room && ` · size ${room.size.join('×')}`}
+      <strong>{nodeLabel(n)}</strong> · {n.typeId} · grid [{n.grid.join(', ')}] · size {n.size.join('×')}
       {attributeKey !== null && (
         <>
           {' '}

@@ -1,9 +1,7 @@
-import {  } from '@app/document/v2';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import exampleJson from '../../document/examples/two-storey-example.json';
-import { validateDocument } from '@app/document';
+import exampleJson from '../../document/test-designs/two-storey.json';
 import { expectOk } from '@app/document/test-fixtures';
 import { readDesign, validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
 import { resolveRelationships, type DesignPort } from '@app/spatial';
@@ -15,7 +13,6 @@ import { doorSwingPath } from './planShapes';
 import { MAX_SCALE, MIN_SCALE, effectiveLevel, fitViewport, panBy, toPlan, viewBoxOf, wheelFactor, zoomAt } from './planViewport';
 
 const example = expectOk(readDesign(exampleJson)).doc;
-const v1Example = expectOk(validateDocument(exampleJson));
 
 function port(doc: DesignDocumentV2): DesignPort {
   return {
@@ -30,14 +27,8 @@ function port(doc: DesignDocumentV2): DesignPort {
   };
 }
 
-function render(doc: DesignDocumentV2 | null, selection: Selection = NO_SELECTION, level?: number): string {
-  const props = {
-    doc: v1Example,
-    selection,
-    onSelect: () => {},
-    onCommand: () => ({ ok: true }) as const,
-    ...(doc ? { design: port(doc) } : {}),
-  };
+function render(doc: DesignDocumentV2, selection: Selection = NO_SELECTION, level?: number): string {
+  const props = { selection, onSelect: () => {}, design: port(doc) };
   const view = createElement(PlanView, props);
   if (level === undefined) return renderToStaticMarkup(view);
   const memory = createPanelMemory();
@@ -110,10 +101,8 @@ describe('PlanView', () => {
     expect(render(twoRooms)).not.toContain('sgl-plan-wall-target');
     const html = renderToStaticMarkup(
       createElement(PlanView, {
-        doc: v1Example,
         selection: NO_SELECTION,
         onSelect: () => {},
-        onCommand: () => ({ ok: true }) as const,
         design: port(twoRooms),
         onWallTarget: () => {},
       }),
@@ -128,12 +117,6 @@ describe('PlanView', () => {
     const html = render(empty);
     expect(html).toContain('This scenario has no rooms yet');
     expect(html).toMatch(/<select[^>]*disabled/);
-  });
-
-  it('without the design port it explains instead of drawing', () => {
-    const html = render(null);
-    expect(html).toContain('needs the schema-v2 design');
-    expect(html).not.toContain('<svg');
   });
 });
 

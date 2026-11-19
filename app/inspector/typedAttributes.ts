@@ -1,12 +1,14 @@
-import type { AttributeValue, Attributes, GraphCommand, GraphNode } from '@app/document';
+import type { AttributeValue, Attributes } from '@app/document';
+import type { RoomNode } from '@app/document/v2';
+import type { DesignCommand } from '@app/spatial';
 import { checkValue, describeSpec, specFor, type AttributeSpec, type AttributeSpecs, type ValueStatus } from '@app/extensions';
 import { rowsToAttributes, type AttributeRow, type ParseResult } from './inspectorModel';
 
-/** The one command these helpers build (same shape in schema v1 and v2). */
-export type SetAttributesCommand = Extract<GraphCommand, { readonly type: 'set-node-attributes' }>;
+/** The one command these helpers build. */
+export type SetAttributesCommand = Extract<DesignCommand, { readonly type: 'set-node-attributes' }>;
 
-/** What the helpers read from a node (a v1 `GraphNode` or a v2 room). */
-export type AttributedNode = Pick<GraphNode, 'id' | 'typeId' | 'attributes'>;
+/** What the helpers read from a room. */
+export type AttributedNode = Pick<RoomNode, 'id' | 'typeId' | 'attributes'>;
 
 /**
  * Pure helpers for the type-aware part of the inspector. Typed-attribute semantics (what a value

@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { SELECTION_COLOR } from '@core/viewer/appearance';
 import { colorModeFromValue, colorModeToValue, type ColorMode, type Coloring, NUMERIC_HIGH, NUMERIC_LOW } from './colorBy';
-import { EDGE_LEGEND_ORDER, EDGE_STYLES } from './edgeStyle';
 
 /**
  * Application-specific HTML controls for the Graph 3D and Voxel views (colour-by, storey cut,
@@ -85,18 +84,16 @@ export function LevelSelect({
  */
 export function Legend({
   coloring,
-  showEdges,
   children,
   open,
   onOpenChange,
 }: {
   readonly coloring: Coloring;
-  readonly showEdges?: boolean;
   readonly children?: ReactNode;
   readonly open?: boolean;
   readonly onOpenChange?: (open: boolean) => void;
 }) {
-  const body = <LegendBody coloring={coloring} {...(showEdges !== undefined && { showEdges })}>{children}</LegendBody>;
+  const body = <LegendBody coloring={coloring}>{children}</LegendBody>;
   if (open !== undefined && onOpenChange) {
     return (
       <details className="viewer3d-panel viewer3d-legend viewer3d-legend-collapsible" open={open} onToggle={(e) => onOpenChange(e.currentTarget.open)}>
@@ -113,7 +110,7 @@ export function Legend({
   );
 }
 
-function LegendBody({ coloring, showEdges, children }: { readonly coloring: Coloring; readonly showEdges?: boolean; readonly children?: ReactNode }) {
+function LegendBody({ coloring, children }: { readonly coloring: Coloring; readonly children?: ReactNode }) {
   return (
     <>
       {coloring.scale && (
@@ -133,25 +130,6 @@ function LegendBody({ coloring, showEdges, children }: { readonly coloring: Colo
         {coloring.legend.length === 0 && <li className="viewer3d-count">No nodes</li>}
       </ul>
       {coloring.note && <div className="viewer3d-count">{coloring.note}</div>}
-      {showEdges && (
-        <>
-          <div className="viewer3d-legend-title">Edges (relationships, not stairs)</div>
-          <ul>
-            {EDGE_LEGEND_ORDER.map((k) => {
-              const s = EDGE_STYLES[k];
-              return (
-                <li key={k}>
-                  <span
-                    className="viewer3d-edge-sample"
-                    style={{ borderTop: `3px ${s.dashed ? 'dashed' : 'solid'} ${s.color}` }}
-                  />
-                  {s.label}
-                </li>
-              );
-            })}
-          </ul>
-        </>
-      )}
       <div className="viewer3d-legend-row">
         <span className="viewer3d-swatch" style={{ background: SELECTION_COLOR }} /> selected
       </div>

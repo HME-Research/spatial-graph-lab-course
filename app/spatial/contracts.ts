@@ -72,7 +72,7 @@ interface ResolutionBase {
  * is this discriminated union: `routeCells` = `route.cells`, `connectorStyle` = `route.style`.)
  * - direct: the rooms touch. `faces` = every shared unit face seen from the SOURCE room.
  *   horizontal access → door; horizontal open → no wall; vertical access → slab opening + access
- *   marker; vertical open → slab void (v1KindFor gives the equivalent v1 kind).
+ *   marker; vertical open → slab void (`connectionCondition` in app/building names these face conditions).
  * - routed: same-storey straight connector (cells reserved in the occupancy).
  * - unresolved: no physical connection; drawn as a muted red dashed edge; never removed.
  */

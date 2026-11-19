@@ -3,7 +3,7 @@ import { serializeDesignV2 } from '@app/document/v2';
 import { fileOf, fixtureIds, twoRooms } from './projectStore.fixtures';
 import { makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import { projectFromLegacyDesign, readProjectFile, serializeProjectFile } from '@app/project';
-import exampleV1 from '../document/examples/two-storey-example.json';
+import twoStorey from '../document/test-designs/two-storey.json';
 import { canRedo, canUndo, undoLabel } from './history';
 import { currentDocument } from './documentSession';
 import {
@@ -273,7 +273,7 @@ describe('all-scenario JSON round trip', () => {
     const r = applyActiveCommand(p, { type: 'set-face-preference', edgeId: 'ab', preference: pref });
     if (!r.ok) throw new Error('pref');
     p = r.project;
-    const record = JSON.parse(serializeAttributeRecord(makeAttributeRecord('example-gallery', { nodes: [], edges: [], nodeTypeDefaults: {} }, 'x')));
+    const record = JSON.parse(serializeAttributeRecord(makeAttributeRecord('gallery', { nodes: [], edges: [], nodeTypeDefaults: {} }, 'x')));
     p = setAttributeRecord(p, record);
 
     const file = projectFileOf(p, '2026-11-16T11:00:00.000Z');
@@ -292,12 +292,12 @@ describe('all-scenario JSON round trip', () => {
 });
 
 describe('reading files', () => {
-  it('imports a legacy v1 design as a new project with one scenario', () => {
-    const r = readProjectOrDesign(JSON.stringify(exampleV1), { ...ids(), toolkit: { id: 'example-gallery' } });
+  it('imports a design file as a new project with one scenario', () => {
+    const r = readProjectOrDesign(JSON.stringify(twoStorey), { ...ids(), toolkit: { id: 'gallery' } });
     if (!r.ok) throw new Error(JSON.stringify(r.issues));
     expect(r.kind).toBe('design');
     expect(r.file.scenarios).toHaveLength(1);
-    expect(r.file.toolkit).toEqual({ id: 'example-gallery' });
+    expect(r.file.toolkit).toEqual({ id: 'gallery' });
     expect(r.file.scenarios[0]!.design.schemaVersion).toBe(2);
   });
 
@@ -325,11 +325,11 @@ describe('reading files', () => {
     expect(bad(JSON.stringify(brokenScenario))).toContain('invalid-design');
   });
 
-  it('accepts a project file whose scenario is still a v1 design (schema compatibility)', () => {
+  it('refuses a project file whose scenario is a schema-v1 design (v1 is retired, P4)', () => {
     const file = JSON.parse(serializeProjectFile(fileOf()));
-    file.scenarios[0].design = exampleV1;
+    file.scenarios[0].design = { ...twoStorey, schemaVersion: 1 }; // v1 refused
     const r = readProjectOrDesign(JSON.stringify(file));
-    expect(r.ok && r.file.scenarios[0]!.design.schemaVersion).toBe(2);
+    expect(!r.ok && r.issues.map((i) => i.code)).toContain('invalid-design');
   });
 });
 

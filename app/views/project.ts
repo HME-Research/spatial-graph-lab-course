@@ -1,9 +1,8 @@
 import type { FacadeProvider, FacadeSpec } from '@app/building';
-import type { DesignDocument } from '@app/document';
 import type { DesignDocumentV2 } from '@app/document/v2';
 
-/** Only node ids and types are read: a v1 document, or the stored schema-v2 document. */
-type TypedNodes = Pick<DesignDocument, 'nodes'> | Pick<DesignDocumentV2, 'nodes'>;
+/** Only node ids and types are read. */
+type TypedNodes = Pick<DesignDocumentV2, 'nodes'>;
 import {
   checkConformance,
   EMPTY_ATTRIBUTE_SCHEMA,

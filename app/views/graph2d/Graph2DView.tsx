@@ -18,20 +18,18 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type RefObject } from 'react';
-import { EDGE_KINDS, type DiagramPosition, type GraphIssue } from '@app/document';
+import type { DiagramPosition, GraphIssue } from '@app/document';
 import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
 import { nodeTypeStatus, typeDisplayName } from '../project';
-import { EDGE_STYLES, orientationOf, resolveDiagramPositions } from './diagram';
+import { resolveDiagramPositions } from './diagram';
 import {
   addNodeRequest,
   changeRelationshipKindCommand,
-  changeV1EdgeKindCommand,
   connectRequest,
   describePlacement,
   diagramPositionCommand,
-  modelFromV1,
   modelFromV2,
   removeEdgeCommand,
   removeNodeCommand,
@@ -77,8 +75,8 @@ type Notice =
 
 /**
  * Graph 2D editor: one abstract diagram of the entire 3D spatial graph (all storeys), drawn as
- * circles. Diagram positions are independent of spatial cells. Reads the v2 port when the host
- * supplies `design` (feature gate), else the v1 `doc`; every edit is one command.
+ * circles. Diagram positions are independent of spatial cells. Reads the design port; every edit is
+ * one command.
  */
 export function Graph2DView(props: ViewProps) {
   // One provider per panel instance, so split panels keep independent viewports.
@@ -89,7 +87,7 @@ export function Graph2DView(props: ViewProps) {
   );
 }
 
-function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }: ViewProps) {
+function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const flow = useReactFlow();
   const [overlay, setOverlay] = useState<Readonly<Record<string, NodeOverlay>>>({});
@@ -147,14 +145,14 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
     displayMemory?.save(next);
   };
 
-  const designDoc = design?.doc;
-  const designSpatial = design?.spatial;
+  const designDoc = design.doc;
+  const designSpatial = design.spatial;
   const attributeSchema = project?.attributes;
   /** Analysis values shown on the model (Algorithms tab "Show on the model"); audit M4. */
   const analysis = useAnalysisOverlay();
   const model = useMemo<DiagramModel>(
-    () => (designDoc && designSpatial ? modelFromV2(designDoc, designSpatial, attributeSchema) : modelFromV1(doc)),
-    [designDoc, designSpatial, doc, attributeSchema],
+    () => modelFromV2(designDoc, designSpatial, attributeSchema),
+    [designDoc, designSpatial, attributeSchema],
   );
 
   // A different design (no room in common with the previous one, e.g. Load example / Open JSON)
@@ -170,20 +168,14 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
     return () => cancelAnimationFrame(frame);
   }, [model, flow]);
 
-  /** Send a command to the document it was built for; show issues on rejection. */
+  /** Send a command through the design port; show issues on rejection. */
   const run = useCallback(
-    (mc: ModelCommand): boolean => {
-      let outcome;
-      if (mc.version === 2) {
-        if (!design) return false;
-        outcome = design.onCommand(mc.command);
-      } else {
-        outcome = onCommand(mc.command);
-      }
+    (command: ModelCommand): boolean => {
+      const outcome = design.onCommand(command);
       setIssues(outcome.ok ? [] : outcome.issues);
       return outcome.ok;
     },
-    [design, onCommand],
+    [design],
   );
 
   const positions = useMemo(() => resolveDiagramPositions(model), [model]);
@@ -379,7 +371,7 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
   const confirmInvalidReview = () => {
     const command = removeInvalidCommand(invalidRows, keepInvalid);
     if (!command || command.type !== 'remove-edges') return;
-    if (!run({ version: 2, command })) return;
+    if (!run(command)) return;
     const removed = new Set(command.edgeIds);
     if (selection.kind === 'edge' && removed.has(selection.id)) onSelect(NO_SELECTION);
     const n = command.edgeIds.length;
@@ -405,8 +397,6 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
         return void run(removeEdgeCommand(model, action.edgeId));
       case 'set-relationship-kind':
         return void run(changeRelationshipKindCommand(action.edgeId, action.kind));
-      case 'set-v1-kind':
-        return void run(changeV1EdgeKindCommand(action.edgeId, action.kind));
     }
   };
 
@@ -644,7 +634,7 @@ function Graph2DEditor({ doc, selection, onSelect, onCommand, project, design }:
               }}
             >
               <summary>Relationships</summary>
-              {model.version === 2 ? <V2Legend /> : <V1Legend />}
+              <RelationshipLegendRows />
             </details>
           </Panel>
         )}
@@ -745,12 +735,12 @@ function NoticeLine({
   if (!edge) return null;
   const a = model.byNode.get(edge.source)?.label ?? edge.source;
   const b = model.byNode.get(edge.target)?.label ?? edge.target;
-  const kind = model.version === 2 ? RELATIONSHIP_KIND_LABELS[edge.kind as 'access' | 'open'] : edge.kind;
+  const kind = RELATIONSHIP_KIND_LABELS[edge.kind];
   const unresolved = edge.resolution?.status === 'unresolved' ? edge.resolution : undefined;
   return (
     <>
       Connected <strong>{a}</strong> ↔ <strong>{b}</strong> as {kind}
-      {model.version === 2 && <> (change it from the right-click menu or Properties)</>}.
+      {' '}(change it from the right-click menu or Properties).
       {unresolved && <span className="sgl-unresolved-text"> Unresolved: {UNRESOLVED_REASON_TEXT[unresolved.reason]}</span>}{' '}
       <button type="button" className="sgl-link" onClick={() => onRemove(edge.id)} title="Delete this new relationship (Ctrl/⌘+Z also undoes it)">
         Remove
@@ -776,7 +766,7 @@ function LegendLine({ row }: { readonly row: Pick<LegendRow, 'stroke'> }) {
   );
 }
 
-function V2Legend() {
+function RelationshipLegendRows() {
   return (
     <>
       {relationshipLegend().map((row) => (
@@ -790,21 +780,3 @@ function V2Legend() {
   );
 }
 
-function V1Legend() {
-  return (
-    <>
-      {EDGE_KINDS.map((kind) => {
-        const s = EDGE_STYLES[kind];
-        return (
-          <div key={kind} className="sgl-legend-row">
-            <LegendLine row={{ stroke: s }} />
-            <span>
-              {s.symbol} {kind} <span className="sgl-muted">({orientationOf(kind)})</span>
-            </span>
-          </div>
-        );
-      })}
-      <div className="sgl-muted">Solid = same storey · dashed = between storeys</div>
-    </>
-  );
-}

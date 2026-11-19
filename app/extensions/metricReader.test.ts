@@ -4,7 +4,7 @@ import { METRIC_CATALOGUE } from '@app/metrics';
 import { metricsLabDoc } from '@app/metrics/test-fixtures';
 import { resolveWithPreferences } from '@app/spatial';
 import { defineSpatialAlgorithm, type MetricInfo, type SpatialAlgorithmContext, type SpatialOperation } from '@student-api';
-import { runAlgorithm, runAlgorithmV2 } from './run';
+import { runAlgorithmV2 } from './run';
 import { expectDiagnostic, expectExtOk, labDoc, labToolkit } from './test-fixtures';
 
 /**
@@ -98,7 +98,7 @@ describe('ctx.metrics in spatial algorithms', () => {
   it('works for schema-v1 runs (read through the migrated copy)', async () => {
     let area: unknown;
     const project = await withAlgorithm((ctx) => void (area = ctx.metrics.value('area', 'g1')));
-    expectExtOk(runAlgorithm(labDoc(), project, 'm'));
+    expectExtOk(runAlgorithmV2(labDoc(), project, 'm'));
     expect(area).toBe(9);
   });
 

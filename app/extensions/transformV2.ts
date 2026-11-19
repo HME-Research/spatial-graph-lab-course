@@ -13,7 +13,6 @@ import {
   nextDisplayId,
   RELATIONSHIP_KINDS,
   sizeSchema,
-  V1_KIND_TO_RELATIONSHIP,
   validateDocumentV2,
   type DesignDocumentV2,
   type RelationshipKind,
@@ -22,22 +21,20 @@ import {
 } from '@app/document/v2';
 import { resolveRelationships } from '@app/spatial';
 import type { SpatialOperation } from '@student-api';
-import type { ActiveToolkit } from './activate';
-import { checkConformance, findRegressions } from './conformance';
-import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionResult } from './diagnostics';
+import type { ActiveToolkit, RegisteredNodeType } from './activate';
+import { checkConformance, findNodeType, findRegressions } from './conformance';
+import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionIssueCode, type ExtensionResult } from './diagnostics';
 import { describeField, checkFieldValue, fieldForKey, EMPTY_ATTRIBUTE_SCHEMA, type AttributeCollection, type AttributeField, type ProjectAttributeSchema } from './projectAttributes';
 import { writeFieldValue } from './resolveAttributes';
-import { opError, writableType } from './transform';
 
 /**
- * Atomic application of Student API operations to a schema-v2 document. Same pipeline as the
- * v1 `applyTransformation` (per-operation checks on a private draft → `validateDocumentV2` on
- * the final draft → conformance non-regression; nothing but diagnostics on failure), with the
- * schema-v2 rules:
+ * Atomic application of Student API operations to a document: per-operation checks on a private
+ * draft → `validateDocumentV2` on the final draft → conformance non-regression; nothing but
+ * diagnostics on failure. Rules:
  *
  * - `add-node`: optional `size` (default [1, 1, 1]); the room's footprint must not overlap
  *   another room (`occupied-cell`); a `displayId` is assigned with `nextDisplayId`.
- * - `add-edge`: `access` | `open`, or a legacy v1 kind mapped with `V1_KIND_TO_RELATIONSHIP`.
+ * - `add-edge`: `access` | `open`.
  *   The rooms need NOT touch: a non-adjacent relationship is valid; its spatial status is derived.
  * - New rooms that take cells of generated connectors are NOT refused here, but are never silent:
  *   `displacedRoutes` lists the affected relationships, and the host must ask for confirmation
@@ -73,10 +70,19 @@ const fmt = (g: readonly number[]) => `[${g.join(', ')}]`;
 
 /** Relationship kind for an operation's kind, or undefined if unknown. */
 export function relationshipKindOf(kind: string): RelationshipKind | undefined {
-  if ((RELATIONSHIP_KINDS as readonly string[]).includes(kind)) return kind as RelationshipKind;
-  return Object.prototype.hasOwnProperty.call(V1_KIND_TO_RELATIONSHIP, kind)
-    ? V1_KIND_TO_RELATIONSHIP[kind as keyof typeof V1_KIND_TO_RELATIONSHIP]
-    : undefined;
+  return (RELATIONSHIP_KINDS as readonly string[]).includes(kind) ? (kind as RelationshipKind) : undefined;
+}
+
+export function opError(index: number, code: ExtensionIssueCode, message: string, attribute?: string): ExtensionDiagnostic {
+  return diagnostic(code, 'error', { kind: 'operation', index }, `operation ${index + 1}: ${message}`, attribute === undefined ? {} : { attribute });
+}
+
+/** The node's type, if it is registered and valid; otherwise a diagnostic explaining why not. */
+export function writableType(project: ActiveToolkit, typeId: string, index: number, what: string): RegisteredNodeType | ExtensionDiagnostic {
+  const type = findNodeType(project, typeId);
+  if (!type) return opError(index, 'type-not-registered', `${what}: type "${typeId}" is not a node type of project "${project.id}"`);
+  if (!type.status.ok) return opError(index, 'broken-node-type', `${what}: type "${typeId}" (${type.file}) is invalid and cannot be used`);
+  return type;
 }
 
 /**
@@ -148,7 +154,7 @@ function addEdge(draft: DraftV2, op: Extract<SpatialOperation, { op: 'add-edge' 
     return opError(
       i,
       'unknown-edge-kind',
-      `${what}: kind "${op.kind}" is not one of ${[...RELATIONSHIP_KINDS, ...Object.keys(V1_KIND_TO_RELATIONSHIP).filter((k) => k !== 'open')].join(', ')} (new kinds are not supported)`,
+      `${what}: kind "${op.kind}" is not one of ${RELATIONSHIP_KINDS.join(', ')} (new kinds are not supported)`,
     );
   }
   for (const end of [op.source, op.target]) {

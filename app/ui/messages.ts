@@ -62,17 +62,6 @@ export function friendlyText(issue: GraphIssue, context: MessageContext = {}): s
         ? `Room ${room(names[0]!)} overlaps room ${room(names[1]!)}. Rooms cannot share cells.`
         : 'Two rooms overlap. Rooms cannot share cells.';
     }
-    case 'duplicate-grid-cell': {
-      // `cell [x, y, z] is already occupied by node "a"`, reported on the LATER of the two nodes
-      // (path ['nodes', i, 'grid']); the edited room may be either one.
-      const cell = /(\[[^\]]*\])/.exec(issue.message)?.[1];
-      const reportedOn = typeof issue.path[1] === 'number' ? context.nodeIdAt?.(issue.path[1]) : undefined;
-      const occupant = names[0] === context.subjectNodeId && context.subjectNodeId !== undefined ? reportedOn : names[0];
-      const where = cell === undefined ? 'That cell' : `Cell ${cell}`;
-      return occupant !== undefined && occupant !== context.subjectNodeId
-        ? `${where} is already taken by room ${room(occupant)}. Rooms cannot share cells.`
-        : `${where} is already taken by another room. Rooms cannot share cells.`;
-    }
     case 'invalid-edge-geometry': {
       // `"door" edge "e" requires <requirement>; "a" [..] and "b" [..] are not`
       const requirement = /requires (.+?);/.exec(issue.message)?.[1];
