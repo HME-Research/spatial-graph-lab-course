@@ -45,6 +45,17 @@ export const GUIDE_CONTENT: readonly GuideTabContent[] = [
     ],
   },
   {
+    tab: 'panels',
+    blocks: [
+      {
+        id: 'panels-placeholder',
+        title: 'Panels (placeholder)',
+        summary: 'The side panels: Properties, Attributes, Building Designer, Analyse, Transform, Scenarios, Camera and Display.',
+        example: 'Placeholder: select a room and edit it in Properties.',
+      },
+    ],
+  },
+  {
     tab: 'toolkits',
     blocks: [
       {

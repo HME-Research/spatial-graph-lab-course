@@ -4,13 +4,14 @@
  */
 
 /** Guide tabs, in order. */
-export const GUIDE_TAB_IDS = ['graphs', 'attributes', 'views', 'toolkits', 'how-to'] as const;
+export const GUIDE_TAB_IDS = ['graphs', 'attributes', 'views', 'panels', 'toolkits', 'how-to'] as const;
 export type GuideTabId = (typeof GUIDE_TAB_IDS)[number];
 
 export const GUIDE_TAB_LABELS: Readonly<Record<GuideTabId, string>> = {
   graphs: 'Graphs',
   attributes: 'Attributes',
   views: 'Views',
+  panels: 'Panels',
   toolkits: 'Toolkits & JSON',
   'how-to': 'How to…',
 };
@@ -37,6 +38,17 @@ export interface Explainer {
   readonly diagram?: string;
   /** One reliable external link. */
   readonly learnMore?: { readonly label: string; readonly url: string };
+  /**
+   * Optional screenshot of the real app, shown under the diagram. Captured by a script (so it can
+   * be retaken when the UI changes); the numbered markers are drawn by the Guide over the image
+   * and use the same numbers as the diagram's steps.
+   */
+  readonly screenshot?: {
+    readonly src: string;
+    readonly alt: string;
+    /** Marker centres as fractions (0–1) of the image width/height. */
+    readonly markers: readonly { readonly n: number; readonly x: number; readonly y: number }[];
+  };
 }
 
 /** Props of the shared movable / resizable / minimisable window. */

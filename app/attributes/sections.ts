@@ -41,7 +41,7 @@ export const ATTRIBUTE_SECTIONS: Readonly<Record<AttributeSectionId, AttributeSe
   },
   custom: {
     title: 'Custom',
-    summary: 'Attributes defined by your toolkit or project.',
+    summary: 'Attributes from your toolkit (cannot be deleted) or added by you (can be deleted).',
     editable: true,
   },
   calculated: {
@@ -50,6 +50,17 @@ export const ATTRIBUTE_SECTIONS: Readonly<Record<AttributeSectionId, AttributeSe
     editable: false,
   },
 };
+
+/**
+ * Where a Custom attribute comes from, shown as a small rounded tag on its row (same tag style as
+ * Analyse: `Toolkit: <name>` / `Yours`). Toolkit attributes cannot be deleted; yours can.
+ */
+export type CustomAttributeSource = { readonly kind: 'toolkit'; readonly toolkitName: string } | { readonly kind: 'yours' };
+
+export const customAttributeTag = (source: CustomAttributeSource): string =>
+  source.kind === 'toolkit' ? `Toolkit: ${source.toolkitName}` : 'Yours';
+
+export const canDeleteCustomAttribute = (source: CustomAttributeSource): boolean => source.kind === 'yours';
 
 /** Built-in (non-custom, non-calculated) members of each section, in display order. */
 export interface BuiltInAttribute {
