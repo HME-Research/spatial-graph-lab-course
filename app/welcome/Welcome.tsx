@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { domFocusScope, handleDialogKeyDown } from '@app/ui/concepts/dialogKeys';
+import { useGuide } from '@app/ui/guide';
 import { ToolkitPicker, type ToolkitOption } from './ToolkitPicker';
 import { recentRows, type RecentState } from './welcomeModel';
 import './welcome.css';
@@ -49,7 +50,9 @@ export function Welcome({
 }: WelcomeProps) {
   const disabled = busy !== null;
   const dialog = useRef<HTMLDialogElement>(null);
+  const guideButton = useRef<HTMLButtonElement>(null);
   const [toolkitId, setToolkitId] = useState<string | null>(defaultToolkitId);
+  const guide = useGuide();
 
   useEffect(() => {
     const el = dialog.current;
@@ -62,7 +65,31 @@ export function Welcome({
     };
   }, []);
 
-  const onFile = (event: ChangeEvent<HTMLInputElement>) => {
+  /*
+   * The Guide is a non-modal floating window, and nothing can sit above a modal <dialog>. So while
+   * the Guide is open, Welcome becomes a non-modal dialog (with its own scrim, see welcome.css) and
+   * the Guide floats above it; when the Guide closes, Welcome is modal again and gets focus back.
+   */
+  useEffect(() => {
+    const el = dialog.current;
+    if (!el || typeof el.showModal !== 'function' || typeof el.show !== 'function') return;
+    let modal: boolean;
+    try {
+      modal = el.matches(':modal');
+    } catch {
+      return; // no :modal support: keep Welcome as it is
+    }
+    if (guide.isOpen && el.open && modal) {
+      el.close();
+      el.show();
+    } else if (!guide.isOpen && el.open && !modal) {
+      el.close();
+      el.showModal();
+      guideButton.current?.focus();
+    }
+  }, [guide.isOpen]);
+
+  const onFile =(event: ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget;
     const file = input.files?.[0];
     input.value = '';
@@ -91,9 +118,22 @@ export function Welcome({
   };
 
   return (
-    <dialog ref={dialog} className="sgl-welcome" aria-labelledby="sgl-welcome-title" aria-describedby="sgl-welcome-lead" onKeyDown={onKeyDown} onCancel={(e) => e.preventDefault()}>
+    <>
+    {guide.isOpen && <div className="sgl-welcome-scrim" aria-hidden="true" />}
+    <dialog ref={dialog} className={`sgl-welcome${guide.isOpen ? ' is-guide-open' : ''}`} aria-labelledby="sgl-welcome-title" aria-describedby="sgl-welcome-lead" onKeyDown={onKeyDown} onCancel={(e) => e.preventDefault()}>
       <div className="sgl-welcome-card">
         <header className="sgl-welcome-head">
+          <button
+            ref={guideButton}
+            type="button"
+            className="sgl-guide-button sgl-welcome-guide"
+            onClick={() => guide.open()}
+            aria-haspopup="dialog"
+            aria-expanded={guide.isOpen}
+            title="Open the Guide"
+          >
+            Guide
+          </button>
           <h2 id="sgl-welcome-title">Welcome to Spatial Graph Lab</h2>
           <p id="sgl-welcome-lead" className="sgl-welcome-lead">
             Design buildings as graphs of rooms and their relationships, then explore them as plans and in 3D.
@@ -133,6 +173,7 @@ export function Welcome({
         </section>
       </div>
     </dialog>
+    </>
   );
 }
 
