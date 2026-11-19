@@ -13,24 +13,24 @@ const design = (name, nodes, edges, positions) => ({ schemaVersion: 2, metadata:
 const designA = design(
   'Option A',
   [
-    { id: 'a', grid: [0, 0, 0], size: [2, 1, 1], typeId: 'gallery' },
-    { id: 'b', grid: [2, 0, 0], typeId: 'studio' },
+    { id: 1, grid: [0, 0, 0], size: [2, 1, 1], typeId: 'gallery' },
+    { id: 2, grid: [2, 0, 0], typeId: 'studio' },
   ],
-  [{ id: 'ab', source: 'a', target: 'b', kind: 'access' }],
-  { a: [0, 0], b: [100, 0] },
+  [{ id: 1, source: 1, target: 2, kind: 'access' }],
+  { 1: [0, 0], 2: [100, 0] },
 );
 const designB = design(
   'Option B',
   [
-    { id: 'a', grid: [0, 0, 0], typeId: 'gallery' },
-    { id: 'b', grid: [0, 1, 0], size: [1, 1, 2], typeId: 'studio' },
-    { id: 'c', grid: [5, 5, 0], typeId: 'gallery' },
+    { id: 1, grid: [0, 0, 0], typeId: 'gallery' },
+    { id: 2, grid: [0, 1, 0], size: [1, 1, 2], typeId: 'studio' },
+    { id: 3, grid: [5, 5, 0], typeId: 'gallery' },
   ],
   [
-    { id: 'ab', source: 'a', target: 'b', kind: 'open' },
-    { id: 'bc', source: 'b', target: 'c', kind: 'access' },
+    { id: 1, source: 1, target: 2, kind: 'open' },
+    { id: 2, source: 2, target: 3, kind: 'access' },
   ],
-  { a: [0, 0], b: [0, 100], c: [200, 100] },
+  { 1: [0, 0], 2: [0, 100], 3: [200, 100] },
 );
 
 /** Two scenarios with different topology/geometry, a face preference, a camera and display overrides. */
@@ -50,7 +50,7 @@ function project(projectId, updatedAt) {
       {
         id: 's1',
         name: 'Option A',
-        content: { design: imported(designA), facePreferences: { ab: { nodeId: 'a', offset: [1, 0, 0], direction: '+x' } } },
+        content: { design: imported(designA), facePreferences: { 1: { nodeId: 1, offset: [1, 0, 0], direction: '+x' } } },
         cameras: [{ id: 'front', name: 'Front', viewMode: 'architecture', pose: { projection: 'perspective', position: [10, 8, 10], target: [0, 0, 0], up: [0, 1, 0], fov: 50 } }],
         display: { roofs: false },
       },

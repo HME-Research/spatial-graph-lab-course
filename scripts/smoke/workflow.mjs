@@ -509,10 +509,10 @@ await step('fail/unknown-type-import', async () => {
     schemaVersion: 2,
     metadata: { name: 'Unknown type' },
     nodes: [
-      { id: 'a', grid: [0, 0, 0], size: [1, 1, 1], typeId: 'spaceship', attributes: {} },
-      { id: 'b', grid: [3, 0, 0], size: [1, 1, 1], typeId: 'gallery', attributes: {} },
+      { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'spaceship', attributes: {} },
+      { id: 2, grid: [3, 0, 0], size: [1, 1, 1], typeId: 'gallery', attributes: {} },
     ],
-    edges: [{ id: 'ab', source: 'a', target: 'b', kind: 'access', attributes: {} }],
+    edges: [{ id: 1, source: 1, target: 2, kind: 'access', attributes: {} }],
     diagram: { positions: {} },
     settings: { styleBy: 'function', styles: {} },
   };
