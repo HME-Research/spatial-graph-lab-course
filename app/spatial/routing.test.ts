@@ -129,7 +129,7 @@ describe('straight connector routing', () => {
       ],
       from: { nodeId: 1, cell: [0, 0, 0], direction: '+x' },
       to: { nodeId: 2, cell: [4, 0, 0], direction: '-x' },
-      look: { walls: 'open', roof: 'flat' },
+      look: { walls: 'open', roof: 'flat', width: 1.5 },
     });
   });
 
@@ -212,12 +212,12 @@ describe('straight connector routing', () => {
   });
 
   it('keeps each relationship kind and corridor look; routes open relationships too', () => {
-    for (const look of [{ walls: 'enclosed', roof: 'flat' }, { walls: 'open', roof: 'flat' }, { walls: 'open', roof: 'none' }, { walls: 'enclosed', roof: 'pergola' }] as const) {
+    for (const look of [{ walls: 'enclosed', roof: 'flat', width: 1.5 }, { walls: 'open', roof: 'flat', width: 3 }, { walls: 'open', roof: 'none', width: 0.9 }, { walls: 'enclosed', roof: 'pergola', width: 2.4 }] as const) {
       const r = resolveRelationships(pair({ id: 2, position: [3, 0, 0] }, [], { corridor: look, relationship: 'open' })).byEdge.get(1)!;
       expect(r.status === 'routed' && [r.relationship, r.route.look]).toEqual(['open', look]);
     }
     const dflt = resolveRelationships(pair({ id: 2, position: [3, 0, 0] })).byEdge.get(1)!;
-    expect(dflt.status === 'routed' && dflt.route.look).toEqual({ walls: 'open', roof: 'flat' });
+    expect(dflt.status === 'routed' && dflt.route.look).toEqual({ walls: 'open', roof: 'flat', width: 1.5 });
   });
 
   it('an unresolved relationship is still a valid document (warning, not a validation failure)', () => {

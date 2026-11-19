@@ -1,4 +1,4 @@
-import { type DesignDocumentV2, type GraphIssue, nodeLabel, relationshipLabel } from '@app/document';
+import { type DesignDocumentV2, formatCorridorWidth, type GraphIssue, nodeLabel, relationshipLabel } from '@app/document';
 import { applyDesignCommand, type CorridorPatch, type DesignCommand } from '@app/spatial';
 import { createHistory, record, redo, undo, type History } from './history';
 
@@ -131,11 +131,12 @@ const CORRIDOR_VALUE_WORDS: Readonly<Record<string, string>> = { enclosed: 'Encl
  * relationship's own corridor ("connection 3 → 7").
  */
 function corridorPatchLabel(patch: CorridorPatch, connection?: string): string {
-  const keys = (['walls', 'roof'] as const).filter((k) => patch[k] !== undefined);
+  const keys = (['walls', 'roof', 'width'] as const).filter((k) => patch[k] !== undefined);
   const of = connection ? ` of ${connection}` : '';
   if (keys.length === 1) {
     const key = keys[0]!;
     const value = patch[key];
+    if (typeof value === 'number') return `Set the corridor width${of} to ${formatCorridorWidth(value)}`;
     if (value !== null && value !== undefined) return `Set the corridor ${key}${of} to ${CORRIDOR_VALUE_WORDS[value] ?? value}`;
     return connection ? `Use the design's corridor ${key} for ${connection}` : `Reset the corridor ${key}`;
   }

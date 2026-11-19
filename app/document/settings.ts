@@ -1,5 +1,6 @@
-import { DEFAULT_CORRIDOR_ROOF, DEFAULT_CORRIDOR_WALLS, DEFAULT_ROOF_STYLE, DEFAULT_WALL_STYLE, DEFAULT_WINDOW_LAYOUT, FACADE_VARIANTS, type RoofStyle, type WallStyle, type WindowLayout } from './constants';
+import { DEFAULT_CORRIDOR_ROOF, DEFAULT_CORRIDOR_WALLS, DEFAULT_CORRIDOR_WIDTH, DEFAULT_ROOF_STYLE, DEFAULT_WALL_STYLE, DEFAULT_WINDOW_LAYOUT, FACADE_VARIANTS, MAX_CORRIDOR_WIDTH, type RoofStyle, type WallStyle, type WindowLayout } from './constants';
 import {
+  corridorWidthSchema,
   styleValueKey,
   type CorridorLook,
   type DesignDocumentV2,
@@ -189,29 +190,53 @@ export const sameGroup = (a: StyleGroupRef, b: StyleGroupRef): boolean =>
 
 type CorridorSettingsHolder = Pick<DesignSettings, 'corridors'> | undefined;
 
-/** A corridor's resolved look: both fields known. */
+/** A corridor's resolved look: every field known (`width` in metres). */
 export interface EffectiveCorridorLook {
   readonly walls: WallStyle;
   readonly roof: RoofStyle;
+  readonly width: number;
 }
 
-/** Built-in corridor look: open sides on slim posts under a flat roof. */
-export const DEFAULT_CORRIDOR_LOOK: EffectiveCorridorLook = Object.freeze({ walls: DEFAULT_CORRIDOR_WALLS, roof: DEFAULT_CORRIDOR_ROOF });
+/** Built-in corridor look: open sides on slim posts under a flat roof, 1.5 m wide. */
+export const DEFAULT_CORRIDOR_LOOK: EffectiveCorridorLook = Object.freeze({ walls: DEFAULT_CORRIDOR_WALLS, roof: DEFAULT_CORRIDOR_ROOF, width: DEFAULT_CORRIDOR_WIDTH });
+
+/** A corridor width for people: "1.5 m" (at most two decimals, no trailing zeros). */
+export const formatCorridorWidth = (width: number): string => `${Number(width.toFixed(2))} m`;
+
+/**
+ * A typed corridor width (metres; "2", "1,5" and "1.5 m" are accepted), checked against the same
+ * range as the document schema (more than 0, at most one cell). Empty text is `{ ok: true, width: null }`
+ * (= clear the value, inherit again).
+ */
+export function parseCorridorWidth(text: string): { readonly ok: true; readonly width: number | null } | { readonly ok: false; readonly message: string } {
+  const t = text.trim().replace(/\s*m$/i, '').replace(',', '.').trim();
+  if (t === '') return { ok: true, width: null };
+  const range = `Corridor width must be more than 0 and at most ${MAX_CORRIDOR_WIDTH} m (one cell).`;
+  if (!/^[+-]?(\d+\.?\d*|\.\d+)$/.test(t)) return { ok: false, message: `"${text.trim()}" is not a number. ${range}` };
+  const width = Number(t);
+  const checked = corridorWidthSchema.safeParse(width);
+  return checked.success ? { ok: true, width } : { ok: false, message: range };
+}
 
 /** The design's Corridors card, resolved: each field `settings.corridors`, else the built-in default. */
 export const designCorridorLook = (settings?: CorridorSettingsHolder): EffectiveCorridorLook => ({
   walls: settings?.corridors?.walls ?? DEFAULT_CORRIDOR_WALLS,
   roof: settings?.corridors?.roof ?? DEFAULT_CORRIDOR_ROOF,
+  width: settings?.corridors?.width ?? DEFAULT_CORRIDOR_WIDTH,
 });
 
 /**
  * Effective look of one relationship's corridor, per field: the relationship's own `corridor`
  * (Properties) → the design's Corridors card (`settings.corridors`) → the built-in default
- * (walls `open`, roof `flat`). Pass `undefined` settings only to skip the design step.
+ * (walls `open`, roof `flat`, width 1.5 m). Pass `undefined` settings only to skip the design step.
  */
 export const corridorLookOf = (edge: { readonly corridor?: CorridorLook | undefined }, settings: CorridorSettingsHolder): EffectiveCorridorLook => {
   const design = designCorridorLook(settings);
-  return { walls: edge.corridor?.walls ?? design.walls, roof: edge.corridor?.roof ?? design.roof };
+  return {
+    walls: edge.corridor?.walls ?? design.walls,
+    roof: edge.corridor?.roof ?? design.roof,
+    width: edge.corridor?.width ?? design.width,
+  };
 };
 
 /** The function cards of a design as `functionId → look` (the `function` setup's value cards). */

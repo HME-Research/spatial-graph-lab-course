@@ -10,7 +10,7 @@ import { Inspector } from '@app/inspector/Inspector';
 import { corridorRaw, fakePort } from '@app/inspector/test-fixtures';
 import { selectEdge } from '@core/viewer/selection';
 import { DesignerPanel } from './DesignerPanel';
-import { corridorCard, resetCorridorsEdit, setCorridorRoofEdit, setCorridorWallsEdit, type DesignerEdit } from './designerModel';
+import { corridorCard, resetCorridorsEdit, setCorridorRoofEdit, setCorridorWallsEdit, setCorridorWidthEdit, type DesignerEdit } from './designerModel';
 
 /** The Corridors look card (owner 2026-11-19): model, one command per edit, undo, Designer card and Properties. */
 
@@ -33,15 +33,15 @@ function commandOf(edit: DesignerEdit): DesignCommand {
 describe('corridor card model', () => {
   it('summarises the built-in defaults (Open + Flat) and what the card sets', () => {
     expect(corridorCard(base())).toEqual({
-      effective: { walls: 'open', roof: 'flat' },
-      setHere: { walls: false, roof: false },
+      effective: { walls: 'open', roof: 'flat', width: 1.5 },
+      setHere: { walls: false, roof: false, width: false },
       hasOverride: false,
       overrideCount: 0,
       corridorCount: null,
     });
     expect(corridorCard(withCorridors({ walls: 'enclosed' }, { roof: 'none' }))).toMatchObject({
-      effective: { walls: 'enclosed', roof: 'flat' },
-      setHere: { walls: true, roof: false },
+      effective: { walls: 'enclosed', roof: 'flat', width: 1.5 },
+      setHere: { walls: true, roof: false, width: false },
       hasOverride: true,
       overrideCount: 1,
     });
@@ -70,7 +70,45 @@ describe('corridor card model', () => {
     expect('corridors' in doc.settings).toBe(false);
   });
 
+  it('width: typed metres → one set-corridors command; the effective value sends nothing; empty clears; out of range is refused', () => {
+    const doc = base();
+    expect(commandOf(setCorridorWidthEdit(doc, '2'))).toEqual({ type: 'set-corridors', patch: { width: 2 } });
+    expect(commandOf(setCorridorWidthEdit(doc, '1,2 m'))).toEqual({ type: 'set-corridors', patch: { width: 1.2 } });
+    expect(setCorridorWidthEdit(doc, '1.5')).toEqual({ kind: 'unchanged' });
+    expect(setCorridorWidthEdit(doc, '')).toEqual({ kind: 'unchanged' });
+    for (const bad of ['0', '-1', '3.1', 'wide']) expect(setCorridorWidthEdit(doc, bad).kind).toBe('invalid');
+    expect(setCorridorWidthEdit(doc, '3').kind).toBe('command');
+    const set = withCorridors({ width: 2 });
+    expect(commandOf(setCorridorWidthEdit(set, ''))).toEqual({ type: 'set-corridors', patch: { width: null } });
+    expect(setCorridorWidthEdit(set, '2')).toEqual({ kind: 'unchanged' });
+    expect(commandOf(resetCorridorsEdit(set))).toEqual({ type: 'set-corridors', patch: { walls: null, roof: null, width: null } });
+    // The command keeps the other fields (key order walls, roof, width).
+    const both = expectOk(applyDesignCommand(withCorridors({ roof: 'none' }), { type: 'set-corridors', patch: { width: 2.5 } }));
+    expect(both.settings.corridors).toEqual({ roof: 'none', width: 2.5 });
+    expect(Object.keys(both.settings.corridors!)).toEqual(['roof', 'width']);
+  });
+
+  it('width edits are one labelled, undoable step each (card and relationship)', () => {
+    let s = openDocument(base(), 'test', null);
+    const before = currentDocument(s);
+    const r = applyDesignCommandToSession(s, commandOf(setCorridorWidthEdit(before, '2.4')));
+    if (!r.ok) throw new Error('expected ok');
+    s = r.session;
+    expect(s.history.past).toHaveLength(1);
+    expect(undoLabel(s.history)).toBe('Set the corridor width to 2.4 m');
+    expect(currentDocument(s).settings.corridors).toEqual({ width: 2.4 });
+    s = undoDocument(s);
+    expect(currentDocument(s)).toBe(before);
+    const own = applyDesignCommandToSession(s, { type: 'set-edge-corridor', edgeId: 1, patch: { width: 0.9 } });
+    if (!own.ok) throw new Error('expected ok');
+    expect(undoLabel(own.session.history)).toBe('Set the corridor width of connection 1 → 2 to 0.9 m');
+    expect(currentDocument(own.session).edges[0]!.corridor).toEqual({ width: 0.9 });
+  });
+
   it('refuses invalid values from untyped callers (runtime validation)', () => {
+    expect(applyDesignCommand(base(), { type: 'set-corridors', patch: { width: 0 } }).ok).toBe(false);
+    expect(applyDesignCommand(base(), { type: 'set-corridors', patch: { width: 3.5 } }).ok).toBe(false);
+    expect(applyDesignCommand(base(), { type: 'set-edge-corridor', edgeId: 1, patch: { width: -1 } }).ok).toBe(false);
     expect(applyDesignCommand(base(), { type: 'set-corridors', patch: { roof: 'pitched' } } as unknown as DesignCommand).ok).toBe(false);
     expect(applyDesignCommand(base(), { type: 'set-corridors', patch: { walls: 'glass' } } as unknown as DesignCommand).ok).toBe(false);
   });
@@ -126,11 +164,15 @@ describe('Corridors card in the Looks list', () => {
     expect(card).toMatch(
       /<select id="sgl-designer-corridors-roof">.*<option value="flat" selected="">Flat<\/option><option value="pergola">Pergola \(open slats\)<\/option><option value="none">None \(open top\)<\/option>/,
     );
-    expect(card.split('>Built-in default</span>').length - 1).toBe(2);
+    expect(card.split('>Built-in default</span>').length - 1).toBe(3);
+    // Width: a number box in metres (one cell at most), with its own source tag.
+    expect(card).toContain('Open sides · Flat roof · 1.5 m');
+    expect(card).toMatch(/<label for="sgl-designer-corridors-width"[^>]*>Width<\/label><span class="sgl-designer-source">Built-in default<\/span>/);
+    expect(card).toMatch(/<input id="sgl-designer-corridors-width" type="number" inputMode="decimal" min="0.1" max="3" step="0.1" aria-label="Corridor width in metres" value="1.5"\/>/);
     // No windows or imported façade for corridors.
     expect(card).not.toContain('Windows');
     expect(card).not.toContain('Imported façade');
-    expect(card).toContain('One relationship can set its own walls or roof in Properties.');
+    expect(card).toContain('One relationship can set its own walls, roof or width in Properties.');
     expect(card).toMatch(/<button type="button" class="sgl-designer-reset" disabled="">Reset Corridors<\/button>/);
   });
 
@@ -145,7 +187,11 @@ describe('Corridors card in the Looks list', () => {
     const card = cardOf(html(withCorridors({ roof: 'none' }, { walls: 'enclosed' })));
     expect(card.split('>Set here</span>').length - 1).toBe(1);
     expect(card).toContain('Open sides and no roof: just the floor (no posts).');
-    expect(card).toContain('1 relationship sets its own walls or roof in Properties.');
+    expect(card).toContain('1 relationship sets its own walls, roof or width in Properties.');
+    const wide = cardOf(html(withCorridors({ width: 2.4 })));
+    expect(wide).toContain('Open sides · Flat roof · 2.4 m');
+    expect(wide).toMatch(/>Width<\/label><span class="sgl-designer-source">Set here<\/span>/);
+    expect(wide).toContain('value="2.4"');
     expect(card).toContain(' · changed');
     expect(card).toMatch(/<button type="button" class="sgl-designer-reset">Reset Corridors<\/button>/);
     const enclosed = cardOf(html(withCorridors({ walls: 'enclosed', roof: 'pergola' })));
@@ -180,8 +226,18 @@ describe('Properties: corridor walls and roof of one relationship', () => {
     const html = render(withCorridors({ walls: 'enclosed' }, { roof: 'none' }));
     expect(html).toMatch(/aria-label="Corridor walls"[^>]*>.*?<option value=""[^>]*selected=""/);
     expect(html).toMatch(/<option value="none" [^>]*selected=""[^>]*>None \(open top\)<\/option>/);
-    expect(html).toContain('This corridor: side walls and no roof.');
+    expect(html).toContain('This corridor: 1.5 m wide, side walls and no roof.');
     expect(html).toContain('One is set for this relationship only');
+  });
+
+  it('width: a number box whose empty state is "Design default (<card width>)"; its own value shows with ↺', () => {
+    const html = render(withCorridors({ width: 2 }));
+    expect(html).toMatch(/<input id="sgl-edge-1-corridor-width" type="number"[^>]*aria-label="Corridor width" placeholder="Design default \(2 m\)"[^>]*value=""\/>/);
+    expect(render(base())).toContain('placeholder="Design default (1.5 m)"');
+    const own = render(withCorridors({}, { width: 0.9 }));
+    expect(own).toMatch(/aria-label="Corridor width"[^>]*value="0.9"/);
+    expect(own).toContain('aria-label="Use the design default width"');
+    expect(own).toContain('This corridor: 0.9 m wide,');
   });
 
   it('each choice sends one set-edge-corridor command; "Design default" clears the field', () => {

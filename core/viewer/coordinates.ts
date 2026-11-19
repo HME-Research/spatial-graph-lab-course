@@ -14,6 +14,8 @@
  * is at grid z - 0.5, its ceiling at z + 0.5.
  */
 
+import { GRID_CELL_SIZE } from '@core/spatial';
+
 export interface CellSize {
   /** Cell width along grid x and grid y, in metres (= Three.js units). */
   readonly horizontal: number;
@@ -21,8 +23,8 @@ export interface CellSize {
   readonly vertical: number;
 }
 
-/** Central default from docs/DECISIONS.md: 3 m × 3 m × 3 m. Change it here only. */
-export const DEFAULT_CELL_SIZE: CellSize = Object.freeze({ horizontal: 3, vertical: 3 });
+/** Central default from docs/DECISIONS.md: 3 m × 3 m × 3 m, defined once as `GRID_CELL_SIZE` (core/spatial). */
+export const DEFAULT_CELL_SIZE: CellSize = GRID_CELL_SIZE;
 
 /** A Three.js position as a plain tuple; pass to R3F `position` or `new Vector3(...p)`. */
 export type WorldPoint = readonly [x: number, y: number, z: number];

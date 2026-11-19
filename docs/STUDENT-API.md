@@ -119,7 +119,7 @@ Everything on a node or edge is an **attribute**: the built-in ones sit at the t
 }
 ```
 
-`position` is the room's minimum corner cell `[x, y, z]` (z is the Level), `size` its extent in cells `[x, y, z]` (z is the number of Floors). An edge may also have `"corridor": { "walls": …, "roof": … }` after `relationship`. The app keeps this key order and writes every array of numbers on one line.
+`position` is the room's minimum corner cell `[x, y, z]` (z is the Level), `size` its extent in cells `[x, y, z]` (z is the number of Floors). An edge may also have `"corridor": { "walls": …, "roof": …, "width": … }` after `relationship`. The app keeps this key order and writes every array of numbers on one line.
 
 ## 4. Algorithms
 
@@ -208,7 +208,7 @@ A spatial algorithm gets the design's own records and a few helpers:
 | `ctx.…` | Meaning |
 |---|---|
 | `design.nodes` | `{ id, function, position: [x, y, z], size: [sx, sy, sz], custom }`. `id` is a whole number (also the room's label). A room is a box of whole cells: `position` is its minimum corner, `size` its extent (`[1, 1, 1]` for one cell); z is the storey |
-| `design.edges` | `{ id, source, target, relationship, corridor?, custom }`; ids are numbers; `relationship` is `access` or `open`; `corridor` (read only) is the relationship's own corridor look `{ walls?: 'enclosed' \| 'open', roof?: 'flat' \| 'pergola' \| 'none' }` (omitted fields use the design's Corridors card) |
+| `design.edges` | `{ id, source, target, relationship, corridor?, custom }`; ids are numbers; `relationship` is `access` or `open`; `corridor` (read only) is the relationship's own corridor look `{ walls?: 'enclosed' \| 'open', roof?: 'flat' \| 'pergola' \| 'none', width?: number }` (`width` in metres, more than 0 and at most one cell, 3 m; omitted fields use the design's Corridors card; built-in default open walls, flat roof, 1.5 m) |
 | `nodeAt(cell)` | id of the room whose box contains that cell, or `undefined` if the cell is free |
 | `touches(a, b)` | whether rooms `a` and `b` share a wall or floor, so a relationship between them is built directly |
 | `canRelate(a, b)` | whether a relationship between rooms `a` and `b` may be created: both exist, are different and aren't related yet. **They don't need to touch** |
@@ -224,7 +224,7 @@ It returns a list of **operations**. You never choose ids: the app gives every n
 | Operation | Rules |
 |---|---|
 | `{ op: 'add-node', ref?, position, size?, function, custom? }` | An integer minimum corner `position`, an optional `size` of positive integers (default `[1, 1, 1]`), a box that overlaps no other room, a valid function of your toolkit, and only custom node attributes of the project with valid values. Gets the next node id |
-| `{ op: 'add-edge', ref?, source, target, relationship, corridor? }` | `source` / `target` are `ItemRef`s of existing, different rooms not related yet. `relationship` is `access` or `open`; `corridor` (optional) is its own corridor look `{ walls?, roof? }`. The rooms **don't need to touch**. Gets the next edge id |
+| `{ op: 'add-edge', ref?, source, target, relationship, corridor? }` | `source` / `target` are `ItemRef`s of existing, different rooms not related yet. `relationship` is `access` or `open`; `corridor` (optional) is its own corridor look `{ walls?, roof?, width? }` (width in metres, more than 0 and at most 3 m). The rooms **don't need to touch**. Gets the next edge id |
 | `{ op: 'set-node-custom-attribute', nodeId, key, value }` | Sets one custom attribute. `nodeId` is an `ItemRef`; `key` must be a custom node attribute of the project (any room may have any of them, whatever its function); the value must be valid, or `null`. Built-in values (function, position, size) are not custom attributes: move or resize a room with `set-node-geometry` |
 | `{ op: 'set-edge-custom-attribute', edgeId, key, value }` | Sets one custom attribute. `edgeId` is an `ItemRef`; `key` must be a custom edge attribute of the project; the value must be valid, or `null`. The relationship and corridor are built-in, not custom |
 | `{ op: 'set-node-geometry', nodeId, position?, size? }` | Moves and/or resizes a room (`nodeId` is an `ItemRef`); give `position`, `size` or both, the rest stays. The size stays anchored at the minimum corner, so growing towards −x or −y means a smaller `position` and a larger `size`. Whole numbers, sizes at least 1 and within the size limit; the new box must not overlap another room or take the cells of a generated connector |

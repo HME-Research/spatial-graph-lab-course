@@ -118,7 +118,12 @@ export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Option
   });
 
   const wallsByEdge = new Map<number, WallStyle>();
-  for (const r of spatial.edges) if (r.status === 'routed') wallsByEdge.set(r.edgeId, r.route.look.walls);
+  const widthByEdge = new Map<number, number>();
+  for (const r of spatial.edges) {
+    if (r.status !== 'routed') continue;
+    wallsByEdge.set(r.edgeId, r.route.look.walls);
+    widthByEdge.set(r.edgeId, r.route.look.width);
+  }
 
   const connectors: ConnectorElement[] = [];
   const relationships: RelationshipBuildInfo[] = [];
@@ -131,6 +136,7 @@ export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Option
       case 'routed': {
         const built = buildConnector(r.route, spatial.occupancy, {
           wallsOfEdge: (id) => wallsByEdge.get(id),
+          widthOfEdge: (id) => widthByEdge.get(id),
           ...(options.cell ? { cell: options.cell } : {}),
           ...(options.wallThickness !== undefined ? { wallThickness: options.wallThickness } : {}),
           ...(options.slabThickness !== undefined ? { slabThickness: options.slabThickness } : {}),

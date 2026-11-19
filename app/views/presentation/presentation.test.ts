@@ -57,7 +57,7 @@ const routed = (edgeId: number, walls: Walls, roof: Roof, cells = 3): EdgeResolu
     cells: Array.from({ length: cells }, (_, i) => [i + 1, 0, 0] as const),
     from: { nodeId: 1, cell: [0, 0, 0], direction: [1, 0, 0] } as never,
     to: { nodeId: 2, cell: [cells + 1, 0, 0], direction: [-1, 0, 0] } as never,
-    look: { walls, roof },
+    look: { walls, roof, width: 1.5 },
   },
 });
 const unresolved = (edgeId: number, reason: UnresolvedReason): EdgeResolution => ({

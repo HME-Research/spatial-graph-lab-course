@@ -1,13 +1,14 @@
 import {
   corridorChoiceLabel,
   CORRIDOR_PARTS,
+  CORRIDOR_WIDTH_PART,
   customAttributeSource,
   customAttributeTag,
   GEOMETRY_AXES,
   NODE_BUILT_IN_ATTRIBUTES,
   type AttributeSectionId,
 } from '@app/attributes/sections';
-import { designCorridorLook, serializeDesignV2, type AttributeValue, type DesignDocumentV2, type RelationshipEdge } from '@app/document';
+import { designCorridorLook, formatCorridorWidth, serializeDesignV2, type AttributeValue, type DesignDocumentV2, type RelationshipEdge } from '@app/document';
 import {
   resolveEdgeAttributes,
   resolveNodeAttributes,
@@ -157,7 +158,7 @@ export interface DataCell {
 export interface DataColumn {
   /**
    * Stable id: built-in attribute id, `<attribute>.<x|y|z>` for one value of Position / Size,
-   * `corridor.<walls|roof>` for one value of an edge's Corridor, `custom:<fieldId>` or `calc:<metricId>`.
+   * `corridor.<walls|roof|width>` for one value of an edge's Corridor, `custom:<fieldId>` or `calc:<metricId>`.
    */
   readonly id: string;
   /** The column heading; for one value of Position / Size / Corridor its label (`x`, `z (Level)`, `walls`). */
@@ -193,7 +194,7 @@ export interface DataTable {
 
 /**
  * Attribute headings of a table: one per column, except that the value columns of Position, Size
- * (three each) and Corridor (two) share one heading spanning them. `split`: the heading has value
+ * (three each) and Corridor (three) share one heading spanning them. `split`: the heading has value
  * columns under it.
  */
 export function attributeHeadings(columns: readonly DataColumn[]): { readonly id: string; readonly label: string; readonly span: number; readonly split: boolean; readonly first: DataColumn }[] {
@@ -336,12 +337,23 @@ function corridorCells(edge: RelationshipEdge, ctx: MetricContext): Record<strin
             hint: built ? 'default' : 'default · not built',
           };
   }
+  const w = CORRIDOR_WIDTH_PART;
+  const ownWidth = edge.corridor?.width;
+  out[w.id] =
+    ownWidth !== undefined
+      ? { text: formatCorridorWidth(ownWidth), origin: 'stored', title: `Stored on this relationship as "corridor".width: ${ownWidth} (metres).${unused}`, ...(!built && { hint: 'not built' }) }
+      : {
+          text: formatCorridorWidth(card.width),
+          origin: 'default',
+          title: `Not stored: the design’s Corridors card applies (Building Designer → Looks).${unused}`,
+          hint: built ? 'default' : 'default · not built',
+        };
   return out;
 }
 
 /**
  * One row per edge, columns in the order of the saved JSON keys: id · source · target ·
- * relationship · corridor (walls | roof) · custom attributes; then the calculated values (never
+ * relationship · corridor (walls | roof | width) · custom attributes; then the calculated values (never
  * saved), locked.
  */
 export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInputs): DataTable {
@@ -350,17 +362,18 @@ export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInp
     { id: 'source', label: 'Source', section: 'identity', title: 'Stored as "source": the id of the first node.', editable: false },
     { id: 'target', label: 'Target', section: 'identity', title: 'Stored as "target": the id of the second node.', editable: false },
     { id: 'relationship', label: 'Relationship', section: 'required', title: 'Stored as "relationship".', editable: true },
-    ...CORRIDOR_PARTS.map((p) => ({
+    ...[...CORRIDOR_PARTS, CORRIDOR_WIDTH_PART].map((p) => ({
       id: p.id,
       label: p.label,
       attribute: {
         id: 'corridor',
         label: 'Corridor',
-        title: 'Stored as "corridor": this relationship’s own corridor look, two values, walls | roof. Used only when a corridor is generated; not stored, the design’s Corridors card applies.',
+        title: 'Stored as "corridor": this relationship’s own corridor look, three values, walls | roof | width. Used only when a corridor is generated; not stored, the design’s Corridors card applies.',
       },
       section: 'geometry' as const,
-      title: `${p.name}: stored as "corridor".${p.part}; empty uses the Corridors card.`,
+      title: `${p.name}: stored as "corridor".${p.part}${p.part === 'width' ? ' (metres)' : ''}; empty uses the Corridors card.`,
       editable: true,
+      ...(p.part === 'width' && { numeric: true }),
     })),
     ...schema.edges.map(customColumn('edges', toolkit)),
     ...calculatedColumns('edges', enabled, evaluator),

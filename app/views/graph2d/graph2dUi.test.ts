@@ -202,7 +202,7 @@ describe('edge presentation', () => {
         cells: [[2, 0, 0], [3, 0, 0], [4, 0, 0]],
         from: { nodeId: 1, cell: [1, 0, 0], direction: '+x' },
         to: { nodeId: 2, cell: [5, 0, 0], direction: '-x' },
-        look: { walls: 'enclosed', roof: 'flat' },
+        look: { walls: 'enclosed', roof: 'flat', width: 1.5 },
       },
     };
     const spatial: SpatialResolution = { ...real, edges: [routed], byEdge: new Map([[1, routed]]) };

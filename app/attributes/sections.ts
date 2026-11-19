@@ -8,8 +8,8 @@
  * - required:   what this app needs on every item (node Function, edge Relationship).
  * - geometry:   where a node is and how big it is (app-specific; stored in `position` / `size`,
  *               never in `custom`; each ONE attribute with three values, x | y | z), and how an
- *               edge's corridor looks (`corridor`: ONE optional attribute with two values,
- *               walls | roof; a built-in edge attribute, 19 November 2026).
+ *               edge's corridor looks (`corridor`: ONE optional attribute with three values,
+ *               walls | roof | width; a built-in edge attribute, 19 November 2026).
  * - custom:     attributes defined by the project / toolkit (stored in `custom`).
  * - calculated: values the app works out (metrics). Never stored. Locked.
  */
@@ -91,7 +91,7 @@ export interface BuiltInAttribute {
   readonly section: Exclude<AttributeSectionId, 'custom' | 'calculated'>;
   /**
    * An attribute of several values, each its own table column: the label of each value (Position,
-   * Size: x | y | z; an edge's Corridor: walls | roof).
+   * Size: x | y | z; an edge's Corridor: walls | roof | width).
    */
   readonly axes?: readonly string[];
 }
@@ -130,7 +130,7 @@ export const EDGE_BUILT_IN_ATTRIBUTES: readonly BuiltInAttribute[] = [
   { id: 'source', name: 'Source', section: 'identity' },
   { id: 'target', name: 'Target', section: 'identity' },
   { id: 'relationship', name: 'Relationship', section: 'required' },
-  { id: 'corridor', name: 'Corridor', section: 'geometry', axes: ['walls', 'roof'] },
+  { id: 'corridor', name: 'Corridor', section: 'geometry', axes: ['walls', 'roof', 'width'] },
 ];
 
 /** One choice of a corridor value (also used by Properties' selects, via `@app/ui`). */
@@ -173,3 +173,16 @@ export const CORRIDOR_PARTS: readonly CorridorPart[] = [
 
 /** The label of a corridor value (`enclosed` → "Enclosed"). */
 export const corridorChoiceLabel = (part: CorridorPart, value: string): string => part.choices.find((c) => c.value === value)?.label ?? value;
+
+/**
+ * The third value of an edge's Corridor (2026-11-19): its built width in metres, a number (not a
+ * choice). Same rules as the choice parts: not stored = the design's Corridors card applies.
+ */
+export interface CorridorWidthPart {
+  readonly id: 'corridor.width';
+  readonly part: 'width';
+  readonly label: string;
+  readonly name: string;
+}
+
+export const CORRIDOR_WIDTH_PART: CorridorWidthPart = { id: 'corridor.width', part: 'width', label: 'width', name: 'Corridor width' };

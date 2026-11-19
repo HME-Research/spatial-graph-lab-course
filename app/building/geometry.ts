@@ -137,7 +137,8 @@ export function buildArchitecture(faces: readonly ResolvedFace[], options: Archi
           const position = [...centre] as [number, number, number];
           position[1] = floorTop + 0.01;
           const size = [0, 0, 0] as [number, number, number];
-          size[u] = cell.horizontal * 0.9;
+          // As wide as the opening (a corridor end may be narrower than the cell), at most the cell.
+          size[u] = Math.min(cell.horizontal, opening.rect.u1 - opening.rect.u0) * 0.9;
           size[n] = cell.horizontal * OPENING_PROPORTIONS.thresholdDepthFraction;
           size[1] = 0.02;
           emit('threshold', { position, size });

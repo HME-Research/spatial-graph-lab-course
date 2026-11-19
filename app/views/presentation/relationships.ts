@@ -1,9 +1,10 @@
-import type { EffectiveCorridorLook, RelationshipKind } from '@app/document';
+import type { RelationshipKind } from '@app/document';
 import type { EdgeResolution, ResolutionStatus, SpatialResolution } from '@app/spatial';
 import {
   CONNECTOR_ORDER,
   connectorPresentation,
   corridorLookKey,
+  type CorridorLookKind,
   KIND_PRESENTATION,
   relationshipLine,
   STATUS_ORDER,
@@ -117,7 +118,7 @@ export function summarizeRelationships(spatial: SpatialResolution): Relationship
 }
 
 /** Corridor looks (walls + roof) actually used by routed relationships (legend filtering), in legend order. */
-export function corridorLooksInUse(spatial: SpatialResolution): EffectiveCorridorLook[] {
+export function corridorLooksInUse(spatial: SpatialResolution): CorridorLookKind[] {
   const used = new Set<string>();
   for (const r of spatial.edges) if (r.status === 'routed') used.add(corridorLookKey(r.route.look));
   return CONNECTOR_ORDER.filter((look) => used.has(corridorLookKey(look)));

@@ -80,7 +80,7 @@ const fakeRouter: RelationshipResolver = (d) => {
             cells,
             from: { nodeId: e.source, cell: [1, 0, 0], direction: '+x' },
             to: { nodeId: e.target, cell: [5, 0, 0], direction: '-x' },
-            look: { walls: 'enclosed', roof: 'flat' },
+            look: { walls: 'enclosed', roof: 'flat', width: 1.5 },
           },
         },
   );

@@ -112,7 +112,7 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     expect(html).toContain('>Open</label>');
     expect(selectOptions(html, 'Corridor walls')).toEqual(['Design default (Open)', 'Enclosed', 'Open']);
     expect(selectOptions(html, 'Corridor roof')).toEqual(['Design default (Flat)', 'Flat', 'Pergola (open slats)', 'None (open top)']);
-    expect(html).toContain('Joined by a generated corridor (open sides and a flat roof), 3 cells long, on storey 0.');
+    expect(html).toContain('Joined by a generated corridor (1.5 m wide, open sides and a flat roof), 3 cells long, on storey 0.');
     expect(html).toContain('>Remove connection</button>');
   });
 

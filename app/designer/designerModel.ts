@@ -5,6 +5,8 @@ import {
   sameFacadeModule,
   corridorLookOf,
   designCorridorLook,
+  formatCorridorWidth,
+  parseCorridorWidth,
   DEFAULT_GROUP,
   effectiveLook,
   lookOfGroup,
@@ -843,14 +845,14 @@ export function selectedRelationship(
 // The Corridors card (owner 2026-11-19, "Corridors as a look card"): walls + roof of every
 // generated corridor, shown in the Looks list after the room cards whatever "Style rooms by" is.
 
-/** The Corridors card: effective walls and roof and whether the card sets them. */
+/** The Corridors card: effective walls, roof and width and whether the card sets them. */
 export interface CorridorCardRow {
   readonly effective: EffectiveCorridorLook;
   /** The card sets the field (otherwise the built-in default applies). */
-  readonly setHere: { readonly walls: boolean; readonly roof: boolean };
+  readonly setHere: { readonly walls: boolean; readonly roof: boolean; readonly width: boolean };
   /** The card sets anything (Reset is enabled). */
   readonly hasOverride: boolean;
-  /** Relationships with their own corridor walls or roof (Properties), which the card does not change. */
+  /** Relationships with their own corridor walls, roof or width (Properties), which the card does not change. */
   readonly overrideCount: number;
   /** Generated corridors now (routed relationships), or null without a spatial resolution. */
   readonly corridorCount: number | null;
@@ -858,11 +860,11 @@ export interface CorridorCardRow {
 
 export function corridorCard(doc: DesignDocumentV2, spatial?: Pick<SpatialResolution, 'edges'>): CorridorCardRow {
   const c = doc.settings.corridors;
-  const setHere = { walls: c?.walls !== undefined, roof: c?.roof !== undefined };
+  const setHere = { walls: c?.walls !== undefined, roof: c?.roof !== undefined, width: c?.width !== undefined };
   return {
     effective: designCorridorLook(doc.settings),
     setHere,
-    hasOverride: setHere.walls || setHere.roof,
+    hasOverride: setHere.walls || setHere.roof || setHere.width,
     overrideCount: doc.edges.filter((e) => e.corridor !== undefined).length,
     corridorCount: spatial ? spatial.edges.filter((r) => r.status === 'routed').length : null,
   };
@@ -890,9 +892,25 @@ export function setCorridorRoofEdit(doc: DesignDocumentV2, roof: string): Design
   return { kind: 'command', command: { type: 'set-corridors', patch: { roof: r } }, label: `Set the corridor roof to ${ROOF_LABELS[r]}` };
 }
 
-/** Back to the built-in corridor look (Open, Flat): one step; nothing to do when nothing is set. */
+/**
+ * Set the corridors' width from typed text (metres). Empty text clears the card's value (built-in
+ * default again); typing the value already in effect stores nothing; out of range is refused.
+ */
+export function setCorridorWidthEdit(doc: DesignDocumentV2, text: string): DesignerEdit {
+  const parsed = parseCorridorWidth(text);
+  if (!parsed.ok) return { kind: 'invalid', message: parsed.message };
+  const stored = doc.settings.corridors?.width;
+  if (parsed.width === null) {
+    if (stored === undefined) return UNCHANGED;
+    return { kind: 'command', command: { type: 'set-corridors', patch: { width: null } }, label: 'Reset the corridor width' };
+  }
+  if (stored !== undefined ? stored === parsed.width : designCorridorLook(doc.settings).width === parsed.width) return UNCHANGED;
+  return { kind: 'command', command: { type: 'set-corridors', patch: { width: parsed.width } }, label: `Set the corridor width to ${formatCorridorWidth(parsed.width)}` };
+}
+
+/** Back to the built-in corridor look (Open, Flat, 1.5 m): one step; nothing to do when nothing is set. */
 export function resetCorridorsEdit(doc: DesignDocumentV2): DesignerEdit {
   const c = doc.settings.corridors;
-  if (c?.walls === undefined && c?.roof === undefined) return UNCHANGED;
-  return { kind: 'command', command: { type: 'set-corridors', patch: { walls: null, roof: null } }, label: 'Reset the Corridors card' };
+  if (c?.walls === undefined && c?.roof === undefined && c?.width === undefined) return UNCHANGED;
+  return { kind: 'command', command: { type: 'set-corridors', patch: { walls: null, roof: null, width: null } }, label: 'Reset the Corridors card' };
 }

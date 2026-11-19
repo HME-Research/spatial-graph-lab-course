@@ -1,10 +1,14 @@
 import { fail, issue, ok, type Result } from './errors';
 import { canonicalFacadeModule, type CorridorLook, type DesignDocumentV2, type Look } from './schema';
 
-/** A corridor look with its set fields in a fixed order (`walls`, `roof`), or undefined when nothing is set. */
+/** A corridor look with its set fields in a fixed order (`walls`, `roof`, `width`), or undefined when nothing is set. */
 const canonicalCorridor = (c: CorridorLook | undefined): CorridorLook | undefined =>
-  c && (c.walls !== undefined || c.roof !== undefined)
-    ? { ...(c.walls === undefined ? {} : { walls: c.walls }), ...(c.roof === undefined ? {} : { roof: c.roof }) }
+  c && (c.walls !== undefined || c.roof !== undefined || c.width !== undefined)
+    ? {
+        ...(c.walls === undefined ? {} : { walls: c.walls }),
+        ...(c.roof === undefined ? {} : { roof: c.roof }),
+        ...(c.width === undefined ? {} : { width: c.width }),
+      }
     : undefined;
 const corridorField = <K extends string>(key: K, c: CorridorLook | undefined): { [P in K]?: CorridorLook } => {
   const canonical = canonicalCorridor(c);

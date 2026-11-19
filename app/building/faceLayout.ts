@@ -203,6 +203,12 @@ export function doorRect(cell: CellSize): FaceRect {
   return { u0: -w, u1: w, v0: floor, v1: floor + h };
 }
 
+/** `rect` no wider than `width` (centred on u = 0), or unchanged without a width. */
+function narrowTo(rect: FaceRect, width: number | undefined): FaceRect {
+  if (width === undefined || rect.u1 - rect.u0 <= width) return rect;
+  return { ...rect, u0: -width / 2, u1: width / 2 };
+}
+
 export function atriumRect(cell: CellSize): FaceRect {
   const a = (cell.horizontal * OPENING_PROPORTIONS.atriumFraction) / 2;
   return { u0: -a, u1: a, v0: -a, v1: a };
@@ -390,15 +396,23 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
         break;
       }
       case 'door': {
-        const hole = doorRect(cell);
+        // At the end of a corridor, the door is no wider than the corridor (2026-11-19).
+        const hole = narrowTo(doorRect(cell), face.corridorWidth);
         solids.push(...rectsAroundHole(panel, hole));
         opening('door', hole);
         break;
       }
-      case 'open':
-        // No partition at all.
-        opening('open', panel);
+      case 'open': {
+        // No partition at all, except at the end of a corridor narrower than the cell: a
+        // full-height opening as wide as the corridor, centred, with the wall beside it.
+        const w = face.corridorWidth;
+        if (w !== undefined && w < cell.horizontal - EPS) {
+          const hole = { u0: -w / 2, u1: w / 2, v0: panel.v0, v1: panel.v1 };
+          solids.push(...rectsAroundHole(panel, hole));
+          opening('open', hole);
+        } else opening('open', panel);
         break;
+      }
       default:
         // `solid` internal partition (vertical kinds cannot occur on a wall in a valid document).
         solids.push(panel);

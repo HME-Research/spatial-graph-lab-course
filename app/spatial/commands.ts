@@ -79,15 +79,18 @@ export interface LookPatch {
 export interface CorridorPatch {
   readonly walls?: WallStyle | null;
   readonly roof?: RoofStyle | null;
+  /** Built width in metres (0 < width ≤ one cell; checked when the document is validated). */
+  readonly width?: number | null;
 }
 
-/** `current` with `patch` applied, or undefined when no field is left (fixed key order `walls`, `roof`). */
+/** `current` with `patch` applied, or undefined when no field is left (fixed key order `walls`, `roof`, `width`). */
 export function patchCorridor(current: CorridorLook | undefined, patch: CorridorPatch): CorridorLook | undefined {
   const pick = <K extends keyof CorridorPatch>(key: K) => (patch[key] === undefined ? current?.[key] : (patch[key] ?? undefined));
   const walls = pick('walls');
   const roof = pick('roof');
-  if (walls === undefined && roof === undefined) return undefined;
-  return { ...(walls === undefined ? {} : { walls }), ...(roof === undefined ? {} : { roof }) };
+  const width = pick('width');
+  if (walls === undefined && roof === undefined && width === undefined) return undefined;
+  return { ...(walls === undefined ? {} : { walls }), ...(roof === undefined ? {} : { roof }), ...(width === undefined ? {} : { width }) };
 }
 
 export type DesignCommand =

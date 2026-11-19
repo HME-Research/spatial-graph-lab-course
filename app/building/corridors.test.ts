@@ -4,7 +4,9 @@ import {
   DEFAULT_CORRIDOR_LOOK,
   DEFAULT_CORRIDOR_ROOF,
   DEFAULT_CORRIDOR_WALLS,
+  DEFAULT_CORRIDOR_WIDTH,
   designCorridorLook,
+  MAX_CORRIDOR_WIDTH,
   readDesignJson,
   serializeDesignV2,
   validateDocumentV2,
@@ -87,6 +89,28 @@ describe('settings.corridors and edge corridor: schema and file round trip', () 
     }
   });
 
+  it('width (metres, 2026-11-19) round-trips after walls and roof, written only when set', () => {
+    const d = doc({ width: 2, roof: 'pergola', walls: 'enclosed' }, { width: 0.9 });
+    const text = serializeDesignV2(d);
+    expect(text).toContain('"corridors": {\n      "walls": "enclosed",\n      "roof": "pergola",\n      "width": 2\n    }');
+    expect(text).toContain('"corridor": {\n        "width": 0.9\n      }');
+    const read = expectOk(readDesignJson(text)).doc;
+    expect(read.settings.corridors).toEqual({ walls: 'enclosed', roof: 'pergola', width: 2 });
+    expect(read.edges[0]!.corridor).toEqual({ width: 0.9 });
+    expect(serializeDesignV2(read)).toBe(text);
+  });
+
+  it('width must be more than 0 and at most one cell (the cell-size constant)', () => {
+    expect(MAX_CORRIDOR_WIDTH).toBe(W);
+    for (const ok of [0.1, 1.5, W]) expect(validateDocumentV2(raw({ width: ok })).ok).toBe(true);
+    for (const bad of [0, -1, W + 0.01, 'wide', null, Number.NaN]) {
+      for (const r of [validateDocumentV2(raw({ width: bad })), validateDocumentV2(raw(undefined, { width: bad }))]) {
+        expect(r.ok).toBe(false);
+        if (!r.ok && typeof bad === 'number' && Number.isFinite(bad)) expect(r.issues.map((i) => i.message).join(' ')).toContain(`at most ${W} m`);
+      }
+    }
+  });
+
   it('the retired connectorStyle field is refused (strict edge schema)', () => {
     const r = raw();
     const bad = { ...r, edges: r.edges.map((e) => ({ ...e, connectorStyle: 'covered' })) };
@@ -98,20 +122,26 @@ describe('corridor look resolution, per field: relationship → Corridors card �
   it('built-in defaults are Open walls and a Flat roof', () => {
     expect(DEFAULT_CORRIDOR_WALLS).toBe('open');
     expect(DEFAULT_CORRIDOR_ROOF).toBe('flat');
-    expect(DEFAULT_CORRIDOR_LOOK).toEqual({ walls: 'open', roof: 'flat' });
-    expect(designCorridorLook(undefined)).toEqual({ walls: 'open', roof: 'flat' });
-    expect(designCorridorLook({ corridors: {} })).toEqual({ walls: 'open', roof: 'flat' });
+    expect(DEFAULT_CORRIDOR_WIDTH).toBe(1.5);
+    expect(DEFAULT_CORRIDOR_LOOK).toEqual({ walls: 'open', roof: 'flat', width: 1.5 });
+    expect(designCorridorLook(undefined)).toEqual({ walls: 'open', roof: 'flat', width: 1.5 });
+    expect(designCorridorLook({ corridors: {} })).toEqual({ walls: 'open', roof: 'flat', width: 1.5 });
   });
 
   it('each field independently: own value, then the card, then built-in', () => {
-    expect(corridorLookOf({}, undefined)).toEqual({ walls: 'open', roof: 'flat' });
-    expect(corridorLookOf({}, { corridors: { walls: 'enclosed' } })).toEqual({ walls: 'enclosed', roof: 'flat' });
-    expect(corridorLookOf({ corridor: { roof: 'pergola' } }, { corridors: { walls: 'enclosed' } })).toEqual({ walls: 'enclosed', roof: 'pergola' });
-    expect(corridorLookOf({ corridor: { walls: 'open' } }, { corridors: { walls: 'enclosed', roof: 'none' } })).toEqual({ walls: 'open', roof: 'none' });
+    expect(corridorLookOf({}, undefined)).toEqual({ walls: 'open', roof: 'flat', width: 1.5 });
+    expect(corridorLookOf({}, { corridors: { walls: 'enclosed' } })).toEqual({ walls: 'enclosed', roof: 'flat', width: 1.5 });
+    expect(corridorLookOf({ corridor: { roof: 'pergola' } }, { corridors: { walls: 'enclosed' } })).toEqual({ walls: 'enclosed', roof: 'pergola', width: 1.5 });
+    expect(corridorLookOf({ corridor: { walls: 'open' } }, { corridors: { walls: 'enclosed', roof: 'none' } })).toEqual({ walls: 'open', roof: 'none', width: 1.5 });
     expect(corridorLookOf({ corridor: { walls: 'enclosed', roof: 'none' } }, { corridors: { walls: 'open', roof: 'pergola' } })).toEqual({
       walls: 'enclosed',
       roof: 'none',
+      width: 1.5,
     });
+    // Width: own → card → built-in, like walls and roof.
+    expect(corridorLookOf({}, { corridors: { width: 2.4 } }).width).toBe(2.4);
+    expect(corridorLookOf({ corridor: { width: 0.9 } }, { corridors: { width: 2.4 } }).width).toBe(0.9);
+    expect(corridorLookOf({ corridor: { walls: 'enclosed' } }, { corridors: { width: 2.4 } }).width).toBe(2.4);
   });
 
   it('the resolver gives each route its effective look', () => {
@@ -119,9 +149,9 @@ describe('corridor look resolution, per field: relationship → Corridors card �
       const r = resolveRelationships(d).byEdge.get(1)!;
       return r.status === 'routed' ? r.route.look : null;
     };
-    expect(look(doc())).toEqual({ walls: 'open', roof: 'flat' });
-    expect(look(doc({ walls: 'enclosed' }))).toEqual({ walls: 'enclosed', roof: 'flat' });
-    expect(look(doc({ walls: 'enclosed' }, { roof: 'none' }))).toEqual({ walls: 'enclosed', roof: 'none' });
+    expect(look(doc())).toEqual({ walls: 'open', roof: 'flat', width: 1.5 });
+    expect(look(doc({ walls: 'enclosed' }))).toEqual({ walls: 'enclosed', roof: 'flat', width: 1.5 });
+    expect(look(doc({ walls: 'enclosed', width: 2 }, { roof: 'none' }))).toEqual({ walls: 'enclosed', roof: 'none', width: 2 });
   });
 });
 
@@ -137,10 +167,10 @@ describe('corridor geometry: walls × roof', () => {
     const w = W * OPENING_PROPORTIONS.pergolaSlatFraction;
     expect(slats).toHaveLength(3 * n);
     expect(model.connectors.filter((c) => c.part === 'connector-post')).toHaveLength(8);
-    // Each slat: narrow along the route (Three X), full width across it, at roof height.
+    // Each slat: narrow along the route (Three X), as wide as the corridor (1.5 m) across it, at roof height.
     for (const s of slats) {
       expect(s.size[0]).toBeCloseTo(w, 9);
-      expect(s.size[2]).toBe(W);
+      expect(s.size[2]).toBe(1.5);
       expect(s.position[1]).toBe(H);
     }
     // The first cell's slats span it edge to edge.
