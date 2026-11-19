@@ -1,14 +1,23 @@
-import type { AttributeSectionId } from '@app/attributes/sections';
+import { customAttributeSource, customAttributeTag, type AttributeSectionId } from '@app/attributes/sections';
 import { serializeDesignV2, type AttributeValue, type DesignDocumentV2 } from '@app/document';
-import { resolveEdgeAttributes, resolveNodeAttributes, type AttributeField, type EffectiveAttribute, type ProjectAttributeSchema } from '@app/extensions';
+import {
+  resolveEdgeAttributes,
+  resolveNodeAttributes,
+  type ActiveToolkit,
+  type AttributeCollection,
+  type AttributeField,
+  type EffectiveAttribute,
+  type ProjectAttributeSchema,
+} from '@app/extensions';
 import { enabledMetrics, formatMetricValue, type EnabledMetricIds, type MetricContext, type MetricEvaluator } from '@app/metrics';
 import { KIND_PRESENTATION } from '@app/views/presentation';
 
 /**
  * Data view model (Programme P4, worktree D). Pure: no React. The Data view shows the SAME graph
  * as text (the stored JSON, exactly as exported) and as tables (one row per node / edge, columns
- * grouped by the attribute sections of `app/attributes/sections.ts`). Read-only: nothing here
- * produces a command.
+ * grouped by the attribute sections of `app/attributes/sections.ts`). Nothing here produces a
+ * command: the table only marks which columns can be edited (worktree G); the edits go through the
+ * cell editor the shell provides (`cellEditing.ts`).
  */
 
 // ── JSON ─────────────────────────────────────────────────────────────────────────────────────
@@ -137,6 +146,13 @@ export interface DataColumn {
   readonly section: AttributeSectionId;
   readonly title?: string;
   readonly numeric?: boolean;
+  /**
+   * Whether the cells of this column can be edited (P4, G): Function / Relationship, Geometry and
+   * Custom. Identity and Calculated are locked.
+   */
+  readonly editable: boolean;
+  /** Custom columns: where the attribute comes from, `Toolkit: <name>` or `Yours` (`customAttributeTag`). */
+  readonly tag?: string;
 }
 
 export interface DataRow {
@@ -183,13 +199,20 @@ export function customCell(r: EffectiveAttribute, typeId?: string): DataCell {
   return { text: '—', origin: 'none', title: 'No value stored and no default.' };
 }
 
-const customColumn = (f: AttributeField): DataColumn => ({
-  id: `custom:${f.id}`,
-  label: f.label,
-  section: 'custom',
-  title: `${f.label} (stored as "${f.key}")${f.description ? `\n${f.description}` : ''}`,
-  numeric: f.kind === 'number',
-});
+/** The parts of the active toolkit that decide where a custom attribute comes from. */
+export type AttributeToolkit = Pick<ActiveToolkit, 'definition' | 'attributeBaseline'>;
+
+const customColumn =
+  (collection: AttributeCollection, toolkit: AttributeToolkit | null | undefined) =>
+  (f: AttributeField): DataColumn => ({
+    id: `custom:${f.id}`,
+    label: f.label,
+    section: 'custom',
+    title: `${f.label} (stored as "${f.key}")${f.description ? `\n${f.description}` : ''}`,
+    numeric: f.kind === 'number',
+    editable: true,
+    tag: customAttributeTag(customAttributeSource(f, collection, toolkit)),
+  });
 
 function calculatedColumns(collection: 'nodes' | 'edges', enabled: EnabledMetricIds, evaluator: MetricEvaluator): DataColumn[] {
   return enabledMetrics(enabled, collection, evaluator.metrics).map((m) => ({
@@ -198,6 +221,7 @@ function calculatedColumns(collection: 'nodes' | 'edges', enabled: EnabledMetric
     section: 'calculated',
     title: `${m.description ?? m.label}\nCalculated from the design: read-only, never saved.`,
     numeric: m.valueKind === 'number',
+    editable: false,
   }));
 }
 
@@ -213,6 +237,8 @@ export interface TableInputs {
   readonly schema: ProjectAttributeSchema;
   readonly enabled: EnabledMetricIds;
   readonly evaluator: MetricEvaluator;
+  /** The active toolkit, for the `Toolkit: <name>` / `Yours` tags of custom columns (none: Yours). */
+  readonly toolkit?: AttributeToolkit | null;
 }
 
 const GEOMETRY = [
@@ -225,12 +251,19 @@ const GEOMETRY = [
 ] as const;
 
 /** One row per node: Identity · Required · Geometry · Custom · Calculated. */
-export function nodeTable({ ctx, schema, enabled, evaluator }: TableInputs): DataTable {
+export function nodeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInputs): DataTable {
   const columns: DataColumn[] = [
-    { id: 'id', label: 'ID', section: 'identity', title: 'Stored as "id". Never changes.', numeric: true },
-    { id: 'function', label: 'Function', section: 'required', title: 'Stored as "typeId".' },
-    ...GEOMETRY.map((g) => ({ id: g.id, label: g.label, section: 'geometry' as const, title: `Stored as "${g.axis}"[${g.i}], in voxels.`, numeric: true })),
-    ...schema.nodes.map(customColumn),
+    { id: 'id', label: 'ID', section: 'identity', title: 'Stored as "id". Never changes.', numeric: true, editable: false },
+    { id: 'function', label: 'Function', section: 'required', title: 'Stored as "typeId".', editable: true },
+    ...GEOMETRY.map((g) => ({
+      id: g.id,
+      label: g.label,
+      section: 'geometry' as const,
+      title: `Stored as "${g.axis}"[${g.i}], in voxels.`,
+      numeric: true,
+      editable: true,
+    })),
+    ...schema.nodes.map(customColumn('nodes', toolkit)),
     ...calculatedColumns('nodes', enabled, evaluator),
   ];
   const rows = ctx.doc.nodes.map((n): DataRow => {
@@ -244,13 +277,13 @@ export function nodeTable({ ctx, schema, enabled, evaluator }: TableInputs): Dat
 }
 
 /** One row per edge: Identity (ID, Source, Target) · Required · Custom · Calculated. */
-export function edgeTable({ ctx, schema, enabled, evaluator }: TableInputs): DataTable {
+export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInputs): DataTable {
   const columns: DataColumn[] = [
-    { id: 'id', label: 'ID', section: 'identity', title: 'Stored as "id". Never changes.', numeric: true },
-    { id: 'source', label: 'Source', section: 'identity', title: 'Stored as "source": the id of the first node.' },
-    { id: 'target', label: 'Target', section: 'identity', title: 'Stored as "target": the id of the second node.' },
-    { id: 'relationship', label: 'Relationship', section: 'required', title: 'Stored as "kind".' },
-    ...schema.edges.map(customColumn),
+    { id: 'id', label: 'ID', section: 'identity', title: 'Stored as "id". Never changes.', numeric: true, editable: false },
+    { id: 'source', label: 'Source', section: 'identity', title: 'Stored as "source": the id of the first node.', editable: false },
+    { id: 'target', label: 'Target', section: 'identity', title: 'Stored as "target": the id of the second node.', editable: false },
+    { id: 'relationship', label: 'Relationship', section: 'required', title: 'Stored as "kind".', editable: true },
+    ...schema.edges.map(customColumn('edges', toolkit)),
     ...calculatedColumns('edges', enabled, evaluator),
   ];
   const typeOf = new Map(ctx.doc.nodes.map((n) => [n.id, n.typeId]));
