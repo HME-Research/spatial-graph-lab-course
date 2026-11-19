@@ -14,7 +14,7 @@ import {
   UNDO_HINT,
   type Choice,
 } from '@app/ui';
-import { nodeTypeStatus } from '@app/views/project';
+import { functionStatus } from '@app/views/project';
 import { selectNode } from '@core/viewer/selection';
 import { useContext } from 'react';
 import { AttributeSection } from '@app/attributes/AttributeSection';
@@ -62,7 +62,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   const endpointText = (id: number): string => {
     const n = design.doc.nodes.find((x) => x.id === id);
     if (!n) return String(id);
-    const status = nodeTypeStatus(active, n.function);
+    const status = functionStatus(active, n.function);
     return `${nodeLabel(n)} · ${status.kind === 'registered' ? status.label : n.function}`;
   };
   const resolution = design.spatial.byEdge.get(edge.id);

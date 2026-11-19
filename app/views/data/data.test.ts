@@ -38,7 +38,7 @@ function houseWithAttributes(): DesignDocumentV2 {
 const SCHEMA: ProjectAttributeSchema = {
   nodes: [{ id: 'f1', key: 'targetArea', label: 'Target area', kind: 'number', default: 6 }],
   edges: [{ id: 'f2', key: 'note', label: 'Note', kind: 'text' }],
-  nodeTypeDefaults: { kitchen: { f1: 16 }, living: { f1: 20 } },
+  functionDefaults: { kitchen: { f1: 16 }, living: { f1: 20 } },
 };
 
 function port(doc: DesignDocumentV2, onCommand = vi.fn()): DesignPort {
@@ -62,8 +62,8 @@ const inputs = (doc: DesignDocumentV2, schema = SCHEMA) => ({
 /** The active toolkit as far as the Data view needs it: its name and the attributes its files declare. */
 const TOOLKIT = {
   definition: { name: 'House' },
-  attributeBaseline: { schema: { nodes: [{ id: 't1', key: 'targetArea', label: 'Target area', kind: 'number' }], edges: [], nodeTypeDefaults: {} } },
-  nodeTypes: [],
+  attributeBaseline: { schema: { nodes: [{ id: 't1', key: 'targetArea', label: 'Target area', kind: 'number' }], edges: [], functionDefaults: {} } },
+  functions: [],
 };
 
 describe('data view mode', () => {

@@ -301,9 +301,9 @@ describe('atomic transformations', () => {
   });
 });
 
-describe('set-node-attribute and conformance non-regression', () => {
+describe('set-node-custom-attribute and conformance non-regression', () => {
   it('replacing an invalid stored value with a valid one resolves its diagnostic and keeps legacy attributes', async () => {
-    const project = await transforming([{ op: 'set-node-attribute', nodeId: 2, key: 'daylight', value: 'medium' }]);
+    const project = await transforming([{ op: 'set-node-custom-attribute', nodeId: 2, key: 'daylight', value: 'medium' }]);
     const p = preview(expectExtOk(runUnchanged(labDoc(), project)));
     expect(p.after.nodes.find((n) => n.id === 2)!.custom).toEqual({ daylight: 'medium', legacy: 'kept' });
     expect(p.resolvedDiagnosticIds).toEqual(['invalid-attribute-value|node:2|daylight']);
@@ -311,8 +311,8 @@ describe('set-node-attribute and conformance non-regression', () => {
 
   it('writing a missing declared attribute or null is allowed', async () => {
     const project = await transforming([
-      { op: 'set-node-attribute', nodeId: 3, key: 'public', value: true },
-      { op: 'set-node-attribute', nodeId: 1, key: 'daylight', value: null },
+      { op: 'set-node-custom-attribute', nodeId: 3, key: 'public', value: true },
+      { op: 'set-node-custom-attribute', nodeId: 1, key: 'daylight', value: null },
     ]);
     const p = preview(expectExtOk(runAlgorithmV2(labDoc(), project, 't')));
     expect(p.after.nodes.find((n) => n.id === 3)!.custom).toEqual({ occupancy: 4, public: true });
@@ -320,10 +320,10 @@ describe('set-node-attribute and conformance non-regression', () => {
   });
 
   it.each<[string, SpatialOperation, Parameters<typeof expectDiagnostic>[1]]>([
-    ['an undeclared (legacy) attribute', { op: 'set-node-attribute', nodeId: 2, key: 'legacy', value: 'x' }, 'undeclared-attribute-write'],
-    ['an invalid value', { op: 'set-node-attribute', nodeId: 1, key: 'daylight', value: 'bright' }, 'invalid-attribute-value'],
-    ['a missing node', { op: 'set-node-attribute', nodeId: 99, key: 'daylight', value: 'low' }, 'missing-node'],
-    ['an unknown ref', { op: 'set-node-attribute', nodeId: 'ghost', key: 'daylight', value: 'low' }, 'missing-node'],
+    ['an undeclared (legacy) attribute', { op: 'set-node-custom-attribute', nodeId: 2, key: 'legacy', value: 'x' }, 'undeclared-attribute-write'],
+    ['an invalid value', { op: 'set-node-custom-attribute', nodeId: 1, key: 'daylight', value: 'bright' }, 'invalid-attribute-value'],
+    ['a missing node', { op: 'set-node-custom-attribute', nodeId: 99, key: 'daylight', value: 'low' }, 'missing-node'],
+    ['an unknown ref', { op: 'set-node-custom-attribute', nodeId: 'ghost', key: 'daylight', value: 'low' }, 'missing-node'],
   ])('rejects writing %s', async (_name, op, code) => {
     expectDiagnostic(runUnchanged(labDoc(), await transforming([op])), code);
   });
@@ -343,7 +343,7 @@ describe('result and parameter validation', () => {
     ['returns an analysis', () => ({ kind: 'analysis', nodeValues: {} }), 'invalid-result'],
     ['returns an unknown op', () => ({ kind: 'transformation', operations: [{ op: 'remove-node', nodeId: 1 }] }), 'invalid-result'],
     ['returns extra fields', () => ({ kind: 'transformation', operations: [], extra: 1 }), 'invalid-result'],
-    ['returns a non-primitive value', () => ({ kind: 'transformation', operations: [{ op: 'set-node-attribute', nodeId: 1, key: 'daylight', value: { a: 1 } }] }), 'invalid-result'],
+    ['returns a non-primitive value', () => ({ kind: 'transformation', operations: [{ op: 'set-node-custom-attribute', nodeId: 1, key: 'daylight', value: { a: 1 } }] }), 'invalid-result'],
   ])('a spatial algorithm that %s is rejected', async (_name, run, code) => {
     const project = await labToolkit({ [ALG]: { default: { id: 't', label: 'T', scope: 'spatial', run } } });
     expectDiagnostic(runUnchanged(labDoc(), project), code);

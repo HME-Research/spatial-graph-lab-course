@@ -64,7 +64,7 @@ export function parseAttributeValue(row: AttributeRow): ParseResult<AttributeVal
   }
 }
 
-/** Build a full attribute record (for `set-node-attributes`, which replaces the record). */
+/** Build a full attribute record (for `set-node-custom`, which replaces the record). */
 export function rowsToAttributes(rows: readonly AttributeRow[]): ParseResult<Attributes> {
   const attributes: Record<string, AttributeValue> = {};
   for (const [i, row] of rows.entries()) {

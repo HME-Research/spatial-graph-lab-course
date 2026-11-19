@@ -151,7 +151,7 @@ describe('designer edits', () => {
 
   it('never alters the toolkit definition or another design', async () => {
     const project = await labToolkit();
-    const definitionBefore = JSON.stringify(project.nodeTypes.map((t) => t.definition));
+    const definitionBefore = JSON.stringify(project.functions.map((t) => t.definition));
     const designA = labDocV2();
     const designB = labDocV2();
     const textB = serializeDesignV2(designB);
@@ -159,7 +159,7 @@ describe('designer edits', () => {
     expect(functionLooks(editedA.settings).gallery).toEqual({ windowFraction: 0.1 });
     expect(functionLooks(designA.settings)).toEqual({});
     expect(serializeDesignV2(designB)).toBe(textB);
-    expect(JSON.stringify(project.nodeTypes.map((t) => t.definition))).toBe(definitionBefore);
+    expect(JSON.stringify(project.functions.map((t) => t.definition))).toBe(definitionBefore);
     expect(projectFacadeProvider(project)('gallery').windowFraction).toBe(0.6);
   });
 

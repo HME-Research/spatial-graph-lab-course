@@ -61,7 +61,7 @@ const attributeRecord = () =>
     serializeAttributeRecord(
       makeAttributeRecord(
         'gallery',
-        { nodes: [{ id: 'area', key: 'area', label: 'Area', kind: 'number', min: 0 }], edges: [], nodeTypeDefaults: {} },
+        { nodes: [{ id: 'area', key: 'area', label: 'Area', kind: 'number', min: 0 }], edges: [], functionDefaults: {} },
         'files-signature',
         '2026-11-16T09:00:00.000Z',
       ),
@@ -339,7 +339,7 @@ describe('project store', () => {
   it('a wrong-format file never replaces the current state', () => {
     let current: ProjectFileV2 = validFile();
     const before = serializeProjectFile(current);
-    const attributeFile = serializeAttributeRecord(makeAttributeRecord('gallery', { nodes: [], edges: [], nodeTypeDefaults: {} }, 'x'));
+    const attributeFile = serializeAttributeRecord(makeAttributeRecord('gallery', { nodes: [], edges: [], functionDefaults: {} }, 'x'));
     for (const text of [attributeFile, JSON.stringify(designA()), 'not json', JSON.stringify({ ...rawFile(), version: 9 })]) {
       const read = readProjectFile(text);
       if (read.ok) current = read.value;

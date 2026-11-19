@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { formatJson, type AttributeValue, type GraphIssue } from '@app/document';
 import type { AttributeSpecs, ExtensionDiagnostic } from '@app/extensions';
-import type { NodeTypeStatus } from '@app/views/project';
+import type { FunctionStatus } from '@app/views/project';
 import { CommitInput } from './fields';
 import {
   ATTRIBUTE_KIND_LABELS,
@@ -30,7 +30,7 @@ type LocalError = (issues: readonly GraphIssue[]) => void;
 const localIssue = (path: GraphIssue['path'], message: string): GraphIssue => ({ path, code: 'schema', message });
 
 /** How the active project knows the room's current type. The stored value is never changed here. */
-export function TypeStatusNote({ status, functionId }: { status: NodeTypeStatus; functionId: string; projectId?: string | null }) {
+export function TypeStatusNote({ status, functionId }: { status: FunctionStatus; functionId: string; projectId?: string | null }) {
   switch (status.kind) {
     case 'no-project':
     case 'registered':
@@ -217,7 +217,7 @@ export function AttributesForm({
     }
     const parsed = rowsToAttributes(rows);
     if (!parsed.ok) return onLocalError([localIssue(['custom'], parsed.message)]);
-    run({ type: 'set-node-attributes', nodeId: node.id, custom: parsed.value });
+    run({ type: 'set-node-custom', nodeId: node.id, custom: parsed.value });
   };
 
   return (

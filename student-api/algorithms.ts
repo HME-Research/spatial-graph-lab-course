@@ -158,7 +158,7 @@ export interface MetricReader {
 
 /** One project-wide custom field, as algorithms see it. */
 export interface CustomFieldInfo {
-  /** The attribute name in `custom` and in `set-node-attribute` / `set-edge-attribute`. */
+  /** The attribute name in `custom` and in `set-node-custom-attribute` / `set-edge-custom-attribute`. */
   readonly key: string;
   readonly label: string;
   readonly kind: 'text' | 'number' | 'boolean' | 'enum';
@@ -209,7 +209,7 @@ export type SpatialOperation =
       readonly corridor?: CorridorLook;
     }
   | {
-      readonly op: 'set-node-attribute';
+      readonly op: 'set-node-custom-attribute';
       readonly nodeId: ItemRef;
       /** A project node field (every node has the same fields, whatever its function). */
       readonly key: string;
@@ -217,7 +217,7 @@ export type SpatialOperation =
       readonly value: AttributeValue;
     }
   | {
-      readonly op: 'set-edge-attribute';
+      readonly op: 'set-edge-custom-attribute';
       readonly edgeId: ItemRef;
       /** A project edge field (Access and Open edges have the same fields). */
       readonly key: string;

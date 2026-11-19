@@ -37,7 +37,7 @@ const SCHEMA: ProjectAttributeSchema = {
     field({ id: 'seats', label: 'Seats', kind: 'number' }),
   ],
   edges: [],
-  nodeTypeDefaults: { kiosk: { comfort: 'Busy' } },
+  functionDefaults: { kiosk: { comfort: 'Busy' } },
 };
 
 /** Four rooms: areas 9, 18, 36 and 72 m² (1, 2, 4 and 8 cells); two storeys. */

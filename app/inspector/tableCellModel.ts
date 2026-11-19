@@ -14,8 +14,8 @@ import { geometryDraftEdit, GEOMETRY_ROWS, parseTypeId, typeMenu, type Triple } 
  * - Relationship: Access / Open → `change-edge-kind`;
  * - Geometry (Position x | y | z, Size x | y | z; one cell per value): `geometryDraftEdit` → the host previews it
  *   (`proposeEdit`) and sends `set-node-geometry`, like Properties and the gizmo;
- * - Custom: `parseValueDraft` / the choice encoding of Properties → `set-node-attributes` /
- *   `set-edge-attributes` (`fieldCommands`), keeping every other stored value.
+ * - Custom: `parseValueDraft` / the choice encoding of Properties → `set-node-custom` /
+ *   `set-edge-custom` (`fieldCommands`), keeping every other stored value.
  * Identity and Calculated columns have no editor. No React here.
  */
 

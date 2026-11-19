@@ -6,7 +6,7 @@ type TypedNodes = Pick<DesignDocumentV2, 'nodes'>;
 import {
   checkConformance,
   EMPTY_ATTRIBUTE_SCHEMA,
-  findNodeType,
+  findFunction,
   typeAppearance,
   type ActiveToolkit,
   type ExtensionDiagnostic,
@@ -74,15 +74,15 @@ export function buildProjectViewContext(
  * - `registered`: a valid definition;
  * - `broken`: the definition is invalid or duplicated (disabled; `problems` explain why).
  */
-export type NodeTypeStatus =
+export type FunctionStatus =
   | { readonly kind: 'no-project' }
   | { readonly kind: 'undefined-type' }
   | { readonly kind: 'registered'; readonly label: string; readonly file: string }
   | { readonly kind: 'broken'; readonly label: string | null; readonly file: string; readonly problems: readonly string[] };
 
-export function nodeTypeStatus(project: ActiveToolkit | null, functionId: string): NodeTypeStatus {
+export function functionStatus(project: ActiveToolkit | null, functionId: string): FunctionStatus {
   if (!project) return { kind: 'no-project' };
-  const type = findNodeType(project, functionId);
+  const type = findFunction(project, functionId);
   if (!type) return { kind: 'undefined-type' };
   if (type.status.ok) return { kind: 'registered', label: type.definition.label, file: type.file };
   const ids = new Set(type.status.diagnosticIds);
@@ -97,7 +97,7 @@ export function nodeTypeStatus(project: ActiveToolkit | null, functionId: string
 }
 
 /** Readable name of a type for menus and labels: "Gallery (gallery)", or the id alone. */
-export function typeDisplayName(status: NodeTypeStatus, functionId: string): string {
+export function typeDisplayName(status: FunctionStatus, functionId: string): string {
   if (status.kind === 'registered') return `${status.label} (${functionId})`;
   if (status.kind === 'broken') return `${status.label ?? functionId} (${functionId}) — invalid definition`;
   return functionId;
@@ -106,5 +106,5 @@ export function typeDisplayName(status: NodeTypeStatus, functionId: string): str
 /** Ids of the document's node types whose definition is broken (sorted). */
 export function brokenTypeIds(project: ActiveToolkit | null, doc: TypedNodes): string[] {
   if (!project) return [];
-  return [...new Set((doc.nodes as readonly { readonly function: string }[]).map((n) => n.function))].filter((t) => nodeTypeStatus(project, t).kind === 'broken').sort();
+  return [...new Set((doc.nodes as readonly { readonly function: string }[]).map((n) => n.function))].filter((t) => functionStatus(project, t).kind === 'broken').sort();
 }

@@ -3,7 +3,7 @@ import { type DesignDocumentV2, readDesignJson, type Result } from '@app/documen
 import type { GraphAlgorithm, FunctionDefinition, ToolkitDefinition, SpatialAlgorithm } from '@student-api';
 import {
   algorithmDefinitionSchema,
-  nodeTypeDefinitionSchema,
+  functionDefinitionSchema,
   toolkitDefinitionSchema,
   readableId,
   zodMessages,
@@ -29,7 +29,7 @@ import {
 
 export type DefinitionStatus = { readonly ok: true } | { readonly ok: false; readonly diagnosticIds: readonly string[] };
 
-export interface RegisteredNodeType {
+export interface RegisteredFunction {
   readonly id: string;
   readonly file: string;
   /** The student's own object (reference identity is used by `customOf`). */
@@ -55,7 +55,7 @@ export interface RegisteredDesign {
 export interface ActiveToolkit {
   readonly id: string;
   readonly definition: ToolkitDefinition;
-  readonly nodeTypes: readonly RegisteredNodeType[];
+  readonly functions: readonly RegisteredFunction[];
   readonly algorithms: readonly RegisteredAlgorithm[];
   readonly designs: readonly RegisteredDesign[];
   /**
@@ -174,7 +174,7 @@ export async function activateToolkit(source: ToolkitSource): Promise<Activation
 
   const types = await loadDefinitions<FunctionDefinition>(
     source.functions,
-    nodeTypeDefinitionSchema,
+    functionDefinitionSchema,
     { invalid: 'invalid-node-type', duplicate: 'duplicate-node-type' },
     'node type',
   );
@@ -218,8 +218,8 @@ export async function activateToolkit(source: ToolkitSource): Promise<Activation
     }
   }
 
-  const nodeTypes = types.entries.map((e) => ({ id: e.id, file: e.file, definition: e.definition, status: status(e.diagnosticIds) }));
-  const attributeBaseline = deriveAttributeBaseline(source.id, definition, nodeTypes);
+  const functions = types.entries.map((e) => ({ id: e.id, file: e.file, definition: e.definition, status: status(e.diagnosticIds) }));
+  const attributeBaseline = deriveAttributeBaseline(source.id, definition, functions);
   diagnostics.push(...attributeBaseline.diagnostics);
 
   return {
@@ -227,7 +227,7 @@ export async function activateToolkit(source: ToolkitSource): Promise<Activation
     toolkit: {
       id: source.id,
       definition,
-      nodeTypes,
+      functions,
       attributeBaseline,
       algorithms: algorithms.entries.map((e) => ({ id: e.id, file: e.file, definition: e.definition, status: status(e.diagnosticIds) })),
       designs,
@@ -247,7 +247,7 @@ export function projectOnlyToolkit(projectId: string): ActiveToolkit {
   return {
     id: projectId,
     definition,
-    nodeTypes: [],
+    functions: [],
     algorithms: [],
     designs: [],
     attributeBaseline: deriveAttributeBaseline(projectId, definition, []),

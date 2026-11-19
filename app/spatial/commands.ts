@@ -103,7 +103,7 @@ export type DesignCommand =
       readonly confirmRouteDisplacement?: boolean;
     }
   | { readonly type: 'set-node-type'; readonly nodeId: number; readonly function: string }
-  | { readonly type: 'set-node-attributes'; readonly nodeId: number; readonly custom: Attributes }
+  | { readonly type: 'set-node-custom'; readonly nodeId: number; readonly custom: Attributes }
   /** `null` removes the display id (the label falls back to the permanent id). */
   | { readonly type: 'set-diagram-position'; readonly nodeId: number; readonly position: DiagramPosition }
   | { readonly type: 'add-edge'; readonly edge: NewRelationship }
@@ -116,7 +116,7 @@ export type DesignCommand =
   | { readonly type: 'remove-edges'; readonly edgeIds: readonly number[] }
   | { readonly type: 'change-edge-kind'; readonly edgeId: number; readonly relationship: RelationshipKind }
   /** Replaces the edge's stored custom attributes (additive after Gate 0; see docs/PROJECT-ATTRIBUTES.md). */
-  | { readonly type: 'set-edge-attributes'; readonly edgeId: number; readonly custom: Attributes }
+  | { readonly type: 'set-edge-custom'; readonly edgeId: number; readonly custom: Attributes }
   /**
    * One relationship's own corridor walls / roof (Properties). Only the fields given change; `null`
    * clears a field (the design's Corridors card applies). An empty result removes `corridor`.
@@ -266,7 +266,7 @@ export function applyDesignCommand(
     }
     case 'set-node-type':
       return mapNode(command.nodeId, (n) => ({ ...n, function: command.function }));
-    case 'set-node-attributes':
+    case 'set-node-custom':
       return mapNode(command.nodeId, (n) => ({ ...n, custom: { ...command.custom } }));
     case 'set-diagram-position':
       if (!hasNode(command.nodeId)) return notFound('node', command.nodeId);
@@ -316,7 +316,7 @@ export function applyDesignCommand(
     }
     case 'change-edge-kind':
       return mapEdge(command.edgeId, (e) => ({ ...e, relationship: command.relationship }));
-    case 'set-edge-attributes':
+    case 'set-edge-custom':
       return mapEdge(command.edgeId, (e) => ({ ...e, custom: { ...command.custom } }));
     case 'set-edge-corridor':
       return mapEdge(command.edgeId, (e) => {

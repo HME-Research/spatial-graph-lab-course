@@ -128,7 +128,7 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
     canRelate: (a: number, b: number) =>
       isId(a) && isId(b) && a !== b && rooms.has(a) && rooms.has(b) && !pairs.has(unorderedPairKey(a, b)),
     customOf<A extends AttributeSpecs>(node: SpatialNode, fn: FunctionDefinition<A>): AttributesOf<A> {
-      const entry = project.nodeTypes.find((t) => t.definition === fn);
+      const entry = project.functions.find((t) => t.definition === fn);
       const name = typeof fn === 'object' && fn !== null && typeof fn.id === 'string' ? `"${fn.id}"` : 'the given value';
       if (!entry) {
         throw runError('type-not-registered', `customOf: ${name} is not a function definition registered by toolkit "${project.id}" (import it from the toolkit's functions/ folder)`);

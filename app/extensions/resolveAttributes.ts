@@ -76,7 +76,7 @@ export function resolveField(field: AttributeField, attributes: Stored, typeDefa
 }
 
 const typeDefaultsOf = (schema: ProjectAttributeSchema, functionId: string | undefined) =>
-  functionId !== undefined && own(schema.nodeTypeDefaults, functionId) ? schema.nodeTypeDefaults[functionId]! : {};
+  functionId !== undefined && own(schema.functionDefaults, functionId) ? schema.functionDefaults[functionId]! : {};
 
 /** Every node field, in schema order, for one node. Unknown types simply have no type defaults. */
 export function resolveNodeAttributes(schema: ProjectAttributeSchema, node: { readonly function: string; readonly custom: Stored }): EffectiveAttribute[] {

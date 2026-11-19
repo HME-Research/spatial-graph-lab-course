@@ -2,7 +2,7 @@ import { GEOMETRY_AXES, type GeometryAxis } from '@app/attributes/sections';
 import { type DesignDocumentV2, type GraphIssue, nodeLabel, relationshipLabel } from '@app/document';
 import type { ActiveToolkit } from '@app/extensions';
 import type { SpatialEditProposal } from '@app/spatial';
-import { nodeTypeStatus, type NodeTypeStatus } from '@app/views/project';
+import { functionStatus, type FunctionStatus } from '@app/views/project';
 import type { ParseResult } from './inspectorModel';
 
 /**
@@ -84,7 +84,7 @@ export interface TypeOption {
 export interface TypeMenu {
   readonly options: readonly TypeOption[];
   /** Status of the current value; a warning is shown for unknown or broken types. */
-  readonly current: NodeTypeStatus;
+  readonly current: FunctionStatus;
   /** true without an active project: any valid type id may be typed in ("Other type…"). */
   readonly allowCustom: boolean;
 }
@@ -97,13 +97,13 @@ export interface TypeMenu {
  * - Without a project: the types used in the design, plus free entry.
  */
 export function typeMenu(project: ActiveToolkit | null, typesInDesign: readonly string[], current: string): TypeMenu {
-  const status = nodeTypeStatus(project, current);
+  const status = functionStatus(project, current);
   if (!project) {
     const ids = [...new Set([...typesInDesign, current])].sort();
     return { options: ids.map((id) => ({ value: id, label: id, disabled: false })), current: status, allowCustom: true };
   }
-  const registered = project.nodeTypes
-    .map((t) => ({ id: t.id, status: nodeTypeStatus(project, t.id) }))
+  const registered = project.functions
+    .map((t) => ({ id: t.id, status: functionStatus(project, t.id) }))
     // One entry per id (a duplicated definition is reported as broken by the registry).
     .filter((t, i, all) => all.findIndex((o) => o.id === t.id) === i);
   // Readable names only; the identifier is added only where two functions share a name.

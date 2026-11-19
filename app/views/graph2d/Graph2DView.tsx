@@ -22,7 +22,7 @@ import type { DiagramPosition, GraphIssue } from '@app/document';
 import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
-import { nodeTypeStatus, typeDisplayName } from '../project';
+import { functionStatus, typeDisplayName } from '../project';
 import { resolveDiagramPositions } from './diagram';
 import {
   addNodeRequest,
@@ -181,8 +181,8 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   const positions = useMemo(() => resolveDiagramPositions(model), [model]);
   const activeProject = project?.project ?? null;
   const typeStatus = useMemo(() => {
-    const map = new Map<string, ReturnType<typeof nodeTypeStatus>>();
-    for (const node of model.nodes) if (!map.has(node.function)) map.set(node.function, nodeTypeStatus(activeProject, node.function));
+    const map = new Map<string, ReturnType<typeof functionStatus>>();
+    for (const node of model.nodes) if (!map.has(node.function)) map.set(node.function, functionStatus(activeProject, node.function));
     return map;
   }, [model, activeProject]);
   const isBroken = (functionId: string) => typeStatus.get(functionId)?.kind === 'broken';

@@ -27,7 +27,7 @@ const SCHEMA: ProjectAttributeSchema = {
     { id: 'f3', key: 'daylight', label: 'Daylight', kind: 'boolean' },
   ],
   edges: [{ id: 'e1', key: 'note', label: 'Note', kind: 'text' }],
-  nodeTypeDefaults: { kitchen: { f1: 16 }, living: { f1: 20 } },
+  functionDefaults: { kitchen: { f1: 16 }, living: { f1: 20 } },
 };
 
 const PROJECT = { project: null, conformance: [], facade: () => ({ windowFraction: 0 }), attributes: SCHEMA } as unknown as ProjectViewContext;
@@ -102,7 +102,7 @@ describe('committing a table cell', () => {
     const doc = house();
     const living = doc.nodes.find((n) => n.id === 2)!; // living: inherits 20
     const set = cellCommit(doc, PROJECT, 'nodes', living.id, 'custom:f1', draft('24'));
-    expect(set).toEqual({ kind: 'command', command: { type: 'set-node-attributes', nodeId: living.id, custom: { ...living.custom, targetArea: 24 } } });
+    expect(set).toEqual({ kind: 'command', command: { type: 'set-node-custom', nodeId: living.id, custom: { ...living.custom, targetArea: 24 } } });
     // The command is valid: applying it gives the room its own value.
     const applied = applyDesignCommand(doc, (set as { command: Parameters<typeof applyDesignCommand>[1] }).command);
     expect(applied.ok).toBe(true);
@@ -117,7 +117,7 @@ describe('committing a table cell', () => {
 
   it('Custom: "Use default" (reset or an emptied field) removes only the own value', () => {
     const doc = house();
-    const reset = { command: { type: 'set-node-attributes', nodeId: 3, custom: { keep: 'me' } } };
+    const reset = { command: { type: 'set-node-custom', nodeId: 3, custom: { keep: 'me' } } };
     expect(cellCommit(doc, PROJECT, 'nodes', 3, 'custom:f1', { kind: 'reset' })).toMatchObject(reset);
     expect(cellCommit(doc, PROJECT, 'nodes', 3, 'custom:f1', draft(''))).toMatchObject(reset);
     expect(cellCommit(doc, PROJECT, 'nodes', 1, 'custom:f1', { kind: 'reset' }).kind).toBe('unchanged');
@@ -129,6 +129,6 @@ describe('committing a table cell', () => {
     expect(cellCommit(doc, PROJECT, 'nodes', 3, 'custom:f3', choice(EXPLICIT_NONE))).toMatchObject({ command: { custom: { daylight: null } } });
     expect(cellCommit(doc, PROJECT, 'nodes', 3, 'custom:f3', choice(INHERIT)).kind).toBe('unchanged');
     expect(cellCommit(doc, PROJECT, 'nodes', 3, 'custom:f2', choice(encodeChoice('medium'))).kind).toBe('invalid');
-    expect(cellCommit(doc, PROJECT, 'edges', 2, 'custom:e1', draft('narrow'))).toEqual({ kind: 'command', command: { type: 'set-edge-attributes', edgeId: 2, custom: { note: 'narrow' } } });
+    expect(cellCommit(doc, PROJECT, 'edges', 2, 'custom:e1', draft('narrow'))).toEqual({ kind: 'command', command: { type: 'set-edge-custom', edgeId: 2, custom: { note: 'narrow' } } });
   });
 });

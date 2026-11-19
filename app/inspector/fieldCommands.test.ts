@@ -55,10 +55,10 @@ describe('field commands', () => {
     expect(effectiveNodeValues(schema, g)['capacity']).toBe(30); // inherited type default
   });
 
-  it('refuses invalid values with the field label; edges use set-edge-attributes', () => {
+  it('refuses invalid values with the field label; edges use set-edge-custom', () => {
     expect(setNodeFieldCommand(doc.nodes[0]!, capacity, -1)).toEqual({ ok: false, message: '“Capacity” must be a number ≥ 0' });
     const r = setEdgeFieldCommand(doc.edges[0]!, weight, 2);
-    expect(r.ok && r.command).toEqual({ type: 'set-edge-attributes', edgeId: 1, custom: { weight: 2 } });
+    expect(r.ok && r.command).toEqual({ type: 'set-edge-custom', edgeId: 1, custom: { weight: 2 } });
   });
 });
 

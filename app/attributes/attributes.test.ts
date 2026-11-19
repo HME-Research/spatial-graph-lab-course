@@ -408,13 +408,13 @@ describe('functions (node types) added or removed in the project', () => {
   it('merges project functions into the active project as valid types; toolkit definitions win; removed toolkit functions are left out', async () => {
     const project = await labToolkit();
     const merged = withProjectFunctions(project, [{ id: 'kiosk', label: 'Kiosk' }, { id: 'gallery', label: 'Not this' }], ['studio']);
-    const ids = merged.nodeTypes.map((t) => t.id);
+    const ids = merged.functions.map((t) => t.id);
     expect(ids).toContain('kiosk');
     expect(ids).not.toContain('studio');
-    expect(merged.nodeTypes.filter((t) => t.id === 'gallery')).toHaveLength(1);
-    expect(merged.nodeTypes.find((t) => t.id === 'gallery')!.definition.label).not.toBe('Not this');
-    expect(merged.nodeTypes.find((t) => t.id === 'kiosk')).toMatchObject({ file: PROJECT_FUNCTIONS_FILE, status: { ok: true } });
-    expect(project.nodeTypes.map((t) => t.id)).toContain('studio'); // input unchanged
+    expect(merged.functions.filter((t) => t.id === 'gallery')).toHaveLength(1);
+    expect(merged.functions.find((t) => t.id === 'gallery')!.definition.label).not.toBe('Not this');
+    expect(merged.functions.find((t) => t.id === 'kiosk')).toMatchObject({ file: PROJECT_FUNCTIONS_FILE, status: { ok: true } });
+    expect(project.functions.map((t) => t.id)).toContain('studio'); // input unchanged
     expect(withProjectFunctions(project, undefined, [])).toBe(project);
   });
 

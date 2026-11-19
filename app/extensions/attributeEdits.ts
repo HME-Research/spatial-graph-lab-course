@@ -172,7 +172,7 @@ const preview = (values: readonly unknown[]) =>
 
 /** Type defaults of `fieldId` that are not valid for `candidate`. */
 function invalidTypeDefaults(schema: ProjectAttributeSchema, candidate: AttributeField): string[] {
-  return Object.entries(schema.nodeTypeDefaults)
+  return Object.entries(schema.functionDefaults)
     .filter(([, defaults]) => Object.prototype.hasOwnProperty.call(defaults, candidate.id) && checkFieldValue(candidate, defaults[candidate.id]) !== 'ok')
     .map(([functionId]) => functionId);
 }
@@ -315,14 +315,14 @@ export function applySchemaEdit(schema: ProjectAttributeSchema, edit: SchemaEdit
       const { collection, fieldId } = edit;
       const field = findField(schema, collection, fieldId);
       if (!field) return refuse(`there is no ${what(collection)} field with id "${fieldId}"`);
-      const nodeTypeDefaults =
+      const functionDefaults =
         collection === 'nodes'
           ? Object.fromEntries(
-              Object.entries(schema.nodeTypeDefaults).map(([functionId, d]) => [functionId, Object.fromEntries(Object.entries(d).filter(([id]) => id !== fieldId))]),
+              Object.entries(schema.functionDefaults).map(([functionId, d]) => [functionId, Object.fromEntries(Object.entries(d).filter(([id]) => id !== fieldId))]),
             )
-          : schema.nodeTypeDefaults;
+          : schema.functionDefaults;
       return finish(
-        { ...schema, [collection]: schema[collection].filter((f) => f.id !== fieldId), nodeTypeDefaults },
+        { ...schema, [collection]: schema[collection].filter((f) => f.id !== fieldId), functionDefaults },
         `Delete ${what(collection)} field “${field.key}”`,
       );
     }
@@ -343,7 +343,7 @@ export function applySchemaEdit(schema: ProjectAttributeSchema, edit: SchemaEdit
       const { function: functionId, fieldId, value } = edit;
       const field = findField(schema, 'nodes', fieldId);
       if (!field) return refuse(`there is no node field with id "${fieldId}"`);
-      const current = schema.nodeTypeDefaults[functionId] ?? {};
+      const current = schema.functionDefaults[functionId] ?? {};
       if (value !== null && checkFieldValue(field, value) !== 'ok') return refuse(`the default for “${functionId}” must be ${describeField(field)}`);
       const nextDefaults = { ...current };
       if (value === null) {
@@ -351,7 +351,7 @@ export function applySchemaEdit(schema: ProjectAttributeSchema, edit: SchemaEdit
         delete nextDefaults[fieldId];
       } else nextDefaults[fieldId] = value;
       return finish(
-        { ...schema, nodeTypeDefaults: { ...schema.nodeTypeDefaults, [functionId]: nextDefaults } },
+        { ...schema, functionDefaults: { ...schema.functionDefaults, [functionId]: nextDefaults } },
         value === null ? `Remove the “${functionId}” default of “${field.key}”` : `Set the “${functionId}” default of “${field.key}”`,
         field.id,
       );

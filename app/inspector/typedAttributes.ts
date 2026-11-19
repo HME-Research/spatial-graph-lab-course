@@ -4,7 +4,7 @@ import { checkValue, describeSpec, specFor, type AttributeSpec, type AttributeSp
 import { rowsToAttributes, type AttributeRow, type ParseResult } from './inspectorModel';
 
 /** The one command these helpers build. */
-export type SetAttributesCommand = Extract<DesignCommand, { readonly type: 'set-node-attributes' }>;
+export type SetAttributesCommand = Extract<DesignCommand, { readonly type: 'set-node-custom' }>;
 
 /** What the helpers read from a room. */
 export type AttributedNode = Pick<RoomNode, 'id' | 'function' | 'custom'>;
@@ -12,7 +12,7 @@ export type AttributedNode = Pick<RoomNode, 'id' | 'function' | 'custom'>;
 /**
  * Pure helpers for the type-aware part of the inspector. Typed-attribute semantics (what a value
  * must be, defaults) are the Stage 3A runtime's (`checkValue`, `describeSpec`, `specFor`); nothing
- * here re-implements them. Every edit becomes one `set-node-attributes` command that keeps all
+ * here re-implements them. Every edit becomes one `set-node-custom` command that keeps all
  * other stored attributes — declared, invalid, undeclared or legacy — exactly as they are, and
  * no default is ever written implicitly.
  */
@@ -87,7 +87,7 @@ export function setTypedAttributeCommand(
     else if (value !== undefined) attributes[k] = value;
   }
   if (value !== undefined && !own(node.custom, key)) attributes[key] = value;
-  return { ok: true, value: { type: 'set-node-attributes', nodeId: node.id, custom: attributes } };
+  return { ok: true, value: { type: 'set-node-custom', nodeId: node.id, custom: attributes } };
 }
 
 /**
@@ -112,5 +112,5 @@ export function setUndeclaredAttributesCommand(
     else if (own(parsed.value, k)) attributes[k] = parsed.value[k]!;
   }
   for (const [k, v] of Object.entries(parsed.value)) if (!own(attributes, k)) attributes[k] = v;
-  return { ok: true, value: { type: 'set-node-attributes', nodeId: node.id, custom: attributes } };
+  return { ok: true, value: { type: 'set-node-custom', nodeId: node.id, custom: attributes } };
 }

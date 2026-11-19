@@ -1,5 +1,5 @@
 import type { AttributeSpec, ToolkitAttributeSpec, ToolkitDefinition } from '@student-api';
-import type { RegisteredNodeType } from './activate';
+import type { RegisteredFunction } from './activate';
 import { diagnostic, type ExtensionDiagnostic } from './diagnostics';
 import {
   checkFieldValue,
@@ -66,7 +66,7 @@ function fieldFromSpec(key: string, spec: ToolkitAttributeSpec | AttributeSpec, 
 export function deriveAttributeBaseline(
   projectId: string,
   definition: ToolkitDefinition,
-  nodeTypes: readonly Pick<RegisteredNodeType, 'id' | 'file' | 'definition' | 'status'>[],
+  functions: readonly Pick<RegisteredFunction, 'id' | 'file' | 'definition' | 'status'>[],
 ): AttributeBaseline {
   const diagnostics: ExtensionDiagnostic[] = [];
   const projectFile = `toolkits/${projectId}/toolkit.ts`;
@@ -107,8 +107,8 @@ export function deriveAttributeBaseline(
     }
   }
 
-  const nodeTypeDefaults: Record<string, Record<string, DefaultValue>> = {};
-  for (const type of nodeTypes) {
+  const functionDefaults: Record<string, Record<string, DefaultValue>> = {};
+  for (const type of functions) {
     if (!type.status.ok) continue;
     for (const [key, spec] of Object.entries(type.definition.custom ?? {})) {
       const subject = { kind: 'file', path: type.file } as const;
@@ -139,7 +139,7 @@ export function deriveAttributeBaseline(
         );
       }
       if (spec.default !== undefined) {
-        if (checkFieldValue(entry.field, spec.default) === 'ok') (nodeTypeDefaults[type.id] ??= {})[entry.field.id] = spec.default;
+        if (checkFieldValue(entry.field, spec.default) === 'ok') (functionDefaults[type.id] ??= {})[entry.field.id] = spec.default;
         else {
           diagnostics.push(
             diagnostic(
@@ -155,7 +155,7 @@ export function deriveAttributeBaseline(
     }
   }
 
-  const schema = normaliseSchema({ nodes: fields.nodes, edges: fields.edges, nodeTypeDefaults });
+  const schema = normaliseSchema({ nodes: fields.nodes, edges: fields.edges, functionDefaults });
   return { schema, signature: schemaSignature(schema), diagnostics };
 }
 
@@ -186,21 +186,21 @@ export function mergeBaseline(
       added.push(`${collection === 'nodes' ? 'node' : 'edge'} field "${field.key}"`);
     }
   }
-  const nodeTypeDefaults: Record<string, Record<string, DefaultValue>> = {};
-  for (const [functionId, defaults] of Object.entries(current.nodeTypeDefaults)) nodeTypeDefaults[functionId] = { ...defaults };
-  for (const [functionId, defaults] of Object.entries(baseline.nodeTypeDefaults)) {
+  const functionDefaults: Record<string, Record<string, DefaultValue>> = {};
+  for (const [functionId, defaults] of Object.entries(current.functionDefaults)) functionDefaults[functionId] = { ...defaults };
+  for (const [functionId, defaults] of Object.entries(baseline.functionDefaults)) {
     for (const [baseFieldId, value] of Object.entries(defaults)) {
       const fieldId = nodeIdMap.get(baseFieldId);
       const field = next.nodes.find((f) => f.id === fieldId);
       if (!field || fieldId === undefined || checkFieldValue(field, value) !== 'ok') continue;
-      const own = (nodeTypeDefaults[functionId] ??= {});
+      const own = (functionDefaults[functionId] ??= {});
       if (!Object.prototype.hasOwnProperty.call(own, fieldId)) {
         own[fieldId] = value;
         added.push(`default of "${field.key}" for type "${functionId}"`);
       }
     }
   }
-  return { schema: normaliseSchema({ nodes: next.nodes, edges: next.edges, nodeTypeDefaults }), added };
+  return { schema: normaliseSchema({ nodes: next.nodes, edges: next.edges, functionDefaults }), added };
 }
 
 /**

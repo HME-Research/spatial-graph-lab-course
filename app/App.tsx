@@ -787,7 +787,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
               </WorkspaceServicesContext.Provider>
               {functionsOpen && openProject && (
                 <FunctionsDialog
-                  toolkitTypes={(activeToolkit?.nodeTypes ?? []).filter((t) => t.status.ok && !isProjectFunction(t)).map((t) => ({ id: t.id, label: t.definition.label }))}
+                  toolkitTypes={(activeToolkit?.functions ?? []).filter((t) => t.status.ok && !isProjectFunction(t)).map((t) => ({ id: t.id, label: t.definition.label }))}
                   projectFunctions={projectFunctions ?? []}
                   hidden={hiddenFunctions ?? []}
                   usedTypeIds={usedTypeIds}

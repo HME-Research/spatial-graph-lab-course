@@ -123,7 +123,7 @@ describe('transformations on a v2 document', () => {
     const before = JSON.stringify(doc);
     const project = await transforming([
       { op: 'add-node', position: [5, 0, 0], function: 'gallery' },
-      { op: 'set-node-attribute', nodeId: 2, key: 'daylight', value: 'low' },
+      { op: 'set-node-custom-attribute', nodeId: 2, key: 'daylight', value: 'low' },
     ]);
     expectExtOk(runAlgorithmV2(doc, project, 't'));
     expect(JSON.stringify(doc)).toBe(before);
@@ -202,7 +202,7 @@ describe('refs: the app assigns ids to new items in operation order (P4)', () =>
       { op: 'add-node', ref: 'south', position: [6, 0, 0], function: 'gallery' },
       { op: 'add-edge', ref: 'link', source: 'north', target: 'south', relationship: 'open' },
       { op: 'add-edge', source: 3, target: 'south', relationship: 'access' },
-      { op: 'set-node-attribute', nodeId: 'south', key: 'daylight', value: 'low' },
+      { op: 'set-node-custom-attribute', nodeId: 'south', key: 'daylight', value: 'low' },
     ]);
     const outcome = expectExtOk(runAlgorithmV2(doc, project, 't'));
     if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
@@ -222,7 +222,7 @@ describe('refs: the app assigns ids to new items in operation order (P4)', () =>
   it('refuses an unknown ref and a ref reused in the same run', async () => {
     const run = async (ops: readonly SpatialOperation[]) => runAlgorithmV2(labV2(), await transforming(ops), 't');
     expectDiagnostic(await run([{ op: 'add-edge', source: 1, target: 'nowhere', relationship: 'access' }]), 'missing-node');
-    expectDiagnostic(await run([{ op: 'set-node-attribute', nodeId: 'nowhere', key: 'daylight', value: 'low' }]), 'missing-node');
+    expectDiagnostic(await run([{ op: 'set-node-custom-attribute', nodeId: 'nowhere', key: 'daylight', value: 'low' }]), 'missing-node');
     // A ref only names an item added by an EARLIER operation.
     expectDiagnostic(
       await run([
@@ -278,7 +278,7 @@ describe('the gallery test toolkit on schema v2', () => {
   it('daylight-from-exposure changes only the entry gallery (two exposed walls → medium)', () => {
     const outcome = expectExtOk(runAlgorithmV2(design(), toolkit, 'daylight-from-exposure'));
     if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
-    expect(outcome.preview.operations).toEqual([{ op: 'set-node-attribute', nodeId: 1, key: 'daylight', value: 'medium' }]);
+    expect(outcome.preview.operations).toEqual([{ op: 'set-node-custom-attribute', nodeId: 1, key: 'daylight', value: 'medium' }]);
   });
 
   it('never changes the design it ran on', () => {

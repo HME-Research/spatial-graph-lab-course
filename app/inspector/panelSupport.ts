@@ -7,7 +7,7 @@ import type { MessageContext } from '@app/ui';
 import { relationshipLabelIn } from './propertiesModel';
 
 /** Commands the Properties panel sends for any room or relationship. */
-export type SharedCommand = Extract<DesignCommand, { readonly type: 'set-node-type' | 'set-node-attributes' | 'remove-node' | 'remove-edge' }>;
+export type SharedCommand = Extract<DesignCommand, { readonly type: 'set-node-type' | 'set-node-custom' | 'remove-node' | 'remove-edge' }>;
 
 /** What every Properties sub-panel receives. */
 export interface PanelProps {
@@ -31,7 +31,7 @@ export function useCommands({ design }: PanelProps) {
     issues,
     showIssues: setIssues,
     clearIssues: () => setIssues([]),
-    /** set-node-type / set-node-attributes / remove-node / remove-edge. */
+    /** set-node-type / set-node-custom / remove-node / remove-edge. */
     runShared: (command: SharedCommand): boolean => settle(design.onCommand(command)),
     /** Any other design command. */
     runV2: (command: DesignCommand): boolean => settle(design.onCommand(command)),

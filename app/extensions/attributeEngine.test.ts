@@ -42,12 +42,12 @@ function schemaWith(base: ProjectAttributeSchema, ...edits: SchemaEdit[]): Proje
   }, base);
 }
 
-/** Spatial algorithm that reports what it reads, as one set-node-attribute per node (value = JSON). */
+/** Spatial algorithm that reports what it reads, as one set-node-custom-attribute per node (value = JSON). */
 const reader = defineSpatialAlgorithm({
   id: 'reader',
   label: 'Reader',
   run(ctx) {
-    const operations: SpatialOperation[] = ctx.design.nodes.map((n) => ({ op: 'set-node-attribute', nodeId: n.id, key: 'note', value: JSON.stringify(ctx.nodeCustom(n.id)) }));
+    const operations: SpatialOperation[] = ctx.design.nodes.map((n) => ({ op: 'set-node-custom-attribute', nodeId: n.id, key: 'note', value: JSON.stringify(ctx.nodeCustom(n.id)) }));
     return { kind: 'transformation', summary: JSON.stringify({ fields: ctx.customFields, edges: ctx.design.edges.map((e) => ctx.edgeCustom(e.id)) }), operations };
   },
 });
@@ -117,9 +117,9 @@ describe('transformations write project fields', () => {
 
   it('any node may get any node field, whatever its type (unknown type included); edges get edge fields', async () => {
     const r = await run([
-      { op: 'set-node-attribute', nodeId: 3, key: 'capacity', value: 7 },
-      { op: 'set-edge-attribute', edgeId: 1, key: 'weight', value: 2 },
-      { op: 'set-edge-attribute', edgeId: 2, key: 'weight', value: null },
+      { op: 'set-node-custom-attribute', nodeId: 3, key: 'capacity', value: 7 },
+      { op: 'set-edge-custom-attribute', edgeId: 1, key: 'weight', value: 2 },
+      { op: 'set-edge-custom-attribute', edgeId: 2, key: 'weight', value: null },
     ]);
     const preview = expectExtOk(r);
     if (preview.kind !== 'transformation') throw new Error('expected a transformation');
@@ -132,19 +132,19 @@ describe('transformations write project fields', () => {
       const r = await run([op]);
       return r.ok ? 'ok' : r.issues[0]!.code;
     };
-    expect(await code({ op: 'set-node-attribute', nodeId: 1, key: 'weight', value: 1 })).toBe('undeclared-attribute-write');
-    expect(await code({ op: 'set-edge-attribute', edgeId: 1, key: 'capacity', value: 1 })).toBe('undeclared-attribute-write');
-    expect(await code({ op: 'set-node-attribute', nodeId: 1, key: 'capacity', value: -1 })).toBe('invalid-attribute-value');
-    expect(await code({ op: 'set-edge-attribute', edgeId: 99, key: 'weight', value: 1 })).toBe('missing-edge');
+    expect(await code({ op: 'set-node-custom-attribute', nodeId: 1, key: 'weight', value: 1 })).toBe('undeclared-attribute-write');
+    expect(await code({ op: 'set-edge-custom-attribute', edgeId: 1, key: 'capacity', value: 1 })).toBe('undeclared-attribute-write');
+    expect(await code({ op: 'set-node-custom-attribute', nodeId: 1, key: 'capacity', value: -1 })).toBe('invalid-attribute-value');
+    expect(await code({ op: 'set-edge-custom-attribute', edgeId: 99, key: 'weight', value: 1 })).toBe('missing-edge');
   });
 
   it('after a rename, writes through the old key land on the new key; a deleted field is refused', async () => {
     const p = await project();
     const renamed = schemaWith(p.attributeBaseline.schema, { type: 'rename-field', collection: 'nodes', fieldId: 'capacity', key: 'seats' });
-    const r = expectExtOk(await run([{ op: 'set-node-attribute', nodeId: 2, key: 'capacity', value: 9 }], renamed));
+    const r = expectExtOk(await run([{ op: 'set-node-custom-attribute', nodeId: 2, key: 'capacity', value: 9 }], renamed));
     expect(r.kind === 'transformation' && r.preview.after.nodes.find((n) => n.id === 2)!.custom).toEqual({ seats: 9 });
     const deleted = schemaWith(p.attributeBaseline.schema, { type: 'delete-field', collection: 'nodes', fieldId: 'capacity' });
-    const refused = await run([{ op: 'set-node-attribute', nodeId: 2, key: 'capacity', value: 9 }], deleted);
+    const refused = await run([{ op: 'set-node-custom-attribute', nodeId: 2, key: 'capacity', value: 9 }], deleted);
     expect(refused.ok ? 'ok' : refused.issues[0]!.message).toMatch(/not a node field/);
   });
 });
@@ -168,9 +168,9 @@ describe('type defaults, overrides and undo', () => {
     const changed = applyDesignCommand(doc, { type: 'change-edge-kind', edgeId: 2, relationship: 'access' });
     if (!changed.ok) throw new Error('kind change failed');
     expect(effectiveEdgeValues(schema, changed.value.edges[1]!)).toEqual({ weight: 5 });
-    const withValue = applyDesignCommand(doc, { type: 'set-edge-attributes', edgeId: 1, custom: { weight: 4 } });
+    const withValue = applyDesignCommand(doc, { type: 'set-edge-custom', edgeId: 1, custom: { weight: 4 } });
     expect(withValue.ok && withValue.value.edges[0]!.custom).toEqual({ weight: 4 });
-    const missing = applyDesignCommand(doc, { type: 'set-edge-attributes', edgeId: 99, custom: {} });
+    const missing = applyDesignCommand(doc, { type: 'set-edge-custom', edgeId: 99, custom: {} });
     expect(missing.ok).toBe(false);
     const removed = applyDesignCommand(doc, { type: 'remove-node', nodeId: 3 });
     expect(removed.ok && removed.value.edges.map((e) => e.id)).toEqual([1]);
