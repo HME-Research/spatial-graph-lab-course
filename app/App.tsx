@@ -579,8 +579,10 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
     <ProjectControllerContext.Provider value={controller}>
       <div className="app">
         <header className="toolbar">
-          <h1>Spatial Graph Lab</h1>
-          <AboutButton />
+          <div className="toolbar-title">
+            <h1>Spatial Graph Lab</h1>
+            <AboutButton />
+          </div>
           {/* Identity only: the open project and its active scenario. Scenarios are switched in the Scenarios section. */}
           {openProject && slot && (
             <div className="project-bar sgl-identity" aria-label="Open project and scenario" aria-busy={session === null ? 'true' : undefined}>
