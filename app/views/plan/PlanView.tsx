@@ -34,6 +34,8 @@ import { centreLinePath, crossedRectPath, doorSwingPath, grow, windowPath } from
 import { effectiveLevel, fitViewport, panBy, staleWallHover, viewBoxOf, wheelFactor, wheelPixels, zoomAt, type PlanViewport, type ScreenSize } from './planViewport';
 import './plan.css';
 import { useRoomHighlight } from '../roomHighlight';
+import { useStyleValues } from '../styleValues';
+import type { ProjectAttributeSchema } from '@app/extensions';
 
 /**
  * Plan view (workstream C): the architectural floor plan of ONE storey, drawn as SVG from
@@ -89,6 +91,7 @@ export function PlanView({ selection, onSelect, project, design, onWallTarget, a
       selection={selection}
       onSelect={onSelect}
       facade={project?.facade ?? NO_PROJECT_FACADE}
+      attributes={project?.attributes}
       onWallTarget={onWallTarget}
       activeWall={activeWall}
     />
@@ -107,6 +110,7 @@ function PlanCanvas({
   selection,
   onSelect,
   facade,
+  attributes,
   onWallTarget,
   activeWall,
 }: {
@@ -114,12 +118,15 @@ function PlanCanvas({
   readonly selection: Selection;
   readonly onSelect: SelectionHandler;
   readonly facade: FacadeProvider;
+  /** The project's attribute schema, for "Style rooms by" a custom attribute (S3). */
+  readonly attributes: ProjectAttributeSchema | undefined;
   readonly onWallTarget: PlanViewProps['onWallTarget'];
   readonly activeWall: string | null;
 }) {
   const { doc, spatial } = design;
   // Geometry depends on the document, its resolution and the project façades only.
-  const source: PlanSource = useMemo(() => planSourceV2(doc, spatial, { facade }), [doc, spatial, facade]);
+  const styleValues = useStyleValues(doc, spatial, attributes);
+  const source: PlanSource = useMemo(() => planSourceV2(doc, spatial, { facade, ...(styleValues && { styleValues }) }), [doc, spatial, facade, styleValues]);
   const levels = useMemo(() => planLevels(source), [source]);
   const allBounds = useMemo(() => planBoundsAllLevels(source), [source]);
 

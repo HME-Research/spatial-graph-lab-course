@@ -8,6 +8,7 @@ import {
   type RelationshipEdge,
   type RoomNode,
   type StyleBy,
+  type StyleMode,
   type StyleSetup,
   type StyleValue,
 } from './schema';
@@ -65,8 +66,14 @@ export function styleSetupOf(settings: Pick<DesignSettings, 'styleBy' | 'styles'
   return Object.prototype.hasOwnProperty.call(settings.styles, by) ? settings.styles[by]! : EMPTY_SETUP;
 }
 
-/** The setup uses number bands. */
-export const usesBands = (setup: StyleSetup): boolean => setup.dividers !== undefined && setup.bands !== undefined;
+/** The setup stores number bands (they may be inactive: see `styleModeOf`). */
+export const hasBands = (setup: StyleSetup): boolean => setup.dividers !== undefined && setup.bands !== undefined;
+
+/** Which of a setup's card kinds is active: bands when stored, unless `mode` says value cards. */
+export const styleModeOf = (setup: StyleSetup): StyleMode => (setup.mode ?? (hasBands(setup) ? 'bands' : 'values'));
+
+/** The setup styles rooms by number bands (stored and active). */
+export const usesBands = (setup: StyleSetup): boolean => hasBands(setup) && styleModeOf(setup) === 'bands';
 
 /** Index of the band holding `value`: band i = [dividers[i-1], dividers[i]). */
 export function bandIndex(dividers: readonly number[], value: number): number {
@@ -191,4 +198,49 @@ export function functionLooks(settings: Pick<DesignSettings, 'styles'>): Record<
 export function functionStyleSettings(looks: Readonly<Record<string, Look>>): DesignSettings {
   const groups = Object.entries(looks).map(([value, look]) => ({ value, look }));
   return { styleBy: 'function', styles: groups.length > 0 ? { function: { groups } } : {} };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Number bands: round "nice" numbers and suggested starting dividers (S3, 2026-11-19).
+
+/** Drops floating-point noise: 0.30000000000000004 → 0.3. */
+const tidy = (value: number): number => Number(value.toPrecision(12));
+
+/** A round step of about a tenth of `span`: 1, 2 or 5 × a power of ten (`span` ≤ 0 gives 1). */
+export function niceStep(span: number): number {
+  if (!(span > 0) || !Number.isFinite(span)) return 1;
+  const raw = span / 10;
+  const power = 10 ** Math.floor(Math.log10(raw));
+  const m = raw / power;
+  return tidy((m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * power);
+}
+
+/** `value` rounded to the nearest multiple of `step`. */
+export const roundToStep = (value: number, step: number): number => tidy(Math.round(value / step) * step);
+
+/**
+ * Round dividers that split `values` into about three bands of similar size (at the thirds),
+ * each band holding at least one value. `integer`: whole-number dividers (Level). Fewer than two
+ * different values: no dividers (one band for every value).
+ */
+export function suggestDividers(values: readonly number[], options: { readonly integer?: boolean } = {}): number[] {
+  const sorted = values.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+  if (sorted.length < 2) return [];
+  const min = sorted[0]!;
+  const max = sorted[sorted.length - 1]!;
+  if (min === max) return [];
+  // Round to about a fifth of the range (1, 2 or 5 × a power of ten); Level: whole storeys.
+  const step = options.integer ? Math.max(1, Math.round(niceStep(2 * (max - min)))) : niceStep(2 * (max - min));
+  const out: number[] = [];
+  const below = (d: number) => sorted.filter((v) => v < d).length;
+  for (const q of [1 / 3, 2 / 3]) {
+    // The first value of the upper part, rounded.
+    const at = sorted[Math.min(sorted.length - 1, Math.max(1, Math.floor(q * sorted.length)))]!;
+    let d = roundToStep(at, step);
+    if (d <= min) d = roundToStep(min + step, step);
+    const prev = out.length > 0 ? out[out.length - 1]! : -Infinity;
+    // Keep it only if the band it closes and the part above it both hold a value.
+    if (d > prev && d <= max && below(d) > below(prev)) out.push(d);
+  }
+  return out;
 }

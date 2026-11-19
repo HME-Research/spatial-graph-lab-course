@@ -14,11 +14,13 @@ import {
   type RoofStyle,
   type RoomSize,
   bandIndex,
+  hasBands,
   styleValueKey,
   usesBands,
   type Look,
   type StyleBy,
   type StyleGroupRef,
+  type StyleMode,
   type StyleSetup,
   type StyleValue,
   type ValidationOptionsV2,
@@ -96,8 +98,16 @@ export type DesignCommand =
   | { readonly type: 'set-edge-attributes'; readonly edgeId: string; readonly attributes: Attributes }
   /** `null` removes the explicit style (default `enclosed` applies). */
   | { readonly type: 'set-connector-style'; readonly edgeId: string; readonly style: ConnectorStyle | null }
-  /** Style rooms by another attribute; every attribute's setup stays remembered. */
-  | { readonly type: 'set-style-by'; readonly by: StyleBy }
+  /**
+   * Style rooms by another attribute; every attribute's setup stays remembered. `dividers`: starting
+   * number bands, stored only when that attribute has no bands yet (same undo step).
+   */
+  | { readonly type: 'set-style-by'; readonly by: StyleBy; readonly dividers?: readonly number[] }
+  /**
+   * A number's value cards or bands (both remembered). Switching to bands without stored bands
+   * needs starting `dividers` (default: none, one band for every value).
+   */
+  | { readonly type: 'set-style-mode'; readonly by: StyleBy; readonly mode: StyleMode; readonly dividers?: readonly number[] }
   /**
    * Change one card of `by`'s setup. A value card is created when missing (and kept when its look
    * becomes empty); a band must exist; Default is removed when it becomes empty.
@@ -287,8 +297,20 @@ export function applyDesignCommand(
         const { connectorStyle: _old, ...rest } = e;
         return command.style === null ? rest : { ...rest, connectorStyle: command.style };
       });
-    case 'set-style-by':
-      return validate({ ...doc, settings: { ...doc.settings, styleBy: command.by } });
+    case 'set-style-by': {
+      const setup = setupOf(doc, command.by);
+      const settings = { ...doc.settings, styleBy: command.by };
+      if (command.dividers === undefined || hasBands(setup)) return validate({ ...doc, settings });
+      const banded: StyleSetup = { ...setup, dividers: [...command.dividers], bands: command.dividers.map(() => ({})).concat([{}]) };
+      return validate({ ...doc, settings: { ...settings, styles: { ...doc.settings.styles, [command.by]: banded } } });
+    }
+    case 'set-style-mode': {
+      const { mode: _m, ...setup } = setupOf(doc, command.by);
+      if (command.mode === 'values') return withSetup(command.by, hasBands(setup) ? { ...setup, mode: 'values' } : setup);
+      if (hasBands(setup)) return withSetup(command.by, setup);
+      const dividers = [...(command.dividers ?? [])];
+      return withSetup(command.by, { ...setup, dividers, bands: [{}, ...dividers.map(() => ({}))] });
+    }
     case 'set-look': {
       const setup = setupOf(doc, command.by);
       const { group } = command;
@@ -323,15 +345,16 @@ export function applyDesignCommand(
     }
     case 'set-band-dividers': {
       const setup = setupOf(doc, command.by);
-      const { dividers: _d, bands: oldBands, ...rest } = setup;
+      const { dividers: _d, bands: oldBands, mode: oldMode, ...rest } = setup;
+      // Dropping the bands drops the mode too (value cards are then the only kind).
       if (command.dividers === null) return withSetup(command.by, rest);
       const dividers = [...command.dividers];
-      const old = usesBands(setup) ? { dividers: setup.dividers!, bands: oldBands! } : { dividers: [] as number[], bands: [{}] as Look[] };
+      const old = hasBands(setup) ? { dividers: setup.dividers!, bands: oldBands! } : { dividers: [] as number[], bands: [{}] as Look[] };
       // Same count (dividers moved): every band keeps its look. Otherwise each new band takes the
       // look of the old band holding its lower bound (band 0 keeps old band 0).
       const bands =
         dividers.length === old.dividers.length ? old.bands : [old.bands[0]!, ...dividers.map((d) => old.bands[bandIndex(old.dividers, d)]!)];
-      return withSetup(command.by, { ...rest, dividers, bands: bands.map((b) => ({ ...b })) });
+      return withSetup(command.by, { ...rest, dividers, bands: bands.map((b) => ({ ...b })), ...(oldMode === undefined ? {} : { mode: oldMode }) });
     }
     default: {
       const unreachable: never = command;

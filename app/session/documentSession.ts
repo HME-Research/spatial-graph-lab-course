@@ -213,6 +213,8 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       return `Change the connector style of ${connection(command.edgeId)}`;
     case 'set-style-by':
       return 'Change what the rooms are styled by';
+    case 'set-style-mode':
+      return command.mode === 'bands' ? 'Style by bands' : 'Style by one card per value';
     case 'set-look':
       return command.group.kind === 'value' ? `Change Designer settings for ${String(command.group.value)}` : 'Change Designer settings';
     case 'remove-style-group':

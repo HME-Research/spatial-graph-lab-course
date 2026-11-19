@@ -19,6 +19,7 @@ import { FacadeModules } from './FacadeModules';
 import { brokenTypeIds, projectFacadeProvider } from '../project';
 import { useRemembered } from '../panelMemory';
 import { useRoomHighlight } from '../roomHighlight';
+import { useStyleValues } from '../styleValues';
 import { useViewportCamera } from '../viewportCamera';
 import { buildEdgeItems, framingFor } from '../three/sceneModel';
 import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
@@ -111,7 +112,12 @@ export function ArchitectureView({ doc, selection, onSelect, project, design }: 
   const facade = project?.facade ?? NO_PROJECT_FACADE;
   const v2Doc = design?.doc;
   const v2Spatial = design?.spatial;
-  const v2 = useMemo(() => (v2Doc && v2Spatial ? buildBuildingV2(v2Doc, { spatial: v2Spatial, facade }) : null), [v2Doc, v2Spatial, facade]);
+  // "Style rooms by" a custom attribute or a measured value: the rooms' values (S3).
+  const styleValues = useStyleValues(v2Doc, v2Spatial, project?.attributes);
+  const v2 = useMemo(
+    () => (v2Doc && v2Spatial ? buildBuildingV2(v2Doc, { spatial: v2Spatial, facade, ...(styleValues && { styleValues }) }) : null),
+    [v2Doc, v2Spatial, facade, styleValues],
+  );
   const elements = useMemo(() => (v2 ? v2.elements : buildArchitecture(resolveFaces(doc), { facade })), [v2, doc, facade]);
   const connectors = v2?.connectors ?? NO_CONNECTORS;
   // Imported façade modules: an extra layer on exterior walls (the elements above are unchanged).

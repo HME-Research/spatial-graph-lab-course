@@ -105,6 +105,7 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
             ...(setup.groups === undefined ? {} : { groups: setup.groups.map((g) => ({ value: g.value, look: canonicalLook(g.look) })) }),
             ...(setup.dividers === undefined ? {} : { dividers: [...setup.dividers] }),
             ...(setup.bands === undefined ? {} : { bands: setup.bands.map(canonicalLook) }),
+            ...(setup.mode === undefined ? {} : { mode: setup.mode }),
           },
         ]),
       ),

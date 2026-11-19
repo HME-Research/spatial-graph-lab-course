@@ -7,10 +7,16 @@ import {
   DEFAULT_GROUP,
   effectiveLook,
   lookOfGroup,
+  hasBands,
+  niceStep,
   nodeLooks,
+  roundToStep,
   sameGroup,
+  styleModeOf,
   styleSetupOf,
   styleValueKey,
+  styleValueOfNode,
+  suggestDividers,
   nodeLabel,
   ROOF_STYLES,
   windowFractionSchema,
@@ -22,6 +28,8 @@ import {
   type Look,
   type StyleBy,
   type StyleGroupRef,
+  type StyleMode,
+  type StyleValue,
   type StyleValues,
   type FacadeModule,
   type FacadePlacement,
@@ -29,7 +37,8 @@ import {
   type WindowLayout,
   type WallStyle,
 } from '@app/document/v2';
-import { findNodeType, type ActiveToolkit } from '@app/extensions';
+import { EMPTY_ATTRIBUTE_SCHEMA, findNodeType, type ActiveToolkit, type ProjectAttributeSchema } from '@app/extensions';
+import { METRIC_CATALOGUE, type EnabledMetricIds } from '@app/metrics';
 import type { DesignCommand, LookPatch, SpatialResolution } from '@app/spatial';
 import { nodeTypeStatus, typeDisplayName, type NodeTypeStatus } from '@app/views/project';
 import type { Selection } from '@core/viewer/selection';
@@ -166,8 +175,110 @@ export function designerTypeRows(
 // ---------------------------------------------------------------------------------------------
 // Cards ("Style rooms by", S2 2026-11-18): Default + the cards of the active attribute.
 
-/** Readable names of the attributes rooms can be styled by (S2: Function only). */
-export const STYLE_BY_LABELS: Readonly<Record<string, string>> = { function: 'Function' };
+/** Readable names of the room attributes rooms can be styled by. */
+export const STYLE_BY_LABELS: Readonly<Record<string, string>> = { function: 'Function', level: 'Level' };
+
+/**
+ * How the cards of an attribute work (S3, 2026-11-19):
+ * - `function`: a card per function (type), added from the toolkit's and the design's types;
+ * - `choice`: a card per option of a Choice attribute;
+ * - `text`: a card per typed value (trimmed, case-insensitive);
+ * - `yesno`: Yes and No cards;
+ * - `number`: a card per value, or number bands (Level: whole storeys).
+ */
+export type StyleKind = 'function' | 'choice' | 'text' | 'yesno' | 'number';
+
+/** One entry of the "Style rooms by" selector. */
+export interface StyleAttribute {
+  readonly by: StyleBy;
+  /** Plain name: "Function", "Comfort", "Area". */
+  readonly label: string;
+  /** Selector group: the room itself, the project's own attributes, or a measured value. */
+  readonly group: 'room' | 'attributes' | 'measured';
+  readonly kind: StyleKind;
+  /** Unit of a measured number ("m²"). */
+  readonly unit?: string;
+  /** Level: whole storeys, named "Level 2". */
+  readonly level?: boolean;
+  /** Choice: the options, in field order. */
+  readonly options?: readonly string[];
+  /**
+   * `removed`: the attribute no longer exists (every room uses Default); `hidden`: a measured
+   * value not shown in Attributes (styling still uses it).
+   */
+  readonly status: 'ok' | 'removed' | 'hidden';
+}
+
+const ROOM_ATTRIBUTES: readonly StyleAttribute[] = [
+  { by: 'function', label: 'Function', group: 'room', kind: 'function', status: 'ok' },
+  { by: 'level', label: 'Level', group: 'room', kind: 'number', level: true, status: 'ok' },
+];
+
+const FIELD_KIND_TO_STYLE: Readonly<Record<string, StyleKind>> = { enum: 'choice', text: 'text', boolean: 'yesno', number: 'number' };
+const METRIC_KIND_TO_STYLE: Readonly<Record<string, StyleKind>> = { number: 'number', boolean: 'yesno', text: 'text' };
+
+/** What `by` is, given the project's attributes and the measured values shown in Attributes. */
+export function styleAttributeOf(by: StyleBy, schema: ProjectAttributeSchema = EMPTY_ATTRIBUTE_SCHEMA, shownMetrics?: EnabledMetricIds): StyleAttribute {
+  const room = ROOM_ATTRIBUTES.find((a) => a.by === by);
+  if (room) return room;
+  if (by.startsWith('attribute:')) {
+    const field = schema.nodes.find((f) => f.id === by.slice('attribute:'.length));
+    if (!field) return { by, label: 'Removed attribute', group: 'attributes', kind: 'text', status: 'removed' };
+    return {
+      by,
+      label: field.label,
+      group: 'attributes',
+      kind: FIELD_KIND_TO_STYLE[field.kind] ?? 'text',
+      ...(field.kind === 'enum' && { options: field.values ?? [] }),
+      status: 'ok',
+    };
+  }
+  const metric = by.startsWith('metric:') ? METRIC_CATALOGUE.find((m) => m.collection === 'nodes' && m.id === by.slice('metric:'.length)) : undefined;
+  if (!metric) return { by, label: 'Removed measured value', group: 'measured', kind: 'text', status: 'removed' };
+  return {
+    by,
+    label: metric.label,
+    group: 'measured',
+    kind: METRIC_KIND_TO_STYLE[metric.valueKind] ?? 'text',
+    ...(metric.unit && { unit: metric.unit }),
+    status: shownMetrics === undefined || shownMetrics.includes(metric.id) ? 'ok' : 'hidden',
+  };
+}
+
+/**
+ * The "Style rooms by" selector: Function and Level, every custom node attribute (by label), and
+ * the measured node values shown in Attributes. The attribute in use is always listed, also when
+ * it was removed or is no longer shown (marked by its `status`).
+ */
+export function styleAttributes(schema: ProjectAttributeSchema, shownMetrics: EnabledMetricIds, current: StyleBy): StyleAttribute[] {
+  const out: StyleAttribute[] = [...ROOM_ATTRIBUTES];
+  for (const field of schema.nodes) out.push(styleAttributeOf(`attribute:${field.id}`, schema, shownMetrics));
+  for (const metric of METRIC_CATALOGUE) {
+    if (metric.collection === 'nodes' && shownMetrics.includes(metric.id)) out.push(styleAttributeOf(`metric:${metric.id}`, schema, shownMetrics));
+  }
+  if (!out.some((a) => a.by === current)) out.push(styleAttributeOf(current, schema, shownMetrics));
+  return out;
+}
+
+/** Selector text of an attribute ("Area (m²)", "Area (m²) (not in Attributes)"). */
+export function styleAttributeName(a: StyleAttribute): string {
+  const unit = a.unit ? ` (${a.unit})` : '';
+  return a.status === 'hidden' ? `${a.label}${unit} (not in Attributes)` : `${a.label}${unit}`;
+}
+
+/** Numbers in plain text: at most two decimals ("37.5", "120"). */
+export const formatNumber = (value: number): string => String(Math.round(value * 100) / 100);
+
+/** A value card's name: the function, the option or text, Yes / No, "Level 2" or "120 m²". */
+export function valueName(attribute: Pick<StyleAttribute, 'unit' | 'level'>, value: StyleValue): string {
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'number') return attribute.level ? `Level ${formatNumber(value)}` : `${formatNumber(value)}${attribute.unit ? ` ${attribute.unit}` : ''}`;
+  return value;
+}
+
+/** Noun of the "+ Style another …" menu. */
+export const addNoun = (a: Pick<StyleAttribute, 'kind' | 'level'>): string =>
+  a.kind === 'function' ? 'function' : a.level ? 'level' : a.kind === 'choice' ? 'option' : 'value';
 
 export interface DesignerCardRow {
   /** Stable key for element ids and remembered open state ("default", "v:gallery", "b:0"). */
@@ -194,10 +305,22 @@ export interface DesignerCardRow {
 export interface DesignerCards {
   readonly by: StyleBy;
   readonly byLabel: string;
+  readonly attribute: StyleAttribute;
+  /** Numbers: value cards or bands; other kinds: null (value cards). */
+  readonly mode: StyleMode | null;
   readonly defaultCard: DesignerCardRow;
   readonly cards: readonly DesignerCardRow[];
-  /** Functions without a card, for "+ Style another function" (styling by Function only). */
-  readonly addable: readonly { readonly value: string; readonly label: string; readonly nodeCount: number }[];
+  /**
+   * Values without a card, with their room counts, for "+ Style another …" (Function, Choice,
+   * Yes/No, numbers) or as suggestions for the text box (Text).
+   */
+  readonly addable: readonly { readonly value: StyleValue; readonly label: string; readonly nodeCount: number }[];
+  /** Bands: the stored dividers (ascending); otherwise null. */
+  readonly dividers: readonly number[] | null;
+  /** Numbers: every room's value (rooms without one are left out), for the bands track. */
+  readonly numbers: readonly number[];
+  /** Rooms without a value (they use Default). */
+  readonly missingCount: number;
 }
 
 const cardKey = (group: StyleGroupRef): string =>
@@ -213,13 +336,25 @@ function sharedBase(doc: DesignDocumentV2, nodeIds: readonly string[], facade: F
   return values.size === 1 ? [...values][0]! : null;
 }
 
-/** "Under 50", "50 – 100", "100 or more". */
-export function bandName(dividers: readonly number[], index: number): string {
+/**
+ * A band's name in plain words: "Under 50 m²", "50 – 100 m²", "100 m² or more"; Level bands name
+ * whole storeys: "Up to level 0", "Level 1", "Levels 1–2", "Level 3 and above".
+ */
+export function bandName(dividers: readonly number[], index: number, attribute: Pick<StyleAttribute, 'unit' | 'level'> = {}): string {
   const lo = dividers[index - 1];
   const hi = dividers[index];
-  if (lo === undefined) return hi === undefined ? 'All values' : `Under ${hi}`;
-  if (hi === undefined) return `${lo} or more`;
-  return `${lo} – ${hi}`;
+  if (attribute.level) {
+    // Level dividers are whole storeys: band [lo, hi) holds levels lo … hi − 1.
+    if (lo === undefined) return hi === undefined ? 'Every level' : `Up to level ${formatNumber(Math.ceil(hi) - 1)}`;
+    if (hi === undefined) return `Level ${formatNumber(Math.ceil(lo))} and above`;
+    const first = Math.ceil(lo);
+    const last = Math.ceil(hi) - 1;
+    return first >= last ? `Level ${formatNumber(first)}` : `Levels ${formatNumber(first)}–${formatNumber(last)}`;
+  }
+  const u = attribute.unit ? ` ${attribute.unit}` : '';
+  if (lo === undefined) return hi === undefined ? 'All values' : `Under ${formatNumber(hi)}${u}`;
+  if (hi === undefined) return `${formatNumber(lo)}${u} or more`;
+  return `${formatNumber(lo)} – ${formatNumber(hi)}${u}`;
 }
 
 /**
@@ -227,9 +362,17 @@ export function bandName(dividers: readonly number[], index: number): string {
  * "Style rooms by" attribute, each with the rooms it styles now. `values` supplies attribute /
  * measured values (not needed for Function and Level).
  */
-export function designerCards(doc: DesignDocumentV2, project: ActiveToolkit | null, facade: FacadeProvider, values?: StyleValues): DesignerCards {
+export function designerCards(
+  doc: DesignDocumentV2,
+  project: ActiveToolkit | null,
+  facade: FacadeProvider,
+  values?: StyleValues,
+  attribute: StyleAttribute = styleAttributeOf(doc.settings.styleBy),
+): DesignerCards {
   const by = doc.settings.styleBy;
   const setup = styleSetupOf(doc.settings, by);
+  const isNumber = attribute.kind === 'number';
+  const mode: StyleMode | null = isNumber ? styleModeOf(setup) : null;
   const looks = nodeLooks(doc, facade, values);
   const roomsOf = (group: StyleGroupRef) => doc.nodes.filter((n) => sameGroup(looks.get(n.id)!.group, group)).map((n) => n.id);
   const types = by === FUNCTION ? designerTypeRows(doc, project, facade) : [];
@@ -255,7 +398,8 @@ export function designerCards(doc: DesignDocumentV2, project: ActiveToolkit | nu
         : own === null
           ? "each function's own default"
           : `${typeId === null ? 'function' : 'project'} default, ${formatPercent(own)} %`,
-      hasOverride: stored !== undefined && (group.kind !== 'default' || Object.keys(stored).length > 0),
+      // A value card exists only when added (so it counts as a change); Default and bands always exist.
+      hasOverride: stored !== undefined && (group.kind === 'value' || Object.keys(stored).length > 0),
       removable: group.kind === 'value',
       warning,
     };
@@ -263,28 +407,166 @@ export function designerCards(doc: DesignDocumentV2, project: ActiveToolkit | nu
 
   const defaultCard = row(DEFAULT_GROUP, 'Default', null, null);
   const cards: DesignerCardRow[] = [];
-  if (setup.dividers && setup.bands) {
-    setup.bands.forEach((_, index) => cards.push(row({ kind: 'band', index }, bandName(setup.dividers!, index), null, null)));
-  }
-  for (const g of setup.groups ?? []) {
-    const group: StyleGroupRef = { kind: 'value', value: g.value };
-    if (by === FUNCTION) {
-      const typeId = String(g.value);
-      const t = types.find((r) => r.typeId === typeId);
-      cards.push(row(group, t?.name ?? typeId, typeId, t?.warning ?? null));
-    } else {
-      cards.push(row(group, String(g.value), null, null));
+  const bandsActive = mode === 'bands' && hasBands(setup);
+  if (bandsActive) {
+    setup.bands!.forEach((_, index) => cards.push(row({ kind: 'band', index }, bandName(setup.dividers!, index, attribute), null, null)));
+  } else {
+    const optionKeys = attribute.kind === 'choice' ? new Set((attribute.options ?? []).map(styleValueKey)) : null;
+    for (const g of setup.groups ?? []) {
+      const group: StyleGroupRef = { kind: 'value', value: g.value };
+      if (attribute.kind === 'function') {
+        const typeId = String(g.value);
+        const t = types.find((r) => r.typeId === typeId);
+        cards.push(row(group, t?.name ?? typeId, typeId, t?.warning ?? null));
+      } else {
+        const notAnOption = optionKeys !== null && !optionKeys.has(styleValueKey(g.value));
+        cards.push(row(group, valueName(attribute, g.value), null, notAnOption ? `“${String(g.value)}” is no longer an option of ${attribute.label}, so no room uses this card.` : null));
+      }
     }
   }
+
+  // Each room's value (Function and Level from the document, the rest from `values`).
+  const roomValues = doc.nodes.map((n) => styleValueOfNode(n, by, values));
+  const present = roomValues.filter(
+    (v): v is StyleValue => (typeof v === 'string' && v.trim() !== '') || (typeof v === 'number' && Number.isFinite(v)) || typeof v === 'boolean',
+  );
+  const counts = new Map<string, { value: StyleValue; count: number }>();
+  for (const v of present) {
+    const key = styleValueKey(v);
+    const entry = counts.get(key);
+    if (entry) entry.count++;
+    else counts.set(key, { value: typeof v === 'string' ? v.trim() : v, count: 1 });
+  }
   const carded = new Set((setup.groups ?? []).map((g) => styleValueKey(g.value)));
-  const addable = types.filter((t) => !carded.has(styleValueKey(t.typeId))).map((t) => ({ value: t.typeId, label: t.name, nodeCount: t.nodeCount }));
-  return { by, byLabel: STYLE_BY_LABELS[by] ?? by, defaultCard, cards, addable };
+  const countOf = (v: StyleValue) => counts.get(styleValueKey(v))?.count ?? 0;
+  let addable: { value: StyleValue; label: string; nodeCount: number }[];
+  if (attribute.kind === 'function') {
+    addable = types.filter((t) => !carded.has(styleValueKey(t.typeId))).map((t) => ({ value: t.typeId, label: t.name, nodeCount: t.nodeCount }));
+  } else if (attribute.kind === 'choice') {
+    addable = (attribute.options ?? []).filter((o) => !carded.has(styleValueKey(o))).map((o) => ({ value: o, label: o, nodeCount: countOf(o) }));
+  } else if (attribute.kind === 'yesno') {
+    addable = [true, false].filter((v) => !carded.has(styleValueKey(v))).map((v) => ({ value: v, label: valueName(attribute, v), nodeCount: countOf(v) }));
+  } else {
+    const entries = [...counts.entries()].filter(([key]) => !carded.has(key)).map(([, e]) => e);
+    if (isNumber) entries.sort((a, b) => (a.value as number) - (b.value as number));
+    else entries.sort((a, b) => b.count - a.count || String(a.value).localeCompare(String(b.value)));
+    addable = entries.map((e) => ({ value: e.value, label: valueName(attribute, e.value), nodeCount: e.count }));
+  }
+  return {
+    by,
+    byLabel: attribute.label,
+    attribute,
+    mode,
+    defaultCard,
+    cards,
+    addable,
+    dividers: bandsActive ? setup.dividers! : null,
+    numbers: isNumber ? present.filter((v): v is number => typeof v === 'number') : [],
+    missingCount: roomValues.length - present.length,
+  };
 }
 
-/** Add a card for `value`: an empty card, so its rooms keep their look until something is changed. */
-export function addCardEdit(doc: DesignDocumentV2, by: StyleBy, value: string, name = value): DesignerEdit {
-  if (lookOfGroup(styleSetupOf(doc.settings, by), { kind: 'value', value }) !== undefined) return UNCHANGED;
-  return { kind: 'command', command: { type: 'set-look', by, group: { kind: 'value', value }, patch: {} }, label: `Add a Designer card for ${name}` };
+/** The finite number of every room for `by`. */
+function numbersOf(doc: DesignDocumentV2, by: StyleBy, values?: StyleValues): number[] {
+  return doc.nodes.map((n) => styleValueOfNode(n, by, values)).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+}
+
+/**
+ * Style rooms by `attribute`. A number (not Level) that has no setup yet starts with suggested
+ * bands in the same undo step (`values`: that attribute's room values).
+ */
+export function styleByEdit(doc: DesignDocumentV2, attribute: StyleAttribute, values?: StyleValues): DesignerEdit {
+  if (attribute.by === doc.settings.styleBy) return UNCHANGED;
+  const label = `Style rooms by ${attribute.label}`;
+  const fresh = !Object.prototype.hasOwnProperty.call(doc.settings.styles, attribute.by);
+  if (attribute.kind === 'number' && !attribute.level && fresh) {
+    const numbers = numbersOf(doc, attribute.by, values);
+    const dividers = suggestDividers(numbers, { integer: wholeNumbers(attribute, numbers) });
+    return { kind: 'command', command: { type: 'set-style-by', by: attribute.by, dividers }, label };
+  }
+  return { kind: 'command', command: { type: 'set-style-by', by: attribute.by }, label };
+}
+
+/** Switch a number between one card per value and bands; bands start with suggested dividers. */
+export function styleModeEdit(doc: DesignDocumentV2, attribute: StyleAttribute, mode: StyleMode, values?: StyleValues): DesignerEdit {
+  const setup = styleSetupOf(doc.settings, attribute.by);
+  if (styleModeOf(setup) === mode) return UNCHANGED;
+  const label = mode === 'bands' ? `Style ${attribute.label} by bands` : `Style ${attribute.label} by one card per value`;
+  const dividers = mode === 'bands' && !hasBands(setup) ? suggestDividers(numbersOf(doc, attribute.by, values), { integer: wholeNumbers(attribute, numbersOf(doc, attribute.by, values)) }) : undefined;
+  return { kind: 'command', command: { type: 'set-style-mode', by: attribute.by, mode, ...(dividers && { dividers }) }, label };
+}
+
+/** New band dividers (ascending, distinct; Level: whole storeys). */
+export function bandDividersEdit(doc: DesignDocumentV2, attribute: StyleAttribute, dividers: readonly number[]): DesignerEdit {
+  const next = attribute.level ? dividers.map((d) => Math.round(d)) : [...dividers];
+  if (next.some((d) => !Number.isFinite(d))) return { kind: 'invalid', message: 'A divider must be a number.' };
+  for (let i = 1; i < next.length; i++) {
+    if (!(next[i]! > next[i - 1]!)) return { kind: 'invalid', message: 'Each divider must be larger than the one before it.' };
+  }
+  const stored = styleSetupOf(doc.settings, attribute.by).dividers ?? [];
+  if (stored.length === next.length && stored.every((d, i) => d === next[i])) return UNCHANGED;
+  return { kind: 'command', command: { type: 'set-band-dividers', by: attribute.by, dividers: next }, label: `Change the ${attribute.label} bands` };
+}
+
+/** Range shown on the bands track: the room values and the dividers, with a small margin; never empty. */
+export function bandTrackRange(numbers: readonly number[], dividers: readonly number[]): { readonly min: number; readonly max: number } {
+  const all = [...numbers, ...dividers];
+  if (all.length === 0) return { min: 0, max: 10 };
+  let min = Math.min(...all);
+  let max = Math.max(...all);
+  if (min === max) {
+    min -= 1;
+    max += 1;
+  }
+  // A margin so the first and last bands stay wide enough to see (and to grab their dividers).
+  const pad = (max - min) * 0.12;
+  return { min: min - pad, max: max + pad };
+}
+
+/** The step dividers move by (keyboard, dragging): a round number; whole for whole-number values. */
+/** Dividers move in whole steps: Level, or a number every room has a whole value of (Degree, a count). */
+export const wholeNumbers = (attribute: Pick<StyleAttribute, 'level'>, numbers: readonly number[]): boolean =>
+  !!attribute.level || (numbers.length > 0 && numbers.every(Number.isInteger));
+
+export const bandStep = (range: { readonly min: number; readonly max: number }, whole?: boolean): number =>
+  whole ? Math.max(1, Math.round(niceStep((range.max - range.min) / 5))) : niceStep((range.max - range.min) / 5);
+
+/**
+ * The dividers with one more, splitting the widest band (on the track) at a round value; null
+ * when no band can be split (e.g. Level bands of one storey each).
+ */
+export function withAddedDivider(numbers: readonly number[], dividers: readonly number[], whole?: boolean): number[] | null {
+  const range = bandTrackRange(numbers, dividers);
+  const step = bandStep(range, whole);
+  const edges = [range.min, ...dividers, range.max];
+  const bands = edges
+    .slice(1)
+    .map((hi, i) => ({ lo: edges[i]!, hi }))
+    .sort((a, b) => b.hi - b.lo - (a.hi - a.lo));
+  // When the rooms' values differ, a new divider lies within them (above the lowest), so it never
+  // makes a band nobody can be in. With one value (or none) any split is allowed: bands set up ahead.
+  const lowest = Math.min(...numbers);
+  const highest = Math.max(...numbers);
+  const inside = (d: number) => !(highest > lowest) || (d > lowest && d <= highest);
+  for (const { lo, hi } of bands) {
+    let d = roundToStep((lo + hi) / 2, step);
+    if (!(d > lo && d < hi)) d = (lo + hi) / 2;
+    if (whole) d = Math.round(d);
+    if (d > lo && d < hi && inside(d) && !dividers.includes(d)) return [...dividers, d].sort((a, b) => a - b);
+  }
+  return null;
+}
+
+/**
+ * Add a card for `value`: an empty card, so its rooms keep their look until something is changed.
+ * Text is trimmed (empty text is refused); a card that exists already (ignoring case) is unchanged.
+ */
+export function addCardEdit(doc: DesignDocumentV2, by: StyleBy, value: StyleValue, name = String(value)): DesignerEdit {
+  const v = typeof value === 'string' ? value.trim() : value;
+  if (v === '') return { kind: 'invalid', message: 'Type a value first.' };
+  if (typeof v === 'string' && v.length > 200) return { kind: 'invalid', message: 'A value can be at most 200 characters.' };
+  if (lookOfGroup(styleSetupOf(doc.settings, by), { kind: 'value', value: v }) !== undefined) return UNCHANGED;
+  return { kind: 'command', command: { type: 'set-look', by, group: { kind: 'value', value: v }, patch: {} }, label: `Add a Designer card for ${name.trim()}` };
 }
 
 /** Remove a value card: its rooms use Default again. */

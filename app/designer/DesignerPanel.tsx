@@ -1,6 +1,9 @@
 import { CollapsibleSection, useRememberedOpen } from '@app/ui';
 import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { sameRooms, useRoomHighlight, useSetRoomHighlight } from '@app/views/roomHighlight';
+import { styleValuesFor, useStyleValues } from '@app/views/styleValues';
+import { useEnabledMetrics } from '@app/views/three/enabledMetrics';
+import { EMPTY_ATTRIBUTE_SCHEMA } from '@app/extensions';
 import { buildingFacesV2, exampleFacadeProvider } from '@app/building';
 import { designUsesFacadeModules, facadeAssetIdsOf, layoutFacadeModules, type FacadeAssetV1 } from '@app/assets';
 import { FACADE_VARIANTS, ROOF_STYLES, WINDOW_LAYOUTS, type FacadeModule, type FacadeVariant, type FacadeVariantKind } from '@app/document/v2';
@@ -10,9 +13,17 @@ import { typeColor } from '@core/viewer/appearance';
 import type { Selection } from '@core/viewer/selection';
 import {
   addCardEdit,
+  addNoun,
+  bandDividersEdit,
   designerCards,
   removeCardEdit,
-  STYLE_BY_LABELS,
+  styleAttributeName,
+  styleAttributeOf,
+  styleAttributes,
+  styleByEdit,
+  styleModeEdit,
+  type StyleAttribute,
+  type DesignerCards,
   distortionMessage,
   FACADE_PLACEMENT_LABELS,
   formatPercent,
@@ -32,6 +43,7 @@ import {
   type DesignerCardRow,
 } from './designerModel';
 import { DesignerGuideButton } from './DesignerGuide';
+import { BandsEditor } from './BandsEditor';
 import { FacadeAssetDetails, FacadeImport, FacadeLibraryFooter, PlacementControl, type DesignerFacades } from './FacadeLibraryPanel';
 import { FacadeMaterialsDialog } from './FacadeMaterialsDialog';
 import './designer.css';
@@ -68,20 +80,27 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
   const doc = design?.doc;
   const activeProject = project?.project ?? null;
   const facade = project?.facade ?? exampleFacadeProvider;
-  const cards = useMemo(() => (doc ? designerCards(doc, activeProject, facade) : null), [doc, activeProject, facade]);
+  const spatial = design?.spatial;
+  // "Style rooms by" (S3): the project's attributes and the measured values shown in Attributes.
+  const schema = project?.attributes ?? EMPTY_ATTRIBUTE_SCHEMA;
+  const shownMetrics = useEnabledMetrics();
+  const styleBy = doc?.settings.styleBy ?? 'function';
+  const attribute = useMemo(() => styleAttributeOf(styleBy, schema, shownMetrics), [styleBy, schema, shownMetrics]);
+  const attributes = useMemo(() => styleAttributes(schema, shownMetrics, styleBy), [schema, shownMetrics, styleBy]);
+  const values = useStyleValues(doc, spatial, schema);
+  const cards = useMemo(() => (doc ? designerCards(doc, activeProject, facade, values, attribute) : null), [doc, activeProject, facade, values, attribute]);
   const assets = facades?.assets ?? NO_ASSETS;
   const assetById = useMemo(() => new Map(assets.map((a) => [a.id, a] as const)), [assets]);
   // Where the modules land (for fit warnings): only computed when the design uses imported façades.
-  const spatial = design?.spatial;
   const modules = useMemo(() => {
     if (!doc || !spatial || !designUsesFacadeModules(doc)) return [];
     const sizeOf = (id: string) => {
       const a = assetById.get(id);
       return a ? { width: a.size[0], height: a.size[1], depth: a.size[2] } : null;
     };
-    const built = buildingFacesV2(doc, spatial, facade);
+    const built = buildingFacesV2(doc, spatial, facade, values);
     return layoutFacadeModules(built.faces, built.looks, sizeOf).instances;
-  }, [doc, spatial, facade, assetById]);
+  }, [doc, spatial, facade, assetById, values]);
   const usedHere = useMemo(() => new Set(doc ? facadeAssetIdsOf(doc) : []), [doc]);
 
   // Highlight button: the lit card follows the design (rooms move between cards as they change);
@@ -90,7 +109,7 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
   const setHighlight = useSetRoomHighlight();
   useEffect(() => {
     if (!highlight || !setHighlight || !cards || !highlight.key.startsWith(HIGHLIGHT_PREFIX)) return;
-    const card = [cards.defaultCard, ...cards.cards].find((c) => HIGHLIGHT_PREFIX + c.key === highlight.key);
+    const card = [cards.defaultCard, ...cards.cards].find((c) => highlightKey(cards, c) === highlight.key);
     if (!card) {
       setHighlight(null);
       return;
@@ -120,7 +139,7 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
   };
 
   const renderCard = (row: DesignerCardRow) => {
-    const key = HIGHLIGHT_PREFIX + row.key;
+    const key = highlightKey(cards, row);
     const lit = highlight?.key === key;
     return (
       <li key={row.key}>
@@ -153,7 +172,20 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
     );
   };
 
-  const byFunction = cards.by === 'function';
+  const chooseStyleBy = (by: string) => {
+    const next = attributes.find((a) => a.by === by);
+    if (!next || by === cards.by) return;
+    // A number that is new to the design starts with bands suggested from its values.
+    send(styleByEdit(doc, next, spatial ? styleValuesFor(doc, spatial, by, schema) : undefined));
+  };
+  const groups: readonly { readonly key: StyleAttribute['group']; readonly label: string }[] = [
+    { key: 'room', label: 'Room' },
+    { key: 'attributes', label: 'Your attributes' },
+    { key: 'measured', label: 'Measured' },
+  ];
+  const isNumber = cards.attribute.kind === 'number';
+  const bands = cards.mode === 'bands';
+  const noun = addNoun(cards.attribute);
   return (
     <div className="sgl-designer" aria-label="Building Designer">
       <div className="sgl-designer-intro">
@@ -174,46 +206,83 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
         <label htmlFor="sgl-designer-style-by" title="The one attribute that decides each room's look">
           Style rooms by
         </label>
-        <select
-          id="sgl-designer-style-by"
-          value={cards.by}
-          onChange={(e) => {
-            const by = e.currentTarget.value;
-            if (by !== cards.by) send({ kind: 'command', command: { type: 'set-style-by', by }, label: `Style rooms by ${STYLE_BY_LABELS[by] ?? by}` });
-          }}
-        >
-          <option value="function">Function</option>
-          {!byFunction && <option value={cards.by}>{cards.byLabel}</option>}
+        <select id="sgl-designer-style-by" value={cards.by} onChange={(e) => chooseStyleBy(e.currentTarget.value)}>
+          {groups.map((g) => {
+            const items = attributes.filter((a) => a.group === g.key);
+            return (
+              items.length > 0 && (
+                <optgroup key={g.key} label={g.label}>
+                  {items.map((a) => (
+                    <option key={a.by} value={a.by}>
+                      {styleAttributeName(a)}
+                    </option>
+                  ))}
+                </optgroup>
+              )
+            );
+          })}
         </select>
       </div>
+      {cards.attribute.status === 'removed' && (
+        <p className="sgl-designer-warning" role="note">
+          ⚠ This attribute is no longer in Attributes, so every room uses Default. Its cards are kept: add the attribute back, or choose another one.
+        </p>
+      )}
+      {cards.attribute.status === 'hidden' && (
+        <p className="sgl-designer-source">
+          {cards.attribute.label} is not shown in Attributes, but the rooms are still styled by it.
+        </p>
+      )}
+      {isNumber && (
+        <div className="sgl-designer-field sgl-designer-layout sgl-designer-stylemode">
+          <span className="sgl-designer-label" id="sgl-designer-style-mode" title="A card for each value, or a card for each range of values">
+            Cards
+          </span>
+          <div className="sgl-segmented sgl-segmented-sm" role="radiogroup" aria-labelledby="sgl-designer-style-mode">
+            {(['values', 'bands'] as const).map((m) => (
+              <label key={m} className={cards.mode === m ? 'checked' : undefined} title={m === 'values' ? 'One card for each value the rooms have' : 'One card for each range of values'}>
+                <input
+                  type="radio"
+                  name="sgl-designer-style-mode"
+                  value={m}
+                  checked={cards.mode === m}
+                  onChange={() => send(styleModeEdit(doc, cards.attribute, m, values))}
+                />
+                {m === 'values' ? 'One card per value' : 'Bands'}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       <CollapsibleSection title={`Looks by ${cards.byLabel}`} sectionId="designer-functions" defaultOpen meta={String(cards.cards.length + 1)}>
+        {bands && cards.dividers && (
+          <BandsEditor
+            idBase="sgl-designer-bands"
+            attribute={cards.attribute}
+            dividers={cards.dividers}
+            numbers={cards.numbers}
+            onCommit={(dividers) => send(bandDividersEdit(doc, cards.attribute, dividers))}
+            onInvalid={setError}
+          />
+        )}
         <ul className="sgl-designer-list">
           {renderCard(cards.defaultCard)}
           {cards.cards.map(renderCard)}
         </ul>
-        {byFunction && cards.cards.length === 0 && (
-          <p className="sgl-designer-notice">Every room uses Default. Add a function below to give its rooms their own look.</p>
+        {cards.missingCount > 0 && cards.attribute.status !== 'removed' && (
+          <p className="sgl-designer-source">
+            {cards.missingCount} {cards.missingCount === 1 ? 'room has' : 'rooms have'} no {cards.byLabel} value and {cards.missingCount === 1 ? 'uses' : 'use'} Default.
+          </p>
         )}
-        {byFunction && cards.addable.length > 0 && (
-          <div className="sgl-designer-add">
-            <select
-              aria-label="Style another function"
-              value=""
-              onChange={(e) => {
-                const value = e.currentTarget.value;
-                const option = cards.addable.find((a) => a.value === value);
-                if (option) send(addCardEdit(doc, cards.by, option.value, option.label));
-              }}
-            >
-              <option value="">+ Style another function…</option>
-              {cards.addable.map((a) => (
-                <option key={a.value} value={a.value}>
-                  {a.label} · {a.nodeCount} {a.nodeCount === 1 ? 'room' : 'rooms'}
-                </option>
-              ))}
-            </select>
-          </div>
+        {!bands && cards.cards.length === 0 && cards.attribute.status !== 'removed' && (
+          <p className="sgl-designer-notice">Every room uses Default. Add a {noun} below to give its rooms their own look.</p>
+        )}
+        {!bands && cards.attribute.status !== 'removed' && cards.attribute.kind === 'text' && (
+          <TextValueAdd label={cards.byLabel} suggestions={cards.addable} onAdd={(value) => send(addCardEdit(doc, cards.by, value))} />
+        )}
+        {!bands && cards.attribute.status !== 'removed' && cards.attribute.kind !== 'text' && cards.addable.length > 0 && (
+          <AddCardMenu noun={noun} cards={cards} onAdd={(option) => send(addCardEdit(doc, cards.by, option.value, option.label))} />
         )}
         {facades && <FacadeLibraryFooter facades={facades} usedHere={usedHere} />}
       </CollapsibleSection>
@@ -696,6 +765,70 @@ function Subsection({ idBase, name, title, rememberId, children }: { readonly id
 }
 
 const SHORT_ROOF: Readonly<Record<string, string>> ={ flat: 'Flat roof', pergola: 'Pergola', none: 'No roof' };
+
+/** Highlight key of a card: the Designer's prefix, the attribute and the card. */
+const highlightKey = (cards: Pick<DesignerCards, 'by'>, row: Pick<DesignerCardRow, 'key'>): string => `${HIGHLIGHT_PREFIX}${cards.by}|${row.key}`;
+
+type AddOption = DesignerCards['addable'][number];
+
+/** "+ Style another function / level / option / value…": the values without a card, with room counts. */
+function AddCardMenu({ noun, cards, onAdd }: { readonly noun: string; readonly cards: DesignerCards; readonly onAdd: (option: AddOption) => void }) {
+  return (
+    <div className="sgl-designer-add">
+      <select
+        aria-label={`Style another ${noun}`}
+        value=""
+        onChange={(e) => {
+          const v = e.currentTarget.value;
+          const option = cards.addable.find((a) => String(a.value) === v);
+          if (v !== '' && option) onAdd(option);
+        }}
+      >
+        <option value="">+ Style another {noun}…</option>
+        {cards.addable.map((a) => (
+          <option key={`${typeof a.value}:${String(a.value)}`} value={String(a.value)}>
+            {a.label} · {a.nodeCount} {a.nodeCount === 1 ? 'room' : 'rooms'}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** Text attributes: type a value (suggestions: the values rooms have now, with counts) and add its card. */
+function TextValueAdd({ label, suggestions, onAdd }: { readonly label: string; readonly suggestions: readonly AddOption[]; readonly onAdd: (value: string) => void }) {
+  const [text, setText] = useState('');
+  const add = () => {
+    onAdd(text);
+    if (text.trim() !== '') setText('');
+  };
+  return (
+    <div className="sgl-designer-add sgl-designer-add-text">
+      <input
+        type="text"
+        aria-label={`${label} value to style`}
+        placeholder="Type a value…"
+        list="sgl-designer-text-values"
+        maxLength={200}
+        value={text}
+        onChange={(e) => setText(e.currentTarget.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') add();
+        }}
+      />
+      <datalist id="sgl-designer-text-values">
+        {suggestions.map((s) => (
+          <option key={String(s.value)} value={String(s.value)}>
+            {s.nodeCount} {s.nodeCount === 1 ? 'room' : 'rooms'}
+          </option>
+        ))}
+      </datalist>
+      <button type="button" onClick={add} disabled={text.trim() === ''}>
+        + Add card
+      </button>
+    </div>
+  );
+}
 
 /**
  * Schematic exterior façade of two bays: `fraction` of the wall area glazed, as one window per bay

@@ -146,13 +146,20 @@ export const styleGroupSchema = z.strictObject({
  * One attribute's setup. Value attributes use `groups`; numbers use `dividers` + `bands`
  * (band i = [dividers[i-1], dividers[i]), the first and last open-ended). Rooms without a value,
  * or matching no card, use `default`.
+ *
+ * A number can use either (S3, 2026-11-19): `mode` says which is active, and both are remembered.
+ * Absent `mode` = bands when `dividers` are stored, else value cards; `'bands'` needs dividers.
  */
+export const STYLE_MODES = ['values', 'bands'] as const;
+export type StyleMode = (typeof STYLE_MODES)[number];
+
 export const styleSetupSchema = z
   .strictObject({
     default: lookSchema.optional(),
     groups: z.array(styleGroupSchema).optional(),
     dividers: z.array(z.number().finite()).max(20).optional(),
     bands: z.array(lookSchema).optional(),
+    mode: z.enum(STYLE_MODES, { error: `mode must be one of: ${STYLE_MODES.join(', ')}` }).optional(),
   })
   .superRefine((setup, ctx) => {
     const seen = new Set<string>();
@@ -168,6 +175,7 @@ export const styleSetupSchema = z
     if ((setup.dividers === undefined) !== (setup.bands === undefined) || (setup.bands && setup.bands.length !== dividers.length + 1)) {
       ctx.addIssue({ code: 'custom', path: ['bands'], message: 'bands must have exactly one look more than there are dividers' });
     }
+    if (setup.mode === 'bands' && setup.dividers === undefined) ctx.addIssue({ code: 'custom', path: ['mode'], message: 'mode "bands" needs band dividers' });
   });
 
 /** Comparison key of a card value: text is trimmed and case-insensitive; numbers and Yes/No exact. */

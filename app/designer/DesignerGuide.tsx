@@ -14,9 +14,10 @@ export function DesignerGuideContent({ titleId, descriptionId }: { readonly titl
         Building Designer
       </h2>
       <p id={descriptionId} className="sgl-concept-lead">
-        How the rooms are built in this scenario. Choose what the rooms are styled by (their Function), then give each card a look.
-        Default is the look of every room without a card of its own; add a card for a function to give its rooms their own look. There
-        are no settings for single rooms.
+        How the rooms are built in this scenario. Choose what the rooms are styled by (their Function, Level, one of your attributes or a
+        measured value such as Area), then give each card a look. Default is the look of every room without a card of its own; add a card
+        for a value to give its rooms their own look. Numbers can have one card per value or bands (ranges, e.g. "Under 20 m²"): drag the
+        dividers to move rooms between bands. There are no settings for single rooms.
       </p>
 
       <section className="sgl-designer-guide-step">
