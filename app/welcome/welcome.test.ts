@@ -2,6 +2,9 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { readDesign, serializeDesignV2 } from '@app/document';
+import { activateToolkit } from '@app/extensions/activate';
+import { discoverToolkits } from '@app/extensions/discover';
+import { TOOLKIT_GLOBS } from '@app/extensions/toolkitGlobs';
 import { createLocalStorageKeptMarks, createMemoryKeptMarks, createMemoryProjectStore, readProjectFile, serializeProjectFile } from '@app/project';
 import { fileOf, twoRooms } from '@app/session/projectStore.fixtures';
 import { createProjectController, showsWelcome } from '@app/session/projectStoreController';
@@ -57,7 +60,7 @@ describe('Welcome flow', () => {
     expect(h.store.records.size).toBe(1);
   });
 
-  it('Create project starts with an EMPTY graph and only the required attributes (no custom, no calculated)', async () => {
+  it('Create project starts with an EMPTY graph; a toolkit without custom attributes adds none (no calculated either)', async () => {
     const h = host();
     expect((await createProject(h, 'Empty', 'gallery')).ok).toBe(true);
     const p = h.controller.getState().project!;
@@ -66,6 +69,37 @@ describe('Welcome flow', () => {
     expect(design.nodes).toEqual([]);
     expect(design.edges).toEqual([]);
     expect(p.meta.attributes).toMatchObject({ projectId: 'gallery', baseline: 'files-sig', schema: { nodes: [], edges: [] } });
+    expect(p.meta.settings.calculatedFields).toEqual([]);
+  });
+
+  it('Create project with the House toolkit starts with its custom attributes (Target area, Priority) and an EMPTY graph', async () => {
+    const source = discoverToolkits(TOOLKIT_GLOBS).toolkits.find((t) => t.id === 'house')!;
+    const activation = await activateToolkit(source);
+    if (activation.status !== 'active') throw new Error('toolkits/house did not activate');
+    const { attributeBaseline, designs } = activation.toolkit;
+    const houseDesign = designs.find((d) => d.id === 'house')!.result;
+    if (!houseDesign.ok) throw new Error('designs/house.json is invalid');
+    const h: WelcomeHost = {
+      ...host(),
+      // As the shell does: the toolkit's default design (for its Building settings) and its attributes.
+      startingDesign: async () => ({ ok: true, doc: houseDesign.value, source: 'toolkits/house/designs/house.json', attributeSignature: attributeBaseline.signature, attributeSchema: attributeBaseline.schema }),
+    };
+    expect(houseDesign.value.nodes.length).toBeGreaterThan(0);
+    expect((await createProject(h, 'My house', 'house')).ok).toBe(true);
+    const p = h.controller.getState().project!;
+    const design = p.scenarios[0]!.session.history.present.design;
+    expect(design.nodes).toEqual([]);
+    expect(design.edges).toEqual([]);
+    const record = p.meta.attributes as { projectId: string; baseline: string; schema: { nodes: { key: string; label: string }[]; edges: unknown[]; nodeTypeDefaults: Record<string, Record<string, unknown>> } };
+    expect(record.projectId).toBe('house');
+    expect(record.baseline).toBe(attributeBaseline.signature);
+    expect(record.schema.nodes.map((f) => [f.key, f.label])).toEqual([
+      ['targetArea', 'Target area (m²)'],
+      ['priority', 'Priority'],
+    ]);
+    expect(record.schema.edges).toEqual([]);
+    // Each Function's defaults come along (e.g. Living: 36 m², priority 1).
+    expect(Object.values(record.schema.nodeTypeDefaults.living ?? {}).sort()).toEqual([1, 36]);
     expect(p.meta.settings.calculatedFields).toEqual([]);
   });
 

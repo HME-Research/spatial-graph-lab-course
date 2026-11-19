@@ -14,7 +14,9 @@ The reference toolkit of Spatial Graph Lab. Don't edit this folder: copy it to m
 
   To change one room, select it and set the value in **Properties**. The other rooms keep their Function's default.
 - **One transform**, *Grow to target area* (`algorithms/grow-to-target-area.ts`), with one optional parameter, `houses`. Transform shows it as **Houses** with a one-line description: both come from the parameter's `label` and `description`.
-- **One design**, `designs/house.json`: the two-storey example house, every room one cell to start with. It opens when you start a project with this toolkit.
+- **One design**, `designs/house.json`: the two-storey example house, every room one cell to start with. It is the toolkit's `defaultDesign`: `npm run check:toolkit` runs the transform on it, and a new project takes its Building settings.
+
+**Create project with this toolkit** gives you an **empty graph** that already has the two custom attributes (Target area and Priority, tagged `Toolkit: House`, with each Function's defaults), so you can draw your own house and grow it. To work on the example house itself, choose **Open file…** and pick `toolkits/house/designs/house.json`, with the app opened as `?toolkit=house` so the file opens with this toolkit.
 
 ## How "Grow to target area" works
 

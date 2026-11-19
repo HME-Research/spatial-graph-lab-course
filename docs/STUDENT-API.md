@@ -16,7 +16,7 @@ How to write your own functions, designs and algorithms for Spatial Graph Lab. Y
    - A *transformation* (Transform) shows a **preview**: the rooms, connections and attribute values it would add or change. Nothing changes until you press **Apply**. **Discard** throws the preview away. If you edit the design after running, the preview can no longer be applied: run it again.
    - Disabled algorithms (invalid definitions) are marked **disabled**; select one to see why.
 7. **Edit attributes.** Select a room or relationship: **Properties** (right) lists every project field with its value and where it comes from (set here, the function's default, the field default). Add, rename or delete fields in the **Attributes** section (Nodes / Edges); values that are not project fields are listed separately and kept as they are.
-8. **Export.** **Export JSON** downloads the current design. To make it a toolkit design, save it as `toolkits/my-toolkit/designs/<name>.json`; set `defaultDesign: '<name>'` to open it at startup. The header marks a design *modified* until it is exported, and the app asks before discarding unexported changes.
+8. **Export.** **Export JSON** downloads the current design. To make it a toolkit design, save it as `toolkits/my-toolkit/designs/<name>.json`; set `defaultDesign: '<name>'` to make it your toolkit's default design (see below); open it again with **Open file…**. The header marks a design *modified* until it is exported, and the app asks before discarding unexported changes.
 
 ## 1. Your toolkit folder
 
@@ -44,7 +44,7 @@ import { defineToolkit } from '@student-api';
 
 export default defineToolkit({
   name: 'My toolkit',
-  defaultDesign: 'my-design', // optional: designs/my-design.json is loaded at startup
+  defaultDesign: 'my-design', // optional: designs/my-design.json (Building settings of new projects; check:toolkit runs on it)
   custom: {                   // optional: custom attributes of every node and edge (see below)
     nodes: { capacity: { kind: 'number', min: 0, label: 'Capacity (people)' } },
     edges: { weight: { kind: 'number', default: 1 } },
@@ -54,7 +54,7 @@ export default defineToolkit({
 
 **Project-wide attributes.** Every node in every design of a project made with your toolkit has the same custom node fields, and every edge has the same custom edge fields. The fields come from `custom` here plus every custom attribute your functions declare; a function's `default` becomes that function's default. You can also add, rename and delete fields in the app; the app saves them in the browser and can export them as a file. It never changes your TypeScript. Full contract: `docs/PROJECT-ATTRIBUTES.md`.
 
-If `defaultDesign` is left out, the built-in example is loaded. If it's set but the file is missing or invalid, nothing is loaded and an error is shown.
+**Create project with your toolkit** starts with an **empty graph** that already has your toolkit's custom attributes (the fields above, with each function's defaults), tagged `Toolkit: <name>`. Its Building settings come from `defaultDesign`; its rooms are not copied (open a design with **Open file…**). If `defaultDesign` is left out, the built-in example's settings are used. If it's set but the file is missing or invalid, the project is not created and an error is shown.
 
 ## 2. Functions
 
