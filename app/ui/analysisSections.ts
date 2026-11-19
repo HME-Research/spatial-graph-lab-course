@@ -4,7 +4,8 @@
  *
  * - The TAB comes from how an algorithm is defined: graph algorithms return results (Analyse);
  *   spatial algorithms return changes (Transform).
- * - The Analyse SECTION comes from the algorithm's REQUIRED `input` declaration.
+ * - Every analysis declares an exact, ordered list of INPUTS. From that list alone the app derives
+ *   (a) its Analyse SECTION and (b) how the student supplies the inputs (see `inputPrompts`).
  * - The SOURCE (built-in, a toolkit, or uploaded by the student) is shown as a tag.
  *
  * Replaces the Explore / Analyse / Generate grouping in `algorithmGroups.ts` (worktree F).
@@ -18,18 +19,17 @@ export const ALGORITHM_TAB_LABELS: Readonly<Record<AlgorithmTab, { readonly labe
   transform: { label: 'Transform', summary: 'Proposes a change to your design: preview, then Apply (one undo step).' },
 };
 
-/** What a graph analysis needs before it can run. `'none'` = the whole network. */
+/**
+ * One input an analysis needs. Nodes and edges are picked in any view (one at a time, in order);
+ * numbers are typed into a small field.
+ */
 export type AnalysisInput =
-  | 'node'
-  | 'edge'
-  | 'none'
-  | { readonly query: readonly QueryInput[] };
-
-/** One input picked for a query (e.g. two nodes for Shortest path, a node and a number for Reach). */
-export type QueryInput =
   | { readonly kind: 'node'; readonly label: string }
   | { readonly kind: 'edge'; readonly label: string }
   | { readonly kind: 'number'; readonly label: string; readonly min?: number; readonly max?: number; readonly default?: number };
+
+/** The exact, ordered inputs of an analysis. `[]` = the whole network. */
+export type AnalysisInputs = readonly AnalysisInput[];
 
 export const ANALYSE_SECTION_IDS = ['node', 'edge', 'network', 'queries'] as const;
 export type AnalyseSectionId = (typeof ANALYSE_SECTION_IDS)[number];
@@ -43,18 +43,53 @@ export const ANALYSE_SECTIONS: Readonly<
   queries: { title: 'Queries', subtitle: 'inputs you pick', openByDefault: false },
 };
 
-/** Which Analyse section an algorithm belongs to, from its input declaration. */
-export function analyseSectionFor(input: AnalysisInput): AnalyseSectionId {
-  if (input === 'node') return 'node';
-  if (input === 'edge') return 'edge';
-  if (input === 'none') return 'network';
+/**
+ * The Analyse section, derived only from the inputs:
+ * none → Network; exactly one node → Node; exactly one edge → Edge; anything else
+ * (several items, a mix, or any number) → Queries.
+ */
+export function analyseSectionFor(inputs: AnalysisInputs): AnalyseSectionId {
+  if (inputs.length === 0) return 'network';
+  if (inputs.length === 1 && inputs[0]!.kind === 'node') return 'node';
+  if (inputs.length === 1 && inputs[0]!.kind === 'edge') return 'edge';
   return 'queries';
+}
+
+/**
+ * How the inputs are collected, in order. Node / Edge sections run on the current selection
+ * (`useSelection: true`). Queries ask for each input in turn: the current selection fills the
+ * first input when its kind matches; nodes/edges are picked in any view; numbers are typed.
+ */
+export interface InputPrompt {
+  readonly index: number;
+  readonly kind: AnalysisInput['kind'];
+  /** e.g. "Pick From (a node) in any view" or "Steps". */
+  readonly text: string;
+}
+
+export function inputPrompts(inputs: AnalysisInputs): { readonly useSelection: boolean; readonly prompts: readonly InputPrompt[] } {
+  const section = analyseSectionFor(inputs);
+  if (section === 'node' || section === 'edge' || section === 'network') return { useSelection: section !== 'network', prompts: [] };
+  return {
+    useSelection: false,
+    prompts: inputs.map((input, index) => ({
+      index,
+      kind: input.kind,
+      text: input.kind === 'number' ? input.label : `Pick ${input.label} (${input.kind === 'node' ? 'a node' : 'an edge'}) in any view`,
+    })),
+  };
+}
+
+/** Readable reason when a picked item has the wrong kind, else null. */
+export function pickMismatch(expected: AnalysisInput, picked: 'node' | 'edge'): string | null {
+  if (expected.kind === 'number' || expected.kind === picked) return null;
+  return `${expected.label} needs ${expected.kind === 'node' ? 'a node' : 'an edge'}, not ${picked === 'node' ? 'a node' : 'an edge'}.`;
 }
 
 export const TRANSFORM_SECTION_IDS = ['built-in', 'toolkit'] as const;
 export type TransformSectionId = (typeof TRANSFORM_SECTION_IDS)[number];
 
-/** Where an algorithm comes from; shown as a small rounded tag. */
+/** Where an algorithm (or a custom attribute) comes from; shown as a small rounded tag. */
 export type AlgorithmSource =
   | { readonly kind: 'built-in' }
   | { readonly kind: 'toolkit'; readonly toolkitName: string }
@@ -71,28 +106,42 @@ export function sourceTag(source: AlgorithmSource): string {
   }
 }
 
-/** Built-in analyses: id, section, and whether it is shown from the start (else offered by "+"). */
+/** Built-in analyses: id, inputs, and whether shown from the start (else offered by "+"). */
 export interface BuiltInAnalysis {
   readonly id: string;
   readonly name: string;
-  readonly section: AnalyseSectionId;
+  readonly inputs: AnalysisInputs;
   readonly shownAtStart: boolean;
 }
 
+const NODE: AnalysisInputs = [{ kind: 'node', label: 'Node' }];
+const EDGE: AnalysisInputs = [{ kind: 'edge', label: 'Edge' }];
+const NONE: AnalysisInputs = [];
+
 export const BUILT_IN_ANALYSES: readonly BuiltInAnalysis[] = [
-  { id: 'degree', name: 'Degree', section: 'node', shownAtStart: true },
-  { id: 'neighbours', name: 'Neighbours', section: 'node', shownAtStart: true },
-  { id: 'shared-neighbours', name: 'Shared neighbours', section: 'edge', shownAtStart: true },
-  { id: 'detour-if-removed', name: 'Detour if removed', section: 'edge', shownAtStart: false },
-  { id: 'touching-edges', name: 'Touching edges', section: 'edge', shownAtStart: false },
-  { id: 'summary', name: 'Summary', section: 'network', shownAtStart: true },
-  { id: 'most-connected-node', name: 'Most connected node', section: 'network', shownAtStart: true },
-  { id: 'connected-parts', name: 'Connected parts', section: 'network', shownAtStart: true },
-  { id: 'bridges', name: 'Bridges', section: 'network', shownAtStart: false },
-  { id: 'cut-nodes', name: 'Cut nodes', section: 'network', shownAtStart: false },
-  { id: 'leaf-nodes', name: 'Leaf nodes', section: 'network', shownAtStart: false },
-  { id: 'diameter', name: 'Diameter', section: 'network', shownAtStart: false },
-  { id: 'most-central-node', name: 'Most central node', section: 'network', shownAtStart: false },
-  { id: 'shortest-path', name: 'Shortest path', section: 'queries', shownAtStart: true },
-  { id: 'reach-within-k', name: 'Reach within k steps', section: 'queries', shownAtStart: false },
+  { id: 'degree', name: 'Degree', inputs: NODE, shownAtStart: true },
+  { id: 'neighbours', name: 'Neighbours', inputs: NODE, shownAtStart: true },
+  { id: 'shared-neighbours', name: 'Shared neighbours', inputs: EDGE, shownAtStart: true },
+  { id: 'detour-if-removed', name: 'Detour if removed', inputs: EDGE, shownAtStart: false },
+  { id: 'touching-edges', name: 'Touching edges', inputs: EDGE, shownAtStart: false },
+  { id: 'summary', name: 'Summary', inputs: NONE, shownAtStart: true },
+  { id: 'most-connected-node', name: 'Most connected node', inputs: NONE, shownAtStart: true },
+  { id: 'connected-parts', name: 'Connected parts', inputs: NONE, shownAtStart: true },
+  { id: 'bridges', name: 'Bridges', inputs: NONE, shownAtStart: false },
+  { id: 'cut-nodes', name: 'Cut nodes', inputs: NONE, shownAtStart: false },
+  { id: 'leaf-nodes', name: 'Leaf nodes', inputs: NONE, shownAtStart: false },
+  { id: 'diameter', name: 'Diameter', inputs: NONE, shownAtStart: false },
+  { id: 'most-central-node', name: 'Most central node', inputs: NONE, shownAtStart: false },
+  {
+    id: 'shortest-path',
+    name: 'Shortest path',
+    inputs: [{ kind: 'node', label: 'From' }, { kind: 'node', label: 'To' }],
+    shownAtStart: true,
+  },
+  {
+    id: 'reach-within-k',
+    name: 'Reach within k steps',
+    inputs: [{ kind: 'node', label: 'Start' }, { kind: 'number', label: 'Steps', min: 1, default: 2 }],
+    shownAtStart: false,
+  },
 ];

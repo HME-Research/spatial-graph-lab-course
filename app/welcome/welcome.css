@@ -17,6 +17,24 @@
 .sgl-welcome::backdrop {
   background: rgb(20 20 18 / 0.3);
 }
+/* While the Guide is open Welcome is non-modal (see Welcome.tsx): keep it centred and dimmed
+   behind, below the Guide's floating window (z-index 900+). */
+.sgl-welcome.is-guide-open {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  z-index: 800;
+}
+.sgl-welcome-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 799;
+  background: rgb(20 20 18 / 0.3);
+}
+.sgl-welcome-guide {
+  float: right;
+  margin-left: 12px;
+}
 .sgl-welcome-card {
   flex: 1;
   min-height: 0;

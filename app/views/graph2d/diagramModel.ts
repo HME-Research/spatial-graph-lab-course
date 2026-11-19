@@ -19,7 +19,7 @@ import { formatGrid, suggestDiagramPosition, suggestFreeCellV2, type DiagramSour
 export interface DiagramNode {
   /** Permanent node id (selection, commands). Never renumbered. */
   readonly id: number;
-  /** Short label shown in the circle: the stored `displayId`, else the permanent id. */
+  /** Label shown in the circle: the room id. */
   readonly label: string;
   readonly typeId: string;
   /** Minimum-corner cell. */

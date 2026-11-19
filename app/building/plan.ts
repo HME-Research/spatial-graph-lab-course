@@ -40,7 +40,7 @@ export interface PlanRect {
 
 export interface PlanRoom {
   readonly nodeId: number;
-  /** `displayId ?? id`. */
+  /** The room id (its label). */
   readonly label: string;
   readonly typeId: string;
   readonly rect: PlanRect;

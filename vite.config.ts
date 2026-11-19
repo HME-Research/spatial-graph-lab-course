@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
+import pkg from './package.json' with { type: 'json' };
 
 /**
  * Dependency-optimizer cache, one per dev-server port.
@@ -24,6 +25,8 @@ function portOf(argv: readonly string[]): string {
 
 export default defineConfig({
   plugins: [react()],
+  // The About dialog shows the package.json version (never hard-coded); see app/ui/about/version.ts.
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   // `@core/*` and `@app/*` are defined once, in tsconfig.json "paths", and shared by tsc, Vite and
   // Vitest. Aliases are an import convenience, not an access-control mechanism.
   resolve: { tsconfigPaths: true },

@@ -255,6 +255,14 @@ describe('Welcome screen', () => {
     expect(html).toContain('IndexedDB is not available');
   });
 
+  it('offers a Guide button inside Welcome, so the Guide can be read before choosing', () => {
+    const html = renderToStaticMarkup(createElement(Welcome, props()));
+    expect(html).toMatch(/<button[^>]*class="sgl-guide-button sgl-welcome-guide"[^>]*>Guide<\/button>/);
+    // Welcome only steps out of modal mode while the Guide is open.
+    expect(html).not.toContain('sgl-welcome-scrim');
+    expect(html).not.toContain('is-guide-open');
+  });
+
   it('offers Create project, Open project, Try example and Recent projects', () => {
     const html = renderToStaticMarkup(createElement(Welcome, props()));
     expect(html).toContain('Welcome to Spatial Graph Lab');

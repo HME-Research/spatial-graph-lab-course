@@ -4,8 +4,18 @@ import {
   ATTRIBUTE_SECTIONS,
   EDGE_BUILT_IN_ATTRIBUTES,
   NODE_BUILT_IN_ATTRIBUTES,
+  canDeleteCustomAttribute,
+  customAttributeTag,
 } from '@app/attributes/sections';
-import { ANALYSE_SECTION_IDS, ANALYSE_SECTIONS, BUILT_IN_ANALYSES, analyseSectionFor, sourceTag } from './analysisSections';
+import {
+  ANALYSE_SECTION_IDS,
+  ANALYSE_SECTIONS,
+  BUILT_IN_ANALYSES,
+  analyseSectionFor,
+  inputPrompts,
+  pickMismatch,
+  sourceTag,
+} from './analysisSections';
 import { GUIDE_TAB_IDS, GUIDE_TAB_LABELS } from './guideContracts';
 
 describe('P4 shared definitions', () => {
@@ -27,11 +37,34 @@ describe('P4 shared definitions', () => {
     ]);
   });
 
-  it('places analyses by their input declaration', () => {
-    expect(analyseSectionFor('node')).toBe('node');
-    expect(analyseSectionFor('edge')).toBe('edge');
-    expect(analyseSectionFor('none')).toBe('network');
-    expect(analyseSectionFor({ query: [{ kind: 'node', label: 'From' }, { kind: 'node', label: 'To' }] })).toBe('queries');
+  it('derives the Analyse section from the exact list of inputs', () => {
+    expect(analyseSectionFor([])).toBe('network');
+    expect(analyseSectionFor([{ kind: 'node', label: 'Room' }])).toBe('node');
+    expect(analyseSectionFor([{ kind: 'edge', label: 'Connection' }])).toBe('edge');
+    expect(analyseSectionFor([{ kind: 'node', label: 'From' }, { kind: 'node', label: 'To' }])).toBe('queries');
+    expect(analyseSectionFor([{ kind: 'node', label: 'Room' }, { kind: 'edge', label: 'Connection' }])).toBe('queries');
+    expect(analyseSectionFor([{ kind: 'number', label: 'Steps' }])).toBe('queries');
+    for (const a of BUILT_IN_ANALYSES) expect(ANALYSE_SECTION_IDS).toContain(analyseSectionFor(a.inputs));
+  });
+
+  it('derives how inputs are collected: selection for Node/Edge, step-by-step prompts for Queries', () => {
+    expect(inputPrompts([{ kind: 'node', label: 'Room' }])).toEqual({ useSelection: true, prompts: [] });
+    expect(inputPrompts([])).toEqual({ useSelection: false, prompts: [] });
+    const q = inputPrompts([{ kind: 'node', label: 'Room' }, { kind: 'edge', label: 'Connection' }, { kind: 'number', label: 'Steps' }]);
+    expect(q.useSelection).toBe(false);
+    expect(q.prompts.map((p) => p.text)).toEqual(['Pick Room (a node) in any view', 'Pick Connection (an edge) in any view', 'Steps']);
+  });
+
+  it('refuses a picked item of the wrong kind with a readable reason', () => {
+    expect(pickMismatch({ kind: 'node', label: 'From' }, 'node')).toBeNull();
+    expect(pickMismatch({ kind: 'node', label: 'From' }, 'edge')).toBe('From needs a node, not an edge.');
+  });
+
+  it('tags custom attributes by source; only yours can be deleted', () => {
+    expect(customAttributeTag({ kind: 'toolkit', toolkitName: 'house' })).toBe('Toolkit: house');
+    expect(customAttributeTag({ kind: 'yours' })).toBe('Yours');
+    expect(canDeleteCustomAttribute({ kind: 'toolkit', toolkitName: 'house' })).toBe(false);
+    expect(canDeleteCustomAttribute({ kind: 'yours' })).toBe(true);
   });
 
   it('opens Node and Edge by default and collapses Network and Queries', () => {
@@ -41,7 +74,7 @@ describe('P4 shared definitions', () => {
   it('has unique built-in analyses, at least one shown at start in every section', () => {
     expect(new Set(BUILT_IN_ANALYSES.map((a) => a.id)).size).toBe(BUILT_IN_ANALYSES.length);
     for (const section of ANALYSE_SECTION_IDS) {
-      expect(BUILT_IN_ANALYSES.some((a) => a.section === section && a.shownAtStart), section).toBe(true);
+      expect(BUILT_IN_ANALYSES.some((a) => analyseSectionFor(a.inputs) === section && a.shownAtStart), section).toBe(true);
     }
   });
 
