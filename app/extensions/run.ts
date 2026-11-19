@@ -45,8 +45,14 @@ const operationSchema = z.discriminatedUnion(
     z.strictObject({ op: z.literal('add-edge'), ref: z.string().optional(), source: itemRefSchema, target: itemRefSchema, kind: z.string() }),
     z.strictObject({ op: z.literal('set-node-attribute'), nodeId: itemRefSchema, key: z.string().min(1), value: attributeValueSchema }),
     z.strictObject({ op: z.literal('set-edge-attribute'), edgeId: itemRefSchema, key: z.string().min(1), value: attributeValueSchema }),
+    z.strictObject({
+      op: z.literal('set-node-geometry'),
+      nodeId: itemRefSchema,
+      grid: z.tuple([z.number(), z.number(), z.number()], { error: 'grid must be [x, y, z]' }).optional(),
+      size: z.tuple([z.number(), z.number(), z.number()], { error: 'size must be [sx, sy, sz]' }).optional(),
+    }),
   ],
-  { error: 'op must be "add-node", "add-edge", "set-node-attribute" or "set-edge-attribute"' },
+  { error: 'op must be "add-node", "add-edge", "set-node-attribute", "set-edge-attribute" or "set-node-geometry"' },
 );
 
 const transformationSchema = z.strictObject({

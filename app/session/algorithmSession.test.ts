@@ -138,6 +138,7 @@ describe('spatial transformation preview', () => {
       addedEdges: [],
       attributeChanges: [{ nodeId: 1, key: 'daylight', from: 'high', to: 'medium' }],
       edgeAttributeChanges: [],
+      geometryChanges: [],
       affectedNodeIds: [1],
     });
     // The preview never touched the current document.
@@ -160,6 +161,16 @@ describe('spatial transformation preview', () => {
     expect(wall(builtIn)).toBe('solid');
     const applied = applyPreviewV2(at(builtIn), preview, 1);
     expect(applied.ok && wall(applied.doc)).toBe('door');
+  });
+
+  it('lists moved or resized rooms (set-node-geometry) and counts them as affected', () => {
+    const before = builtIn;
+    const after = { ...builtIn, nodes: builtIn.nodes.map((n) => (n.id === 4 ? { ...n, size: [2, 1, 1] as const } : n)) };
+    const node = builtIn.nodes.find((n) => n.id === 4)!;
+    expect(describePreview({ before, after })).toMatchObject({
+      geometryChanges: [{ nodeId: 4, from: { grid: node.grid, size: node.size }, to: { grid: node.grid, size: [2, 1, 1] } }],
+      affectedNodeIds: [4],
+    });
   });
 
   it('Discard keeps the original design (running produced only a preview)', () => {

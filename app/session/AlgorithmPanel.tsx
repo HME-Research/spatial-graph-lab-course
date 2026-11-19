@@ -410,6 +410,18 @@ function RunResult({
               </ul>
             </>
           )}
+          {summary.geometryChanges.length > 0 && (
+            <>
+              <h4>Moved or resized rooms</h4>
+              <ul className="sgl-list">
+                {summary.geometryChanges.map((c) => (
+                  <li key={c.nodeId}>
+                    {nodeButton(c.nodeId)}: {c.from.size.join('×')} at [{c.from.grid.join(', ')}] → {c.to.size.join('×')} at [{c.to.grid.join(', ')}]
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           {summary.edgeAttributeChanges.length > 0 && (
             <>
               <h4>Changed connection attributes</h4>
