@@ -1,4 +1,6 @@
-# Viewer integration contracts (v1)
+# Viewer integration contracts
+
+> **P4 (19 November 2026):** views are schema-v2 only. `ViewProps` has no `doc` / `onCommand`: the required `design: DesignPort` (`docs/CONTRACTS-V2.md` §6) is the only document source (`design.doc`, `design.spatial`) and the only command path (`design.onCommand`, `DesignCommand`). Ids are whole numbers; selection ids are numbers. Sections below that mention `GraphCommand`, `applyGraphCommand` or v1 edge kinds describe the retired v1 baseline.
 
 Shared interfaces that let three worktrees build their views in parallel. Paths below reflect the Stage 2 layout (`core/` reusable, `app/` application; see `docs/ARCHITECTURE.md`); the contracts themselves are unchanged.
 
@@ -31,10 +33,9 @@ Views ──onCommand(GraphCommand)──▶ App: applyGraphCommand(doc, cmd) �
 
 ```ts
 interface ViewProps {
-  readonly doc: DesignDocument;
-  readonly selection: Selection;
+  readonly design: DesignPort;          // P4: required; doc, spatial, onCommand, proposeEdit
+  readonly selection: Selection;        // { kind: 'node' | 'edge'; id: number } | { kind: 'none' }
   readonly onSelect: (selection: Selection) => void;
-  readonly onCommand: (command: GraphCommand) => CommandOutcome;
   readonly project?: ProjectViewContext; // optional, read-only (Stage 3B)
 }
 interface ProjectViewContext {           // app/views/project.ts

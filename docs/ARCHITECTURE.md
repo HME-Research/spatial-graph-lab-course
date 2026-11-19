@@ -13,8 +13,8 @@ Student algorithms (`toolkits/<id>/algorithms/`, Stage 3) receive a **copy** of 
 - `core/viewer`: reusable viewing infrastructure with no document dependency — `coordinates.ts` (the one grid → Three.js mapping), `selection.ts` (single selection, reconciliation, highlight emphasis), `appearance.ts` (fallback type palette, selection colour). `core/viewer/three/`: `SceneCanvas` (R3F canvas used by all three 3D views: perspective camera, orbit controls, a camera rig that fits on mount and on request, refits on resize only while still automatically fitted, and can restore a remembered pose; `SceneLabel`), `viewport.ts` (`Bounds`, `Framing`, `CameraFit`, `CameraState`, `CameraMemory`, `GroundGrid`, and the aspect-aware `fitCameraToBounds`, which respects both the vertical and the horizontal field of view), `interaction.ts` (click-vs-drag), `picking.ts` (pointer handlers), `ViewControls` (overlay containers).
 
 ### Application (`app/`) — layered `document` → `building` → `extensions` → `views` → shell (`app/boundary.test.ts`)
-- `app/document`: the v1 spatial design document built on `core/graph` and `core/spatial` — Zod schema, edge kinds and their face-adjacency rules, document validation, graph commands and JSON serialization. The canonical built-in example design is `app/document/examples/two-storey-example.json`. `designGraph(doc)` is the zero-copy adapter to the generic core (policy: undirected, no self-loops, no parallel edges). Pure: no React/Three.js; uses only `core/graph` and `core/spatial`.
-- `app/document/v2` and `app/spatial` (Gate 0, not yet used by the running app): the schema-v2 document and the pure spatial engine layered between `document` and `building`. Frozen shapes and ownership: `docs/CONTRACTS-V2.md`.
+- `app/document`: the design document, schema v2 (the only format since P4; v1 and its migration were removed and `app/document/v2` was flattened into `app/document`) — Zod schema with whole-number node/edge ids and never-reused id counters, validation, reading/writing, footprints, labels and style settings, plus the shared primitives (ids of Functions, grid, attributes, diagram, metadata), issues and limits. Built-in example: `app/document/examples/house.json` (graph only, no toolkit). Pure: no React/Three.js; uses only `core/graph` and `core/spatial`. Frozen shapes: `docs/CONTRACTS-V2.md`.
+- `app/spatial`: the pure spatial engine between `document` and `building` (relationship resolution, occupancy, spatial edits, design commands, the `DesignPort`).
 - `app/building`: pure face-condition resolution separate from geometry construction; geometry built once per shared face; provisional façade specs. No React/Three.js; may use `app/document` and the pure `core/viewer` coordinates and selection helpers.
 - `app/assets` (2026-11-17): imported 3DM façade modules — the pure adapter (units, `zUpToYUp`, panel frame, Repeat/Stretch placement), the embedded asset format (`FacadeAssetV1`, SHA-256, validation), module placement on building faces, and the 3DM reader (adapted from SpatialCore) behind a lazily imported browser entry (`rhino/browser.ts`, rhino3dm + WASM). No React/Three.js; layered between `building`/`metrics` and `extensions`/`project`. Decisions D1–D9 in `docs/DECISIONS.md`.
 - `app/extensions`: the runtime behind the Student API — toolkit discovery (`toolkitGlobs.ts` is the only file that refers to `toolkits/`), selection and activation, runtime (Zod) validation of toolkit, node type and algorithm definitions, document conformance to toolkit types (stable diagnostic identities), type appearance, and validated algorithm execution with atomic transformations. Pure: no React/Three.js; the only app module that imports `@student-api`. See `docs/STUDENT-API.md`.
@@ -24,41 +24,44 @@ Student algorithms (`toolkits/<id>/algorithms/`, Stage 3) receive a **copy** of 
 - `student-api/`: compile-time contracts (typed attributes, toolkit and node type definitions, algorithm contexts and results), identity `define…` helpers and a few pure graph/grid helpers. No validation; imports only `core/graph` and `core/spatial` (`student-api/boundary.test.ts`).
 - `toolkits/<id>/`: one toolkit per folder with `toolkit.ts` and optional `types/`, `designs/` (JSON) and `algorithms/`. Toolkit code imports only `@student-api` and its own files (`app/extensions/toolkitBoundary.test.ts`). One toolkit is active at a time, or none (P4: no toolkit is the default; a project without a toolkit keeps its own Functions and attributes). The owner's reference toolkit will be `toolkits/house/`; the repository may ship no toolkit at all.
 
-## Spatial graph model — JSON document v1
+## Spatial graph model — JSON document (schema v2)
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "metadata": {"name": "Three rooms"},
+  "nextNodeId": 4,
+  "nextEdgeId": 3,
   "nodes": [
-    {"id":"a","grid":[0,0,0],"typeId":"gallery","attributes":{}},
-    {"id":"b","grid":[1,0,0],"typeId":"studio","attributes":{}},
-    {"id":"c","grid":[0,0,1],"typeId":"gallery","attributes":{}}
+    {"id": 1, "grid": [0,0,0], "size": [1,1,1], "typeId": "living", "attributes": {}},
+    {"id": 2, "grid": [1,0,0], "size": [1,1,1], "typeId": "kitchen", "attributes": {}},
+    {"id": 3, "grid": [0,0,1], "size": [1,1,1], "typeId": "bedroom", "attributes": {}}
   ],
   "edges": [
-    {"id":"ab","source":"a","target":"b","kind":"door","attributes":{}},
-    {"id":"ac","source":"a","target":"c","kind":"atrium","attributes":{}}
+    {"id": 1, "source": 1, "target": 2, "kind": "open", "attributes": {}},
+    {"id": 2, "source": 1, "target": 3, "kind": "access", "attributes": {}}
   ],
-  "diagram": {"positions":{"a":[20,80],"b":[180,80],"c":[100,0]}}
+  "diagram": {"positions": {"1": [20,80], "2": [180,80], "3": [100,0]}},
+  "settings": {"styleBy": "function", "styles": {}}
 }
 ```
-`id` is a stable identifier **not derived from coordinates**, so relocation does not change identity. `grid` coordinates are integer spatial addresses, distinct from diagram.positions in 2D pixel/diagram units. Attribute values should initially be JSON primitives (number, string, boolean, null) rather than arbitrary JavaScript objects. Node type definitions are resolved separately.
+`id` is a whole number (P4), a stable identifier **not derived from coordinates**, and the label shown everywhere; new ids come from `nextNodeId` / `nextEdgeId` and are never reused. `grid` is the room's minimum-corner cell and `size` its extent in cells, distinct from diagram.positions in 2D diagram units. Attribute values are JSON primitives. Full contract: `docs/CONTRACTS-V2.md`.
 
 ## Graph rules
 1. Every node has a unique ID and a unique integer triplet `[x,y,z]`. No inactive nodes; deleting a node removes its incident edges and diagram position.
-2. Every edge references two different existing nodes; no duplicate architectural relationship for the same unordered pair. Edges are undirected in v1.
-3. Horizontal `door` / `open`: Manhattan distance exactly 1 in x/y and zero in z.
-4. Vertical `atrium` / `vertical-access`: same x/y, adjacent z. A vertical edge is conceptual: it may produce an opening or symbolic marker, not a validated staircase.
-5. Adjacent **without** an access edge: an internal partition, never a doorway.
-6. Non-face-adjacent graph relationships are deliberately unsupported in v1; add a different edge namespace/category if needed later.
-7. Self-edges and invalid node type IDs must be rejected with readable errors. (Schema v2: a relationship between rooms that do not touch is valid; spatial feasibility is the derived status direct / routed / unresolved, never a validation error, and unresolved edges are removed only explicitly — see CONTRACTS-V2 §2 and CONTRACTS-V3 §4.)
-8. Use explicit schema version and migration plan before breaking JSON format.
+2. Every edge references two different existing nodes; no duplicate relationship for the same unordered pair. Edges are undirected.
+3. Relationship kinds are `access` and `open`. Rooms that share a face get a door / no wall (side by side) or a slab opening with an access marker / a slab void (stacked); a vertical relationship is conceptual, never a validated staircase.
+4. Rooms that do not touch may still be related: spatial feasibility (direct / routed / unresolved) is derived, never a validation error (CONTRACTS-V2 §2, CONTRACTS-V3 §4).
+5. Adjacent **without** a relationship: an internal partition, never a doorway.
+6. Ids are whole numbers below the document's counters and are never reused.
+7. Self-edges and invalid node type IDs must be rejected with readable errors; unresolved edges are removed only explicitly.
+8. Use an explicit schema version; schema v2 is the only format read (P4: no v1 reader, no backward compatibility before distribution).
 
 ## Architectural boundary resolution
 - Inspect the six cardinal neighbour slots for every node. A missing neighbour is `exterior` (exposed), including above/below if applicable.
-- For a horizontal boundary between two occupied cells: `door`→door-wall; `open`→opening/no partition; no edge→solid internal wall.
+- For a horizontal boundary between two occupied cells: `access`→door-wall; `open`→opening/no partition; no edge→solid internal wall (face conditions are named by `connectionCondition` in `app/building`).
 - For an exposed horizontal face: choose façade configuration of the **occupying node's type** (gallery can glaze, storage can be closed); do not add exterior graph edges to empty cells.
-- For vertical contact: no edge→solid separation; atrium→slab opening; vertical-access→opening + generic symbolic circulation marker **only once implemented**.
-- Generate each pair's shared face once using deterministic ownership (compare stable node IDs), not one wall per node.
+- For vertical contact: no edge→solid separation; `open`→slab void (`atrium` condition); `access`→slab opening (`vertical-access` condition).
+- Generate each pair's shared face once using deterministic ownership (the room with the lower id), not one wall per node.
 - Exterior faces are authored once by their owning cell; perimeter entrance/door is a deferred separate feature.
 - For multi-floor cases, slab ownership and geometry must be verified separately; initial architectural phase may be single level.
 
@@ -86,7 +89,7 @@ C. Two neighbouring occupied cells with no edge produce **one** shared solid wal
 D. Adding door changes only that shared wall to a door-wall; changing to open removes it.
 E. Removing one neighbouring node converts the surviving cell boundary to a type-specific exterior façade.
 F. Two disconnected clusters remain separate; a physical touch without access is not a connected access component.
-G. Vertical relation A(0,0,0) to C(0,0,1) is valid; vertical relation to (1,0,1) is rejected for architectural edges.
+G. Vertical relation A(0,0,0) to C(0,0,1) is built directly; a relation to (1,0,1) is valid but unresolved (different storey, not touching).
 H. Selecting an ID highlights matching representation in both views; camera positions stay independently set.
 I. Invalid JSON does not replace the current valid document, and errors show where the data failed.
 J. Same document, same resolver yields same face output; no reliance on rendering order.

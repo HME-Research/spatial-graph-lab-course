@@ -1,32 +1,31 @@
 # Schema v2 contracts — Gate 0 (frozen for the parallel MVP wave)
 
-Shared interfaces for the seven parallel MVP branches (`01-graph-ui` … `07-teaching-feedback`). They are fixed at the contract baseline commit. **Change only through the integration owner** (root `main`). This file records names and shapes. Behaviour is pinned by `app/document/v2/v2.test.ts` and `app/spatial/spatial.test.ts`.
+Shared interfaces for the seven parallel MVP branches (`01-graph-ui` … `07-teaching-feedback`). They are fixed at the contract baseline commit. **Change only through the integration owner** (root `main`). This file records names and shapes. Behaviour is pinned by `app/document/v2.test.ts` and `app/spatial/spatial.test.ts`.
 
-## 0. State at the baseline (read first)
+## 0. State (read first)
 
-> **Gate 1 (integrated on main):** the app now stores, edits, undoes and exports **v2** only (v1 files are read and migrated; export is `serializeDesignV2`). Straight-connector routing is implemented (02); `routing-unavailable` and `endpoint-clearance` are never emitted. The Student API and `app/extensions` run on v2 (`runAlgorithmV2`, `validateDocumentV2`); toolkit designs are read with `readDesignJson`. One live `DesignPort` is passed to every view, Properties and the Designer. The frozen v1 `ViewProps.doc`/`onCommand` receive a read-only projection and a v1→v2 command translation (`app/session/legacyBridge.ts`). The bullets below describe the Gate 0 baseline.
+> **P4 (19 November 2026):** schema v2 is the ONLY document format. Schema v1, its reader, the v1→v2 migration, the v1-typed `ViewProps.doc`/`onCommand` and `app/session/legacyBridge.ts` are gone; the module is `@app/document` (the former `app/document/v2` was flattened into it). Node and edge ids are plain integers from never-reused counters (§1). Exported names keep their `V2` suffix (`DesignDocumentV2`, `validateDocumentV2`, `serializeDesignV2`): they name schema version 2.
 
-- **Additive.** The running app still stores and edits a **v1** `DesignDocument` (`@app/document`, unchanged; golden tests unchanged). Schema v2 lives beside it in `@app/document/v2` and `@app/spatial`. Integration (Gate 1) switches `App`/history/load/export to v2.
-- **Stubbed:** only straight-connector routing in `app/spatial/resolve.ts`. A separated pair on a shared storey returns `unresolved` with reason `routing-unavailable`. Every other function below is implemented and tested.
-- **Not yet adapted:** the Student API and `app/extensions` (still v1). See §7.
-
-## 1. Document v2 — `app/document/v2/schema.ts`, `constants.ts`
+## 1. Document v2 — `app/document/schema.ts`, `constants.ts`
 
 ```jsonc
 {
   "schemaVersion": 2,
   "metadata": { "name": "…", "description": "…" },
-  "nodes": [{ "id": "a", "displayId": "01", "grid": [0,0,0], "size": [2,3,1], "typeId": "gallery", "attributes": {} }],
-  "edges": [{ "id": "ab", "source": "a", "target": "b", "kind": "access", "connectorStyle": "covered", "attributes": {} }],
-  "diagram": { "positions": { "a": [0, 0] } },
+  "nextNodeId": 3,
+  "nextEdgeId": 2,
+  "nodes": [{ "id": 1, "grid": [0,0,0], "size": [2,3,1], "typeId": "gallery", "attributes": {} }],
+  "edges": [{ "id": 1, "source": 1, "target": 2, "kind": "access", "connectorStyle": "covered", "attributes": {} }],
+  "diagram": { "positions": { "1": [0, 0] } },
   "settings": { "styleBy": "function", "styles": { "function": { "default": { "windowFraction": 0.3 }, "groups": [{ "value": "gallery", "look": { "roof": "pergola" } }] } } }
 }
 ```
 
 | Field | Rule |
 |---|---|
-| `id` | Permanent identity (v1 pattern). Never derived from coordinates or order. |
-| `displayId` | Optional short label, 1–12 chars, unique when present. Stored; never recomputed from array or render order. `nodeLabel(node)` = `displayId ?? id`; `nextDisplayId(doc)` for new nodes. |
+| `id`, `source`, `target` | Plain whole numbers ≥ 0 (P4). The id is the permanent identity AND the label shown on rooms, in lists and messages (`nodeLabel(node)` = `String(id)`; `relationshipLabel` = `"3 → 7"`). Never derived from coordinates or order. There is no display id. |
+| `nextNodeId` / `nextEdgeId` | The id the next new node / edge gets. `add-node` / `add-edge` (commands and algorithm operations) use the counter and advance it, so an id is **never reused after a delete** (older scenarios, undo history and notes keep pointing at the right item). Optional in a file: filled on read as largest id + 1 (1 when empty); always written, after `metadata`. Every id must be below its counter. |
+| In memory | Ids are numbers end to end (selection, resolution, building, metrics, views, Student API). Text forms exist only where JSON or a library needs a key: `diagram.positions` and scenario `facePreferences` are objects keyed by the id as text (`"3"`), analysis `nodeValues` likewise, and React Flow ids are `String(id)` (converted in `Graph2DView`). Building style providers get the room id as text (style key). |
 | `grid` | **Minimum corner** cell `[x,y,z]`, z up. Independent of `diagram.positions`. |
 | `size` | `[sx,sy,sz]` integers 1…`MAX_ROOM_SIZE` (32); default `[1,1,1]` (filled on read, always written). Room = every cell `grid + [0..sx-1, 0..sy-1, 0..sz-1]`. |
 | `kind` | `RelationshipKind = 'access' \| 'open'`; `DEFAULT_RELATIONSHIP_KIND = 'access'`. **No adjacency requirement.** |
@@ -39,29 +38,19 @@ Types: `DesignDocumentV2`, `RoomNode`, `RelationshipEdge`, `RoomSize`, `Look`, `
 ## 2. Validation — `validateDocumentV2(input, options?)`
 
 Graph validity is **structural only**:
-- the v1 id/endpoint/self-edge/one-relationship-per-pair policy (`SPATIAL_GRAPH_POLICY`);
+- ids: whole numbers ≥ 0, unique per collection, below `nextNodeId` / `nextEdgeId` (`id-counter`); endpoints, no self-edges, one relationship per unordered pair (`SPATIAL_GRAPH_POLICY`);
 - footprints inside `±maxAbsCoordinate`;
 - no **room overlap** (`room-overlap`);
-- unique display ids (`duplicate-display-id`);
 - total cells ≤ `MAX_ROOM_CELLS` (`too-many-cells`);
-- diagram positions of existing nodes only.
+- diagram positions keyed by existing node ids only (`"3"`).
 
-A relationship between rooms that do not touch is **valid**. Spatial feasibility is a derived status (§4) and is never a validation issue. `validateDocumentV2` rejects v1 input; use `readDesign`. New issue codes are added to the shared `IssueCode`: `room-overlap`, `duplicate-display-id`, `too-many-cells`, `route-displacement`. The v1 validator never emits them.
+A relationship between rooms that do not touch is **valid**. Spatial feasibility is a derived status (§4) and is never a validation issue. `validateDocumentV2` (and `readDesign`) refuse any `schemaVersion` other than 2 (`unsupported-schema-version`). Issue codes include `room-overlap`, `id-counter`, `too-many-cells`, `route-displacement`.
 
-## 3. Compatibility — `migrate.ts`, `serialize.ts`
+## 3. Reading and writing — `serialize.ts`
 
-- **Read both, write v2.** `readDesign(raw)` and `readDesignJson(text)` return `Result<{ doc: DesignDocumentV2; sourceVersion: 1 | 2 }>`:
-  - v1 input is checked by the unchanged v1 validator (same issues), then migrated;
-  - versions other than 1 or 2 give `unsupported-schema-version`.
-- Export is `serializeDesignV2(doc)` only: canonical key order, trailing newline, same doc → same text. There is no v2→v1 export. A v1 file is never written with v2 properties, and the app never overwrites source files.
-- v1 `parseDesignJson` and `serializeDesign` keep exact v1 behaviour until integration replaces their call sites in the shell.
-- `migrateV1toV2(v1Doc)` is pure and deterministic:
-  - ids, cells, types, attributes, metadata and diagram positions are kept; `size [1,1,1]`;
-  - `displayId` = `"01"`, `"02"`, … in v1 node order;
-  - edge kinds: `door`→`access`, `vertical-access`→`access`, `open`→`open`, `atrium`→`open`;
-  - no `connectorStyle`; empty `settings`.
-- **Lossless.** Every valid v1 edge joins face-adjacent cells, so `v1KindFor(kind, roomContact(a, b))` recovers the original kind (tested on the shipped example). Building code can keep the v1 face conditions for direct edges: door wall, no wall, slab void, slab opening + access marker.
-- The only intended visual difference after migration is the default **flat roof** on exposed tops.
+- `readDesign(raw)` / `readDesignJson(text)` return `Result<{ doc }>`; schema v2 only (P4: v1 is never read; no migration exists). Project files are read as format version 2 only.
+- Export is `serializeDesignV2(doc)`: canonical key order (`schemaVersion`, `metadata`, `nextNodeId`, `nextEdgeId`, `nodes`, `edges`, `diagram`, `settings`), trailing newline, same doc → same text.
+- Built-in example: `app/document/examples/house.json` (graph only: ids, Functions, geometry, edges; no toolkit, no custom attributes).
 
 ## 4. Resolution and occupancy — `app/spatial/contracts.ts`
 
@@ -90,11 +79,11 @@ The gate's `{ status, reason?, routeCells?, connectorStyle? }` is this union: `r
   - Vertical: `access` = slab opening + symbolic access marker (never a certified stair), `open` = slab void.
 - **Separated, no common storey:** `unresolved` / `different-level`.
 - **Separated, common storey** (02 implements): try straight, axis-aligned connectors between facing faces through empty cells only. No diagonal or A* routing.
-  - Edges are resolved in ascending edge id; each route reserves its cells before the next.
+  - Edges are resolved in ascending (numeric) edge id; each route reserves its cells before the next.
   - Candidates are ordered by length, then axis x before y, then lowest storey, then lowest perpendicular coordinate; the first free candidate wins.
   - Otherwise the edge is `unresolved` with `not-aligned`, `blocked-by-room` or `blocked-by-route`.
   - `open` may also be routed; a route never removes or passes through rooms.
-- **Footprint helpers** (`app/document/v2/footprint.ts`): `footprintBox`, `footprintCells`, `footprintsOverlap`, `levelRange`, `sharedFaces(a, b)`, `roomContact(a, b)`.
+- **Footprint helpers** (`app/document/footprint.ts`): `footprintBox`, `footprintCells`, `footprintsOverlap`, `levelRange`, `sharedFaces(a, b)`, `roomContact(a, b)`.
 - **`buildOccupancy(doc, resolutions)`** is the single occupancy API for room cells plus route reservations.
 
 ## 5. Spatial edits — `app/spatial/edit.ts`
@@ -114,14 +103,13 @@ The gate's `{ status, reason?, routeCells?, connectorStyle? }` is this union: `r
 
 ```ts
 type DesignCommand =
-  | { type: 'add-node'; node: { id; displayId?; grid; size?; typeId; attributes? }; diagramPosition? } // displayId ← nextDisplayId
+  | { type: 'add-node'; node: { grid; size?; typeId; attributes? }; diagramPosition? } // id ← doc.nextNodeId (counter advances)
   | { type: 'remove-node'; nodeId }                         // also removes incident edges + diagram position
   | { type: 'set-node-geometry'; nodeId; grid?; size?; confirmRouteDisplacement? }
   | { type: 'set-node-type'; nodeId; typeId }
   | { type: 'set-node-attributes'; nodeId; attributes }
-  | { type: 'set-display-id'; nodeId; displayId: string | null }
   | { type: 'set-diagram-position'; nodeId; position }      // never moves the room
-  | { type: 'add-edge'; edge: { id; source; target; kind?; connectorStyle?; attributes? } } // kind ← 'access'
+  | { type: 'add-edge'; edge: { source; target; kind?; connectorStyle?; attributes? } } // id ← doc.nextEdgeId; kind ← 'access'
   | { type: 'remove-edge'; edgeId }
   | { type: 'change-edge-kind'; edgeId; kind: 'access' | 'open' }
   | { type: 'set-connector-style'; edgeId; style: ConnectorStyle | null }   // null → default
@@ -135,7 +123,9 @@ type DesignCommand =
 
 One successful command that changes content = **one** history step (existing Stage 4B history; integration wires it). A gizmo drag or a Properties field sends exactly one command, on release, Enter or blur.
 
-**Port** — `app/spatial/port.ts` defines `DesignPort`, offered to views as the **optional** `ViewProps.design`. This is the only change to `app/views/contracts.ts`:
+Callers never choose ids: the new item's id is the document's counter value before the command (Graph 2D, Properties and the wall panel read `doc.nextNodeId` / `doc.nextEdgeId` to select it).
+
+**Port** — `app/spatial/port.ts` defines `DesignPort`, the **required** `ViewProps.design` (P4: views have no other document or command handler):
 
 ```ts
 interface DesignPort {
@@ -146,16 +136,15 @@ interface DesignPort {
 }
 ```
 
-- **Absent** (today): every view keeps its v1 behaviour and hides v2-only features (feature gate = `props.design !== undefined`).
 - Only the integration owner constructs it. Feature branches test against fakes built with `validateDocumentV2`, `resolveRelationships` and `applyDesignCommand`.
 
 ## 7. Ownership during the wave
 
 | Path | Owner |
 |---|---|
-| `app/document/v2/constants.ts`, `schema.ts`; `app/spatial/contracts.ts`, `port.ts`; the `DesignCommand` / `NewRoom` / `NewRelationship` / `TypeAppearancePatch` types in `app/spatial/commands.ts`; `app/views/contracts.ts`; `app/document/errors.ts` | **Frozen** — integration owner only. Propose changes as a diff and stop. |
-| Function bodies in `app/document/v2/*` and `app/spatial/*` (`resolve.ts` routing, `occupancy.ts`, `edit.ts`, `applyDesignCommand`), new files in `app/spatial/`; `student-api/` and `app/extensions/` v2 adaptation | **02-spatial-engine** (signatures fixed) |
-| `app/building/**` (may import `@app/spatial`, `@app/document/v2`) | 03-building |
+| `app/document/constants.ts`, `schema.ts`; `app/spatial/contracts.ts`, `port.ts`; the `DesignCommand` / `NewRoom` / `NewRelationship` / `TypeAppearancePatch` types in `app/spatial/commands.ts`; `app/views/contracts.ts`; `app/document/errors.ts` | **Frozen** — integration owner only. Propose changes as a diff and stop. |
+| Function bodies in `app/document/*` and `app/spatial/*` (`resolve.ts` routing, `occupancy.ts`, `edit.ts`, `applyDesignCommand`), new files in `app/spatial/`; `student-api/` and `app/extensions/` v2 adaptation | **02-spatial-engine** (signatures fixed) |
+| `app/building/**` (may import `@app/spatial`, `@app/document`) | 03-building |
 | `core/viewer/three/` new gizmo files, `app/views/three/editing/**` | 04-3d-gizmo |
 | `app/views/graph2d/**` | 01-graph-ui |
 | `app/inspector/**`, `app/ui/**` | 05-app-ui |
@@ -165,13 +154,4 @@ interface DesignPort {
 
 Layering (`app/boundary.test.ts`): `document` → `spatial` → `building` → `extensions` → `views` → shell. `app/spatial` is pure and imports only `@app/document*`, `@core/graph` and `@core/spatial`.
 
-**Student API — decisions for 02** (not done at Gate 0; existing toolkits keep compiling and running on v1 until then):
-
-- **Kinds.** Add `RelationshipKind = 'access' | 'open'`. `SpatialEdge.kind` becomes `RelationshipKind`. `SpatialNode` gains `size` and optional `displayId`.
-- **Legacy kinds in operations.** The `add-edge` operation also accepts the legacy kinds `door | open | atrium | vertical-access`, mapped with `V1_KIND_TO_RELATIONSHIP`. This keeps `connect-storage-to-galleries` and `connect-neighbours` working unchanged; add a test.
-- **`canConnect(kind, a, b)`** keeps its v1 meaning (cells face-adjacent for that legacy kind) and is documented as deprecated.
-- **New queries** under different names:
-  - `touches(aNodeId, bNodeId)`: footprints share a face, i.e. a direct relationship is possible.
-  - `canRelate(aNodeId, bNodeId)`: a relationship may be created (distinct existing nodes, no existing pair).
-- **`nodeAt(cell)`** returns the room whose footprint contains the cell.
-- **Validation.** `app/extensions` validates transformation results with `validateDocumentV2`. Update `docs/STUDENT-API.md`.
+**Student API (P4).** Ids are numbers. `SpatialEdgeKind`, `canConnect`, the legacy `add-edge` kinds and `uniqueId` are removed. Operations never choose ids: `add-node` / `add-edge` take an optional local `ref`; `add-edge`, `set-node-attribute` and `set-edge-attribute` take an `ItemRef` (an existing id, or the `ref` of an earlier operation of the same run). The app assigns ids in operation order from the counters and reports them in `TransformationPreviewV2.assigned`. See docs/STUDENT-API.md.

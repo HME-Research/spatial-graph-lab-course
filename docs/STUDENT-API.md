@@ -1,4 +1,4 @@
-# Student API (v1, schema-v2 data)
+# Student API (schema-v2 data, numeric ids)
 
 How to write your own node types, designs and algorithms for Spatial Graph Lab. Your code lives in **one toolkit folder** and imports **only** `@student-api`.
 
@@ -25,7 +25,7 @@ toolkits/
   my-toolkit/             ← folder name = toolkit id (lowercase letters, digits, "-", "_"; starts with a letter)
     toolkit.ts            ← required
     types/                ← optional: one node type per file
-    designs/              ← optional: design JSON files (schema v1)
+    designs/              ← optional: design JSON files (schema v2)
     algorithms/           ← optional: one algorithm per file
 ```
 
@@ -75,7 +75,7 @@ export default defineNodeType({
 });
 ```
 
-Attribute kinds are `number` (with optional `min` and `max`), `text`, `boolean` and `enum` (`values`). Each attribute may have a `default`. Stored values are always JSON primitives, exactly as in schema v1.
+Attribute kinds are `number` (with optional `min` and `max`), `text`, `boolean` and `enum` (`values`). Each attribute may have a `default`. Stored values are always JSON primitives.
 
 If you leave out `facade`, the type keeps the app's existing façade. Every type uses the existing colour for its id; custom colours aren't supported yet.
 
@@ -93,7 +93,7 @@ Loading a design is never blocked by these checks.
 
 ## 3. Designs
 
-Designs are schema-v1 JSON files: see `docs/ARCHITECTURE.md` and `toolkits/example-gallery/designs/`. Each file's name (without `.json`) is its design id. An invalid design is listed with its errors and can't be loaded.
+Designs are schema-v2 JSON files (`docs/CONTRACTS-V2.md` §1; the built-in example is `app/document/examples/house.json`). Rooms and relationships have whole-number ids (`"id": 3`, `"source": 3, "target": 7`); `nextNodeId` / `nextEdgeId` say which ids new items get (you may leave them out; the app fills them in). Each file's name (without `.json`) is its design id. An invalid design is listed with its errors and can't be loaded.
 
 ## 4. Algorithms
 
@@ -101,7 +101,7 @@ An algorithm never changes the design directly. It returns a result, and the app
 
 ### Generic graph analysis
 
-A graph algorithm sees **only node ids and edges** (`graph.nodes: {id}[]`, `graph.edges: {id, source, target}[]`, `graph.policy`), so it works on any graph. It returns one value per node.
+A graph algorithm sees **only node ids and edges** (`graph.nodes: {id}[]`, `graph.edges: {id, source, target}[]`, `graph.policy`; ids are whole numbers), so it works on any graph. It returns one value per node (`nodeValues[node.id] = …`).
 
 ```ts
 import { defineGraphAlgorithm, neighbours } from '@student-api';
@@ -110,7 +110,7 @@ export default defineGraphAlgorithm({
   id: 'degree',
   label: 'Number of connections',
   run({ graph }) {
-    const nodeValues: Record<string, number> = {};
+    const nodeValues: Record<number, number> = {};
     for (const n of graph.nodes) nodeValues[n.id] = neighbours(graph, n.id).length;
     return { kind: 'analysis', summary: 'Connections per room', nodeValues };
   },
@@ -125,12 +125,11 @@ A spatial algorithm gets the design's own records and a few helpers:
 
 | `ctx.…` | Meaning |
 |---|---|
-| `design.nodes` | `{ id, displayId?, typeId, grid: [x, y, z], size: [sx, sy, sz], attributes }`. A room is a box of whole cells: `grid` is its minimum corner, `size` its extent (`[1, 1, 1]` for one cell); z is the storey. `displayId` (e.g. `"01"`) is a label only, never an identity |
-| `design.edges` | `{ id, source, target, kind, connectorStyle?, attributes }`; kind is `access` or `open` |
+| `design.nodes` | `{ id, typeId, grid: [x, y, z], size: [sx, sy, sz], attributes }`. `id` is a whole number (also the room's label). A room is a box of whole cells: `grid` is its minimum corner, `size` its extent (`[1, 1, 1]` for one cell); z is the storey |
+| `design.edges` | `{ id, source, target, kind, connectorStyle?, attributes }`; ids are numbers; kind is `access` or `open` |
 | `nodeAt(cell)` | id of the room whose box contains that cell, or `undefined` if the cell is free |
 | `touches(a, b)` | whether rooms `a` and `b` share a wall or floor, so a relationship between them is built directly |
 | `canRelate(a, b)` | whether a relationship between rooms `a` and `b` may be created: both exist, are different and aren't related yet. **They don't need to touch** |
-| `canConnect(kind, a, b)` | *Deprecated.* The schema-v1 rule: whether that v1 kind (`door`, `open`, `atrium`, `vertical-access`) may join two **cells**. Use `touches` or `canRelate` |
 | `nodeAttributes(nodeId)` | the room's value for **every project node field**: the stored value, else its type's default, else the field default (the same values the app shows). `null` = explicitly "no value"; fields without any value are absent |
 | `edgeAttributes(edgeId)` | the same for a relationship's project edge fields (Access and Open have the same fields) |
 | `attributeFields` | `{ nodes, edges }`: the project's fields (`key`, `label`, `kind`, `values`, `min`, `max`, `default`) |
@@ -138,14 +137,16 @@ A spatial algorithm gets the design's own records and a few helpers:
 | `metrics.list()` / `metrics.value(metricId, id)` | the app's **calculated values** (area, volume, façade length, …), read-only; see [Calculated values](#calculated-values) |
 | `params` | your parameters, already checked, with defaults applied |
 
-It returns a list of **operations**:
+It returns a list of **operations**. You never choose ids: the app gives every new room and relationship the next free number, in operation order, and never reuses an id. To refer to something you add in the same run, give it a `ref` (any text, e.g. `"new-kitchen"`) and use that text where an id is expected (`ItemRef` = an existing id, or the `ref` of an EARLIER operation).
 
 | Operation | Rules |
 |---|---|
-| `{ op: 'add-node', id, grid, size?, typeId, attributes? }` | New unique id, an integer minimum corner, an optional `size` of positive integers (default `[1, 1, 1]`), a box that overlaps no other room, a valid type of your toolkit, and only project node fields with valid values. A display id is given automatically |
-| `{ op: 'add-edge', id, source, target, kind }` | New unique id, existing different rooms, not already related. `kind` is `access` or `open`; the old kinds still work (`door`/`vertical-access` → `access`, `open`/`atrium` → `open`). The rooms **don't need to touch** |
-| `{ op: 'set-node-attribute', nodeId, key, value }` | `key` must be a project node field (any room may have any node field, whatever its type); the value must be valid, or `null` |
-| `{ op: 'set-edge-attribute', edgeId, key, value }` | `key` must be a project edge field; the value must be valid, or `null` |
+| `{ op: 'add-node', ref?, grid, size?, typeId, attributes? }` | An integer minimum corner, an optional `size` of positive integers (default `[1, 1, 1]`), a box that overlaps no other room, a valid type of your toolkit, and only project node fields with valid values. Gets the next node id |
+| `{ op: 'add-edge', ref?, source, target, kind }` | `source` / `target` are `ItemRef`s of existing, different rooms not related yet. `kind` is `access` or `open`. The rooms **don't need to touch**. Gets the next edge id |
+| `{ op: 'set-node-attribute', nodeId, key, value }` | `nodeId` is an `ItemRef`; `key` must be a project node field (any room may have any node field, whatever its type); the value must be valid, or `null` |
+| `{ op: 'set-edge-attribute', edgeId, key, value }` | `edgeId` is an `ItemRef`; `key` must be a project edge field; the value must be valid, or `null` |
+
+The preview (and the applied design) shows the ids the app gave; `preview.assigned` maps your `ref`s to them.
 
 **Relationships and space.** A relationship says what you want (`access` = people can pass, `open` = no separating element). Whether it can be built is worked out afterwards and is never an error:
 - the rooms **touch**: a door or a removed wall, or an opening in the floor between stacked rooms;
@@ -161,7 +162,7 @@ A transformation is also rejected if it would create a new warning or error, for
 Example: add a gallery in a free cell next to an existing gallery, and connect it with a door.
 
 ```ts
-import { defineSpatialAlgorithm, FACE_DIRECTIONS, neighbourCell, uniqueId } from '@student-api';
+import { defineSpatialAlgorithm, FACE_DIRECTIONS, neighbourCell } from '@student-api';
 import gallery from '../types/gallery';
 
 export default defineSpatialAlgorithm({
@@ -172,13 +173,11 @@ export default defineSpatialAlgorithm({
       for (const direction of FACE_DIRECTIONS.filter((d) => d !== '+z' && d !== '-z')) {
         const cell = neighbourCell(room.grid, direction);
         if (ctx.nodeAt(cell) !== undefined) continue;          // occupied
-        const id = uniqueId(ctx.design, 'gallery');
-        const doorId = uniqueId(ctx.design, 'door', [id]);
         return {
           kind: 'transformation',
           operations: [
-            { op: 'add-node', id, grid: cell, typeId: gallery.id, attributes: { daylight: 'medium' } },
-            { op: 'add-edge', id: doorId, source: room.id, target: id, kind: 'access' },
+            { op: 'add-node', ref: 'new-gallery', grid: cell, typeId: gallery.id, attributes: { daylight: 'medium' } },
+            { op: 'add-edge', source: room.id, target: 'new-gallery', kind: 'access' },
           ],
         };
       }
@@ -188,7 +187,7 @@ export default defineSpatialAlgorithm({
 });
 ```
 
-When you create several items in one run, pass the ids you've already chosen to `uniqueId(graph, prefix, taken)`.
+When you create several items in one run, give each a different `ref`.
 
 ### Calculated values
 
@@ -239,7 +238,7 @@ Graph algorithms see only ids and endpoints, so they have no `ctx.metrics`.
 
 ## 5. Parameters
 
-Algorithms may declare `parameters` using the same kinds as attributes. For example, `parameters: { start: { kind: 'text', default: 'entry-gallery' } }` is read as `ctx.params.start`. Values are checked before `run` is called.
+Algorithms may declare `parameters` using the same kinds as attributes. For example, `parameters: { start: { kind: 'number', default: 1 } }` (a room id) is read as `ctx.params.start`. Values are checked before `run` is called.
 
 ## 6. Checks and limits
 
@@ -252,8 +251,8 @@ Algorithms may declare `parameters` using the same kinds as attributes. For exam
 
 Exports of `@student-api`:
 - **Definitions:** `defineToolkit`, `defineNodeType`, `defineGraphAlgorithm`, `defineSpatialAlgorithm`
-- **Graph helpers:** `neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite`, `uniqueId`
+- **Graph helpers:** `neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite` (ids are numbers)
 - **Grid helpers:** `FACE_DIRECTIONS`, `neighbourCell`, `roomCells` (every cell of a room's box)
-- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `ConnectorStyle`, `SpatialEdgeKind` (the old v1 kinds), `SpatialOperation`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
+- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `ConnectorStyle`, `SpatialOperation`, `ItemRef`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
 
-**Changes with schema v2.** Existing algorithms keep compiling and running. What you read changed: edges now have kind `access` or `open` (not `door`, `atrium`, …), and rooms have `size` and `displayId`. Code that compared `edge.kind === 'door'` should compare with `'access'`. `add-edge` still accepts the old kinds, and `canConnect` still works, but is deprecated.
+**Changes in P4 (19 November 2026).** Schema v1 is gone: the old kinds (`door`, `atrium`, `vertical-access`), `canConnect` and `uniqueId` no longer exist. Ids are whole numbers, `displayId` is removed (the id is the label), and operations use `ref`s instead of chosen ids.
