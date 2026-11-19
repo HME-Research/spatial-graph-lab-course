@@ -496,3 +496,12 @@ button.sgl-attr-add {
 .sgl-attr-row .sgl-source-tag {
   margin-left: 6px;
 }
+/* Narrow panels: the name and the source tag shrink (ellipsis) instead of overflowing the row. */
+.sgl-attr-row.is-custom .sgl-attr-name {
+  flex: 0 1 auto;
+  min-width: 3em;
+}
+.sgl-attr-row .sgl-source-tag {
+  flex: 0 1 auto;
+  min-width: 2.5em;
+}
