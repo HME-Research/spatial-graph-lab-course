@@ -5,7 +5,7 @@
 //   2. save it as toolkits/<your-toolkit>/algorithms/exactly-k-steps.ts.
 //
 // An analysis only READS the graph: node ids and edges (each edge has a source and a target).
-// It never changes the design, and it cannot see room types, sizes or attributes.
+// It never changes the design, and it cannot see functions, positions, sizes or custom attributes.
 
 import { defineGraphAlgorithm, neighbours } from '@student-api';
 
