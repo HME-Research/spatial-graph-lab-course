@@ -1,0 +1,79 @@
+.sgl-guide {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.sgl-guide-pad {
+  padding: var(--space-3, 12px);
+}
+.sgl-guide-empty {
+  color: var(--muted, #62625c);
+}
+.sgl-explainer {
+  margin: 0 0 var(--space-4, 16px);
+  padding-bottom: var(--space-3, 12px);
+  border-bottom: 1px solid var(--line, #e1e1dc);
+}
+.sgl-explainer:last-child {
+  border-bottom: 0;
+}
+.sgl-explainer-title {
+  margin: 0 0 var(--space-1, 4px);
+  font-size: var(--text-md, 14px);
+  color: var(--muted, #62625c);
+  font-weight: 600;
+}
+.sgl-explainer-summary {
+  margin: 0 0 var(--space-2, 8px);
+  font-size: var(--text-lg, 16px);
+  font-weight: 600;
+  line-height: 1.35;
+}
+.sgl-explainer-example {
+  margin: 0 0 var(--space-2, 8px);
+  color: var(--fg, #1f1f1d);
+}
+.sgl-explainer-label {
+  font-size: var(--text-xs, 12px);
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted, #62625c);
+  margin-right: 4px;
+}
+.sgl-explainer-diagram:empty {
+  display: none;
+}
+.sgl-explainer-diagram {
+  margin: 0 0 var(--space-2, 8px);
+}
+.sgl-explainer-more {
+  margin: 0;
+}
+.sgl-explainer-more a {
+  color: var(--accent, #2c5d8f);
+}
+.sgl-about-info {
+  margin-left: -4px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted, #62625c);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+.sgl-about-info:hover {
+  background: var(--surface-hover, #efefec);
+  color: var(--fg, #1f1f1d);
+}
+.sgl-about-info:focus-visible {
+  outline: 2px solid var(--accent, #2c5d8f);
+  outline-offset: 1px;
+}
+.sgl-about-version {
+  color: var(--muted, #62625c);
+}

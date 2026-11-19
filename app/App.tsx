@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AboutButton } from './ui/about';
+import { GuideButton } from './ui/guide';
 import exampleDesign from './document/examples/two-storey-example.json';
 import { formatIssuePath, type GraphIssue } from '@app/document';
 import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
@@ -578,6 +580,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
       <div className="app">
         <header className="toolbar">
           <h1>Spatial Graph Lab</h1>
+          <AboutButton />
           {/* Identity only: the open project and its active scenario. Scenarios are switched in the Scenarios section. */}
           {openProject && slot && (
             <div className="project-bar sgl-identity" aria-label="Open project and scenario" aria-busy={session === null ? 'true' : undefined}>
@@ -615,6 +618,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
             </div>
           )}
           <div className="actions">
+            <GuideButton />
             {openProject && (
               <div className="history-actions" role="group" aria-label="Scenario edit history">
                 <button type="button" disabled={!undoable} title={undoTitle} aria-label={undoTitle} onClick={() => navigate('undo')}>
