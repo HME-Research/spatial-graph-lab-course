@@ -1,12 +1,12 @@
 import { defineNodeType } from '@student-api';
 
-/** A bedroom; the default target makes it a large main bedroom. */
+/** A bedroom: a double bedroom of 18 m² (two cells) by default. */
 export default defineNodeType({
   id: 'bedroom',
   label: 'Bedroom',
   facade: { windowFraction: 0.35 },
   attributes: {
-    targetArea: { kind: 'number', min: 1, default: 45 },
+    targetArea: { kind: 'number', min: 1, default: 18 },
     priority: { kind: 'number', min: 1, default: 3 },
   },
 });

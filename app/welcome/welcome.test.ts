@@ -182,7 +182,6 @@ describe('Welcome flow', () => {
     expect(p.meta.toolkit).toBeNull();
     expect(p.meta.settings.functions).toEqual([
       { id: 'entrance', label: 'Entrance' },
-      { id: 'circulation', label: 'Circulation' },
       { id: 'living', label: 'Living' },
       { id: 'kitchen', label: 'Kitchen' },
       { id: 'bedroom', label: 'Bedroom' },
