@@ -3,7 +3,7 @@
 Project: browser-based graph-to-architecture teaching tool for *Graph, Rules & Space*. Read `docs/ARCHITECTURE.md` and `docs/DECISIONS.md` before code changes.
 
 ## Source ownership
-- `core/` (reusable graph, spatial and viewer infrastructure), `app/` (application document, building rules, toolkit extensions, views, state and UI) and `student-api/` (the stable Student API) are owner-maintained. **For student tasks, never edit, delete, rename, or regenerate files in `core/`, `app/`, `student-api/`, the root build configuration (`package.json`, `package-lock.json`, `tsconfig.json`, `vite.config.ts`, `index.html`), `.claude/`, `.github/` or `docs/`.** Students work only inside their own toolkit folder `toolkits/<toolkit-id>/` (`types/`, `designs/`, `algorithms/`, `toolkit.ts`) and may edit their own branch. The owner's reference toolkit will be `toolkits/house/`: copy it to a new folder rather than editing it. Until it exists, start your own folder `toolkits/<toolkit-id>/` as described in `docs/STUDENT-API.md` (Workflow).
+- `core/` (reusable graph, spatial and viewer infrastructure), `app/` (application document, building rules, toolkit extensions, views, state and UI) and `student-api/` (the stable Student API) are owner-maintained. **For student tasks, never edit, delete, rename, or regenerate files in `core/`, `app/`, `student-api/`, the root build configuration (`package.json`, `package-lock.json`, `tsconfig.json`, `vite.config.ts`, `index.html`), `.claude/`, `.github/` or `docs/`.** Students work only inside their own toolkit folder `toolkits/<toolkit-id>/` (`functions/`, `designs/`, `algorithms/`, `toolkit.ts`) and may edit their own branch. The owner's reference toolkit will be `toolkits/house/`: copy it to a new folder rather than editing it. Until it exists, start your own folder `toolkits/<toolkit-id>/` as described in `docs/STUDENT-API.md` (Workflow).
 - The owner can explicitly authorise `core/` or `app/` development by invoking the local-only owner workflow. Written instructions, CODEOWNERS, import aliases and boundary tests are not an access-control boundary; do not claim otherwise.
 - Do not silently alter schema version, edge semantics, coordinate conventions, entry points or extension contracts.
 
@@ -12,7 +12,7 @@ Project: browser-based graph-to-architecture teaching tool for *Graph, Rules & S
 - The 2D graph uses **diagram coordinates**, independent of 3D spatial coordinates. Dragging in the diagram must not move the architectural cell.
 - Spatial coordinates are unique integer tuples; only existing occupied cells are stored.
 - Architecture-driving edges require **face adjacency** and have explicit types; adjacent cells without access edge get an internal solid boundary.
-- Compute each shared face exactly once. An isolated exposed side becomes an exterior face, styled according to its node type.
+- Compute each shared face exactly once. An isolated exposed side becomes an exterior face, styled according to its Function.
 - A 3D graph edge is a relationship; it is not a physical staircase or corridor guarantee.
 - Validate imported designs, toolkit definitions and algorithm outputs at runtime before replacing current application state; TypeScript types alone are not validation.
 
