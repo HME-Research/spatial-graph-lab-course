@@ -99,18 +99,8 @@ export const RELATIONSHIP_KIND_CHOICES: readonly Choice<RelationshipKind>[] = [
   },
 ];
 
-/** Walls of a generated corridor (the same words as a room card's walls). */
-export const CORRIDOR_WALL_CHOICES: readonly Choice<WallStyle>[] = [
-  { value: 'enclosed', label: 'Enclosed', description: 'A side wall on each side.' },
-  { value: 'open', label: 'Open', description: 'Open sides; slim posts carry the roof (no roof: no posts).' },
-];
-
-/** Roof of a generated corridor (the same words as a room card's roof). */
-export const CORRIDOR_ROOF_CHOICES: readonly Choice<RoofStyle>[] = [
-  { value: 'flat', label: 'Flat', description: 'A flat roof.' },
-  { value: 'pergola', label: 'Pergola (open slats)', description: 'Open slats across the corridor, like a room pergola.' },
-  { value: 'none', label: 'None (open top)', description: 'No roof, open to the sky.' },
-];
+/** Walls / roof of a generated corridor: defined with the Corridor attribute (Geometry) in `attributes/sections`. */
+export { CORRIDOR_ROOF_CHOICES, CORRIDOR_WALL_CHOICES } from '@app/attributes/sections';
 
 const CORRIDOR_WALL_WORDS: Readonly<Record<WallStyle, string>> = { enclosed: 'side walls', open: 'open sides' };
 const CORRIDOR_ROOF_WORDS: Readonly<Record<RoofStyle, string>> = { flat: 'a flat roof', pergola: 'a pergola roof', none: 'no roof' };

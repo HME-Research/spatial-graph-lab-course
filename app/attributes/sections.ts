@@ -7,11 +7,14 @@
  * - identity:   what the graph needs to exist (node id; edge id + its two endpoints). Locked.
  * - required:   what this app needs on every item (node Function, edge Relationship).
  * - geometry:   where a node is and how big it is (app-specific; stored in `position` / `size`,
- *               never in `custom`). Each is ONE attribute with three values (x | y | z).
+ *               never in `custom`; each ONE attribute with three values, x | y | z), and how an
+ *               edge's corridor looks (`corridor`: ONE optional attribute with two values,
+ *               walls | roof; a built-in edge attribute, 19 November 2026).
  * - custom:     attributes defined by the project / toolkit (stored in `custom`).
  * - calculated: values the app works out (metrics). Never stored. Locked.
  */
 
+import type { RoofStyle, WallStyle } from '@app/document';
 import { isBaselineField, type ActiveToolkit, type AttributeCollection, type AttributeField } from '@app/extensions';
 
 export const ATTRIBUTE_SECTION_IDS = ['identity', 'required', 'geometry', 'custom', 'calculated'] as const;
@@ -38,7 +41,7 @@ export const ATTRIBUTE_SECTIONS: Readonly<Record<AttributeSectionId, AttributeSe
   },
   geometry: {
     title: 'Geometry',
-    summary: 'Where a room is and how big it is, in voxels. Specific to this app, not to graphs.',
+    summary: 'Where a room is and how big it is, in voxels, and how a relationship’s corridor looks. Specific to this app, not to graphs.',
     editable: true,
   },
   custom: {
@@ -86,8 +89,11 @@ export interface BuiltInAttribute {
   readonly id: string;
   readonly name: string;
   readonly section: Exclude<AttributeSectionId, 'custom' | 'calculated'>;
-  /** A three-number attribute (Position, Size): the label of each value, x | y | z. */
-  readonly axes?: readonly [string, string, string];
+  /**
+   * An attribute of several values, each its own table column: the label of each value (Position,
+   * Size: x | y | z; an edge's Corridor: walls | roof).
+   */
+  readonly axes?: readonly string[];
 }
 
 export const NODE_BUILT_IN_ATTRIBUTES: readonly BuiltInAttribute[] = [
@@ -124,4 +130,46 @@ export const EDGE_BUILT_IN_ATTRIBUTES: readonly BuiltInAttribute[] = [
   { id: 'source', name: 'Source', section: 'identity' },
   { id: 'target', name: 'Target', section: 'identity' },
   { id: 'relationship', name: 'Relationship', section: 'required' },
+  { id: 'corridor', name: 'Corridor', section: 'geometry', axes: ['walls', 'roof'] },
 ];
+
+/** One choice of a corridor value (also used by Properties' selects, via `@app/ui`). */
+export interface CorridorChoice<T extends string> {
+  readonly value: T;
+  readonly label: string;
+  readonly description: string;
+}
+
+/** Walls of a generated corridor (the same words as a room card's walls). */
+export const CORRIDOR_WALL_CHOICES: readonly CorridorChoice<WallStyle>[] = [
+  { value: 'enclosed', label: 'Enclosed', description: 'A side wall on each side.' },
+  { value: 'open', label: 'Open', description: 'Open sides; slim posts carry the roof (no roof: no posts).' },
+];
+
+/** Roof of a generated corridor (the same words as a room card's roof). */
+export const CORRIDOR_ROOF_CHOICES: readonly CorridorChoice<RoofStyle>[] = [
+  { value: 'flat', label: 'Flat', description: 'A flat roof.' },
+  { value: 'pergola', label: 'Pergola (open slats)', description: 'Open slats across the corridor, like a room pergola.' },
+  { value: 'none', label: 'None (open top)', description: 'No roof, open to the sky.' },
+];
+
+/**
+ * One value of an edge's Corridor (Geometry): what Properties and the Data table edit as one cell.
+ * `id` is `corridor.<walls|roof>`; `label` the column label under Corridor; `name` the cell's
+ * name in messages. Not stored = the design's Corridors card applies.
+ */
+export interface CorridorPart {
+  readonly id: 'corridor.walls' | 'corridor.roof';
+  readonly part: 'walls' | 'roof';
+  readonly label: string;
+  readonly name: string;
+  readonly choices: readonly CorridorChoice<string>[];
+}
+
+export const CORRIDOR_PARTS: readonly CorridorPart[] = [
+  { id: 'corridor.walls', part: 'walls', label: 'walls', name: 'Corridor walls', choices: CORRIDOR_WALL_CHOICES },
+  { id: 'corridor.roof', part: 'roof', label: 'roof', name: 'Corridor roof', choices: CORRIDOR_ROOF_CHOICES },
+];
+
+/** The label of a corridor value (`enclosed` → "Enclosed"). */
+export const corridorChoiceLabel = (part: CorridorPart, value: string): string => part.choices.find((c) => c.value === value)?.label ?? value;

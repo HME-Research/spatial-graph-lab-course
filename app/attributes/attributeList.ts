@@ -49,7 +49,8 @@ export interface BuiltInRowInfo {
 /**
  * Short information on each built-in attribute of the real graph model (`sections.ts` gives the
  * membership and order): a node's id, `function`, `position` and `size` (each ONE attribute of three
- * values); an edge's id, endpoints and `relationship` (Access or Open). Nothing is invented.
+ * values); an edge's id, endpoints, `relationship` (Access or Open) and `corridor` (walls | roof).
+ * Nothing is invented.
  */
 export const BUILT_IN_INFO: Readonly<Record<AttributeCollection, Readonly<Record<string, BuiltInRowInfo>>>> = {
   nodes: {
@@ -63,6 +64,10 @@ export const BUILT_IN_INFO: Readonly<Record<AttributeCollection, Readonly<Record
     source: { typeText: 'Node', info: 'The node the edge starts from. It never changes: to join other nodes, add another edge.' },
     target: { typeText: 'Node', info: 'The node the edge leads to. It never changes: to join other nodes, add another edge.' },
     relationship: { typeText: 'Choice', info: 'Access (a door or floor opening) or Open (no wall between the rooms). Choose it in Properties.' },
+    corridor: {
+      typeText: 'Choices walls | roof',
+      info: 'How this relationship’s corridor looks: walls Enclosed or Open, roof Flat, Pergola or None. Used only when a corridor is generated (the rooms do not touch). Not set: the design’s Corridors card applies. Edit it in Properties or the Data table.',
+    },
   },
 };
 
@@ -115,8 +120,9 @@ export function metricValueText(metric: Pick<CatalogueMetric, 'valueKind' | 'uni
 }
 
 /**
- * The list for one collection, in section order: Identity, Required by the app, Geometry (nodes
- * only), Custom in project order (each with its source), Calculated in catalogue order.
+ * The list for one collection, in section order: Identity, Required by the app, Geometry (nodes:
+ * Position, Size; edges: Corridor), Custom in project order (each with its source), Calculated in
+ * catalogue order.
  */
 export function attributeRows(
   collection: AttributeCollection,

@@ -126,9 +126,9 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     expect(html).toContain('role="status"');
     expect(html).not.toContain('role="alert"');
     expect(html).toContain('Technical details');
-    // No corridor, so no corridor walls / roof controls.
-    expect(html).not.toContain('aria-label="Corridor walls"');
-    expect(html).not.toContain('aria-label="Corridor roof"');
+    // No corridor now, yet its walls / roof stay editable (Geometry), with a note that they are unused.
+    expect(selectOptions(html, 'Corridor walls')).toEqual(['Design default (Open)', 'Enclosed', 'Open']);
+    expect(html).toContain('No corridor is generated for this relationship now; these values are used only if one is.');
   });
 
   it('summarises the scenario when nothing is selected (student vocabulary; the schema only as a tooltip)', () => {
@@ -142,7 +142,7 @@ describe('Properties panel, schema v2 (with the design port)', () => {
 });
 
 // Programme P4 (item C): Properties shows the five attribute sections of sections.ts — Identity,
-// Required by the app, Geometry (nodes only), Custom (tagged by source), Calculated — not
+// Required by the app, Geometry (nodes: Position, Size; edges: Corridor), Custom (tagged by source), Calculated — not
 // collapsible, each with a small title and an ⓘ; then the relationships (collapsible).
 describe('Properties sections (P4)', () => {
   const v1 = () => labDoc();
@@ -245,11 +245,10 @@ describe('Properties sections (P4)', () => {
     expect(html.match(/Manage attributes<\/button>/g)).toHaveLength(1);
   });
 
-  it('a relationship: Identity (ID, Source, Target as "id · function"), then Relationship; no Geometry', async () => {
+  it('a relationship: Identity (ID, Source, Target as "id · function"), then Relationship, then Geometry (Corridor)', async () => {
     const html = await withProject(selectEdge(1));
-    expect(sections(html).slice(0, 2)).toEqual(['identity', 'required']);
-    expect(sections(html)).not.toContain('geometry');
-    expect(attributeIds(html).slice(0, 4)).toEqual(['id', 'source', 'target', 'relationship']);
+    expect(sections(html).slice(0, 3)).toEqual(['identity', 'required', 'geometry']);
+    expect(attributeIds(html).slice(0, 5)).toEqual(['id', 'source', 'target', 'relationship', 'corridor']);
     expect(rowOf(html, 'source')).toMatch(/>1 · Gallery<\/button>/);
     expect(rowOf(html, 'target')).toMatch(/>2 · Studio<\/button>/);
     expect(rowOf(html, 'target')).toContain('aria-label="Identity: an edge always joins the same two nodes.');
@@ -262,7 +261,7 @@ describe('Properties sections (P4)', () => {
   it('without custom edge attributes the Custom section is left out', () => {
     const html = render({ doc: v1(), design: fakePort(), selection: selectEdge(1) });
     expect(sections(html)).not.toContain('custom');
-    expect(sections(html)).not.toContain('geometry');
+    expect(sections(html).slice(0, 3)).toEqual(['identity', 'required', 'geometry']);
   });
 });
 

@@ -35,6 +35,46 @@ const PROJECT = { project: null, conformance: [], facade: () => ({ windowFractio
 const draft = (text: string) => ({ kind: 'draft', text }) as const;
 const choice = (value: string) => ({ kind: 'choice', value }) as const;
 
+describe('table cell editors: an edge’s Corridor (Geometry, walls | roof)', () => {
+  const doc = (): DesignDocumentV2 => {
+    const d = house();
+    return { ...d, edges: d.edges.map((e) => (e.id === 2 ? { ...e, corridor: { roof: 'none' as const } } : e)), settings: { ...d.settings, corridors: { walls: 'enclosed' as const } } };
+  };
+
+  it('offers the Properties choices: "Design default (<Corridors card value>)", then the values', () => {
+    expect(cellEditorSpec(doc(), PROJECT, 'edges', 2, 'corridor.walls')).toEqual({
+      kind: 'choice',
+      current: '',
+      options: [
+        { value: '', label: 'Design default (Enclosed)' },
+        { value: 'enclosed', label: 'Enclosed' },
+        { value: 'open', label: 'Open' },
+      ],
+    });
+    expect(cellEditorSpec(doc(), PROJECT, 'edges', 2, 'corridor.roof')).toMatchObject({
+      current: 'none',
+      options: [{ value: '', label: 'Design default (Flat)' }, { value: 'flat' }, { value: 'pergola' }, { value: 'none' }],
+    });
+  });
+
+  it('sends one set-edge-corridor per edit; Design default clears the own value; same value or unknown value sends nothing', () => {
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.walls', choice('open'))).toEqual({
+      kind: 'command',
+      command: { type: 'set-edge-corridor', edgeId: 2, patch: { walls: 'open' } },
+    });
+    const cleared = cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.roof', choice(''));
+    expect(cleared).toEqual({ kind: 'command', command: { type: 'set-edge-corridor', edgeId: 2, patch: { roof: null } } });
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.roof', { kind: 'reset' })).toEqual(cleared);
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.roof', choice('none'))).toEqual({ kind: 'unchanged' });
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.walls', { kind: 'reset' })).toEqual({ kind: 'unchanged' });
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.walls', choice('glass')).kind).toBe('invalid');
+    // Applied: the relationship stores only what is left.
+    if (cleared.kind !== 'command') throw new Error('expected a command');
+    const next = applyDesignCommand(doc(), cleared.command);
+    expect(next.ok && next.value.edges.find((e) => e.id === 2)).not.toHaveProperty('corridor');
+  });
+});
+
 describe('table cell editors', () => {
   it('are offered for Function, Relationship, Geometry and Custom, never for Identity or Calculated', () => {
     const doc = house();
@@ -42,6 +82,8 @@ describe('table cell editors', () => {
       expect(cellEditorSpec(doc, PROJECT, 'nodes', 3, id), id).not.toBeNull();
     expect(cellEditorSpec(doc, PROJECT, 'edges', 2, 'relationship')).not.toBeNull();
     expect(cellEditorSpec(doc, PROJECT, 'edges', 2, 'custom:e1')).not.toBeNull();
+    expect(cellEditorSpec(doc, PROJECT, 'edges', 2, 'corridor.walls')).not.toBeNull();
+    expect(cellEditorSpec(doc, PROJECT, 'nodes', 3, 'corridor.walls')).toBeNull();
     for (const id of ['id', 'calc:area', 'source', 'target', 'corridor']) {
       expect(cellEditorSpec(doc, PROJECT, 'nodes', 3, id)).toBeNull();
       expect(cellEditorSpec(doc, PROJECT, 'edges', 2, id)).toBeNull();

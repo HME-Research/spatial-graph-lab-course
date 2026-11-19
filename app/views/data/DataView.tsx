@@ -273,7 +273,7 @@ function DataTableView({
 }) {
   const { collection, columns, rows } = table;
   const groups = useMemo(() => columnGroups(columns), [columns]);
-  /** Attribute headings: Position and Size span their three value columns (x | y | z). */
+  /** Attribute headings: Position and Size span their three value columns (x | y | z), Corridor its two (walls | roof). */
   const headings = useMemo(() => attributeHeadings(columns), [columns]);
   const hasValueRow = headings.some((h) => h.split);
   /** First column of each section after the first: drawn with a divider. */
@@ -379,7 +379,7 @@ function DataTableView({
             <tr className="sgl-dataview-columns">
               {headings.map((h) =>
                 h.split ? (
-                  <th key={h.id} scope="colgroup" colSpan={h.span} data-section={h.first.section} data-attribute={h.id} title={`Stored as "${h.id}": three values, x | y | z.`} className={cellClass(h.first, starts)}>
+                  <th key={h.id} scope="colgroup" colSpan={h.span} data-section={h.first.section} data-attribute={h.id} title={h.first.attribute?.title} className={cellClass(h.first, starts)}>
                     {h.label}
                   </th>
                 ) : (
@@ -501,7 +501,7 @@ function DataCellView({
   readonly editable: boolean;
   readonly editing: boolean;
 }) {
-  const hint = ORIGIN_HINT[cell.origin];
+  const hint = cell.hint ?? ORIGIN_HINT[cell.origin];
   const Cell = column.id === 'id' ? 'th' : 'td';
   const title = editable ? `${cell.title ? `${cell.title}\n` : ''}Click or press Enter to edit.` : cell.title;
   return (

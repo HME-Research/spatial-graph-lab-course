@@ -28,8 +28,9 @@ import { messageContextFor, useCommands, type PanelProps } from './panelSupport'
 
 /**
  * Properties of one relationship, in the attribute sections (Programme P4, `sections.ts`): Identity
- * (id, source, target — locked), Required by the app (Relationship: Access / Open), Custom (tagged
- * by source), Calculated (locked). Edges have no Geometry section. Then how it is built.
+ * (id, source, target — locked), Required by the app (Relationship: Access / Open), Geometry
+ * (Corridor: walls | roof, always editable like the Data table; used only when a corridor is
+ * generated), Custom (tagged by source), Calculated (locked). Then how it is built.
  */
 export function EdgeProperties(props: PanelProps & { readonly edgeId: number }) {
   return <EdgePropertiesV2 {...props} />;
@@ -144,7 +145,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
           {endpointRow('target', 'Target', edge.target)}
         </AttributeSection>
 
-        <AttributeSection section="required" {...(!showCustom && manageLink && { actions: manageLink })}>
+        <AttributeSection section="required">
           <FieldRow
             attributeId="relationship"
             kind="required"
@@ -162,6 +163,31 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
             }
             meta={<InfoButton concept="access-open" />}
           />
+        </AttributeSection>
+
+        <AttributeSection section="geometry" {...(!showCustom && manageLink && { actions: manageLink })}>
+          <FieldRow
+            attributeId="corridor"
+            kind="geometry"
+            label="Corridor"
+            title="This relationship’s own corridor look, walls and roof. Used only when a corridor is generated; Design default follows the Corridors card (Building Designer → Looks)."
+            control={
+              <div className="sgl-corridor">
+                {corridorField('walls', 'Walls', CORRIDOR_WALL_CHOICES, designLook.walls)}
+                {corridorField('roof', 'Roof', CORRIDOR_ROOF_CHOICES, designLook.roof)}
+              </div>
+            }
+            meta={<HelpTip topicId="connector-style" />}
+          >
+            <p className="sgl-help">
+              {resolution?.status === 'routed'
+                ? `This corridor: ${corridorLookText(look)}. `
+                : `No corridor is generated for this relationship now${resolution?.status === 'direct' ? ' (its rooms touch)' : ''}; these values are used only if one is. `}
+              {ownCount === 0
+                ? 'Change every corridor with the Corridors card in Building Designer → Looks.'
+                : `${ownCount === 2 ? 'Both are' : 'One is'} set for this relationship only; Design default follows the Corridors card.`}
+            </p>
+          </FieldRow>
         </AttributeSection>
 
         {showCustom && schema && (
@@ -203,27 +229,6 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
           )}
         </section>
 
-        {resolution?.status === 'routed' ? (
-          <fieldset className="sgl-section sgl-corridor">
-            <legend>Corridor</legend>
-            <HelpTip topicId="connector-style" />
-            {corridorField('walls', 'Walls', CORRIDOR_WALL_CHOICES, designLook.walls)}
-            {corridorField('roof', 'Roof', CORRIDOR_ROOF_CHOICES, designLook.roof)}
-            <p className="sgl-help">
-              This corridor: {corridorLookText(look)}.{' '}
-              {ownCount === 0
-                ? 'Change every corridor with the Corridors card in Building Designer → Looks.'
-                : `${ownCount === 2 ? 'Both are' : 'One is'} set for this relationship only; Design default follows the Corridors card.`}
-            </p>
-          </fieldset>
-        ) : (
-          ownCount > 0 && (
-            <p className="sgl-help">
-              This relationship has its own corridor {[own.walls && `walls (${labelOfChoice(CORRIDOR_WALL_CHOICES, own.walls)})`, own.roof && `roof (${labelOfChoice(CORRIDOR_ROOF_CHOICES, own.roof)})`].filter(Boolean).join(' and ')}. It
-              is used only when a corridor is generated.
-            </p>
-          )
-        )}
       </CollapsibleSection>
 
       <RemoveConnection onRemove={() => runShared({ type: 'remove-edge', edgeId })} />
