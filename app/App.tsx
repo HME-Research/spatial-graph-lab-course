@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import exampleDesign from './document/examples/two-storey-example.json';
+import exampleDesign from './document/examples/house.json';
 import { formatIssuePath, type GraphIssue } from '@app/document';
 import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
 import {
   discoverToolkits,
+  projectOnlyToolkit,
   TOOLKIT_GLOBS,
   selectToolkit,
   withProjectFunctions,
@@ -92,7 +93,7 @@ import { DEFAULT_VIEWPORT_STATE, deriveViewports, type ViewportState } from '@ap
  * command translation (legacyBridge).
  */
 
-const EXAMPLE_LABEL = 'app/document/examples/two-storey-example.json';
+const EXAMPLE_LABEL = 'app/document/examples/house.json';
 
 type Doc = DesignDocumentV2;
 
@@ -103,7 +104,7 @@ interface LoadFailureState {
 
 const noDesign: GraphIssue = { path: [], code: 'not-found', message: 'no design is loaded' };
 
-/** The built-in (v1) example, migrated: used when no project design is available. */
+/** The built-in graph-only example (no toolkit): used when no project design is available. */
 function builtInExample(): { readonly doc: Doc; readonly source: string } {
   const result = readDesign(exampleDesign);
   if (!result.ok) throw new Error(`the built-in example is invalid: ${result.issues.map((i) => i.message).join('; ')}`);
@@ -159,7 +160,7 @@ function LoadFailure({ failure, kept, onDismiss }: { readonly failure: LoadFailu
   );
 }
 
-/** Toolkits available for new projects, and the default one (`?toolkit=` / VITE_SGL_TOOLKIT / example-gallery). */
+/** Toolkits available for new projects, and the default one (`?toolkit=` / VITE_SGL_TOOLKIT / none). */
 function toolkitChoices() {
   const ids = discoverToolkits(TOOLKIT_GLOBS).toolkits.map((p) => p.id);
   const env = import.meta.env['VITE_SGL_TOOLKIT'] as string | undefined;
@@ -243,7 +244,8 @@ export function App() {
       if (next && persist) {
         setAttributeSaveError(null);
         const open = controller.getState().project;
-        if (open && (open.meta.toolkit?.id ?? null) === next.projectId) {
+        // The record's owner scope: the toolkit id, or the project's own id without a toolkit.
+        if (open && (open.meta.toolkit?.id ?? open.meta.projectId) === next.projectId) {
           controller.setAttributeRecord(differsFromFiles(next) ? (JSON.parse(exportAttributeFile(next)) as unknown) : null);
         }
       }
@@ -263,7 +265,8 @@ export function App() {
     void startToolkit(TOOLKIT_GLOBS, { query: toolkitId, env: null }, builtInExample()).then((start) => {
       if (cancelled) return;
       setSession(start.session);
-      const active = activeToolkitOf(start.session);
+      // Without a toolkit the project's own registry: its functions and attributes work the same way.
+      const active = activeToolkitOf(start.session) ?? (start.session.activation.status === 'none' ? projectOnlyToolkit(projectId) : null);
       setAttributeSaveError(null);
       if (!active) {
         setAttributes(null, false);
@@ -339,7 +342,10 @@ export function App() {
   /** Project functions (`settings.functions`) and removed toolkit functions merged into the toolkit's types. */
   const projectFunctions = openProject?.meta.settings.functions;
   const hiddenFunctions = openProject?.meta.settings.hiddenFunctions;
-  const activeToolkit = activeToolkitOf(session);
+  const activeToolkit = useMemo(
+    () => activeToolkitOf(session) ?? (session?.activation.status === 'none' && projectId !== null ? projectOnlyToolkit(projectId) : null),
+    [session, projectId],
+  );
   const project = useMemo(() => (activeToolkit ? withProjectFunctions(activeToolkit, projectFunctions, hiddenFunctions ?? []) : null), [activeToolkit, projectFunctions, hiddenFunctions]);
   /** Every scenario's current design (attribute values are checked and counted across all of them). */
   const scenarioDesigns = useMemo(

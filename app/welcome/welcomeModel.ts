@@ -61,7 +61,7 @@ export function recentRows(items: readonly ProjectSummary[], when: (iso: string)
   );
 }
 
-/** A readable toolkit name from a toolkit id: "example-gallery" → "Example gallery". */
+/** A readable toolkit name from a toolkit id: "my-house_v2" → "My house v2". */
 export function toolkitLabel(id: string): string {
   const words = id.replace(/[-_]+/g, ' ').trim();
   return words === '' ? id : words.charAt(0).toUpperCase() + words.slice(1);

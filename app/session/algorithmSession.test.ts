@@ -2,7 +2,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { resolveFaces } from '@app/building';
 import { applyGraphCommand, parseDesignJson, serializeDesign, validateDocument, type DesignDocument } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
-import { activate, TOOLKIT_GLOBS, type ActiveToolkit } from '@app/extensions';
+import { type ActiveToolkit } from '@app/extensions';
+import { galleryToolkit } from '@app/extensions/test-toolkit';
 import { labDoc, labToolkit } from '@app/extensions/test-fixtures';
 import { metricsLabDoc } from '@app/metrics/test-fixtures';
 import { resolveWithPreferences } from '@app/spatial';
@@ -42,9 +43,7 @@ const builtIn = expectOk(parseDesignJson(builtInText));
 const at = (doc: DesignDocument, revision = 1): DocumentVersion => ({ doc, revision });
 
 beforeAll(async () => {
-  const { activation } = await activate(TOOLKIT_GLOBS, { query: 'example-gallery' });
-  if (activation.status !== 'active') throw new Error('example-gallery did not activate');
-  example = activation.toolkit;
+  example = await galleryToolkit();
 });
 
 const entry = (project: ActiveToolkit, id: string): AlgorithmEntry => listAlgorithms(project).find((a) => a.id === id)!;

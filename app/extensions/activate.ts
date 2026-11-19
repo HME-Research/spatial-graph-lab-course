@@ -241,6 +241,25 @@ export async function activateToolkit(source: ToolkitSource): Promise<Activation
 }
 
 /**
+ * The registry of a project WITHOUT a toolkit (P4): no code types, algorithms, designs or attribute
+ * declarations. Lets the shell treat a no-toolkit project like any other, so its project functions
+ * (`withProjectFunctions`) and its own attribute record work. `projectId` is the saved project's own
+ * id, the owner scope of its attribute record (docs/PROJECT-ATTRIBUTES.md). Pure.
+ */
+export function projectOnlyToolkit(projectId: string): ActiveToolkit {
+  const definition: ToolkitDefinition = Object.freeze({ name: 'No toolkit' });
+  return {
+    id: projectId,
+    definition,
+    nodeTypes: [],
+    algorithms: [],
+    designs: [],
+    attributeBaseline: deriveAttributeBaseline(projectId, definition, []),
+    diagnostics: [],
+  };
+}
+
+/**
  * Discover, select and activate. `discovery` holds problems with toolkit folders themselves
  * (shown alongside the activation outcome). A requested toolkit that does not exist yields a
  * failed activation.

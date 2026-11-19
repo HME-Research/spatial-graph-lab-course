@@ -3,7 +3,7 @@ import { diagnostic, type ExtensionDiagnostic } from './diagnostics';
 
 /**
  * A toolkit id is its folder name: lowercase letters, digits, "-" and "_", starting with a letter
- * (e.g. `example-gallery`, `level_1_house_growth`). Wider than node type / algorithm ids, which
+ * (e.g. `house`, `my_toolkit-2`). Wider than node type / algorithm ids, which
  * do not allow "_"; every node type id and saved project id is also a valid toolkit id.
  */
 export const TOOLKIT_ID_PATTERN = /^[a-z][a-z0-9_-]*$/;
@@ -28,7 +28,7 @@ export interface ToolkitGlobs {
 }
 
 export interface SourceFile<L> {
-  /** Repository-relative path, e.g. "toolkits/example-gallery/types/gallery.ts". */
+  /** Repository-relative path, e.g. "toolkits/house/types/kitchen.ts". */
   readonly file: string;
   /** File name without extension: the design id for designs. */
   readonly stem: string;
@@ -43,9 +43,6 @@ export interface ToolkitSource {
   readonly algorithms: readonly SourceFile<ModuleLoader>[];
   readonly designs: readonly SourceFile<TextLoader>[];
 }
-
-/** Used when neither the URL nor the environment selects a toolkit. */
-export const DEFAULT_TOOLKIT_ID = 'example-gallery';
 
 const PATH = /^\/?toolkits\/([^/]+)\/(?:(toolkit)\.ts|(types|algorithms)\/([^/]+)\.ts|(designs)\/([^/]+)\.json)$/;
 
@@ -141,8 +138,8 @@ export interface ToolkitRequest {
 }
 
 /**
- * Which toolkit to activate: the URL query, else the environment, else `example-gallery` if it
- * exists, else none. An explicitly requested toolkit that does not exist is an error; it never
+ * Which toolkit to activate: the URL query, else the environment, else none (P4: a project
+ * without a toolkit is the normal default). An explicitly requested toolkit that does not exist is an error; it never
  * silently falls back to another toolkit.
  */
 export function selectToolkit(
@@ -162,5 +159,5 @@ export function selectToolkit(
       ),
     };
   }
-  return { id: available.includes(DEFAULT_TOOLKIT_ID) ? DEFAULT_TOOLKIT_ID : null };
+  return { id: null };
 }

@@ -2,7 +2,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { buildArchitecture, EXAMPLE_FACADES, exampleFacadeProvider, resolveFaces } from '@app/building';
 import { parseDesignJson } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
-import { activate, TOOLKIT_GLOBS, type ActiveToolkit } from '@app/extensions';
+import { type ActiveToolkit } from '@app/extensions';
+import { galleryToolkit } from '@app/extensions/test-toolkit';
 import { labDoc, labToolkit } from '@app/extensions/test-fixtures';
 import builtInText from '../document/examples/two-storey-example.json?raw';
 import {
@@ -18,9 +19,7 @@ const builtIn = expectOk(parseDesignJson(builtInText));
 let example: ActiveToolkit;
 
 beforeAll(async () => {
-  const { activation } = await activate(TOOLKIT_GLOBS, { query: 'example-gallery' });
-  if (activation.status !== 'active') throw new Error('example-gallery did not activate');
-  example = activation.toolkit;
+  example = await galleryToolkit();
 });
 
 describe('project appearance in the views', () => {

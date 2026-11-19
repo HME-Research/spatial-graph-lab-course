@@ -3,7 +3,8 @@ import { readDesignJson, serializeDesignV2 } from '@app/document/v2';
 import { expectOk } from '@app/document/test-fixtures';
 import { TOOLKIT_GLOBS } from '@app/extensions';
 import { fakeGlobs, LAB_FILES } from '@app/extensions/test-fixtures';
-import builtInText from '../document/examples/two-storey-example.json?raw';
+import { GALLERY_GLOBS, TWO_STOREY_TEXT } from '@app/extensions/test-toolkit';
+import builtInText from '../document/examples/house.json?raw';
 import {
   activeToolkitOf,
   toolkitHeadline,
@@ -18,14 +19,30 @@ import {
 const builtIn = { doc: expectOk(readDesignJson(builtInText)).doc, source: 'built-in example' };
 
 describe('toolkit activation in the application', () => {
-  it('activates example-gallery by default and opens its default design', async () => {
-    const { session, startup } = await startToolkit(TOOLKIT_GLOBS, readToolkitRequest('', undefined), builtIn);
-    expect(activeToolkitOf(session)?.id).toBe('example-gallery');
-    expect(session.available).toContain('example-gallery');
-    expect(startup.source).toBe('toolkits/example-gallery/designs/two-storey-example.json');
-    expect(startup.doc && serializeDesignV2(startup.doc)).toBe(serializeDesignV2(builtIn.doc));
+  it('activates no toolkit by default and shows the built-in graph-only example', async () => {
+    const { session, startup } = await startToolkit(GALLERY_GLOBS, readToolkitRequest('', undefined), builtIn);
+    expect(session.activation.status).toBe('none');
+    expect(activeToolkitOf(session)).toBeNull();
+    expect(session.available).toEqual(['gallery']);
+    expect(startup.doc).toBe(builtIn.doc);
     expect(startup.diagnostics).toEqual([]);
-    expect(toolkitHeadline(session, true)).toEqual({ tone: 'ok', title: 'Example gallery' });
+    expect(toolkitHeadline(session, true).title).toBe('No toolkit');
+  });
+
+  it('the repository toolkits folder may be empty: nothing is activated and nothing fails', async () => {
+    const { session, startup } = await startToolkit(TOOLKIT_GLOBS, readToolkitRequest('', undefined), builtIn);
+    expect(session.activation.status).toBe('none');
+    expect(session.discovery).toEqual([]);
+    expect(startup.doc).toBe(builtIn.doc);
+  });
+
+  it('a requested toolkit opens its default design', async () => {
+    const { session, startup } = await startToolkit(GALLERY_GLOBS, readToolkitRequest('?toolkit=gallery', undefined), builtIn);
+    expect(activeToolkitOf(session)?.id).toBe('gallery');
+    expect(startup.source).toBe('toolkits/gallery/designs/two-storey.json');
+    expect(startup.doc && serializeDesignV2(startup.doc)).toBe(serializeDesignV2(expectOk(readDesignJson(TWO_STOREY_TEXT)).doc));
+    expect(startup.diagnostics).toEqual([]);
+    expect(toolkitHeadline(session, true)).toEqual({ tone: 'ok', title: 'Gallery' });
   });
 
   it('an explicitly requested toolkit that does not exist is a persistent error, shown over the built-in example', async () => {

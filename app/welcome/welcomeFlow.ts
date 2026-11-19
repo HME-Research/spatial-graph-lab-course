@@ -108,16 +108,27 @@ export async function createProject(host: WelcomeHost, rawName: string, toolkitI
   return openNew(host, minimal.value, { kind: 'created', label: 'new project' }, { ...options, seed: false });
 }
 
-export const EXAMPLE_PROJECT_NAME = 'Two-storey example';
+export const EXAMPLE_PROJECT_NAME = 'Example – graph only (no toolkit)';
 
-/** Try Example: the built-in example as a NEW project (each time; Recent restores earlier ones). */
+/** "circulation" → "Circulation", "living-room" → "Living room". */
+const functionLabel = (typeId: string): string => `${typeId.charAt(0).toUpperCase()}${typeId.slice(1).replace(/-/g, ' ')}`;
+
+/**
+ * Project functions for a design opened without a toolkit: one per Function its rooms use (first
+ * use order), so the Function picker, Attributes and Designer list them like any other function.
+ */
+export const functionsOfDesign = (doc: DesignDocumentV2): { readonly id: string; readonly label: string }[] =>
+  [...new Set(doc.nodes.map((n) => n.typeId))].map((id) => ({ id, label: functionLabel(id) }));
+
+/**
+ * Try Example: the built-in graph-only example as a NEW project (each time; Recent restores earlier
+ * ones). It never uses a toolkit (P4): its Functions become project functions.
+ */
 export async function tryExample(host: WelcomeHost, example: DesignDocumentV2, exampleSource: string, options: LeaveOptions = {}): Promise<FlowOutcome> {
-  const file = newProjectFromDesign(example, {
-    name: EXAMPLE_PROJECT_NAME,
-    toolkit: host.defaultToolkitId === null ? null : { id: host.defaultToolkitId },
-  });
+  const file = newProjectFromDesign(example, { name: EXAMPLE_PROJECT_NAME, toolkit: null });
   if (!file.ok) return failed(exampleSource, `The example could not be opened: ${formatProjectIssues(file.issues)}`, file.issues);
-  return openNew(host, file.value, { kind: 'example', label: exampleSource }, { ...options, seed: true });
+  const withFunctions: ProjectFileV2 = { ...file.value, settings: { ...file.value.settings, functions: functionsOfDesign(example) } };
+  return openNew(host, withFunctions, { kind: 'example', label: exampleSource }, { ...options, seed: true });
 }
 
 /**

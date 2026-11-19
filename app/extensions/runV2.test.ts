@@ -1,13 +1,10 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { parseDesignJson } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
-import { migrateV1toV2, readDesignJson, validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesignJson, validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
 import { resolveRelationships } from '@app/spatial';
 import { defineSpatialAlgorithm, roomCells, type SpatialAlgorithmContext, type SpatialOperation } from '@student-api';
-import builtInText from '../document/examples/two-storey-example.json?raw';
-import { activate, type ActiveToolkit } from './activate';
-import { discoverToolkits } from './discover';
-import { TOOLKIT_GLOBS } from './toolkitGlobs';
+import type { ActiveToolkit } from './activate';
+import { galleryToolkit, TWO_STOREY_TEXT } from './test-toolkit';
 import { runAlgorithm, runAlgorithmV2 } from './run';
 import { expectDiagnostic, expectExtOk, labDoc, labToolkit } from './test-fixtures';
 
@@ -161,66 +158,44 @@ describe('v1 runner compatibility with the v2 Student API', () => {
   });
 });
 
-describe('shipped projects on schema v2', () => {
-  let projects: Record<string, ActiveToolkit>;
+describe('the gallery test toolkit on schema v2', () => {
+  let toolkit: ActiveToolkit;
   beforeAll(async () => {
-    projects = {};
-    for (const query of ['example-gallery', 'starter-template']) {
-      const { activation } = await activate(TOOLKIT_GLOBS, { query });
-      if (activation.status !== 'active') throw new Error(`${query} did not activate`);
-      projects[query] = activation.toolkit;
-    }
+    toolkit = await galleryToolkit();
   });
-  const exampleV1 = () => expectOk(parseDesignJson(builtInText));
-  const exampleV2 = () => expectOk(readDesignJson(builtInText)).doc;
-  // The starter design file on disk is v1; read it exactly as v1 for the v1 comparison runs.
-  let starterText = '';
-  beforeAll(async () => {
-    const source = discoverToolkits(TOOLKIT_GLOBS).toolkits.find((p) => p.id === 'starter-template')!;
-    starterText = await source.designs.find((d) => d.stem === 'starter')!.load();
-  });
-  const starterV1 = () => expectOk(parseDesignJson(starterText));
+  const design = () => expectOk(readDesignJson(TWO_STOREY_TEXT)).doc;
 
-  it('access-depth gives the same analysis on v1 and v2', () => {
-    const p = projects['example-gallery']!;
-    expect(expectExtOk(runAlgorithmV2(exampleV2(), p, 'access-depth'))).toEqual(expectExtOk(runAlgorithm(exampleV1(), p, 'access-depth')));
+  it('access-depth counts relationship steps from the entrance', () => {
+    expect(expectExtOk(runAlgorithmV2(design(), toolkit, 'access-depth'))).toEqual({
+      kind: 'analysis',
+      result: {
+        kind: 'analysis',
+        summary: '0 room(s) cannot be reached from "entry-gallery".',
+        nodeValues: { 'entry-gallery': 0, 'studio-ground': 1, 'reading-gallery': 1, store: 2, 'studio-upper': 1, 'gallery-upper': 2 },
+      },
+    });
   });
 
-  it('connect-storage-to-galleries runs unchanged and stores an access relationship', () => {
-    const p = projects['example-gallery']!;
-    const v1 = expectExtOk(runAlgorithm(exampleV1(), p, 'connect-storage-to-galleries'));
-    const v2 = expectExtOk(runAlgorithmV2(exampleV2(), p, 'connect-storage-to-galleries'));
-    if (v1.kind !== 'transformation' || v2.kind !== 'transformation') throw new Error('expected transformations');
-    expect(v2.preview.operations).toEqual(v1.preview.operations);
-    expect(v2.preview.after.edges.at(-1)).toEqual({ id: 'door-1', source: 'store', target: 'reading-gallery', kind: 'access', attributes: {} });
-    // The v2 result equals migrating the v1 result (kinds, ids, attributes); display ids are kept.
-    expect(v2.preview.after.edges).toEqual(migrateV1toV2(v1.preview.after).edges);
-    expect(resolveRelationships(v2.preview.after).byEdge.get('door-1')!.status).toBe('direct');
-    const again = expectExtOk(runAlgorithmV2(v2.preview.after, p, 'connect-storage-to-galleries'));
+  it('connect-storage-to-galleries adds the one missing access relationship (store – reading gallery)', () => {
+    const outcome = expectExtOk(runAlgorithmV2(design(), toolkit, 'connect-storage-to-galleries'));
+    if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
+    expect(outcome.preview.after.edges.at(-1)).toEqual({ id: 'door-1', source: 'store', target: 'reading-gallery', kind: 'access', attributes: {} });
+    expect(resolveRelationships(outcome.preview.after).byEdge.get('door-1')!.status).toBe('direct');
+    const again = expectExtOk(runAlgorithmV2(outcome.preview.after, toolkit, 'connect-storage-to-galleries'));
     expect(again.kind === 'transformation' && again.preview.operations).toEqual([]);
   });
 
-  it('daylight-from-exposure gives the same operations on v1 and v2', () => {
-    const p = projects['example-gallery']!;
-    const v1 = expectExtOk(runAlgorithm(exampleV1(), p, 'daylight-from-exposure'));
-    const v2 = expectExtOk(runAlgorithmV2(exampleV2(), p, 'daylight-from-exposure'));
-    expect(v2.kind === 'transformation' && v2.preview.operations).toEqual(v1.kind === 'transformation' && v1.preview.operations);
+  it('daylight-from-exposure changes only the entry gallery (two exposed walls → medium)', () => {
+    const outcome = expectExtOk(runAlgorithmV2(design(), toolkit, 'daylight-from-exposure'));
+    if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
+    expect(outcome.preview.operations).toEqual([{ op: 'set-node-attribute', nodeId: 'entry-gallery', key: 'daylight', value: 'medium' }]);
   });
 
-  it.each(['door', 'open'])('starter connect-neighbours (%s) gives the same operations on v1 and v2', (kind) => {
-    const p = projects['starter-template']!;
-    const v1 = expectExtOk(runAlgorithm(starterV1(), p, 'connect-neighbours', { kind }));
-    const v2 = expectExtOk(runAlgorithmV2(migrateV1toV2(starterV1()), p, 'connect-neighbours', { kind }));
-    if (v1.kind !== 'transformation' || v2.kind !== 'transformation') throw new Error('expected transformations');
-    expect(v2.preview.operations).toEqual(v1.preview.operations);
-    expect(v2.preview.after.edges).toEqual(migrateV1toV2(v1.preview.after).edges);
-  });
-
-  it('count-connections gives the same analysis on v1 and v2', () => {
-    const p = projects['starter-template']!;
-    const v1 = expectExtOk(runAlgorithm(starterV1(), p, 'count-connections'));
-    const v2 = expectExtOk(runAlgorithmV2(migrateV1toV2(starterV1()), p, 'count-connections'));
-    expect(v2).toEqual(v1);
+  it('never changes the design it ran on', () => {
+    const doc = design();
+    const before = JSON.stringify(doc);
+    for (const a of toolkit.algorithms) runAlgorithmV2(doc, toolkit, a.id);
+    expect(JSON.stringify(doc)).toBe(before);
+    expect(validateDocumentV2(doc).ok).toBe(true);
   });
 });
-

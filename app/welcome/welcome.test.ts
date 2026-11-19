@@ -9,14 +9,14 @@ import { readLegacyAttributeRecord } from './legacyAttributes';
 import { fileOf, twoRooms } from '@app/session/projectStore.fixtures';
 import { createProjectController, showsWelcome } from '@app/session/projectStoreController';
 import { ProjectControllerContext } from '@app/session/projectStoreContext';
-import exampleV1 from '../document/examples/two-storey-example.json';
+import exampleJson from '../document/examples/house.json';
 import { exportProject, ProjectFiles } from './ProjectFiles';
 import { Welcome, type WelcomeProps } from './Welcome';
 import { createProject, openProjectText, tryExample, type WelcomeHost } from './welcomeFlow';
 import { projectFileName, recentRows } from './welcomeModel';
 
 const example = () => {
-  const r = readDesign(exampleV1);
+  const r = readDesign(exampleJson);
   if (!r.ok) throw new Error('example');
   return r.value.doc;
 };
@@ -27,7 +27,7 @@ function host(store = createMemoryProjectStore(), kept = createMemoryKeptMarks()
     store,
     kept,
     controller,
-    defaultToolkitId: 'example-gallery',
+    defaultToolkitId: 'gallery',
     startingDesign: async (id) =>
       id === 'broken'
         ? { ok: false, message: 'the default design of broken is invalid' }
@@ -50,31 +50,31 @@ describe('Welcome flow', () => {
   it('creates a project from a toolkit’s starting design and stores it', async () => {
     const h = host();
     expect(showsWelcome(h.controller.getState())).toBe(true);
-    const r = await createProject(h, '  My house ', 'starter-template');
+    const r = await createProject(h, '  My house ', 'starter');
     expect(r.ok).toBe(true);
     await h.controller.flush();
     const p = h.controller.getState().project!;
     expect(p.meta.name).toBe('My house');
-    expect(p.meta.toolkit).toEqual({ id: 'starter-template' });
+    expect(p.meta.toolkit).toEqual({ id: 'starter' });
     expect(showsWelcome(h.controller.getState())).toBe(false);
     expect(h.store.records.size).toBe(1);
   });
 
   it('Create project starts with an EMPTY graph and only the required attributes (no custom, no calculated)', async () => {
     const h = host();
-    expect((await createProject(h, 'Empty', 'example-gallery')).ok).toBe(true);
+    expect((await createProject(h, 'Empty', 'gallery')).ok).toBe(true);
     const p = h.controller.getState().project!;
     expect(p.scenarios).toHaveLength(1);
     const design = p.scenarios[0]!.session.history.present.design;
     expect(design.nodes).toEqual([]);
     expect(design.edges).toEqual([]);
-    expect(p.meta.attributes).toMatchObject({ projectId: 'example-gallery', baseline: 'files-sig', schema: { nodes: [], edges: [] } });
+    expect(p.meta.attributes).toMatchObject({ projectId: 'gallery', baseline: 'files-sig', schema: { nodes: [], edges: [] } });
     expect(p.meta.settings.calculatedFields).toEqual([]);
   });
 
   it('refuses an empty name or a failing starting design without opening anything', async () => {
     const h = host();
-    expect((await createProject(h, '  ', 'example-gallery')).ok).toBe(false);
+    expect((await createProject(h, '  ', 'gallery')).ok).toBe(false);
     const bad = await createProject(h, 'x', 'broken');
     expect(bad.ok === false && bad.message).toMatch(/invalid/);
     expect(h.controller.getState().project).toBeNull();
@@ -167,14 +167,30 @@ describe('Welcome flow', () => {
     expect(r.ok && h.kept.has(r.value.meta.projectId)).toBe(true);
   });
 
-  it('imports a legacy v1 design file as a new project with one scenario', async () => {
+  it('imports a design file as a new project with one scenario', async () => {
     const h = host();
-    const r = await openProjectText(h, JSON.stringify(exampleV1), 'old-design.json');
+    const r = await openProjectText(h, serializeDesignV2(example()), 'house.json');
     expect(r.ok).toBe(true);
     const p = h.controller.getState().project!;
     expect(p.scenarios).toHaveLength(1);
     expect(p.origin.kind).toBe('imported-design');
-    expect(p.meta.toolkit).toEqual({ id: 'example-gallery' });
+    expect(p.meta.toolkit).toEqual({ id: 'gallery' });
+  });
+
+  it('Try Example opens the graph-only example without a toolkit; its Functions become project functions', async () => {
+    const h = host();
+    expect((await tryExample(h, example(), 'example.json')).ok).toBe(true);
+    const p = h.controller.getState().project!;
+    expect(p.meta.name).toBe('Example – graph only (no toolkit)');
+    expect(p.meta.toolkit).toBeNull();
+    expect(p.meta.settings.functions).toEqual([
+      { id: 'entrance', label: 'Entrance' },
+      { id: 'circulation', label: 'Circulation' },
+      { id: 'living', label: 'Living' },
+      { id: 'kitchen', label: 'Kitchen' },
+      { id: 'bedroom', label: 'Bedroom' },
+      { id: 'bath', label: 'Bath' },
+    ]);
   });
 
   it('opens a project file with every scenario; invalid files keep the open project', async () => {
@@ -212,7 +228,7 @@ describe('Welcome flow', () => {
 
   it('a failed download does not mark the project exported', async () => {
     const h = host();
-    await createProject(h, 'x', 'example-gallery');
+    await createProject(h, 'x', 'gallery');
     const message = exportProject(h.controller, () => {
       throw new Error('blocked by browser');
     });
@@ -240,22 +256,22 @@ describe('legacy attribute seed (one-time, read-only)', () => {
     );
 
   it('never seeds Create project (required attributes only) and never touches the legacy record', async () => {
-    const storage = legacyStorage({ [attributeStorageKey('starter-template')]: legacyText('starter-template') });
+    const storage = legacyStorage({ [attributeStorageKey('starter')]: legacyText('starter') });
     const h = { ...host(), legacyAttributes: storage };
-    expect((await createProject(h, 'Not seeded', 'starter-template')).ok).toBe(true);
+    expect((await createProject(h, 'Not seeded', 'starter')).ok).toBe(true);
     const attrs = h.controller.getState().project!.meta.attributes as { projectId: string; schema: { nodes: { key: string }[] } };
-    expect(attrs.projectId).toBe('starter-template');
+    expect(attrs.projectId).toBe('starter');
     expect(attrs.schema.nodes).toEqual([]);
     expect(storage.writes).toEqual([]);
-    expect(storage.data.get(attributeStorageKey('starter-template'))).toBe(legacyText('starter-template'));
+    expect(storage.data.get(attributeStorageKey('starter'))).toBe(legacyText('starter'));
   });
 
-  it('seeds Try Example and design-file imports, but never an opened project file', async () => {
-    const storage = legacyStorage({ [attributeStorageKey('example-gallery')]: legacyText('example-gallery') });
+  it('seeds design-file imports, but never Try Example (no toolkit) or an opened project file', async () => {
+    const storage = legacyStorage({ [attributeStorageKey('gallery')]: legacyText('gallery') });
     const h = { ...host(), legacyAttributes: storage };
     await tryExample(h, example(), 'example.json');
-    expect(h.controller.getState().project!.meta.attributes).not.toBeNull();
-    await openProjectText(h, JSON.stringify(exampleV1), 'old.json');
+    expect(h.controller.getState().project!.meta.attributes).toBeNull();
+    await openProjectText(h, serializeDesignV2(example()), 'house.json');
     expect(h.controller.getState().project!.meta.attributes).not.toBeNull();
     await openProjectText(h, serializeProjectFile(fileOf()), 'p.project.json');
     expect(h.controller.getState().project!.meta.attributes).toBeNull();
@@ -263,13 +279,13 @@ describe('legacy attribute seed (one-time, read-only)', () => {
   });
 
   it('ignores an unreadable legacy record with a short notice', async () => {
-    const storage = legacyStorage({ [attributeStorageKey('example-gallery')]: '{ broken' });
+    const storage = legacyStorage({ [attributeStorageKey('gallery')]: '{ broken' });
     const h = { ...host(), legacyAttributes: storage };
-    expect((await tryExample(h, example(), 'example.json')).ok).toBe(true);
+    expect((await openProjectText(h, serializeDesignV2(example()), 'house.json')).ok).toBe(true);
     expect(h.controller.getState().project!.meta.attributes).toBeNull();
     expect(h.controller.getState().notice).toMatch(/could not be read/);
-    expect(readLegacyAttributeRecord(storage, 'example-gallery').kind).toBe('unreadable');
-    expect(readLegacyAttributeRecord(null, 'example-gallery').kind).toBe('none');
+    expect(readLegacyAttributeRecord(storage, 'gallery').kind).toBe('unreadable');
+    expect(readLegacyAttributeRecord(null, 'gallery').kind).toBe('none');
     expect(storage.writes).toEqual([]);
   });
 });
@@ -277,7 +293,7 @@ describe('legacy attribute seed (one-time, read-only)', () => {
 describe('leaving a project that could not be saved', () => {
   it('a flow reports needsConfirmation and only discards on the explicit retry', async () => {
     const h = host(createMemoryProjectStore({ quotaBytes: 10 }));
-    await createProject(h, 'First', 'example-gallery');
+    await createProject(h, 'First', 'gallery');
     await h.controller.flush();
     const first = h.controller.getState().project!;
     const r = await tryExample(h, example(), 'example.json');
@@ -310,7 +326,7 @@ describe('Welcome screen', () => {
 
   it('lists readable projects and unreadable records honestly', () => {
     const items = [
-      { status: 'ok', projectId: 'p1', name: 'House', createdAt: '2026-11-16T10:00:00.000Z', updatedAt: '2026-11-16T11:00:00.000Z', scenarioCount: 2, toolkitId: 'example-gallery' },
+      { status: 'ok', projectId: 'p1', name: 'House', createdAt: '2026-11-16T10:00:00.000Z', updatedAt: '2026-11-16T11:00:00.000Z', scenarioCount: 2, toolkitId: 'gallery_kit' },
       { status: 'unreadable', projectId: 'p2', quarantineKey: 'p2:unreadable:x', issues: [{ path: [], code: 'invalid-json', message: 'file is not valid JSON' }] },
     ] as const;
     const html = renderToStaticMarkup(createElement(Welcome, props({ recent: { status: 'ready', items, unsaved: ['p1'] } })));
@@ -322,7 +338,7 @@ describe('Welcome screen', () => {
     expect(html).toContain('last session · not saved');
     // No internal project ids or toolkit ids are shown.
     expect(html).not.toContain('>p2<');
-    expect(html).not.toContain('example-gallery');
+    expect(html).not.toContain('gallery_kit');
     const rows = recentRows(items, () => 'when');
     expect(rows[0]).toMatchObject({ kind: 'ok', detail: '2 scenarios · edited when', unsaved: false });
     expect(rows[1]).toMatchObject({ kind: 'unreadable', quarantined: true });
@@ -347,7 +363,7 @@ describe('Welcome screen', () => {
 describe('Project Files', () => {
   it('renders each project action once, the information and the unsaved last-session state', async () => {
     const h = host();
-    await createProject(h, 'x', 'example-gallery');
+    await createProject(h, 'x', 'gallery');
     const render = () =>
       renderToStaticMarkup(
         createElement(ProjectControllerContext.Provider, { value: h.controller }, createElement(ProjectFiles, { controller: h.controller, onNew: noop, onOpenFile: noop })),

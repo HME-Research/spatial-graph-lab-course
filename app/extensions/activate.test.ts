@@ -4,8 +4,9 @@ import { serializeDesign, validateDocument } from '@app/document';
 import { migrateV1toV2 } from '@app/document/v2';
 import { defineGraphAlgorithm, defineNodeType, defineToolkit } from '@student-api';
 import exampleJson from '../document/examples/two-storey-example.json';
-import { activate, activateToolkit, resolveStartupDesign, type Activation } from './activate';
-import { DEFAULT_TOOLKIT_ID, discoverToolkits, selectToolkit } from './discover';
+import { activate, activateToolkit, projectOnlyToolkit, resolveStartupDesign, type Activation } from './activate';
+import { withProjectFunctions } from './projectFunctions';
+import { discoverToolkits, selectToolkit } from './discover';
 import { fakeGlobs, galleryType, LAB_FILES, labToolkit, LOAD_FAILS } from './test-fixtures';
 
 // Toolkit design files may be v1 (migrated on load) or v2; the app holds v2 after Gate 1.
@@ -54,12 +55,12 @@ describe('toolkit discovery', () => {
 });
 
 describe('toolkit selection', () => {
-  const available = ['example-gallery', 'lab'];
-  it('prefers the URL, then the environment, then example-gallery', () => {
-    expect(selectToolkit(available, { query: 'lab', env: 'example-gallery' }).id).toBe('lab');
+  const available = ['house', 'lab'];
+  it('prefers the URL, then the environment, then no toolkit', () => {
+    expect(selectToolkit(available, { query: 'lab', env: 'house' }).id).toBe('lab');
     expect(selectToolkit(available, { query: '', env: 'lab' }).id).toBe('lab');
-    expect(selectToolkit(available, {}).id).toBe(DEFAULT_TOOLKIT_ID);
-    expect(selectToolkit(['lab'], {}).id).toBeNull();
+    expect(selectToolkit(available, {}).id).toBeNull();
+    expect(selectToolkit([], {}).id).toBeNull();
   });
 
   it('never silently falls back when the requested toolkit does not exist', () => {
@@ -223,5 +224,15 @@ describe('startup design and fallback', () => {
     );
     expect(start.doc).toBeNull();
     expect(start.diagnostics.map((d) => d.code)).toEqual(['default-design-missing']);
+  });
+});
+
+describe('a project without a toolkit (P4)', () => {
+  it('has an empty registry owned by the project, so project functions are listed like any other', () => {
+    const bare = projectOnlyToolkit('project-abc123');
+    expect(bare).toMatchObject({ id: 'project-abc123', nodeTypes: [], algorithms: [], designs: [], diagnostics: [] });
+    expect(bare.attributeBaseline.schema.nodes).toEqual([]);
+    const withFunctions = withProjectFunctions(bare, [{ id: 'kitchen', label: 'Kitchen' }]);
+    expect(withFunctions.nodeTypes.map((t) => [t.id, t.definition.label, t.status.ok])).toEqual([['kitchen', 'Kitchen', true]]);
   });
 });

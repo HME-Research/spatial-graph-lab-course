@@ -120,7 +120,7 @@ export function Welcome({
               </label>
               <button type="button" className="sgl-welcome-action" onClick={onTryExample} disabled={disabled}>
                 <span className="sgl-welcome-action-title">Try example</span>
-                <span className="sgl-welcome-action-sub">A two-storey building to explore</span>
+                <span className="sgl-welcome-action-sub">Example – graph only (no toolkit)</span>
               </button>
             </div>
             {toolkits.length > 0 && <ToolkitPicker toolkits={toolkits} value={toolkitId} onChange={setToolkitId} disabled={disabled} />}

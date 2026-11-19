@@ -38,8 +38,8 @@ function violation(file: string, specifier: string): string | null {
 }
 
 describe('toolkit import boundary', () => {
-  it('finds the example toolkit', () => {
-    expect(Object.keys(sources)).toContain('/toolkits/example-gallery/toolkit.ts');
+  it('reads only files under toolkits/ (the repository may ship no toolkit at all)', () => {
+    expect(Object.keys(sources).every((f) => f.startsWith('/toolkits/'))).toBe(true);
   });
 
   it('flags forbidden imports (self-check)', () => {

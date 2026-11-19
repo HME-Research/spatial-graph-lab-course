@@ -6,7 +6,7 @@ How to write your own node types, designs and algorithms for Spatial Graph Lab. 
 
 ## Workflow
 
-1. **Create a toolkit.** Copy `toolkits/starter-template/` to `toolkits/my-toolkit/` (lowercase letters, digits, `-` and `_`, starting with a letter). In `toolkit.ts`, change `name`. Don't edit `starter-template` or `example-gallery` themselves.
+1. **Create a toolkit.** Make a folder `toolkits/my-toolkit/` (lowercase letters, digits, `-` and `_`, starting with a letter) with a `toolkit.ts` (see [Your toolkit folder](#1-your-toolkit-folder)). Once the reference toolkit `toolkits/house/` exists, you can copy it instead; don't edit it itself.
 2. **Define a node type.** Edit or add a file in `types/` (see [Node types](#2-node-types)). The `id` is the `typeId` your designs use.
 3. **Write an algorithm.** Add a file in `algorithms/`: `defineGraphAlgorithm` for an analysis that only reads the graph, or `defineSpatialAlgorithm` for a transformation that returns operations (see [Algorithms](#4-algorithms)).
 4. **Check it.** `npm run check:toolkit -- -t my-toolkit` loads your toolkit exactly as the app does and fails with a readable message if a definition or design is invalid, or if an algorithm fails on your default design. `npm run typecheck` checks your TypeScript.
@@ -29,12 +29,12 @@ toolkits/
     algorithms/           ← optional: one algorithm per file
 ```
 
-Start by copying `toolkits/starter-template/` (minimal) or `toolkits/example-gallery/` (the fuller reference) to a new folder. Don't edit either of them: tests check that they keep working.
+Start with the `toolkit.ts` below, or, once it exists, copy the reference toolkit `toolkits/house/` to a new folder. Don't edit the reference toolkit itself: tests check that it keeps working.
 
 **Choosing the active toolkit.** One toolkit is active at a time:
 1. `?toolkit=my-toolkit` in the app URL;
 2. otherwise `VITE_SGL_TOOLKIT=my-toolkit` in a local `.env.local` file;
-3. otherwise `example-gallery`.
+3. otherwise no toolkit: the project uses only its own Functions and attributes (the built-in example is such a project).
 
 If you ask for a toolkit that doesn't exist, the app shows an error. It never quietly switches to another toolkit.
 
