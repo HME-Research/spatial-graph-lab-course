@@ -38,7 +38,7 @@ describe('v2 document session (one command = one history step)', () => {
   it('records successful changes once, labels them, and undo/redo restore exact documents', () => {
     let s = openDocument(v2(), 'test', null);
     const base = currentDocument(s);
-    const moved = applyDesignCommandToSession(s, { type: 'set-node-geometry', nodeId: 2, grid: [5, 0, 0], size: [1, 1, 1] });
+    const moved = applyDesignCommandToSession(s, { type: 'set-node-geometry', nodeId: 2, position: [5, 0, 0], size: [1, 1, 1] });
     expect(moved.ok && moved.changed).toBe(false); // no-op: nothing recorded
     const r = applyDesignCommandToSession(s, { type: 'set-edge-corridor', edgeId: 1, patch: { roof: 'none' } });
     if (!r.ok) throw new Error('expected ok');
@@ -56,16 +56,16 @@ describe('v2 document session (one command = one history step)', () => {
 
   it('records nothing for a refused command (room overlap, unconfirmed corridor displacement)', () => {
     const s = openDocument(v2(), 'test', null);
-    const overlap = applyDesignCommandToSession(s, { type: 'set-node-geometry', nodeId: 2, grid: [1, 1, 0] });
+    const overlap = applyDesignCommandToSession(s, { type: 'set-node-geometry', nodeId: 2, position: [1, 1, 0] });
     expect(overlap.ok).toBe(false);
     const corridorCell = resolveRelationships(currentDocument(s)).byEdge.get(1);
     expect(corridorCell?.status).toBe('routed');
     const raw = v2Raw();
-    raw.nodes.push({ id: 3, grid: [3, 5, 0], typeId: 'studio' });
+    raw.nodes.push({ id: 3, position: [3, 5, 0], function: 'studio' });
     const s2 = openDocument(expectOk(validateDocumentV2(raw)), 'test', null);
-    const displaced = applyDesignCommandToSession(s2, { type: 'set-node-geometry', nodeId: 3, grid: [3, 0, 0] });
+    const displaced = applyDesignCommandToSession(s2, { type: 'set-node-geometry', nodeId: 3, position: [3, 0, 0] });
     expect(!displaced.ok && displaced.issues.map((i) => i.code)).toEqual(['route-displacement']);
-    const confirmed = applyDesignCommandToSession(s2, { type: 'set-node-geometry', nodeId: 3, grid: [3, 0, 0], confirmRouteDisplacement: true });
+    const confirmed = applyDesignCommandToSession(s2, { type: 'set-node-geometry', nodeId: 3, position: [3, 0, 0], confirmRouteDisplacement: true });
     if (!confirmed.ok) throw new Error('expected ok');
     expect(confirmed.session.history.past).toHaveLength(1);
     expect(resolveRelationships(currentDocument(confirmed.session)).byEdge.get(1)?.status).toBe('unresolved');
@@ -86,10 +86,10 @@ describe('v2 document session (one command = one history step)', () => {
 describe('undo labels name what changes', () => {
   const doc = v2();
   it.each([
-    [{ type: 'set-node-geometry', nodeId: 2, grid: [6, 0, 0], size: [1, 1, 1] }, 'Move room 2 to [6, 0, 0]'],
-    [{ type: 'set-node-geometry', nodeId: 2, grid: [5, 0, 0], size: [2, 1, 1] }, 'Resize room 2 to 2×1×1'],
-    [{ type: 'set-node-geometry', nodeId: 2, grid: [6, 0, 0], size: [2, 1, 1] }, 'Move and resize room 2'],
-    [{ type: 'add-node', node: { grid: [9, 9, 0], typeId: 'x' } }, 'Add room 3'],
+    [{ type: 'set-node-geometry', nodeId: 2, position: [6, 0, 0], size: [1, 1, 1] }, 'Move room 2 to [6, 0, 0]'],
+    [{ type: 'set-node-geometry', nodeId: 2, position: [5, 0, 0], size: [2, 1, 1] }, 'Resize room 2 to 2×1×1'],
+    [{ type: 'set-node-geometry', nodeId: 2, position: [6, 0, 0], size: [2, 1, 1] }, 'Move and resize room 2'],
+    [{ type: 'add-node', node: { position: [9, 9, 0], function: 'x' } }, 'Add room 3'],
     [{ type: 'set-look', by: 'function', group: { kind: 'value', value: 'gallery' }, patch: { roof: 'none' } }, 'Change Designer settings for gallery'],
   ] as const)('%j → %s', (command, label) => {
     expect(designCommandLabel(command as Parameters<typeof designCommandLabel>[0], doc)).toBe(label);
@@ -123,7 +123,7 @@ describe('3D scene model with multicell rooms', () => {
     const b = cellBounds(v2().nodes)!;
     expect(b.min[0]).toBe(-1.5);
     expect(b.max[0]).toBe(5 * 3 + 1.5);
-    expect(storeyLevels([{ id: 1, typeId: 't', grid: [0, 0, 1], size: [1, 1, 2] }])).toEqual([1, 2]);
+    expect(storeyLevels([{ id: 1, function: 't', position: [0, 0, 1], size: [1, 1, 2] }])).toEqual([1, 2]);
   });
 
   it('grows the camera bounds with connector boxes', () => {

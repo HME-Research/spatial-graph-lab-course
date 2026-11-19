@@ -19,14 +19,14 @@ const doc = (): DesignDocumentV2 =>
       schemaVersion: 2,
       metadata: { name: 't' },
       nodes: [
-        { id: 1, grid: [0, 0, 0], size: [1, 3, 1], typeId: 'room' },
-        { id: 2, grid: [1, 0, 0], size: [1, 3, 1], typeId: 'room' },
-        { id: 3, grid: [5, 5, 3], typeId: 'room' },
-        { id: 4, grid: [9, 9, 6], typeId: 'room' },
+        { id: 1, position: [0, 0, 0], size: [1, 3, 1], function: 'room' },
+        { id: 2, position: [1, 0, 0], size: [1, 3, 1], function: 'room' },
+        { id: 3, position: [5, 5, 3], function: 'room' },
+        { id: 4, position: [9, 9, 6], function: 'room' },
       ],
       edges: [
-        { id: 1, source: 1, target: 3, kind: 'access' },
-        { id: 2, source: 1, target: 4, kind: 'access' },
+        { id: 1, source: 1, target: 3, relationship: 'access' },
+        { id: 2, source: 1, target: 4, relationship: 'access' },
       ],
     }),
   );

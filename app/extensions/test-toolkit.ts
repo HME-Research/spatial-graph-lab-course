@@ -6,7 +6,7 @@
  */
 import {
   defineGraphAlgorithm,
-  defineNodeType,
+  defineFunction,
   defineSpatialAlgorithm,
   defineToolkit,
   edgesBetween,
@@ -25,28 +25,28 @@ export const TWO_STOREY_TEXT: string = twoStoreyText;
 
 const HORIZONTAL = FACE_DIRECTIONS.filter((d) => d !== '+z' && d !== '-z');
 
-export const gallery = defineNodeType({
+export const gallery = defineFunction({
   id: 'gallery',
   label: 'Gallery',
   facade: { windowFraction: 0.7 },
-  attributes: {
+  custom: {
     daylight: { kind: 'enum', values: ['high', 'medium', 'low'] },
     public: { kind: 'boolean', default: true },
   },
 });
 
-export const storage = defineNodeType({
+export const storage = defineFunction({
   id: 'storage',
   label: 'Storage',
   facade: { windowFraction: 0.04 },
-  attributes: { public: { kind: 'boolean', default: false } },
+  custom: { public: { kind: 'boolean', default: false } },
 });
 
-export const studio = defineNodeType({
+export const studio = defineFunction({
   id: 'studio',
   label: 'Studio',
   facade: { windowFraction: 0.25 },
-  attributes: { occupancy: { kind: 'number', min: 0 }, public: { kind: 'boolean', default: false } },
+  custom: { occupancy: { kind: 'number', min: 0 }, public: { kind: 'boolean', default: false } },
 });
 
 /** Graph analysis (Node section: one node input): relationship steps from a start room (breadth-first). */
@@ -90,13 +90,13 @@ export const connectStorage = defineSpatialAlgorithm({
   run(ctx) {
     const operations: SpatialOperation[] = [];
     for (const room of ctx.design.nodes) {
-      if (room.typeId !== storage.id) continue;
+      if (room.function !== storage.id) continue;
       for (const direction of HORIZONTAL) {
-        const otherId = ctx.nodeAt(neighbourCell(room.grid, direction));
+        const otherId = ctx.nodeAt(neighbourCell(room.position, direction));
         const other = otherId === undefined ? undefined : getNode(ctx.design, otherId);
-        if (!other || other.typeId !== gallery.id) continue;
+        if (!other || other.function !== gallery.id) continue;
         if (edgesBetween(ctx.design, room.id, other.id).length > 0) continue;
-        operations.push({ op: 'add-edge', source: room.id, target: other.id, kind: 'access' });
+        operations.push({ op: 'add-edge', source: room.id, target: other.id, relationship: 'access' });
       }
     }
     return { kind: 'transformation', summary: `${operations.length} door(s) added.`, operations };
@@ -110,10 +110,10 @@ export const daylightFromExposure = defineSpatialAlgorithm({
   run(ctx) {
     const operations: SpatialOperation[] = [];
     for (const node of ctx.design.nodes) {
-      if (node.typeId !== gallery.id) continue;
-      const exposed = HORIZONTAL.filter((d) => ctx.nodeAt(neighbourCell(node.grid, d)) === undefined).length;
+      if (node.function !== gallery.id) continue;
+      const exposed = HORIZONTAL.filter((d) => ctx.nodeAt(neighbourCell(node.position, d)) === undefined).length;
       const daylight = exposed >= 3 ? 'high' : exposed === 2 ? 'medium' : 'low';
-      if (ctx.attributesOf(node, gallery).daylight !== daylight) {
+      if (ctx.customOf(node, gallery).daylight !== daylight) {
         operations.push({ op: 'set-node-attribute', nodeId: node.id, key: 'daylight', value: daylight });
       }
     }
@@ -126,9 +126,9 @@ export const GALLERY_TOOLKIT_ID = 'gallery';
 /** Every file of the test toolkit, as `fakeGlobs` input. */
 export const GALLERY_FILES: Readonly<Record<string, unknown>> = {
   'toolkits/gallery/toolkit.ts': { default: defineToolkit({ name: 'Gallery', defaultDesign: 'two-storey' }) },
-  'toolkits/gallery/types/gallery.ts': { default: gallery },
-  'toolkits/gallery/types/storage.ts': { default: storage },
-  'toolkits/gallery/types/studio.ts': { default: studio },
+  'toolkits/gallery/functions/gallery.ts': { default: gallery },
+  'toolkits/gallery/functions/storage.ts': { default: storage },
+  'toolkits/gallery/functions/studio.ts': { default: studio },
   'toolkits/gallery/algorithms/access-depth.ts': { default: accessDepth },
   'toolkits/gallery/algorithms/connect-storage-to-galleries.ts': { default: connectStorage },
   'toolkits/gallery/algorithms/daylight-from-exposure.ts': { default: daylightFromExposure },

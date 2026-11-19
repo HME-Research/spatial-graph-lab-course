@@ -13,7 +13,7 @@ const schema: ProjectAttributeSchema = (() => {
   for (const e of [
     { type: 'add-field', collection: 'nodes', field: { key: 'capacity', kind: 'number', min: 0, default: 10 } },
     { type: 'add-field', collection: 'edges', field: { key: 'weight', kind: 'number' } },
-    { type: 'set-type-default', typeId: 'gallery', fieldId: 'capacity', value: 30 },
+    { type: 'set-type-default', function: 'gallery', fieldId: 'capacity', value: 30 },
   ] as const) {
     const r = applySchemaEdit(s, e);
     if (!r.ok) throw new Error(r.reason);
@@ -27,10 +27,10 @@ const doc = (() => {
     schemaVersion: 2,
     metadata: { name: 'x' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: { other: 'kept' } },
-      { id: 2, grid: [3, 0, 0], typeId: 'studio' },
+      { id: 1, position: [0, 0, 0], function: 'gallery', custom: { other: 'kept' } },
+      { id: 2, position: [3, 0, 0], function: 'studio' },
     ],
-    edges: [{ id: 1, source: 1, target: 2, kind: 'open' }],
+    edges: [{ id: 1, source: 1, target: 2, relationship: 'open' }],
   });
   if (!r.ok) throw new Error('bad');
   return r.value.doc;
@@ -46,26 +46,26 @@ describe('field commands', () => {
     if (!set.ok) throw new Error(set.message);
     const after = applyDesignCommand(doc, set.command);
     if (!after.ok) throw new Error('rejected');
-    expect(after.value.nodes[0]!.attributes).toEqual({ other: 'kept', capacity: 5 });
+    expect(after.value.nodes[0]!.custom).toEqual({ other: 'kept', capacity: 5 });
     expect(effectiveNodeValues(schema, after.value.nodes[0]!)['capacity']).toBe(5);
     const none = setNodeFieldCommand(after.value.nodes[0]!, capacity, null);
-    expect(none.ok && none.command).toMatchObject({ attributes: { other: 'kept', capacity: null } });
+    expect(none.ok && none.command).toMatchObject({ custom: { other: 'kept', capacity: null } });
     const cleared = setNodeFieldCommand(after.value.nodes[0]!, capacity, undefined);
-    expect(cleared.ok && cleared.command).toMatchObject({ attributes: { other: 'kept' } });
+    expect(cleared.ok && cleared.command).toMatchObject({ custom: { other: 'kept' } });
     expect(effectiveNodeValues(schema, g)['capacity']).toBe(30); // inherited type default
   });
 
   it('refuses invalid values with the field label; edges use set-edge-attributes', () => {
     expect(setNodeFieldCommand(doc.nodes[0]!, capacity, -1)).toEqual({ ok: false, message: '“Capacity” must be a number ≥ 0' });
     const r = setEdgeFieldCommand(doc.edges[0]!, weight, 2);
-    expect(r.ok && r.command).toEqual({ type: 'set-edge-attributes', edgeId: 1, attributes: { weight: 2 } });
+    expect(r.ok && r.command).toEqual({ type: 'set-edge-attributes', edgeId: 1, custom: { weight: 2 } });
   });
 });
 
 describe('views and staleness', () => {
   it('Graph 2D shows effective values (type default) and legacy keys', () => {
     const model = modelFromV2(doc, resolveRelationships(doc), schema);
-    expect(model.nodes.map((n) => n.attributes)).toEqual([{ capacity: 30, other: 'kept' }, { capacity: 10 }]);
+    expect(model.nodes.map((n) => n.custom)).toEqual([{ capacity: 30, other: 'kept' }, { capacity: 10 }]);
   });
 
   it('a result is stale after a project attribute change', () => {

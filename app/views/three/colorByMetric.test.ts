@@ -68,7 +68,7 @@ describe('colour by a calculated value', () => {
       nextNodeId: 9,
       nodes: [
         ...doc.nodes,
-        ...([[4, 1, 0], [3, 2, 0], [2, 1, 0]] as [number, number, number][]).map((grid, i) => ({ id: 6 + i, grid, size: [1, 1, 1] as [number, number, number], typeId: 'studio', attributes: {} })),
+        ...([[4, 1, 0], [3, 2, 0], [2, 1, 0]] as [number, number, number][]).map((position, i) => ({ id: 6 + i, position, size: [1, 1, 1] as [number, number, number], function: 'studio', custom: {} })),
       ],
     };
     const ctx = metricCtx(enclosed);
@@ -82,7 +82,7 @@ describe('colour by a calculated value', () => {
   });
 
   it('text metric: categorical; missing and non-finite values are "no value"', () => {
-    const nodes = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }].map((n) => ({ ...n, grid: [0, 0, 0] as [number, number, number], typeId: 't', attributes: {} }));
+    const nodes = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }].map((n) => ({ ...n, position: [0, 0, 0] as [number, number, number], function: 't', custom: {} }));
     const values = new Map<number, string | number | null>([
       [1, 'north'],
       [2, 'south'],

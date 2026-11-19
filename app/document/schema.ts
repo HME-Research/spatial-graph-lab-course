@@ -2,9 +2,9 @@ import { z } from 'zod';
 import {
   attributesSchema,
   diagramSchema,
-  gridSchema,
+  positionSchema,
   metadataSchema,
-  typeIdSchema,
+  functionIdSchema,
 } from './primitives';
 import {
   DEFAULT_ROOM_SIZE,
@@ -26,9 +26,9 @@ import {
  *   shown everywhere. New ids come from the counters `nextNodeId` / `nextEdgeId` (`allocate…`), so
  *   an id is never reused after a delete. Counters missing in a file are filled on read (largest
  *   id + 1, or 1); they are always written.
- * - `grid` is the room's MINIMUM corner cell [x, y, z] (z up); `size` is [sx, sy, sz], positive
- *   integers. The room occupies every cell grid + [0..sx-1, 0..sy-1, 0..sz-1].
- * - Edge `kind` is relationship intent (`access` | `open`), independent of adjacency.
+ * - `position` is the room's MINIMUM corner cell [x, y, z] (z up); `size` is [sx, sy, sz], positive
+ *   integers. The room occupies every cell position + [0..sx-1, 0..sy-1, 0..sz-1].
+ * - Edge `relationship` is the relationship intent (`access` | `open`), independent of adjacency.
  * - Edge `corridor` is optional (`{ walls?, roof? }`); each absent field uses the design's corridor
  *   card, else the built-in default (resolved on read, `corridorLookOf`).
  * - `settings.styleBy` / `settings.styles` (2026-11-18, replaced `typeAppearance`): the rooms are
@@ -58,7 +58,7 @@ export const sizeSchema = z.tuple([sizeIntSchema, sizeIntSchema, sizeIntSchema],
 });
 
 export const relationshipKindSchema = z.enum(RELATIONSHIP_KINDS, {
-  error: `edge kind must be one of: ${RELATIONSHIP_KINDS.join(', ')}`,
+  error: `relationship must be one of: ${RELATIONSHIP_KINDS.join(', ')}`,
 });
 
 export const windowLayoutSchema = z.enum(WINDOW_LAYOUTS, { error: `windowLayout must be one of: ${WINDOW_LAYOUTS.join(', ')}` });
@@ -85,20 +85,22 @@ export const windowFractionSchema = z
 
 export const roomNodeSchema = z.strictObject({
   id: itemIdSchema,
-  grid: gridSchema,
+  function: functionIdSchema,
+  position: positionSchema,
   size: sizeSchema.default([...DEFAULT_ROOM_SIZE]),
-  typeId: typeIdSchema,
-  attributes: attributesSchema.default({}),
+  /** The node's custom attributes (project fields and any other stored values). */
+  custom: attributesSchema.default({}),
 });
 
 export const relationshipEdgeSchema = z.strictObject({
   id: itemIdSchema,
   source: itemIdSchema,
   target: itemIdSchema,
-  kind: relationshipKindSchema,
+  relationship: relationshipKindSchema,
   /** This relationship's own corridor walls / roof (Properties); absent fields use the design's. */
   corridor: corridorLookSchema.optional(),
-  attributes: attributesSchema.default({}),
+  /** The edge's custom attributes. */
+  custom: attributesSchema.default({}),
 });
 
 /**
@@ -139,8 +141,8 @@ export const lookSchema = z.strictObject({
 });
 
 /**
- * Which attribute the rooms are styled by (owner 2026-11-18): the room's Function (`typeId`), its
- * Level (`grid[2]`), a custom attribute by its permanent field id, or a measured value (metric id).
+ * Which attribute the rooms are styled by (owner 2026-11-18): the room's Function (`function`), its
+ * Level (`position[2]`), a custom attribute by its permanent field id, or a measured value (metric id).
  */
 export const STYLE_BY_PATTERN = /^(function|level|attribute:[A-Za-z][A-Za-z0-9_-]{0,63}|metric:[a-z][a-z0-9-]{0,63})$/;
 export const styleBySchema = z.string().regex(STYLE_BY_PATTERN, {

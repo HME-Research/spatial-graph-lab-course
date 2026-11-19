@@ -482,14 +482,14 @@ export function EditAttributeDialog({
     // Per-function defaults: parsed against the NEW shape; cleared first, set after the shape change.
     const typeEdits: { clear: SchemaEdit[]; set: SchemaEdit[] } = { clear: [], set: [] };
     if (collection === 'nodes') {
-      for (const [typeId] of ownTypeDefaults) {
-        if (kindChanged || !typeDefaults.has(typeId) || typeDefaults.get(typeId) === '') typeEdits.clear.push({ type: 'set-type-default', typeId, fieldId: field.id, value: null });
+      for (const [functionId] of ownTypeDefaults) {
+        if (kindChanged || !typeDefaults.has(functionId) || typeDefaults.get(functionId) === '') typeEdits.clear.push({ type: 'set-type-default', function: functionId, fieldId: field.id, value: null });
       }
-      for (const [typeId, text] of typeDefaults) {
-        if (text === '' || (!kindChanged && ownTypeDefaults.get(typeId) === text)) continue;
+      for (const [functionId, text] of typeDefaults) {
+        if (text === '' || (!kindChanged && ownTypeDefaults.get(functionId) === text)) continue;
         const p = parseValueDraft({ kind: v.kind, ...(v.values && { values: v.values }), ...(v.min !== undefined && { min: v.min }), ...(v.max !== undefined && { max: v.max }), label: v.name }, text);
-        if (!p.ok) return { error: `Default for ${functions.find((f) => f.id === typeId)?.label ?? typeId}: ${p.message.replace(/^“[^”]*” /, 'the value ')}.` };
-        if (p.value !== undefined) typeEdits.set.push({ type: 'set-type-default', typeId, fieldId: field.id, value: p.value });
+        if (!p.ok) return { error: `Default for ${functions.find((f) => f.id === functionId)?.label ?? functionId}: ${p.message.replace(/^“[^”]*” /, 'the value ')}.` };
+        if (p.value !== undefined) typeEdits.set.push({ type: 'set-type-default', function: functionId, fieldId: field.id, value: p.value });
       }
     }
     edits.push(...typeEdits.clear);

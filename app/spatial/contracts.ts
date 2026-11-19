@@ -57,7 +57,7 @@ export interface ConnectorRoute {
 
 interface ResolutionBase {
   readonly edgeId: number;
-  readonly kind: RelationshipKind;
+  readonly relationship: RelationshipKind;
 }
 
 /**
@@ -112,13 +112,13 @@ export type RelationshipResolver = (doc: DesignDocumentV2) => SpatialResolution;
 // ── Spatial edits (move / resize) ─────────────────────────────────────────────────────────
 
 /**
- * Proposed new placement of one room. `grid` (new minimum corner) and/or `size`; omitted values
- * stay. Resizing is anchored at the MINIMUM corner: changing `size` alone never moves `grid`.
+ * Proposed new placement of one room. `position` (new minimum corner) and/or `size`; omitted values
+ * stay. Resizing is anchored at the MINIMUM corner: changing `size` alone never moves `position`.
  * Whole cells only; callers snap world-space drags to integers before proposing.
  */
 export interface SpatialEditRequest {
   readonly nodeId: number;
-  readonly grid?: GridCoord;
+  readonly position?: GridCoord;
   readonly size?: RoomSize;
 }
 

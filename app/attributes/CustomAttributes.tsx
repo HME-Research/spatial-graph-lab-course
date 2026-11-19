@@ -65,7 +65,7 @@ export function CustomAttributes({
   /** Where each attribute comes from (P4): shown as a `Toolkit: <name>` / `Yours` tag on its row. */
   readonly sourceOf?: (field: AttributeField) => CustomAttributeSource;
   readonly collection: AttributeCollection;
-  readonly item: { readonly id: number; readonly typeId?: string; readonly attributes: Stored };
+  readonly item: { readonly id: number; readonly function?: string; readonly custom: Stored };
   readonly schema: ProjectAttributeSchema;
   /** Sends one design command; false when refused (the host shows why). */
   readonly run: (command: DesignCommand) => boolean;
@@ -80,8 +80,8 @@ export function CustomAttributes({
   readonly after?: ReactNode;
 }) {
   const resolved =
-    collection === 'nodes' ? resolveNodeAttributes(schema, { typeId: item.typeId ?? '', attributes: item.attributes }) : resolveEdgeAttributes(schema, item);
-  const outside = attributesOutsideSchema(schema, collection, item.attributes);
+    collection === 'nodes' ? resolveNodeAttributes(schema, { function: item.function ?? '', custom: item.custom }) : resolveEdgeAttributes(schema, item);
+  const outside = attributesOutsideSchema(schema, collection, item.custom);
   const send = (r: EffectiveAttribute, value: AttributeValue | undefined): boolean => {
     const result = collection === 'nodes' ? setNodeFieldCommand(item, r.field, value) : setEdgeFieldCommand(item, r.field, value);
     if (!result.ok) {
@@ -111,7 +111,7 @@ export function CustomAttributes({
         <FieldValue
           key={`${r.field.id}:${JSON.stringify(r.storedValue)}:${r.storedKey ?? ''}`}
           r={r}
-          typeId={item.typeId}
+          functionId={item.function}
           send={(v) => send(r, v)}
           onError={onError}
           {...(sourceOf && { tag: customAttributeTag(sourceOf(r.field)) })}
@@ -137,13 +137,13 @@ export function CustomAttributes({
 
 function FieldValue({
   r,
-  typeId,
+  functionId,
   send,
   onError,
   tag,
 }: {
   readonly r: EffectiveAttribute;
-  readonly typeId: string | undefined;
+  readonly functionId: string | undefined;
   readonly send: (value: AttributeValue | undefined) => boolean;
   readonly onError: (message: string) => void;
   /** Source tag text (P4): `Toolkit: <name>` or `Yours`. */
@@ -151,9 +151,9 @@ function FieldValue({
 }) {
   const { field } = r;
   const id = useId();
-  const source = sourceText(r, typeId);
+  const source = sourceText(r, functionId);
   const own = r.source === 'instance';
-  const inherit = inheritedText(r, typeId);
+  const inherit = inheritedText(r, functionId);
   const label = `${field.label} (${field.key})`;
 
   let control;

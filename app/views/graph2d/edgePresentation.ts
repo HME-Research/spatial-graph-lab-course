@@ -79,7 +79,7 @@ export function presentEdge(model: DiagramModel, edge: DiagramEdge): EdgePresent
   const a = model.byNode.get(edge.source)?.label ?? edge.source;
   const b = model.byNode.get(edge.target)?.label ?? edge.target;
   const pair = `${a} ↔ ${b}`;
-  const kind = edge.kind;
+  const kind = edge.relationship;
   const resolution = edge.resolution;
   // A missing resolution means the host has not resolved this edge; show it plainly, never as an error.
   const status: ResolutionStatus = resolution?.status ?? 'direct';

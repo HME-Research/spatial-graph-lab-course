@@ -30,7 +30,7 @@ export function invalidConnectionRows(model: DiagramModel): readonly InvalidConn
     rows.push({
       edgeId: edge.id,
       label: `${label(edge.source)} ↔ ${label(edge.target)}`,
-      kindLabel: RELATIONSHIP_KIND_LABELS[edge.kind as 'access' | 'open'] ?? String(edge.kind),
+      kindLabel: RELATIONSHIP_KIND_LABELS[edge.relationship as 'access' | 'open'] ?? String(edge.relationship),
       reason: r.reason,
       reasonText: UNRESOLVED_REASON_TEXT[r.reason] ?? r.message,
     });

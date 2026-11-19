@@ -1,11 +1,11 @@
-import { defineNodeType } from '@student-api';
+import { defineFunction } from '@student-api';
 
 /** Where you arrive: a small hall with the front door. */
-export default defineNodeType({
+export default defineFunction({
   id: 'entrance',
   label: 'Entrance',
   facade: { windowFraction: 0.3 },
-  attributes: {
+  custom: {
     targetArea: { kind: 'number', min: 1, default: 9 },
     priority: { kind: 'number', min: 1, default: 5 },
   },

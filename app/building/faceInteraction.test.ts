@@ -8,24 +8,24 @@ import { wallAction } from './faceInteraction';
 import { groupWallRuns } from './wallRuns';
 
 /** Rooms: a = 1, b = 2, c = 3, d = 4. Face ids start with the owner room's id. */
-type N = { id: number; grid: GridCoord; size?: [number, number, number] };
-type E = { id: number; source: number; target: number; kind?: 'access' | 'open' };
+type N = { id: number; position: GridCoord; size?: [number, number, number] };
+type E = { id: number; source: number; target: number; relationship?: 'access' | 'open' };
 
 const make = (nodes: N[], edges: E[] = []): DesignDocumentV2 =>
   expectOk(
     validateDocumentV2({
       schemaVersion: 2,
       metadata: { name: 't' },
-      nodes: nodes.map((n) => ({ typeId: 'gallery', size: [1, 1, 1], ...n })),
-      edges: edges.map((e) => ({ kind: 'access', ...e })),
+      nodes: nodes.map((n) => ({ function: 'gallery', size: [1, 1, 1], ...n })),
+      edges: edges.map((e) => ({ relationship: 'access', ...e })),
     }),
   );
 
 describe('groupWallRuns', () => {
   it('groups contiguous coplanar exterior walls per room and storey, split by a neighbour', () => {
     const doc = make([
-      { id: 1, grid: [0, 0, 0], size: [3, 1, 2] },
-      { id: 2, grid: [1, -1, 0] },
+      { id: 1, position: [0, 0, 0], size: [3, 1, 2] },
+      { id: 2, position: [1, -1, 0] },
     ]);
     const runs = groupWallRuns(buildBuildingV2(doc).faces);
     const aMinusY = runs.filter((r) => r.ownerNodeId === 1 && r.direction === '-y');
@@ -42,7 +42,7 @@ describe('groupWallRuns', () => {
   });
 
   it('orders ±x walls along the layout u axis (grid −y) and is independent of input order', () => {
-    const faces = buildBuildingV2(make([{ id: 3, grid: [10, 0, 0], size: [1, 3, 1] }])).faces;
+    const faces = buildBuildingV2(make([{ id: 3, position: [10, 0, 0], size: [1, 3, 1] }])).faces;
     const run = groupWallRuns(faces).find((r) => r.direction === '+x')!;
     expect(run.faceIds).toEqual(['3:0.2.0:+x', '3:0.1.0:+x', '3:0.0.0:+x']);
     expect(groupWallRuns([...faces].reverse())).toEqual(groupWallRuns(faces));
@@ -52,13 +52,13 @@ describe('groupWallRuns', () => {
 describe('wallAction', () => {
   const doc = make(
     [
-      { id: 1, grid: [0, 0, 0], size: [2, 1, 1] },
-      { id: 2, grid: [0, 1, 0], size: [2, 1, 1] },
-      { id: 3, grid: [2, 0, 0] },
-      { id: 4, grid: [6, 0, 0] },
+      { id: 1, position: [0, 0, 0], size: [2, 1, 1] },
+      { id: 2, position: [0, 1, 0], size: [2, 1, 1] },
+      { id: 3, position: [2, 0, 0] },
+      { id: 4, position: [6, 0, 0] },
     ],
     [
-      { id: 1, source: 1, target: 3, kind: 'open' },
+      { id: 1, source: 1, target: 3, relationship: 'open' },
       { id: 2, source: 3, target: 4 },
     ],
   );
@@ -90,7 +90,7 @@ describe('wallAction', () => {
 describe('preferred face in the building', () => {
   /** a and b are 1×3×1 side by side: three shared walls; the representative one is the middle. */
   const base = (bGrid: GridCoord = [1, 0, 0]) =>
-    make([{ id: 1, grid: [0, 0, 0], size: [1, 3, 1] }, { id: 2, grid: bGrid, size: [1, 3, 1] }], [{ id: 1, source: 1, target: 2 }]);
+    make([{ id: 1, position: [0, 0, 0], size: [1, 3, 1] }, { id: 2, position: bGrid, size: [1, 3, 1] }], [{ id: 1, source: 1, target: 2 }]);
   const PREF: FacePreference = { nodeId: 1, offset: [0, 2, 0], direction: '+x' };
   const doorFaces = (doc: DesignDocumentV2, prefs: Record<string, FacePreference>) =>
     buildBuildingV2(doc, { spatial: resolveWithPreferences(doc, prefs) }).faces.filter((f) => f.condition === 'door').map((f) => f.id);
@@ -109,7 +109,7 @@ describe('preferred face in the building', () => {
   });
 
   it('wallAction → add-edge-at-face places the door where the student clicked', () => {
-    const doc = make([{ id: 1, grid: [0, 0, 0], size: [1, 3, 1] }, { id: 2, grid: [1, 0, 0], size: [1, 3, 1] }]);
+    const doc = make([{ id: 1, position: [0, 0, 0], size: [1, 3, 1] }, { id: 2, position: [1, 0, 0], size: [1, 3, 1] }]);
     const spatial = resolveRelationships(doc);
     const action = wallAction('1:0.2.0:+x', buildBuildingV2(doc, { spatial }), doc, spatial);
     if (action.kind !== 'add') throw new Error('expected add');

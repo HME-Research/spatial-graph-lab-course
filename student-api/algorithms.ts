@@ -1,7 +1,7 @@
 import type { EdgeRecord, Graph, NodeRecord } from './graph';
 import type { AttributeSpecs, AttributeValue, AttributesOf } from './attributes';
-import type { GridCoord, RelationshipKind, RoomSize, SpatialEdge, SpatialNode } from './spatial';
-import type { NodeTypeDefinition } from './types';
+import type { CorridorLook, GridCoord, RelationshipKind, RoomSize, SpatialEdge, SpatialNode } from './spatial';
+import type { FunctionDefinition } from './functions';
 
 /**
  * Algorithm contracts. An algorithm never changes application state: it returns a result that
@@ -102,25 +102,25 @@ export interface SpatialAlgorithmContext<P extends AttributeSpecs = AttributeSpe
    */
   canRelate(aNodeId: number, bNodeId: number): boolean;
   /**
-   * Effective typed attributes of `node` for its type definition `type` (imported from the
-   * project's `types/` folder): only the attributes that type declares. Values come from the
-   * project's fields (the same values the app shows): the stored value, else the type default,
-   * else the field default. A value explicitly set to "no value" (null), or one that does not fit the
-   * type's own declaration, reads as the type's declared default (or `undefined` without one). The run
-   * fails with a diagnostic if `type` is not a valid, registered definition of this project or is
-   * not the node's type. Prefer `nodeAttributes` for project-wide fields.
+   * Effective typed custom attributes of `node` for its function definition `fn` (imported from
+   * the project's `functions/` folder): only the attributes that function declares. Values come
+   * from the project's fields (the same values the app shows): the stored value, else the function
+   * default, else the field default. A value explicitly set to "no value" (null), or one that does not
+   * fit the function's own declaration, reads as its declared default (or `undefined` without one).
+   * The run fails with a diagnostic if `fn` is not a valid, registered definition of this project or
+   * is not the node's function. Prefer `nodeCustom` for project-wide fields.
    */
-  attributesOf<A extends AttributeSpecs>(node: SpatialNode, type: NodeTypeDefinition<A>): AttributesOf<A>;
+  customOf<A extends AttributeSpecs>(node: SpatialNode, fn: FunctionDefinition<A>): AttributesOf<A>;
   /** The project's custom fields: the same list for every node, and one list for every edge. */
-  readonly attributeFields: { readonly nodes: readonly AttributeFieldInfo[]; readonly edges: readonly AttributeFieldInfo[] };
+  readonly customFields: { readonly nodes: readonly CustomFieldInfo[]; readonly edges: readonly CustomFieldInfo[] };
   /**
-   * Effective values of every project node field for the node `nodeId`: the stored value, else
-   * the node type's default, else the field default. Fields without any value are absent; `null`
+   * Effective values of every custom node field for the node `nodeId`: the stored value, else
+   * the function's default, else the field default. Fields without any value are absent; `null`
    * means the value was explicitly set to "no value". The run fails for an unknown id.
    */
-  nodeAttributes(nodeId: number): { readonly [key: string]: AttributeValue };
-  /** Effective values of every project edge field for the edge `edgeId` (as `nodeAttributes`). */
-  edgeAttributes(edgeId: number): { readonly [key: string]: AttributeValue };
+  nodeCustom(nodeId: number): { readonly [key: string]: AttributeValue };
+  /** Effective values of every custom edge field for the edge `edgeId` (as `nodeCustom`). */
+  edgeCustom(edgeId: number): { readonly [key: string]: AttributeValue };
   /**
    * The app's calculated values (read-only): the same values Properties and colour-by show, for
    * the design as it was when the run started. Your operations do not change them during the run.
@@ -154,8 +154,8 @@ export interface MetricReader {
 }
 
 /** One project-wide custom field, as algorithms see it. */
-export interface AttributeFieldInfo {
-  /** The attribute name in `attributes` and in `set-node-attribute` / `set-edge-attribute`. */
+export interface CustomFieldInfo {
+  /** The attribute name in `custom` and in `set-node-attribute` / `set-edge-attribute`. */
   readonly key: string;
   readonly label: string;
   readonly kind: 'text' | 'number' | 'boolean' | 'enum';
@@ -163,7 +163,7 @@ export interface AttributeFieldInfo {
   readonly values?: readonly string[];
   readonly min?: number;
   readonly max?: number;
-  /** The field default (node types may have their own defaults; `nodeAttributes` applies them). */
+  /** The field default (functions may have their own defaults; `nodeCustom` applies them). */
   readonly default?: string | number | boolean;
   readonly description?: string;
 }
@@ -186,13 +186,13 @@ export type SpatialOperation =
       /** Optional local name for later operations of this run to refer to the new node. */
       readonly ref?: string;
       /** Minimum corner cell of the new room. */
-      readonly grid: GridCoord;
+      readonly position: GridCoord;
       /** Extent in cells; omitted: `[1, 1, 1]`. The room must not overlap another room. */
       readonly size?: RoomSize;
-      /** Must be a valid node type of the active project. */
-      readonly typeId: string;
-      /** Only project node fields, with valid values (or null). Defaults are not written. */
-      readonly attributes?: { readonly [key: string]: AttributeValue };
+      /** Must be a valid function of the active project. */
+      readonly function: string;
+      /** Only custom node fields of the project, with valid values (or null). Defaults are not written. */
+      readonly custom?: { readonly [key: string]: AttributeValue };
     }
   | {
       readonly op: 'add-edge';
@@ -201,12 +201,14 @@ export type SpatialOperation =
       readonly source: ItemRef;
       readonly target: ItemRef;
       /** `access` or `open`. */
-      readonly kind: RelationshipKind;
+      readonly relationship: RelationshipKind;
+      /** Optional: this relationship's own corridor look (omitted fields use the design's Corridors card). */
+      readonly corridor?: CorridorLook;
     }
   | {
       readonly op: 'set-node-attribute';
       readonly nodeId: ItemRef;
-      /** A project node field (every node has the same fields, whatever its type). */
+      /** A project node field (every node has the same fields, whatever its function). */
       readonly key: string;
       /** Valid for the field, or null for "no value". */
       readonly value: AttributeValue;
@@ -220,10 +222,10 @@ export type SpatialOperation =
       readonly value: AttributeValue;
     }
   | {
-      /** Move and/or resize a room (its box: minimum corner `grid` + `size`); omitted parts stay. */
+      /** Move and/or resize a room (its box: minimum corner `position` + `size`); omitted parts stay. */
       readonly op: 'set-node-geometry';
       readonly nodeId: ItemRef;
-      readonly grid?: GridCoord;
+      readonly position?: GridCoord;
       /** Positive whole numbers. The box must not overlap another room or take generated connector cells. */
       readonly size?: RoomSize;
     };

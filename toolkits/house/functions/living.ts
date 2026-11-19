@@ -1,11 +1,11 @@
-import { defineNodeType } from '@student-api';
+import { defineFunction } from '@student-api';
 
 /** The main day room: large windows. */
-export default defineNodeType({
+export default defineFunction({
   id: 'living',
   label: 'Living',
   facade: { windowFraction: 0.6 },
-  attributes: {
+  custom: {
     targetArea: { kind: 'number', min: 1, default: 36 },
     priority: { kind: 'number', min: 1, default: 1 },
   },

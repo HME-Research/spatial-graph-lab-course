@@ -42,7 +42,7 @@ describe('resolveRelationships (direct, different-level, straight routing)', () 
 
   it('reports separated rooms on different storeys as different-level', () => {
     const raw = v2Raw();
-    raw.nodes[1]!.grid = [5, 0, 2];
+    raw.nodes[1]!.position = [5, 0, 2];
     const ab = resolveRelationships(expectOk(validateDocumentV2(raw))).byEdge.get(1)!;
     expect(ab.status === 'unresolved' && ab.reason).toBe('different-level');
   });
@@ -68,10 +68,10 @@ const fakeRouter: RelationshipResolver = (d) => {
   ];
   const edges: EdgeResolution[] = d.edges.map((e) =>
     cells.some((c) => rooms.at(c))
-      ? { edgeId: e.id, kind: e.kind, status: 'unresolved', reason: 'blocked-by-room', message: 'blocked' }
+      ? { edgeId: e.id, relationship: e.relationship, status: 'unresolved', reason: 'blocked-by-room', message: 'blocked' }
       : {
           edgeId: e.id,
-          kind: e.kind,
+          relationship: e.relationship,
           status: 'routed',
           route: {
             edgeId: e.id,
@@ -99,7 +99,7 @@ describe('occupancy', () => {
 
 describe('spatial edits (proposal → commit)', () => {
   it('rejects a room–room overlap and names the room', () => {
-    const p = proposeSpatialEdit(doc(), { nodeId: 2, grid: [1, 1, 0] });
+    const p = proposeSpatialEdit(doc(), { nodeId: 2, position: [1, 1, 0] });
     expect(p.status).toBe('rejected');
     expect(p.status === 'rejected' && p.collidingRooms).toEqual([1]);
     expectIssue(commitSpatialEdit(p), 'room-overlap');
@@ -108,22 +108,22 @@ describe('spatial edits (proposal → commit)', () => {
   it('resizes anchored at the minimum corner', () => {
     const p = proposeSpatialEdit(doc(), { nodeId: 2, size: [2, 2, 1] });
     const next = expectOk(commitSpatialEdit(p));
-    expect(next.nodes[1]).toMatchObject({ grid: [5, 0, 0], size: [2, 2, 1] });
+    expect(next.nodes[1]).toMatchObject({ position: [5, 0, 0], size: [2, 2, 1] });
   });
 
   it('asks for confirmation before taking connector cells; Cancel leaves the document unchanged', () => {
     const d = doc();
-    const p = proposeSpatialEdit(d, { nodeId: 2, grid: [3, 3, 0], size: [1, 1, 1] }, { resolve: fakeRouter });
+    const p = proposeSpatialEdit(d, { nodeId: 2, position: [3, 3, 0], size: [1, 1, 1] }, { resolve: fakeRouter });
     expect(p.status).toBe('ok'); // (3,3) is not on the route
-    const q = proposeSpatialEdit(d, { nodeId: 2, grid: [3, 0, 0] }, { resolve: fakeRouter });
+    const q = proposeSpatialEdit(d, { nodeId: 2, position: [3, 0, 0] }, { resolve: fakeRouter });
     expect(q.status).toBe('needs-confirmation');
     expect(q.status === 'needs-confirmation' && q.displacedRoutes).toEqual([1]);
     expect(q.status === 'needs-confirmation' && q.impacted).toEqual([{ edgeId: 1, before: 'routed', after: 'unresolved' }]);
     expectIssue(commitSpatialEdit(q), 'route-displacement');
     const moved = expectOk(commitSpatialEdit(q, { confirmRouteDisplacement: true }));
-    expect(moved.nodes[1]!.grid).toEqual([3, 0, 0]);
+    expect(moved.nodes[1]!.position).toEqual([3, 0, 0]);
     expect(moved.edges).toEqual(d.edges); // the relationship is kept
-    expect(d.nodes[1]!.grid).toEqual([5, 0, 0]);
+    expect(d.nodes[1]!.position).toEqual([5, 0, 0]);
   });
 });
 
@@ -132,14 +132,14 @@ describe('applyDesignCommand (frozen v2 command shapes)', () => {
     const d = expectOk(applyDesignCommand(doc(), { type: 'remove-edge', edgeId: 1 }));
     const next = expectOk(applyDesignCommand(d, { type: 'add-edge', edge: { source: 2, target: 1 } }));
     // The new edge takes the counter (2): the removed edge's id 1 is never reused.
-    expect(next.edges).toEqual([{ id: 2, source: 2, target: 1, kind: 'access', attributes: {} }]);
+    expect(next.edges).toEqual([{ id: 2, source: 2, target: 1, relationship: 'access', custom: {} }]);
     expect(next.nextEdgeId).toBe(3);
   });
 
-  it('changes kind and the relationship’s own corridor fields; null clears a field, none left removes `corridor`', () => {
-    let d = expectOk(applyDesignCommand(doc(), { type: 'change-edge-kind', edgeId: 1, kind: 'open' }));
+  it('changes the relationship’s own corridor fields; null clears a field, none left removes `corridor`', () => {
+    let d = expectOk(applyDesignCommand(doc(), { type: 'change-edge-kind', edgeId: 1, relationship: 'open' }));
     d = expectOk(applyDesignCommand(d, { type: 'set-edge-corridor', edgeId: 1, patch: { walls: 'enclosed' } }));
-    expect(d.edges[0]).toMatchObject({ kind: 'open', corridor: { walls: 'enclosed' } });
+    expect(d.edges[0]).toMatchObject({ relationship: 'open', corridor: { walls: 'enclosed' } });
     d = expectOk(applyDesignCommand(d, { type: 'set-edge-corridor', edgeId: 1, patch: { roof: 'pergola' } }));
     expect(d.edges[0]!.corridor).toEqual({ walls: 'enclosed', roof: 'pergola' });
     d = expectOk(applyDesignCommand(d, { type: 'set-edge-corridor', edgeId: 1, patch: { walls: null } }));
@@ -174,12 +174,12 @@ describe('applyDesignCommand (frozen v2 command shapes)', () => {
   });
 
   it('adds a room with the next id and default size; removal drops its edges and position; ids are never reused', () => {
-    const d = expectOk(applyDesignCommand(doc(), { type: 'add-node', node: { grid: [0, 5, 0], typeId: 'storage' } }));
+    const d = expectOk(applyDesignCommand(doc(), { type: 'add-node', node: { position: [0, 5, 0], function: 'storage' } }));
     expect(d.nodes[2]).toMatchObject({ id: 3, size: [1, 1, 1] });
     expect(d.nextNodeId).toBe(4);
     const r = expectOk(applyDesignCommand(d, { type: 'remove-node', nodeId: 3 }));
     expect(r.nextNodeId).toBe(4); // the counter does not go back
-    const again = expectOk(applyDesignCommand(r, { type: 'add-node', node: { grid: [0, 5, 0], typeId: 'storage' } }));
+    const again = expectOk(applyDesignCommand(r, { type: 'add-node', node: { position: [0, 5, 0], function: 'storage' } }));
     expect(again.nodes.map((n) => n.id)).toEqual([1, 2, 4]);
     const s = expectOk(applyDesignCommand(again, { type: 'remove-node', nodeId: 1 }));
     expect(s.edges).toEqual([]);
@@ -188,17 +188,17 @@ describe('applyDesignCommand (frozen v2 command shapes)', () => {
   });
 
   it('routes geometry through the spatial edit rules', () => {
-    expectIssue(applyDesignCommand(doc(), { type: 'set-node-geometry', nodeId: 2, grid: [1, 0, 0] }), 'room-overlap');
+    expectIssue(applyDesignCommand(doc(), { type: 'set-node-geometry', nodeId: 2, position: [1, 0, 0] }), 'room-overlap');
     expectIssue(
-      applyDesignCommand(doc(), { type: 'set-node-geometry', nodeId: 2, grid: [3, 0, 0] }, { resolve: fakeRouter }),
+      applyDesignCommand(doc(), { type: 'set-node-geometry', nodeId: 2, position: [3, 0, 0] }, { resolve: fakeRouter }),
       'route-displacement',
     );
     const ok = applyDesignCommand(
       doc(),
-      { type: 'set-node-geometry', nodeId: 2, grid: [3, 0, 0], confirmRouteDisplacement: true },
+      { type: 'set-node-geometry', nodeId: 2, position: [3, 0, 0], confirmRouteDisplacement: true },
       { resolve: fakeRouter },
     );
-    expect(expectOk(ok).nodes[1]!.grid).toEqual([3, 0, 0]);
+    expect(expectOk(ok).nodes[1]!.position).toEqual([3, 0, 0]);
   });
 
   it('refuses unknown ids by number; never mutates the input', () => {
@@ -207,7 +207,7 @@ describe('applyDesignCommand (frozen v2 command shapes)', () => {
     const missing = expectIssue(applyDesignCommand(d, { type: 'remove-edge', edgeId: 99 }), 'not-found');
     expect(missing.message).toBe('edge 99 does not exist');
     expect(expectIssue(applyDesignCommand(d, { type: 'remove-node', nodeId: 7 }), 'not-found').message).toBe('node 7 does not exist');
-    expectOk(applyDesignCommand(d, { type: 'add-node', node: { grid: [0, 5, 0], typeId: 'storage' } }));
+    expectOk(applyDesignCommand(d, { type: 'add-node', node: { position: [0, 5, 0], function: 'storage' } }));
     expect(serializeDesignV2(d)).toBe(before);
   });
 });

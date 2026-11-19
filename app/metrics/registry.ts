@@ -12,10 +12,10 @@ type DocumentDependency = Exclude<MetricDependency, 'resolution'>;
 const signatureCache = new WeakMap<DesignDocumentV2, Partial<Record<DocumentDependency, string>>>();
 
 const SIGNATURE_TEXT: Readonly<Record<DocumentDependency, (doc: DesignDocumentV2) => unknown>> = {
-  topology: (doc) => [doc.nodes.map((n) => n.id), doc.edges.map((e) => [e.id, e.source, e.target, e.kind])],
-  geometry: (doc) => doc.nodes.map((n) => [n.id, n.grid, n.size]),
-  types: (doc) => doc.nodes.map((n) => [n.id, n.typeId]),
-  attributes: (doc) => [doc.nodes.map((n) => [n.id, n.attributes]), doc.edges.map((e) => [e.id, e.attributes])],
+  topology: (doc) => [doc.nodes.map((n) => n.id), doc.edges.map((e) => [e.id, e.source, e.target, e.relationship])],
+  geometry: (doc) => doc.nodes.map((n) => [n.id, n.position, n.size]),
+  types: (doc) => doc.nodes.map((n) => [n.id, n.function]),
+  attributes: (doc) => [doc.nodes.map((n) => [n.id, n.custom]), doc.edges.map((e) => [e.id, e.custom])],
   settings: (doc) => doc.settings,
 };
 

@@ -35,15 +35,15 @@ const houseDesign = (): DesignDocumentV2 => {
   return design.result.value;
 };
 
-type Room = { id: number; grid: [number, number, number]; size?: [number, number, number]; typeId: string; attributes?: Record<string, number> };
+type Room = { id: number; position: [number, number, number]; size?: [number, number, number]; function: string; custom?: Record<string, number> };
 
 function design(nodes: readonly Room[], edges: readonly [number, number][] = []): DesignDocumentV2 {
   return expectOk(
     validateDocumentV2({
       schemaVersion: 2,
       metadata: { name: 'test' },
-      nodes: nodes.map((n) => ({ size: [1, 1, 1], attributes: {}, ...n })),
-      edges: edges.map(([source, target], i) => ({ id: i + 1, source, target, kind: 'access', attributes: {} })),
+      nodes: nodes.map((n) => ({ size: [1, 1, 1], custom: {}, ...n })),
+      edges: edges.map(([source, target], i) => ({ id: i + 1, source, target, relationship: 'access', custom: {} })),
     }),
   );
 }
@@ -56,7 +56,7 @@ function grow(doc: DesignDocumentV2) {
 
 const box = (doc: DesignDocumentV2, id: number) => {
   const n = doc.nodes.find((r) => r.id === id)!;
-  return { grid: n.grid, size: n.size };
+  return { position: n.position, size: n.size };
 };
 
 /** Relationships whose rooms share a wall or floor ("direct"). */
@@ -84,8 +84,8 @@ describe('Grow to target area on the house design', () => {
     const doc = houseDesign();
     expect(doc.nodes.every((n) => n.size.join() === '1,1,1')).toBe(true);
     expect(direct(doc)).toEqual(doc.edges.map((e) => e.id).sort());
-    const ground = new Set(doc.nodes.filter((n) => n.grid[2] === 0).map((n) => `${n.grid[0]},${n.grid[1]}`));
-    expect(doc.nodes.filter((n) => n.grid[2] === 1).every((n) => ground.has(`${n.grid[0]},${n.grid[1]}`))).toBe(true);
+    const ground = new Set(doc.nodes.filter((n) => n.position[2] === 0).map((n) => `${n.position[0]},${n.position[1]}`));
+    expect(doc.nodes.filter((n) => n.position[2] === 1).every((n) => ground.has(`${n.position[0]},${n.position[1]}`))).toBe(true);
   });
 
   it('grows every room below its target to the target, with nothing blocked, into a compact house', () => {
@@ -99,16 +99,16 @@ describe('Grow to target area on the house design', () => {
       'Entrance 1: 9 m² (target 9) ✓',
     ]);
     expect(preview.operations).toEqual([
-      { op: 'set-node-geometry', nodeId: 2, grid: [1, 1, 0], size: [2, 2, 1] },
-      { op: 'set-node-geometry', nodeId: 3, grid: [1, 0, 0], size: [2, 1, 1] },
-      { op: 'set-node-geometry', nodeId: 4, grid: [1, 1, 1], size: [2, 1, 1] },
+      { op: 'set-node-geometry', nodeId: 2, position: [1, 1, 0], size: [2, 2, 1] },
+      { op: 'set-node-geometry', nodeId: 3, position: [1, 0, 0], size: [2, 1, 1] },
+      { op: 'set-node-geometry', nodeId: 4, position: [1, 1, 1], size: [2, 1, 1] },
     ]);
     // Ground: entrance porch, 2 × 2 living room, kitchen beside it; upstairs: bath and bedroom in a
     // row over the entrance and the living room.
     const cells = (z: number) =>
       preview.after.nodes
-        .filter((n) => n.grid[2] === z)
-        .flatMap((n) => Array.from({ length: n.size[0] * n.size[1] }, (_, k) => `${n.grid[0] + (k % n.size[0])},${n.grid[1] + Math.floor(k / n.size[0])}`))
+        .filter((n) => n.position[2] === z)
+        .flatMap((n) => Array.from({ length: n.size[0] * n.size[1] }, (_, k) => `${n.position[0] + (k % n.size[0])},${n.position[1] + Math.floor(k / n.size[0])}`))
         .sort();
     expect(cells(0)).toEqual(['0,1', '1,0', '1,1', '1,2', '2,0', '2,1', '2,2']);
     expect(cells(1)).toEqual(['0,1', '1,1', '2,1']);
@@ -122,10 +122,10 @@ describe('Grow to target area on the house design', () => {
 
   it('a room override changes the result (targetArea on the room beats its Function default)', () => {
     const doc = houseDesign();
-    const bigger = { ...doc, nodes: doc.nodes.map((n) => (n.id === 3 ? { ...n, attributes: { targetArea: 27 } } : n)) };
+    const bigger = { ...doc, nodes: doc.nodes.map((n) => (n.id === 3 ? { ...n, custom: { targetArea: 27 } } : n)) };
     const preview = grow(expectOk(validateDocumentV2(bigger)));
     expect(preview.summary).toContain('Kitchen 3: 9 → 27 m² (target 27) ✓');
-    expect(box(preview.after, 3)).toEqual({ grid: [1, 0, 0], size: [3, 1, 1] });
+    expect(box(preview.after, 3)).toEqual({ position: [1, 0, 0], size: [3, 1, 1] });
   });
 
   it('reports a blocked room with its reasons', () => {
@@ -133,10 +133,10 @@ describe('Grow to target area on the house design', () => {
     const preview = grow(
       design(
         [
-          { id: 1, grid: [0, 0, 0], typeId: 'living', attributes: { targetArea: 9 } },
-          { id: 2, grid: [0, 0, 1], typeId: 'bedroom' },
-          { id: 3, grid: [1, 0, 1], typeId: 'circulation' },
-          { id: 4, grid: [1, 0, 0], typeId: 'circulation' },
+          { id: 1, position: [0, 0, 0], function: 'living', custom: { targetArea: 9 } },
+          { id: 2, position: [0, 0, 1], function: 'bedroom' },
+          { id: 3, position: [1, 0, 1], function: 'circulation' },
+          { id: 4, position: [1, 0, 0], function: 'circulation' },
         ],
         [
           [1, 4],
@@ -161,8 +161,8 @@ describe('Grow to target area: houses', () => {
       .filter((n) => ids.includes(n.id))
       .flatMap((n) => {
         const out: string[] = [];
-        for (let x = n.grid[0]; x < n.grid[0] + n.size[0]; x++)
-          for (let y = n.grid[1]; y < n.grid[1] + n.size[1]; y++) for (let z = n.grid[2]; z < n.grid[2] + n.size[2]; z++) out.push(`${x},${y},${z}`);
+        for (let x = n.position[0]; x < n.position[0] + n.size[0]; x++)
+          for (let y = n.position[1]; y < n.position[1] + n.size[1]; y++) for (let z = n.position[2]; z < n.position[2] + n.size[2]; z++) out.push(`${x},${y},${z}`);
         return out;
       });
   /** Groups of related rooms (connected components), by lowest id. */
@@ -220,9 +220,9 @@ describe('Grow to target area: houses', () => {
     const preview = grow(
       design(
         [
-          { id: 1, grid: [0, 0, 0], typeId: 'kitchen' },
-          { id: 2, grid: [10, 0, 0], typeId: 'kitchen' },
-          { id: 3, grid: [1, 0, 0], typeId: 'entrance' },
+          { id: 1, position: [0, 0, 0], function: 'kitchen' },
+          { id: 2, position: [10, 0, 0], function: 'kitchen' },
+          { id: 3, position: [1, 0, 0], function: 'entrance' },
         ],
         [[1, 3]],
       ),
@@ -240,20 +240,20 @@ describe('Grow to target area: houses', () => {
     // would share a wall with Bath 2, so Bath 1 grows on -x instead.
     const gap = grow(
       design([
-        { id: 1, grid: [0, 0, 0], typeId: 'bath', attributes: { targetArea: 18 } },
-        { id: 2, grid: [1, 1, 0], typeId: 'bath' },
+        { id: 1, position: [0, 0, 0], function: 'bath', custom: { targetArea: 18 } },
+        { id: 2, position: [1, 1, 0], function: 'bath' },
       ]),
     );
-    expect(box(gap.after, 1)).toEqual({ grid: [-1, 0, 0], size: [2, 1, 1] });
+    expect(box(gap.after, 1)).toEqual({ position: [-1, 0, 0], size: [2, 1, 1] });
     // Kitchen 1 is walled in by its own house; its only free cell lies under a room of House 2.
     const walled = grow(
       design(
         [
-          { id: 1, grid: [0, 0, 0], typeId: 'kitchen' },
-          { id: 2, grid: [-1, 0, 0], typeId: 'entrance' },
-          { id: 3, grid: [0, 1, 0], typeId: 'entrance' },
-          { id: 4, grid: [0, -1, 0], typeId: 'entrance' },
-          { id: 5, grid: [1, 0, 1], typeId: 'bath' },
+          { id: 1, position: [0, 0, 0], function: 'kitchen' },
+          { id: 2, position: [-1, 0, 0], function: 'entrance' },
+          { id: 3, position: [0, 1, 0], function: 'entrance' },
+          { id: 4, position: [0, -1, 0], function: 'entrance' },
+          { id: 5, position: [1, 0, 1], function: 'bath' },
         ],
         [
           [1, 2],
@@ -268,11 +268,11 @@ describe('Grow to target area: houses', () => {
     const ringed = grow(
       design(
         [
-          { id: 1, grid: [0, 0, 0], typeId: 'kitchen' },
-          { id: 2, grid: [2, 0, 0], typeId: 'entrance' },
-          { id: 3, grid: [-2, 0, 0], typeId: 'entrance' },
-          { id: 4, grid: [0, 2, 0], typeId: 'entrance' },
-          { id: 5, grid: [0, -2, 0], typeId: 'entrance' },
+          { id: 1, position: [0, 0, 0], function: 'kitchen' },
+          { id: 2, position: [2, 0, 0], function: 'entrance' },
+          { id: 3, position: [-2, 0, 0], function: 'entrance' },
+          { id: 4, position: [0, 2, 0], function: 'entrance' },
+          { id: 5, position: [0, -2, 0], function: 'entrance' },
         ],
         [
           [2, 4],
@@ -298,8 +298,8 @@ describe('Grow to target area: houses', () => {
     const links = preview.operations.filter((o) => o.op === 'add-edge');
     expect(adds).toHaveLength(10);
     expect(links).toHaveLength(8);
-    expect(links.map((o) => o.kind).sort()).toEqual([...doc.edges, ...doc.edges].map((e) => e.kind).sort());
-    expect(adds[0]).toEqual({ op: 'add-node', ref: 'house-2-room-1', grid: [9, 1, 0], size: [1, 1, 1], typeId: 'entrance', attributes: {} });
+    expect(links.map((o) => o.relationship).sort()).toEqual([...doc.edges, ...doc.edges].map((e) => e.relationship).sort());
+    expect(adds[0]).toEqual({ op: 'add-node', ref: 'house-2-room-1', position: [9, 1, 0], size: [1, 1, 1], function: 'entrance', custom: {} });
     const after = preview.after;
     expect(validateDocumentV2(after).ok).toBe(true);
     const groups = groupsOf(after);
@@ -308,8 +308,8 @@ describe('Grow to target area: houses', () => {
     // Every copy is House 1 moved along +x.
     const shape = (ids: readonly number[]) => {
       const rooms = after.nodes.filter((n) => ids.includes(n.id)).sort((a, b) => a.id - b.id);
-      const x0 = Math.min(...rooms.map((n) => n.grid[0]));
-      return rooms.map((n) => [n.typeId, n.grid[0] - x0, n.grid[1], n.grid[2], ...n.size]);
+      const x0 = Math.min(...rooms.map((n) => n.position[0]));
+      return rooms.map((n) => [n.function, n.position[0] - x0, n.position[1], n.position[2], ...n.size]);
     };
     expect(shape(groups[1]!)).toEqual(shape(groups[0]!));
     expect(shape(groups[2]!)).toEqual(shape(groups[0]!));
@@ -326,9 +326,9 @@ describe('Grow to target area: houses', () => {
 
   it('copies keep the stored attributes of House 1, and no Houses value means as many as drawn', () => {
     const doc = houseDesign();
-    const marked = expectOk(validateDocumentV2({ ...doc, nodes: doc.nodes.map((n) => (n.id === 5 ? { ...n, attributes: { priority: 2 } } : n)) }));
+    const marked = expectOk(validateDocumentV2({ ...doc, nodes: doc.nodes.map((n) => (n.id === 5 ? { ...n, custom: { priority: 2 } } : n)) }));
     const adds = growWith(marked, { houses: 2 }).operations.filter((o) => o.op === 'add-node');
-    expect(adds.find((o) => o.ref === 'house-2-room-5')).toMatchObject({ typeId: 'bath', attributes: { priority: 2 } });
+    expect(adds.find((o) => o.ref === 'house-2-room-5')).toMatchObject({ function: 'bath', custom: { priority: 2 } });
     expect(growWith(doc, {}).operations.some((o) => o.op === 'add-node')).toBe(false);
     expect(growWith(doc, { houses: 1 }).operations.some((o) => o.op === 'add-node')).toBe(false);
     expect(growWith(doc, { houses: 2.5 }).summary).toBe('Houses must be a whole number, like 1, 2 or 3 (not 2.5).');
@@ -338,8 +338,8 @@ describe('Grow to target area: houses', () => {
 describe('Grow to target area: rules', () => {
   it('grows to the target in one row or column at a time, preferring the side closest to the target', () => {
     // A 2×1 kitchen alone wanting 27 m²: +y would give 36 m², ±x gives 27 m² = the target; +x comes first.
-    const preview = grow(design([{ id: 1, grid: [0, 0, 0], size: [2, 1, 1], typeId: 'kitchen', attributes: { targetArea: 27 } }]));
-    expect(box(preview.after, 1)).toEqual({ grid: [0, 0, 0], size: [3, 1, 1] });
+    const preview = grow(design([{ id: 1, position: [0, 0, 0], size: [2, 1, 1], function: 'kitchen', custom: { targetArea: 27 } }]));
+    expect(box(preview.after, 1)).toEqual({ position: [0, 0, 0], size: [3, 1, 1] });
   });
 
   it('prefers a side that faces outside over a pocket between rooms', () => {
@@ -348,9 +348,9 @@ describe('Grow to target area: rules', () => {
     const preview = grow(
       design(
         [
-          { id: 2, grid: [0, 0, 0], typeId: 'bath', attributes: { targetArea: 18 } },
-          { id: 3, grid: [2, 0, 0], typeId: 'entrance' },
-          { id: 4, grid: [1, 1, 0], typeId: 'entrance' },
+          { id: 2, position: [0, 0, 0], function: 'bath', custom: { targetArea: 18 } },
+          { id: 3, position: [2, 0, 0], function: 'entrance' },
+          { id: 4, position: [1, 1, 0], function: 'entrance' },
         ],
         [
           [2, 4],
@@ -358,25 +358,25 @@ describe('Grow to target area: rules', () => {
         ],
       ),
     );
-    expect(box(preview.after, 2)).toEqual({ grid: [-1, 0, 0], size: [2, 1, 1] });
+    expect(box(preview.after, 2)).toEqual({ position: [-1, 0, 0], size: [2, 1, 1] });
   });
 
   it('never overlaps, keeps every related pair touching and keeps corridor cells free, even with huge targets', () => {
     const doc = houseDesign();
-    const greedy = expectOk(validateDocumentV2({ ...doc, nodes: doc.nodes.map((n) => ({ ...n, attributes: { targetArea: 300 } })) }));
+    const greedy = expectOk(validateDocumentV2({ ...doc, nodes: doc.nodes.map((n) => ({ ...n, custom: { targetArea: 300 } })) }));
     const preview = grow(greedy);
     expect(validateDocumentV2(preview.after).ok).toBe(true); // overlaps are invalid
     expect(direct(preview.after)).toEqual(direct(greedy));
     // A related pair lined up on one storey, not touching: the corridor between them stays free.
     const pair = design(
       [
-        { id: 1, grid: [0, 0, 0], typeId: 'bath', attributes: { targetArea: 18 } },
-        { id: 2, grid: [3, 0, 0], typeId: 'entrance' },
+        { id: 1, position: [0, 0, 0], function: 'bath', custom: { targetArea: 18 } },
+        { id: 2, position: [3, 0, 0], function: 'entrance' },
       ],
       [[1, 2]],
     );
     const after = grow(pair).after;
-    expect(box(after, 1)).toEqual({ grid: [-1, 0, 0], size: [2, 1, 1] });
+    expect(box(after, 1)).toEqual({ position: [-1, 0, 0], size: [2, 1, 1] });
     expect(resolveRelationships(after).byEdge.get(1)!.status).toBe('routed');
   });
 
@@ -385,9 +385,9 @@ describe('Grow to target area: rules', () => {
     const rooms = (p1: number, p2: number) =>
       design(
         [
-          { id: 1, grid: [0, 0, 0], size: [3, 1, 1], typeId: 'living', attributes: { targetArea: 27 } },
-          { id: 2, grid: [0, 0, 1], typeId: 'bath', attributes: { priority: p1, targetArea: 18 } },
-          { id: 3, grid: [2, 0, 1], typeId: 'bath', attributes: { priority: p2, targetArea: 18 } },
+          { id: 1, position: [0, 0, 0], size: [3, 1, 1], function: 'living', custom: { targetArea: 27 } },
+          { id: 2, position: [0, 0, 1], function: 'bath', custom: { priority: p1, targetArea: 18 } },
+          { id: 3, position: [2, 0, 1], function: 'bath', custom: { priority: p2, targetArea: 18 } },
         ],
         [
           [1, 2],
@@ -407,22 +407,22 @@ describe('Grow to target area: rules', () => {
   it('stops when blocked and names the reason', () => {
     const boxedIn = grow(
       design([
-        { id: 1, grid: [1, 1, 0], typeId: 'bath', attributes: { targetArea: 18 } },
-        { id: 2, grid: [0, 1, 0], typeId: 'entrance' },
-        { id: 3, grid: [2, 1, 0], typeId: 'entrance' },
-        { id: 4, grid: [1, 0, 0], typeId: 'entrance' },
-        { id: 5, grid: [1, 2, 0], typeId: 'entrance' },
+        { id: 1, position: [1, 1, 0], function: 'bath', custom: { targetArea: 18 } },
+        { id: 2, position: [0, 1, 0], function: 'entrance' },
+        { id: 3, position: [2, 1, 0], function: 'entrance' },
+        { id: 4, position: [1, 0, 0], function: 'entrance' },
+        { id: 5, position: [1, 2, 0], function: 'entrance' },
       ]),
     );
     expect(boxedIn.operations).toEqual([]);
     expect(boxedIn.summary).toContain('Bath 1: 9 of 18 m² — no free space');
-    const huge = grow(design([{ id: 1, grid: [0, 0, 0], typeId: 'bath', attributes: { targetArea: 10_000 } }]));
+    const huge = grow(design([{ id: 1, position: [0, 0, 0], function: 'bath', custom: { targetArea: 10_000 } }]));
     expect(huge.summary).toContain('Bath 1: 9 → 9216 of 10000 m² — largest room size reached');
     expect(box(huge.after, 1).size).toEqual([32, 32, 1]);
   });
 
   it('leaves rooms without a target area (a Function the toolkit does not define)', () => {
-    const preview = grow(design([{ id: 1, grid: [0, 0, 0], typeId: 'garage' }]));
+    const preview = grow(design([{ id: 1, position: [0, 0, 0], function: 'garage' }]));
     expect(preview.operations).toEqual([]);
     expect(preview.summary).toContain('Garage 1: no target area, left as it is');
   });
@@ -440,9 +440,9 @@ describe('every House attribute is used', () => {
       nodeAt: ctx.nodeAt,
       touches: ctx.touches,
       canRelate: ctx.canRelate,
-      attributesOf: ctx.attributesOf,
-      nodeAttributes: (id) => spy(ctx.nodeAttributes(id)),
-      edgeAttributes: (id) => spy(ctx.edgeAttributes(id)),
+      customOf: ctx.customOf,
+      nodeCustom: (id) => spy(ctx.nodeCustom(id)),
+      edgeCustom: (id) => spy(ctx.edgeCustom(id)),
     };
     algorithm.run(watched);
     const declared = [...house.attributeBaseline.schema.nodes, ...house.attributeBaseline.schema.edges].map((f) => f.key);

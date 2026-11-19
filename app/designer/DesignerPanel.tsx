@@ -152,7 +152,7 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
         <CardRow
           row={row}
           onWindow={(fraction) =>
-            send(setWindowFractionEdit(doc, row.target, fraction, row.typeId !== null ? facade(row.typeId).windowFraction : row.inheritedWindowFraction))
+            send(setWindowFractionEdit(doc, row.target, fraction, row.function !== null ? facade(row.function).windowFraction : row.inheritedWindowFraction))
           }
           onInvalid={setError}
           onLayout={(layout) => send(setWindowLayoutEdit(doc, row.target, layout))}
@@ -647,7 +647,7 @@ function VariantField({
  */
 function CardRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, onRemove, highlighted, onHighlight, facade }: CardRowProps) {
   // Collapsed by default; the user's open/closed choice per card sticks (this browser).
-  const rememberBase = row.typeId !== null ? `designer-function:${row.typeId}` : `designer-card:${row.target.by}:${row.key}`;
+  const rememberBase = row.function !== null ? `designer-function:${row.function}` : `designer-card:${row.target.by}:${row.key}`;
   const [open, toggleOpen] = useRememberedOpen(rememberBase, false);
   const isDefault = row.target.group.kind === 'default';
   /** The card itself sets this field (for Default: Default sets it). */
@@ -680,7 +680,7 @@ function CardRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
   useEffect(() => setText(effectivePercent), [effectivePercent]);
 
   const shownFraction = slider ?? row.effective.windowFraction;
-  const idBase = row.typeId !== null ? `sgl-designer-${row.typeId}` : `sgl-designer--${row.key.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+  const idBase = row.function !== null ? `sgl-designer-${row.function}` : `sgl-designer--${row.key.replace(/[^A-Za-z0-9_-]/g, '_')}`;
   const inherited = !setHere(row.effective.source.windowFraction);
 
   const commitSlider = () => {
@@ -718,8 +718,8 @@ function CardRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
             <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <span
-            className={`sgl-designer-swatch${row.typeId === null ? ' sgl-designer-swatch--default' : ''}`}
-            style={row.typeId !== null ? { background: typeColor(row.typeId) } : undefined}
+            className={`sgl-designer-swatch${row.function === null ? ' sgl-designer-swatch--default' : ''}`}
+            style={row.function !== null ? { background: typeColor(row.function) } : undefined}
             aria-hidden="true"
           />
           <span className="sgl-designer-type-text">

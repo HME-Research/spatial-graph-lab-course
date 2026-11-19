@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readDesign, readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document';
-import { defineGraphAlgorithm, defineNodeType, defineToolkit, defineSpatialAlgorithm } from '@student-api';
+import { defineGraphAlgorithm, defineFunction, defineToolkit, defineSpatialAlgorithm } from '@student-api';
 import exampleV1 from '../document/test-designs/two-storey.json';
 import { activate, type ActiveToolkit } from './activate';
 import { deriveAttributeBaseline, humanizeKey, mergeBaseline } from './attributeBaseline';
@@ -48,26 +48,26 @@ const designA = () =>
     schemaVersion: 2,
     metadata: { name: 'A' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: { daylight: 'high' } },
-      { id: 2, grid: [1, 0, 0], typeId: 'storage', attributes: {} },
+      { id: 1, position: [0, 0, 0], function: 'gallery', custom: { daylight: 'high' } },
+      { id: 2, position: [1, 0, 0], function: 'storage', custom: {} },
     ],
-    edges: [{ id: 1, source: 1, target: 2, kind: 'access', attributes: {} }],
+    edges: [{ id: 1, source: 1, target: 2, relationship: 'access', custom: {} }],
   });
 const designB = () =>
   v2({
     schemaVersion: 2,
     metadata: { name: 'B' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: { public: false } },
-      { id: 2, grid: [4, 0, 0], typeId: 'kiosk', attributes: { capacity: 12 } },
+      { id: 1, position: [0, 0, 0], function: 'gallery', custom: { public: false } },
+      { id: 2, position: [4, 0, 0], function: 'kiosk', custom: { capacity: 12 } },
     ],
-    edges: [{ id: 1, source: 1, target: 2, kind: 'open', attributes: { weight: 2 } }],
+    edges: [{ id: 1, source: 1, target: 2, relationship: 'open', custom: { weight: 2 } }],
   });
 
-const storageType = defineNodeType({ id: 'storage', label: 'Storage', attributes: { public: { kind: 'boolean', default: false } } });
+const storageType = defineFunction({ id: 'storage', label: 'Storage', custom: { public: { kind: 'boolean', default: false } } });
 
 async function gallery(): Promise<ActiveToolkit> {
-  return labToolkit({ 'toolkits/lab/types/storage.ts': { default: storageType } });
+  return labToolkit({ 'toolkits/lab/functions/storage.ts': { default: storageType } });
 }
 
 describe('baseline from toolkit files', () => {
@@ -86,12 +86,12 @@ describe('baseline from toolkit files', () => {
     expect(schema.edges).toEqual([]);
   });
 
-  it('reads defineToolkit({ attributes }) with labels, help and separate edge fields', async () => {
+  it('reads defineToolkit({ custom }) with labels, help and separate edge fields', async () => {
     const project = await labToolkit({
       'toolkits/lab/toolkit.ts': {
         default: defineToolkit({
           name: 'Lab',
-          attributes: {
+          custom: {
             nodes: { capacity: { kind: 'number', min: 0, default: 10, label: 'Capacity (people)' } },
             edges: { weight: { kind: 'number', default: 1, description: 'Cost of walking' } },
           },
@@ -104,8 +104,8 @@ describe('baseline from toolkit files', () => {
   });
 
   it('reports conflicting and unusable declarations; the first declaration wins', async () => {
-    const odd = defineNodeType({ id: 'odd', label: 'Odd', attributes: { public: { kind: 'text' }, type: { kind: 'text' } } });
-    const project = await labToolkit({ 'toolkits/lab/types/zz-odd.ts': { default: odd } });
+    const odd = defineFunction({ id: 'odd', label: 'Odd', custom: { public: { kind: 'text' }, type: { kind: 'text' } } });
+    const project = await labToolkit({ 'toolkits/lab/functions/zz-odd.ts': { default: odd } });
     const codes = project.attributeBaseline.diagnostics.map((d) => [d.code, d.attribute]);
     expect(codes).toContainEqual(['attribute-declaration-conflict', 'public']);
     expect(codes).toContainEqual(['attribute-declaration-conflict', 'type']);
@@ -115,7 +115,7 @@ describe('baseline from toolkit files', () => {
 
   it('rejects an invalid project attribute declaration at activation (whole definition invalid)', async () => {
     const { activation } = await activate(
-      fakeGlobs({ ...LAB_FILES, 'toolkits/lab/toolkit.ts': { default: { name: 'Lab', attributes: { nodes: { x: { kind: 'colour' } } } } } }),
+      fakeGlobs({ ...LAB_FILES, 'toolkits/lab/toolkit.ts': { default: { name: 'Lab', custom: { nodes: { x: { kind: 'colour' } } } } } }),
       { query: 'lab' },
     );
     expect(activation.status).toBe('failed');
@@ -123,9 +123,9 @@ describe('baseline from toolkit files', () => {
 
   it('flags a reserved key declared in defineToolkit and ignores it', async () => {
     const project = await labToolkit({
-      'toolkits/lab/toolkit.ts': { default: defineToolkit({ name: 'Lab', attributes: { nodes: { grid: { kind: 'text' } } } }) },
+      'toolkits/lab/toolkit.ts': { default: defineToolkit({ name: 'Lab', custom: { nodes: { position: { kind: 'text' } } } }) },
     });
-    expect(project.attributeBaseline.schema.nodes.some((f) => f.key === 'grid')).toBe(false);
+    expect(project.attributeBaseline.schema.nodes.some((f) => f.key === 'position')).toBe(false);
     expect(project.diagnostics.find((d) => d.code === 'invalid-attribute-schema')?.message).toMatch(/reserved/);
   });
 
@@ -174,8 +174,8 @@ describe('effective values (shared by every design of the project)', () => {
 
   it('precedence: instance → type default → schema default; explicit null; invalid falls through', () => {
     let schema = ok(edit(EMPTY_ATTRIBUTE_SCHEMA, { type: 'add-field', collection: 'nodes', field: { key: 'public', kind: 'boolean', default: false } }));
-    schema = ok(edit(schema, { type: 'set-type-default', typeId: 'gallery', fieldId: 'public', value: true }));
-    const r = (typeId: string, attributes: Record<string, unknown>) => resolveNodeAttributes(schema, { typeId, attributes })[0]!;
+    schema = ok(edit(schema, { type: 'set-type-default', function: 'gallery', fieldId: 'public', value: true }));
+    const r = (functionId: string, attributes: Record<string, unknown>) => resolveNodeAttributes(schema, { function: functionId, custom: attributes })[0]!;
     expect([r('gallery', {}).value, r('gallery', {}).source]).toEqual([true, 'type-default']);
     expect([r('studio', {}).value, r('studio', {}).source]).toEqual([false, 'schema-default']);
     expect([r('gallery', { public: false }).value, r('gallery', { public: false }).source]).toEqual([false, 'instance']);
@@ -199,9 +199,9 @@ describe('effective values (shared by every design of the project)', () => {
   it('separate projects do not share definitions', async () => {
     const lab = await gallery();
     const other = await labToolkit({
-      'toolkits/lab/toolkit.ts': { default: defineToolkit({ name: 'Other', attributes: { nodes: { quiet: { kind: 'boolean' } } } }) },
-      'toolkits/lab/types/gallery.ts': { default: defineNodeType({ id: 'gallery', label: 'G' }) },
-      'toolkits/lab/types/studio.ts': { default: defineNodeType({ id: 'studio', label: 'S' }) },
+      'toolkits/lab/toolkit.ts': { default: defineToolkit({ name: 'Other', custom: { nodes: { quiet: { kind: 'boolean' } } } }) },
+      'toolkits/lab/functions/gallery.ts': { default: defineFunction({ id: 'gallery', label: 'G' }) },
+      'toolkits/lab/functions/studio.ts': { default: defineFunction({ id: 'studio', label: 'S' }) },
     });
     expect(other.attributeBaseline.schema.nodes.map((f) => f.key)).toEqual(['quiet']);
     expect(lab.attributeBaseline.schema.nodes.map((f) => f.key)).not.toContain('quiet');
@@ -219,7 +219,7 @@ describe('schema edits', () => {
   it('rejects duplicate (any case), reserved and malformed keys', () => {
     const schema = base();
     expect(refused(edit(schema, { type: 'add-field', collection: 'nodes', field: { key: 'Capacity', kind: 'text' } }))).toMatch(/already uses/);
-    for (const key of ['id', 'typeId', 'grid', 'size', 'source', 'kind', 'corridor', '__proto__', 'constructor']) {
+    for (const key of ['id', 'function', 'position', 'size', 'custom', 'source', 'relationship', 'corridor', '__proto__', 'constructor']) {
       expect(keyConflict(schema, 'nodes', key)).not.toBeNull();
     }
     expect(refused(edit(schema, { type: 'add-field', collection: 'nodes', field: { key: '2nd', kind: 'text' } }))).toMatch(/not a valid key/);
@@ -231,7 +231,7 @@ describe('schema edits', () => {
   it('rejects invalid defaults and empty choices', () => {
     expect(refused(edit(EMPTY_ATTRIBUTE_SCHEMA, { type: 'add-field', collection: 'nodes', field: { key: 'n', kind: 'number', min: 0, default: -1 } }))).toMatch(/default/);
     expect(refused(edit(EMPTY_ATTRIBUTE_SCHEMA, { type: 'add-field', collection: 'nodes', field: { key: 'c', kind: 'enum', values: [] } }))).toMatch(/at least one/);
-    expect(refused(edit(base(), { type: 'set-type-default', typeId: 'gallery', fieldId: 'capacity', value: 'many' }))).toMatch(/must be a number/);
+    expect(refused(edit(base(), { type: 'set-type-default', function: 'gallery', fieldId: 'capacity', value: 'many' }))).toMatch(/must be a number/);
   });
 
   it('rename keeps the identity and the stored values (former keys); writing migrates the key', () => {
@@ -239,8 +239,8 @@ describe('schema edits', () => {
     const field = renamed.nodes[0]!;
     expect([field.id, field.key, field.formerKeys]).toEqual(['capacity', 'seats', ['capacity']]);
     const stored = { capacity: 8, note: 'x' };
-    expect(effectiveNodeValues(renamed, { typeId: 'gallery', attributes: stored })).toEqual({ seats: 8 });
-    expect(resolveNodeAttributes(renamed, { typeId: 'g', attributes: stored })[0]!.storedKey).toBe('capacity');
+    expect(effectiveNodeValues(renamed, { function: 'gallery', custom: stored })).toEqual({ seats: 8 });
+    expect(resolveNodeAttributes(renamed, { function: 'g', custom: stored })[0]!.storedKey).toBe('capacity');
     expect(writeFieldValue(field, stored, 9)).toEqual({ note: 'x', seats: 9 });
     expect(writeFieldValue(field, stored, undefined)).toEqual({ note: 'x' });
     // A former key cannot be taken by another field; renaming back is allowed.
@@ -251,17 +251,17 @@ describe('schema edits', () => {
 
   it('kind change is refused while known values or defaults would become invalid', () => {
     const schema = base();
-    const usage = { usage: designSamples(null, { doc: { nodes: [{ id: 1, typeId: 'g', attributes: { capacity: 8 } }], edges: [] }, source: 'a.json' }) };
+    const usage = { usage: designSamples(null, { doc: { nodes: [{ id: 1, function: 'g', custom: { capacity: 8 } }], edges: [] }, source: 'a.json' }) };
     expect(refused(edit(schema, { type: 'change-field-kind', collection: 'nodes', fieldId: 'capacity', kind: 'boolean' }, usage))).toMatch(/1 stored value \(8\)/);
     expect(edit(schema, { type: 'change-field-kind', collection: 'nodes', fieldId: 'capacity', kind: 'text' }).ok).toBe(true);
-    const withDefault = ok(edit(schema, { type: 'set-type-default', typeId: 'g', fieldId: 'capacity', value: 3 }));
+    const withDefault = ok(edit(schema, { type: 'set-type-default', function: 'g', fieldId: 'capacity', value: 3 }));
     expect(refused(edit(withDefault, { type: 'change-field-kind', collection: 'nodes', fieldId: 'capacity', kind: 'text' }))).toMatch(/type “g”/);
     // Narrowing limits under a stored value is refused too.
     expect(refused(edit(schema, { type: 'update-field', collection: 'nodes', fieldId: 'capacity', patch: { max: 5 } }, usage))).toMatch(/stored value/);
   });
 
   it('delete removes the definition and its type defaults, never stored values', () => {
-    const schema = ok(edit(base(), { type: 'set-type-default', typeId: 'g', fieldId: 'capacity', value: 3 }));
+    const schema = ok(edit(base(), { type: 'set-type-default', function: 'g', fieldId: 'capacity', value: 3 }));
     const deleted = ok(edit(schema, { type: 'delete-field', collection: 'nodes', fieldId: 'capacity' }));
     expect(deleted.nodes).toEqual([]);
     expect(deleted.nodeTypeDefaults).toEqual({});
@@ -298,7 +298,7 @@ describe('audit regressions (phase 01 review)', () => {
     expect(edit(EMPTY_ATTRIBUTE_SCHEMA, { type: 'add-field', collection: 'nodes', field: { key: 'c', kind: 'enum', values: [''] } }).ok).toBe(false);
     const n = ok(edit(EMPTY_ATTRIBUTE_SCHEMA, { type: 'add-field', collection: 'nodes', field: { key: 'n', kind: 'number' } }));
     expect(edit(n, { type: 'update-field', collection: 'nodes', fieldId: 'n', patch: { min: Infinity } }).ok).toBe(false);
-    expect(edit(n, { type: 'set-type-default', typeId: 'Not A Type', fieldId: 'n', value: 1 }).ok).toBe(false);
+    expect(edit(n, { type: 'set-type-default', function: 'Not A Type', fieldId: 'n', value: 1 }).ok).toBe(false);
   });
 
   it('case-only renames are refused clearly; new fields get readable labels', () => {
@@ -314,15 +314,15 @@ describe('audit regressions (phase 01 review)', () => {
     const renamed = ok(edit(ok(edit(EMPTY_ATTRIBUTE_SCHEMA, { type: 'add-field', collection: 'nodes', field: { key: 'capacity', kind: 'number' } })), { type: 'rename-field', collection: 'nodes', fieldId: 'capacity', key: 'seats' }));
     const field = renamed.nodes[0]!;
     const stored = { seats: 3, capacity: 8 };
-    expect(resolveNodeAttributes(renamed, { typeId: 'g', attributes: stored })[0]!.shadowedKeys).toEqual(['capacity']);
+    expect(resolveNodeAttributes(renamed, { function: 'g', custom: stored })[0]!.shadowedKeys).toEqual(['capacity']);
     expect(writeFieldValue(field, stored, 4)).toEqual({ seats: 4, capacity: 8 });
     expect(writeFieldValue(field, { capacity: 8 }, 4)).toEqual({ seats: 4 });
     expect(writeFieldValue(field, { seats: 8, capacity: 8 }, 4)).toEqual({ seats: 4 });
   });
 
   it('a type default that does not fit the project field is reported, not silently ignored', async () => {
-    const odd = defineNodeType({ id: 'odd', label: 'Odd', attributes: { public: { kind: 'text', default: 'yes' } } });
-    const project = await labToolkit({ 'toolkits/lab/types/zz-odd.ts': { default: odd } });
+    const odd = defineFunction({ id: 'odd', label: 'Odd', custom: { public: { kind: 'text', default: 'yes' } } });
+    const project = await labToolkit({ 'toolkits/lab/functions/zz-odd.ts': { default: odd } });
     expect(project.attributeBaseline.diagnostics.some((d) => d.message.includes('default "yes"'))).toBe(true);
   });
 });
@@ -332,7 +332,7 @@ describe('algorithm reference warnings (heuristic)', () => {
     const reads = defineSpatialAlgorithm({
       id: 'reads',
       label: 'Reads',
-      run: (ctx) => ({ kind: 'transformation', operations: ctx.design.nodes.filter((n) => n.attributes['daylight'] === 'high').map(() => ({ op: 'add-edge', source: 1, target: 2, kind: 'access' }) as const) }),
+      run: (ctx) => ({ kind: 'transformation', operations: ctx.design.nodes.filter((n) => n.custom['daylight'] === 'high').map(() => ({ op: 'add-edge', source: 1, target: 2, relationship: 'access' }) as const) }),
     });
     const other = defineGraphAlgorithm({ id: 'other', label: 'Other', inputs: [], run: ({ graph }) => ({ kind: 'analysis', nodeValues: Object.fromEntries(graph.nodes.map((n) => [n.id, 1])) }) });
     const project = await labToolkit({ 'toolkits/lab/algorithms/reads.ts': { default: reads }, 'toolkits/lab/algorithms/other.ts': { default: other } });
@@ -389,11 +389,11 @@ describe('legacy and round-trip compatibility', () => {
     const doc = read.ok ? read.value.doc : (null as never);
     const { schema } = (await gallery()).attributeBaseline;
     const store = doc.nodes.find((n) => n.id === 4)! // store;
-    expect(store.attributes).toEqual({ daylight: null, public: false });
+    expect(store.custom).toEqual({ daylight: null, public: false });
     expect(resolveNodeAttributes(schema, store).find((r) => r.field.key === 'daylight')?.stored).toBe('null');
     // v2 export → import keeps every attribute (no schema information is written to designs).
     const again = readDesignJson(serializeDesignV2(doc));
-    expect(again.ok && again.value.doc.nodes.map((n) => n.attributes)).toEqual(doc.nodes.map((n) => n.attributes));
+    expect(again.ok && again.value.doc.nodes.map((n) => n.custom)).toEqual(doc.nodes.map((n) => n.custom));
     expect(serializeDesignV2(doc)).not.toMatch(/nodeTypeDefaults|formerKeys/);
   });
 });

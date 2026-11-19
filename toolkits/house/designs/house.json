@@ -7,17 +7,71 @@
   "nextNodeId": 6,
   "nextEdgeId": 5,
   "nodes": [
-    { "id": 1, "grid": [0, 1, 0], "size": [1, 1, 1], "typeId": "entrance", "attributes": {} },
-    { "id": 2, "grid": [1, 1, 0], "size": [1, 1, 1], "typeId": "living", "attributes": {} },
-    { "id": 3, "grid": [1, 0, 0], "size": [1, 1, 1], "typeId": "kitchen", "attributes": {} },
-    { "id": 4, "grid": [1, 1, 1], "size": [1, 1, 1], "typeId": "bedroom", "attributes": {} },
-    { "id": 5, "grid": [0, 1, 1], "size": [1, 1, 1], "typeId": "bath", "attributes": {} }
+    {
+      "id": 1,
+      "function": "entrance",
+      "position": [0, 1, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "function": "living",
+      "position": [1, 1, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "function": "kitchen",
+      "position": [1, 0, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "function": "bedroom",
+      "position": [1, 1, 1],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "function": "bath",
+      "position": [0, 1, 1],
+      "size": [1, 1, 1],
+      "custom": {}
+    }
   ],
   "edges": [
-    { "id": 1, "source": 1, "target": 2, "kind": "access", "attributes": {} },
-    { "id": 2, "source": 2, "target": 3, "kind": "open", "attributes": {} },
-    { "id": 3, "source": 2, "target": 4, "kind": "access", "attributes": {} },
-    { "id": 4, "source": 4, "target": 5, "kind": "access", "attributes": {} }
+    {
+      "id": 1,
+      "source": 1,
+      "target": 2,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "source": 2,
+      "target": 3,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "source": 2,
+      "target": 4,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "source": 4,
+      "target": 5,
+      "relationship": "access",
+      "custom": {}
+    }
   ],
   "diagram": {
     "positions": {
@@ -28,5 +82,8 @@
       "5": [0, 120]
     }
   },
-  "settings": { "styleBy": "function", "styles": {} }
+  "settings": {
+    "styleBy": "function",
+    "styles": {}
+  }
 }

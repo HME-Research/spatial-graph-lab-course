@@ -62,8 +62,8 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   const endpointText = (id: number): string => {
     const n = design.doc.nodes.find((x) => x.id === id);
     if (!n) return String(id);
-    const status = nodeTypeStatus(active, n.typeId);
-    return `${nodeLabel(n)} · ${status.kind === 'registered' ? status.label : n.typeId}`;
+    const status = nodeTypeStatus(active, n.function);
+    return `${nodeLabel(n)} · ${status.kind === 'registered' ? status.label : n.function}`;
   };
   const resolution = design.spatial.byEdge.get(edge.id);
   const status = resolution ? describeResolution(resolution) : null;
@@ -74,7 +74,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   const ownCount = (own.walls === undefined ? 0 : 1) + (own.roof === undefined ? 0 : 1);
 
   const setKind = (kind: RelationshipKind) => {
-    if (kind !== edge.kind) runV2({ type: 'change-edge-kind', edgeId, kind });
+    if (kind !== edge.relationship) runV2({ type: 'change-edge-kind', edgeId, relationship: kind });
   };
   // '' = Design default (clears this relationship's own value); a value is stored as its own.
   const setCorridor = (field: 'walls' | 'roof', next: string) => {
@@ -103,7 +103,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   );
 
   const schema = project?.attributes;
-  const outsideCount = schema ? Object.keys(attributesOutsideSchema(schema, 'edges', edge.attributes)).length : 0;
+  const outsideCount = schema ? Object.keys(attributesOutsideSchema(schema, 'edges', edge.custom)).length : 0;
   const showCustom = schema !== undefined && (schema.edges.length > 0 || outsideCount > 0);
   const manageLink = project && openAttributes ? <ManageAttributesLink onManage={() => openAttributes('edges')} /> : undefined;
 
@@ -149,12 +149,12 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
             attributeId="relationship"
             kind="required"
             label="Relationship"
-            title={RELATIONSHIP_KIND_CHOICES.find((c) => c.value === edge.kind)?.description ?? 'Access or Open.'}
+            title={RELATIONSHIP_KIND_CHOICES.find((c) => c.value === edge.relationship)?.description ?? 'Access or Open.'}
             control={
               <div className="sgl-segmented" role="radiogroup" aria-label="Relationship kind">
                 {RELATIONSHIP_KIND_CHOICES.map((c) => (
-                  <label key={c.value} className={edge.kind === c.value ? 'checked' : undefined} title={c.description}>
-                    <input type="radio" name={`kind-${edgeId}`} value={c.value} checked={edge.kind === c.value} onChange={() => setKind(c.value)} />
+                  <label key={c.value} className={edge.relationship === c.value ? 'checked' : undefined} title={c.description}>
+                    <input type="radio" name={`kind-${edgeId}`} value={c.value} checked={edge.relationship === c.value} onChange={() => setKind(c.value)} />
                     {c.label}
                   </label>
                 ))}
@@ -171,7 +171,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
               item={edge}
               schema={schema}
               run={runV2}
-              onError={(message) => showIssues([{ path: ['attributes'], code: 'schema', message }])}
+              onError={(message) => showIssues([{ path: ['custom'], code: 'schema', message }])}
               showHeader={false}
               sourceOf={sourceResolver('edges', active)}
             />

@@ -20,7 +20,7 @@ import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
 import { useEnabledMetrics } from '../three/enabledMetrics';
 import { DataCellEditorContext, type CellEditorProps, type CellMove } from './cellEditing';
-import { columnGroups, edgeTable, nodeTable, type DataCell, type DataColumn, type DataRow, type DataTable, type StoredSectionId } from './dataModel';
+import { attributeHeadings, columnGroups, edgeTable, nodeTable, type DataCell, type DataColumn, type DataRow, type DataTable, type StoredSectionId } from './dataModel';
 import { edgeEmphasis, nodeEmphasis, revealIn, revealSideways, selectionOf, type RowEmphasis } from './dataSelection';
 import { JsonPane } from './JsonPane';
 import './data.css';
@@ -41,7 +41,7 @@ export type DataFormat = (typeof DATA_FORMATS)[number];
 const FORMAT_LABELS: Readonly<Record<DataFormat, string>> = { json: 'JSON', table: 'Table' };
 const FORMAT_TITLES: Readonly<Record<DataFormat, string>> = {
   json: 'The design exactly as it is saved: stored values only, no calculated values or defaults. Read-only.',
-  table: 'One row per node and per edge; columns grouped by attribute section.',
+  table: 'One row per node and per edge; columns in the order of the saved JSON keys, calculated values last.',
 };
 
 export function DataView({ design, selection, onSelect, project }: ViewProps) {
@@ -90,7 +90,7 @@ const SECTION_HEAD: Readonly<Record<AttributeSectionId, string>> = {
   required: 'Required',
   geometry: 'Geometry',
   custom: 'Custom',
-  calculated: 'Calculated',
+  calculated: 'Calculated, not saved',
 };
 
 const STORED_SECTIONS: readonly StoredSectionId[] = ['identity', 'required', 'geometry', 'custom'];
@@ -273,6 +273,9 @@ function DataTableView({
 }) {
   const { collection, columns, rows } = table;
   const groups = useMemo(() => columnGroups(columns), [columns]);
+  /** Attribute headings: Position and Size span their three value columns (x | y | z). */
+  const headings = useMemo(() => attributeHeadings(columns), [columns]);
+  const hasValueRow = headings.some((h) => h.split);
   /** First column of each section after the first: drawn with a divider. */
   const starts = useMemo(() => new Set(columns.filter((c, i) => i > 0 && columns[i - 1]!.section !== c.section).map((c) => c.id)), [columns]);
   const selectedHere = (collection === 'nodes' && selection.kind === 'node') || (collection === 'edges' && selection.kind === 'edge') ? (selection as { id: number }).id : null;
@@ -374,19 +377,25 @@ function DataTableView({
               ))}
             </tr>
             <tr className="sgl-dataview-columns">
-              {columns.map((c) => (
-                <th key={c.id} scope="col" data-section={c.section} data-column={c.id} title={c.title} className={cellClass(c, starts)}>
-                  {c.label}
-                  {!c.editable && <LockIcon />}
-                  {/* The shared `.sgl-source-tag` style of app/ui/SourceTag (views may not import the shell's component). */}
-                  {c.tag !== undefined && (
-                    <span className="sgl-source-tag sgl-dataview-tag" title={c.tag === 'Yours' ? 'Added in this project: you can delete it in Attributes.' : 'Comes from the toolkit: it cannot be deleted.'}>
-                      {c.tag}
-                    </span>
-                  )}
-                </th>
-              ))}
+              {headings.map((h) =>
+                h.split ? (
+                  <th key={h.id} scope="colgroup" colSpan={h.span} data-section={h.first.section} data-attribute={h.id} title={`Stored as "${h.id}": three values, x | y | z.`} className={cellClass(h.first, starts)}>
+                    {h.label}
+                  </th>
+                ) : (
+                  <ColumnHeading key={h.id} column={h.first} starts={starts} rowSpan={hasValueRow ? 2 : 1} />
+                ),
+              )}
             </tr>
+            {hasValueRow && (
+              <tr className="sgl-dataview-columns sgl-dataview-values">
+                {columns
+                  .filter((c) => c.attribute !== undefined)
+                  .map((c) => (
+                    <ColumnHeading key={c.id} column={c} starts={starts} rowSpan={1} />
+                  ))}
+              </tr>
+            )}
           </thead>
           <tbody onKeyDown={onKeyDown} onClick={onClick}>
             {rows.map((r) => (
@@ -406,6 +415,22 @@ function DataTableView({
         </table>
       )}
     </section>
+  );
+}
+
+/** One column heading: its label, a lock when it cannot be edited, and a custom attribute's source tag. */
+function ColumnHeading({ column: c, starts, rowSpan }: { readonly column: DataColumn; readonly starts: ReadonlySet<string>; readonly rowSpan: number }) {
+  return (
+    <th scope="col" rowSpan={rowSpan > 1 ? rowSpan : undefined} data-section={c.section} data-column={c.id} title={c.title} className={cellClass(c, starts)}>
+      {c.label}
+      {!c.editable && <LockIcon />}
+      {/* The shared `.sgl-source-tag` style of app/ui/SourceTag (views may not import the shell's component). */}
+      {c.tag !== undefined && (
+        <span className="sgl-source-tag sgl-dataview-tag" title={c.tag === 'Yours' ? 'Added in this project: you can delete it in Attributes.' : 'Comes from the toolkit: it cannot be deleted.'}>
+          {c.tag}
+        </span>
+      )}
+    </th>
   );
 }
 

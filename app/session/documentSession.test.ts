@@ -65,8 +65,8 @@ function deepFreeze<T>(value: T): T {
 
 describe('document signature', () => {
   it('is deterministic and independent of object key order, but not of node/edge order', () => {
-    const reordered = JSON.parse(builtInText) as { nodes: { attributes: Record<string, unknown> }[] };
-    reordered.nodes[0]!.attributes = { public: true, daylight: 'high' }; // same content, other key order
+    const reordered = JSON.parse(builtInText) as { nodes: { custom: Record<string, unknown> }[] };
+    reordered.nodes[0]!.custom = { public: true, daylight: 'high' }; // same content, other key order
     const twin = expectOk(readDesignJson(JSON.stringify(reordered))).doc;
     expect(twin).not.toBe(builtIn);
     expect(documentSignature(twin)).toBe(documentSignature(builtIn));
@@ -83,14 +83,14 @@ describe('document signature', () => {
 
 describe('every supported edit is one undoable step', () => {
   const cases: readonly (readonly [string, readonly DesignCommand[]])[] = [
-    ['add node', [{ type: 'add-node', node: { grid: [2, 0, 0], typeId: 'gallery', attributes: {} }, diagramPosition: [500, 140] }]],
+    ['add node', [{ type: 'add-node', node: { position: [2, 0, 0], function: 'gallery', custom: {} }, diagramPosition: [500, 140] }]],
     ['delete node', [{ type: 'remove-node', nodeId: 4 }]],
-    ['add edge', [{ type: 'add-edge', edge: { source: 3, target: 4, kind: 'access' } }]],
+    ['add edge', [{ type: 'add-edge', edge: { source: 3, target: 4, relationship: 'access' } }]],
     ['delete edge', [{ type: 'remove-edge', edgeId: 6 }]],
-    ['change edge', [{ type: 'change-edge-kind', edgeId: 6, kind: 'open' }]],
-    ['node type', [{ type: 'set-node-type', nodeId: 4, typeId: 'studio' }]],
-    ['attributes', [{ type: 'set-node-attributes', nodeId: 4, attributes: { daylight: 'low', public: false } }]],
-    ['grid move', [{ type: 'remove-edge', edgeId: 3 }, { type: 'set-node-geometry', nodeId: 4, grid: [2, 1, 0] }]],
+    ['change edge', [{ type: 'change-edge-kind', edgeId: 6, relationship: 'open' }]],
+    ['node type', [{ type: 'set-node-type', nodeId: 4, function: 'studio' }]],
+    ['attributes', [{ type: 'set-node-attributes', nodeId: 4, custom: { daylight: 'low', public: false } }]],
+    ['grid move', [{ type: 'remove-edge', edgeId: 3 }, { type: 'set-node-geometry', nodeId: 4, position: [2, 1, 0] }]],
     ['diagram drag', [{ type: 'set-diagram-position', nodeId: 4, position: [10, 20] }]],
   ];
 
@@ -136,9 +136,9 @@ describe('every supported edit is one undoable step', () => {
   it('one completed diagram drag is one step and never moves the grid cell', () => {
     const s = edit(open(), { type: 'set-diagram-position', nodeId: 4, position: [10, 20] });
     expect(s.history.past).toHaveLength(1);
-    expect(doc(s).nodes.find((n) => n.id === 4)!.grid).toEqual([1, 1, 0]);
+    expect(doc(s).nodes.find((n) => n.id === 4)!.position).toEqual([1, 1, 0]);
     expect(doc(undoDocument(s)).diagram.positions[4]).toEqual([360, 300]);
-    expect(doc(undoDocument(s)).nodes.find((n) => n.id === 4)!.grid).toEqual([1, 1, 0]);
+    expect(doc(undoDocument(s)).nodes.find((n) => n.id === 4)!.position).toEqual([1, 1, 0]);
     // A drag that ends where it started is a no-op.
     const back = applyDesignCommandToSession(s, { type: 'set-diagram-position', nodeId: 4, position: [10, 20] });
     expect(back.ok && back.changed).toBe(false);
@@ -155,8 +155,8 @@ describe('ids come from the counters and are never reused', () => {
     expect(doc(s1).edges.map((e) => e.id)).not.toContain(6);
     expect([doc(s1).nextNodeId, doc(s1).nextEdgeId]).toEqual([7, 7]); // deleting never lowers a counter
 
-    const s2 = edit(s1, { type: 'add-node', node: { grid: [2, 0, 0], typeId: 'gallery', attributes: {} } });
-    const s3 = edit(s2, { type: 'add-edge', edge: { source: 3, target: 4, kind: 'access' } });
+    const s2 = edit(s1, { type: 'add-node', node: { position: [2, 0, 0], function: 'gallery', custom: {} } });
+    const s3 = edit(s2, { type: 'add-edge', edge: { source: 3, target: 4, relationship: 'access' } });
     const added = doc(s3).nodes.filter((n) => !doc(s1).nodes.some((m) => m.id === n.id)).map((n) => n.id);
     const addedEdges = doc(s3).edges.filter((e) => !doc(s1).edges.some((m) => m.id === e.id)).map((e) => e.id);
     expect(added).toEqual([7]);
@@ -173,7 +173,7 @@ describe('ids come from the counters and are never reused', () => {
     expect(doc(forward)).toBe(doc(s3));
     expect([doc(forward).nextNodeId, doc(forward).nextEdgeId]).toEqual([8, 8]);
     // Adding again after redo continues from the counter.
-    const s4 = edit(forward, { type: 'add-node', node: { grid: [3, 0, 0], typeId: 'gallery', attributes: {} } });
+    const s4 = edit(forward, { type: 'add-node', node: { position: [3, 0, 0], function: 'gallery', custom: {} } });
     expect(nodeIds(s4)).toContain(8);
     expect(doc(s4).nextNodeId).toBe(9);
   });
@@ -182,7 +182,7 @@ describe('ids come from the counters and are never reused', () => {
 describe('failed and no-op commands are not recorded', () => {
   it('an invalid command leaves the session and history untouched', () => {
     const s = edit(open(), { type: 'set-diagram-position', nodeId: 4, position: [1, 1] });
-    const outcome = applyDesignCommandToSession(s, { type: 'add-edge', edge: { source: 1, target: 99, kind: 'access' } });
+    const outcome = applyDesignCommandToSession(s, { type: 'add-edge', edge: { source: 1, target: 99, relationship: 'access' } });
     expect(outcome.ok).toBe(false);
     expect(applyDesignCommandToSession(s, { type: 'remove-node', nodeId: 99 }).ok).toBe(false);
     expect(s.history.past).toHaveLength(1);
@@ -190,8 +190,8 @@ describe('failed and no-op commands are not recorded', () => {
   });
 
   it('a command that produces identical content returns the same session (no step, no redo loss)', () => {
-    const s = undoDocument(edit(open(), { type: 'set-node-type', nodeId: 4, typeId: 'studio' }));
-    const same = applyDesignCommandToSession(s, { type: 'set-node-attributes', nodeId: 4, attributes: { public: false, daylight: null } });
+    const s = undoDocument(edit(open(), { type: 'set-node-type', nodeId: 4, function: 'studio' }));
+    const same = applyDesignCommandToSession(s, { type: 'set-node-attributes', nodeId: 4, custom: { public: false, daylight: null } });
     expect(same.ok && same.session).toBe(s);
     expect(same.ok && same.changed).toBe(false);
     expect(canRedo(s.history)).toBe(true);
@@ -201,7 +201,7 @@ describe('failed and no-op commands are not recorded', () => {
     let s = edit(edit(open(), { type: 'remove-node', nodeId: 4 }), { type: 'remove-edge', edgeId: 6 });
     s = undoDocument(s);
     expect(canRedo(s.history)).toBe(true);
-    s = edit(s, { type: 'set-node-type', nodeId: 1, typeId: 'studio' });
+    s = edit(s, { type: 'set-node-type', nodeId: 1, function: 'studio' });
     expect(canRedo(s.history)).toBe(false);
     expect(redoDocument(s)).toBe(s);
     expect(s.history.past).toHaveLength(2);
@@ -247,8 +247,8 @@ describe('clean-state tracking', () => {
   });
 
   it('is defined by content, not identity or history length: editing back to equal content is clean', () => {
-    let s = edit(open(), { type: 'set-node-attributes', nodeId: 4, attributes: { daylight: 'low', public: false } });
-    s = edit(s, { type: 'set-node-attributes', nodeId: 4, attributes: { public: false, daylight: null } });
+    let s = edit(open(), { type: 'set-node-attributes', nodeId: 4, custom: { daylight: 'low', public: false } });
+    s = edit(s, { type: 'set-node-attributes', nodeId: 4, custom: { public: false, daylight: null } });
     expect(s.history.past).toHaveLength(2);
     expect(doc(s)).not.toBe(builtIn);
     expect(isModified(s)).toBe(false);
@@ -288,9 +288,9 @@ describe('transformations and previews', () => {
     // Any number of changes committed together (as an applied preview is) is still one step.
     let many = builtIn;
     for (const command of [
-      { type: 'add-node', node: { grid: [2, 0, 0], typeId: 'gallery', attributes: {} } },
-      { type: 'add-edge', edge: { source: 2, target: 7 /* the new node */, kind: 'access' } },
-      { type: 'set-node-attributes', nodeId: 4, attributes: { daylight: 'low', public: false } },
+      { type: 'add-node', node: { position: [2, 0, 0], function: 'gallery', custom: {} } },
+      { type: 'add-edge', edge: { source: 2, target: 7 /* the new node */, relationship: 'access' } },
+      { type: 'set-node-attributes', nodeId: 4, custom: { daylight: 'low', public: false } },
     ] satisfies DesignCommand[]) {
       many = expectOk(applyDesignCommand(many, command));
     }
@@ -339,11 +339,11 @@ describe('transformations and previews', () => {
 
 describe('selection after undo/redo', () => {
   it('a selected node or edge that disappears is deselected; other selections survive', () => {
-    const added = edit(open(), { type: 'add-node', node: { grid: [2, 0, 0], typeId: 'gallery', attributes: {} } });
+    const added = edit(open(), { type: 'add-node', node: { position: [2, 0, 0], function: 'gallery', custom: {} } });
     expect(reconcileSelection(selectNode(7), doc(undoDocument(added)))).toEqual(NO_SELECTION);
     expect(reconcileSelection(selectNode(4), doc(undoDocument(added)))).toEqual(selectNode(4));
 
-    const removedEdge = edit(open(), { type: 'add-edge', edge: { source: 3, target: 4, kind: 'access' } });
+    const removedEdge = edit(open(), { type: 'add-edge', edge: { source: 3, target: 4, relationship: 'access' } });
     expect(reconcileSelection(selectEdge(7), doc(undoDocument(removedEdge)))).toEqual(NO_SELECTION);
     expect(reconcileSelection(selectEdge(7), doc(redoDocument(undoDocument(removedEdge))))).toEqual(selectEdge(7));
   });

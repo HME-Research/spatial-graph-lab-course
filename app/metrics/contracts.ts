@@ -6,15 +6,15 @@ import type { SpatialResolution } from '@app/spatial';
  *
  * A metric is derived on demand from the document and its spatial resolution. Values are never
  * written to the document, never part of undo history and never exported (`serializeDesignV2`
- * does not see them). `Level` is system-backed (`grid[2]`), not a metric.
+ * does not see them). `Level` is system-backed (`position[2]`), not a metric.
  */
 
 /**
  * What a metric reads. The evaluator reuses a cached value while every declared dependency is
  * unchanged, so `dependsOn` must list everything `compute` reads:
  * - `topology`: node ids and edges (id, source, target, kind);
- * - `geometry`: each node's `grid` and `size`;
- * - `types`: each node's `typeId`;
+ * - `geometry`: each node's `position` and `size`;
+ * - `types`: each node's `function`;
  * - `attributes`: node and edge custom `attributes`;
  * - `settings`: the document `settings` (e.g. per-type appearance);
  * - `resolution`: the `SpatialResolution` object (by identity).

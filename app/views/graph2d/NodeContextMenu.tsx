@@ -63,9 +63,9 @@ export function menuItems(model: DiagramModel, target: MenuTarget): readonly Men
   const kindItems: MenuItem[] = [];
   for (const kind of RELATIONSHIP_KINDS) {
     kindItems.push({
-      label: `${edge.kind === kind ? '✓ ' : ''}${RELATIONSHIP_KIND_LABELS[kind]}`,
+      label: `${edge.relationship === kind ? '✓ ' : ''}${RELATIONSHIP_KIND_LABELS[kind]}`,
       action: { type: 'set-relationship-kind', edgeId: edge.id, kind },
-      disabled: edge.kind === kind,
+      disabled: edge.relationship === kind,
     });
   }
   return [...kindItems, { label: 'Delete relationship', action: { type: 'remove-edge', edgeId: edge.id }, separated: true }];

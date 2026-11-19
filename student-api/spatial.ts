@@ -4,7 +4,7 @@ import type { AttributeValue } from './attributes';
 
 /**
  * The application's typed spatial representation (schema v2), read-only. Only spatial
- * algorithms receive these. A room is a box of whole cells: `grid` is its minimum corner and
+ * algorithms receive these. A room is a box of whole cells: `position` is its minimum corner and
  * `size` its extent in cells along x, y and z.
  */
 
@@ -30,22 +30,23 @@ export const FACE_DIRECTIONS: readonly FaceDirection[] = CORE_FACE_DIRECTIONS;
 export const neighbourCell = (cell: GridCoord, direction: FaceDirection): GridCoord =>
   coreNeighbourCell([cell[0], cell[1], cell[2]], direction);
 
-/** Every cell of a room (`grid` + `size`), ordered by z, then y, then x. Pure. */
-export function roomCells(room: { readonly grid: GridCoord; readonly size: RoomSize }): GridCoord[] {
+/** Every cell of a room (`position` + `size`), ordered by z, then y, then x. Pure. */
+export function roomCells(room: { readonly position: GridCoord; readonly size: RoomSize }): GridCoord[] {
   const cells: GridCoord[] = [];
-  const [x0, y0, z0] = room.grid;
+  const [x0, y0, z0] = room.position;
   for (let z = z0; z < z0 + room.size[2]; z++)
     for (let y = y0; y < y0 + room.size[1]; y++) for (let x = x0; x < x0 + room.size[0]; x++) cells.push([x, y, z]);
   return cells;
 }
 
 export interface SpatialNode extends NodeRecord {
-  readonly typeId: string;
+  readonly function: string;
   /** Minimum corner cell of the room. */
-  readonly grid: GridCoord;
+  readonly position: GridCoord;
   /** Extent in cells (`[1, 1, 1]` for a single-cell room). */
   readonly size: RoomSize;
-  readonly attributes: { readonly [key: string]: AttributeValue };
+  /** Custom attributes (the project's fields and any other stored values). */
+  readonly custom: { readonly [key: string]: AttributeValue };
 }
 
 /** Walls of a generated corridor: `enclosed` (a side wall on each side) or `open` (open sides). */
@@ -65,8 +66,9 @@ export interface CorridorLook {
 }
 
 export interface SpatialEdge extends EdgeRecord {
-  readonly kind: RelationshipKind;
+  readonly relationship: RelationshipKind;
   /** Omitted: the design's Corridors card. Only used if the relationship needs a generated corridor. */
   readonly corridor?: CorridorLook | undefined;
-  readonly attributes: { readonly [key: string]: AttributeValue };
+  /** Custom attributes (the project's fields and any other stored values). */
+  readonly custom: { readonly [key: string]: AttributeValue };
 }

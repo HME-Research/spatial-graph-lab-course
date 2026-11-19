@@ -38,7 +38,7 @@ const daylightFromFacade = defineSpatialAlgorithm({
   run(ctx) {
     const operations: SpatialOperation[] = [];
     for (const room of ctx.design.nodes) {
-      if (room.typeId !== 'gallery') continue;
+      if (room.function !== 'gallery') continue;
       const metres = ctx.metrics.value('exposed-facade-length', room.id) as number;
       const daylight = metres >= 24 ? 'high' : metres >= 12 ? 'medium' : 'low';
       operations.push({ op: 'set-node-attribute', nodeId: room.id, key: 'daylight', value: daylight });
@@ -53,7 +53,7 @@ describe('ctx.metrics in spatial algorithms', () => {
     const doc = metricsLabDoc();
     const preview = expectExtOk(runAlgorithmV2(doc, project, 'daylight-from-facade'));
     if (preview.kind !== 'transformation') throw new Error('expected a transformation');
-    const daylight = Object.fromEntries(preview.preview.after.nodes.filter((n) => n.typeId === 'gallery').map((n) => [n.id, n.attributes.daylight]));
+    const daylight = Object.fromEntries(preview.preview.after.nodes.filter((n) => n.function === 'gallery').map((n) => [n.id, n.custom.daylight]));
     expect(daylight).toEqual({ 1: 'high', 5: 'medium' }); // hall 45 m and loft 12 m
   });
 

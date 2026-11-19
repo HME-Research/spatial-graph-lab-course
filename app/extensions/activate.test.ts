@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
 import { validateDocumentV2, serializeDesignV2 } from '@app/document';
-import { defineGraphAlgorithm, defineNodeType, defineToolkit } from '@student-api';
+import { defineGraphAlgorithm, defineFunction, defineToolkit } from '@student-api';
 import exampleJson from '../document/test-designs/two-storey.json';
 import { activate, activateToolkit, projectOnlyToolkit, resolveStartupDesign, type Activation } from './activate';
 import { withProjectFunctions } from './projectFunctions';
@@ -18,7 +18,7 @@ describe('toolkit discovery', () => {
     const { toolkits, diagnostics } = discoverToolkits(
       fakeGlobs({
         ...LAB_FILES,
-        'toolkits/lab/types/gallery.test.ts': { default: {} },
+        'toolkits/lab/functions/gallery.test.ts': { default: {} },
         'toolkits/lab/designs/b.json': '{}',
         'toolkits/lab/designs/a.json': '{}',
       }),
@@ -26,13 +26,13 @@ describe('toolkit discovery', () => {
     expect(diagnostics).toEqual([]);
     expect(toolkits.map((p) => p.id)).toEqual(['lab']);
     const lab = toolkits[0]!;
-    expect(lab.types.map((t) => t.file)).toEqual(['toolkits/lab/types/gallery.ts', 'toolkits/lab/types/studio.ts']);
+    expect(lab.functions.map((t) => t.file)).toEqual(['toolkits/lab/functions/gallery.ts', 'toolkits/lab/functions/studio.ts']);
     expect(lab.designs.map((d) => d.stem)).toEqual(['a', 'b']);
   });
 
   it('reports folders without toolkit.ts and folders with invalid names', () => {
     const { toolkits, diagnostics } = discoverToolkits(
-      fakeGlobs({ 'toolkits/orphan/types/a.ts': {}, 'toolkits/Bad_Name/toolkit.ts': {} }),
+      fakeGlobs({ 'toolkits/orphan/functions/a.ts': {}, 'toolkits/Bad_Name/toolkit.ts': {} }),
     );
     expect(toolkits).toEqual([]);
     expect(diagnostics.map((d) => [d.code, d.severity])).toEqual([
@@ -97,7 +97,7 @@ describe('toolkit activation', () => {
 
   it('disables invalid node types but keeps them registered as broken (no silent fallback)', async () => {
     const broken = { id: 'gallery', label: 'Gallery', facade: { windowFraction: 1.5 }, colour: '#fff' };
-    const toolkit = await labToolkit({ 'toolkits/lab/types/gallery.ts': { default: broken } });
+    const toolkit = await labToolkit({ 'toolkits/lab/functions/gallery.ts': { default: broken } });
     const gallery = toolkit.nodeTypes.find((t) => t.id === 'gallery')!;
     expect(gallery.status.ok).toBe(false);
     const d = toolkit.diagnostics.find((x) => x.code === 'invalid-node-type')!;
@@ -116,23 +116,23 @@ describe('toolkit activation', () => {
     ['unknown kind', { n: { kind: 'colour' } }],
     ['unsupported option', { n: { kind: 'number', required: true } }],
   ])('rejects attribute definitions with %s', async (_name, attributes) => {
-    const toolkit = await labToolkit({ 'toolkits/lab/types/gallery.ts': { default: { id: 'gallery', label: 'G', attributes } } });
+    const toolkit = await labToolkit({ 'toolkits/lab/functions/gallery.ts': { default: { id: 'gallery', label: 'G', custom: attributes } } });
     expect(toolkit.nodeTypes.find((t) => t.id === 'gallery')!.status.ok).toBe(false);
   });
 
   it('reports a type file whose id cannot be read, and files that fail to load', async () => {
     const toolkit = await labToolkit({
-      'toolkits/lab/types/x.ts': { default: { label: 'no id' } },
-      'toolkits/lab/types/y.ts': LOAD_FAILS,
+      'toolkits/lab/functions/x.ts': { default: { label: 'no id' } },
+      'toolkits/lab/functions/y.ts': LOAD_FAILS,
     });
     expect(toolkit.nodeTypes.map((t) => t.id)).toEqual(['gallery', 'studio']);
     expect(toolkit.diagnostics.map((d) => d.code).sort()).toEqual(['invalid-node-type', 'module-load-failed']);
   });
 
   it('disables every definition sharing an id and names both files', async () => {
-    const copy = defineNodeType({ id: 'studio', label: 'Studio again' });
+    const copy = defineFunction({ id: 'studio', label: 'Studio again' });
     const toolkit = await labToolkit({
-      'toolkits/lab/types/studio-2.ts': { default: copy },
+      'toolkits/lab/functions/studio-2.ts': { default: copy },
       'toolkits/lab/algorithms/a.ts': { default: defineGraphAlgorithm({ id: 'dup', label: 'A', inputs: [], run: analysis }) },
       'toolkits/lab/algorithms/b.ts': { default: defineGraphAlgorithm({ id: 'dup', label: 'B', inputs: [], run: analysis }) },
     });
@@ -140,7 +140,7 @@ describe('toolkit activation', () => {
     expect(studios.map((t) => t.status.ok)).toEqual([false, false]);
     const dupType = toolkit.diagnostics.filter((d) => d.code === 'duplicate-node-type');
     expect(dupType).toHaveLength(2);
-    expect(dupType[0]!.message).toContain('toolkits/lab/types/studio-2.ts');
+    expect(dupType[0]!.message).toContain('toolkits/lab/functions/studio-2.ts');
     expect(toolkit.algorithms.map((a) => a.status.ok)).toEqual([false, false]);
     expect(toolkit.diagnostics.filter((d) => d.code === 'duplicate-algorithm')).toHaveLength(2);
   });

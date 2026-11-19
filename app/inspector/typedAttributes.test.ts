@@ -14,8 +14,8 @@ import {
 } from './typedAttributes';
 import type { ParseResult } from './inspectorModel';
 
-const gallerySpecs = galleryType.attributes!;
-const studioSpecs = studioType.attributes!;
+const gallerySpecs = galleryType.custom!;
+const studioSpecs = studioType.custom!;
 /** Value of a successful ParseResult (inspector helpers report a message, not issues). */
 function parsed<T>(r: ParseResult<T>): T {
   if (!r.ok) throw new Error(r.message);
@@ -25,7 +25,7 @@ const node = (id: number): RoomNode => labDoc().nodes.find((n) => n.id === id)!;
 
 describe('typed attribute fields', () => {
   it('one field per declared attribute, with status, default hint and description', () => {
-    const fields = typedFields(gallerySpecs, node(1).attributes);
+    const fields = typedFields(gallerySpecs, node(1).custom);
     expect(fields.map((f) => [f.key, f.stored, f.status, f.defaultValue])).toEqual([
       ['daylight', 'high', 'ok', undefined],
       ['public', true, 'ok', true],
@@ -35,15 +35,15 @@ describe('typed attribute fields', () => {
 
   it('keeps an invalid stored value visible and flagged, and shows a missing one as missing (no default written)', () => {
     const g2 = node(2);
-    const fields = typedFields(gallerySpecs, g2.attributes);
+    const fields = typedFields(gallerySpecs, g2.custom);
     expect(fields.map((f) => [f.key, f.stored, f.status])).toEqual([
       ['daylight', 'bright', 'invalid'],
       ['public', undefined, 'missing'],
     ]);
     expect(fieldDraft(fields[0]!)).toBe('bright');
     expect(fieldDraft(fields[1]!)).toBe('');
-    expect(g2.attributes).toEqual({ daylight: 'bright', legacy: 'kept' });
-    expect(undeclaredAttributes(gallerySpecs, g2.attributes)).toEqual({ legacy: 'kept' });
+    expect(g2.custom).toEqual({ daylight: 'bright', legacy: 'kept' });
+    expect(undeclaredAttributes(gallerySpecs, g2.custom)).toEqual({ legacy: 'kept' });
   });
 
   it('converts drafts by kind only', () => {
@@ -60,9 +60,9 @@ describe('typed attribute edits', () => {
     const doc = labDoc();
     const g2 = doc.nodes.find((n) => n.id === 2)!;
     const command = parsed(setTypedAttributeCommand(g2, gallerySpecs, 'public', false));
-    expect(command).toEqual({ type: 'set-node-attributes', nodeId: 2, attributes: { daylight: 'bright', legacy: 'kept', public: false } });
+    expect(command).toEqual({ type: 'set-node-attributes', nodeId: 2, custom: { daylight: 'bright', legacy: 'kept', public: false } });
     const next = expectOk(applyDesignCommand(doc, command));
-    expect(next.nodes.find((n) => n.id === 2)!.attributes).toEqual({ daylight: 'bright', legacy: 'kept', public: false });
+    expect(next.nodes.find((n) => n.id === 2)!.custom).toEqual({ daylight: 'bright', legacy: 'kept', public: false });
   });
 
   it('changing daylight updates the graph data and resolves the conformance warning', async () => {
@@ -71,7 +71,7 @@ describe('typed attribute edits', () => {
     expect(checkConformance(doc, project).map((d) => d.id)).toContain('invalid-attribute-value|node:2|daylight');
     const g2 = doc.nodes.find((n) => n.id === 2)!;
     const next = expectOk(applyDesignCommand(doc, parsed(setTypedAttributeCommand(g2, gallerySpecs, 'daylight', 'low'))));
-    expect(next.nodes.find((n) => n.id === 2)!.attributes).toEqual({ daylight: 'low', legacy: 'kept' });
+    expect(next.nodes.find((n) => n.id === 2)!.custom).toEqual({ daylight: 'low', legacy: 'kept' });
     expect(serializeDesignV2(next)).toContain('"daylight": "low"');
     expect(checkConformance(next, project).map((d) => d.id)).not.toContain('invalid-attribute-value|node:2|daylight');
   });
@@ -92,7 +92,7 @@ describe('typed attribute edits', () => {
     expect(parsed(setTypedAttributeCommand(g1, gallerySpecs, 'public', undefined))).toEqual({
       type: 'set-node-attributes',
       nodeId: 1,
-      attributes: { daylight: 'high' },
+      custom: { daylight: 'high' },
     });
   });
 
@@ -104,9 +104,9 @@ describe('typed attribute edits', () => {
         { key: 'extra', kind: 'number', value: '2' },
       ]),
     );
-    expect(command).toEqual({ type: 'set-node-attributes', nodeId: 2, attributes: { daylight: 'bright', legacy: 'changed', extra: 2 } });
+    expect(command).toEqual({ type: 'set-node-attributes', nodeId: 2, custom: { daylight: 'bright', legacy: 'changed', extra: 2 } });
     const removed = parsed(setUndeclaredAttributesCommand(g2, gallerySpecs, []));
-    expect(removed).toMatchObject({ attributes: { daylight: 'bright' } });
+    expect(removed).toMatchObject({ custom: { daylight: 'bright' } });
     const clash = setUndeclaredAttributesCommand(g2, gallerySpecs, [{ key: 'daylight', kind: 'text', value: 'low' }]);
     expect(clash.ok).toBe(false);
     expect(!clash.ok && clash.message).toContain('declared by type "gallery"');

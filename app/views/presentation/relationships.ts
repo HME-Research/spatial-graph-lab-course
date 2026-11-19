@@ -35,11 +35,11 @@ export interface RelationshipPresentation {
 }
 
 export function presentRelationship(resolution: EdgeResolution): RelationshipPresentation {
-  const kindInfo = KIND_PRESENTATION[resolution.kind];
+  const kindInfo = KIND_PRESENTATION[resolution.relationship];
   const statusInfo = STATUS_PRESENTATION[resolution.status];
   const base = {
     edgeId: resolution.edgeId,
-    kind: resolution.kind,
+    kind: resolution.relationship,
     status: resolution.status,
     kindLabel: kindInfo.label,
     statusLabel: statusInfo.label,
@@ -49,7 +49,7 @@ export function presentRelationship(resolution: EdgeResolution): RelationshipPre
       const built = resolution.contact === 'vertical' ? kindInfo.betweenStoreys : kindInfo.sameStorey;
       return {
         ...base,
-        line: relationshipLine(resolution.kind, 'direct', resolution.contact),
+        line: relationshipLine(resolution.relationship, 'direct', resolution.contact),
         built,
         reason: null,
         detail: null,
@@ -62,7 +62,7 @@ export function presentRelationship(resolution: EdgeResolution): RelationshipPre
       const built = `${connector.label} (${cells} ${cells === 1 ? 'cell' : 'cells'})`;
       return {
         ...base,
-        line: relationshipLine(resolution.kind, 'routed'),
+        line: relationshipLine(resolution.relationship, 'routed'),
         built,
         reason: null,
         detail: null,
@@ -73,7 +73,7 @@ export function presentRelationship(resolution: EdgeResolution): RelationshipPre
       const reason = unresolvedReasonText(resolution.reason);
       return {
         ...base,
-        line: relationshipLine(resolution.kind, 'unresolved'),
+        line: relationshipLine(resolution.relationship, 'unresolved'),
         built: 'nothing is built',
         reason,
         detail: resolution.message || null,

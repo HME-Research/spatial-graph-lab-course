@@ -17,7 +17,7 @@ import {
 
 /** "Style rooms by" (owner 2026-11-18): the evaluator and the stored format. */
 
-type Room = { id: number; typeId: string; z?: number };
+type Room = { id: number; function: string; z?: number };
 
 function design(rooms: Room[], settings: unknown): DesignDocumentV2 {
   return expectOk(
@@ -25,7 +25,7 @@ function design(rooms: Room[], settings: unknown): DesignDocumentV2 {
       schemaVersion: 2,
       metadata: { name: 'styles' },
       // Rooms apart from each other: no contact needed here.
-      nodes: rooms.map((r, i) => ({ id: r.id, grid: [i * 3, 0, r.z ?? 0], size: [1, 1, 1], typeId: r.typeId })),
+      nodes: rooms.map((r, i) => ({ id: r.id, position: [i * 3, 0, r.z ?? 0], size: [1, 1, 1], function: r.function })),
       edges: [],
       settings,
     }),
@@ -84,9 +84,9 @@ describe('effective look: card → Default → toolkit → built-in', () => {
 
 describe('nodeLooks: every room exactly one look', () => {
   const rooms: Room[] = [
-    { id: 1, typeId: 'gallery', z: 0 },
-    { id: 2, typeId: 'gallery', z: 1 },
-    { id: 3, typeId: 'studio', z: 2 },
+    { id: 1, function: 'gallery', z: 0 },
+    { id: 2, function: 'gallery', z: 1 },
+    { id: 3, function: 'studio', z: 2 },
   ];
 
   it('by Function (the default attribute): rooms of a function share its card', () => {
@@ -127,7 +127,7 @@ describe('nodeLooks: every room exactly one look', () => {
 
 describe('stored format', () => {
   it('defaults to styling by Function with nothing set, and round-trips every kind of setup', () => {
-    const plain = design([{ id: 1, typeId: 'gallery' }], undefined);
+    const plain = design([{ id: 1, function: 'gallery' }], undefined);
     expect(plain.settings).toEqual({ styleBy: 'function', styles: {} });
     const settings: DesignSettings = {
       styleBy: 'attribute:usage',
@@ -137,7 +137,7 @@ describe('stored format', () => {
         level: { dividers: [1, 3], bands: [{}, { windowLayout: 'stretch' }, {}] },
       },
     };
-    const doc = design([{ id: 1, typeId: 'gallery' }], settings);
+    const doc = design([{ id: 1, function: 'gallery' }], settings);
     const back = expectOk(readDesignJson(serializeDesignV2(doc))).doc;
     expect(back.settings).toEqual(settings);
     expect([...storedLooks(back.settings)]).toHaveLength(7); // 2 function + 2 usage cards + 3 level bands

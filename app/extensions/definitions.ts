@@ -1,5 +1,5 @@
 import { z, type core as zcore } from 'zod';
-import { formatIssuePath, typeIdSchema } from '@app/document';
+import { formatIssuePath, functionIdSchema } from '@app/document';
 
 /**
  * Runtime validation of student definition objects (the default exports of toolkit files).
@@ -61,7 +61,7 @@ export const attributeSpecSchema = z
 
 export const attributeSpecsSchema = z.record(z.string().min(1, { error: 'attribute names must not be empty' }), attributeSpecSchema);
 
-/** A project-wide field spec (`defineToolkit({ attributes })`): an attribute spec plus label and help text. */
+/** A project-wide field spec (`defineToolkit({ custom })`): an attribute spec plus label and help text. */
 const fieldText = {
   label: z.string({ error: 'label must be text' }).min(1, { error: 'label must not be empty' }).max(100).optional(),
   description: z.string({ error: 'description must be text' }).max(500).optional(),
@@ -86,7 +86,7 @@ const attributeNameSchema = z.string().min(1, { error: 'attribute names must not
 export const toolkitDefinitionSchema = z.strictObject({
   name: z.string({ error: 'name must be text' }).min(1, { error: 'name must not be empty' }).max(200),
   defaultDesign: z.string().min(1).optional(),
-  attributes: z
+  custom: z
     .strictObject({
       nodes: z.record(attributeNameSchema, toolkitAttributeSpecSchema).optional(),
       edges: z.record(attributeNameSchema, toolkitAttributeSpecSchema).optional(),
@@ -95,18 +95,18 @@ export const toolkitDefinitionSchema = z.strictObject({
 });
 
 export const nodeTypeDefinitionSchema = z.strictObject({
-  id: typeIdSchema,
+  id: functionIdSchema,
   label,
   facade: z
     .strictObject({
       windowFraction: finite.refine((f) => f >= 0 && f <= 1, { error: 'windowFraction must be between 0 and 1' }),
     })
     .optional(),
-  attributes: attributeSpecsSchema.optional(),
+  custom: attributeSpecsSchema.optional(),
 });
 
-/** Algorithm ids use the same pattern as node type ids. */
-export const algorithmIdSchema = typeIdSchema;
+/** Algorithm ids use the same pattern as function ids. */
+export const algorithmIdSchema = functionIdSchema;
 
 /** At most this many inputs per analysis (a sanity limit, not a contract field). */
 export const MAX_ANALYSIS_INPUTS = 8;
@@ -177,5 +177,5 @@ export function zodMessages(issues: readonly zcore.$ZodIssue[]): string[] {
 export function readableId(value: unknown): string | undefined {
   if (typeof value !== 'object' || value === null || !('id' in value)) return undefined;
   const id = (value as { id: unknown }).id;
-  return typeof id === 'string' && typeIdSchema.safeParse(id).success ? id : undefined;
+  return typeof id === 'string' && functionIdSchema.safeParse(id).success ? id : undefined;
 }

@@ -26,8 +26,8 @@ export function styleValuesFor(
     const out = new Map<number, unknown>();
     if (!field) return out;
     for (const node of doc.nodes) {
-      const defaults = Object.prototype.hasOwnProperty.call(schema.nodeTypeDefaults, node.typeId) ? schema.nodeTypeDefaults[node.typeId]! : {};
-      const value = resolveField(field, node.attributes, Object.prototype.hasOwnProperty.call(defaults, id) ? defaults[id] : undefined).value;
+      const defaults = Object.prototype.hasOwnProperty.call(schema.nodeTypeDefaults, node.function) ? schema.nodeTypeDefaults[node.function]! : {};
+      const value = resolveField(field, node.custom, Object.prototype.hasOwnProperty.call(defaults, id) ? defaults[id] : undefined).value;
       if (value !== null && value !== undefined) out.set(node.id, value);
     }
     return out;

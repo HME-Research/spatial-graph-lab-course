@@ -9,108 +9,60 @@
   "nodes": [
     {
       "id": 1,
-      "grid": [
-        0,
-        0,
-        0
-      ],
-      "size": [
-        1,
-        1,
-        1
-      ],
-      "typeId": "gallery",
-      "attributes": {
+      "function": "gallery",
+      "position": [0, 0, 0],
+      "size": [1, 1, 1],
+      "custom": {
         "daylight": "high",
         "public": true
       }
     },
     {
       "id": 2,
-      "grid": [
-        1,
-        0,
-        0
-      ],
-      "size": [
-        1,
-        1,
-        1
-      ],
-      "typeId": "studio",
-      "attributes": {
+      "function": "studio",
+      "position": [1, 0, 0],
+      "size": [1, 1, 1],
+      "custom": {
         "occupancy": 8,
         "public": false
       }
     },
     {
       "id": 3,
-      "grid": [
-        0,
-        1,
-        0
-      ],
-      "size": [
-        1,
-        1,
-        1
-      ],
-      "typeId": "gallery",
-      "attributes": {
+      "function": "gallery",
+      "position": [0, 1, 0],
+      "size": [1, 1, 1],
+      "custom": {
         "daylight": "medium",
         "public": true
       }
     },
     {
       "id": 4,
-      "grid": [
-        1,
-        1,
-        0
-      ],
-      "size": [
-        1,
-        1,
-        1
-      ],
-      "typeId": "storage",
-      "attributes": {
+      "function": "storage",
+      "position": [1, 1, 0],
+      "size": [1, 1, 1],
+      "custom": {
         "daylight": null,
         "public": false
       }
     },
     {
       "id": 5,
-      "grid": [
-        0,
-        0,
-        1
-      ],
-      "size": [
-        1,
-        1,
-        1
-      ],
-      "typeId": "studio",
-      "attributes": {
+      "function": "studio",
+      "position": [0, 0, 1],
+      "size": [1, 1, 1],
+      "custom": {
         "occupancy": 6,
         "public": false
       }
     },
     {
       "id": 6,
-      "grid": [
-        1,
-        0,
-        1
-      ],
-      "size": [
-        1,
-        1,
-        1
-      ],
-      "typeId": "gallery",
-      "attributes": {
+      "function": "gallery",
+      "position": [1, 0, 1],
+      "size": [1, 1, 1],
+      "custom": {
         "daylight": "high",
         "public": true
       }
@@ -121,71 +73,53 @@
       "id": 1,
       "source": 1,
       "target": 2,
-      "kind": "access",
-      "attributes": {}
+      "relationship": "access",
+      "custom": {}
     },
     {
       "id": 2,
       "source": 1,
       "target": 3,
-      "kind": "open",
-      "attributes": {}
+      "relationship": "open",
+      "custom": {}
     },
     {
       "id": 3,
       "source": 2,
       "target": 4,
-      "kind": "access",
-      "attributes": {}
+      "relationship": "access",
+      "custom": {}
     },
     {
       "id": 4,
       "source": 1,
       "target": 5,
-      "kind": "access",
-      "attributes": {}
+      "relationship": "access",
+      "custom": {}
     },
     {
       "id": 5,
       "source": 2,
       "target": 6,
-      "kind": "open",
-      "attributes": {}
+      "relationship": "open",
+      "custom": {}
     },
     {
       "id": 6,
       "source": 5,
       "target": 6,
-      "kind": "access",
-      "attributes": {}
+      "relationship": "access",
+      "custom": {}
     }
   ],
   "diagram": {
     "positions": {
-      "1": [
-        0,
-        140
-      ],
-      "2": [
-        240,
-        140
-      ],
-      "3": [
-        -120,
-        300
-      ],
-      "4": [
-        360,
-        300
-      ],
-      "5": [
-        60,
-        0
-      ],
-      "6": [
-        300,
-        0
-      ]
+      "1": [0, 140],
+      "2": [240, 140],
+      "3": [-120, 300],
+      "4": [360, 300],
+      "5": [60, 0],
+      "6": [300, 0]
     }
   },
   "settings": {

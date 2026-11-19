@@ -54,8 +54,8 @@ describe('attribute rows', () => {
   it('produces a record the app accepts via set-node-attributes', () => {
     const parsed = rowsToAttributes(attributesToRows(attributes));
     if (!parsed.ok) throw new Error(parsed.message);
-    const next = expectOk(applyDesignCommand(threeRooms(), { type: 'set-node-attributes', nodeId: 1, attributes: parsed.value }));
-    expect(next.nodes.find((n) => n.id === 1)!.attributes).toEqual(attributes);
+    const next = expectOk(applyDesignCommand(threeRooms(), { type: 'set-node-attributes', nodeId: 1, custom: parsed.value }));
+    expect(next.nodes.find((n) => n.id === 1)!.custom).toEqual(attributes);
   });
 });
 
@@ -86,11 +86,11 @@ describe('grid draft', () => {
 
   it('a move from the inspector reports collisions without changing the document; a relationship may stretch', () => {
     const doc = threeRooms();
-    const collision = applyDesignCommand(doc, { type: 'set-node-geometry', nodeId: 2, grid: [0, 0, 1] });
+    const collision = applyDesignCommand(doc, { type: 'set-node-geometry', nodeId: 2, position: [0, 0, 1] });
     expect(collision.ok).toBe(false);
     if (!collision.ok) expect(collision.issues.map((i) => i.code)).toContain('room-overlap');
     // Rooms need not touch: the relationship stays, its spatial status is derived (never an error).
-    expect(applyDesignCommand(doc, { type: 'set-node-geometry', nodeId: 2, grid: [5, 0, 0] }).ok).toBe(true);
-    expect(doc.nodes.find((n) => n.id === 2)!.grid).toEqual([1, 0, 0]);
+    expect(applyDesignCommand(doc, { type: 'set-node-geometry', nodeId: 2, position: [5, 0, 0] }).ok).toBe(true);
+    expect(doc.nodes.find((n) => n.id === 2)!.position).toEqual([1, 0, 0]);
   });
 });

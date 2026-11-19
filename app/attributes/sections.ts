@@ -6,9 +6,9 @@
  *
  * - identity:   what the graph needs to exist (node id; edge id + its two endpoints). Locked.
  * - required:   what this app needs on every item (node Function, edge Relationship).
- * - geometry:   where a node is and how big it is (app-specific; stored in `grid` / `size`,
- *               never in `attributes`).
- * - custom:     attributes defined by the project / toolkit (stored in `attributes`).
+ * - geometry:   where a node is and how big it is (app-specific; stored in `position` / `size`,
+ *               never in `custom`). Each is ONE attribute with three values (x | y | z).
+ * - custom:     attributes defined by the project / toolkit (stored in `custom`).
  * - calculated: values the app works out (metrics). Never stored. Locked.
  */
 
@@ -82,20 +82,41 @@ export function customAttributeSource(
 
 /** Built-in (non-custom, non-calculated) members of each section, in display order. */
 export interface BuiltInAttribute {
+  /** The stored key (`position`, `size`, …): the attribute's name in the saved JSON. */
   readonly id: string;
   readonly name: string;
   readonly section: Exclude<AttributeSectionId, 'custom' | 'calculated'>;
+  /** A three-number attribute (Position, Size): the label of each value, x | y | z. */
+  readonly axes?: readonly [string, string, string];
 }
 
 export const NODE_BUILT_IN_ATTRIBUTES: readonly BuiltInAttribute[] = [
   { id: 'id', name: 'ID', section: 'identity' },
   { id: 'function', name: 'Function', section: 'required' },
-  { id: 'position-x', name: 'Position X', section: 'geometry' },
-  { id: 'position-y', name: 'Position Y', section: 'geometry' },
-  { id: 'level', name: 'Level', section: 'geometry' },
-  { id: 'size-x', name: 'Size X', section: 'geometry' },
-  { id: 'size-y', name: 'Size Y', section: 'geometry' },
-  { id: 'floors', name: 'Floors', section: 'geometry' },
+  { id: 'position', name: 'Position', section: 'geometry', axes: ['x', 'y', 'z (Level)'] },
+  { id: 'size', name: 'Size', section: 'geometry', axes: ['x', 'y', 'z (Floors)'] },
+];
+
+/**
+ * One value of a three-number Geometry attribute (`position` or `size`, axis 0–2): what Properties
+ * and the Data table edit as one cell. `id` is `<attribute>.<x|y|z>`; `label` the column label under
+ * the attribute (`x`, `y`, `z (Level)`); `name` the cell's name in messages.
+ */
+export interface GeometryAxis {
+  readonly id: string;
+  readonly part: 'position' | 'size';
+  readonly axis: 0 | 1 | 2;
+  readonly label: string;
+  readonly name: string;
+}
+
+export const GEOMETRY_AXES: readonly GeometryAxis[] = [
+  { id: 'position.x', part: 'position', axis: 0, label: 'x', name: 'Position x' },
+  { id: 'position.y', part: 'position', axis: 1, label: 'y', name: 'Position y' },
+  { id: 'position.z', part: 'position', axis: 2, label: 'z (Level)', name: 'Level' },
+  { id: 'size.x', part: 'size', axis: 0, label: 'x', name: 'Size x' },
+  { id: 'size.y', part: 'size', axis: 1, label: 'y', name: 'Size y' },
+  { id: 'size.z', part: 'size', axis: 2, label: 'z (Floors)', name: 'Floors' },
 ];
 
 export const EDGE_BUILT_IN_ATTRIBUTES: readonly BuiltInAttribute[] = [

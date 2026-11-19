@@ -62,11 +62,11 @@ export interface FaceLayout<F extends ResolvedFace = ResolvedFace> {
 }
 
 /** How a node type's windows are placed along its walls (default: `repeat`). */
-export type WindowLayoutProvider = (typeId: string) => 'repeat' | 'stretch';
+export type WindowLayoutProvider = (functionId: string) => 'repeat' | 'stretch';
 /** Whether a node type's exterior walls are built (default: `enclosed`). */
-export type WallStyleProvider = (typeId: string) => 'enclosed' | 'open';
+export type WallStyleProvider = (functionId: string) => 'enclosed' | 'open';
 /** A node type's roof on exposed tops (default: `flat`; `none` tops are removed before layout). */
-export type RoofStyleProvider = (typeId: string) => 'flat' | 'pergola' | 'none';
+export type RoofStyleProvider = (functionId: string) => 'flat' | 'pergola' | 'none';
 
 export interface FaceLayoutOptions {
   readonly cell?: CellSize;
@@ -86,8 +86,8 @@ export interface FaceLayoutOptions {
 }
 
 /** The key the style providers are called with for `face` (see `FaceLayoutOptions.styleKey`). */
-export const styleKeyOf = (face: Pick<ResolvedFace, 'ownerNodeId' | 'ownerTypeId'>, options: Pick<FaceLayoutOptions, 'styleKey'>): string =>
-  options.styleKey === 'node' ? String(face.ownerNodeId) : face.ownerTypeId;
+export const styleKeyOf = (face: Pick<ResolvedFace, 'ownerNodeId' | 'ownerFunction'>, options: Pick<FaceLayoutOptions, 'styleKey'>): string =>
+  options.styleKey === 'node' ? String(face.ownerNodeId) : face.ownerFunction;
 
 /** Abstract opening proportions, relative to the cell, with absolute caps in metres. */
 export const OPENING_PROPORTIONS = Object.freeze({

@@ -113,12 +113,12 @@ export function popoverRows(
   options: { readonly brokenType: boolean; readonly typeName?: string; readonly attributeKeys: readonly string[] },
 ): readonly PopoverRow[] {
   const rows: PopoverRow[] = [];
-  rows.push({ label: 'Type', value: options.brokenType ? node.typeId : (options.typeName ?? node.typeId) });
+  rows.push({ label: 'Type', value: options.brokenType ? node.function : (options.typeName ?? node.function) });
   if (options.brokenType) rows.push({ label: 'Warning', value: 'This type’s definition in the project is invalid.', tone: 'warning' });
   rows.push({ label: 'Placement', value: describePlacement(node) });
-  const keys = Object.keys(node.attributes).sort();
+  const keys = Object.keys(node.custom).sort();
   const ordered = [...options.attributeKeys.filter((k) => keys.includes(k)), ...keys.filter((k) => !options.attributeKeys.includes(k))];
-  for (const key of ordered.slice(0, 6)) rows.push({ label: key, value: formatAttributeValue(node.attributes[key]) });
+  for (const key of ordered.slice(0, 6)) rows.push({ label: key, value: formatAttributeValue(node.custom[key]) });
   if (ordered.length > 6) rows.push({ label: 'More', value: `${ordered.length - 6} more attributes in Properties` });
   const edges = model.edges.filter((e) => e.source === node.id || e.target === node.id);
   rows.push({ label: 'Relationships', value: edges.length === 0 ? 'none' : String(edges.length) });

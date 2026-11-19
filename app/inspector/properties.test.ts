@@ -41,22 +41,24 @@ describe('Properties panel: one-cell rooms', () => {
     const node = doc.nodes[0]!;
     const html = render({ doc, selection: selectNode(node.id), project: buildProjectViewContext(project, doc) });
     expect(selectOptions(html, 'Room type')).toEqual(['Gallery', 'Studio']);
-    expect(html).toMatch(new RegExp(`<option value="${node.typeId}" selected=""`));
+    expect(html).toMatch(new RegExp(`<option value="${node.function}" selected=""`));
     expect(html).not.toContain('<datalist');
   });
 
   it('edits the position directly, without Apply or Move buttons', () => {
     const html = render({ doc, selection: selectNode(doc.nodes[0]!.id) });
-    expect(html).toContain('aria-label="Position X"');
+    expect(html).toContain('aria-label="Position x"');
     expect(html).toContain('aria-label="Level"');
+    // Position is ONE attribute row with three values: x | y | z (Level).
+    expect(html).toMatch(/data-attribute="position"[\s\S]*?<span class="sgl-axis-label">x<\/span>[\s\S]*?<span class="sgl-axis-label">y<\/span>[\s\S]*?<span class="sgl-axis-label">z \(Level\)<\/span>/);
     expect(html).not.toMatch(/>(Apply|Move|Set)<\/button>/);
     // The explanation is reachable from the fields (tooltip + one help line).
-    expect(html).toContain('title="Where the room’s lowest corner is along x, in cells. Changing it moves the room."');
+    expect(html).toContain('title="Where the room’s lowest corner is, in cells: x, y and z (z is the Level, the storey it stands on). Changing it moves the room."');
     expect(html).toContain('Dragging its node in Graph 2D only tidies the diagram'); // phase 08 (O02): one sentence
   });
 
   it('keeps an unknown type visible with a warning', async () => {
-    const legacy = expectOk(validateDocumentV2({ ...structuredClone(doc), nodes: doc.nodes.map((n, i) => (i === 0 ? { ...n, typeId: 'legacy-thing' } : n)) }));
+    const legacy = expectOk(validateDocumentV2({ ...structuredClone(doc), nodes: doc.nodes.map((n, i) => (i === 0 ? { ...n, function: 'legacy-thing' } : n)) }));
     const html = render({ doc: legacy, selection: selectNode(legacy.nodes[0]!.id), project: buildProjectViewContext(project, legacy) });
     expect(selectOptions(html, 'Room type')[0]).toBe('legacy-thing: not defined in this project');
     expect(html).toContain('does not offer the function “legacy-thing”');
@@ -86,10 +88,11 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     const design = fakePort();
     const html = render({ doc: v1(), design, selection: selectNode(1) });
     expect(html).toContain('Room <span class="sgl-room-label">1</span>');
-    expect(html).toContain('aria-label="Size X"');
-    expect(html).toMatch(/aria-label="Size Y"[^>]*value="3"|value="3"[^>]*aria-label="Size Y"/);
+    expect(html).toContain('aria-label="Size x"');
+    expect(html).toMatch(/aria-label="Size y"[^>]*value="3"|value="3"[^>]*aria-label="Size y"/);
     expect(html).toContain('aria-label="Floors"');
-    expect(html).toContain('aria-label="Position Y"');
+    expect(html).toContain('aria-label="Position y"');
+    expect(html).toContain('<span class="sgl-axis-label">z (Floors)</span>');
     expect(html).not.toMatch(/>(Apply|Move|Set)<\/button>/);
   });
 
@@ -115,7 +118,7 @@ describe('Properties panel, schema v2 (with the design port)', () => {
 
   it('an unresolved relationship is a non-blocking warning with technical details', () => {
     const raw = corridorRaw();
-    const blocked = { ...raw, nodes: [...raw.nodes, { id: 4, grid: [3, 0, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} }] };
+    const blocked = { ...raw, nodes: [...raw.nodes, { id: 4, position: [3, 0, 0], size: [1, 1, 1], function: 'studio', custom: {} }] };
     const design = fakePort(blocked);
     const html = render({ doc: v1(), design, selection: selectEdge(1) });
     expect(html).toContain('Unresolved: nothing can be built yet. The relationship is kept.');
@@ -159,8 +162,8 @@ describe('Properties sections (P4)', () => {
   const rowOf = (html: string, id: string): string => {
     const start = html.indexOf(`data-attribute="${id}"`);
     expect(start, `row ${id}`).toBeGreaterThanOrEqual(0);
-    const next = html.indexOf('data-attribute="', start + 1);
-    return html.slice(start, next < 0 ? undefined : next);
+    const ends = [html.indexOf('data-attribute="', start + 1), html.indexOf('data-section="', start + 1)].filter((i) => i >= 0);
+    return html.slice(start, ends.length > 0 ? Math.min(...ends) : undefined);
   };
   const withProject = async (selection: Selection, design = fakePort(), doc = v1()) => {
     const project = await labToolkit();
@@ -177,7 +180,8 @@ describe('Properties sections (P4)', () => {
     const html = await withProject(selectNode(1));
     expect(sections(html)).toEqual(['identity', 'required', 'geometry', 'custom', 'calculated']);
     expect(html.indexOf('data-attribute-section="calculated"')).toBeLessThan(html.indexOf('data-section="relationships"'));
-    expect(attributeIds(html).slice(0, 8)).toEqual(NODE_BUILT_IN_ATTRIBUTES.map((a) => a.id));
+    expect(attributeIds(html).slice(0, 4)).toEqual(NODE_BUILT_IN_ATTRIBUTES.map((a) => a.id));
+    expect(attributeIds(html).slice(0, 4)).toEqual(['id', 'function', 'position', 'size']);
     for (const s of ['identity', 'required', 'geometry', 'custom', 'calculated']) {
       const head = sectionBody(html, s);
       expect(head).toContain('class="sgl-attr-section-title"');
@@ -187,7 +191,7 @@ describe('Properties sections (P4)', () => {
     }
   });
 
-  it('Identity is the locked id; Geometry rows are editable inputs from grid/size (not attributes)', () => {
+  it('Identity is the locked id; Position and Size are one row each with three editable values (not custom)', () => {
     const design = fakePort();
     const node = design.doc.nodes.find((n) => n.id === 1)!;
     const html = render({ doc: v1(), design, selection: selectNode(1) });
@@ -195,18 +199,15 @@ describe('Properties sections (P4)', () => {
     expect(id).toContain('sgl-field-value">1<');
     expect(id).toContain('aria-label="Identity: cannot be changed"');
     expect(id).not.toMatch(/<input|<select/);
-    const values: Record<string, number> = {
-      'position-x': node.grid[0],
-      'position-y': node.grid[1],
-      level: node.grid[2],
-      'size-x': node.size[0],
-      'size-y': node.size[1],
-      floors: node.size[2],
-    };
-    for (const [attr, value] of Object.entries(values)) {
-      expect(rowOf(html, attr), attr).toMatch(new RegExp(`<input aria-label="[^"]+" type="number"[^>]*value="${value}"`));
+    for (const part of ['position', 'size'] as const) {
+      const inputs = [...rowOf(html, part).matchAll(/<input aria-label="([^"]+)" type="number"[^>]*value="(-?\d+)"/g)].map((m) => [m[1], Number(m[2])]);
+      expect(inputs, part).toEqual(
+        part === 'position'
+          ? [['Position x', node.position[0]], ['Position y', node.position[1]], ['Level', node.position[2]]]
+          : [['Size x', node.size[0]], ['Size y', node.size[1]], ['Floors', node.size[2]]],
+      );
     }
-    expect(Object.keys(node.attributes)).not.toContain('level');
+    expect(Object.keys(node.custom)).not.toContain('level');
   });
 
   it('Custom rows are tagged by source; Calculated rows are locked read-only text', async () => {
@@ -217,8 +218,8 @@ describe('Properties sections (P4)', () => {
     expect(area).toMatch(/sgl-field-value">\d+(\.\d+)? m²</);
     expect(area).toContain('aria-label="Calculated: cannot be typed in"');
     expect(area).not.toMatch(/<input|<select|<textarea/);
-    // Level is a geometry row, never a duplicated calculated row.
-    expect(attributeIds(html).filter((id) => id === 'level')).toHaveLength(1);
+    // Level is a value of the Position row, never a separate or calculated row.
+    expect(attributeIds(html)).not.toContain('level');
   });
 
   it('shows only the project’s enabled calculated values (I1), and no Calculated section when nothing is enabled', () => {
@@ -266,34 +267,34 @@ describe('Properties sections (P4)', () => {
 });
 
 describe('Geometry rows edit through the move/resize path (P4)', () => {
-  const node = { grid: [0, 0, 0] as const, size: [2, 3, 1] as const };
+  const node = { position: [0, 0, 0] as const, size: [2, 3, 1] as const };
 
   it('one row changes one axis; the others keep their stored values', () => {
-    expect(geometryDraftEdit(node, 'position-y', 'Position Y', '4', MAX_ROOM_SIZE)).toEqual({ kind: 'edit', request: { grid: [0, 4, 0] } });
-    expect(geometryDraftEdit(node, 'level', 'Level', '-1', MAX_ROOM_SIZE)).toEqual({ kind: 'edit', request: { grid: [0, 0, -1] } });
-    expect(geometryDraftEdit(node, 'floors', 'Floors', '2', MAX_ROOM_SIZE)).toEqual({ kind: 'edit', request: { size: [2, 3, 2] } });
-    expect(geometryDraftEdit(node, 'size-x', 'Size X', ' 2 ', MAX_ROOM_SIZE)).toEqual({ kind: 'unchanged' });
+    expect(geometryDraftEdit(node, 'position.y', 'Position y', '4', MAX_ROOM_SIZE)).toEqual({ kind: 'edit', request: { position: [0, 4, 0] } });
+    expect(geometryDraftEdit(node, 'position.z', 'Level', '-1', MAX_ROOM_SIZE)).toEqual({ kind: 'edit', request: { position: [0, 0, -1] } });
+    expect(geometryDraftEdit(node, 'size.z', 'Floors', '2', MAX_ROOM_SIZE)).toEqual({ kind: 'edit', request: { size: [2, 3, 2] } });
+    expect(geometryDraftEdit(node, 'size.x', 'Size x', ' 2 ', MAX_ROOM_SIZE)).toEqual({ kind: 'unchanged' });
   });
 
   it('refuses partial input and sizes outside 1..max with a readable reason', () => {
-    expect(geometryDraftEdit(node, 'position-x', 'Position X', '1.5', MAX_ROOM_SIZE)).toEqual({ kind: 'invalid', message: 'Position X must be a whole number' });
-    expect(geometryDraftEdit(node, 'size-x', 'Size X', '0', MAX_ROOM_SIZE)).toEqual({ kind: 'invalid', message: `Size X must be from 1 to ${MAX_ROOM_SIZE}` });
-    expect(geometryDraftEdit(node, 'floors', 'Floors', String(MAX_ROOM_SIZE + 1), MAX_ROOM_SIZE).kind).toBe('invalid');
+    expect(geometryDraftEdit(node, 'position.x', 'Position x', '1.5', MAX_ROOM_SIZE)).toEqual({ kind: 'invalid', message: 'Position x must be a whole number' });
+    expect(geometryDraftEdit(node, 'size.x', 'Size x', '0', MAX_ROOM_SIZE)).toEqual({ kind: 'invalid', message: `Size x must be from 1 to ${MAX_ROOM_SIZE}` });
+    expect(geometryDraftEdit(node, 'size.z', 'Floors', String(MAX_ROOM_SIZE + 1), MAX_ROOM_SIZE).kind).toBe('invalid');
   });
 
   it('an overlapping edit is refused by the preview and changes nothing; a free one is one command', () => {
     const design = fakePort();
     const room = design.doc.nodes.find((n) => n.id === 2)!;
     // Room 2 onto room 1 (x = 0): refused before any command is sent.
-    const overlap = geometryDraftEdit(room, 'position-x', 'Position X', '0', MAX_ROOM_SIZE);
+    const overlap = geometryDraftEdit(room, 'position.x', 'Position x', '0', MAX_ROOM_SIZE);
     if (overlap.kind !== 'edit') throw new Error('expected an edit');
-    expect(planGeometryEdit(design.proposeEdit({ nodeId: 2, grid: [...overlap.request.grid!] }), design.doc, 2).kind).toBe('reject');
+    expect(planGeometryEdit(design.proposeEdit({ nodeId: 2, position: [...overlap.request.position!] }), design.doc, 2).kind).toBe('reject');
     expect(design.sent).toHaveLength(0);
     // Room 3 one cell up in y: allowed, one set-node-geometry command.
-    const free = geometryDraftEdit(design.doc.nodes.find((n) => n.id === 3)!, 'position-y', 'Position Y', '7', MAX_ROOM_SIZE);
+    const free = geometryDraftEdit(design.doc.nodes.find((n) => n.id === 3)!, 'position.y', 'Position y', '7', MAX_ROOM_SIZE);
     if (free.kind !== 'edit') throw new Error('expected an edit');
-    expect(planGeometryEdit(design.proposeEdit({ nodeId: 3, grid: [...free.request.grid!] }), design.doc, 3).kind).toBe('commit');
-    expect(design.onCommand({ type: 'set-node-geometry', nodeId: 3, grid: [...free.request.grid!] }).ok).toBe(true);
-    expect(design.latest().nodes.find((n) => n.id === 3)!.grid).toEqual([0, 7, 0]);
+    expect(planGeometryEdit(design.proposeEdit({ nodeId: 3, position: [...free.request.position!] }), design.doc, 3).kind).toBe('commit');
+    expect(design.onCommand({ type: 'set-node-geometry', nodeId: 3, position: [...free.request.position!] }).ok).toBe(true);
+    expect(design.latest().nodes.find((n) => n.id === 3)!.position).toEqual([0, 7, 0]);
   });
 });

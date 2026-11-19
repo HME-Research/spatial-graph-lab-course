@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import type { AttributeValue, GraphIssue } from '@app/document';
+import { formatJson, type AttributeValue, type GraphIssue } from '@app/document';
 import type { AttributeSpecs, ExtensionDiagnostic } from '@app/extensions';
 import type { NodeTypeStatus } from '@app/views/project';
 import { CommitInput } from './fields';
@@ -30,7 +30,7 @@ type LocalError = (issues: readonly GraphIssue[]) => void;
 const localIssue = (path: GraphIssue['path'], message: string): GraphIssue => ({ path, code: 'schema', message });
 
 /** How the active project knows the room's current type. The stored value is never changed here. */
-export function TypeStatusNote({ status, typeId }: { status: NodeTypeStatus; typeId: string; projectId?: string | null }) {
+export function TypeStatusNote({ status, functionId }: { status: NodeTypeStatus; functionId: string; projectId?: string | null }) {
   switch (status.kind) {
     case 'no-project':
     case 'registered':
@@ -38,14 +38,14 @@ export function TypeStatusNote({ status, typeId }: { status: NodeTypeStatus; typ
     case 'undefined-type':
       return (
         <p className="sgl-warning">
-          ⚠ This project does not offer the function “{typeId}”. The room keeps it (with a fallback colour and façade) until
+          ⚠ This project does not offer the function “{functionId}”. The room keeps it (with a fallback colour and façade) until
           you choose another function above, or add it with Edit functions.
         </p>
       );
     case 'broken':
       return (
         <div className="sgl-warning">
-          ⚠ The definition of “{typeId}” in <code>{status.file}</code> has errors, so this type is disabled:
+          ⚠ The definition of “{functionId}” in <code>{status.file}</code> has errors, so this type is disabled:
           <ul className="sgl-list">
             {status.problems.map((p, i) => (
               <li key={i}>{p}</li>
@@ -97,11 +97,11 @@ export function TypedAttributesForm({
   run: RunAttributes;
   onLocalError: LocalError;
 }) {
-  const fields = typedFields(specs, node.attributes);
+  const fields = typedFields(specs, node.custom);
   const send = (key: string, value: AttributeValue | undefined): boolean => {
     const command = setTypedAttributeCommand(node, specs, key, value);
     if (!command.ok) {
-      onLocalError([localIssue(['attributes', key], command.message)]);
+      onLocalError([localIssue(['custom', key], command.message)]);
       return false;
     }
     return run(command.value);
@@ -199,8 +199,8 @@ export function AttributesForm({
   onLocalError: LocalError;
 }) {
   const initial = useMemo(
-    () => attributesToRows(specs ? undeclaredAttributes(specs, node.attributes) : node.attributes),
-    [node.attributes, specs],
+    () => attributesToRows(specs ? undeclaredAttributes(specs, node.custom) : node.custom),
+    [node.custom, specs],
   );
   const [rows, setRows] = useState<readonly AttributeRow[]>(initial);
   const dirty = JSON.stringify(rows) !== JSON.stringify(initial);
@@ -211,13 +211,13 @@ export function AttributesForm({
     e.preventDefault();
     if (specs) {
       const command = setUndeclaredAttributesCommand(node, specs, rows);
-      if (!command.ok) onLocalError([localIssue(['attributes'], command.message)]);
+      if (!command.ok) onLocalError([localIssue(['custom'], command.message)]);
       else run(command.value);
       return;
     }
     const parsed = rowsToAttributes(rows);
-    if (!parsed.ok) return onLocalError([localIssue(['attributes'], parsed.message)]);
-    run({ type: 'set-node-attributes', nodeId: node.id, attributes: parsed.value });
+    if (!parsed.ok) return onLocalError([localIssue(['custom'], parsed.message)]);
+    run({ type: 'set-node-attributes', nodeId: node.id, custom: parsed.value });
   };
 
   return (
@@ -302,7 +302,7 @@ export function StoredData({ record, diagramPosition }: { readonly record: objec
           Diagram position (Graph 2D only; never moves the room): {diagramPosition ? `[${diagramPosition.join(', ')}]` : 'none'}
         </p>
       )}
-      <pre>{JSON.stringify(record, null, 2)}</pre>
+      <pre>{formatJson(record)}</pre>
     </details>
   );
 }

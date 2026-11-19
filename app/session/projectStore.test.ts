@@ -50,11 +50,11 @@ const origin = { kind: 'created', label: 'test' } as const;
 const open = (file = fileOf()) => openProject(file, origin);
 
 const move = (p: OpenProject, nodeId: number, grid: [number, number, number]) => {
-  const r = applyActiveCommand(p, { type: 'set-node-geometry', nodeId, grid });
+  const r = applyActiveCommand(p, { type: 'set-node-geometry', nodeId, position: grid });
   if (!r.ok) throw new Error(r.issues.map((i) => i.message).join('; '));
   return r.project;
 };
-const gridOf = (p: OpenProject, nodeId: number) => activeDesign(p).nodes.find((n) => n.id === nodeId)!.grid;
+const gridOf = (p: OpenProject, nodeId: number) => activeDesign(p).nodes.find((n) => n.id === nodeId)!.position;
 
 // ── Tests ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -197,7 +197,7 @@ describe('scenario management', () => {
     const fromCurrent = ok(createScenario(ok(switchScenario(p, first)), { id: 'cur', from: 'current' }));
     expect(scenarioById(fromCurrent, 'cur')!.cameras[0]!.id).toBe('cur-camera-1');
     expect(projectFileOf(fromCurrent).ok).toBe(true);
-    expect(currentDocument(scenarioById(p, 'dup')!.session).design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 8, 0]);
+    expect(currentDocument(scenarioById(p, 'dup')!.session).design.nodes.find((n) => n.id === 3)!.position).toEqual([6, 8, 0]);
     expect(canUndo(scenarioById(p, 'dup')!.session.history)).toBe(false);
   });
 
@@ -286,7 +286,7 @@ describe('all-scenario JSON round trip', () => {
     const reopened = openProject(read.file, { kind: 'opened-file', label: 'x' });
     expect(reopened.scenarios.map((s) => s.name)).toEqual(['Scenario 1', 'Option B']);
     expect(currentDocument(reopened.scenarios[0]!.session).facePreferences[1]).toEqual(pref);
-    expect(currentDocument(reopened.scenarios[1]!.session).design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
+    expect(currentDocument(reopened.scenarios[1]!.session).design.nodes.find((n) => n.id === 2)!.position).toEqual([2, 1, 0]);
     expect(reopened.meta.attributes).toEqual(record);
   });
 });
@@ -321,7 +321,7 @@ describe('reading files', () => {
     expect(bad(JSON.stringify({ format: 'something-else' }))).toEqual(['wrong-format']);
     expect(bad(JSON.stringify({ schemaVersion: 3, metadata: { name: 'x' }, nodes: [], edges: [] }))).toEqual(['invalid-design']);
     const brokenScenario = JSON.parse(serializeProjectFile(fileOf()));
-    brokenScenario.scenarios[0].design.nodes[0].grid = 'x';
+    brokenScenario.scenarios[0].design.nodes[0].position = 'x';
     expect(bad(JSON.stringify(brokenScenario))).toContain('invalid-design');
   });
 
@@ -363,7 +363,7 @@ describe('Save As and identity', () => {
   });
 
   it('a legacy import is validated as a whole project', () => {
-    const r = projectFromLegacyDesign({ schemaVersion: 2, metadata: { name: 'x' }, nodes: [{ id: 1, grid: [0, 0, 0], typeId: 't' }, { id: 1, grid: [1, 0, 0], typeId: 't' }], edges: [] });
+    const r = projectFromLegacyDesign({ schemaVersion: 2, metadata: { name: 'x' }, nodes: [{ id: 1, position: [0, 0, 0], function: 't' }, { id: 1, position: [1, 0, 0], function: 't' }], edges: [] });
     expect(r.ok).toBe(false);
     expect(readProjectFile('{').ok).toBe(false);
   });

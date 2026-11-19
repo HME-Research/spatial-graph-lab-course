@@ -41,11 +41,11 @@ describe('beginner vocabulary', () => {
   });
 
   it('describes every spatial status; unresolved is a warning with a reason', () => {
-    const base = { edgeId: 1, kind: 'access' } as const;
+    const base = { edgeId: 1, relationship: 'access' } as const;
     const direct: EdgeResolution = { ...base, status: 'direct', contact: 'horizontal', faces: [] };
     expect(describeResolution(direct)).toMatchObject({ title: 'Direct', tone: 'ok' });
     expect(describeResolution({ ...direct, contact: 'vertical' }).detail).toContain('not a designed stair');
-    expect(describeResolution({ ...direct, kind: 'open' }).detail).toContain('left out');
+    expect(describeResolution({ ...direct, relationship: 'open' }).detail).toContain('left out');
     const routed: EdgeResolution = {
       ...base,
       status: 'routed',
@@ -182,12 +182,12 @@ describe('shell components (static markup)', () => {
 
   it('puts the message first and technical details behind a disclosure', () => {
     const html = renderToStaticMarkup(
-      createElement(IssueFeedback, { issues: [issue('room-overlap', 'room "c" overlaps room "a" at cell [1, 1, 0]', ['nodes', 2, 'grid'])], context: { subjectNodeId: 'c' } }),
+      createElement(IssueFeedback, { issues: [issue('room-overlap', 'room "c" overlaps room "a" at cell [1, 1, 0]', ['nodes', 2, 'position'])], context: { subjectNodeId: 'c' } }),
     );
     expect(html).toContain('role="alert"');
     expect(html.indexOf('This room overlaps room a.')).toBeLessThan(html.indexOf('Technical details'));
     expect(html).toContain('<details class="sgl-feedback-details"><summary>Technical details</summary>');
-    expect(html).toContain('nodes[2].grid · room-overlap');
+    expect(html).toContain('nodes[2].position · room-overlap');
   });
 
   it('uses a polite status, not an alert, for warnings', () => {

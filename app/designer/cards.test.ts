@@ -29,10 +29,10 @@ function lab(settings: unknown = undefined): DesignDocumentV2 {
       schemaVersion: 2,
       metadata: { name: 'cards' },
       nodes: [
-        { id: 1, grid: [0, 0, 0], typeId: 'gallery' },
-        { id: 2, grid: [1, 0, 0], typeId: 'gallery' },
-        { id: 3, grid: [0, 2, 0], typeId: 'studio' },
-        { id: 4, grid: [6, 6, 0], typeId: 'kiosk' },
+        { id: 1, position: [0, 0, 0], function: 'gallery' },
+        { id: 2, position: [1, 0, 0], function: 'gallery' },
+        { id: 3, position: [0, 2, 0], function: 'studio' },
+        { id: 4, position: [6, 6, 0], function: 'kiosk' },
       ],
       edges: [],
       settings,
@@ -66,7 +66,7 @@ describe('designerCards', () => {
     expect(functionLooks(doc.settings)).toEqual({ gallery: {} });
     const cards = designerCards(doc, null, facade);
     expect(cards.cards.map((c) => [c.key, c.nodeIds])).toEqual([['v:gallery', [1, 2]]]);
-    expect(cards.cards[0]).toMatchObject({ removable: true, hasOverride: true, typeId: 'gallery' });
+    expect(cards.cards[0]).toMatchObject({ removable: true, hasOverride: true, function: 'gallery' });
     expect(cards.defaultCard.nodeIds).toEqual([3, 4]);
     expect(cards.addable.map((a) => a.value)).toEqual(['kiosk', 'studio']);
     // Adding it again changes nothing; removing it brings the rooms back to Default.

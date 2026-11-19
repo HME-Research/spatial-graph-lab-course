@@ -25,7 +25,7 @@ export interface WallRoom {
   readonly id: number;
   /** Readable label (display id), never only the raw id. */
   readonly label: string;
-  readonly typeId: string;
+  readonly function: string;
 }
 
 export type WallPanel =
@@ -94,7 +94,7 @@ export function eligibleWallFaces(faces: readonly BuildingFace[], doc: DesignDoc
 
 function roomOf(doc: DesignDocumentV2, id: number): WallRoom {
   const n = doc.nodes.find((x) => x.id === id);
-  return { id, label: n ? nodeLabel(n) : String(id), typeId: n?.typeId ?? '' };
+  return { id, label: n ? nodeLabel(n) : String(id), function: n?.function ?? '' };
 }
 
 /**
@@ -166,7 +166,7 @@ export function addRelationshipCommand(
 ): { readonly edgeId: number; readonly command: WallCommand } {
   // The new relationship gets the design's next edge id.
   const edgeId = doc.nextEdgeId;
-  const edge = { source: panel.source, target: panel.target, kind };
+  const edge = { source: panel.source, target: panel.target, relationship: kind };
   return kind === 'access'
     ? { edgeId, command: { port: 'scenario', command: { type: 'add-edge-at-face', edge, preference: panel.preference } } }
     : { edgeId, command: { port: 'design', command: { type: 'add-edge', edge } } };
@@ -179,7 +179,7 @@ export function moveDoorHereCommand(panel: Extract<WallPanel, { kind: 'existing'
 
 export const changeKindCommand = (panel: Extract<WallPanel, { kind: 'existing' }>, kind: RelationshipKind): WallCommand => ({
   port: 'design',
-  command: { type: 'change-edge-kind', edgeId: panel.edgeId, kind },
+  command: { type: 'change-edge-kind', edgeId: panel.edgeId, relationship: kind },
 });
 
 export const removeRelationshipCommand = (panel: Extract<WallPanel, { kind: 'existing' }>): WallCommand => ({

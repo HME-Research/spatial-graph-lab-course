@@ -44,7 +44,7 @@ export const PropertiesPanel = Inspector;
 /** Shown when nothing is selected: what the open design contains. */
 function DesignSummary({ design }: { readonly design: DesignPort }) {
   const { metadata, nodes } = design.doc;
-  const storeys = [...new Set(nodes.map((n) => n.grid[2]))].sort((a, b) => a - b);
+  const storeys = [...new Set(nodes.map((n) => n.position[2]))].sort((a, b) => a - b);
   const edgeCount = design.doc.edges.length;
   const notBuilt = design.spatial.edges.filter((r) => describeResolution(r).tone === 'warning').length;
   return (

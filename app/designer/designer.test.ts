@@ -45,14 +45,14 @@ function labDocV2(typeAppearance: Record<string, unknown> = {}): DesignDocumentV
       schemaVersion: 2,
       metadata: { name: 'Lab v2' },
       nodes: [
-        { id: 1, grid: [0, 0, 0], typeId: 'gallery' },
-        { id: 2, grid: [1, 0, 0], typeId: 'gallery' },
-        { id: 3, grid: [0, 2, 0], typeId: 'studio' },
-        { id: 4, grid: [6, 6, 0], typeId: 'kiosk' },
+        { id: 1, position: [0, 0, 0], function: 'gallery' },
+        { id: 2, position: [1, 0, 0], function: 'gallery' },
+        { id: 3, position: [0, 2, 0], function: 'studio' },
+        { id: 4, position: [6, 6, 0], function: 'kiosk' },
       ],
       edges: [
-        { id: 1, source: 1, target: 2, kind: 'access' },
-        { id: 2, source: 1, target: 4, kind: 'open', corridor: { roof: 'none' } },
+        { id: 1, source: 1, target: 2, relationship: 'access' },
+        { id: 2, source: 1, target: 4, relationship: 'open', corridor: { roof: 'none' } },
       ],
       settings: functionStyleSettings(typeAppearance as Record<string, Look>),
     }),
@@ -67,18 +67,18 @@ function commandOf(edit: DesignerEdit): DesignCommand {
 const apply = (doc: DesignDocumentV2, edit: DesignerEdit) => expectOk(applyDesignCommand(doc, commandOf(edit)));
 
 /** Window coverage per function in a design (its card → Default → the project's provider). */
-const designFacadeProvider = (doc: Pick<DesignDocumentV2, 'settings'>, project: FacadeProvider) => (typeId: string) => ({
-  windowFraction: effectiveLook(styleSetupOf(doc.settings, 'function'), { kind: 'value', value: typeId }, project(typeId)).windowFraction,
+const designFacadeProvider = (doc: Pick<DesignDocumentV2, 'settings'>, project: FacadeProvider) => (functionId: string) => ({
+  windowFraction: effectiveLook(styleSetupOf(doc.settings, 'function'), { kind: 'value', value: functionId }, project(functionId)).windowFraction,
 });
 /** Roof per function in a design. */
-const designRoofOf = (doc: Pick<DesignDocumentV2, 'settings'>, typeId: string) =>
-  effectiveLook(styleSetupOf(doc.settings, 'function'), { kind: 'value', value: typeId }, { windowFraction: 0 }).roof;
+const designRoofOf = (doc: Pick<DesignDocumentV2, 'settings'>, functionId: string) =>
+  effectiveLook(styleSetupOf(doc.settings, 'function'), { kind: 'value', value: functionId }, { windowFraction: 0 }).roof;
 
 describe('designer type rows', () => {
   it('lists project types first, then design-only types, with project defaults and node counts', async () => {
     const project = await labToolkit();
     const rows = designerTypeRows(labDocV2(), project, projectFacadeProvider(project));
-    expect(rows.map((r) => r.typeId)).toEqual(['gallery', 'studio', 'kiosk']);
+    expect(rows.map((r) => r.function)).toEqual(['gallery', 'studio', 'kiosk']);
     const [gallery, studio, kiosk] = rows;
     expect(gallery).toMatchObject({
       name: 'Gallery (gallery)',
@@ -96,16 +96,16 @@ describe('designer type rows', () => {
 
   it('shows a new student-defined type automatically, even before any room uses it', async () => {
     const pavilionType = { id: 'pavilion', label: 'Pavilion', facade: { windowFraction: 0.9 } };
-    const project = await labToolkit({ 'toolkits/lab/types/pavilion.ts': { default: pavilionType } });
+    const project = await labToolkit({ 'toolkits/lab/functions/pavilion.ts': { default: pavilionType } });
     const rows = designerTypeRows(labDocV2(), project, projectFacadeProvider(project));
-    const pavilion = rows.find((r) => r.typeId === 'pavilion');
+    const pavilion = rows.find((r) => r.function === 'pavilion');
     expect(pavilion).toMatchObject({ name: 'Pavilion (pavilion)', nodeCount: 0, orphanOverride: false, warning: null });
     expect(pavilion!.effective.windowFraction).toBe(0.9);
   });
 
   it('flags a broken type definition instead of silently using it', async () => {
-    const project = await labToolkit({ 'toolkits/lab/types/studio.ts': { default: { id: 'studio', label: 42 } } });
-    const studio = designerTypeRows(labDocV2(), project, projectFacadeProvider(project)).find((r) => r.typeId === 'studio')!;
+    const project = await labToolkit({ 'toolkits/lab/functions/studio.ts': { default: { id: 'studio', label: 42 } } });
+    const studio = designerTypeRows(labDocV2(), project, projectFacadeProvider(project)).find((r) => r.function === 'studio')!;
     expect(studio.status.kind).toBe('broken');
     expect(studio.projectDefault.source).toBe('broken');
     expect(studio.warning).toMatch(/invalid/);
@@ -113,14 +113,14 @@ describe('designer type rows', () => {
 
   it('keeps an orphan override visible so it can be reset', () => {
     const rows = designerTypeRows(labDocV2({ ghost: { roof: 'none' } }), null, exampleFacadeProvider);
-    const ghost = rows.find((r) => r.typeId === 'ghost')!;
+    const ghost = rows.find((r) => r.function === 'ghost')!;
     expect(ghost).toMatchObject({ orphanOverride: true, hasOverride: true });
     expect(ghost.warning).toMatch(/No room uses this type/);
   });
 
   it('works without a project (existing fallback façades)', () => {
     const rows = designerTypeRows(labDocV2(), null, exampleFacadeProvider);
-    expect(rows.map((r) => [r.typeId, r.effective.windowFraction, r.warning])).toEqual([
+    expect(rows.map((r) => [r.function, r.effective.windowFraction, r.warning])).toEqual([
       ['gallery', 0.7, null],
       ['kiosk', 0.15, null],
       ['studio', 0.25, null],
@@ -137,10 +137,10 @@ describe('designer edits', () => {
     expect(functionLooks(edited.settings)).toEqual({ gallery: { windowFraction: 0.35 } });
 
     const effective = designFacadeProvider(edited, facade);
-    for (const node of edited.nodes.filter((n) => n.typeId === 'gallery')) expect(effective(node.typeId).windowFraction).toBe(0.35);
+    for (const node of edited.nodes.filter((n) => n.function === 'gallery')) expect(effective(node.function).windowFraction).toBe(0.35);
     expect(effective('studio')).toEqual(facade('studio'));
 
-    const row = designerTypeRows(edited, project, facade).find((r) => r.typeId === 'gallery')!;
+    const row = designerTypeRows(edited, project, facade).find((r) => r.function === 'gallery')!;
     expect(row.effective.source.windowFraction).toBe('card');
     expect(row.projectDefault.windowFraction).toBe(0.6);
 
@@ -247,9 +247,9 @@ describe('window layout per function', () => {
   });
 
   it('the Building changes the windows of the Stretch function only', () => {
-    const glass = (typeAppearance: Record<string, unknown>, typeId: string) =>
+    const glass = (typeAppearance: Record<string, unknown>, functionId: string) =>
       buildBuildingV2(labDocV2(typeAppearance), { facade: exampleFacadeProvider })
-        .elements.filter((e) => e.part === 'glazing' && e.ownerTypeId === typeId)
+        .elements.filter((e) => e.part === 'glazing' && e.ownerFunction === functionId)
         .map((e) => `${e.position.join(',')}|${e.size.join(',')}`)
         .sort();
     const base = { gallery: { windowFraction: 0.5 }, studio: { windowFraction: 0.5 } };

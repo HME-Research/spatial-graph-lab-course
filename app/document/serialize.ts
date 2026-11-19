@@ -51,7 +51,8 @@ export function readDesignJson(text: string, options?: ValidationOptionsV2): Res
 
 /**
  * Canonical v2 text: fixed key order, the document's own array/record order, optional fields
- * omitted when undefined, trailing newline. Same document → identical text.
+ * omitted when undefined, trailing newline. Same document → identical text. Formatting:
+ * `formatJson` (arrays of numbers on one line).
  */
 export function serializeDesignV2(doc: DesignDocumentV2): string {
   const canonical = {
@@ -64,18 +65,18 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
     nextEdgeId: doc.nextEdgeId,
     nodes: doc.nodes.map((n) => ({
       id: n.id,
-      grid: [...n.grid],
+      function: n.function,
+      position: [...n.position],
       size: [...n.size],
-      typeId: n.typeId,
-      attributes: { ...n.attributes },
+      custom: { ...n.custom },
     })),
     edges: doc.edges.map((e) => ({
       id: e.id,
       source: e.source,
       target: e.target,
-      kind: e.kind,
+      relationship: e.relationship,
       ...corridorField('corridor', e.corridor),
-      attributes: { ...e.attributes },
+      custom: { ...e.custom },
     })),
     diagram: { positions: { ...doc.diagram.positions } },
     settings: {
@@ -96,5 +97,26 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
       ...corridorField('corridors', doc.settings.corridors),
     },
   };
-  return `${JSON.stringify(canonical, null, 2)}\n`;
+  return `${formatJson(canonical)}\n`;
+}
+
+/**
+ * JSON text in the app's one written style (owner 2026-11-19): two-space indent; every array of
+ * numbers on ONE line with a space after each comma (`[1, 0, 0]`); other arrays and objects
+ * multi-line, an object's first entry on the line after its `{`; empty objects and arrays as
+ * `{}` / `[]`. Values must be JSON values (`undefined` entries are skipped, as in
+ * `JSON.stringify`). No trailing newline.
+ */
+export function formatJson(value: unknown, indent = ''): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
+  const inner = `${indent}  `;
+  if (Array.isArray(value)) {
+    const items: readonly unknown[] = value;
+    if (items.length === 0) return '[]';
+    if (items.every((x) => typeof x === 'number')) return `[${items.map((x) => JSON.stringify(x)).join(', ')}]`;
+    return `[\n${items.map((x) => `${inner}${x === undefined ? 'null' : formatJson(x, inner)}`).join(',\n')}\n${indent}]`;
+  }
+  const entries = Object.entries(value).filter(([, v]) => v !== undefined);
+  if (entries.length === 0) return '{}';
+  return `{\n${entries.map(([k, v]) => `${inner}${JSON.stringify(k)}: ${formatJson(v, inner)}`).join(',\n')}\n${indent}}`;
 }

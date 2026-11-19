@@ -410,7 +410,7 @@ export function PlanDrawing({
               key={room.nodeId}
               className={`sgl-plan-room${cls}`}
               data-node-id={room.nodeId}
-              style={{ '--sgl-plan-type': typeColor(room.typeId) } as CSSProperties}
+              style={{ '--sgl-plan-type': typeColor(room.function) } as CSSProperties}
               {...rectProps(room.rect)}
               {...activate(selectNode(room.nodeId))}
               aria-label={`Room ${room.label}`}

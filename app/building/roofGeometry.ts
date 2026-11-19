@@ -19,9 +19,9 @@ export const isExposedTop = (face: Pick<BuildingFace, 'direction' | 'condition'>
   face.direction === '+z' && face.condition === 'exterior';
 
 /** Drop exposed tops of types whose effective roof style is `none`; keep everything else (flat and pergola). */
-export function applyRoofPolicy<F extends Pick<BuildingFace, 'direction' | 'condition' | 'ownerTypeId'>>(
+export function applyRoofPolicy<F extends Pick<BuildingFace, 'direction' | 'condition' | 'ownerFunction'>>(
   faces: readonly F[],
-  roofOf: (typeId: string) => RoofStyle,
+  roofOf: (functionId: string) => RoofStyle,
 ): F[] {
-  return faces.filter((f) => !isExposedTop(f) || roofOf(f.ownerTypeId) !== 'none');
+  return faces.filter((f) => !isExposedTop(f) || roofOf(f.ownerFunction) !== 'none');
 }

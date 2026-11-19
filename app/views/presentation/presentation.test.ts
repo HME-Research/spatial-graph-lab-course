@@ -39,7 +39,7 @@ import { AnalysisLegend, RelationshipLegend } from './LegendViews';
 
 const direct = (edgeId: number, kind: 'access' | 'open', contact: 'horizontal' | 'vertical'): EdgeResolution => ({
   edgeId,
-  kind,
+  relationship: kind,
   status: 'direct',
   contact,
   faces: [],
@@ -48,7 +48,7 @@ type Walls = 'enclosed' | 'open';
 type Roof = 'flat' | 'pergola' | 'none';
 const routed = (edgeId: number, walls: Walls, roof: Roof, cells = 3): EdgeResolution => ({
   edgeId,
-  kind: 'access',
+  relationship: 'access',
   status: 'routed',
   route: {
     edgeId,
@@ -62,7 +62,7 @@ const routed = (edgeId: number, walls: Walls, roof: Roof, cells = 3): EdgeResolu
 });
 const unresolved = (edgeId: number, reason: UnresolvedReason): EdgeResolution => ({
   edgeId,
-  kind: 'open',
+  relationship: 'open',
   status: 'unresolved',
   reason,
   message: `engine says ${reason}`,
@@ -197,13 +197,13 @@ describe('relationship presentation', () => {
       schemaVersion: 2,
       metadata: { name: 't' },
       nodes: [
-        { id: 1, grid: [0, 0, 0], typeId: 'x' },
-        { id: 2, grid: [1, 0, 0], typeId: 'x' },
-        { id: 3, grid: [5, 5, 1], typeId: 'x' },
+        { id: 1, position: [0, 0, 0], function: 'x' },
+        { id: 2, position: [1, 0, 0], function: 'x' },
+        { id: 3, position: [5, 5, 1], function: 'x' },
       ],
       edges: [
-        { id: 1, source: 1, target: 2, kind: 'access' },
-        { id: 2, source: 1, target: 3, kind: 'open' },
+        { id: 1, source: 1, target: 2, relationship: 'access' },
+        { id: 2, source: 1, target: 3, relationship: 'open' },
       ],
       diagram: { positions: {} },
     };

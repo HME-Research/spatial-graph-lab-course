@@ -180,8 +180,8 @@ export const isStale = (
 
 export interface PreviewSummary {
   /** New rooms with the ids the app gave them. */
-  readonly addedNodes: readonly { readonly id: number; readonly typeId: string; readonly grid: GridCoord }[];
-  readonly addedEdges: readonly { readonly id: number; readonly source: number; readonly target: number; readonly kind: string }[];
+  readonly addedNodes: readonly { readonly id: number; readonly function: string; readonly position: GridCoord }[];
+  readonly addedEdges: readonly { readonly id: number; readonly source: number; readonly target: number; readonly relationship: string }[];
   readonly attributeChanges: readonly {
     readonly nodeId: number;
     readonly key: string;
@@ -199,15 +199,15 @@ export interface PreviewSummary {
   /** Existing rooms the transformation moves or resizes (P4 `set-node-geometry`). */
   readonly geometryChanges: readonly {
     readonly nodeId: number;
-    readonly from: { readonly grid: GridCoord; readonly size: readonly number[] };
-    readonly to: { readonly grid: GridCoord; readonly size: readonly number[] };
+    readonly from: { readonly position: GridCoord; readonly size: readonly number[] };
+    readonly to: { readonly position: GridCoord; readonly size: readonly number[] };
   }[];
   /** Every node added, connected or changed (ascending). */
   readonly affectedNodeIds: readonly number[];
 }
 
-type SummaryNode = { readonly id: number; readonly typeId: string; readonly grid: GridCoord; readonly size: readonly number[]; readonly attributes: Attributes };
-type SummaryEdge = { readonly id: number; readonly source: number; readonly target: number; readonly kind: string; readonly attributes: Attributes };
+type SummaryNode = { readonly id: number; readonly function: string; readonly position: GridCoord; readonly size: readonly number[]; readonly custom: Attributes };
+type SummaryEdge = { readonly id: number; readonly source: number; readonly target: number; readonly relationship: string; readonly custom: Attributes };
 
 /**
  * What a validated preview changes, read from its before / after documents (P4: new nodes and edges
@@ -225,20 +225,20 @@ export function describePreview(preview: {
   const addedNodes: PreviewSummary['addedNodes'][number][] = [];
   const attributeChanges: PreviewSummary['attributeChanges'][number][] = [];
   const geometryChanges: PreviewSummary['geometryChanges'][number][] = [];
-  const box = (n: SummaryNode) => ({ grid: [n.grid[0], n.grid[1], n.grid[2]] as GridCoord, size: [...n.size] });
+  const box = (n: SummaryNode) => ({ position: [n.position[0], n.position[1], n.position[2]] as GridCoord, size: [...n.size] });
   for (const n of preview.after.nodes) {
     const old = beforeNodes.get(n.id);
     if (!old) {
-      addedNodes.push({ id: n.id, typeId: n.typeId, grid: [n.grid[0], n.grid[1], n.grid[2]] });
+      addedNodes.push({ id: n.id, function: n.function, position: [n.position[0], n.position[1], n.position[2]] });
       affected.add(n.id);
       continue;
     }
-    if (old.grid.join() !== n.grid.join() || old.size.join() !== n.size.join()) {
+    if (old.position.join() !== n.position.join() || old.size.join() !== n.size.join()) {
       geometryChanges.push({ nodeId: n.id, from: box(old), to: box(n) });
       affected.add(n.id);
     }
-    for (const key of changed(old.attributes, n.attributes)) {
-      attributeChanges.push({ nodeId: n.id, key, from: Object.prototype.hasOwnProperty.call(old.attributes, key) ? old.attributes[key] : undefined, to: n.attributes[key]! });
+    for (const key of changed(old.custom, n.custom)) {
+      attributeChanges.push({ nodeId: n.id, key, from: Object.prototype.hasOwnProperty.call(old.custom, key) ? old.custom[key] : undefined, to: n.custom[key]! });
       affected.add(n.id);
     }
   }
@@ -247,12 +247,12 @@ export function describePreview(preview: {
   for (const e of preview.after.edges) {
     const old = beforeEdges.get(e.id);
     if (!old) {
-      addedEdges.push({ id: e.id, source: e.source, target: e.target, kind: e.kind });
+      addedEdges.push({ id: e.id, source: e.source, target: e.target, relationship: e.relationship });
       affected.add(e.source).add(e.target);
       continue;
     }
-    for (const key of changed(old.attributes, e.attributes)) {
-      edgeAttributeChanges.push({ edgeId: e.id, key, from: Object.prototype.hasOwnProperty.call(old.attributes, key) ? old.attributes[key] : undefined, to: e.attributes[key]! });
+    for (const key of changed(old.custom, e.custom)) {
+      edgeAttributeChanges.push({ edgeId: e.id, key, from: Object.prototype.hasOwnProperty.call(old.custom, key) ? old.custom[key] : undefined, to: e.custom[key]! });
       affected.add(e.source).add(e.target);
     }
   }

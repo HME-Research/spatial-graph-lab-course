@@ -34,11 +34,11 @@ function labV2(): DesignDocumentV2 {
       schemaVersion: 2,
       metadata: { name: 'Lab v2' },
       nodes: [
-        { id: 1, grid: [0, 0, 0], size: [2, 2, 1], typeId: 'gallery', attributes: { daylight: 'high' } },
-        { id: 2, grid: [2, 1, 0], typeId: 'gallery', attributes: {} },
-        { id: 3, grid: [0, 5, 0], typeId: 'studio', attributes: {} },
+        { id: 1, position: [0, 0, 0], size: [2, 2, 1], function: 'gallery', custom: { daylight: 'high' } },
+        { id: 2, position: [2, 1, 0], function: 'gallery', custom: {} },
+        { id: 3, position: [0, 5, 0], function: 'studio', custom: {} },
       ],
-      edges: [{ id: 1, source: 1, target: 2, kind: 'access', attributes: {} }],
+      edges: [{ id: 1, source: 1, target: 2, relationship: 'access', custom: {} }],
     }),
   );
 }
@@ -70,37 +70,37 @@ describe('spatial context on a v2 document', () => {
 
 describe('transformations on a v2 document', () => {
   it('adds a relationship between rooms that do not touch (valid; spatial status is derived)', async () => {
-    const project = await transforming([{ op: 'add-edge', source: 1, target: 3, kind: 'access' }]);
+    const project = await transforming([{ op: 'add-edge', source: 1, target: 3, relationship: 'access' }]);
     const outcome = expectExtOk(runAlgorithmV2(labV2(), project, 't'));
     if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
-    expect(outcome.preview.after.edges.at(-1)).toEqual({ id: 2, source: 1, target: 3, kind: 'access', attributes: {} });
+    expect(outcome.preview.after.edges.at(-1)).toEqual({ id: 2, source: 1, target: 3, relationship: 'access', custom: {} });
     expect(resolveRelationships(outcome.preview.after).byEdge.get(2)!.status).toBe('routed');
   });
 
   it.each(['door', 'vertical-access', 'atrium'])('refuses the retired schema-v1 kind %s (P4)', async (legacy) => {
-    const project = await transforming([{ op: 'add-edge', source: 1, target: 3, kind: legacy as never }]);
+    const project = await transforming([{ op: 'add-edge', source: 1, target: 3, relationship: legacy as never }]);
     expectDiagnostic(runAlgorithmV2(labV2(), project, 't'), 'unknown-edge-kind');
   });
 
   it('rejects unknown kinds, overlapping rooms and invalid sizes', async () => {
     const run = async (op: SpatialOperation) => runAlgorithmV2(labV2(), await transforming([op]), 't');
-    expectDiagnostic(await run({ op: 'add-edge', source: 1, target: 3, kind: 'stair' as never }), 'unknown-edge-kind');
+    expectDiagnostic(await run({ op: 'add-edge', source: 1, target: 3, relationship: 'stair' as never }), 'unknown-edge-kind');
     expect(
-      expectDiagnostic(await run({ op: 'add-node', grid: [1, -1, 0], size: [1, 2, 1], typeId: 'gallery' }), 'occupied-cell').message,
+      expectDiagnostic(await run({ op: 'add-node', position: [1, -1, 0], size: [1, 2, 1], function: 'gallery' }), 'occupied-cell').message,
     ).toContain('occupied by node 1');
-    expectDiagnostic(await run({ op: 'add-node', grid: [9, 9, 0], size: [0, 1, 1], typeId: 'gallery' }), 'invalid-size');
-    expectDiagnostic(await run({ op: 'add-node', grid: [9, 9, 0], size: [1.5, 1, 1], typeId: 'gallery' }), 'invalid-size');
+    expectDiagnostic(await run({ op: 'add-node', position: [9, 9, 0], size: [0, 1, 1], function: 'gallery' }), 'invalid-size');
+    expectDiagnostic(await run({ op: 'add-node', position: [9, 9, 0], size: [1.5, 1, 1], function: 'gallery' }), 'invalid-size');
   });
 
   it('adds a multi-cell room with the next node id from the counter', async () => {
-    const project = await transforming([{ op: 'add-node', grid: [5, 0, 0], size: [2, 3, 1], typeId: 'gallery' }]);
+    const project = await transforming([{ op: 'add-node', position: [5, 0, 0], size: [2, 3, 1], function: 'gallery' }]);
     const outcome = expectExtOk(runAlgorithmV2(labV2(), project, 't'));
     expect(outcome.kind === 'transformation' && outcome.preview.after.nodes.at(-1)).toEqual({
       id: 4,
-      grid: [5, 0, 0],
+      position: [5, 0, 0],
       size: [2, 3, 1],
-      typeId: 'gallery',
-      attributes: {},
+      function: 'gallery',
+      custom: {},
     });
     expect(outcome.kind === 'transformation' && outcome.preview.after.nextNodeId).toBe(5);
     expect(outcome.kind === 'transformation' && outcome.preview.displacedRoutes).toEqual([]);
@@ -108,12 +108,12 @@ describe('transformations on a v2 document', () => {
 
   it('reports (never silently fills) generated connector cells taken by a new room', async () => {
     const withRoute = expectOk(
-      validateDocumentV2({ ...labV2(), nextEdgeId: 3, edges: [...labV2().edges, { id: 2, source: 1, target: 3, kind: 'access', attributes: {} }] }),
+      validateDocumentV2({ ...labV2(), nextEdgeId: 3, edges: [...labV2().edges, { id: 2, source: 1, target: 3, relationship: 'access', custom: {} }] }),
     );
     const route = resolveRelationships(withRoute).byEdge.get(2)!;
     expect(route.status).toBe('routed');
     const cell = route.status === 'routed' ? route.route.cells[0]! : ([0, 0, 0] as const);
-    const project = await transforming([{ op: 'add-node', grid: cell, typeId: 'gallery' }]);
+    const project = await transforming([{ op: 'add-node', position: cell, function: 'gallery' }]);
     const outcome = expectExtOk(runAlgorithmV2(withRoute, project, 't'));
     expect(outcome.kind === 'transformation' && outcome.preview.displacedRoutes).toEqual([2]);
   });
@@ -122,7 +122,7 @@ describe('transformations on a v2 document', () => {
     const doc = labV2();
     const before = JSON.stringify(doc);
     const project = await transforming([
-      { op: 'add-node', grid: [5, 0, 0], typeId: 'gallery' },
+      { op: 'add-node', position: [5, 0, 0], function: 'gallery' },
       { op: 'set-node-attribute', nodeId: 2, key: 'daylight', value: 'low' },
     ]);
     expectExtOk(runAlgorithmV2(doc, project, 't'));
@@ -141,29 +141,29 @@ describe('set-node-geometry: move and resize rooms (P4, additive)', () => {
   it('resizes at the minimum corner, grows towards -x by moving the corner, and keeps the draft cells in step', async () => {
     const preview = await after([
       { op: 'set-node-geometry', nodeId: 2, size: [2, 1, 1] }, // 2 now covers [2..3, 1]
-      { op: 'set-node-geometry', nodeId: 3, grid: [-1, 5, 0], size: [3, 1, 1] }, // grows one column to -x
-      { op: 'add-node', grid: [0, 6, 0], typeId: 'studio' }, // free before and after
+      { op: 'set-node-geometry', nodeId: 3, position: [-1, 5, 0], size: [3, 1, 1] }, // grows one column to -x
+      { op: 'add-node', position: [0, 6, 0], function: 'studio' }, // free before and after
     ]);
     const node = (id: number) => preview.after.nodes.find((n) => n.id === id)!;
-    expect([node(2).grid, node(2).size]).toEqual([[2, 1, 0], [2, 1, 1]]);
-    expect([node(3).grid, node(3).size]).toEqual([[-1, 5, 0], [3, 1, 1]]);
+    expect([node(2).position, node(2).size]).toEqual([[2, 1, 0], [2, 1, 1]]);
+    expect([node(3).position, node(3).size]).toEqual([[-1, 5, 0], [3, 1, 1]]);
     expect(validateDocumentV2(preview.after).ok).toBe(true);
     // The draft knows the new cells: a later operation cannot take them…
     expect(
-      expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, size: [2, 1, 1] }, { op: 'add-node', grid: [3, 1, 0], typeId: 'gallery' }]), 'occupied-cell')
+      expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, size: [2, 1, 1] }, { op: 'add-node', position: [3, 1, 0], function: 'gallery' }]), 'occupied-cell')
         .message,
     ).toContain('occupied by node 2');
     // …and cells a room leaves are free again in the same run.
     const moved = await after([
-      { op: 'set-node-geometry', nodeId: 3, grid: [6, 5, 0] },
-      { op: 'add-node', grid: [0, 5, 0], typeId: 'studio' },
+      { op: 'set-node-geometry', nodeId: 3, position: [6, 5, 0] },
+      { op: 'add-node', position: [0, 5, 0], function: 'studio' },
     ]);
-    expect(moved.after.nodes.find((n) => n.id === 4)!.grid).toEqual([0, 5, 0]);
+    expect(moved.after.nodes.find((n) => n.id === 4)!.position).toEqual([0, 5, 0]);
   });
 
   it('may resize a room added earlier in the same run (by ref)', async () => {
     const preview = await after([
-      { op: 'add-node', ref: 'new', grid: [5, 0, 0], typeId: 'gallery' },
+      { op: 'add-node', ref: 'new', position: [5, 0, 0], function: 'gallery' },
       { op: 'set-node-geometry', nodeId: 'new', size: [1, 2, 1] },
     ]);
     expect(preview.after.nodes.find((n) => n.id === 4)!.size).toEqual([1, 2, 1]);
@@ -173,23 +173,23 @@ describe('set-node-geometry: move and resize rooms (P4, additive)', () => {
     expect(expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 99, size: [2, 1, 1] }]), 'missing-node').message).toContain(
       'set-node-geometry 99',
     );
-    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2 }]), 'invalid-grid');
+    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2 }]), 'invalid-position');
     expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, size: [0, 1, 1] }]), 'invalid-size');
     expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, size: [1.5, 1, 1] }]), 'invalid-size');
     expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, size: [MAX_ROOM_SIZE + 1, 1, 1] }]), 'invalid-size');
-    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, grid: [0.5, 1, 0] }]), 'invalid-grid');
-    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 3, grid: [1001, 5, 0] }]), 'invalid-grid');
-    const overlap = expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, grid: [1, 1, 0] }]), 'occupied-cell');
+    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, position: [0.5, 1, 0] }]), 'invalid-position');
+    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 3, position: [1001, 5, 0] }]), 'invalid-position');
+    const overlap = expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, position: [1, 1, 0] }]), 'occupied-cell');
     expect(overlap.message).toBe('operation 1: set-node-geometry 2: cell [1, 1, 0] is already occupied by node 1');
     const withRoute = expectOk(
-      validateDocumentV2({ ...labV2(), nextEdgeId: 3, edges: [...labV2().edges, { id: 2, source: 1, target: 3, kind: 'access' as const, attributes: {} }] }),
+      validateDocumentV2({ ...labV2(), nextEdgeId: 3, edges: [...labV2().edges, { id: 2, source: 1, target: 3, relationship: 'access' as const, custom: {} }] }),
     );
     const route = resolveRelationships(withRoute).byEdge.get(2)!;
     const cell = route.status === 'routed' ? route.route.cells[0]! : ([0, 0, 0] as const);
-    const taken = expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 3, grid: cell, size: [1, 1, 1] }], withRoute), 'occupied-cell');
+    const taken = expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 3, position: cell, size: [1, 1, 1] }], withRoute), 'occupied-cell');
     expect(taken.message).toContain('generated connector of relationship 2');
     // Nothing changed: the run failed as a whole.
-    expect(withRoute.nodes.find((n) => n.id === 3)!.grid).toEqual([0, 5, 0]);
+    expect(withRoute.nodes.find((n) => n.id === 3)!.position).toEqual([0, 5, 0]);
   });
 });
 
@@ -198,10 +198,10 @@ describe('refs: the app assigns ids to new items in operation order (P4)', () =>
     const doc = labV2(); // nextNodeId 4, nextEdgeId 2
     expect([doc.nextNodeId, doc.nextEdgeId]).toEqual([4, 2]);
     const project = await transforming([
-      { op: 'add-node', ref: 'north', grid: [5, 0, 0], typeId: 'gallery' },
-      { op: 'add-node', ref: 'south', grid: [6, 0, 0], typeId: 'gallery' },
-      { op: 'add-edge', ref: 'link', source: 'north', target: 'south', kind: 'open' },
-      { op: 'add-edge', source: 3, target: 'south', kind: 'access' },
+      { op: 'add-node', ref: 'north', position: [5, 0, 0], function: 'gallery' },
+      { op: 'add-node', ref: 'south', position: [6, 0, 0], function: 'gallery' },
+      { op: 'add-edge', ref: 'link', source: 'north', target: 'south', relationship: 'open' },
+      { op: 'add-edge', source: 3, target: 'south', relationship: 'access' },
       { op: 'set-node-attribute', nodeId: 'south', key: 'daylight', value: 'low' },
     ]);
     const outcome = expectExtOk(runAlgorithmV2(doc, project, 't'));
@@ -210,10 +210,10 @@ describe('refs: the app assigns ids to new items in operation order (P4)', () =>
     expect(preview.assigned).toEqual({ nodes: { north: 4, south: 5 }, edges: { link: 2 } });
     expect(preview.after.nodes.slice(-2).map((n) => n.id)).toEqual([4, 5]);
     expect(preview.after.edges.slice(-2)).toEqual([
-      { id: 2, source: 4, target: 5, kind: 'open', attributes: {} },
-      { id: 3, source: 3, target: 5, kind: 'access', attributes: {} },
+      { id: 2, source: 4, target: 5, relationship: 'open', custom: {} },
+      { id: 3, source: 3, target: 5, relationship: 'access', custom: {} },
     ]);
-    expect(preview.after.nodes.find((n) => n.id === 5)!.attributes).toEqual({ daylight: 'low' });
+    expect(preview.after.nodes.find((n) => n.id === 5)!.custom).toEqual({ daylight: 'low' });
     expect([preview.after.nextNodeId, preview.after.nextEdgeId]).toEqual([6, 4]);
     // The input is untouched (counters included).
     expect([doc.nextNodeId, doc.nextEdgeId]).toEqual([4, 2]);
@@ -221,25 +221,25 @@ describe('refs: the app assigns ids to new items in operation order (P4)', () =>
 
   it('refuses an unknown ref and a ref reused in the same run', async () => {
     const run = async (ops: readonly SpatialOperation[]) => runAlgorithmV2(labV2(), await transforming(ops), 't');
-    expectDiagnostic(await run([{ op: 'add-edge', source: 1, target: 'nowhere', kind: 'access' }]), 'missing-node');
+    expectDiagnostic(await run([{ op: 'add-edge', source: 1, target: 'nowhere', relationship: 'access' }]), 'missing-node');
     expectDiagnostic(await run([{ op: 'set-node-attribute', nodeId: 'nowhere', key: 'daylight', value: 'low' }]), 'missing-node');
     // A ref only names an item added by an EARLIER operation.
     expectDiagnostic(
       await run([
-        { op: 'add-edge', source: 1, target: 'later', kind: 'access' },
-        { op: 'add-node', ref: 'later', grid: [5, 0, 0], typeId: 'gallery' },
+        { op: 'add-edge', source: 1, target: 'later', relationship: 'access' },
+        { op: 'add-node', ref: 'later', position: [5, 0, 0], function: 'gallery' },
       ]),
       'missing-node',
     );
     expectDiagnostic(
       await run([
-        { op: 'add-node', ref: 'twin', grid: [5, 0, 0], typeId: 'gallery' },
-        { op: 'add-node', ref: 'twin', grid: [6, 0, 0], typeId: 'gallery' },
+        { op: 'add-node', ref: 'twin', position: [5, 0, 0], function: 'gallery' },
+        { op: 'add-node', ref: 'twin', position: [6, 0, 0], function: 'gallery' },
       ]),
       'invalid-id',
     );
     // An unknown NUMBER is refused too (numbers name existing items only).
-    expectDiagnostic(await run([{ op: 'add-edge', source: 1, target: 99, kind: 'access' }]), 'missing-node');
+    expectDiagnostic(await run([{ op: 'add-edge', source: 1, target: 99, relationship: 'access' }]), 'missing-node');
   });
 });
 
@@ -268,7 +268,7 @@ describe('the gallery test toolkit on schema v2', () => {
     const outcome = expectExtOk(runAlgorithmV2(design(), toolkit, 'connect-storage-to-galleries'));
     if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
     // store 4 → reading gallery 3; the new edge takes nextEdgeId 7.
-    expect(outcome.preview.after.edges.at(-1)).toEqual({ id: 7, source: 4, target: 3, kind: 'access', attributes: {} });
+    expect(outcome.preview.after.edges.at(-1)).toEqual({ id: 7, source: 4, target: 3, relationship: 'access', custom: {} });
     expect(outcome.preview.after.nextEdgeId).toBe(8);
     expect(resolveRelationships(outcome.preview.after).byEdge.get(7)!.status).toBe('direct');
     const again = expectExtOk(runAlgorithmV2(outcome.preview.after, toolkit, 'connect-storage-to-galleries'));

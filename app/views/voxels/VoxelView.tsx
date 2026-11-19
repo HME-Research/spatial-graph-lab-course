@@ -209,10 +209,10 @@ function HoverInfo({
   }
   const n = design.doc.nodes.find((x) => x.id === hovered.id);
   if (!n) return null;
-  const value = attributeKey === null ? undefined : n.attributes[attributeKey];
+  const value = attributeKey === null ? undefined : n.custom[attributeKey];
   return (
     <div>
-      <strong>{nodeLabel(n)}</strong> · {n.typeId} · grid [{n.grid.join(', ')}] · size {n.size.join('×')}
+      <strong>{nodeLabel(n)}</strong> · {n.function} · position [{n.position.join(', ')}] · size {n.size.join('×')}
       {attributeKey !== null && (
         <>
           {' '}

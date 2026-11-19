@@ -47,7 +47,7 @@ export interface FacadeModuleInstance {
   /** Which module of the function: its wall module, or the `door` / `open` bay variant (always `repeat`). */
   readonly variant: 'wall' | FacadeVariantKind;
   readonly ownerNodeId: number;
-  readonly ownerTypeId: string;
+  readonly ownerFunction: string;
   /** The exterior wall faces the instance covers (one for repeat). */
   readonly faceIds: readonly string[];
   /** Column-major 4×4 (Three.js `Matrix4.fromArray` order): panel (a, b, c) metres → world. */
@@ -68,7 +68,7 @@ export interface FacadeModuleOptions {
   readonly wallThickness?: number;
 }
 
-type WallFace = Pick<ResolvedFace, 'id' | 'ownerNodeId' | 'ownerTypeId' | 'cell' | 'direction' | 'orientation' | 'condition' | 'neighbourNodeId' | 'edgeId' | 'outside'>;
+type WallFace = Pick<ResolvedFace, 'id' | 'ownerNodeId' | 'ownerFunction' | 'cell' | 'direction' | 'orientation' | 'condition' | 'neighbourNodeId' | 'edgeId' | 'outside'>;
 
 const isVariant = (condition: string): condition is FacadeVariantKind => (FACADE_VARIANTS as readonly string[]).includes(condition);
 
@@ -179,7 +179,7 @@ export function layoutFacadeModules(
       placement: 'repeat',
       variant: 'wall',
       ownerNodeId: face.ownerNodeId,
-      ownerTypeId: face.ownerTypeId,
+      ownerFunction: face.ownerFunction,
       faceIds: [face.id],
       matrix: placed.matrix,
       scaleAlong: placed.scaleAlong,
@@ -203,7 +203,7 @@ export function layoutFacadeModules(
         placement: 'stretch',
         variant: 'wall',
         ownerNodeId: run.ownerNodeId,
-        ownerTypeId: first.ownerTypeId,
+        ownerFunction: first.ownerFunction,
         faceIds: run.faceIds,
         matrix: placed.matrix,
         scaleAlong: placed.scaleAlong,
@@ -227,7 +227,7 @@ export function layoutFacadeModules(
       placement: 'repeat',
       variant: face.condition,
       ownerNodeId: face.ownerNodeId,
-      ownerTypeId: face.ownerTypeId,
+      ownerFunction: face.ownerFunction,
       faceIds: [face.id],
       matrix: placed.matrix,
       scaleAlong: placed.scaleAlong,
@@ -246,7 +246,7 @@ export function distortedModules(instances: readonly FacadeModuleInstance[], own
   readonly minUp: number;
   readonly maxUp: number;
 } | null {
-  const mine = (i: FacadeModuleInstance) => (typeof owner === 'string' ? i.ownerTypeId === owner : owner.has(i.ownerNodeId));
+  const mine = (i: FacadeModuleInstance) => (typeof owner === 'string' ? i.ownerFunction === owner : owner.has(i.ownerNodeId));
   const own = instances.filter((i) => mine(i) && (Math.abs(i.scaleAlong - 1) > tolerance || Math.abs(i.scaleUp - 1) > tolerance));
   if (own.length === 0) return null;
   return {

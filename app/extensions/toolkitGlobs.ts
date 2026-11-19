@@ -6,7 +6,7 @@ import type { ToolkitGlobs, TextLoader } from './discover';
  */
 export const TOOLKIT_GLOBS: ToolkitGlobs = {
   toolkit: import.meta.glob('/toolkits/*/toolkit.ts'),
-  types: import.meta.glob(['/toolkits/*/types/*.ts', '!/toolkits/*/types/*.test.ts']),
+  functions: import.meta.glob(['/toolkits/*/functions/*.ts', '!/toolkits/*/functions/*.test.ts']),
   algorithms: import.meta.glob(['/toolkits/*/algorithms/*.ts', '!/toolkits/*/algorithms/*.test.ts']),
   designs: import.meta.glob<string>('/toolkits/*/designs/*.json', { query: '?raw', import: 'default' }) as Record<string, TextLoader>,
 };

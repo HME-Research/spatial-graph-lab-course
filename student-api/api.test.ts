@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
   defineGraphAlgorithm,
-  defineNodeType,
+  defineFunction,
   defineToolkit,
   defineSpatialAlgorithm,
   FACE_DIRECTIONS,
@@ -30,7 +30,7 @@ describe('Student API runtime helpers', () => {
     const project = { name: 'P' };
     expect(defineToolkit(project)).toBe(project);
     const type = { id: 'gallery', label: 'Gallery' };
-    expect(defineNodeType(type)).toBe(type);
+    expect(defineFunction(type)).toBe(type);
     const run = () => ({ kind: 'analysis' as const, value: 1 });
     expect(defineGraphAlgorithm({ id: 'g', label: 'G', inputs: [], run })).toEqual({ id: 'g', label: 'G', inputs: [], run, scope: 'graph' });
     const runT = () => ({ kind: 'transformation' as const, operations: [] });
@@ -65,17 +65,17 @@ describe('Student API runtime helpers', () => {
 
 describe('Student API compile-time inference', () => {
   it('infers typed effective attributes from a node type definition', () => {
-    const gallery = defineNodeType({
+    const gallery = defineFunction({
       id: 'gallery',
       label: 'Gallery',
-      attributes: {
+      custom: {
         daylight: { kind: 'enum', values: ['high', 'medium', 'low'] },
         public: { kind: 'boolean', default: true },
         occupancy: { kind: 'number', min: 0 },
         note: { kind: 'text' },
       },
     });
-    type A = AttributesOf<NonNullable<typeof gallery.attributes>>;
+    type A = AttributesOf<NonNullable<typeof gallery.custom>>;
     expectTypeOf<A['daylight']>().toEqualTypeOf<'high' | 'medium' | 'low' | undefined>();
     expectTypeOf<A['public']>().toEqualTypeOf<boolean | undefined>();
     expectTypeOf<A['occupancy']>().toEqualTypeOf<number | undefined>();

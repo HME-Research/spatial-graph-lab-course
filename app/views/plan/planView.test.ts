@@ -41,15 +41,15 @@ const twoRooms = expectOk(
     schemaVersion: 2,
     metadata: { name: 'plan-view' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
-      { id: 2, grid: [1, 0, 0], size: [1, 1, 2], typeId: 'studio' },
-      { id: 3, grid: [5, 5, 0], size: [1, 1, 1], typeId: 'studio' },
-      { id: 4, grid: [5, 7, 3], size: [1, 1, 1], typeId: 'studio' },
+      { id: 1, position: [0, 0, 0], size: [1, 1, 1], function: 'gallery' },
+      { id: 2, position: [1, 0, 0], size: [1, 1, 2], function: 'studio' },
+      { id: 3, position: [5, 5, 0], size: [1, 1, 1], function: 'studio' },
+      { id: 4, position: [5, 7, 3], size: [1, 1, 1], function: 'studio' },
     ],
     edges: [
-      { id: 1, source: 1, target: 2, kind: 'access' },
+      { id: 1, source: 1, target: 2, relationship: 'access' },
       // Not adjacent and on different storeys: unresolved, so never drawn as an opening.
-      { id: 2, source: 3, target: 4, kind: 'access' },
+      { id: 2, source: 3, target: 4, relationship: 'access' },
     ],
     settings: { styleBy: 'function', styles: {} },
   }),
@@ -167,10 +167,10 @@ describe('plan shapes', () => {
         schemaVersion: 2,
         metadata: { name: 'door' },
         nodes: [
-          { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
-          { id: 2, grid: [0, 1, 0], size: [1, 1, 1], typeId: 'gallery' },
+          { id: 1, position: [0, 0, 0], size: [1, 1, 1], function: 'gallery' },
+          { id: 2, position: [0, 1, 0], size: [1, 1, 1], function: 'gallery' },
         ],
-        edges: [{ id: 1, source: 1, target: 2, kind: 'access' }],
+        edges: [{ id: 1, source: 1, target: 2, relationship: 'access' }],
         settings: { styleBy: 'function', styles: {} },
       }),
     );

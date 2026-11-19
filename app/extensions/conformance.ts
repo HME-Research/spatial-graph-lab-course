@@ -21,19 +21,19 @@ import { attributesOutsideSchema, resolveEdgeAttributes, resolveNodeAttributes, 
  * are preserved; defaults are resolved on read only.
  *
  * | Case                                   | Severity | Diagnostic id                               |
- * | typeId has no definition (project has types) | warning | unknown-node-type|node:<id>           |
- * | typeId's definition is invalid/duplicated     | error   | broken-node-type|node:<id>            |
+ * | functionId has no definition (project has types) | warning | unknown-node-type|node:<id>           |
+ * | functionId's definition is invalid/duplicated     | error   | broken-node-type|node:<id>            |
  * | declared attribute with an invalid value      | warning | invalid-attribute-value|node:<id>|<key> |
  * | stored attribute not declared by the type     | info    | undeclared-attribute|node:<id>|<key>  |
  * | declared attribute missing or null            | —       | (none: default or undefined is used)  |
  */
 
-/** The registered definition of `typeId` (if several collide, all are broken; the first is returned). */
-export const findNodeType = (project: ActiveToolkit, typeId: string): RegisteredNodeType | undefined =>
-  project.nodeTypes.find((t) => t.id === typeId);
+/** The registered definition of `function` (if several collide, all are broken; the first is returned). */
+export const findNodeType = (project: ActiveToolkit, functionId: string): RegisteredNodeType | undefined =>
+  project.nodeTypes.find((t) => t.id === functionId);
 
 type CheckedDocument = Pick<DesignDocumentV2, 'nodes'> & {
-  readonly edges?: readonly { readonly id: number; readonly attributes: { readonly [key: string]: AttributeValue } }[];
+  readonly edges?: readonly { readonly id: number; readonly custom: { readonly [key: string]: AttributeValue } }[];
 };
 
 /** Attribute diagnostics of one node or edge against the project's fields (one shared resolver). */
@@ -108,23 +108,23 @@ export function checkConformance(doc: CheckedDocument, project: ActiveToolkit | 
   const out: ExtensionDiagnostic[] = [];
   for (const node of doc.nodes) {
     const subject = { kind: 'node', id: node.id } as const;
-    const type = findNodeType(project, node.typeId);
+    const type = findNodeType(project, node.function);
     if (!type) {
       if (projectDefinesTypes) {
         out.push(
-          diagnostic('unknown-node-type', 'warning', subject, `node "${node.id}" has type "${node.typeId}", which project "${project.id}" does not define`),
+          diagnostic('unknown-node-type', 'warning', subject, `node "${node.id}" has type "${node.function}", which project "${project.id}" does not define`),
         );
       }
     } else if (!type.status.ok) {
       out.push(
-        diagnostic('broken-node-type', 'error', subject, `node "${node.id}" uses type "${node.typeId}", whose definition (${type.file}) is invalid`),
+        diagnostic('broken-node-type', 'error', subject, `node "${node.id}" uses type "${node.function}", whose definition (${type.file}) is invalid`),
       );
     }
-    out.push(...attributeChecks(resolveNodeAttributes(fields, node), attributesOutsideSchema(fields, 'nodes', node.attributes), subject, project.id));
+    out.push(...attributeChecks(resolveNodeAttributes(fields, node), attributesOutsideSchema(fields, 'nodes', node.custom), subject, project.id));
   }
   for (const edge of doc.edges ?? []) {
     const subject = { kind: 'edge', id: edge.id } as const;
-    out.push(...attributeChecks(resolveEdgeAttributes(fields, edge), attributesOutsideSchema(fields, 'edges', edge.attributes), subject, project.id));
+    out.push(...attributeChecks(resolveEdgeAttributes(fields, edge), attributesOutsideSchema(fields, 'edges', edge.custom), subject, project.id));
   }
   return out;
 }
@@ -153,10 +153,10 @@ export type TypeAppearance =
  * façade for that id. A broken definition yields `broken` (no façade), never a silent fallback;
  * no project or no definition gives today's behaviour.
  */
-export function typeAppearance(project: ActiveToolkit | null, typeId: string): TypeAppearance {
-  const color = typeColor(typeId);
-  const type = project ? findNodeType(project, typeId) : undefined;
+export function typeAppearance(project: ActiveToolkit | null, functionId: string): TypeAppearance {
+  const color = typeColor(functionId);
+  const type = project ? findNodeType(project, functionId) : undefined;
   if (type && !type.status.ok) return { status: 'broken', color, diagnosticIds: type.status.diagnosticIds };
   const declared = type?.definition.facade;
-  return { status: 'ok', color, facade: declared ? { windowFraction: declared.windowFraction } : exampleFacadeProvider(typeId) };
+  return { status: 'ok', color, facade: declared ? { windowFraction: declared.windowFraction } : exampleFacadeProvider(functionId) };
 }

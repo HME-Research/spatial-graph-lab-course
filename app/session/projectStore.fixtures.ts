@@ -16,13 +16,13 @@ export const twoRooms = (): DesignDocumentV2 =>
     schemaVersion: 2,
     metadata: { name: 'Two rooms' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], size: [2, 1, 1], typeId: 'gallery' },
-      { id: 2, grid: [2, 0, 0], typeId: 'studio' },
-      { id: 3, grid: [6, 6, 0], typeId: 'studio' },
+      { id: 1, position: [0, 0, 0], size: [2, 1, 1], function: 'gallery' },
+      { id: 2, position: [2, 0, 0], function: 'studio' },
+      { id: 3, position: [6, 6, 0], function: 'studio' },
     ],
     edges: [
-      { id: 1, source: 1, target: 2, kind: 'access' },
-      { id: 2, source: 1, target: 3, kind: 'access' },
+      { id: 1, source: 1, target: 2, relationship: 'access' },
+      { id: 2, source: 1, target: 3, relationship: 'access' },
     ],
     diagram: { positions: { 1: [0, 0], 2: [100, 0], 3: [200, 0] } },
   });

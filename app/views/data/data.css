@@ -383,3 +383,24 @@
   margin-left: 6px;
   font-weight: 400;
 }
+
+/* One line above the JSON: calculated values live in the table only (owner 2026-11-19). */
+.sgl-dataview-note {
+  position: sticky;
+  left: 0;
+  width: fit-content;
+  margin: 0;
+  padding: var(--space-2) var(--space-3) 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+/* Position / Size: one heading over its three value columns (x | y | z). */
+.sgl-dataview-columns th[data-attribute] {
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+}
+.sgl-dataview-values th {
+  font-weight: 500;
+  color: var(--muted);
+}

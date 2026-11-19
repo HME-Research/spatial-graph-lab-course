@@ -1,7 +1,6 @@
 import { MAX_ROOM_SIZE, type AttributeValue, type DesignDocumentV2, type GraphIssue, type RelationshipKind } from '@app/document';
 import { resolveEdgeAttributes, resolveNodeAttributes, type EffectiveAttribute } from '@app/extensions';
 import type { DesignCommand } from '@app/spatial';
-import { NODE_BUILT_IN_ATTRIBUTES } from '@app/attributes/sections';
 import { decodeChoice, encodeChoice, EXPLICIT_NONE, formatFieldValue, inheritedText, INHERIT, parseValueDraft } from '@app/attributes/attributesModel';
 import { RELATIONSHIP_KIND_CHOICES } from '@app/ui/labels';
 import type { ProjectViewContext } from '@app/views/project';
@@ -13,7 +12,7 @@ import { geometryDraftEdit, GEOMETRY_ROWS, parseTypeId, typeMenu, type Triple } 
  * reuses the models of Properties so a cell edits exactly like the matching Properties row:
  * - Function: the same menu (`typeMenu`) → `set-node-type`;
  * - Relationship: Access / Open → `change-edge-kind`;
- * - Geometry (Position X/Y, Level, Size X/Y, Floors): `geometryDraftEdit` → the host previews it
+ * - Geometry (Position x | y | z, Size x | y | z; one cell per value): `geometryDraftEdit` → the host previews it
  *   (`proposeEdit`) and sends `set-node-geometry`, like Properties and the gizmo;
  * - Custom: `parseValueDraft` / the choice encoding of Properties → `set-node-attributes` /
  *   `set-edge-attributes` (`fieldCommands`), keeping every other stored value.
@@ -47,7 +46,7 @@ export type CellInput =
   /** "Use default": remove the item's own value. */
   | { readonly kind: 'reset' };
 
-export type GeometryRequest = { readonly grid?: Triple; readonly size?: Triple };
+export type GeometryRequest = { readonly position?: Triple; readonly size?: Triple };
 
 export type CellCommit =
   | { readonly kind: 'unchanged' }
@@ -67,11 +66,11 @@ function customOf(doc: DesignDocumentV2, project: ProjectViewContext | undefined
   if (collection === 'nodes') {
     const node = doc.nodes.find((n) => n.id === itemId);
     const r = node && resolveNodeAttributes(schema, node).find((x) => x.field.id === fieldId);
-    return node && r ? { item: node, typeId: node.typeId as string | undefined, r } : null;
+    return node && r ? { item: node, function: node.function as string | undefined, r } : null;
   }
   const edge = doc.edges.find((e) => e.id === itemId);
   const r = edge && resolveEdgeAttributes(schema, edge).find((x) => x.field.id === fieldId);
-  return edge && r ? { item: edge, typeId: undefined, r } : null;
+  return edge && r ? { item: edge, function: undefined, r } : null;
 }
 
 /** The choice-list value Properties shows for a Yes/No or Choice attribute. */
@@ -90,8 +89,8 @@ export function cellEditorSpec(
     const node = doc.nodes.find((n) => n.id === itemId);
     if (!node) return null;
     if (columnId === 'function') {
-      const menu = typeMenu(project?.project ?? null, doc.nodes.map((n) => n.typeId), node.typeId);
-      return { kind: 'choice', current: node.typeId, options: menu.options, ...(menu.allowCustom && { other: true }) };
+      const menu = typeMenu(project?.project ?? null, doc.nodes.map((n) => n.function), node.function);
+      return { kind: 'choice', current: node.function, options: menu.options, ...(menu.allowCustom && { other: true }) };
     }
     const row = GEOMETRY_ROWS.find((g) => g.id === columnId);
     if (row) {
@@ -102,14 +101,14 @@ export function cellEditorSpec(
     const edge = doc.edges.find((e) => e.id === itemId);
     if (!edge) return null;
     if (columnId === 'relationship')
-      return { kind: 'choice', current: edge.kind, options: RELATIONSHIP_KIND_CHOICES.map((c) => ({ value: c.value, label: c.label })) };
+      return { kind: 'choice', current: edge.relationship, options: RELATIONSHIP_KIND_CHOICES.map((c) => ({ value: c.value, label: c.label })) };
   }
 
   const custom = customOf(doc, project, collection, itemId, columnId);
   if (!custom) return null;
-  const { r, typeId } = custom;
+  const { r, function: functionId } = custom;
   const { field } = r;
-  const inherit = inheritedText(r, typeId);
+  const inherit = inheritedText(r, functionId);
   if (field.kind === 'enum' || field.kind === 'boolean') {
     const values: CellChoice[] =
       field.kind === 'enum'
@@ -135,7 +134,7 @@ export function cellEditorSpec(
   };
 }
 
-const geometryName = (id: string): string => NODE_BUILT_IN_ATTRIBUTES.find((a) => a.id === id)?.name ?? id;
+const geometryName = (id: string): string => GEOMETRY_ROWS.find((g) => g.id === id)?.name ?? id;
 
 /**
  * What committing `input` to a cell does: nothing (same value), a readable refusal (nothing is
@@ -154,28 +153,28 @@ export function cellCommit(
 
   if (collection === 'nodes' && columnId === 'function') {
     if (spec.kind !== 'choice' || input.kind === 'reset') return { kind: 'unchanged' };
-    let typeId: string;
+    let functionId: string;
     if (input.kind === 'draft') {
       // Typing a function id is offered only without a project, like Properties' "Other type…".
-      if (!spec.other) return { kind: 'invalid', issue: issue(['nodes', 'typeId'], 'Choose one of the functions this project offers.') };
+      if (!spec.other) return { kind: 'invalid', issue: issue(['nodes', 'function'], 'Choose one of the functions this project offers.') };
       const parsed = parseTypeId(input.text);
-      if (!parsed.ok) return { kind: 'invalid', issue: issue(['nodes', 'typeId'], parsed.message) };
-      typeId = parsed.value;
+      if (!parsed.ok) return { kind: 'invalid', issue: issue(['nodes', 'function'], parsed.message) };
+      functionId = parsed.value;
     } else {
       if (input.value === spec.current) return { kind: 'unchanged' };
       if (!spec.options.some((o) => o.value === input.value && !o.disabled))
-        return { kind: 'invalid', issue: issue(['nodes', 'typeId'], `“${input.value}” is not a function this project offers.`) };
-      typeId = input.value;
+        return { kind: 'invalid', issue: issue(['nodes', 'function'], `“${input.value}” is not a function this project offers.`) };
+      functionId = input.value;
     }
-    return typeId === spec.current ? { kind: 'unchanged' } : { kind: 'command', command: { type: 'set-node-type', nodeId: itemId, typeId } };
+    return functionId === spec.current ? { kind: 'unchanged' } : { kind: 'command', command: { type: 'set-node-type', nodeId: itemId, function: functionId } };
   }
 
   if (collection === 'edges' && columnId === 'relationship') {
     if (input.kind !== 'choice' || spec.kind !== 'choice') return { kind: 'unchanged' };
-    if (!spec.options.some((o) => o.value === input.value)) return { kind: 'invalid', issue: issue(['edges', 'kind'], 'Choose Access or Open.') };
+    if (!spec.options.some((o) => o.value === input.value)) return { kind: 'invalid', issue: issue(['edges', 'relationship'], 'Choose Access or Open.') };
     return input.value === spec.current
       ? { kind: 'unchanged' }
-      : { kind: 'command', command: { type: 'change-edge-kind', edgeId: itemId, kind: input.value as RelationshipKind } };
+      : { kind: 'command', command: { type: 'change-edge-kind', edgeId: itemId, relationship: input.value as RelationshipKind } };
   }
 
   const row = collection === 'nodes' ? GEOMETRY_ROWS.find((g) => g.id === columnId) : undefined;
@@ -191,7 +190,7 @@ export function cellCommit(
   const custom = customOf(doc, project, collection, itemId, columnId);
   if (!custom) return { kind: 'invalid', issue: issue([collection], 'This value cannot be edited here.') };
   const { r, item } = custom;
-  const path: GraphIssue['path'] = ['attributes', r.field.key];
+  const path: GraphIssue['path'] = ['custom', r.field.key];
   let value: AttributeValue | undefined;
   if (input.kind === 'reset') {
     if (r.source !== 'instance' && r.stored !== 'invalid') return { kind: 'unchanged' };

@@ -3,7 +3,7 @@
     {
       "id": "1:+x",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         0,
@@ -20,7 +20,7 @@
     {
       "id": "1:-x",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         0,
@@ -36,7 +36,7 @@
     {
       "id": "1:+y",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         0,
@@ -52,7 +52,7 @@
     {
       "id": "1:-y",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         0,
@@ -68,7 +68,7 @@
     {
       "id": "1:+z",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         0,
@@ -84,7 +84,7 @@
     {
       "id": "1:-z",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         0,
@@ -100,7 +100,7 @@
     {
       "id": "2:+x",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         4,
         0,
@@ -116,7 +116,7 @@
     {
       "id": "2:-x",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         4,
         0,
@@ -133,7 +133,7 @@
     {
       "id": "2:+y",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         4,
         0,
@@ -149,7 +149,7 @@
     {
       "id": "2:-y",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         4,
         0,
@@ -165,7 +165,7 @@
     {
       "id": "2:+z",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         4,
         0,
@@ -181,7 +181,7 @@
     {
       "id": "2:-z",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         4,
         0,
@@ -197,7 +197,7 @@
     {
       "id": "3:0.0.0:+x",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         2,
@@ -214,7 +214,7 @@
     {
       "id": "3:0.0.0:-x",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         2,
@@ -230,7 +230,7 @@
     {
       "id": "3:0.0.0:+y",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         2,
@@ -246,7 +246,7 @@
     {
       "id": "3:0.0.0:-y",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         2,
@@ -262,7 +262,7 @@
     {
       "id": "3:0.0.0:-z",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         2,
@@ -278,7 +278,7 @@
     {
       "id": "3:0.0.1:+x",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         2,
@@ -294,7 +294,7 @@
     {
       "id": "3:0.0.1:-x",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         2,
@@ -310,7 +310,7 @@
     {
       "id": "3:0.0.1:+y",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         2,
@@ -326,7 +326,7 @@
     {
       "id": "3:0.0.1:-y",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         2,
@@ -342,7 +342,7 @@
     {
       "id": "3:0.0.1:+z",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         2,
@@ -358,7 +358,7 @@
     {
       "id": "4:+x",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         4,
         2,
@@ -374,7 +374,7 @@
     {
       "id": "4:-x",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         4,
         2,
@@ -391,7 +391,7 @@
     {
       "id": "4:+y",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         4,
         2,
@@ -407,7 +407,7 @@
     {
       "id": "4:-y",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         4,
         2,
@@ -423,7 +423,7 @@
     {
       "id": "4:+z",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         4,
         2,
@@ -439,7 +439,7 @@
     {
       "id": "4:-z",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         4,
         2,
@@ -455,7 +455,7 @@
     {
       "id": "5:0.0.0:-x",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         4,
@@ -471,7 +471,7 @@
     {
       "id": "5:0.0.0:+y",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         4,
@@ -487,7 +487,7 @@
     {
       "id": "5:0.0.0:-y",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         4,
@@ -503,7 +503,7 @@
     {
       "id": "5:0.0.0:+z",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         4,
@@ -519,7 +519,7 @@
     {
       "id": "5:0.0.0:-z",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         4,
@@ -535,7 +535,7 @@
     {
       "id": "5:1.0.0:+x",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         1,
         4,
@@ -552,7 +552,7 @@
     {
       "id": "5:1.0.0:+y",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         1,
         4,
@@ -568,7 +568,7 @@
     {
       "id": "5:1.0.0:-y",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         1,
         4,
@@ -584,7 +584,7 @@
     {
       "id": "5:1.0.0:+z",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         1,
         4,
@@ -600,7 +600,7 @@
     {
       "id": "5:1.0.0:-z",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         1,
         4,
@@ -616,7 +616,7 @@
     {
       "id": "6:+x",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         5,
         4,
@@ -632,7 +632,7 @@
     {
       "id": "6:-x",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         5,
         4,
@@ -649,7 +649,7 @@
     {
       "id": "6:+y",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         5,
         4,
@@ -665,7 +665,7 @@
     {
       "id": "6:-y",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         5,
         4,
@@ -681,7 +681,7 @@
     {
       "id": "6:+z",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         5,
         4,
@@ -697,7 +697,7 @@
     {
       "id": "6:-z",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         5,
         4,
@@ -713,7 +713,7 @@
     {
       "id": "7:+x",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         6,
@@ -729,7 +729,7 @@
     {
       "id": "7:-x",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         6,
@@ -745,7 +745,7 @@
     {
       "id": "7:+y",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         6,
@@ -761,7 +761,7 @@
     {
       "id": "7:-y",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         6,
@@ -777,7 +777,7 @@
     {
       "id": "7:+z",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         6,
@@ -793,7 +793,7 @@
     {
       "id": "7:-z",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         0,
         6,
@@ -809,7 +809,7 @@
     {
       "id": "8:+x",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         4,
         6,
@@ -825,7 +825,7 @@
     {
       "id": "8:-x",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         4,
         6,
@@ -841,7 +841,7 @@
     {
       "id": "8:+y",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         4,
         6,
@@ -857,7 +857,7 @@
     {
       "id": "8:-y",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         4,
         6,
@@ -873,7 +873,7 @@
     {
       "id": "8:+z",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         4,
         6,
@@ -889,7 +889,7 @@
     {
       "id": "8:-z",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         4,
         6,
@@ -905,7 +905,7 @@
     {
       "id": "9:+x",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         0,
         7,
@@ -922,7 +922,7 @@
     {
       "id": "9:-x",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         0,
         7,
@@ -938,7 +938,7 @@
     {
       "id": "9:+y",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         0,
         7,
@@ -954,7 +954,7 @@
     {
       "id": "9:+z",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         0,
         7,
@@ -970,7 +970,7 @@
     {
       "id": "9:-z",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         0,
         7,
@@ -986,7 +986,7 @@
     {
       "id": "10:+x",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         4,
         7,
@@ -1002,7 +1002,7 @@
     {
       "id": "10:-x",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         4,
         7,
@@ -1019,7 +1019,7 @@
     {
       "id": "10:+y",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         4,
         7,
@@ -1035,7 +1035,7 @@
     {
       "id": "10:+z",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         4,
         7,
@@ -1051,7 +1051,7 @@
     {
       "id": "10:-z",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "cell": [
         4,
         7,
@@ -1067,7 +1067,7 @@
     {
       "id": "11:+x",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         2,
         6,
@@ -1083,7 +1083,7 @@
     {
       "id": "11:-x",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         2,
         6,
@@ -1099,7 +1099,7 @@
     {
       "id": "11:+y",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         2,
         6,
@@ -1115,7 +1115,7 @@
     {
       "id": "11:-y",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         2,
         6,
@@ -1131,7 +1131,7 @@
     {
       "id": "11:+z",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         2,
         6,
@@ -1147,7 +1147,7 @@
     {
       "id": "11:-z",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "cell": [
         2,
         6,
@@ -1163,7 +1163,7 @@
     {
       "id": "12:+x",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         10,
         10,
@@ -1179,7 +1179,7 @@
     {
       "id": "12:-x",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         10,
         10,
@@ -1195,7 +1195,7 @@
     {
       "id": "12:+y",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         10,
         10,
@@ -1211,7 +1211,7 @@
     {
       "id": "12:-y",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         10,
         10,
@@ -1227,7 +1227,7 @@
     {
       "id": "12:+z",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         10,
         10,
@@ -1243,7 +1243,7 @@
     {
       "id": "12:-z",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         10,
         10,
@@ -1259,7 +1259,7 @@
     {
       "id": "13:+x",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         9,
@@ -1275,7 +1275,7 @@
     {
       "id": "13:-x",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         9,
@@ -1291,7 +1291,7 @@
     {
       "id": "13:+y",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         9,
@@ -1308,7 +1308,7 @@
     {
       "id": "13:-y",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         9,
@@ -1324,7 +1324,7 @@
     {
       "id": "13:+z",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         9,
@@ -1340,7 +1340,7 @@
     {
       "id": "13:-z",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         9,
@@ -1356,7 +1356,7 @@
     {
       "id": "14:0.0.0:+x",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         12,
@@ -1372,7 +1372,7 @@
     {
       "id": "14:0.0.0:-x",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         12,
@@ -1388,7 +1388,7 @@
     {
       "id": "14:0.0.0:-y",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         12,
@@ -1405,7 +1405,7 @@
     {
       "id": "14:0.0.0:+z",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         12,
@@ -1421,7 +1421,7 @@
     {
       "id": "14:0.0.0:-z",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         12,
@@ -1437,7 +1437,7 @@
     {
       "id": "14:0.1.0:+x",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         13,
@@ -1453,7 +1453,7 @@
     {
       "id": "14:0.1.0:-x",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         13,
@@ -1469,7 +1469,7 @@
     {
       "id": "14:0.1.0:+y",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         13,
@@ -1485,7 +1485,7 @@
     {
       "id": "14:0.1.0:+z",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         13,
@@ -1501,7 +1501,7 @@
     {
       "id": "14:0.1.0:-z",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "cell": [
         2,
         13,
@@ -1524,7 +1524,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 1,
       "target": {
@@ -1550,7 +1550,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 1,
       "target": {
@@ -1576,7 +1576,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 1,
       "target": {
@@ -1602,7 +1602,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 1,
       "target": {
@@ -1627,7 +1627,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1652,7 +1652,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1677,7 +1677,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1702,7 +1702,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1727,7 +1727,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1752,7 +1752,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1777,7 +1777,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1802,7 +1802,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1827,7 +1827,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1852,7 +1852,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1877,7 +1877,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1902,7 +1902,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1927,7 +1927,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1952,7 +1952,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -1977,7 +1977,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2002,7 +2002,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2027,7 +2027,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 1,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2052,7 +2052,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2077,7 +2077,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2102,7 +2102,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2127,7 +2127,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2152,7 +2152,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2178,7 +2178,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": 1,
       "target": {
@@ -2204,7 +2204,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": 1,
       "target": {
@@ -2230,7 +2230,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": 1,
       "target": {
@@ -2256,7 +2256,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": 1,
       "target": {
@@ -2281,7 +2281,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2306,7 +2306,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2331,7 +2331,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2356,7 +2356,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2381,7 +2381,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2406,7 +2406,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2431,7 +2431,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2456,7 +2456,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2481,7 +2481,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2506,7 +2506,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2531,7 +2531,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2556,7 +2556,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 2,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2582,7 +2582,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 3,
       "target": {
@@ -2607,7 +2607,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2632,7 +2632,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2657,7 +2657,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2682,7 +2682,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2707,7 +2707,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2732,7 +2732,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2757,7 +2757,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2782,7 +2782,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2807,7 +2807,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2832,7 +2832,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2857,7 +2857,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2882,7 +2882,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2907,7 +2907,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2932,7 +2932,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2957,7 +2957,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -2982,7 +2982,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3007,7 +3007,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3032,7 +3032,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3057,7 +3057,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3082,7 +3082,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3107,7 +3107,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3132,7 +3132,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3157,7 +3157,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3182,7 +3182,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3207,7 +3207,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3232,7 +3232,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3257,7 +3257,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3282,7 +3282,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3307,7 +3307,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3332,7 +3332,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3357,7 +3357,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3382,7 +3382,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3407,7 +3407,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3432,7 +3432,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3457,7 +3457,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3482,7 +3482,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3507,7 +3507,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 3,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3532,7 +3532,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3557,7 +3557,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3582,7 +3582,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3607,7 +3607,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3632,7 +3632,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3658,7 +3658,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": 3,
       "target": {
@@ -3683,7 +3683,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3708,7 +3708,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3733,7 +3733,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3758,7 +3758,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3783,7 +3783,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3808,7 +3808,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3833,7 +3833,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3858,7 +3858,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3883,7 +3883,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3908,7 +3908,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3933,7 +3933,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3958,7 +3958,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 4,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -3983,7 +3983,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4008,7 +4008,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4033,7 +4033,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4058,7 +4058,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4083,7 +4083,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4108,7 +4108,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4133,7 +4133,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4158,7 +4158,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4183,7 +4183,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4208,7 +4208,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4233,7 +4233,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4258,7 +4258,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4283,7 +4283,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4308,7 +4308,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4333,7 +4333,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4358,7 +4358,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4383,7 +4383,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4409,7 +4409,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 4,
       "target": {
@@ -4435,7 +4435,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 4,
       "target": {
@@ -4461,7 +4461,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 4,
       "target": {
@@ -4487,7 +4487,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 4,
       "target": {
@@ -4512,7 +4512,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4537,7 +4537,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4562,7 +4562,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4587,7 +4587,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4612,7 +4612,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4637,7 +4637,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4662,7 +4662,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4687,7 +4687,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4712,7 +4712,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4737,7 +4737,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4762,7 +4762,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4787,7 +4787,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 5,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4812,7 +4812,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4837,7 +4837,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4862,7 +4862,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4887,7 +4887,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4912,7 +4912,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -4938,7 +4938,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 4,
       "target": {
@@ -4964,7 +4964,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 4,
       "target": {
@@ -4990,7 +4990,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 4,
       "target": {
@@ -5016,7 +5016,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 4,
       "target": {
@@ -5041,7 +5041,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5066,7 +5066,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5091,7 +5091,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5116,7 +5116,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5141,7 +5141,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5166,7 +5166,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5191,7 +5191,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5216,7 +5216,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5241,7 +5241,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5266,7 +5266,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5291,7 +5291,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5316,7 +5316,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 6,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5341,7 +5341,7 @@
       "condition": "door",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 5,
       "target": {
@@ -5366,7 +5366,7 @@
       "condition": "door",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 5,
       "target": {
@@ -5391,7 +5391,7 @@
       "condition": "door",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 5,
       "target": {
@@ -5416,7 +5416,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5441,7 +5441,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5466,7 +5466,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5491,7 +5491,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5516,7 +5516,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5541,7 +5541,7 @@
       "condition": "solid",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": 9,
       "edgeId": null,
       "target": {
@@ -5566,7 +5566,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5591,7 +5591,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5616,7 +5616,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5641,7 +5641,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5666,7 +5666,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5691,7 +5691,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5716,7 +5716,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 7,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5741,7 +5741,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5766,7 +5766,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5791,7 +5791,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5816,7 +5816,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5841,7 +5841,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5866,7 +5866,7 @@
       "condition": "door",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 5,
       "target": {
@@ -5891,7 +5891,7 @@
       "condition": "door",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 5,
       "target": {
@@ -5916,7 +5916,7 @@
       "condition": "door",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 5,
       "target": {
@@ -5941,7 +5941,7 @@
       "condition": "solid",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": 10,
       "edgeId": null,
       "target": {
@@ -5966,7 +5966,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -5991,7 +5991,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6016,7 +6016,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6041,7 +6041,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6066,7 +6066,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6091,7 +6091,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6116,7 +6116,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 8,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6142,7 +6142,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": 6,
       "target": {
@@ -6167,7 +6167,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6192,7 +6192,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6217,7 +6217,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6242,7 +6242,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6267,7 +6267,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6292,7 +6292,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6317,7 +6317,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6342,7 +6342,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6367,7 +6367,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6392,7 +6392,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6417,7 +6417,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6442,7 +6442,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 9,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6467,7 +6467,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6492,7 +6492,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6517,7 +6517,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6542,7 +6542,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6567,7 +6567,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6593,7 +6593,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": 6,
       "target": {
@@ -6618,7 +6618,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6643,7 +6643,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6668,7 +6668,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6693,7 +6693,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6718,7 +6718,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6743,7 +6743,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6768,7 +6768,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 10,
-      "ownerTypeId": "studio",
+      "ownerFunction": "studio",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6793,7 +6793,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6818,7 +6818,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6843,7 +6843,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6868,7 +6868,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6893,7 +6893,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6918,7 +6918,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6943,7 +6943,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6968,7 +6968,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -6993,7 +6993,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7018,7 +7018,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7043,7 +7043,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7068,7 +7068,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7093,7 +7093,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7118,7 +7118,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7143,7 +7143,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7168,7 +7168,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7193,7 +7193,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7218,7 +7218,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7243,7 +7243,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7268,7 +7268,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7293,7 +7293,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7318,7 +7318,7 @@
       "condition": "solid",
       "orientation": "slab",
       "ownerNodeId": 11,
-      "ownerTypeId": "storage",
+      "ownerFunction": "storage",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7343,7 +7343,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7368,7 +7368,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7393,7 +7393,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7418,7 +7418,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7443,7 +7443,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7468,7 +7468,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7493,7 +7493,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7518,7 +7518,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7543,7 +7543,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7568,7 +7568,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7593,7 +7593,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7618,7 +7618,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7643,7 +7643,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7668,7 +7668,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7693,7 +7693,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7718,7 +7718,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7743,7 +7743,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7768,7 +7768,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7793,7 +7793,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7818,7 +7818,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7843,7 +7843,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7868,7 +7868,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 12,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7893,7 +7893,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7918,7 +7918,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7943,7 +7943,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7968,7 +7968,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -7993,7 +7993,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8018,7 +8018,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8043,7 +8043,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8068,7 +8068,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8093,7 +8093,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8118,7 +8118,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8144,7 +8144,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 7,
       "target": {
@@ -8170,7 +8170,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 7,
       "target": {
@@ -8196,7 +8196,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 7,
       "target": {
@@ -8222,7 +8222,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 7,
       "target": {
@@ -8247,7 +8247,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8272,7 +8272,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8297,7 +8297,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8322,7 +8322,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8347,7 +8347,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8372,7 +8372,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8397,7 +8397,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 13,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8422,7 +8422,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8447,7 +8447,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8472,7 +8472,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8497,7 +8497,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8522,7 +8522,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8547,7 +8547,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8572,7 +8572,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8597,7 +8597,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8622,7 +8622,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8647,7 +8647,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8673,7 +8673,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 7,
       "target": {
@@ -8699,7 +8699,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 7,
       "target": {
@@ -8725,7 +8725,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 7,
       "target": {
@@ -8751,7 +8751,7 @@
       "outside": true,
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": 7,
       "target": {
@@ -8776,7 +8776,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8801,7 +8801,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8826,7 +8826,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8851,7 +8851,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8876,7 +8876,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8901,7 +8901,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8926,7 +8926,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8951,7 +8951,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -8976,7 +8976,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -9001,7 +9001,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -9026,7 +9026,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -9051,7 +9051,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -9076,7 +9076,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -9101,7 +9101,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -9126,7 +9126,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -9151,7 +9151,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -9176,7 +9176,7 @@
       "condition": "exterior",
       "orientation": "wall",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -9201,7 +9201,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {
@@ -9226,7 +9226,7 @@
       "condition": "exterior",
       "orientation": "slab",
       "ownerNodeId": 14,
-      "ownerTypeId": "gallery",
+      "ownerFunction": "gallery",
       "neighbourNodeId": null,
       "edgeId": null,
       "target": {

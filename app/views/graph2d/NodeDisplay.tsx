@@ -54,9 +54,9 @@ export function formatAttributeValue(value: AttributeValue | undefined): string 
 export function nodeLines(node: DiagramNode, settings: DisplaySettings): NodeLines {
   const requested: string[] = [];
   if (settings.showId) requested.push(node.label);
-  if (settings.showType) requested.push(node.typeId);
+  if (settings.showType) requested.push(node.function);
   for (const key of settings.attributeKeys) {
-    if (key in node.attributes) requested.push(`${key}: ${formatAttributeValue(node.attributes[key])}`);
+    if (key in node.custom) requested.push(`${key}: ${formatAttributeValue(node.custom[key])}`);
   }
   const lines = requested.slice(0, MAX_NODE_LINES);
   const hidden = requested.length - lines.length;
@@ -69,7 +69,7 @@ export function nodeLines(node: DiagramNode, settings: DisplaySettings): NodeLin
 /** Every attribute key used by any node, sorted (choices for the Display control). */
 export function attributeKeysOf(model: Pick<DiagramModel, 'nodes'>): readonly string[] {
   const keys = new Set<string>();
-  for (const node of model.nodes) for (const key of Object.keys(node.attributes)) keys.add(key);
+  for (const node of model.nodes) for (const key of Object.keys(node.custom)) keys.add(key);
   return [...keys].sort();
 }
 

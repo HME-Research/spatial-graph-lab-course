@@ -16,20 +16,20 @@ const sizes: Record<string, { width: number; height: number; depth: number }> = 
 };
 const sizeOf = (id: string) => sizes[id] ?? null;
 
-type N = { id: number; grid: GridCoord; size?: [number, number, number]; typeId: string };
+type N = { id: number; position: GridCoord; size?: [number, number, number]; function: string };
 
 /** Gallery A (1): 3 × 1 × 1 bays at the origin; studio B (2): one cell east of it, joined by access edge 1. */
 function design(settings: Record<string, unknown> = {}, nodes?: N[]): DesignDocumentV2 {
   const rooms: N[] = nodes ?? [
-    { id: 1, grid: [0, 0, 0], size: [3, 1, 1], typeId: 'gallery' },
-    { id: 2, grid: [3, 0, 0], typeId: 'studio' },
+    { id: 1, position: [0, 0, 0], size: [3, 1, 1], function: 'gallery' },
+    { id: 2, position: [3, 0, 0], function: 'studio' },
   ];
   return expectOk(
     validateDocumentV2({
       schemaVersion: 2,
       metadata: { name: 'facades' },
-      nodes: rooms.map((n) => ({ id: n.id, grid: n.grid, size: n.size ?? [1, 1, 1], typeId: n.typeId })),
-      edges: nodes ? [] : [{ id: 1, source: 1, target: 2, kind: 'access' }],
+      nodes: rooms.map((n) => ({ id: n.id, position: n.position, size: n.size ?? [1, 1, 1], function: n.function })),
+      edges: nodes ? [] : [{ id: 1, source: 1, target: 2, relationship: 'access' }],
       settings: { styleBy: 'function', styles: {}, ...settings },
     }),
   );
@@ -112,7 +112,7 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
   it('each function draws only its own module; a function without one gets none', () => {
     const doc = design(functionStyleSettings({ gallery: { facade: stretch(A2) }, studio: { windowFraction: 0.5 } }));
     const { layout } = modules(doc);
-    expect(new Set(layout.instances.map((i) => i.ownerTypeId))).toEqual(new Set(['gallery']));
+    expect(new Set(layout.instances.map((i) => i.ownerFunction))).toEqual(new Set(['gallery']));
     expect(new Set(layout.instances.map((i) => i.assetId))).toEqual(new Set([A2]));
     expect(facadeAssetIdsOf(doc)).toEqual([A2]);
     expect(facadeAssetIdsOf(design(functionStyleSettings({ gallery: { facade: repeat(A2) }, studio: { facade: repeat(A1) } })))).toEqual([A1, A2].sort());
@@ -127,7 +127,7 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
   it('open-sided functions (no exterior walls) never get a module', () => {
     const doc = design(functionStyleSettings({ gallery: { walls: 'open', facade: repeat() }, studio: { facade: repeat() } }));
     const { layout } = modules(doc);
-    expect(layout.instances.every((i) => i.ownerTypeId === 'studio')).toBe(true);
+    expect(layout.instances.every((i) => i.ownerFunction === 'studio')).toBe(true);
     expect(layout.instances).toHaveLength(3);
   });
 
@@ -142,7 +142,7 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
 
 describe('imported façade modules: mounting (Rhino coordinate adaptation; the module replaces the wall)', () => {
   /** A single room: four exterior walls with outward normals +X, −X, −Z (grid +y) and +Z (grid −y). */
-  const single = design(functionStyleSettings({ gallery: { facade: repeat() } }), [{ id: 1, grid: [2, 5, 1], typeId: 'gallery' }]);
+  const single = design(functionStyleSettings({ gallery: { facade: repeat() } }), [{ id: 1, position: [2, 5, 1], function: 'gallery' }]);
   const { faces, layout } = modules(single);
   const t = DEFAULT_WALL_THICKNESS;
   const depth = 0.2;
@@ -170,8 +170,8 @@ describe('imported façade modules: mounting (Rhino coordinate adaptation; the m
 });
 
 describe('Outside +Y (flip): the module is turned round, not mirrored', () => {
-  const flipped = design(functionStyleSettings({ gallery: { facade: { ...repeat(), flip: true } } }), [{ id: 1, grid: [2, 5, 1], typeId: 'gallery' }]);
-  const plain = design(functionStyleSettings({ gallery: { facade: repeat() } }), [{ id: 1, grid: [2, 5, 1], typeId: 'gallery' }]);
+  const flipped = design(functionStyleSettings({ gallery: { facade: { ...repeat(), flip: true } } }), [{ id: 1, position: [2, 5, 1], function: 'gallery' }]);
+  const plain = design(functionStyleSettings({ gallery: { facade: repeat() } }), [{ id: 1, position: [2, 5, 1], function: 'gallery' }]);
   it.each(['+x', '-x', '+y', '-y'] as const)('wall %s: same bay and depth slot, other side out, a rotation', (direction) => {
     const f = modules(flipped);
     const p = modules(plain);
@@ -230,13 +230,13 @@ describe('door / open bay variants (optional per function)', () => {
         schemaVersion: 2,
         metadata: { name: 'variants' },
         nodes: [
-          { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
-          { id: 2, grid: [3, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
-          { id: 3, grid: [0, 1, 0], size: [1, 1, 1], typeId: 'gallery' },
+          { id: 1, position: [0, 0, 0], size: [1, 1, 1], function: 'gallery' },
+          { id: 2, position: [3, 0, 0], size: [1, 1, 1], function: 'gallery' },
+          { id: 3, position: [0, 1, 0], size: [1, 1, 1], function: 'gallery' },
         ],
         edges: [
-          { id: 1, source: 1, target: 2, kind, corridor: walls === 'open' ? { walls: 'open', roof: 'none' } : { walls: 'enclosed' } },
-          { id: 2, source: 1, target: 3, kind: 'access' },
+          { id: 1, source: 1, target: 2, relationship: kind, corridor: walls === 'open' ? { walls: 'open', roof: 'none' } : { walls: 'enclosed' } },
+          { id: 2, source: 1, target: 3, relationship: 'access' },
         ],
         settings: functionStyleSettings({ gallery: { facade } }),
       }),

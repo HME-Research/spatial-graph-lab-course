@@ -26,7 +26,7 @@ import { isExposedTop } from './roofGeometry';
  * When omitted it is computed with `resolveRelationships(doc)`.
  *
  * Façade and roof per ROOM (`nodeLooks`: the room's card under "Style rooms by" → Default →
- * project `facade(typeId)` → example provider / built-in). Faces are styled by `ownerNodeId`.
+ * project `facade(functionId)` → example provider / built-in). Faces are styled by `ownerNodeId`.
  */
 
 export interface BuildingV2Options extends Omit<ArchitectureOptions, 'facade'> {

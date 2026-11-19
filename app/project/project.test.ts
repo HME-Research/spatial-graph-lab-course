@@ -32,10 +32,10 @@ const designA = () =>
     schemaVersion: 2,
     metadata: { name: 'Option A' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], size: [2, 1, 1], typeId: 'gallery', attributes: { area: 12 } },
-      { id: 2, grid: [2, 0, 0], typeId: 'studio' },
+      { id: 1, position: [0, 0, 0], size: [2, 1, 1], function: 'gallery', custom: { area: 12 } },
+      { id: 2, position: [2, 0, 0], function: 'studio' },
     ],
-    edges: [{ id: 1, source: 1, target: 2, kind: 'access' }],
+    edges: [{ id: 1, source: 1, target: 2, relationship: 'access' }],
     diagram: { positions: { 1: [0, 0], 2: [100, 0] } },
   });
 
@@ -45,13 +45,13 @@ const designB = () =>
     schemaVersion: 2,
     metadata: { name: 'Option B' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], typeId: 'gallery' },
-      { id: 2, grid: [0, 1, 0], size: [1, 1, 2], typeId: 'studio' },
-      { id: 3, grid: [5, 5, 0], typeId: 'gallery' },
+      { id: 1, position: [0, 0, 0], function: 'gallery' },
+      { id: 2, position: [0, 1, 0], size: [1, 1, 2], function: 'studio' },
+      { id: 3, position: [5, 5, 0], function: 'gallery' },
     ],
     edges: [
-      { id: 1, source: 1, target: 2, kind: 'open' },
-      { id: 2, source: 2, target: 3, kind: 'access' },
+      { id: 1, source: 1, target: 2, relationship: 'open' },
+      { id: 2, source: 2, target: 3, relationship: 'access' },
     ],
     diagram: { positions: { 1: [0, 0], 2: [0, 100], 3: [200, 100] } },
   });
@@ -189,7 +189,7 @@ describe('project file', () => {
 
     const open = rawFile();
     const openEdge = open.scenarios[index].design.edges[0];
-    openEdge.kind = 'open';
+    openEdge.relationship = 'open';
     open.scenarios[index].facePreferences = { [openEdge.id]: { nodeId: openEdge.source, offset: [0, 0, 0], direction: '+x' } };
     expect(codes(readProjectFile(open))).toEqual(['invalid-preference']);
   });
@@ -280,8 +280,8 @@ describe('Save As New Project', () => {
     const copyBefore = serializeProjectFile(copy);
     /* eslint-disable @typescript-eslint/no-explicit-any */
     const c = copy as any;
-    c.scenarios[0].design.nodes[0].grid[0] = 99;
-    c.scenarios[0].design.nodes[0].attributes.area = 1;
+    c.scenarios[0].design.nodes[0].position[0] = 99;
+    c.scenarios[0].design.nodes[0].custom.area = 1;
     c.scenarios[0].facePreferences[1].offset[0] = 0;
     c.scenarios[0].cameras[0].pose.position[0] = -1;
     c.scenarios[0].display.views.voxels.labels = true;
@@ -504,13 +504,13 @@ describe('numeric ids survive save → reopen (P4)', () => {
       nextNodeId: 9,
       nextEdgeId: 4,
       nodes: [
-        { id: 1, grid: [0, 0, 0], size: [2, 1, 1], typeId: 'gallery', attributes: { area: 12 } },
-        { id: 2, grid: [2, 0, 0], typeId: 'studio' },
-        { id: 5, grid: [2, 1, 0], typeId: 'gallery' },
+        { id: 1, position: [0, 0, 0], size: [2, 1, 1], function: 'gallery', custom: { area: 12 } },
+        { id: 2, position: [2, 0, 0], function: 'studio' },
+        { id: 5, position: [2, 1, 0], function: 'gallery' },
       ],
       edges: [
-        { id: 1, source: 1, target: 2, kind: 'access' },
-        { id: 3, source: 2, target: 5, kind: 'open' },
+        { id: 1, source: 1, target: 2, relationship: 'access' },
+        { id: 3, source: 2, target: 5, relationship: 'open' },
       ],
       diagram: { positions: { 1: [0, 0], 2: [100, 0], 5: [100, 100] } },
     });

@@ -49,7 +49,7 @@ describe('conformance', () => {
   });
 
   it('marks nodes of a broken type as errors and skips their attribute checks', async () => {
-    const project = await labToolkit({ 'toolkits/lab/types/gallery.ts': { default: { id: 'gallery', label: '' } } });
+    const project = await labToolkit({ 'toolkits/lab/functions/gallery.ts': { default: { id: 'gallery', label: '' } } });
     const ds = checkConformance(labDoc(), project);
     expect(ds.filter((d) => d.code === 'broken-node-type').map((d) => [d.id, d.severity])).toEqual([
       ['broken-node-type|node:1', 'error'],
@@ -59,7 +59,7 @@ describe('conformance', () => {
   });
 
   it('does not warn about unknown types when the project defines no types, or without a project', async () => {
-    const project = await labToolkit({ 'toolkits/lab/types/gallery.ts': undefined, 'toolkits/lab/types/studio.ts': undefined });
+    const project = await labToolkit({ 'toolkits/lab/functions/gallery.ts': undefined, 'toolkits/lab/functions/studio.ts': undefined });
     expect(project.nodeTypes).toEqual([]);
     // Phase 02: values outside the (here empty) project schema are reported as information only.
     const ds = checkConformance(labDoc(), project);
@@ -74,7 +74,7 @@ describe('conformance', () => {
     const ids = (d: typeof doc) => checkConformance(d, project).map((x) => x.id).sort();
     const reordered = { ...doc, nodes: [...doc.nodes].reverse() };
     const extended = expectOk(
-      validateDocumentV2({ ...doc, nextNodeId: 100, nodes: [{ id: 99, grid: [9, 9, 0], typeId: 'studio', attributes: {} }, ...doc.nodes] }),
+      validateDocumentV2({ ...doc, nextNodeId: 100, nodes: [{ id: 99, position: [9, 9, 0], function: 'studio', custom: {} }, ...doc.nodes] }),
     );
     expect(ids(reordered)).toEqual(ids(doc));
     expect(ids(extended)).toEqual(ids(doc));
@@ -119,7 +119,7 @@ describe('type appearance (existing gallery/studio/storage behaviour preserved)'
     expect(typeAppearance(project, 'studio')).toEqual({ status: 'ok', color: typeColor('studio'), facade: exampleFacadeProvider('studio') });
     expect(typeAppearance(project, 'kiosk')).toEqual({ status: 'ok', color: typeColor('kiosk'), facade: exampleFacadeProvider('kiosk') });
 
-    const broken = await labToolkit({ 'toolkits/lab/types/gallery.ts': { default: { id: 'gallery', label: 'G', facade: { windowFraction: 2 } } } });
+    const broken = await labToolkit({ 'toolkits/lab/functions/gallery.ts': { default: { id: 'gallery', label: 'G', facade: { windowFraction: 2 } } } });
     const a = typeAppearance(broken, 'gallery');
     expect(a.status).toBe('broken');
     expect('facade' in a).toBe(false);

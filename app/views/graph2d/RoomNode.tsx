@@ -3,7 +3,7 @@ import { memo } from 'react';
 import { SELECTION_COLOR, typeColor } from '@core/viewer/appearance';
 
 export type RoomNodeData = {
-  readonly typeId: string;
+  readonly function: string;
   /** Text lines inside the circle (see `nodeLines`). */
   readonly lines: readonly string[];
   /** Requested lines that did not fit ("+N"). */
@@ -35,8 +35,8 @@ export const RoomNode = memo(function RoomNode({ id, data, selected }: NodeProps
   // O01: dropping on the top half used to create nothing because only the bottom dot was a target).
   const connection = useConnection();
   const dropTarget = connection.inProgress && connection.fromNode.id !== id;
-  const { lines, hidden, diameter, typeId, emphasised, brokenType, connectSource, unresolved, analysis } = data;
-  const color = typeColor(typeId);
+  const { lines, hidden, diameter, function: functionId, emphasised, brokenType, connectSource, unresolved, analysis } = data;
+  const color = typeColor(functionId);
   // Counter-scale text against the diagram zoom so labels stay readable on screen (audit m4):
   // the id at least ~11 px, captions at least ~10 px, capped so a zoomed-out diagram stays tidy.
   const zoom = useStore((s) => s.transform[2]);

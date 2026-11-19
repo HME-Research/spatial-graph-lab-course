@@ -4,12 +4,12 @@ import { formatMetricValue, formatNumber, type ComputedMetric, type MetricContex
 import { accessGroups } from './sceneModel';
 
 /** What colour-by reads of a room and a relationship. */
-type ColorNode = Pick<RoomNode, 'id' | 'typeId' | 'attributes'>;
+type ColorNode = Pick<RoomNode, 'id' | 'function' | 'custom'>;
 type ColorEdge = Pick<RelationshipEdge, 'id' | 'source' | 'target'>;
 
 /**
  * View-local colour-by logic for the 3D views (pure).
- *  - `type`: node function (typeId) using the shared `typeColor`, identical to Graph 2D.
+ *  - `type`: node function (functionId) using the shared `typeColor`, identical to Graph 2D.
  *  - `group`: access group = connected component over explicit edges.
  *  - `attribute`: a node attribute key; numeric keys get a sequential scale, others are categorical.
  *  - `metric`: a calculated node value (`@app/metrics`): numbers get the sequential scale, booleans
@@ -94,7 +94,7 @@ export interface Coloring {
 /** Attribute keys used by any node, sorted. */
 export function attributeKeys(nodes: readonly ColorNode[]): string[] {
   const keys = new Set<string>();
-  for (const n of nodes) for (const k of Object.keys(n.attributes)) keys.add(k);
+  for (const n of nodes) for (const k of Object.keys(n.custom)) keys.add(k);
   return [...keys].sort();
 }
 
@@ -147,12 +147,12 @@ export function resolveColoring(
 }
 
 function byType(nodes: readonly ColorNode[]): Coloring {
-  const counts = countBy(nodes, (n) => n.typeId);
+  const counts = countBy(nodes, (n) => n.function);
   const types = [...counts.keys()].sort();
   const colours = new Set(types.map(typeColor));
   return {
     title: 'Node type',
-    colorOf: new Map(nodes.map((n) => [n.id, typeColor(n.typeId)] as const)),
+    colorOf: new Map(nodes.map((n) => [n.id, typeColor(n.function)] as const)),
     missing: new Set(),
     legend: types.map((t) => ({ label: t, color: typeColor(t), count: counts.get(t)! })),
     ...(colours.size < types.length && { note: 'Some types share a fallback colour.' }),
@@ -175,7 +175,7 @@ function byGroup(nodes: readonly ColorNode[], edges: readonly ColorEdge[]): Colo
 }
 
 function byAttribute(nodes: readonly ColorNode[], key: string): Coloring {
-  return byValues(nodes, (n) => (Object.hasOwn(n.attributes, key) ? n.attributes[key] : undefined), `Attribute “${key}”`, {
+  return byValues(nodes, (n) => (Object.hasOwn(n.custom, key) ? n.custom[key] : undefined), `Attribute “${key}”`, {
     label: String,
     booleans: false,
   });

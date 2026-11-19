@@ -32,15 +32,15 @@ const doc = () =>
     schemaVersion: 2,
     metadata: { name: 'Walls' },
     nodes: [
-      { id: 1, grid: [0, 1, 0], size: [1, 2, 1], typeId: 'gallery' },
-      { id: 2, grid: [1, 1, 0], size: [1, 2, 1], typeId: 'studio' },
-      { id: 3, grid: [5, 5, 0], typeId: 'studio' },
-      { id: 4, grid: [8, 8, 1], typeId: 'studio' },
-      { id: 5, grid: [9, 2, 1], typeId: 'store' },
+      { id: 1, position: [0, 1, 0], size: [1, 2, 1], function: 'gallery' },
+      { id: 2, position: [1, 1, 0], size: [1, 2, 1], function: 'studio' },
+      { id: 3, position: [5, 5, 0], function: 'studio' },
+      { id: 4, position: [8, 8, 1], function: 'studio' },
+      { id: 5, position: [9, 2, 1], function: 'store' },
     ],
     edges: [
-      { id: 1, source: 3, target: 4, kind: 'access' },
-      { id: 2, source: 3, target: 5, kind: 'open' },
+      { id: 1, source: 3, target: 4, relationship: 'access' },
+      { id: 2, source: 3, target: 5, relationship: 'open' },
     ],
     diagram: { positions: { 1: [0, 0], 2: [100, 0], 3: [200, 0], 4: [300, 0], 5: [400, 0] } },
   });
@@ -126,7 +126,7 @@ describe('wall interaction through the project controller', () => {
       // Same graph: the edge is in the document, with the clicked face as its preference …
       const after = activeContent(project(c));
       expect(after.design.edges.map((e) => e.id)).toEqual([1, 2, NEW_EDGE]);
-      expect(after.design.edges.find((e) => e.id === NEW_EDGE)).toMatchObject({ source: 1, target: 2, kind: 'access' });
+      expect(after.design.edges.find((e) => e.id === NEW_EDGE)).toMatchObject({ source: 1, target: 2, relationship: 'access' });
       expect(after.facePreferences[NEW_EDGE]).toEqual({ nodeId: 1, offset: clicked === FACE_SOUTH ? [0, 0, 0] : [0, 1, 0], direction: '+x' });
       // … resolved direct ON that face …
       const o = openingsOf(c, NEW_EDGE);
@@ -169,7 +169,7 @@ describe('wall interaction through the project controller', () => {
 
     // Change kind and remove: one design command each, same edge id.
     send(c, changeKindCommand(panel, 'open'));
-    expect(activeContent(project(c)).design.edges.find((e) => e.id === NEW_EDGE)?.kind).toBe('open');
+    expect(activeContent(project(c)).design.edges.find((e) => e.id === NEW_EDGE)?.relationship).toBe('open');
     expect(activeContent(project(c)).facePreferences[NEW_EDGE]).toBeUndefined();
     expect(openingsOf(c, NEW_EDGE).buildingFaces).toEqual([FACE_SOUTH, FACE_NORTH].sort());
     send(c, removeRelationshipCommand(panel));
@@ -192,7 +192,7 @@ describe('wall interaction through the project controller', () => {
     const c = await opened();
     addAt(c, FACE_NORTH, 'access');
     // b slides one cell south: it still shares a's south wall face, but no longer the chosen (north) one.
-    const r = c.command({ type: 'set-node-geometry', nodeId: 2, grid: [1, 0, 0] });
+    const r = c.command({ type: 'set-node-geometry', nodeId: 2, position: [1, 0, 0] });
     expect(r.ok).toBe(true);
     const after = activeContent(project(c));
     expect(after.design.edges.map((e) => e.id)).toContain(NEW_EDGE);
@@ -211,7 +211,7 @@ describe('wall interaction through the project controller', () => {
   it('a preferred-face-unavailable edge is listed (checked) by Remove invalid connections and removed in one undo step (I2)', async () => {
     const c = await opened();
     addAt(c, FACE_NORTH, 'access');
-    expect(c.command({ type: 'set-node-geometry', nodeId: 2, grid: [1, 0, 0] }).ok).toBe(true);
+    expect(c.command({ type: 'set-node-geometry', nodeId: 2, position: [1, 0, 0] }).ok).toBe(true);
     const port = portOf(c);
     const rows = invalidConnectionRows(modelFromV2(port.doc, port.spatial));
     const row = rows.find((r) => r.edgeId === NEW_EDGE);

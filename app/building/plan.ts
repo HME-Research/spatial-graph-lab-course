@@ -42,7 +42,7 @@ export interface PlanRoom {
   readonly nodeId: number;
   /** The room id (its label). */
   readonly label: string;
-  readonly typeId: string;
+  readonly function: string;
   readonly rect: PlanRect;
   /** First and last storey the room spans (inclusive). */
   readonly levels: readonly [number, number];
@@ -131,7 +131,7 @@ export interface PlanModel {
 /** What the Plan needs: face layouts (Gate F) and the rooms; optionally the connector cells. */
 export interface PlanSource {
   readonly layouts: readonly FaceLayout<BuildingFace>[];
-  readonly rooms: readonly Pick<RoomNode, 'id' | 'grid' | 'size' | 'typeId'>[];
+  readonly rooms: readonly Pick<RoomNode, 'id' | 'position' | 'size' | 'function'>[];
   readonly routeCells?: readonly { readonly cell: GridCoord; readonly edgeId: number }[];
 }
 
@@ -256,8 +256,8 @@ export function buildPlan(source: PlanSource, level: number, cutHeight: number =
     rooms.push({
       nodeId: room.id,
       label: nodeLabel(room),
-      typeId: room.typeId,
-      rect: boxRect(room.grid, [room.size[0], room.size[1]], cell),
+      function: room.function,
+      rect: boxRect(room.position, [room.size[0], room.size[1]], cell),
       levels,
     });
   }
@@ -352,7 +352,7 @@ export function buildPlan(source: PlanSource, level: number, cutHeight: number =
 export function planBoundsAllLevels(source: PlanSource, options: PlanOptions = {}): PlanRect | null {
   const cell = options.cell ?? DEFAULT_CELL_SIZE;
   const wallT = options.wallThickness ?? DEFAULT_WALL_THICKNESS;
-  const rects: PlanRect[] = source.rooms.map((r) => boxRect(r.grid, [r.size[0], r.size[1]], cell));
+  const rects: PlanRect[] = source.rooms.map((r) => boxRect(r.position, [r.size[0], r.size[1]], cell));
   for (const r of source.routeCells ?? []) rects.push(boxRect(r.cell, [1, 1], cell));
   const all = union(rects);
   if (!all) return null;

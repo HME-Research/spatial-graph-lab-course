@@ -21,9 +21,9 @@ export interface DiagramNode {
   readonly id: number;
   /** Label shown in the circle: the room id. */
   readonly label: string;
-  readonly typeId: string;
+  readonly function: string;
   /** Minimum-corner cell. */
-  readonly grid: GridCoord;
+  readonly position: GridCoord;
   /** Room size in cells. */
   readonly size: RoomSize;
   /**
@@ -31,14 +31,14 @@ export interface DiagramNode {
    * resolver: stored value, type default, field default), then stored values outside the schema.
    * Display data only; commands never write it back.
    */
-  readonly attributes: Attributes;
+  readonly custom: Attributes;
 }
 
 export interface DiagramEdge {
   readonly id: number;
   readonly source: number;
   readonly target: number;
-  readonly kind: RelationshipKind;
+  readonly relationship: RelationshipKind;
   /** The derived spatial status from the host's resolver. */
   readonly resolution?: EdgeResolution;
 }
@@ -56,14 +56,14 @@ export function modelFromV2(doc: DesignDocumentV2, spatial: SpatialResolution, s
   const nodes = doc.nodes.map<DiagramNode>((n) => ({
     id: n.id,
     label: nodeLabel(n),
-    typeId: n.typeId,
-    grid: n.grid,
+    function: n.function,
+    position: n.position,
     size: n.size,
-    attributes: viewAttributes(schema, 'nodes', n),
+    custom: viewAttributes(schema, 'nodes', n),
   }));
   const edges = doc.edges.map<DiagramEdge>((e) => {
     const resolution = spatial.byEdge.get(e.id);
-    return { id: e.id, source: e.source, target: e.target, kind: e.kind, ...(resolution ? { resolution } : {}) };
+    return { id: e.id, source: e.source, target: e.target, relationship: e.relationship, ...(resolution ? { resolution } : {}) };
   });
   return { doc, spatial, nodes, edges, byNode: new Map(nodes.map((n) => [n.id, n])), diagram: doc.diagram };
 }
@@ -76,8 +76,8 @@ export function edgeBetween(model: DiagramModel, a: number, b: number): DiagramE
 /** Beginner wording for where a room sits: minimum cell, size (when larger than one cell) and storey(s). */
 export function describePlacement(node: DiagramNode): string {
   const big = node.size.some((s) => s !== 1);
-  const storeys = node.size[2] > 1 ? `storeys ${node.grid[2]}–${node.grid[2] + node.size[2] - 1}` : `storey ${node.grid[2]}`;
-  return `cell ${formatGrid(node.grid)}${big ? ` · ${node.size.join('×')} cells` : ''} · ${storeys}`;
+  const storeys = node.size[2] > 1 ? `storeys ${node.position[2]}–${node.position[2] + node.size[2] - 1}` : `storey ${node.position[2]}`;
+  return `cell ${formatGrid(node.position)}${big ? ` · ${node.size.join('×')} cells` : ''} · ${storeys}`;
 }
 
 // ── Commands ──────────────────────────────────────────────────────────────────────────────────
@@ -117,10 +117,10 @@ export function addNodeRequest(
   const near = nearNodeId === undefined ? undefined : model.byNode.get(nearNodeId);
   // The command gives the new room the design's next node id.
   const nodeId = model.doc.nextNodeId;
-  const typeId = near?.typeId ?? 'room';
+  const functionId = near?.function ?? 'room';
   const diagramPosition = at ?? suggestDiagramPosition(model, near?.id);
   const grid = suggestFreeCellV2(model.doc, model.spatial.occupancy, near?.id);
-  return { nodeId, command: { type: 'add-node', node: { grid, typeId, attributes: {} }, diagramPosition } };
+  return { nodeId, command: { type: 'add-node', node: { position: grid, function: functionId, custom: {} }, diagramPosition } };
 }
 
 export const removeNodeCommand = (_model: DiagramModel, nodeId: number): ModelCommand => ({ type: 'remove-node', nodeId });
@@ -135,4 +135,4 @@ export const diagramPositionCommand = (_model: DiagramModel, nodeId: number, pos
 });
 
 /** Relationship intent change (Access ↔ Open). */
-export const changeRelationshipKindCommand = (edgeId: number, kind: RelationshipKind): ModelCommand => ({ type: 'change-edge-kind', edgeId, kind });
+export const changeRelationshipKindCommand = (edgeId: number, kind: RelationshipKind): ModelCommand => ({ type: 'change-edge-kind', edgeId, relationship: kind });

@@ -13,22 +13,22 @@ const design = (name, nodes, edges, positions) => ({ schemaVersion: 2, metadata:
 const designA = design(
   'Option A',
   [
-    { id: 1, grid: [0, 0, 0], size: [2, 1, 1], typeId: 'gallery' },
-    { id: 2, grid: [2, 0, 0], typeId: 'studio' },
+    { id: 1, position: [0, 0, 0], size: [2, 1, 1], function: 'gallery' },
+    { id: 2, position: [2, 0, 0], function: 'studio' },
   ],
-  [{ id: 1, source: 1, target: 2, kind: 'access' }],
+  [{ id: 1, source: 1, target: 2, relationship: 'access' }],
   { 1: [0, 0], 2: [100, 0] },
 );
 const designB = design(
   'Option B',
   [
-    { id: 1, grid: [0, 0, 0], typeId: 'gallery' },
-    { id: 2, grid: [0, 1, 0], size: [1, 1, 2], typeId: 'studio' },
-    { id: 3, grid: [5, 5, 0], typeId: 'gallery' },
+    { id: 1, position: [0, 0, 0], function: 'gallery' },
+    { id: 2, position: [0, 1, 0], size: [1, 1, 2], function: 'studio' },
+    { id: 3, position: [5, 5, 0], function: 'gallery' },
   ],
   [
-    { id: 1, source: 1, target: 2, kind: 'open' },
-    { id: 2, source: 2, target: 3, kind: 'access' },
+    { id: 1, source: 1, target: 2, relationship: 'open' },
+    { id: 2, source: 2, target: 3, relationship: 'access' },
   ],
   { 1: [0, 0], 2: [0, 100], 3: [200, 100] },
 );

@@ -102,14 +102,14 @@ export async function createProject(host: WelcomeHost, rawName: string, toolkitI
 export const EXAMPLE_PROJECT_NAME = 'Example – graph only (no toolkit)';
 
 /** "circulation" → "Circulation", "living-room" → "Living room". */
-const functionLabel = (typeId: string): string => `${typeId.charAt(0).toUpperCase()}${typeId.slice(1).replace(/-/g, ' ')}`;
+const functionLabel = (functionId: string): string => `${functionId.charAt(0).toUpperCase()}${functionId.slice(1).replace(/-/g, ' ')}`;
 
 /**
  * Project functions for a design opened without a toolkit: one per Function its rooms use (first
  * use order), so the Function picker, Attributes and Designer list them like any other function.
  */
 export const functionsOfDesign = (doc: DesignDocumentV2): { readonly id: string; readonly label: string }[] =>
-  [...new Set(doc.nodes.map((n) => n.typeId))].map((id) => ({ id, label: functionLabel(id) }));
+  [...new Set(doc.nodes.map((n) => n.function))].map((id) => ({ id, label: functionLabel(id) }));
 
 /**
  * Try Example: the built-in graph-only example as a NEW project (each time; Recent restores earlier

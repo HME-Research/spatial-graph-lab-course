@@ -40,10 +40,10 @@ const router: RelationshipResolver = (d) => {
   ];
   const edges: EdgeResolution[] = d.edges.map((e) =>
     cells.some((c) => rooms.at(c))
-      ? { edgeId: e.id, kind: e.kind, status: 'unresolved', reason: 'blocked-by-room', message: 'blocked' }
+      ? { edgeId: e.id, relationship: e.relationship, status: 'unresolved', reason: 'blocked-by-room', message: 'blocked' }
       : {
           edgeId: e.id,
-          kind: e.kind,
+          relationship: e.relationship,
           status: 'routed',
           route: {
             edgeId: e.id,
@@ -101,27 +101,27 @@ function gesture(host: ReturnType<typeof fakeHost>, nodeId: number, mode: 'move'
 }
 
 describe('room geometry', () => {
-  const start: RoomGeometry = { grid: [0, 0, 0], size: [2, 3, 1] };
+  const start: RoomGeometry = { position: [0, 0, 0], size: [2, 3, 1] };
 
   it('moves the minimum corner by whole cells along one axis only', () => {
-    expect(applyAxisSteps(start, 'move', 'x', 2)).toEqual({ grid: [2, 0, 0], size: [2, 3, 1] });
-    expect(applyAxisSteps(start, 'move', 'y', -1)).toEqual({ grid: [0, -1, 0], size: [2, 3, 1] });
-    expect(applyAxisSteps(start, 'move', 'z', 1)).toEqual({ grid: [0, 0, 1], size: [2, 3, 1] });
+    expect(applyAxisSteps(start, 'move', 'x', 2)).toEqual({ position: [2, 0, 0], size: [2, 3, 1] });
+    expect(applyAxisSteps(start, 'move', 'y', -1)).toEqual({ position: [0, -1, 0], size: [2, 3, 1] });
+    expect(applyAxisSteps(start, 'move', 'z', 1)).toEqual({ position: [0, 0, 1], size: [2, 3, 1] });
   });
 
   it('resizes with the minimum corner anchored and sizes kept positive', () => {
-    expect(applyAxisSteps(start, 'resize', 'y', 2)).toEqual({ grid: [0, 0, 0], size: [2, 5, 1] });
-    expect(applyAxisSteps(start, 'resize', 'x', -5)).toEqual({ grid: [0, 0, 0], size: [1, 3, 1] });
+    expect(applyAxisSteps(start, 'resize', 'y', 2)).toEqual({ position: [0, 0, 0], size: [2, 5, 1] });
+    expect(applyAxisSteps(start, 'resize', 'x', -5)).toEqual({ position: [0, 0, 0], size: [1, 3, 1] });
     expect(applyAxisSteps(start, 'resize', 'z', 999).size[2]).toBe(MAX_ROOM_SIZE);
   });
 
   it('resizes from the minimum face with the maximum face anchored', () => {
     // Dragging the −x cube 2 cells towards −x grows the room and shifts its minimum corner.
-    expect(applyAxisSteps(start, 'resize', 'x', -2, -1)).toEqual({ grid: [-2, 0, 0], size: [4, 3, 1] });
+    expect(applyAxisSteps(start, 'resize', 'x', -2, -1)).toEqual({ position: [-2, 0, 0], size: [4, 3, 1] });
     // Towards +y shrinks it; the maximum y face (0 + 3) stays put.
-    expect(applyAxisSteps(start, 'resize', 'y', 2, -1)).toEqual({ grid: [0, 2, 0], size: [2, 1, 1] });
+    expect(applyAxisSteps(start, 'resize', 'y', 2, -1)).toEqual({ position: [0, 2, 0], size: [2, 1, 1] });
     // Never below one cell: the minimum face stops one cell short of the maximum face.
-    expect(applyAxisSteps(start, 'resize', 'y', 9, -1)).toEqual({ grid: [0, 2, 0], size: [2, 1, 1] });
+    expect(applyAxisSteps(start, 'resize', 'y', 9, -1)).toEqual({ position: [0, 2, 0], size: [2, 1, 1] });
     expect(applyAxisSteps(start, 'resize', 'z', -999, -1).size[2]).toBe(MAX_ROOM_SIZE);
     // Side never changes a move.
     expect(applyAxisSteps(start, 'move', 'x', 2, -1)).toEqual(applyAxisSteps(start, 'move', 'x', 2, 1));
@@ -133,10 +133,10 @@ describe('room geometry', () => {
   });
 
   it('places the world box with spatialToThree and the app cell size', () => {
-    const box = roomWorldBox({ grid: [0, 0, 0], size: [2, 3, 1] });
+    const box = roomWorldBox({ position: [0, 0, 0], size: [2, 3, 1] });
     expect(box.center).toEqual(spatialToThree([0.5, 1, 0]));
     expect(box.size).toEqual([6, 3, 9]);
-    const custom = roomWorldBox({ grid: [1, 0, 2], size: [1, 1, 2] }, { horizontal: 4, vertical: 2 });
+    const custom = roomWorldBox({ position: [1, 0, 2], size: [1, 1, 2] }, { horizontal: 4, vertical: 2 });
     expect(custom.center).toEqual(spatialToThree([1, 0, 2.5], { horizontal: 4, vertical: 2 }));
     expect(custom.size).toEqual([4, 4, 4]);
     expect(DEFAULT_CELL_SIZE.horizontal).toBe(3);
@@ -149,8 +149,8 @@ describe('one gesture = at most one command', () => {
     const r = gesture(host, 2, 'move', 'y', [1, 2, 3, 4, 3]);
     expect(host.sent).toHaveLength(1);
     expect(host.history).toHaveLength(1);
-    expect(host.sent[0]).toEqual({ type: 'set-node-geometry', nodeId: 2, grid: [5, 3, 0], size: [1, 1, 1] });
-    expect(room(host.port, 2).grid).toEqual([5, 3, 0]);
+    expect(host.sent[0]).toEqual({ type: 'set-node-geometry', nodeId: 2, position: [5, 3, 0], size: [1, 1, 1] });
+    expect(room(host.port, 2).position).toEqual([5, 3, 0]);
     expect(r.state).toBe(IDLE);
     // Real resolver: 2 leaves the 1–2 corridor axis, so edge 1 goes from routed to unresolved.
     expect(r.feedback).toEqual({ tone: 'info', text: 'Moved room 2 to [5, 3, 0]. 1 relationship changed status.' });
@@ -167,18 +167,18 @@ describe('one gesture = at most one command', () => {
     const host = fakeHost();
     let s = beginDrag(host.port, 2, 'move', 'x');
     s = updateDrag(host.port, s, 3);
-    expect(displayedGeometry(host.port.doc, s, 2)?.grid).toEqual([8, 0, 0]);
+    expect(displayedGeometry(host.port.doc, s, 2)?.position).toEqual([8, 0, 0]);
     const r = cancelEdit(s);
     expect(r.state).toBe(IDLE);
     expect(host.sent).toHaveLength(0);
-    expect(displayedGeometry(host.port.doc, r.state, 2)?.grid).toEqual([5, 0, 0]);
+    expect(displayedGeometry(host.port.doc, r.state, 2)?.position).toEqual([5, 0, 0]);
   });
 
   it('resizing commits size only, anchored at the minimum corner', () => {
     const host = fakeHost();
     gesture(host, 1, 'resize', 'z', [1]);
-    expect(host.sent).toEqual([{ type: 'set-node-geometry', nodeId: 1, grid: [0, 0, 0], size: [2, 3, 2] }]);
-    expect(room(host.port, 1)).toMatchObject({ grid: [0, 0, 0], size: [2, 3, 2] });
+    expect(host.sent).toEqual([{ type: 'set-node-geometry', nodeId: 1, position: [0, 0, 0], size: [2, 3, 2] }]);
+    expect(room(host.port, 1)).toMatchObject({ position: [0, 0, 0], size: [2, 3, 2] });
   });
 
   it('proposes only when the snapped step changes', () => {
@@ -200,7 +200,7 @@ describe('room collisions are refused', () => {
     expect(dragStatus(host.port.doc, r.during)).toBe('1 × 1 × 1 at [1, 0, 0]: overlaps room 1');
     expect(host.sent).toHaveLength(0);
     expect(r.feedback).toEqual({ tone: 'error', text: 'Room 2 cannot go there: it would overlap room 1. Restored.' });
-    expect(room(host.port, 2).grid).toEqual([5, 0, 0]);
+    expect(room(host.port, 2).position).toEqual([5, 0, 0]);
   });
 
   it('a resize into another room is refused too', () => {
@@ -229,11 +229,11 @@ describe('corridor reservations need confirmation', () => {
     expect(r.feedback?.tone).toBe('warning');
     expect(r.feedback?.text).toContain('relationship 1 → 2'); // phase 07 (O08): room labels, not the raw id
     expect(host.sent).toHaveLength(0);
-    expect(displayedGeometry(host.port.doc, r.state, 2)?.grid).toEqual([3, 0, 0]);
+    expect(displayedGeometry(host.port.doc, r.state, 2)?.position).toEqual([3, 0, 0]);
 
     const c = confirmEdit(host.port, r.state);
     expect(host.sent).toEqual([
-      { type: 'set-node-geometry', nodeId: 2, grid: [3, 0, 0], size: [1, 1, 1], confirmRouteDisplacement: true },
+      { type: 'set-node-geometry', nodeId: 2, position: [3, 0, 0], size: [1, 1, 1], confirmRouteDisplacement: true },
     ]);
     expect(host.history).toHaveLength(1);
     expect(c.state).toBe(IDLE);
@@ -248,7 +248,7 @@ describe('corridor reservations need confirmation', () => {
     expect(c.state).toBe(IDLE);
     expect(c.feedback?.text).toMatch(/nothing changed/);
     expect(host.sent).toHaveLength(0);
-    expect(room(host.port, 2).grid).toEqual([5, 0, 0]);
+    expect(room(host.port, 2).position).toEqual([5, 0, 0]);
   });
 
   it('a host refusal is reported and not retried', () => {

@@ -1,5 +1,5 @@
-import { customAttributeSource, customAttributeTag, type AttributeSectionId } from '@app/attributes/sections';
-import { serializeDesignV2, type AttributeValue, type DesignDocumentV2 } from '@app/document';
+import { customAttributeSource, customAttributeTag, GEOMETRY_AXES, NODE_BUILT_IN_ATTRIBUTES, type AttributeSectionId } from '@app/attributes/sections';
+import { serializeDesignV2, type AttributeValue, type CorridorLook, type DesignDocumentV2 } from '@app/document';
 import {
   resolveEdgeAttributes,
   resolveNodeAttributes,
@@ -48,17 +48,21 @@ export interface JsonBlock {
   readonly lines: readonly JsonLine[];
 }
 
-/** Stored key of a node/edge record → its section. `corridor` (its own walls / roof) belongs to the relationship (Required). */
+/**
+ * Stored key of a node/edge record → its section. `corridor` (its own walls / roof) belongs to the
+ * relationship (Required). Lines inside a multi-line value (`custom`, `corridor`) keep the section
+ * of their key.
+ */
 const RECORD_KEY_SECTION: Readonly<Record<string, StoredSectionId>> = {
   id: 'identity',
   source: 'identity',
   target: 'identity',
-  typeId: 'required',
-  kind: 'required',
+  function: 'required',
+  relationship: 'required',
   corridor: 'required',
-  grid: 'geometry',
+  position: 'geometry',
   size: 'geometry',
-  attributes: 'custom',
+  custom: 'custom',
 };
 
 const COLLECTION_LINE = /^ {2}"(nodes|edges)": \[/;
@@ -68,8 +72,9 @@ const RECORD_KEY = /^ {6}"([^"]+)":/;
 /**
  * The design exactly as saved (`serializeDesignV2`: stored values only — no calculated values, no
  * resolved defaults), split into lines that know their record and section. Relies on the canonical
- * two-space layout of `serializeDesignV2` (nodes/edges at indent 2, records at 4, keys at 6) and
- * on records being written in document order.
+ * two-space layout of `serializeDesignV2` / `formatJson` (nodes/edges at indent 2, records at 4,
+ * keys at 6, a multi-line value's inner lines deeper; arrays of numbers on their key's line) and on
+ * records being written in document order.
  */
 export function jsonLines(doc: DesignDocumentV2): JsonLine[] {
   const text = serializeDesignV2(doc).replace(/\n$/, '');
@@ -140,9 +145,15 @@ export interface DataCell {
 }
 
 export interface DataColumn {
-  /** Stable id: built-in attribute id, `custom:<fieldId>` or `calc:<metricId>`. */
+  /**
+   * Stable id: built-in attribute id, `<attribute>.<x|y|z>` for one value of Position / Size,
+   * `custom:<fieldId>` or `calc:<metricId>`.
+   */
   readonly id: string;
+  /** The column heading; for one value of Position / Size its axis label (`x`, `y`, `z (Level)`). */
   readonly label: string;
+  /** Position / Size: the attribute this value column belongs to (one heading spans its three columns). */
+  readonly attribute?: { readonly id: string; readonly label: string };
   readonly section: AttributeSectionId;
   readonly title?: string;
   readonly numeric?: boolean;
@@ -167,6 +178,20 @@ export interface DataTable {
   readonly rows: readonly DataRow[];
 }
 
+/**
+ * Attribute headings of a table: one per column, except that the three value columns of Position
+ * (and of Size) share one heading spanning them. `split`: the heading has value columns under it.
+ */
+export function attributeHeadings(columns: readonly DataColumn[]): { readonly id: string; readonly label: string; readonly span: number; readonly split: boolean; readonly first: DataColumn }[] {
+  const out: { id: string; label: string; span: number; split: boolean; first: DataColumn }[] = [];
+  for (const c of columns) {
+    const last = out[out.length - 1];
+    if (c.attribute && last && last.split && last.id === c.attribute.id) last.span += 1;
+    else out.push(c.attribute ? { id: c.attribute.id, label: c.attribute.label, span: 1, split: true, first: c } : { id: c.id, label: c.label, span: 1, split: false, first: c });
+  }
+  return out;
+}
+
 /** Column groups in section order, skipping empty sections. */
 export function columnGroups(columns: readonly DataColumn[]): { readonly section: AttributeSectionId; readonly span: number }[] {
   const groups: { section: AttributeSectionId; span: number }[] = [];
@@ -189,12 +214,12 @@ export function formatValue(value: AttributeValue | undefined): string {
 const stored = (value: string | number, title?: string): DataCell => ({ text: String(value), origin: 'stored', ...(title !== undefined && { title }) });
 
 /** A custom attribute cell from THE resolver: own values plain, inherited ones marked. */
-export function customCell(r: EffectiveAttribute, typeId?: string): DataCell {
+export function customCell(r: EffectiveAttribute, functionId?: string): DataCell {
   if (r.stored === 'invalid')
     return { text: JSON.stringify(r.storedValue) ?? String(r.storedValue), origin: 'invalid', title: `Stored value is not valid for “${r.field.label}”; ${r.source === 'none' ? 'no value applies' : `${formatValue(r.value)} applies instead`}.` };
   if (r.source === 'instance') return { text: formatValue(r.value), origin: 'stored', title: 'Stored on this item.' };
   if (r.source === 'type-default')
-    return { text: formatValue(r.value), origin: 'type-default', title: `Not stored on this item: the default for Function “${typeId ?? ''}”.` };
+    return { text: formatValue(r.value), origin: 'type-default', title: `Not stored on this item: the default for Function “${functionId ?? ''}”.` };
   if (r.source === 'schema-default') return { text: formatValue(r.value), origin: 'default', title: 'Not stored on this item: the attribute’s default.' };
   return { text: '—', origin: 'none', title: 'No value stored and no default.' };
 }
@@ -241,25 +266,23 @@ export interface TableInputs {
   readonly toolkit?: AttributeToolkit | null;
 }
 
-const GEOMETRY = [
-  { id: 'position-x', label: 'Position X', axis: 'grid', i: 0 },
-  { id: 'position-y', label: 'Position Y', axis: 'grid', i: 1 },
-  { id: 'level', label: 'Level', axis: 'grid', i: 2 },
-  { id: 'size-x', label: 'Size X', axis: 'size', i: 0 },
-  { id: 'size-y', label: 'Size Y', axis: 'size', i: 1 },
-  { id: 'floors', label: 'Floors', axis: 'size', i: 2 },
-] as const;
+/** The heading of a Geometry attribute (`Position`, `Size`). */
+const geometryHeading = (id: string): string => NODE_BUILT_IN_ATTRIBUTES.find((a) => a.id === id)?.name ?? id;
 
-/** One row per node: Identity · Required · Geometry · Custom · Calculated. */
+/**
+ * One row per node, columns in the order of the saved JSON keys: id · function · position (x | y |
+ * z) · size (x | y | z) · custom attributes; then the calculated values (never saved), locked.
+ */
 export function nodeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInputs): DataTable {
   const columns: DataColumn[] = [
     { id: 'id', label: 'ID', section: 'identity', title: 'Stored as "id". Never changes.', numeric: true, editable: false },
-    { id: 'function', label: 'Function', section: 'required', title: 'Stored as "typeId".', editable: true },
-    ...GEOMETRY.map((g) => ({
+    { id: 'function', label: 'Function', section: 'required', title: 'Stored as "function".', editable: true },
+    ...GEOMETRY_AXES.map((g) => ({
       id: g.id,
       label: g.label,
+      attribute: { id: g.part, label: geometryHeading(g.part) },
       section: 'geometry' as const,
-      title: `Stored as "${g.axis}"[${g.i}], in voxels.`,
+      title: `${g.name}: stored as "${g.part}"[${g.axis}], in cells.`,
       numeric: true,
       editable: true,
     })),
@@ -267,26 +290,42 @@ export function nodeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInp
     ...calculatedColumns('nodes', enabled, evaluator),
   ];
   const rows = ctx.doc.nodes.map((n): DataRow => {
-    const cells: Record<string, DataCell> = { id: stored(n.id), function: stored(n.typeId) };
-    for (const g of GEOMETRY) cells[g.id] = stored(n[g.axis][g.i]);
-    for (const r of resolveNodeAttributes(schema, n)) cells[`custom:${r.field.id}`] = customCell(r, n.typeId);
+    const cells: Record<string, DataCell> = { id: stored(n.id), function: stored(n.function) };
+    for (const g of GEOMETRY_AXES) cells[g.id] = stored(n[g.part][g.axis]);
+    for (const r of resolveNodeAttributes(schema, n)) cells[`custom:${r.field.id}`] = customCell(r, n.function);
     Object.assign(cells, calculatedCells(ctx, 'nodes', enabled, evaluator, n.id));
     return { id: n.id, cells };
   });
   return { collection: 'nodes', columns, rows };
 }
 
-/** One row per edge: Identity (ID, Source, Target) · Required · Custom · Calculated. */
+/** What a relationship stores as its own corridor look (`walls … · roof …`), or "—" when it stores none. */
+function corridorCell(c: CorridorLook | undefined): DataCell {
+  const parts = [c?.walls !== undefined ? `walls ${c.walls}` : null, c?.roof !== undefined ? `roof ${c.roof}` : null].filter((p) => p !== null);
+  return parts.length > 0 ? stored(parts.join(' · ')) : { text: '—', origin: 'none', title: 'Not stored: the design’s Corridors card applies.' };
+}
+
+/**
+ * One row per edge, columns in the order of the saved JSON keys: id · source · target ·
+ * relationship · corridor · custom attributes; then the calculated values (never saved), locked.
+ */
 export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInputs): DataTable {
   const columns: DataColumn[] = [
     { id: 'id', label: 'ID', section: 'identity', title: 'Stored as "id". Never changes.', numeric: true, editable: false },
     { id: 'source', label: 'Source', section: 'identity', title: 'Stored as "source": the id of the first node.', editable: false },
     { id: 'target', label: 'Target', section: 'identity', title: 'Stored as "target": the id of the second node.', editable: false },
-    { id: 'relationship', label: 'Relationship', section: 'required', title: 'Stored as "kind".', editable: true },
+    { id: 'relationship', label: 'Relationship', section: 'required', title: 'Stored as "relationship".', editable: true },
+    {
+      id: 'corridor',
+      label: 'Corridor',
+      section: 'required',
+      title: 'Stored as "corridor": this relationship’s own corridor walls / roof, used only when a corridor is generated. Change it in Properties.',
+      editable: false,
+    },
     ...schema.edges.map(customColumn('edges', toolkit)),
     ...calculatedColumns('edges', enabled, evaluator),
   ];
-  const typeOf = new Map(ctx.doc.nodes.map((n) => [n.id, n.typeId]));
+  const typeOf = new Map(ctx.doc.nodes.map((n) => [n.id, n.function]));
   /** "3 · kitchen": the endpoint's id and Function. */
   const endpoint = (id: number): DataCell => stored(typeOf.has(id) ? `${id} · ${typeOf.get(id)!}` : String(id), `Stored as ${id}.`);
   const rows = ctx.doc.edges.map((e): DataRow => {
@@ -294,7 +333,8 @@ export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInp
       id: stored(e.id),
       source: endpoint(e.source),
       target: endpoint(e.target),
-      relationship: stored(KIND_PRESENTATION[e.kind].label, `Stored as "${e.kind}".`),
+      relationship: stored(KIND_PRESENTATION[e.relationship].label, `Stored as "${e.relationship}".`),
+      corridor: corridorCell(e.corridor),
     };
     for (const r of resolveEdgeAttributes(schema, e)) cells[`custom:${r.field.id}`] = customCell(r);
     Object.assign(cells, calculatedCells(ctx, 'edges', enabled, evaluator, e.id));

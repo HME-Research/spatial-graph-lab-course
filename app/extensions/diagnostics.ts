@@ -54,7 +54,7 @@ export type ExtensionIssueCode =
   | 'invalid-id'
   | 'duplicate-node-id'
   | 'duplicate-edge-id'
-  | 'invalid-grid'
+  | 'invalid-position'
   | 'invalid-size'
   | 'occupied-cell'
   | 'undeclared-attribute-write'

@@ -1,6 +1,6 @@
 import type { ZodType } from 'zod';
 import { type DesignDocumentV2, readDesignJson, type Result } from '@app/document';
-import type { GraphAlgorithm, NodeTypeDefinition, ToolkitDefinition, SpatialAlgorithm } from '@student-api';
+import type { GraphAlgorithm, FunctionDefinition, ToolkitDefinition, SpatialAlgorithm } from '@student-api';
 import {
   algorithmDefinitionSchema,
   nodeTypeDefinitionSchema,
@@ -32,8 +32,8 @@ export type DefinitionStatus = { readonly ok: true } | { readonly ok: false; rea
 export interface RegisteredNodeType {
   readonly id: string;
   readonly file: string;
-  /** The student's own object (reference identity is used by `attributesOf`). */
-  readonly definition: NodeTypeDefinition;
+  /** The student's own object (reference identity is used by `customOf`). */
+  readonly definition: FunctionDefinition;
   readonly status: DefinitionStatus;
 }
 
@@ -59,7 +59,7 @@ export interface ActiveToolkit {
   readonly algorithms: readonly RegisteredAlgorithm[];
   readonly designs: readonly RegisteredDesign[];
   /**
-   * The toolkit-wide attribute schema its FILES describe (`defineToolkit({ attributes })` plus
+   * The toolkit-wide attribute schema its FILES describe (`defineToolkit({ custom })` plus
    * node type declarations): the immutable baseline that seeds the stored schema. See
    * docs/PROJECT-ATTRIBUTES.md; the schema in use comes from app/session/projectAttributeStore.ts.
    */
@@ -172,8 +172,8 @@ export async function activateToolkit(source: ToolkitSource): Promise<Activation
   }
   const definition = toolkitFile.value as ToolkitDefinition;
 
-  const types = await loadDefinitions<NodeTypeDefinition>(
-    source.types,
+  const types = await loadDefinitions<FunctionDefinition>(
+    source.functions,
     nodeTypeDefinitionSchema,
     { invalid: 'invalid-node-type', duplicate: 'duplicate-node-type' },
     'node type',

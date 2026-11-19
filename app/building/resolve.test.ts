@@ -15,16 +15,16 @@ const resolveFaces = (d: DesignDocumentV2): ResolvedFace[] => resolveBuildingFac
 const apply = (d: DesignDocumentV2, command: DesignCommand) => expectOk(applyDesignCommand(d, command));
 
 /** Rooms in these tests: a = 1, b = 2, c = 3 unless noted; edge ab = 1. */
-type N = [id: number, grid: [number, number, number], typeId?: string];
-type E = [id: number, source: number, target: number, kind: RelationshipKind];
+type N = [id: number, grid: [number, number, number], functionId?: string];
+type E = [id: number, source: number, target: number, relationship: RelationshipKind];
 
 function doc(nodes: N[], edges: E[] = []): DesignDocumentV2 {
   return expectOk(
     validateDocumentV2({
       schemaVersion: 2,
       metadata: { name: 'test' },
-      nodes: nodes.map(([id, grid, typeId]) => ({ id, grid, typeId: typeId ?? 'gallery' })),
-      edges: edges.map(([id, source, target, kind]) => ({ id, source, target, kind })),
+      nodes: nodes.map(([id, position, functionId]) => ({ id, function: functionId ?? 'gallery', position })),
+      edges: edges.map(([id, source, target, kind]) => ({ id, source, target, relationship: kind })),
     }),
   );
 }
@@ -51,7 +51,7 @@ describe('resolveFaces', () => {
     const faces = resolveFaces(doc([[1, [0, 0, 0], 'storage']]));
     expect(faces.map((f) => f.id)).toEqual(FACE_DIRECTIONS.map((d) => `1:${d}`));
     expect(faces.every((f) => f.condition === 'exterior' && f.neighbourNodeId === null && f.edgeId === null)).toBe(true);
-    expect(faces.every((f) => f.ownerTypeId === 'storage')).toBe(true);
+    expect(faces.every((f) => f.ownerFunction === 'storage')).toBe(true);
     expect(faces.map((f) => f.orientation)).toEqual(['wall', 'wall', 'wall', 'wall', 'slab', 'slab']);
   });
 
@@ -62,7 +62,7 @@ describe('resolveFaces', () => {
       {
         id: '1:+x',
         ownerNodeId: 1,
-        ownerTypeId: 'gallery',
+        ownerFunction: 'gallery',
         cell: [0, 0, 0],
         direction: '+x',
         orientation: 'wall',
@@ -77,14 +77,14 @@ describe('resolveFaces', () => {
   it('D: a door changes only that shared wall; changing to open removes the partition condition', () => {
     const base = doc([[1, [0, 0, 0]], [2, [1, 0, 0]], [3, [0, 1, 0]]]);
     const before = resolveFaces(base);
-    const withDoor = apply(base, { type: 'add-edge', edge: { source: 1, target: 2, kind: 'access' } });
+    const withDoor = apply(base, { type: 'add-edge', edge: { source: 1, target: 2, relationship: 'access' } });
     const doorFaces = resolveFaces(withDoor);
     expect(face(doorFaces, '1:+x')).toMatchObject({ condition: 'door', edgeId: 1, neighbourNodeId: 2 });
     // Every other face is unchanged.
     expect(doorFaces.filter((f) => f.id !== '1:+x')).toEqual(before.filter((f) => f.id !== '1:+x'));
     expect(face(doorFaces, '1:+y').condition).toBe('solid');
 
-    const open = resolveFaces(apply(withDoor, { type: 'change-edge-kind', edgeId: 1, kind: 'open' }));
+    const open = resolveFaces(apply(withDoor, { type: 'change-edge-kind', edgeId: 1, relationship: 'open' }));
     expect(face(open, '1:+x')).toMatchObject({ condition: 'open', edgeId: 1 });
   });
 
@@ -92,7 +92,7 @@ describe('resolveFaces', () => {
     const base = doc([[1, [0, 0, 0], 'storage'], [2, [1, 0, 0], 'studio']], [[1, 1, 2, 'access']]);
     const faces = resolveFaces(apply(base, { type: 'remove-node', nodeId: 1 }));
     expect(faces).toHaveLength(6);
-    expect(face(faces, '2:-x')).toMatchObject({ condition: 'exterior', ownerTypeId: 'studio', edgeId: null, neighbourNodeId: null });
+    expect(face(faces, '2:-x')).toMatchObject({ condition: 'exterior', ownerFunction: 'studio', edgeId: null, neighbourNodeId: null });
   });
 
   it('a shared face is owned by the lower ID, even in the negative direction', () => {

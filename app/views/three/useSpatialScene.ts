@@ -36,7 +36,7 @@ export function useSpatialScene(
   // Colour-by reads EFFECTIVE values of the project's node fields (the shared resolver), so a type
   // default colours a room exactly as Properties and Graph 2D show it.
   const valued = useMemo(
-    () => (attributeSchema ? nodes.map((n) => ({ ...n, attributes: viewAttributes(attributeSchema, 'nodes', n) })) : nodes),
+    () => (attributeSchema ? nodes.map((n) => ({ ...n, custom: viewAttributes(attributeSchema, 'nodes', n) })) : nodes),
     [nodes, attributeSchema],
   );
   const nodeItems = useMemo(() => buildNodeItems(nodes), [nodes]);

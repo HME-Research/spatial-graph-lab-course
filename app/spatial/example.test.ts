@@ -14,13 +14,13 @@ describe('built-in example: house, graph only', () => {
   it('loads and validates as schema v2', () => {
     expect(doc.schemaVersion).toBe(2);
     expect(doc.nodes).toHaveLength(5);
-    expect(new Set(doc.nodes.map((n) => n.grid[2]))).toEqual(new Set([0, 1]));
+    expect(new Set(doc.nodes.map((n) => n.position[2]))).toEqual(new Set([0, 1]));
   });
 
   it('uses the house Functions and no custom attributes', () => {
-    expect([...new Set(doc.nodes.map((n) => n.typeId))].sort()).toEqual(['bath', 'bedroom', 'entrance', 'kitchen', 'living']);
-    expect(doc.nodes.every((n) => Object.keys(n.attributes).length === 0)).toBe(true);
-    expect(doc.edges.every((e) => Object.keys(e.attributes).length === 0)).toBe(true);
+    expect([...new Set(doc.nodes.map((n) => n.function))].sort()).toEqual(['bath', 'bedroom', 'entrance', 'kitchen', 'living']);
+    expect(doc.nodes.every((n) => Object.keys(n.custom).length === 0)).toBe(true);
+    expect(doc.edges.every((e) => Object.keys(e.custom).length === 0)).toBe(true);
   });
 
   it('every relationship joins rooms that touch (built directly, no connectors)', () => {

@@ -47,7 +47,7 @@ export function proposeSpatialEdit(
   const node = doc.nodes[index]!;
   const moved: RoomNode = {
     ...node,
-    grid: request.grid ? [request.grid[0], request.grid[1], request.grid[2]] : node.grid,
+    position: request.position ? [request.position[0], request.position[1], request.position[2]] : node.position,
     size: request.size ? [request.size[0], request.size[1], request.size[2]] : node.size,
   };
   const candidate: DesignDocumentV2 = { ...doc, nodes: doc.nodes.map((n, i) => (i === index ? moved : n)) };

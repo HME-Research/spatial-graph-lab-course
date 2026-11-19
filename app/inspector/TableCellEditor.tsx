@@ -73,7 +73,7 @@ export function TableCellEditor({ design, project, collection, itemId, columnId,
         return run(decision.command);
       case 'geometry': {
         const { nodeId, request, action } = decision;
-        const geometry = { ...(request.grid && { grid: toCoord(request.grid) }), ...(request.size && { size: toCoord(request.size) }) };
+        const geometry = { ...(request.position && { position: toCoord(request.position) }), ...(request.size && { size: toCoord(request.size) }) };
         const plan = planGeometryEdit(design.proposeEdit({ nodeId, ...geometry }), design.doc, nodeId);
         if (plan.kind === 'reject') return refuse(plan.issues);
         if (plan.kind === 'confirm')

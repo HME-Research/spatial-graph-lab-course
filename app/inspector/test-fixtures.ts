@@ -22,11 +22,11 @@ export function corridorRaw() {
     schemaVersion: 2,
     metadata: { name: 'corridor' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], size: [2, 3, 1], typeId: 'gallery', attributes: {} },
-      { id: 2, grid: [5, 0, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} },
-      { id: 3, grid: [0, 6, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} },
+      { id: 1, position: [0, 0, 0], size: [2, 3, 1], function: 'gallery', custom: {} },
+      { id: 2, position: [5, 0, 0], size: [1, 1, 1], function: 'studio', custom: {} },
+      { id: 3, position: [0, 6, 0], size: [1, 1, 1], function: 'studio', custom: {} },
     ],
-    edges: [{ id: 1, source: 1, target: 2, kind: 'access', attributes: {} }],
+    edges: [{ id: 1, source: 1, target: 2, relationship: 'access', custom: {} }],
     diagram: { positions: {} },
     settings: { styleBy: 'function', styles: {} },
   };
@@ -44,13 +44,13 @@ const CORRIDOR: readonly GridCoord[] = [
  */
 export const fixedCorridorResolver: RelationshipResolver = (doc) => {
   const real = resolveRelationships(doc);
-  const free = !doc.nodes.some((n) => CORRIDOR.some((cell) => footprintsOverlap(n, { grid: cell, size: [1, 1, 1] })));
+  const free = !doc.nodes.some((n) => CORRIDOR.some((cell) => footprintsOverlap(n, { position: cell, size: [1, 1, 1] })));
   const edges = real.edges.map((r): EdgeResolution => {
     if (r.edgeId !== 1 || r.status === 'direct') return r;
-    if (!free) return { edgeId: r.edgeId, kind: r.kind, status: 'unresolved', reason: 'blocked-by-room', message: 'blocked' };
+    if (!free) return { edgeId: r.edgeId, relationship: r.relationship, status: 'unresolved', reason: 'blocked-by-room', message: 'blocked' };
     return {
       edgeId: r.edgeId,
-      kind: r.kind,
+      relationship: r.relationship,
       status: 'routed',
       route: {
         edgeId: 1,

@@ -7,7 +7,7 @@ import { rowsToAttributes, type AttributeRow, type ParseResult } from './inspect
 export type SetAttributesCommand = Extract<DesignCommand, { readonly type: 'set-node-attributes' }>;
 
 /** What the helpers read from a room. */
-export type AttributedNode = Pick<RoomNode, 'id' | 'typeId' | 'attributes'>;
+export type AttributedNode = Pick<RoomNode, 'id' | 'function' | 'custom'>;
 
 /**
  * Pure helpers for the type-aware part of the inspector. Typed-attribute semantics (what a value
@@ -77,17 +77,17 @@ export function setTypedAttributeCommand(
   value: AttributeValue | undefined,
 ): ParseResult<SetAttributesCommand> {
   const spec = specFor(specs, key);
-  if (!spec) return { ok: false, message: `"${key}" is not declared by type "${node.typeId}"` };
+  if (!spec) return { ok: false, message: `"${key}" is not declared by type "${node.function}"` };
   if (value !== undefined && checkValue(spec, value) !== 'ok') {
     return { ok: false, message: `"${key}" must be ${describeSpec(spec)}` };
   }
   const attributes: Record<string, AttributeValue> = {};
-  for (const [k, v] of Object.entries(node.attributes)) {
+  for (const [k, v] of Object.entries(node.custom)) {
     if (k !== key) attributes[k] = v;
     else if (value !== undefined) attributes[k] = value;
   }
-  if (value !== undefined && !own(node.attributes, key)) attributes[key] = value;
-  return { ok: true, value: { type: 'set-node-attributes', nodeId: node.id, attributes } };
+  if (value !== undefined && !own(node.custom, key)) attributes[key] = value;
+  return { ok: true, value: { type: 'set-node-attributes', nodeId: node.id, custom: attributes } };
 }
 
 /**
@@ -103,14 +103,14 @@ export function setUndeclaredAttributesCommand(
   if (!parsed.ok) return parsed;
   const clash = Object.keys(parsed.value).find((key) => specFor(specs, key));
   if (clash !== undefined) {
-    return { ok: false, message: `"${clash}" is declared by type "${node.typeId}": edit it in the typed fields above` };
+    return { ok: false, message: `"${clash}" is declared by type "${node.function}": edit it in the typed fields above` };
   }
   // Original order: declared values stay in place, kept free-form keys too; new keys go last.
   const attributes: Record<string, AttributeValue> = {};
-  for (const [k, v] of Object.entries(node.attributes)) {
+  for (const [k, v] of Object.entries(node.custom)) {
     if (specFor(specs, k)) attributes[k] = v;
     else if (own(parsed.value, k)) attributes[k] = parsed.value[k]!;
   }
   for (const [k, v] of Object.entries(parsed.value)) if (!own(attributes, k)) attributes[k] = v;
-  return { ok: true, value: { type: 'set-node-attributes', nodeId: node.id, attributes } };
+  return { ok: true, value: { type: 'set-node-attributes', nodeId: node.id, custom: attributes } };
 }

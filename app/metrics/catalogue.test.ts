@@ -83,7 +83,7 @@ describe('metric catalogue: hand-computed values (multi-cell, multi-storey, rout
   it('recomputes after a geometry change: stacking the loft on hall makes e3 direct', () => {
     const evaluator = createMetricEvaluator();
     expect(evaluator.value(metricCtx(doc), 'unresolved-connections', 5)).toBe(2);
-    const moved: DesignDocumentV2 = { ...doc, nodes: doc.nodes.map((n) => (n.id === 5 ? { ...n, grid: [0, 0, 2] } : n)) };
+    const moved: DesignDocumentV2 = { ...doc, nodes: doc.nodes.map((n) => (n.id === 5 ? { ...n, position: [0, 0, 2] } : n)) };
     const ctx = metricCtx(moved);
     expect(ctx.spatial.byEdge.get(3)?.status).toBe('direct');
     expect(evaluator.value(ctx, 'unresolved-connections', 5)).toBe(1);
@@ -171,11 +171,11 @@ describe('metricRows view-model', () => {
 });
 
 describe('system fields (not metrics)', () => {
-  it('Function = typeId, Level = grid[2]; a multi-storey room shows its span', () => {
+  it('Function = functionId, Level = position[2]; a multi-storey room shows its span', () => {
     const [hall, , , , loft] = metricsLabDoc().nodes;
     expect(SYSTEM_FIELDS.map((f) => [f.id, f.label, f.source])).toEqual([
-      ['function', 'Function', 'typeId'],
-      ['level', 'Level', 'grid[2]'],
+      ['function', 'Function', 'function'],
+      ['level', 'Level', 'position[2]'],
     ]);
     expect(systemFieldValues(hall!)).toEqual({ function: 'gallery', level: 0, topLevel: 1 });
     expect(systemFieldRows(hall!, (id) => id.toUpperCase()).map((r) => [r.id, r.value, r.text])).toEqual([

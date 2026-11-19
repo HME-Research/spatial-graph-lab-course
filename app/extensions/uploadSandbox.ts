@@ -6,7 +6,7 @@ import { defineGraphAlgorithm, edgesBetween, getEdge, getNode, incidentEdges, ne
  *
  * - The code is evaluated as a CommonJS-style module whose only `require` is `@student-api`, served
  *   by a SHIM that offers exactly what a graph analysis needs: `defineGraphAlgorithm` and the graph
- *   helpers. `defineSpatialAlgorithm`, `defineToolkit` and `defineNodeType` throw a readable
+ *   helpers. `defineSpatialAlgorithm`, `defineToolkit` and `defineFunction` throw a readable
  *   refusal; any other name throws "not available" (types were already erased by Sucrase).
  * - The worker receives only ids and endpoints (the same `Graph` a toolkit analysis gets) and the
  *   picked inputs; replies are plain data. The main thread validates every reply again
@@ -37,7 +37,7 @@ const SHIM_API: Readonly<Record<string, unknown>> = Object.freeze({
   opposite,
   defineSpatialAlgorithm: refuse(SPATIAL_REFUSAL),
   defineToolkit: refuse('Uploaded files can only define one graph analysis (defineGraphAlgorithm); a toolkit lives in a toolkit folder.'),
-  defineNodeType: refuse('Uploaded files can only define one graph analysis (defineGraphAlgorithm); node types live in a toolkit folder.'),
+  defineFunction: refuse('Uploaded files can only define one graph analysis (defineGraphAlgorithm); functions live in a toolkit folder.'),
 });
 
 /** Names an analysis can use, for the "not available" message. */

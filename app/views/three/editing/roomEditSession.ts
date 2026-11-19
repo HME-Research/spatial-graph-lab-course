@@ -75,7 +75,7 @@ export function beginDrag(
 ): RoomEditState {
   const node = roomOf(port.doc, nodeId);
   if (!node) return IDLE;
-  const start: RoomGeometry = { grid: node.grid, size: node.size };
+  const start: RoomGeometry = { position: node.position, size: node.size };
   return { phase: 'dragging', nodeId, mode, axis, side, start, draft: start, proposal: null };
 }
 
@@ -86,7 +86,7 @@ export function updateDrag(port: DesignPort, state: RoomEditState, steps: number
   if (sameGeometry(draft, state.draft)) return state;
   const proposal = sameGeometry(draft, state.start)
     ? null
-    : port.proposeEdit({ nodeId: state.nodeId, grid: draft.grid, size: draft.size });
+    : port.proposeEdit({ nodeId: state.nodeId, position: draft.position, size: draft.size });
   return { ...state, draft, proposal };
 }
 
@@ -94,7 +94,7 @@ export function updateDrag(port: DesignPort, state: RoomEditState, steps: number
 export function endDrag(port: DesignPort, state: RoomEditState): EditStep {
   if (state.phase !== 'dragging') return { state, feedback: null };
   if (!roomOf(port.doc, state.nodeId) || sameGeometry(state.draft, state.start)) return { state: IDLE, feedback: null };
-  const proposal = port.proposeEdit({ nodeId: state.nodeId, grid: state.draft.grid, size: state.draft.size });
+  const proposal = port.proposeEdit({ nodeId: state.nodeId, position: state.draft.position, size: state.draft.size });
   return settle(port, state.nodeId, state.mode, state.draft, proposal);
 }
 
@@ -155,7 +155,7 @@ function send(
   const outcome = port.onCommand({
     type: 'set-node-geometry',
     nodeId,
-    grid: draft.grid,
+    position: draft.position,
     size: draft.size,
     ...(confirmRouteDisplacement ? { confirmRouteDisplacement: true } : {}),
   });
@@ -163,7 +163,7 @@ function send(
     const reason = outcome.issues[0]?.message ?? 'the change was refused';
     return { state: IDLE, feedback: { tone: 'error', text: `${capitalise(name)} was not changed: ${reason}.` } };
   }
-  const done = mode === 'move' ? `Moved ${name} to ${formatGrid(draft.grid)}.` : `Resized ${name} to ${formatSize(draft.size)} cells.`;
+  const done = mode === 'move' ? `Moved ${name} to ${formatGrid(draft.position)}.` : `Resized ${name} to ${formatSize(draft.size)} cells.`;
   const changed = impacted.length > 0 ? ` ${impacted.length} relationship${impacted.length === 1 ? '' : 's'} changed status.` : '';
   return { state: IDLE, feedback: { tone: 'info', text: done + changed } };
 }
@@ -203,7 +203,7 @@ export function previewTone(state: RoomEditState): GizmoTone {
 /** One-line live status while dragging, or null when not dragging. */
 export function dragStatus(doc: DesignDocumentV2, state: RoomEditState): string | null {
   if (state.phase !== 'dragging') return null;
-  const where = `${formatSize(state.draft.size)} at ${formatGrid(state.draft.grid)}`;
+  const where = `${formatSize(state.draft.size)} at ${formatGrid(state.draft.position)}`;
   const p = state.proposal;
   if (p === null) return `${where} (unchanged)`;
   switch (p.status) {
@@ -222,5 +222,5 @@ export function dragStatus(doc: DesignDocumentV2, state: RoomEditState): string 
 export function displayedGeometry(doc: DesignDocumentV2, state: RoomEditState, nodeId: number): RoomGeometry | null {
   if ((state.phase === 'dragging' || state.phase === 'confirm') && state.nodeId === nodeId) return state.draft;
   const node = roomOf(doc, nodeId);
-  return node ? { grid: node.grid, size: node.size } : null;
+  return node ? { position: node.position, size: node.size } : null;
 }

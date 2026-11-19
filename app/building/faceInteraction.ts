@@ -43,7 +43,7 @@ export function wallAction(
     const parsed = parseFaceId(faceId);
     const room = parsed ? doc.nodes.find((n) => n.id === parsed.nodeId) : undefined;
     if (parsed && room) {
-      const cell: GridCoord = [room.grid[0] + parsed.offset[0], room.grid[1] + parsed.offset[1], room.grid[2] + parsed.offset[2]];
+      const cell: GridCoord = [room.position[0] + parsed.offset[0], room.position[1] + parsed.offset[1], room.position[2] + parsed.offset[2]];
       if (footprintContains(room, cell) && footprintContains(room, neighbourCell(cell, parsed.direction))) {
         return { kind: 'not-eligible', reason: 'interior' };
       }
@@ -66,7 +66,7 @@ export function wallAction(
     doc.edges.find(
       (e) => (e.source === face.ownerNodeId && e.target === neighbourId) || (e.source === neighbourId && e.target === face.ownerNodeId),
     );
-  if (edge) return { kind: 'existing', edgeId: edge.id, relationshipKind: edge.kind };
+  if (edge) return { kind: 'existing', edgeId: edge.id, relationshipKind: edge.relationship };
   return {
     kind: 'add',
     source: face.ownerNodeId,

@@ -21,9 +21,9 @@ function doc(settings: unknown = undefined): DesignDocumentV2 {
       metadata: { name: 'modes' },
       // a = 1, b = 2, c = 3 (one per storey)
       nodes: [
-        { id: 1, grid: [0, 0, 0], typeId: 'studio' },
-        { id: 2, grid: [0, 0, 1], typeId: 'studio' },
-        { id: 3, grid: [0, 0, 2], typeId: 'studio' },
+        { id: 1, position: [0, 0, 0], function: 'studio' },
+        { id: 2, position: [0, 0, 1], function: 'studio' },
+        { id: 3, position: [0, 0, 2], function: 'studio' },
       ],
       edges: [],
       settings,

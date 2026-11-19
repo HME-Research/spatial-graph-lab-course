@@ -15,7 +15,7 @@ import type {
   GraphAlgorithmContext,
   GridCoord,
   NodeRecord,
-  NodeTypeDefinition,
+  FunctionDefinition,
   SpatialAlgorithmContext,
   SpatialNode,
 } from '@student-api';
@@ -102,21 +102,21 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
     ...(f.default !== undefined && { default: f.default }),
     ...(f.description !== undefined && { description: f.description }),
   });
-  const attributeFields = freezeDeep({ nodes: schema.nodes.map(fieldInfo), edges: schema.edges.map(fieldInfo) });
+  const customFields = freezeDeep({ nodes: schema.nodes.map(fieldInfo), edges: schema.edges.map(fieldInfo) });
 
   return Object.freeze({
     design,
     params: freezeDeep(structuredClone(params)),
-    attributeFields,
+    customFields,
     metrics: createMetricReader(doc, spatial, runError),
-    nodeAttributes: (nodeId: number) => {
+    nodeCustom: (nodeId: number) => {
       const node = isId(nodeId) ? rooms.get(nodeId) : undefined;
-      if (!node) throw runError('unknown-node-reference', `nodeAttributes: there is no node ${String(nodeId)}`);
+      if (!node) throw runError('unknown-node-reference', `nodeCustom: there is no node ${String(nodeId)}`);
       return freezeDeep(effectiveNodeValues(schema, node));
     },
-    edgeAttributes: (edgeId: number) => {
+    edgeCustom: (edgeId: number) => {
       const edge = isId(edgeId) ? links.get(edgeId) : undefined;
-      if (!edge) throw runError('unknown-node-reference', `edgeAttributes: there is no edge ${String(edgeId)}`);
+      if (!edge) throw runError('unknown-node-reference', `edgeCustom: there is no edge ${String(edgeId)}`);
       return freezeDeep(effectiveEdgeValues(schema, edge));
     },
     nodeAt: (cell: GridCoord) => (isGrid(cell) ? occupant.get(gridKey([cell[0], cell[1], cell[2]])) : undefined),
@@ -127,24 +127,24 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
     },
     canRelate: (a: number, b: number) =>
       isId(a) && isId(b) && a !== b && rooms.has(a) && rooms.has(b) && !pairs.has(unorderedPairKey(a, b)),
-    attributesOf<A extends AttributeSpecs>(node: SpatialNode, type: NodeTypeDefinition<A>): AttributesOf<A> {
-      const entry = project.nodeTypes.find((t) => t.definition === type);
-      const name = typeof type === 'object' && type !== null && typeof type.id === 'string' ? `"${type.id}"` : 'the given value';
+    customOf<A extends AttributeSpecs>(node: SpatialNode, fn: FunctionDefinition<A>): AttributesOf<A> {
+      const entry = project.nodeTypes.find((t) => t.definition === fn);
+      const name = typeof fn === 'object' && fn !== null && typeof fn.id === 'string' ? `"${fn.id}"` : 'the given value';
       if (!entry) {
-        throw runError('type-not-registered', `attributesOf: ${name} is not a node type definition registered by toolkit "${project.id}" (import it from the toolkit's types/ folder)`);
+        throw runError('type-not-registered', `customOf: ${name} is not a function definition registered by toolkit "${project.id}" (import it from the toolkit's functions/ folder)`);
       }
       if (!entry.status.ok) {
-        throw runError('broken-node-type', `attributesOf: node type "${entry.id}" (${entry.file}) is invalid, so algorithms cannot use it`);
+        throw runError('broken-node-type', `customOf: function "${entry.id}" (${entry.file}) is invalid, so algorithms cannot use it`);
       }
-      if (node?.typeId !== entry.id) {
-        throw runError('type-mismatch', `attributesOf: node "${node?.id}" has type "${node?.typeId}", not "${entry.id}"`);
+      if (node?.function !== entry.id) {
+        throw runError('type-mismatch', `customOf: node "${node?.id}" has function "${node?.function}", not "${entry.id}"`);
       }
       // The type's declared keys, read through the project fields (same values as the app). A key
       // the project schema no longer has keeps the Stage 3 per-type reading. Explicit "no value"
       // (null) and values that do not fit the type's own declaration read as the type default.
-      const specs = entry.definition.attributes ?? {};
+      const specs = entry.definition.custom ?? {};
       const projectValues = effectiveNodeValues(schema, node);
-      const legacy = effectiveAttributes(specs, node.attributes);
+      const legacy = effectiveAttributes(specs, node.custom);
       const out: Record<string, AttributeValue> = {};
       for (const [key, spec] of Object.entries(specs)) {
         const field = fieldForKey(schema, 'nodes', key);

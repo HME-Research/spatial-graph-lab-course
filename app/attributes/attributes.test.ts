@@ -59,12 +59,12 @@ const schemaOf = (...edits: SchemaEdit[]): ProjectAttributeSchema =>
 const schema = schemaOf(
   { type: 'add-field', collection: 'nodes', field: { key: 'capacity', kind: 'number', min: 0, default: 10 } },
   { type: 'add-field', collection: 'nodes', field: { key: 'public', kind: 'boolean' } },
-  { type: 'set-type-default', typeId: 'gallery', fieldId: 'public', value: true },
+  { type: 'set-type-default', function: 'gallery', fieldId: 'public', value: true },
   { type: 'add-field', collection: 'edges', field: { key: 'weight', kind: 'number' } },
 );
 
 const docOf = (attributes: Record<string, unknown>) => {
-  const r = readDesign({ schemaVersion: 2, metadata: { name: 'd' }, nodes: [{ id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes }], edges: [] });
+  const r = readDesign({ schemaVersion: 2, metadata: { name: 'd' }, nodes: [{ id: 1, position: [0, 0, 0], function: 'gallery', custom: attributes }], edges: [] });
   if (!r.ok) throw new Error('design');
   return r.value.doc;
 };
@@ -87,11 +87,11 @@ describe('attributes model (values)', () => {
   });
 
   it('names the source of an effective value and what "Use default" returns to', () => {
-    const [cap, pub] = resolveNodeAttributes(schema, { typeId: 'gallery', attributes: { capacity: 4 } });
+    const [cap, pub] = resolveNodeAttributes(schema, { function: 'gallery', custom: { capacity: 4 } });
     expect(sourceText(cap!, 'gallery').chip).toBe('set here');
     expect(inheritedText(cap!, 'gallery')).toBe('default 10');
     expect(sourceText(pub!, 'gallery').chip).toBe('gallery default');
-    const [none] = resolveNodeAttributes(schema, { typeId: 'gallery', attributes: { capacity: null } });
+    const [none] = resolveNodeAttributes(schema, { function: 'gallery', custom: { capacity: null } });
     expect(sourceText(none!).chip).toBe('set to no value');
   });
 
@@ -107,12 +107,8 @@ describe('unified attribute list', () => {
     expect(rows.map((r) => `${r.kind}:${r.name}:${r.typeText}`)).toEqual([
       'identity:ID:Number',
       'required:Function:Choice',
-      'geometry:Position X:Number',
-      'geometry:Position Y:Number',
-      'geometry:Level:Number',
-      'geometry:Size X:Number',
-      'geometry:Size Y:Number',
-      'geometry:Floors:Number',
+      'geometry:Position:Numbers x | y | z',
+      'geometry:Size:Numbers x | y | z',
       'custom:Capacity:Number',
       'custom:Public:Yes/No',
       'calculated:Area:Calculated',
@@ -126,7 +122,9 @@ describe('unified attribute list', () => {
   });
 
   it('Edge: Identity (ID, Source, Target), then Relationship, nothing invented, no Geometry, then edge attributes', () => {
-    const rows = attributeRows('edges', schema, DEFAULT_ENABLED_METRICS);
+    // Area (the only default) is a room value: by default an edge shows no calculated values.
+    expect(attributeRows('edges', schema, DEFAULT_ENABLED_METRICS).some((r) => r.kind === 'calculated')).toBe(false);
+    const rows = attributeRows('edges', schema, [...DEFAULT_ENABLED_METRICS, 'resolution-status']);
     expect(rows.slice(0, 4).map((r) => `${r.kind}:${r.name}`)).toEqual(['identity:ID', 'identity:Source', 'identity:Target', 'required:Relationship']);
     expect(rows.filter((r) => r.kind === 'required')).toHaveLength(1);
     expect(rows.some((r) => r.kind === 'geometry')).toBe(false);
@@ -182,7 +180,7 @@ describe('names and identifiers', () => {
   it('keeps the identifier when the display name changes (stored values stay attached)', () => {
     const next = schemaOf({ type: 'add-field', collection: 'nodes', field: { key: 'floor_finish', label: 'Floor finish', kind: 'text' } }, { type: 'update-field', collection: 'nodes', fieldId: 'floor_finish', patch: { label: 'Finish of the floor' } });
     expect(next.nodes[0]).toMatchObject({ key: 'floor_finish', label: 'Finish of the floor' });
-    expect(resolveNodeAttributes(next, { typeId: 'x', attributes: { floor_finish: 'oak' } })[0]!.value).toBe('oak');
+    expect(resolveNodeAttributes(next, { function: 'x', custom: { floor_finish: 'oak' } })[0]!.value).toBe('oak');
   });
 
   it('counts stored values across every scenario', () => {
@@ -254,12 +252,14 @@ describe('Attributes panel', () => {
 
   it('shows the five sections with Node | Edge, in order, and one Add attribute button', async () => {
     const html = await render({ calculatedFields: ['area', 'degree'] });
-    for (const text of ['>Node<', '>Edge<', 'aria-label="Node attributes: Identity"', '>ID<', '>Function<', '>Level<', '>Floors<', 'aria-label="Required: cannot be removed"', '>Daylight<', '>Area<', '>Degree<', '+</span> Add attribute']) {
+    for (const text of ['>Node<', '>Edge<', 'aria-label="Node attributes: Identity"', '>ID<', '>Function<', '>Position<', '>Size<', 'aria-label="Required: cannot be removed"', '>Daylight<', '>Area<', '>Degree<', '+</span> Add attribute']) {
       expect(html, text).toContain(text);
     }
     const sections = [...html.matchAll(/data-attribute-section="([^"]+)"/g)].map((m) => m[1]);
     expect(sections).toEqual(['identity', 'required', 'geometry', 'custom', 'calculated']);
-    expect(html.indexOf('>Function<')).toBeLessThan(html.indexOf('>Position X<'));
+    expect(html.indexOf('>Function<')).toBeLessThan(html.indexOf('>Position<'));
+    expect(html.indexOf('>Position<')).toBeLessThan(html.indexOf('>Size<'));
+    for (const old of ['>Level<', '>Floors<', '>Position X<']) expect(html).not.toContain(old);
     expect(html.indexOf('>Floors<')).toBeLessThan(html.indexOf('>Daylight<'));
     expect(html.indexOf('>Daylight<')).toBeLessThan(html.indexOf('>Area<'));
     // Each section: a small title and an ⓘ with its summary and a link into the Guide.
@@ -373,7 +373,7 @@ describe('custom attributes in Properties', () => {
     renderToStaticMarkup(createElement(CustomAttributes, { collection, item: item as never, schema, run: () => true, onError: () => {}, onManage: () => {} }));
 
   it('lists every project attribute with its effective source; legacy values separately; no identifiers', () => {
-    const html = render('nodes', { id: 7, typeId: 'gallery', attributes: { capacity: 4, legacy: 'kept' } });
+    const html = render('nodes', { id: 7, function: 'gallery', custom: { capacity: 4, legacy: 'kept' } });
     expect(html).toContain('Capacity');
     expect(html).toContain('set here');
     expect(html).toContain('gallery default');
@@ -384,7 +384,7 @@ describe('custom attributes in Properties', () => {
   });
 
   it('edges show the edge attributes only, and an invalid stored value is flagged but kept', () => {
-    const html = render('edges', { id: 5, attributes: { weight: 'heavy' } });
+    const html = render('edges', { id: 5, custom: { weight: 'heavy' } });
     expect(html).toContain('Weight');
     expect(html).not.toContain('Capacity');
     expect(html).toContain('invalid stored value');

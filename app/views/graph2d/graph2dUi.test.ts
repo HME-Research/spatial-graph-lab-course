@@ -45,11 +45,11 @@ function applyV2(doc: DesignDocumentV2, command: ModelCommand): DesignDocumentV2
 function separatedRooms(n: number): DesignDocumentV2 {
   const nodes = Array.from({ length: n }, (_, i) => ({
     id: i + 1,
-    grid: [i * 2, (i % 3) * 4, 0],
-    typeId: ['gallery', 'studio', 'storage'][i % 3],
-    attributes: { area: 10 + i },
+    position: [i * 2, (i % 3) * 4, 0],
+    function: ['gallery', 'studio', 'storage'][i % 3],
+    custom: { area: 10 + i },
   }));
-  const edges = nodes.slice(1).map((node, i) => ({ id: i + 1, source: nodes[i]!.id, target: node.id, kind: 'access' }));
+  const edges = nodes.slice(1).map((node, i) => ({ id: i + 1, source: nodes[i]!.id, target: node.id, relationship: 'access' }));
   return v2Doc({ schemaVersion: 2, metadata: { name: `${n} rooms` }, nodes, edges, diagram: { positions: {} } });
 }
 
@@ -95,7 +95,7 @@ describe('node labels', () => {
     let doc = oneCellExample();
     const before = new Map(v2Model(doc).nodes.map((n) => [n.id, n.label]));
     doc = expectOk(applyDesignCommand(doc, { type: 'remove-node', nodeId: 1 }));
-    doc = expectOk(applyDesignCommand(doc, { type: 'set-node-type', nodeId: 4, typeId: 'archive' }));
+    doc = expectOk(applyDesignCommand(doc, { type: 'set-node-type', nodeId: 4, function: 'archive' }));
     const after = v2Model(doc);
     for (const node of after.nodes) expect(node.label).toBe(before.get(node.id));
     const reread = expectOk(readDesignJson(serializeDesignV2(doc))).doc;
@@ -116,14 +116,14 @@ describe('node labels', () => {
     // With real routing (02) the 1–2 corridor reserves x = 2…4, y = 0, so the +x cell is a
     // connector cell and the next free cell (+y side) is used.
     expect(resolveRelationships(doc).occupancy.at([2, 0, 0])).toEqual({ kind: 'route', edgeId: 1 });
-    expect(added?.grid).toEqual([0, 3, 0]);
+    expect(added?.position).toEqual([0, 3, 0]);
   });
 });
 
 // ── Connections ─────────────────────────────────────────────────────────────────────────────
 
 describe('connectRequest', () => {
-  it('v2: creates an add-edge without a kind, so the new relationship is Access', () => {
+  it('v2: creates an add-edge without a relationship, so the new relationship is Access', () => {
     const doc = v2Doc({ ...v2Raw(), edges: [] });
     const request = connectRequest(v2Model(doc), 1, 2);
     expect(request.status).toBe('command');
@@ -133,11 +133,11 @@ describe('connectRequest', () => {
     expect(request.edgeId).toBe(1);
     expect(request.command).toEqual({ type: 'add-edge', edge: { source: 1, target: 2 } });
     const next = applyV2(doc, request.command);
-    expect(next.edges).toEqual([expect.objectContaining({ id: request.edgeId, kind: 'access' })]);
+    expect(next.edges).toEqual([expect.objectContaining({ id: request.edgeId, relationship: 'access' })]);
   });
 
   it('v2: a relationship between rooms that do not touch is created and shown as unresolved, not refused', () => {
-    const doc = v2Doc({ ...v2Raw(), edges: [], nodes: [v2Raw().nodes[0], { id: 2, grid: [0, 0, 3], typeId: 'studio' }] });
+    const doc = v2Doc({ ...v2Raw(), edges: [], nodes: [v2Raw().nodes[0], { id: 2, position: [0, 0, 3], function: 'studio' }] });
     const request = connectRequest(v2Model(doc), 1, 2);
     if (request.status !== 'command') throw new Error('expected a command');
     const model = v2Model(applyV2(doc, request.command));
@@ -193,7 +193,7 @@ describe('edge presentation', () => {
     const real = resolveRelationships(doc);
     const routed: EdgeResolution = {
       edgeId: 1,
-      kind: 'access',
+      relationship: 'access',
       status: 'routed',
       route: {
         edgeId: 1,
@@ -224,7 +224,7 @@ describe('edge presentation', () => {
 // ── Node display ────────────────────────────────────────────────────────────────────────────
 
 describe('node display', () => {
-  const node = v2Model(v2Doc({ ...v2Raw(), nodes: [{ ...v2Raw().nodes[0], attributes: { a1: 1, a2: 'x', a3: true, a4: 'a very long attribute value' } }, v2Raw().nodes[1]] })).nodes[0]!;
+  const node = v2Model(v2Doc({ ...v2Raw(), nodes: [{ ...v2Raw().nodes[0], custom: { a1: 1, a2: 'x', a3: true, a4: 'a very long attribute value' } }, v2Raw().nodes[1]] })).nodes[0]!;
 
   it('shows the id by default in the base circle', () => {
     expect(DEFAULT_DISPLAY.showId).toBe(true);
@@ -311,7 +311,7 @@ describe('popover placement', () => {
 
 describe('popoverRows', () => {
   it('lists id, type, placement and why a relationship is not buildable (read-only facts)', () => {
-    const doc = v2Doc({ ...v2Raw(), nodes: [v2Raw().nodes[0], { id: 2, grid: [0, 0, 3], typeId: 'studio' }] });
+    const doc = v2Doc({ ...v2Raw(), nodes: [v2Raw().nodes[0], { id: 2, position: [0, 0, 3], function: 'studio' }] });
     const model = v2Model(doc);
     const rows = popoverRows(model, model.byNode.get(1)!, { brokenType: false, attributeKeys: [] });
     expect(rows.map((r) => r.label)).toEqual(['Type', 'Placement', 'Relationships', '↔ 2']);

@@ -18,7 +18,7 @@ import { resolveRelationships } from './resolve';
 export interface FacePreference {
   /** The edge's source or target room the offset is measured from. */
   readonly nodeId: number;
-  /** Cell offset from that room's minimum corner (`grid`). */
+  /** Cell offset from that room's minimum corner (`position`). */
   readonly offset: readonly [number, number, number];
   /** Outward from that cell, towards the other room. */
   readonly direction: FaceDirection;
@@ -59,13 +59,13 @@ const OPPOSITE: Readonly<Record<FaceDirection, FaceDirection>> = {
 };
 
 /** The preference expressed as a face of `room` (its absolute cell and direction). */
-export function preferenceCell(room: { readonly grid: GridCoord }, preference: FacePreference): GridCoord {
-  return [room.grid[0] + preference.offset[0], room.grid[1] + preference.offset[1], room.grid[2] + preference.offset[2]];
+export function preferenceCell(room: { readonly position: GridCoord }, preference: FacePreference): GridCoord {
+  return [room.position[0] + preference.offset[0], room.position[1] + preference.offset[1], room.position[2] + preference.offset[2]];
 }
 
 /** The preference for a face of `room` given as an absolute cell + direction. */
-export function facePreferenceFor(room: { readonly id: number; readonly grid: GridCoord }, cell: GridCoord, direction: FaceDirection): FacePreference {
-  return { nodeId: room.id, offset: [cell[0] - room.grid[0], cell[1] - room.grid[1], cell[2] - room.grid[2]], direction };
+export function facePreferenceFor(room: { readonly id: number; readonly position: GridCoord }, cell: GridCoord, direction: FaceDirection): FacePreference {
+  return { nodeId: room.id, offset: [cell[0] - room.position[0], cell[1] - room.position[1], cell[2] - room.position[2]], direction };
 }
 
 /**
@@ -129,9 +129,9 @@ export function rebasePreferences(
     const newRoom = newById.get(pref.nodeId);
     if (!oldRoom || !newRoom || oldRoom === newRoom || sameTriple(oldRoom.size, newRoom.size)) continue;
     const offset: [number, number, number] = [
-      pref.offset[0] + oldRoom.grid[0] - newRoom.grid[0],
-      pref.offset[1] + oldRoom.grid[1] - newRoom.grid[1],
-      pref.offset[2] + oldRoom.grid[2] - newRoom.grid[2],
+      pref.offset[0] + oldRoom.position[0] - newRoom.position[0],
+      pref.offset[1] + oldRoom.position[1] - newRoom.position[1],
+      pref.offset[2] + oldRoom.position[2] - newRoom.position[2],
     ];
     if (sameTriple(offset, pref.offset)) continue;
     next ??= { ...prefs };
@@ -154,7 +154,7 @@ export function resolveWithPreferences(doc: DesignDocumentV2, preferences: FaceP
   const preferred = new Map<number, SharedFace>();
   const unavailable = new Map<number, string>();
   for (const edge of doc.edges) {
-    if (edge.kind !== 'access' || !Object.prototype.hasOwnProperty.call(preferences, edge.id)) continue;
+    if (edge.relationship !== 'access' || !Object.prototype.hasOwnProperty.call(preferences, edge.id)) continue;
     const check = checkFacePreference(doc, edge, preferences[edge.id]!);
     if (check.ok) preferred.set(edge.id, check.face);
     else unavailable.set(edge.id, `the wall chosen for the connection between "${edge.source}" and "${edge.target}" ${NOT_AVAILABLE_TEXT[check.reason]}`);
@@ -165,7 +165,7 @@ export function resolveWithPreferences(doc: DesignDocumentV2, preferences: FaceP
   const edges: EdgeResolution[] = doc.edges.map((edge) => {
     const message = unavailable.get(edge.id);
     if (message !== undefined) {
-      return { edgeId: edge.id, kind: edge.kind, status: 'unresolved', reason: 'preferred-face-unavailable', message };
+      return { edgeId: edge.id, relationship: edge.relationship, status: 'unresolved', reason: 'preferred-face-unavailable', message };
     }
     const r = base.byEdge.get(edge.id)!;
     const face = preferred.get(edge.id);

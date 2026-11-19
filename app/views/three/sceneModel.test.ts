@@ -13,19 +13,19 @@ import {
 } from './sceneModel';
 import { fitCameraToBounds } from '@core/viewer/three/viewport';
 
-const node = (id: number, grid: [number, number, number], typeId = 'room'): RoomNode => ({
+const node = (id: number, grid: [number, number, number], functionId = 'room'): RoomNode => ({
   id,
-  grid,
+  position: grid,
   size: [1, 1, 1],
-  typeId,
-  attributes: {},
+  function: functionId,
+  custom: {},
 });
-const edge = (id: number, source: number, target: number, kind: RelationshipEdge['kind'] = 'access'): RelationshipEdge => ({
+const edge = (id: number, source: number, target: number, kind: RelationshipEdge['relationship'] = 'access'): RelationshipEdge => ({
   id,
   source,
   target,
-  kind,
-  attributes: {},
+  relationship: kind,
+  custom: {},
 });
 
 function deepFreeze<T>(value: T): T {
@@ -51,9 +51,9 @@ describe('buildNodeItems / buildEdgeItems', () => {
     const items = buildEdgeItems(threeRooms().nodes, threeRooms().edges);
     const ab = items.find((e) => e.id === 1)!;
     const ac = items.find((e) => e.id === 2)!;
-    expect(ab).toMatchObject({ kind: 'access', start: [0, 1.5, 0], end: [3, 1.5, 0], length: 3, direction: [1, 0, 0] });
+    expect(ab).toMatchObject({ relationship: 'access', start: [0, 1.5, 0], end: [3, 1.5, 0], length: 3, direction: [1, 0, 0] });
     expect(ab.mid).toEqual([1.5, 1.5, 0]);
-    expect(ac).toMatchObject({ kind: 'open', start: [0, 1.5, 0], end: [0, 4.5, 0], length: 3, direction: [0, 1, 0] });
+    expect(ac).toMatchObject({ relationship: 'open', start: [0, 1.5, 0], end: [0, 4.5, 0], length: 3, direction: [0, 1, 0] });
   });
 
   it('skips edges whose endpoint is missing instead of throwing', () => {
@@ -127,7 +127,7 @@ describe('groundGrid', () => {
     expect(Math.abs(((g.center[0] / h) % 1) + 0)).toBeCloseTo(0.5);
     expect(Math.abs(((g.center[2] / h) % 1) + 0)).toBeCloseTo(0.5);
     for (const n of nodes) {
-      const [x, , z] = spatialToThree(n.grid);
+      const [x, , z] = spatialToThree(n.position);
       expect(Math.abs(x - g.center[0]) + h / 2 + 2 * h).toBeLessThanOrEqual(g.size / 2);
       expect(Math.abs(z - g.center[2]) + h / 2 + 2 * h).toBeLessThanOrEqual(g.size / 2);
     }

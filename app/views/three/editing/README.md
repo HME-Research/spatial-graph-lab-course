@@ -59,7 +59,7 @@ export function VoxelView({ doc, selection, onSelect, design }: ViewProps) {
 
 - `RoomEditGizmo` must be a child of `SceneCanvas`. It reads the default OrbitControls through `useThree`.
 - The host `DesignPort.onCommand` must record exactly one history step per successful command, as in the frozen contract. The editing module does not touch history.
-- Room meshes should be drawn from `design.doc` (multicell `grid` + `size`) once the views render v2.
+- Room meshes should be drawn from `design.doc` (multicell `position` + `size`) once the views render v2.
   - Optional: dim the stored room while `editing.state.phase !== 'idle' && editing.nodeId === id`. The preview box then reads clearly.
 - Do **not** use this module in `Graph3DView`. Graph 3D stays abstract and read-only.
 

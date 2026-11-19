@@ -4,8 +4,8 @@ The reference toolkit of Spatial Graph Lab. Don't edit this folder: copy it to m
 
 ## What it adds
 
-- **Six Functions** (`types/`): Entrance, Circulation, Living, Kitchen, Bedroom and Bath. Each has its own façade (how much of an outside wall is glass) and its own defaults for the two attributes below.
-- **Two room attributes**, both used by the transform:
+- **Six Functions** (`functions/`): Entrance, Circulation, Living, Kitchen, Bedroom and Bath. Each has its own façade (how much of an outside wall is glass) and its own defaults for the two custom attributes below.
+- **Two custom room attributes**, both used by the transform (stored under a room's `custom` in the JSON):
 
   | Attribute | Meaning | Defaults per Function |
   |---|---|---|
@@ -18,7 +18,7 @@ The reference toolkit of Spatial Graph Lab. Don't edit this folder: copy it to m
 
 ## How "Grow to target area" works
 
-One grid cell is 3 × 3 m, so each cell adds 9 m² of floor area.
+One cell is 3 × 3 m, so each cell adds 9 m² of floor area.
 
 1. The rooms take turns in priority order (1 first). Rooms with the same priority go in id order.
 2. A room grows by adding **one row or column of cells** to one side of its box (+x, −x, +y or −y). It never changes storey.
@@ -42,7 +42,7 @@ The parameter **`houses`** sets how many houses you want. Leave it empty to grow
 
 1. Copy the whole folder `toolkits/house/` to `toolkits/my-toolkit/`. The folder name is your toolkit id: lowercase letters, digits, `-` and `_`, starting with a letter.
 2. In `toolkit.ts`, change `name`.
-3. Change, add or remove Functions in `types/` (one file each), attributes, algorithms in `algorithms/`, and designs in `designs/`.
+3. Change, add or remove Functions in `functions/` (one file each, `defineFunction`), attributes, algorithms in `algorithms/`, and designs in `designs/`.
 4. Run `npm run check:toolkit -- -t my-toolkit` and `npm run typecheck`, then open the app with `?toolkit=my-toolkit`, or choose your toolkit when you create a project.
 
 Your toolkit may import only `@student-api` and its own files. See `docs/STUDENT-API.md` for everything the API offers.

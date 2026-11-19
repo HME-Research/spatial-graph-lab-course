@@ -11,6 +11,7 @@ import {
   readDesign,
   readDesignJson,
   roomContact,
+  formatJson,
   serializeDesignV2,
   sharedFaces,
   validateDocumentV2,
@@ -20,8 +21,8 @@ import {
 import { v2Raw } from './test-fixtures';
 
 /** Effective look of a function's rooms (its card → Default → base). */
-const fnLook = (doc: Pick<DesignDocumentV2, 'settings'>, typeId: string, base: { windowFraction: number }) =>
-  effectiveLook(styleSetupOf(doc.settings, 'function'), { kind: 'value', value: typeId }, base);
+const fnLook = (doc: Pick<DesignDocumentV2, 'settings'>, functionId: string, base: { windowFraction: number }) =>
+  effectiveLook(styleSetupOf(doc.settings, 'function'), { kind: 'value', value: functionId }, base);
 
 describe('reading and writing', () => {
   it('reads schema v2 and writes the same canonical text', () => {
@@ -31,6 +32,21 @@ describe('reading and writing', () => {
     const back = expectOk(readDesignJson(text));
     expect(back.doc).toEqual(read.doc);
     expect(serializeDesignV2(back.doc)).toBe(text);
+  });
+
+  it('writes the one style: arrays of numbers on one line, objects multi-line, empty {} / [] (2026-11-19)', () => {
+    expect(formatJson({ a: [1, 0, -2], b: { c: 1 }, d: {}, e: [], f: [{ g: [0.5, 2] }], h: ['x'], i: null, j: undefined })).toBe(
+      ['{', '  "a": [1, 0, -2],', '  "b": {', '    "c": 1', '  },', '  "d": {},', '  "e": [],', '  "f": [', '    {', '      "g": [0.5, 2]', '    }', '  ],', '  "h": [', '    "x"', '  ],', '  "i": null', '}'].join('\n'),
+    );
+    const raw = v2Raw();
+    raw.edges[0]!.corridor = { walls: 'enclosed' };
+    const text = serializeDesignV2(expectOk(readDesign(raw)).doc);
+    expect(text).toContain('{\n      "id": 1,\n      "function": "gallery",\n      "position": [0, 0, 0],\n      "size": [2, 3, 1],\n      "custom": {}\n    }');
+    expect(text).toContain('"relationship": "access",\n      "corridor": {\n        "walls": "enclosed"\n      },\n      "custom": {}');
+    expect(text).toContain('"1": [0, 0],');
+    // The old names are not read (no migration: v1 is retired and nothing was distributed).
+    const old = { ...v2Raw(), nodes: [{ id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: {} }], edges: [] };
+    expect(readDesign(old).ok).toBe(false);
   });
 
   it('round-trips v2-only data (size, id counters, corridor look, appearance overrides)', () => {
@@ -94,8 +110,8 @@ describe('v2 validation is structural, not spatial feasibility', () => {
 
   it('rejects overlapping multi-cell rooms', () => {
     const raw = v2Raw();
-    raw.nodes[1]!.grid = [1, 2, 0]; // inside a's 2×3 footprint
-    const i = expectIssue(validateDocumentV2(raw), 'room-overlap', ['nodes', 1, 'grid']);
+    raw.nodes[1]!.position = [1, 2, 0]; // inside a's 2×3 footprint
+    const i = expectIssue(validateDocumentV2(raw), 'room-overlap', ['nodes', 1, 'position']);
     expect(i.message).toContain('"1"');
   });
 
@@ -106,10 +122,10 @@ describe('v2 validation is structural, not spatial feasibility', () => {
     raw.nodes[0]!.size = [1.5, 1, 1];
     expectIssue(validateDocumentV2(raw), 'schema', ['nodes', 0, 'size', 0]);
     const self = v2Raw();
-    self.edges.push({ id: 2, source: 1, target: 1, kind: 'open' });
+    self.edges.push({ id: 2, source: 1, target: 1, relationship: 'open' });
     expectIssue(validateDocumentV2(self), 'self-edge');
     const pair = v2Raw();
-    pair.edges.push({ id: 2, source: 2, target: 1, kind: 'open' });
+    pair.edges.push({ id: 2, source: 2, target: 1, relationship: 'open' });
     expectIssue(validateDocumentV2(pair), 'duplicate-relationship');
   });
 
@@ -121,13 +137,13 @@ describe('v2 validation is structural, not spatial feasibility', () => {
     }
     const dup = v2Raw();
     dup.nodes[1]!.id = 1;
-    dup.nodes[1]!.grid = [9, 0, 0];
+    dup.nodes[1]!.position = [9, 0, 0];
     dup.edges = [];
     dup.diagram = { positions: {} };
     expectIssue(validateDocumentV2(dup), 'duplicate-node-id');
     const dupEdge = v2Raw();
-    dupEdge.nodes.push({ id: 3, grid: [9, 0, 0], typeId: 'studio' });
-    dupEdge.edges.push({ id: 1, source: 1, target: 3, kind: 'open' });
+    dupEdge.nodes.push({ id: 3, position: [9, 0, 0], function: 'studio' });
+    dupEdge.edges.push({ id: 1, source: 1, target: 3, relationship: 'open' });
     expectIssue(validateDocumentV2(dupEdge), 'duplicate-edge-id');
     expectIssue(validateDocumentV2({ ...v2Raw(), nextNodeId: 2 }), 'id-counter', ['nodes', 1, 'id']);
     expectIssue(validateDocumentV2({ ...v2Raw(), nextEdgeId: 1 }), 'id-counter', ['edges', 0, 'id']);
@@ -136,10 +152,10 @@ describe('v2 validation is structural, not spatial feasibility', () => {
 
   it('rejects v1 edge kinds and out-of-range footprints', () => {
     const raw = v2Raw();
-    raw.edges[0]!.kind = 'door';
-    expectIssue(validateDocumentV2(raw), 'schema', ['edges', 0, 'kind']);
+    raw.edges[0]!.relationship = 'door';
+    expectIssue(validateDocumentV2(raw), 'schema', ['edges', 0, 'relationship']);
     const far = v2Raw();
-    far.nodes[1]!.grid = [999, 0, 0];
+    far.nodes[1]!.position = [999, 0, 0];
     far.nodes[1]!.size = [3, 1, 1];
     expectIssue(validateDocumentV2(far), 'coordinate-out-of-range', ['nodes', 1, 'size', 0]);
   });
@@ -152,7 +168,7 @@ describe('v2 validation is structural, not spatial feasibility', () => {
 });
 
 describe('footprints (minimum-corner boxes)', () => {
-  const box = (grid: [number, number, number], size: [number, number, number]) => ({ grid, size });
+  const box = (position: [number, number, number], size: [number, number, number]) => ({ position, size });
 
   it('enumerates 2×3×1 and 1×1×2 footprints deterministically', () => {
     expect(footprintCells(box([0, 0, 0], [2, 3, 1]))).toHaveLength(6);

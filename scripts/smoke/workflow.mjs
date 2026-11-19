@@ -143,9 +143,9 @@ window.__wf = {
   nodes() { return [...document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node')].map((n) => n.getAttribute('data-id')); },
   edges() { return [...document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__edge')].length; },
   props() { return document.querySelector('#sidebar-panel-properties')?.innerText ?? ''; },
-  // Geometry rows of Properties (P4): Position X, Position Y, Level / Size X, Size Y, Floors, each its own field.
-  GEO: { position: ['position-x', 'position-y', 'level'], size: ['size-x', 'size-y', 'floors'] },
-  geo(id) { return (document.querySelector('#sidebar-panel-properties') ?? document).querySelector('.sgl-field[data-attribute="' + id + '"] input'); },
+  // Geometry of Properties (2026-11-19): ONE Position row and ONE Size row, each with three value fields x | y | z.
+  GEO: { position: ['position.x', 'position.y', 'position.z'], size: ['size.x', 'size.y', 'size.z'] },
+  geo(id) { return (document.querySelector('#sidebar-panel-properties') ?? document).querySelector('.sgl-axis-value[data-axis="' + id + '"] input'); },
   field(part, axis) { return this.geo(this.GEO[part][['x', 'y', 'z'].indexOf(axis)]); },
   triple(part) { return this.GEO[part].map((id) => Number(this.geo(id)?.value)); },
   // One edit per changed axis: each row is its own command and undo step (a 3-axis change is up to
@@ -258,7 +258,7 @@ await step('workflow/add-node', async () => {
 
 await step('workflow/move-via-properties', async () => {
   await selectNodeInGraph(newId);
-  // Position X / Position Y / Level are separate fields: one edit and one undo step per changed axis.
+  // Position x / y / z (Level) are separate value fields: one edit and one undo step per changed axis.
   const target = [5, 0, 0];
   const next = await evaluate(`__wf.triple('position')`);
   for (let i = 0; i < 3; i++) {
@@ -411,7 +411,7 @@ await step('workflow/export-v2', async () => {
   const d = exported.json;
   expect(d.schemaVersion === 2, `schemaVersion ${d.schemaVersion}`);
   const room = d.nodes.find((n) => n.id === newId);
-  expect(room && JSON.stringify(room.size) === '[2,1,1]' && JSON.stringify(room.grid) === '[5,0,0]', `new room ${JSON.stringify(room)}`);
+  expect(room && JSON.stringify(room.size) === '[2,1,1]' && JSON.stringify(room.position) === '[5,0,0]', `new room ${JSON.stringify(room)}`);
   const corridor = d.edges.find((e) => (e.source === newId || e.target === newId) && e.corridor);
   expect(corridor?.corridor?.walls === 'enclosed' && corridor?.corridor?.roof === 'none', `connector edge ${JSON.stringify(corridor)}`);
   // Function cards ("Style rooms by", 2026-11-18): settings.styles.function.groups[].look.
@@ -437,7 +437,7 @@ await step('workflow/reimport-roundtrip', async () => {
 
 // ── 2. failure cases ─────────────────────────────────────────────────────────────────────────
 await step('fail/room-collision-rejected', async () => {
-  // Room 1 (the entrance at [0, 0, 0]) is never moved by the steps above: Position X = 1 (one
+  // Room 1 (the entrance at [0, 0, 0]) is never moved by the steps above: Position x = 1 (one
   // Geometry edit) puts it into room 2.
   await selectNodeInGraph('1');
   const before = await evaluate('__wf.undoTitle()');
@@ -531,10 +531,10 @@ await step('fail/unknown-type-import', async () => {
     schemaVersion: 2,
     metadata: { name: 'Unknown type' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'spaceship', attributes: {} },
-      { id: 2, grid: [3, 0, 0], size: [1, 1, 1], typeId: 'gallery', attributes: {} },
+      { id: 1, position: [0, 0, 0], size: [1, 1, 1], function: 'spaceship', custom: {} },
+      { id: 2, position: [3, 0, 0], size: [1, 1, 1], function: 'gallery', custom: {} },
     ],
-    edges: [{ id: 1, source: 1, target: 2, kind: 'access', attributes: {} }],
+    edges: [{ id: 1, source: 1, target: 2, relationship: 'access', custom: {} }],
     diagram: { positions: {} },
     settings: { styleBy: 'function', styles: {} },
   };

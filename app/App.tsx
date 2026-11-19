@@ -348,7 +348,7 @@ export function App() {
     () => (openProject ? openProject.scenarios.map((s) => ({ id: s.id, name: s.name, doc: currentDocument(s.session).design })) : []),
     [openProject],
   );
-  const usedTypeIds = useMemo(() => scenarioDesigns.flatMap((s) => s.doc.nodes.map((n) => n.typeId)), [scenarioDesigns]);
+  const usedTypeIds = useMemo(() => scenarioDesigns.flatMap((s) => s.doc.nodes.map((n) => n.function)), [scenarioDesigns]);
   const facade = useMemo(() => projectFacadeProvider(project), [project]);
   const schema = attributes && project && attributes.projectId === project.id ? currentSchema(attributes) : undefined;
   const projectContext = useMemo(() => (doc ? buildProjectViewContext(project, doc, facade, schema) : undefined), [project, doc, facade, schema]);

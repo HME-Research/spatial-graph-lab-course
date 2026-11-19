@@ -165,11 +165,11 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       const stored = doc.nodes.find((n) => n.id === command.nodeId);
       const same = (a: readonly number[] | undefined, b: readonly number[] | undefined) =>
         a === undefined || (b !== undefined && a.every((v, i) => v === b[i]));
-      const moves = command.grid !== undefined && !same(command.grid, stored?.grid);
+      const moves = command.position !== undefined && !same(command.position, stored?.position);
       const resizes = command.size !== undefined && !same(command.size, stored?.size);
       if (moves && resizes) return `Move and resize ${room(command.nodeId)}`;
       if (resizes) return `Resize ${room(command.nodeId)} to ${command.size!.join('×')}`;
-      return `Move ${room(command.nodeId)} to [${(command.grid ?? stored?.grid ?? []).join(', ')}]`;
+      return `Move ${room(command.nodeId)} to [${(command.position ?? stored?.position ?? []).join(', ')}]`;
     }
     case 'set-node-type':
       return `Change the type of ${room(command.nodeId)}`;
@@ -186,7 +186,7 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       return `Remove ${n} invalid connection${n === 1 ? '' : 's'}`;
     }
     case 'change-edge-kind':
-      return `Change connection ${connection(command.edgeId)} to ${command.kind === 'open' ? 'Open' : 'Access'}`;
+      return `Change connection ${connection(command.edgeId)} to ${command.relationship === 'open' ? 'Open' : 'Access'}`;
     case 'set-edge-attributes':
       return `Edit the attributes of connection ${connection(command.edgeId)}`;
     case 'set-edge-corridor':

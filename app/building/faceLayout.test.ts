@@ -5,11 +5,11 @@ import { DEFAULT_WALL_THICKNESS, OPENING_PROPORTIONS, faceCentre, faceRectBox, l
 import { buildArchitecture } from './geometry';
 import { directionOrientation } from './resolve';
 
-const face = (direction: FaceDirection, condition: FaceCondition, typeId = 'gallery', edgeId: number | null = null): ResolvedFace => ({
+const face = (direction: FaceDirection, condition: FaceCondition, functionId = 'gallery', edgeId: number | null = null): ResolvedFace => ({
   // Room n = 1 (its neighbour m = 2).
   id: `1:${direction}`,
   ownerNodeId: 1,
-  ownerTypeId: typeId,
+  ownerFunction: functionId,
   cell: [1, 2, 0],
   direction,
   orientation: directionOrientation(direction),

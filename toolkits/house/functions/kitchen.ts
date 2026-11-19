@@ -1,11 +1,11 @@
-import { defineNodeType } from '@student-api';
+import { defineFunction } from '@student-api';
 
 /** Cooking and eating, open to the living room. */
-export default defineNodeType({
+export default defineFunction({
   id: 'kitchen',
   label: 'Kitchen',
   facade: { windowFraction: 0.4 },
-  attributes: {
+  custom: {
     targetArea: { kind: 'number', min: 1, default: 18 },
     priority: { kind: 'number', min: 1, default: 2 },
   },

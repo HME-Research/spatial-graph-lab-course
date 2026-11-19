@@ -45,8 +45,8 @@ describe('toolkit import boundary', () => {
   it('flags forbidden imports (self-check)', () => {
     const f = '/toolkits/a/algorithms/x.ts';
     expect(violation(f, '@student-api')).toBeNull();
-    expect(violation(f, '../types/gallery')).toBeNull();
-    expect(violation(f, '../../b/types/gallery')).not.toBeNull();
+    expect(violation(f, '../functions/gallery')).toBeNull();
+    expect(violation(f, '../../b/functions/gallery')).not.toBeNull();
     expect(violation(f, '../../../app/document')).not.toBeNull();
     expect(violation(f, '@app/document')).not.toBeNull();
     expect(violation(f, '@core/graph')).not.toBeNull();

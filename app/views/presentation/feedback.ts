@@ -47,7 +47,7 @@ export interface FeedbackLine {
   readonly hint: string;
   /** The validator's exact message. */
   readonly message: string;
-  /** Where in the document ("nodes[2].grid"), or '' for the whole document. */
+  /** Where in the document ("nodes[2].position"), or '' for the whole document. */
   readonly where: string;
   readonly code: IssueCode;
 }

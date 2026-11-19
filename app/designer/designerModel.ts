@@ -65,7 +65,7 @@ export type ProjectDefaultSource =
   | 'broken';
 
 export interface DesignerTypeRow {
-  readonly typeId: string;
+  readonly function: string;
   /** Menu/label text, e.g. "Gallery (gallery)". */
   readonly name: string;
   readonly status: NodeTypeStatus;
@@ -92,9 +92,9 @@ export interface CardTarget {
 }
 
 const FUNCTION = 'function';
-const functionCard = (typeId: string): StyleGroupRef => ({ kind: 'value', value: typeId });
+const functionCard = (functionId: string): StyleGroupRef => ({ kind: 'value', value: functionId });
 const functionSetup = (doc: Pick<DesignDocumentV2, 'settings'>) => styleSetupOf(doc.settings, FUNCTION);
-export const functionTarget = (typeId: string): CardTarget => ({ by: FUNCTION, group: functionCard(typeId), name: typeId });
+export const functionTarget = (functionId: string): CardTarget => ({ by: FUNCTION, group: functionCard(functionId), name: functionId });
 const targetOf = (card: string | CardTarget): CardTarget => (typeof card === 'string' ? functionTarget(card) : card);
 
 /** The stored look of a card (Default: its look, or undefined when Default sets nothing). */
@@ -110,22 +110,22 @@ const inheritedFor = (doc: Pick<DesignDocumentV2, 'settings'>, t: CardTarget, wi
   effectiveLook(t.group.kind === 'default' ? {} : styleSetupOf(doc.settings, t.by), DEFAULT_GROUP, { windowFraction });
 const lookCommand = (t: CardTarget, patch: LookPatch): DesignCommand => ({ type: 'set-look', by: t.by, group: t.group, patch });
 
-function projectDefaultSource(project: ActiveToolkit | null, status: NodeTypeStatus, typeId: string): ProjectDefaultSource {
+function projectDefaultSource(project: ActiveToolkit | null, status: NodeTypeStatus, functionId: string): ProjectDefaultSource {
   if (status.kind === 'broken') return 'broken';
   if (status.kind === 'registered' && project) {
-    return findNodeType(project, typeId)?.definition.facade ? 'type-definition' : 'fallback';
+    return findNodeType(project, functionId)?.definition.facade ? 'type-definition' : 'fallback';
   }
   return 'fallback';
 }
 
-function warningFor(row: Pick<DesignerTypeRow, 'status' | 'orphanOverride' | 'typeId'>): string | null {
+function warningFor(row: Pick<DesignerTypeRow, 'status' | 'orphanOverride' | 'function'>): string | null {
   if (row.status.kind === 'broken') {
     const why = row.status.problems.length > 0 ? `: ${row.status.problems.join('; ')}` : '';
     return `The type definition in ${row.status.file} is invalid${why}. Rooms of this type show a closed wall until it is fixed.`;
   }
   if (row.orphanOverride) return 'No room uses this type and the project does not define it. Remove the card if it is not needed.';
   if (row.status.kind === 'undefined-type') {
-    return `The active project does not define "${row.typeId}"; the fallback window coverage is used.`;
+    return `The active project does not define "${row.function}"; the fallback window coverage is used.`;
   }
   return null;
 }
@@ -141,7 +141,7 @@ export function designerTypeRows(
   facade: FacadeProvider,
 ): DesignerTypeRow[] {
   const counts = new Map<string, number>();
-  for (const node of doc.nodes) counts.set(node.typeId, (counts.get(node.typeId) ?? 0) + 1);
+  for (const node of doc.nodes) counts.set(node.function, (counts.get(node.function) ?? 0) + 1);
 
   const ordered: string[] = [];
   const seen = new Set<string>();
@@ -155,20 +155,20 @@ export function designerTypeRows(
   [...counts.keys()].sort().forEach(add);
   (functionSetup(doc).groups ?? []).map((g) => String(g.value)).sort().forEach(add);
 
-  return ordered.map((typeId) => {
-    const status = nodeTypeStatus(project, typeId);
-    const projectWindowFraction = facade(typeId).windowFraction;
-    const nodeCount = counts.get(typeId) ?? 0;
-    const inProject = project?.nodeTypes.some((t) => t.id === typeId) ?? false;
+  return ordered.map((functionId) => {
+    const status = nodeTypeStatus(project, functionId);
+    const projectWindowFraction = facade(functionId).windowFraction;
+    const nodeCount = counts.get(functionId) ?? 0;
+    const inProject = project?.nodeTypes.some((t) => t.id === functionId) ?? false;
     const base = {
-      typeId,
-      name: typeDisplayName(status, typeId),
+      function: functionId,
+      name: typeDisplayName(status, functionId),
       status,
       nodeCount,
       orphanOverride: nodeCount === 0 && !inProject,
-      projectDefault: { windowFraction: projectWindowFraction, source: projectDefaultSource(project, status, typeId) },
-      effective: effectiveFor(doc, functionTarget(typeId), projectWindowFraction),
-      hasOverride: storedLook(doc, functionTarget(typeId)) !== undefined,
+      projectDefault: { windowFraction: projectWindowFraction, source: projectDefaultSource(project, status, functionId) },
+      effective: effectiveFor(doc, functionTarget(functionId), projectWindowFraction),
+      hasOverride: storedLook(doc, functionTarget(functionId)) !== undefined,
     };
     return { ...base, warning: warningFor(base) };
   });
@@ -287,7 +287,7 @@ export interface DesignerCardRow {
   readonly key: string;
   readonly target: CardTarget;
   /** Function cards: the type id (swatch colour, façade fit warning); otherwise null. */
-  readonly typeId: string | null;
+  readonly function: string | null;
   /** Card title, e.g. "Default", "Gallery (gallery)". */
   readonly name: string;
   /** The rooms this card styles now (each room is in exactly one card). */
@@ -334,7 +334,7 @@ const MIXED_BASE = 0.25;
 /** The single toolkit window coverage of these rooms, or null when their functions' defaults differ. */
 function sharedBase(doc: DesignDocumentV2, nodeIds: readonly number[], facade: FacadeProvider): number | null {
   const ids = new Set(nodeIds);
-  const values = new Set(doc.nodes.filter((n) => ids.has(n.id)).map((n) => facade(n.typeId).windowFraction));
+  const values = new Set(doc.nodes.filter((n) => ids.has(n.id)).map((n) => facade(n.function).windowFraction));
   return values.size === 1 ? [...values][0]! : null;
 }
 
@@ -379,10 +379,10 @@ export function designerCards(
   const roomsOf = (group: StyleGroupRef) => doc.nodes.filter((n) => sameGroup(looks.get(n.id)!.group, group)).map((n) => n.id);
   const types = by === FUNCTION ? designerTypeRows(doc, project, facade) : [];
 
-  const row = (group: StyleGroupRef, name: string, typeId: string | null, warning: string | null): DesignerCardRow => {
-    const target: CardTarget = { by, group, name: typeId ?? name };
+  const row = (group: StyleGroupRef, name: string, functionId: string | null, warning: string | null): DesignerCardRow => {
+    const target: CardTarget = { by, group, name: functionId ?? name };
     const nodeIds = roomsOf(group);
-    const own = typeId !== null ? facade(typeId).windowFraction : sharedBase(doc, nodeIds, facade);
+    const own = functionId !== null ? facade(functionId).windowFraction : sharedBase(doc, nodeIds, facade);
     const base = own ?? MIXED_BASE;
     const inherited = inheritedFor(doc, target, base);
     const fromDefault = group.kind !== 'default' && inherited.source.windowFraction === 'default';
@@ -390,7 +390,7 @@ export function designerCards(
     return {
       key: cardKey(group),
       target,
-      typeId,
+      function: functionId,
       name,
       nodeIds,
       effective: effectiveFor(doc, target, base),
@@ -399,7 +399,7 @@ export function designerCards(
         ? `Default, ${formatPercent(inherited.windowFraction)} %`
         : own === null
           ? "each function's own default"
-          : `${typeId === null ? 'function' : 'project'} default, ${formatPercent(own)} %`,
+          : `${functionId === null ? 'function' : 'project'} default, ${formatPercent(own)} %`,
       // A value card exists only when added (so it counts as a change); Default and bands always exist.
       hasOverride: stored !== undefined && (group.kind === 'value' || Object.keys(stored).length > 0),
       removable: group.kind === 'value',
@@ -417,9 +417,9 @@ export function designerCards(
     for (const g of setup.groups ?? []) {
       const group: StyleGroupRef = { kind: 'value', value: g.value };
       if (attribute.kind === 'function') {
-        const typeId = String(g.value);
-        const t = types.find((r) => r.typeId === typeId);
-        cards.push(row(group, t?.name ?? typeId, typeId, t?.warning ?? null));
+        const functionId = String(g.value);
+        const t = types.find((r) => r.function === functionId);
+        cards.push(row(group, t?.name ?? functionId, functionId, t?.warning ?? null));
       } else {
         const notAnOption = optionKeys !== null && !optionKeys.has(styleValueKey(g.value));
         cards.push(row(group, valueName(attribute, g.value), null, notAnOption ? `“${String(g.value)}” is no longer an option of ${attribute.label}, so no room uses this card.` : null));
@@ -443,7 +443,7 @@ export function designerCards(
   const countOf = (v: StyleValue) => counts.get(styleValueKey(v))?.count ?? 0;
   let addable: { value: StyleValue; label: string; nodeCount: number }[];
   if (attribute.kind === 'function') {
-    addable = types.filter((t) => !carded.has(styleValueKey(t.typeId))).map((t) => ({ value: t.typeId, label: t.name, nodeCount: t.nodeCount }));
+    addable = types.filter((t) => !carded.has(styleValueKey(t.function))).map((t) => ({ value: t.function, label: t.name, nodeCount: t.nodeCount }));
   } else if (attribute.kind === 'choice') {
     addable = (attribute.options ?? []).filter((o) => !carded.has(styleValueKey(o))).map((o) => ({ value: o, label: o, nodeCount: countOf(o) }));
   } else if (attribute.kind === 'yesno') {

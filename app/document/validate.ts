@@ -20,8 +20,8 @@ import { designDocumentV2Schema, type DesignDocumentV2 } from './schema';
 
 export interface ValidationOptionsV2 {
   /**
-   * Optional node-type registry. When supplied, every node's `typeId` must be in it.
-   * When omitted, only the typeId format is checked.
+   * Optional node-type registry. When supplied, every node's `function` must be in it.
+   * When omitted, only the functionId format is checked.
    */
   readonly knownTypeIds?: Iterable<string>;
   readonly limits?: Partial<GraphLimits>;
@@ -99,7 +99,7 @@ export function checkDocumentV2Invariants(doc: DesignDocumentV2, options: Valida
     for (let axis = 0; axis < 3; axis++) {
       if (Math.abs(min[axis]!) > limits.maxAbsCoordinate) {
         issues.push(
-          issue(['nodes', i, 'grid', axis], 'coordinate-out-of-range', `coordinate ${min[axis]} exceeds the limit of ±${limits.maxAbsCoordinate}`),
+          issue(['nodes', i, 'position', axis], 'coordinate-out-of-range', `coordinate ${min[axis]} exceeds the limit of ±${limits.maxAbsCoordinate}`),
         );
       } else if (Math.abs(max[axis]!) > limits.maxAbsCoordinate) {
         issues.push(
@@ -121,15 +121,15 @@ export function checkDocumentV2Invariants(doc: DesignDocumentV2, options: Valida
         const key = gridKey(cell);
         const other = occupant.get(key);
         if (other !== undefined && other !== node.id) {
-          issues.push(issue(['nodes', i, 'grid'], 'room-overlap', `room "${node.id}" overlaps room "${other}" at cell ${fmt(cell)}`));
+          issues.push(issue(['nodes', i, 'position'], 'room-overlap', `room "${node.id}" overlaps room "${other}" at cell ${fmt(cell)}`));
           break; // one issue per room
         }
         occupant.set(key, node.id);
       }
     }
 
-    if (knownTypes && !knownTypes.has(node.typeId)) {
-      issues.push(issue(['nodes', i, 'typeId'], 'unknown-node-type', `unknown node type "${node.typeId}"`));
+    if (knownTypes && !knownTypes.has(node.function)) {
+      issues.push(issue(['nodes', i, 'function'], 'unknown-node-type', `unknown node type "${node.function}"`));
     }
   });
 

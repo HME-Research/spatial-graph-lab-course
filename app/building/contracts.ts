@@ -23,7 +23,7 @@ export type ConnectionCondition = (typeof CONNECTION_CONDITIONS)[number];
 
 /**
  * Boundary condition of a face.
- * - `exterior`: no occupied neighbour; façade is chosen by the owner's typeId.
+ * - `exterior`: no occupied neighbour; façade is chosen by the owner's functionId.
  * - `solid`: occupied neighbour but no relationship → internal wall (or solid slab).
  * - a ConnectionCondition: the neighbour is related (see above).
  */
@@ -37,7 +37,7 @@ export interface ResolvedFace {
    * by JavaScript string comparison (`a < b`), so each shared face is produced exactly once.
    */
   readonly ownerNodeId: number;
-  readonly ownerTypeId: string;
+  readonly ownerFunction: string;
   /** Owner's grid cell. Face centre in grid space = cell + offset(direction) / 2. */
   readonly cell: GridCoord;
   /** Outward from the owner cell. */
@@ -61,4 +61,4 @@ export interface FacadeSpec {
   readonly windowFraction: number;
 }
 
-export type FacadeProvider = (typeId: string) => FacadeSpec;
+export type FacadeProvider = (functionId: string) => FacadeSpec;

@@ -66,7 +66,7 @@ function resolveOne(
   occupied: ReadonlyMap<string, CellOccupant>,
   settings: DesignDocumentV2['settings'] | undefined,
 ): EdgeResolution {
-  const base = { edgeId: edge.id, kind: edge.kind } as const;
+  const base = { edgeId: edge.id, relationship: edge.relationship } as const;
   const contact = roomContact(a, b);
   if (contact !== null) return { ...base, status: 'direct', contact, faces: sharedFaces(a, b) };
 

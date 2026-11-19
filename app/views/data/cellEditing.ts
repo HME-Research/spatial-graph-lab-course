@@ -21,7 +21,7 @@ export interface CellEditorProps {
   readonly project: ProjectViewContext | undefined;
   readonly collection: 'nodes' | 'edges';
   readonly itemId: number;
-  /** A column id of `dataModel.ts`: `function`, `relationship`, `position-x` … `floors`, `custom:<fieldId>`. */
+  /** A column id of `dataModel.ts`: `function`, `relationship`, `position.x` … `size.z`, `custom:<fieldId>`. */
   readonly columnId: string;
   /** Column label, for the control's accessible name. */
   readonly label: string;

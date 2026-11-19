@@ -17,17 +17,13 @@ import { CommitInput, TypeSelect, type CommitOutcome } from './fields';
 import { messageContextFor, useCommands, type PanelProps } from './panelSupport';
 import { GEOMETRY_ROWS, geometryDraftEdit, planGeometryEdit, typeMenu, type Triple } from './propertiesModel';
 
-/** Tooltips of the Geometry rows. */
-const GEOMETRY_TITLES: Readonly<Record<string, string>> = {
-  'position-x': 'Where the room’s lowest corner is along x, in cells. Changing it moves the room.',
-  'position-y': 'Where the room’s lowest corner is along y, in cells. Changing it moves the room.',
-  level: 'The storey the room stands on (its z position). Changing it moves the room.',
-  'size-x': `How many cells the room spans along x (1–${MAX_ROOM_SIZE}). Changing it resizes the room.`,
-  'size-y': `How many cells the room spans along y (1–${MAX_ROOM_SIZE}). Changing it resizes the room.`,
-  floors: `How many storeys tall the room is (1–${MAX_ROOM_SIZE}). Changing it resizes the room.`,
+/** Tooltips of the Geometry attributes (each ONE row with three values: x | y | z). */
+const GEOMETRY_TITLES: Readonly<Record<'position' | 'size', string>> = {
+  position: 'Where the room’s lowest corner is, in cells: x, y and z (z is the Level, the storey it stands on). Changing it moves the room.',
+  size: `How many cells the room spans along x and y, and how many storeys tall it is (z, Floors); each 1–${MAX_ROOM_SIZE}. Changing it resizes the room.`,
 };
 
-type GeometryRequest = { readonly grid?: Triple; readonly size?: Triple };
+type GeometryRequest = { readonly position?: Triple; readonly size?: Triple };
 
 interface PendingConfirmation {
   readonly request: GeometryRequest;
@@ -39,8 +35,8 @@ const toCoord = (t: Triple): [number, number, number] => [t[0], t[1], t[2]];
 
 /**
  * Properties of one room, in the five attribute sections (Programme P4, `sections.ts`): Identity
- * (id, locked), Required by the app (Function), Geometry (Position X/Y, Level, Size X/Y, Floors from
- * `grid` / `size`), Custom (tagged by source), Calculated (locked); then relationships.
+ * (id, locked), Required by the app (Function), Geometry (Position and Size, one row each with the
+ * values x | y | z), Custom (tagged by source), Calculated (locked); then relationships.
  */
 export function NodeProperties(props: PanelProps & { readonly nodeId: number }) {
   const { design, project, nodeId } = props;
@@ -60,15 +56,15 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
 
   const active = project?.project ?? null;
   const typesInDesign = useMemo(
-    () => design.doc.nodes.map((n) => n.typeId),
+    () => design.doc.nodes.map((n) => n.function),
     [design],
   );
   if (!node) return null;
 
-  const menu = typeMenu(active, typesInDesign, node.typeId);
-  const typeStatus = nodeTypeStatus(active, node.typeId);
+  const menu = typeMenu(active, typesInDesign, node.function);
+  const typeStatus = nodeTypeStatus(active, node.function);
   const checks = (project?.conformance ?? []).filter((d) => d.subject.kind === 'node' && d.subject.id === node.id);
-  const specs = typeStatus.kind === 'registered' ? (findNodeType(active!, node.typeId)?.definition.attributes ?? {}) : null;
+  const specs = typeStatus.kind === 'registered' ? (findNodeType(active!, node.function)?.definition.custom ?? {}) : null;
   const context = messageContextFor(props, node.id);
   const label = v2Node ? nodeLabel(v2Node) : node.id;
 
@@ -77,7 +73,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
     if (!design) return 'refused';
     const proposal = design.proposeEdit({
       nodeId,
-      ...(request.grid && { grid: toCoord(request.grid) }),
+      ...(request.position && { position: toCoord(request.position) }),
       ...(request.size && { size: toCoord(request.size) }),
     });
     const plan = planGeometryEdit(proposal, design.doc, nodeId);
@@ -98,7 +94,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
     return runV2({
       type: 'set-node-geometry',
       nodeId,
-      ...(request.grid && { grid: toCoord(request.grid) }),
+      ...(request.position && { position: toCoord(request.position) }),
       ...(request.size && { size: toCoord(request.size) }),
     })
       ? 'applied'
@@ -112,7 +108,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
     const ok = runV2({
       type: 'set-node-geometry',
       nodeId,
-      ...(request.grid && { grid: toCoord(request.grid) }),
+      ...(request.position && { position: toCoord(request.position) }),
       ...(request.size && { size: toCoord(request.size) }),
       confirmRouteDisplacement: true,
     });
@@ -125,7 +121,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
   };
 
   /**
-   * One Geometry row (Position X/Y, Level, Size X/Y, Floors): the other axes keep their stored
+   * One Geometry value (e.g. Position z, the Level): the other axes keep their stored
    * values; the edit goes through the same preview and `set-node-geometry` command as the
    * move/resize gizmo, so a refused edit (overlap, size limit) shows why and changes nothing, and a
    * successful one is one undo step.
@@ -134,24 +130,24 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
     const decision = geometryDraftEdit(node, rowId, name, draft, MAX_ROOM_SIZE);
     if (decision.kind === 'unchanged') return true;
     if (decision.kind === 'invalid') {
-      showIssues([{ path: [rowId.startsWith('size') || rowId === 'floors' ? 'size' : 'grid'], code: 'schema', message: `${decision.message}.` }]);
+      showIssues([{ path: [rowId.startsWith('size') ? 'size' : 'position'], code: 'schema', message: `${decision.message}.` }]);
       return false;
     }
     return editGeometry(decision.request, decision.request.size ? 'resize' : 'move') !== 'refused';
   };
 
-  const functionName = typeStatus.kind === 'registered' ? typeStatus.label : node.typeId;
-  const geometryName = (id: string) => NODE_BUILT_IN_ATTRIBUTES.find((a) => a.id === id)?.name ?? id;
+  const functionName = typeStatus.kind === 'registered' ? typeStatus.label : node.function;
+  const geometryAttributes = NODE_BUILT_IN_ATTRIBUTES.filter((a) => a.section === 'geometry');
   const schema = project?.attributes;
   const sourceOf = sourceResolver('nodes', active);
-  const outsideCount = schema ? Object.keys(attributesOutsideSchema(schema, 'nodes', node.attributes)).length : 0;
+  const outsideCount = schema ? Object.keys(attributesOutsideSchema(schema, 'nodes', node.custom)).length : 0;
   const showCustom = schema ? schema.nodes.length > 0 || outsideCount > 0 : true;
   const manageLink = project && openAttributes ? <ManageAttributesLink onManage={() => openAttributes('nodes')} /> : undefined;
 
   return (
     <div className="sgl-panel">
       <div className="sgl-title">
-        <span className="sgl-swatch" style={{ background: typeColor(node.typeId) }} aria-hidden="true" />
+        <span className="sgl-swatch" style={{ background: typeColor(node.function) }} aria-hidden="true" />
         Room <span className="sgl-room-label">{label}</span>
       </div>
 
@@ -178,7 +174,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
             title="What the room is used for. Every room has one."
             control={
               /* Re-keyed on the stored value so the menu resets after any change (or undo). */
-              <TypeSelect key={node.typeId} current={node.typeId} menu={menu} onChange={(typeId) => runShared({ type: 'set-node-type', nodeId, typeId })} />
+              <TypeSelect key={node.function} current={node.function} menu={menu} onChange={(functionId) => runShared({ type: 'set-node-type', nodeId, function: functionId })} />
             }
             meta={
               manageFunctions && (
@@ -188,24 +184,33 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
               )
             }
           >
-            <TypeStatusNote status={typeStatus} typeId={node.typeId} projectId={active?.id ?? null} />
+            <TypeStatusNote status={typeStatus} functionId={node.function} projectId={active?.id ?? null} />
             <NodeChecks checks={checks} />
           </FieldRow>
         </AttributeSection>
 
         <AttributeSection section="geometry">
-          {GEOMETRY_ROWS.map((row) => {
-            const stored = node[row.part][row.axis];
-            const name = geometryName(row.id);
+          {geometryAttributes.map((attribute) => {
+            const part = attribute.id as 'position' | 'size';
             return (
               <FieldRow
-                key={row.id}
-                attributeId={row.id}
+                key={attribute.id}
+                attributeId={attribute.id}
                 kind="geometry"
-                label={name}
-                title={GEOMETRY_TITLES[row.id] ?? name}
+                label={attribute.name}
+                title={GEOMETRY_TITLES[part]}
                 control={
-                  <CommitInput key={`${row.id}:${stored}:${resetKey}`} label={name} type="number" stored={String(stored)} placeholder="" onCommit={commitGeometry(row.id, name)} />
+                  <span className="sgl-axis-values" role="group" aria-label={`${attribute.name}: x, y, z`}>
+                    {GEOMETRY_ROWS.filter((row) => row.part === part).map((row) => {
+                      const stored = node[row.part][row.axis];
+                      return (
+                        <label key={row.id} className="sgl-axis-value" data-axis={row.id}>
+                          <span className="sgl-axis-label">{row.label}</span>
+                          <CommitInput key={`${row.id}:${stored}:${resetKey}`} label={row.name} type="number" stored={String(stored)} placeholder="" onCommit={commitGeometry(row.id, row.name)} />
+                        </label>
+                      );
+                    })}
+                  </span>
                 }
               />
             );
@@ -225,17 +230,17 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
                 item={node}
                 schema={schema}
                 run={runV2}
-                onError={(message) => showIssues([{ path: ['attributes'], code: 'schema', message }])}
+                onError={(message) => showIssues([{ path: ['custom'], code: 'schema', message }])}
                 showHeader={false}
                 sourceOf={sourceOf}
               />
             ) : specs ? (
               <>
                 <TypedAttributesForm node={node} specs={specs} label={functionName} run={runShared} onLocalError={showIssues} />
-                <AttributesForm key={`other:${JSON.stringify(node.attributes)}`} node={node} specs={specs} run={runShared} onLocalError={showIssues} />
+                <AttributesForm key={`other:${JSON.stringify(node.custom)}`} node={node} specs={specs} run={runShared} onLocalError={showIssues} />
               </>
             ) : (
-              <AttributesForm key={JSON.stringify(node.attributes)} node={node} specs={null} run={runShared} onLocalError={showIssues} />
+              <AttributesForm key={JSON.stringify(node.custom)} node={node} specs={null} run={runShared} onLocalError={showIssues} />
             )}
           </AttributeSection>
         )}
@@ -295,7 +300,7 @@ function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { rea
           return (
             <li key={e.id}>
               <button type="button" className="sgl-link" onClick={() => onSelect(selectEdge(e.id))} title="Show this relationship">
-                {labelOfChoice(RELATIONSHIP_KIND_CHOICES, e.kind)}
+                {labelOfChoice(RELATIONSHIP_KIND_CHOICES, e.relationship)}
               </button>{' '}
               with{' '}
               <button type="button" className="sgl-link" onClick={() => onSelect(selectNode(other))} title="Show this room">
@@ -316,7 +321,7 @@ function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { rea
             <option value="">Connect to room…</option>
             {candidates.map((n) => (
               <option key={n.id} value={n.id}>
-                {nodeLabel(n)} ({n.typeId})
+                {nodeLabel(n)} ({n.function})
               </option>
             ))}
           </select>

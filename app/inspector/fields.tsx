@@ -175,7 +175,7 @@ export function TypeSelect({
 }: {
   readonly current: string;
   readonly menu: TypeMenu;
-  readonly onChange: (typeId: string) => boolean;
+  readonly onChange: (functionId: string) => boolean;
 }) {
   const [custom, setCustom] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

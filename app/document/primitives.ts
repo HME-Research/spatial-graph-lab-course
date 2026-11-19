@@ -9,10 +9,10 @@ export type { GridCoord } from '@core/spatial';
  * `v2/schema.ts`.
  *
  * Coordinate conventions:
- * - `grid` is a spatial cell address [x, y, z] of integers. **z is up**: z is the storey axis,
+ * - `position` is a spatial cell address [x, y, z] of integers. **z is up**: z is the storey axis,
  *   x/y are horizontal. Renderers map this to their own axes; the document never changes.
  * - `diagram.positions` are independent 2D diagram coordinates. They are NOT derived from
- *   `grid`, and changing one never changes the other.
+ *   `position`, and changing one never changes the other.
  */
 
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]*$/;
@@ -26,14 +26,14 @@ export const idSchema = z
     error: 'ID must start with a letter or digit and use only letters, digits, "_", "." or "-"',
   });
 
-export const typeIdSchema = z.string().regex(TYPE_ID_PATTERN, {
-  error: 'typeId must be lowercase letters, digits and "-", starting with a letter (e.g. "gallery")',
+export const functionIdSchema = z.string().regex(TYPE_ID_PATTERN, {
+  error: 'function must be lowercase letters, digits and "-", starting with a letter (e.g. "gallery")',
 });
 
-const gridIntSchema = z.int({ error: 'grid coordinates must be integers' });
+const positionIntSchema = z.int({ error: 'position coordinates must be integers' });
 
-export const gridSchema = z.tuple([gridIntSchema, gridIntSchema, gridIntSchema], {
-  error: 'grid must be an array of three integers [x, y, z]',
+export const positionSchema = z.tuple([positionIntSchema, positionIntSchema, positionIntSchema], {
+  error: 'position must be an array of three integers [x, y, z]',
 });
 
 /** Attribute values are JSON primitives only. */
@@ -73,9 +73,9 @@ export const metadataSchema = z.strictObject({
   description: z.string().max(2000).optional(),
 });
 
-/** Compile-time guard: the schema's grid tuple must stay identical to core/spatial's GridCoord. */
+/** Compile-time guard: the schema's position tuple must stay identical to core/spatial's GridCoord. */
 type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
-const gridCoordMatchesCore: Equals<z.infer<typeof gridSchema>, GridCoord> = true;
+const gridCoordMatchesCore: Equals<z.infer<typeof positionSchema>, GridCoord> = true;
 void gridCoordMatchesCore;
 
 export type DiagramPosition = z.infer<typeof diagramPositionSchema>;

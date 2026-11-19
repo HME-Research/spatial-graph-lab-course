@@ -100,7 +100,7 @@ export function WallActionPanel({
       {panel.kind === 'add' && (
         <>
           <p>
-            {panel.rooms[0].label} ({panel.rooms[0].typeId}) and {panel.rooms[1].label} ({panel.rooms[1].typeId}) have no relationship:
+            {panel.rooms[0].label} ({panel.rooms[0].function}) and {panel.rooms[1].label} ({panel.rooms[1].function}) have no relationship:
             a solid wall separates them.
           </p>
           {!choosing ? (

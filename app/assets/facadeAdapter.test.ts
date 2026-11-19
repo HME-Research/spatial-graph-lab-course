@@ -81,7 +81,7 @@ function triangleNormal(positions: ArrayLike<number>, indices: ArrayLike<number>
 const exteriorWall = (owner: number, cell: [number, number, number], direction: FaceDirection): ResolvedFace => ({
   id: `${owner}:${cell.join(',')}:${direction}`,
   ownerNodeId: owner,
-  ownerTypeId: 'gallery',
+  ownerFunction: 'gallery',
   cell,
   direction,
   orientation: directionOrientation(direction),

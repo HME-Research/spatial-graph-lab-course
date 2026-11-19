@@ -36,15 +36,15 @@ const doc = () =>
     schemaVersion: 2,
     metadata: { name: 'Walls' },
     nodes: [
-      { id: 1, grid: [0, 1, 0], size: [1, 2, 1], typeId: 'gallery' },
-      { id: 2, grid: [1, 1, 0], size: [1, 2, 1], typeId: 'studio' },
-      { id: 3, grid: [5, 5, 0], typeId: 'studio' },
-      { id: 4, grid: [8, 8, 1], typeId: 'studio' },
-      { id: 5, grid: [9, 2, 1], typeId: 'store' },
+      { id: 1, position: [0, 1, 0], size: [1, 2, 1], function: 'gallery' },
+      { id: 2, position: [1, 1, 0], size: [1, 2, 1], function: 'studio' },
+      { id: 3, position: [5, 5, 0], function: 'studio' },
+      { id: 4, position: [8, 8, 1], function: 'studio' },
+      { id: 5, position: [9, 2, 1], function: 'store' },
     ],
     edges: [
-      { id: 1, source: 3, target: 4, kind: 'access' },
-      { id: 2, source: 3, target: 5, kind: 'open' },
+      { id: 1, source: 3, target: 4, relationship: 'access' },
+      { id: 2, source: 3, target: 5, relationship: 'open' },
     ],
     diagram: { positions: { 1: [0, 0], 2: [100, 0], 3: [200, 0], 4: [300, 0], 5: [400, 0] } },
   });
@@ -80,8 +80,8 @@ describe('wall panel model (wallAction-driven)', () => {
     expect(panel).toMatchObject({
       kind: 'add',
       rooms: [
-        { id: 1, label: '1', typeId: 'gallery' },
-        { id: 2, label: '2', typeId: 'studio' },
+        { id: 1, label: '1', function: 'gallery' },
+        { id: 2, label: '2', function: 'studio' },
       ],
       source: 1,
       target: 2,
@@ -100,14 +100,14 @@ describe('wall panel model (wallAction-driven)', () => {
         port: 'scenario',
         command: {
           type: 'add-edge-at-face',
-          edge: { source: 1, target: 2, kind: 'access' },
+          edge: { source: 1, target: 2, relationship: 'access' },
           preference: { nodeId: 1, offset: [0, 1, 0], direction: '+x' },
         },
       },
     });
     expect(addRelationshipCommand(panel, 'open', d)).toEqual({
       edgeId: 3,
-      command: { port: 'design', command: { type: 'add-edge', edge: { source: 1, target: 2, kind: 'open' } } },
+      command: { port: 'design', command: { type: 'add-edge', edge: { source: 1, target: 2, relationship: 'open' } } },
     });
   });
 
@@ -132,7 +132,7 @@ describe('wall panel for a related wall', () => {
     const d = doc();
     const added = applyScenarioCommand(
       { design: d, facePreferences: {} },
-      { type: 'add-edge-at-face', edge: { source: 1, target: 2, kind: 'access' }, preference: { nodeId: 1, offset: [0, 0, 0], direction: '+x' } },
+      { type: 'add-edge-at-face', edge: { source: 1, target: 2, relationship: 'access' }, preference: { nodeId: 1, offset: [0, 0, 0], direction: '+x' } },
     );
     if (!added.ok) throw new Error('add-edge-at-face refused');
     const { design: d2, facePreferences } = added.value;
@@ -182,7 +182,7 @@ describe('what a wall click selects (integration I2)', () => {
   it('a wall of two related rooms selects the relationship, on the door wall and on the other shared wall', () => {
     const added = applyScenarioCommand(
       { design: doc(), facePreferences: {} },
-      { type: 'add-edge-at-face', edge: { source: 1, target: 2, kind: 'access' }, preference: { nodeId: 1, offset: [0, 0, 0], direction: '+x' } },
+      { type: 'add-edge-at-face', edge: { source: 1, target: 2, relationship: 'access' }, preference: { nodeId: 1, offset: [0, 0, 0], direction: '+x' } },
     );
     if (!added.ok) throw new Error('add-edge-at-face refused');
     const { design: d2, facePreferences } = added.value;

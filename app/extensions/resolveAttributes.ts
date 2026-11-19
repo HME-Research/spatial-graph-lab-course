@@ -75,18 +75,18 @@ export function resolveField(field: AttributeField, attributes: Stored, typeDefa
   return { ...base, value: inherited, source: inheritedSource };
 }
 
-const typeDefaultsOf = (schema: ProjectAttributeSchema, typeId: string | undefined) =>
-  typeId !== undefined && own(schema.nodeTypeDefaults, typeId) ? schema.nodeTypeDefaults[typeId]! : {};
+const typeDefaultsOf = (schema: ProjectAttributeSchema, functionId: string | undefined) =>
+  functionId !== undefined && own(schema.nodeTypeDefaults, functionId) ? schema.nodeTypeDefaults[functionId]! : {};
 
 /** Every node field, in schema order, for one node. Unknown types simply have no type defaults. */
-export function resolveNodeAttributes(schema: ProjectAttributeSchema, node: { readonly typeId: string; readonly attributes: Stored }): EffectiveAttribute[] {
-  const defaults = typeDefaultsOf(schema, node.typeId);
-  return schema.nodes.map((field) => resolveField(field, node.attributes, own(defaults, field.id) ? defaults[field.id] : undefined));
+export function resolveNodeAttributes(schema: ProjectAttributeSchema, node: { readonly function: string; readonly custom: Stored }): EffectiveAttribute[] {
+  const defaults = typeDefaultsOf(schema, node.function);
+  return schema.nodes.map((field) => resolveField(field, node.custom, own(defaults, field.id) ? defaults[field.id] : undefined));
 }
 
 /** Every edge field, in schema order, for one edge (schema defaults only; kind is irrelevant). */
-export function resolveEdgeAttributes(schema: ProjectAttributeSchema, edge: { readonly attributes: Stored }): EffectiveAttribute[] {
-  return schema.edges.map((field) => resolveField(field, edge.attributes));
+export function resolveEdgeAttributes(schema: ProjectAttributeSchema, edge: { readonly custom: Stored }): EffectiveAttribute[] {
+  return schema.edges.map((field) => resolveField(field, edge.custom));
 }
 
 /** `key → effective value` for fields that have one (explicit null included). */
@@ -96,10 +96,10 @@ export function effectiveRecord(resolved: readonly EffectiveAttribute[]): Record
   return out;
 }
 
-export const effectiveNodeValues = (schema: ProjectAttributeSchema, node: { readonly typeId: string; readonly attributes: Stored }) =>
+export const effectiveNodeValues = (schema: ProjectAttributeSchema, node: { readonly function: string; readonly custom: Stored }) =>
   effectiveRecord(resolveNodeAttributes(schema, node));
 
-export const effectiveEdgeValues = (schema: ProjectAttributeSchema, edge: { readonly attributes: Stored }) =>
+export const effectiveEdgeValues = (schema: ProjectAttributeSchema, edge: { readonly custom: Stored }) =>
   effectiveRecord(resolveEdgeAttributes(schema, edge));
 
 /**
@@ -152,20 +152,20 @@ export function writeFieldValue(
 export function viewAttributes(
   schema: ProjectAttributeSchema,
   collection: AttributeCollection,
-  item: { readonly typeId?: string; readonly attributes: { readonly [key: string]: AttributeValue } },
+  item: { readonly function?: string; readonly custom: { readonly [key: string]: AttributeValue } },
 ): Record<string, AttributeValue> {
-  const resolved = collection === 'nodes' ? resolveNodeAttributes(schema, { typeId: item.typeId ?? '', attributes: item.attributes }) : resolveEdgeAttributes(schema, item);
-  return { ...effectiveRecord(resolved), ...attributesOutsideSchema(schema, collection, item.attributes) };
+  const resolved = collection === 'nodes' ? resolveNodeAttributes(schema, { function: item.function ?? '', custom: item.custom }) : resolveEdgeAttributes(schema, item);
+  return { ...effectiveRecord(resolved), ...attributesOutsideSchema(schema, collection, item.custom) };
 }
 
 /** Keys views may offer for display: every field key (schema order), then keys outside the schema in use. */
 export function displayKeys(
   schema: ProjectAttributeSchema,
   collection: AttributeCollection,
-  items: readonly { readonly attributes: { readonly [key: string]: AttributeValue } }[],
+  items: readonly { readonly custom: { readonly [key: string]: AttributeValue } }[],
 ): string[] {
   const fieldKeys = schema[collection].map((f) => f.key);
   const outside = new Set<string>();
-  for (const item of items) for (const key of Object.keys(attributesOutsideSchema(schema, collection, item.attributes))) outside.add(key);
+  for (const item of items) for (const key of Object.keys(attributesOutsideSchema(schema, collection, item.custom))) outside.add(key);
   return [...fieldKeys, ...[...outside].sort()];
 }

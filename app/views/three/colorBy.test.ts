@@ -18,12 +18,12 @@ import {
   resolveColoring,
 } from './colorBy';
 
-const node = (id: number, attributes: Attributes, typeId = 'room'): RoomNode => ({
+const node = (id: number, attributes: Attributes, functionId = 'room'): RoomNode => ({
   size: [1, 1, 1],
   id,
-  grid: [id, 0, 0],
-  typeId,
-  attributes,
+  position: [id, 0, 0],
+  function: functionId,
+  custom: attributes,
 });
 
 describe('colour by type', () => {
@@ -43,7 +43,7 @@ describe('colour by type', () => {
 describe('colour by access group', () => {
   it('gives each connected component its own colour', () => {
     const nodes = [node(1, {}), node(2, {}), node(5, {})];
-    const edges = [{ id: 1, source: 1, target: 2, kind: 'access' as const, attributes: {} }];
+    const edges = [{ id: 1, source: 1, target: 2, relationship: 'access' as const, custom: {} }];
     const c = resolveColoring(nodes, edges, { kind: 'group' });
     expect(c.colorOf.get(1)).toBe(c.colorOf.get(2));
     expect(c.colorOf.get(5)).not.toBe(c.colorOf.get(1));

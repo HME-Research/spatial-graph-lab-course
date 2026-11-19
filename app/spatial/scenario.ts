@@ -60,7 +60,7 @@ const samePreference = (a: FacePreference, b: FacePreference) =>
  * nothing is dropped.
  */
 export function prunePreferences(prefs: FacePreferences, doc: Pick<DesignDocumentV2, 'edges'>): FacePreferences {
-  const ids = new Set(doc.edges.filter((e) => e.kind === 'access').map((e) => e.id));
+  const ids = new Set(doc.edges.filter((e) => e.relationship === 'access').map((e) => e.id));
   const keys = Object.keys(prefs);
   if (keys.every((k) => ids.has(Number(k)))) return prefs;
   const next: Record<string, FacePreference> = {};
@@ -83,11 +83,11 @@ function preferenceIssue(doc: DesignDocumentV2, edgeId: number, preference: Face
   if (!parsed.success) return issue(['facePreferences', edgeId], 'schema', parsed.error.issues[0]?.message ?? 'invalid face preference');
   const edge = doc.edges.find((e) => e.id === edgeId);
   if (!edge) return issue(['edges'], 'not-found', `edge "${edgeId}" does not exist`);
-  if (edge.kind !== 'access') {
+  if (edge.relationship !== 'access') {
     return issue(
       ['facePreferences', edgeId],
       'schema',
-      `only access connections can choose the wall they open on; "${edgeId}" is an ${edge.kind} connection, which opens the whole shared boundary`,
+      `only access connections can choose the wall they open on; "${edgeId}" is an ${edge.relationship} connection, which opens the whole shared boundary`,
     );
   }
   const check = checkFacePreference(doc, edge, preference);

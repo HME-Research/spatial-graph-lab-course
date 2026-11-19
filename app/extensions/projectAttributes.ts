@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { typeIdSchema, type AttributeValue } from '@app/document';
+import { functionIdSchema, type AttributeValue } from '@app/document';
 import { zodMessages } from './definitions';
 import { toolkitIdSchema } from './discover';
 import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionResult } from './diagnostics';
@@ -15,7 +15,7 @@ import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionResult } 
  * - Each field has a permanent `id` (identity across renames) and a `key` (the JSON attribute
  *   name). Renaming changes `key` and records the old key in `formerKeys`, so values stored under
  *   it are still read; nothing in any design is rewritten.
- * - Node types may give a field a different default (`nodeTypeDefaults[typeId][fieldId]`). Type
+ * - Node types may give a field a different default (`nodeTypeDefaults[functionId][fieldId]`). Type
  *   defaults never add or remove fields. Edges have schema defaults only.
  * - System properties (ids, type, geometry, endpoints, kind, corridor …) are reserved and
  *   can never be schema fields.
@@ -54,8 +54,8 @@ export interface AttributeField {
 export interface ProjectAttributeSchema {
   readonly nodes: readonly AttributeField[];
   readonly edges: readonly AttributeField[];
-  /** typeId → fieldId → default for nodes of that type. Only node fields; never adds fields. */
-  readonly nodeTypeDefaults: { readonly [typeId: string]: { readonly [fieldId: string]: DefaultValue } };
+  /** functionId → fieldId → default for nodes of that type. Only node fields; never adds fields. */
+  readonly nodeTypeDefaults: { readonly [functionId: string]: { readonly [fieldId: string]: DefaultValue } };
 }
 
 export const EMPTY_ATTRIBUTE_SCHEMA: ProjectAttributeSchema = Object.freeze({ nodes: [], edges: [], nodeTypeDefaults: {} });
@@ -69,20 +69,19 @@ export const EMPTY_ATTRIBUTE_SCHEMA: ProjectAttributeSchema = Object.freeze({ no
  * delete or redefine them.
  */
 export const RESERVED_ATTRIBUTE_KEYS: readonly string[] = [
-  // node system properties
+  // node built-in attributes (and the group of custom ones)
   'id',
   'displayid',
-  'typeid',
+  'function',
   'type',
-  'grid',
-  'size',
   'position',
+  'size',
   'diagram',
-  'attributes',
-  // edge system properties
+  'custom',
+  // edge built-in attributes
   'source',
   'target',
-  'kind',
+  'relationship',
   'corridor',
   // JavaScript object internals
   '__proto__',
@@ -183,7 +182,7 @@ const fieldSchema = z.strictObject({
 const schemaShape = z.strictObject({
   nodes: z.array(fieldSchema),
   edges: z.array(fieldSchema),
-  nodeTypeDefaults: z.record(typeIdSchema, z.record(z.string(), defaultValueSchema)).default({}),
+  nodeTypeDefaults: z.record(functionIdSchema, z.record(z.string(), defaultValueSchema)).default({}),
 });
 
 /** Structural problems that Zod cannot express (uniqueness, kinds, defaults, references). */
@@ -217,12 +216,12 @@ export function schemaProblems(schema: ProjectAttributeSchema): string[] {
     }
   }
   const nodeFields = new Map(schema.nodes.map((f) => [f.id, f] as const));
-  for (const [typeId, defaults] of Object.entries(schema.nodeTypeDefaults)) {
+  for (const [functionId, defaults] of Object.entries(schema.nodeTypeDefaults)) {
     for (const [fieldId, value] of Object.entries(defaults)) {
       const field = nodeFields.get(fieldId);
-      if (!field) problems.push(`nodeTypeDefaults.${typeId}.${fieldId}: there is no node field with id "${fieldId}"`);
+      if (!field) problems.push(`nodeTypeDefaults.${functionId}.${fieldId}: there is no node field with id "${fieldId}"`);
       else if (checkFieldValue(field, value) !== 'ok') {
-        problems.push(`nodeTypeDefaults.${typeId}.${fieldId}: ${JSON.stringify(value)} must be ${describeField(field)}`);
+        problems.push(`nodeTypeDefaults.${functionId}.${fieldId}: ${JSON.stringify(value)} must be ${describeField(field)}`);
       }
     }
   }
@@ -253,9 +252,9 @@ export function normaliseSchema(schema: ProjectAttributeSchema): ProjectAttribut
     ...(f.formerKeys !== undefined && f.formerKeys.length > 0 && { formerKeys: [...f.formerKeys] }),
   });
   const nodeTypeDefaults: Record<string, Record<string, DefaultValue>> = {};
-  for (const typeId of Object.keys(schema.nodeTypeDefaults).sort()) {
-    const entries = Object.entries(schema.nodeTypeDefaults[typeId] ?? {});
-    if (entries.length > 0) nodeTypeDefaults[typeId] = Object.fromEntries(entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+  for (const functionId of Object.keys(schema.nodeTypeDefaults).sort()) {
+    const entries = Object.entries(schema.nodeTypeDefaults[functionId] ?? {});
+    if (entries.length > 0) nodeTypeDefaults[functionId] = Object.fromEntries(entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
   }
   return { nodes: schema.nodes.map(field), edges: schema.edges.map(field), nodeTypeDefaults };
 }

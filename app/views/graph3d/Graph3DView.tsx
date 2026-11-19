@@ -171,7 +171,7 @@ function HoverInfo({ hovered, design }: { readonly hovered: Hover | null; readon
   if (!room) return null;
   return (
     <div>
-      <strong>{nodeLabel(room)}</strong> · {room.typeId} · grid [{room.grid.join(', ')}] · size {room.size.join('×')} · L{room.grid[2]}
+      <strong>{nodeLabel(room)}</strong> · {room.function} · position [{room.position.join(', ')}] · size {room.size.join('×')} · L{room.position[2]}
     </div>
   );
 }

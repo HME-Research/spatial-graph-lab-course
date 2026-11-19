@@ -22,16 +22,16 @@ import { resolveBuildingFaces, toResolvedFace } from './multicellFaces';
 const resolveFaces = (d: DesignDocumentV2) => resolveBuildingFaces(d, resolveRelationships(d)).map(toResolvedFace);
 
 /** Rooms a = 1, b = 2, c = 3; the one edge of each test is 1. Face ids start with the owner room's id. */
-type N = [id: number, grid: [number, number, number], typeId?: string];
-type E = [id: number, source: number, target: number, kind: RelationshipKind];
+type N = [id: number, grid: [number, number, number], functionId?: string];
+type E = [id: number, source: number, target: number, relationship: RelationshipKind];
 
 function doc(nodes: N[], edges: E[] = []): DesignDocumentV2 {
   return expectOk(
     validateDocumentV2({
       schemaVersion: 2,
       metadata: { name: 'test' },
-      nodes: nodes.map(([id, grid, typeId]) => ({ id, grid, typeId: typeId ?? 'gallery' })),
-      edges: edges.map(([id, source, target, kind]) => ({ id, source, target, kind })),
+      nodes: nodes.map(([id, position, functionId]) => ({ id, function: functionId ?? 'gallery', position })),
+      edges: edges.map(([id, source, target, kind]) => ({ id, source, target, relationship: kind })),
     }),
   );
 }
@@ -59,12 +59,12 @@ describe('façade examples', () => {
   });
 
   it('exterior walls get glazing whose area matches the owner type window fraction', () => {
-    for (const typeId of ['gallery', 'studio', 'storage']) {
-      const els = ofFace(build(doc([[1, [0, 0, 0], typeId]])), '1:+y');
+    for (const functionId of ['gallery', 'studio', 'storage']) {
+      const els = ofFace(build(doc([[1, [0, 0, 0], functionId]])), '1:+y');
       const glass = els.filter((e) => e.part === 'glazing');
       expect(glass).toHaveLength(1);
       // +y wall: normal along Three Z.
-      expect(areaAcross(glass[0]!, 2)).toBeCloseTo(EXAMPLE_FACADES[typeId]!.windowFraction * W * H, 6);
+      expect(areaAcross(glass[0]!, 2)).toBeCloseTo(EXAMPLE_FACADES[functionId]!.windowFraction * W * H, 6);
       const opaque = els.filter((e) => e.part === 'wall').reduce((s, e) => s + areaAcross(e, 2), 0);
       expect(opaque + areaAcross(glass[0]!, 2)).toBeCloseTo(W * H, 6);
     }

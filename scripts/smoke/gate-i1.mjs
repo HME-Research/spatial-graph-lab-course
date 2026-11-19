@@ -147,9 +147,9 @@ window.__g = {
   nodes() { return [...document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node')].map((n) => n.getAttribute('data-id')); },
   edgeCount() { return document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__edge').length; },
   props() { return document.querySelector('#sidebar-panel-properties')?.innerText ?? ''; },
-  // Geometry rows of Properties (P4): Position X, Position Y, Level / Size X, Size Y, Floors, each its own field.
-  GEO: { position: ['position-x', 'position-y', 'level'], size: ['size-x', 'size-y', 'floors'] },
-  geo(id) { return (document.querySelector('#sidebar-panel-properties') ?? document).querySelector('.sgl-field[data-attribute="' + id + '"] input'); },
+  // Geometry of Properties (2026-11-19): ONE Position row and ONE Size row, each with three value fields x | y | z.
+  GEO: { position: ['position.x', 'position.y', 'position.z'], size: ['size.x', 'size.y', 'size.z'] },
+  geo(id) { return (document.querySelector('#sidebar-panel-properties') ?? document).querySelector('.sgl-axis-value[data-axis="' + id + '"] input'); },
   field(part, axis) { return this.geo(this.GEO[part][['x', 'y', 'z'].indexOf(axis)]); },
   triple(part) { return this.GEO[part].map((id) => Number(this.geo(id)?.value)); },
   // One edit per changed axis: each row is its own command and undo step (a 3-axis change is up to

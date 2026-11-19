@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { type AttributeValue, attributeValueSchema, type DesignDocumentV2 } from '@app/document';
+import { type AttributeValue, attributeValueSchema, corridorLookSchema, type DesignDocumentV2 } from '@app/document';
 import type { SpatialResolution } from '@app/spatial';
 import type { AnalysisInput, AnalysisResult, AttributeSpecs, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
 import type { ActiveToolkit } from './activate';
@@ -124,18 +124,18 @@ const operationSchema = z.discriminatedUnion(
     z.strictObject({
       op: z.literal('add-node'),
       ref: z.string().optional(),
-      grid: z.tuple([z.number(), z.number(), z.number()], { error: 'grid must be [x, y, z]' }),
+      position: z.tuple([z.number(), z.number(), z.number()], { error: 'position must be [x, y, z]' }),
       size: z.tuple([z.number(), z.number(), z.number()], { error: 'size must be [sx, sy, sz]' }).optional(),
-      typeId: z.string(),
-      attributes: attributesRecord.optional(),
+      function: z.string(),
+      custom: attributesRecord.optional(),
     }),
-    z.strictObject({ op: z.literal('add-edge'), ref: z.string().optional(), source: itemRefSchema, target: itemRefSchema, kind: z.string() }),
+    z.strictObject({ op: z.literal('add-edge'), ref: z.string().optional(), source: itemRefSchema, target: itemRefSchema, relationship: z.string(), corridor: corridorLookSchema.optional() }),
     z.strictObject({ op: z.literal('set-node-attribute'), nodeId: itemRefSchema, key: z.string().min(1), value: attributeValueSchema }),
     z.strictObject({ op: z.literal('set-edge-attribute'), edgeId: itemRefSchema, key: z.string().min(1), value: attributeValueSchema }),
     z.strictObject({
       op: z.literal('set-node-geometry'),
       nodeId: itemRefSchema,
-      grid: z.tuple([z.number(), z.number(), z.number()], { error: 'grid must be [x, y, z]' }).optional(),
+      position: z.tuple([z.number(), z.number(), z.number()], { error: 'position must be [x, y, z]' }).optional(),
       size: z.tuple([z.number(), z.number(), z.number()], { error: 'size must be [sx, sy, sz]' }).optional(),
     }),
   ],

@@ -16,11 +16,11 @@ export interface HelpTopic {
 const topics = [
   {
     id: 'graph-vs-grid',
-    title: 'Diagram position vs grid position',
-    summary: 'Moving a room in the diagram only tidies the drawing; its grid position decides where it is built.',
+    title: 'Diagram position vs Position',
+    summary: 'Moving a room in the diagram only tidies the drawing; its Position (x, y, z) decides where it is built.',
     details:
       'The 2D diagram is an abstract picture of the graph. Dragging a circle changes only the diagram. ' +
-      'The grid position (x, y, z) is the room’s place in the building, measured in 3 m cells with z going up. ' +
+      'The Position (x, y, z) is the room’s place in the building, measured in 3 m cells with z going up. ' +
       'Change it in Properties or with the 3D move tool.',
   },
   {
@@ -61,7 +61,7 @@ const topics = [
   {
     id: 'room-size',
     title: 'Room size',
-    summary: 'Size counts whole grid cells in x, y and z; the grid position is the room’s lowest corner.',
+    summary: 'Size counts whole grid cells in x, y and z; its Position is the room’s lowest corner.',
     details:
       'A room of size 2 × 3 × 1 fills 6 cells on one storey. Resizing keeps the minimum corner fixed and grows towards +x, +y and +z. ' +
       'Rooms may never overlap; an edit that would overlap another room is refused.',

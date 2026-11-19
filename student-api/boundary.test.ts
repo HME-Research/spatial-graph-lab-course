@@ -25,7 +25,7 @@ describe('student-api dependency boundary', () => {
 
   it('flags application, project and package imports (self-check)', () => {
     expect(allowed('./graph.ts', '@app/document')).toBe(false);
-    expect(allowed('./graph.ts', '../toolkits/x/types/a')).toBe(false);
+    expect(allowed('./graph.ts', '../toolkits/x/functions/a')).toBe(false);
     expect(allowed('./graph.ts', 'zod')).toBe(false);
     expect(allowed('./graph.ts', '@core/viewer/appearance')).toBe(false);
     expect(allowed('./graph.ts', '@core/graph')).toBe(true);

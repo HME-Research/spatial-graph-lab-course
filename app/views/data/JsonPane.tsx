@@ -51,6 +51,7 @@ export function JsonPane({
       onClick={onClick}
       style={{ '--sgl-dataview-ln': `${String(lines.length).length}ch` } as CSSProperties}
     >
+      <p className="sgl-dataview-note">Calculated values are not saved; see them in the table.</p>
       <div className="sgl-dataview-code">
         {blocks.map((b) => (
           <JsonBlockView key={b.key} block={b} emphasis={b.record ? recordEmphasis(emphasis, b.record) : null} />

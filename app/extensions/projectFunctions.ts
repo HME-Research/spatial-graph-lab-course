@@ -1,9 +1,9 @@
-import type { NodeTypeDefinition } from '@student-api';
+import type { FunctionDefinition } from '@student-api';
 import type { ActiveToolkit, RegisteredNodeType } from './activate';
 
 /**
  * Project functions (UI refinement 2026-11-17): node types a student adds in the browser, stored in
- * the project file (`settings.functions`), beside the toolkit's `types/` definitions.
+ * the project file (`settings.functions`), beside the toolkit's `functions/` definitions.
  *
  * They are merged into `ActiveToolkit.nodeTypes` as ordinary, valid registered types, so every
  * consumer (Function picker, conformance, colours, façades, the Student API's type checks) treats
@@ -35,7 +35,7 @@ export function withProjectFunctions(project: ActiveToolkit, functions: readonly
   for (const f of functions ?? []) {
     if (taken.has(f.id)) continue;
     taken.add(f.id);
-    const definition: NodeTypeDefinition = Object.freeze({ id: f.id, label: f.label });
+    const definition: FunctionDefinition = Object.freeze({ id: f.id, label: f.label });
     added.push(Object.freeze({ id: f.id, file: PROJECT_FUNCTIONS_FILE, definition, status: Object.freeze({ ok: true as const }) }));
   }
   return added.length === 0 && kept === project.nodeTypes ? project : { ...project, nodeTypes: [...kept, ...added] };

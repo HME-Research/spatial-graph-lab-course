@@ -11,8 +11,8 @@ import { BUILT_IN_METRICS } from './registry';
  */
 export type EnabledMetricIds = readonly string[];
 
-/** Shown when a project has no stored choice. */
-export const DEFAULT_ENABLED_METRICS: EnabledMetricIds = Object.freeze(['area', 'volume', 'degree', 'exposed-facade-length', 'unresolved-connections', 'resolution-status']);
+/** Shown when a project has no stored choice: Area only (owner 2026-11-19); the others are added from the "+" catalogue. */
+export const DEFAULT_ENABLED_METRICS: EnabledMetricIds = Object.freeze(['area']);
 
 export interface SanitizedMetricIds {
   readonly enabled: EnabledMetricIds;

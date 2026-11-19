@@ -5,14 +5,14 @@ import type { Bounds, Framing, GroundGrid } from '@core/viewer/three/viewport';
 /**
  * Pure scene derivation shared by the 3D views (no React, no Three.js): grid-cell items, storeys,
  * cell bounds, what the camera frames and the ground grid for a design document.
- * Every world position comes from `spatialToThree(node.grid)`; diagram positions are never read.
+ * Every world position comes from `spatialToThree(node.position)`; diagram positions are never read.
  */
 
 export interface NodeItem {
   readonly id: number;
-  readonly typeId: string;
-  /** Minimum-corner cell. */
-  readonly grid: GridCoord;
+  readonly function: string;
+  /** Minimum-corner cell (the node's `position`). */
+  readonly cell: GridCoord;
   /** Whole cells along grid x, y, z; [1, 1, 1] for a one-cell room. */
   readonly size: readonly [number, number, number];
   /** Room (footprint) centre in Three.js world space; the cell centre for a single cell. */
@@ -24,7 +24,7 @@ export interface NodeItem {
 }
 
 /** A node with an optional schema-v2 size (absent = one cell). */
-export type SizedNode = Pick<RoomNode, 'id' | 'typeId' | 'grid'> & { readonly size?: readonly [number, number, number] };
+export type SizedNode = Pick<RoomNode, 'id' | 'function' | 'position'> & { readonly size?: readonly [number, number, number] };
 
 const UNIT_SIZE = [1, 1, 1] as const;
 const sizeOf = (n: SizedNode): readonly [number, number, number] => n.size ?? UNIT_SIZE;
@@ -32,12 +32,12 @@ const sizeOf = (n: SizedNode): readonly [number, number, number] => n.size ?? UN
 /** Footprint centre in grid space (fractional for even sizes). */
 const centreOf = (n: SizedNode): readonly [number, number, number] => {
   const [sx, sy, sz] = sizeOf(n);
-  return [n.grid[0] + (sx - 1) / 2, n.grid[1] + (sy - 1) / 2, n.grid[2] + (sz - 1) / 2];
+  return [n.position[0] + (sx - 1) / 2, n.position[1] + (sy - 1) / 2, n.position[2] + (sz - 1) / 2];
 };
 
 export interface EdgeItem {
   readonly id: number;
-  readonly kind: RelationshipKind;
+  readonly relationship: RelationshipKind;
   readonly source: number;
   readonly target: number;
   readonly start: WorldPoint;
@@ -53,12 +53,12 @@ export function buildNodeItems(nodes: readonly SizedNode[], cell: CellSize = DEF
     const size = sizeOf(n);
     return {
       id: n.id,
-      typeId: n.typeId,
-      grid: n.grid,
+      function: n.function,
+      cell: n.position,
       size,
       position: spatialToThree(centreOf(n), cell),
       extent: [size[0] * cell.horizontal, size[2] * cell.vertical, size[1] * cell.horizontal],
-      level: n.grid[2],
+      level: n.position[2],
     };
   });
 }
@@ -66,7 +66,7 @@ export function buildNodeItems(nodes: readonly SizedNode[], cell: CellSize = DEF
 /** Edge segments between endpoint room centres. Edges with a missing endpoint are skipped. */
 export function buildEdgeItems(
   nodes: readonly SizedNode[],
-  edges: readonly Pick<RelationshipEdge, 'id' | 'source' | 'target' | 'kind'>[],
+  edges: readonly Pick<RelationshipEdge, 'id' | 'source' | 'target' | 'relationship'>[],
   cell: CellSize = DEFAULT_CELL_SIZE,
 ): EdgeItem[] {
   const gridOf = new Map(nodes.map((n) => [n.id, centreOf(n)] as const));
@@ -82,7 +82,7 @@ export function buildEdgeItems(
     const direction: WorldPoint = length > 0 ? [d[0] / length + 0, d[1] / length + 0, d[2] / length + 0] : [0, 0, 0];
     items.push({
       id: e.id,
-      kind: e.kind,
+      relationship: e.relationship,
       source: e.source,
       target: e.target,
       start,
@@ -98,7 +98,7 @@ export function buildEdgeItems(
 /** Distinct occupied storeys (every storey a room spans), ascending. */
 export function storeyLevels(nodes: readonly SizedNode[]): number[] {
   const levels = new Set<number>();
-  for (const n of nodes) for (let z = 0; z < sizeOf(n)[2]; z++) levels.add(n.grid[2] + z);
+  for (const n of nodes) for (let z = 0; z < sizeOf(n)[2]; z++) levels.add(n.position[2] + z);
   return [...levels].sort((a, b) => a - b);
 }
 
@@ -165,7 +165,7 @@ export function groundGrid(
   let minY = 0;
   let maxY = 0;
   nodes.forEach((n, i) => {
-    const [x, y] = n.grid;
+    const [x, y] = n.position;
     const [sx, sy] = sizeOf(n);
     if (i === 0) [minX, maxX, minY, maxY] = [x, x + sx - 1, y, y + sy - 1];
     minX = Math.min(minX, x);

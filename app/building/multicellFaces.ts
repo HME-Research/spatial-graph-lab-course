@@ -43,10 +43,10 @@ export interface BuildingFace extends ResolvedFace {
  * migrated v1 document produces the same ids), otherwise `${nodeId}:${dx}.${dy}.${dz}:${dir}`
  * with the cell offset from the room's minimum corner. Node ids never contain ':'.
  */
-export function buildingFaceId(node: Pick<RoomNode, 'id' | 'grid' | 'size'>, cell: GridCoord, direction: FaceDirection): string {
+export function buildingFaceId(node: Pick<RoomNode, 'id' | 'position' | 'size'>, cell: GridCoord, direction: FaceDirection): string {
   const single = node.size[0] === 1 && node.size[1] === 1 && node.size[2] === 1;
   if (single) return `${node.id}:${direction}`;
-  return `${node.id}:${cell[0] - node.grid[0]}.${cell[1] - node.grid[1]}.${cell[2] - node.grid[2]}:${direction}`;
+  return `${node.id}:${cell[0] - node.position[0]}.${cell[1] - node.position[1]}.${cell[2] - node.position[2]}:${direction}`;
 }
 
 /** Side-independent key of the unit face between `cell` and its neighbour in `direction`. */
@@ -76,9 +76,9 @@ function directFaceConditions(resolutions: readonly EdgeResolution[]): Map<strin
   const out = new Map<string, DirectFace>();
   for (const r of resolutions) {
     if (r.status !== 'direct') continue;
-    const kind = connectionCondition(r.kind, r.contact);
+    const kind = connectionCondition(r.relationship, r.contact);
     if (kind === null) continue;
-    if (r.kind === 'access') {
+    if (r.relationship === 'access') {
       // Gate F: the student's preferred face (resolveWithPreferences), else the representative one.
       const f = r.preferredFace ?? r.faces[representativeFaceIndex(r.faces)];
       if (f) out.set(unitFaceKey(f.cell, f.direction), { edgeId: r.edgeId, condition: kind });
@@ -96,7 +96,7 @@ function routeEndpointFaces(resolutions: readonly EdgeResolution[]): Map<string,
     out.set(unitFaceKey(face.cell, face.direction), { edgeId, condition });
   for (const r of resolutions) {
     if (r.status !== 'routed') continue;
-    const condition: FaceCondition = r.kind === 'access' ? 'door' : 'open';
+    const condition: FaceCondition = r.relationship === 'access' ? 'door' : 'open';
     add(r.route.from, r.edgeId, condition);
     add(r.route.to, r.edgeId, condition);
   }
@@ -114,7 +114,7 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
   const endpoints = routeEndpointFaces(spatial.edges);
   const routeWalls = new Map<number, WallStyle>();
   for (const r of spatial.edges) if (r.status === 'routed') routeWalls.set(r.edgeId, r.route.look.walls);
-  const typeOf = new Map(doc.nodes.map((n) => [n.id, n.typeId]));
+  const typeOf = new Map(doc.nodes.map((n) => [n.id, n.function]));
   const faces: BuildingFace[] = [];
 
   for (const node of [...doc.nodes].sort(byId)) {
@@ -155,7 +155,7 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
         faces.push({
           id: buildingFaceId(node, cell, direction),
           ownerNodeId: node.id,
-          ownerTypeId: node.typeId,
+          ownerFunction: node.function,
           cell,
           direction,
           orientation: directionOrientation(direction),

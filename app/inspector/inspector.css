@@ -478,3 +478,28 @@ button.link-button:hover:not(:disabled) {
   max-width: 100%;
   text-overflow: ellipsis;
 }
+
+/* Position and Size (owner 2026-11-19): ONE attribute row with three values x | y | z. */
+.sgl-axis-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+}
+.sgl-axis-value {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.sgl-axis-label {
+  font-size: var(--text-xs, 12px);
+  color: var(--muted, #62625c);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sgl-axis-value input {
+  width: 100%;
+  min-width: 0;
+}

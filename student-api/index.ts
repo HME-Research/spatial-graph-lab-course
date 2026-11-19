@@ -14,7 +14,7 @@ export {
   type ToolkitAttributeSpecs,
   type ToolkitDefinition,
 } from './toolkit';
-export { defineNodeType, type FacadeParameters, type NodeTypeDefinition } from './types';
+export { defineFunction, type FacadeParameters, type FunctionDefinition } from './functions';
 export {
   edgesBetween,
   getEdge,
@@ -46,7 +46,7 @@ export {
   defineSpatialAlgorithm,
   type AnalysisInput,
   type AnalysisResult,
-  type AttributeFieldInfo,
+  type CustomFieldInfo,
   type GraphAlgorithm,
   type GraphAlgorithmContext,
   type ItemRef,

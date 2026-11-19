@@ -48,19 +48,15 @@ export interface BuiltInRowInfo {
 
 /**
  * Short information on each built-in attribute of the real graph model (`sections.ts` gives the
- * membership and order): a node's id, Function (`typeId`) and geometry (`grid` / `size`); an
- * edge's id, endpoints and relationship (`kind`, Access or Open). Nothing is invented.
+ * membership and order): a node's id, `function`, `position` and `size` (each ONE attribute of three
+ * values); an edge's id, endpoints and `relationship` (Access or Open). Nothing is invented.
  */
 export const BUILT_IN_INFO: Readonly<Record<AttributeCollection, Readonly<Record<string, BuiltInRowInfo>>>> = {
   nodes: {
     id: { typeText: 'Number', info: 'The node’s permanent number. The app gives it when the node is created; it never changes and is never reused.' },
     function: { typeText: 'Choice', info: 'What the room is used for. Every node has one; choose it in Properties. Add more functions here.' },
-    'position-x': { typeText: 'Number', info: 'Where the room’s lowest corner is along x, in cells. Edit it in Properties, or move the room.' },
-    'position-y': { typeText: 'Number', info: 'Where the room’s lowest corner is along y, in cells. Edit it in Properties, or move the room.' },
-    level: { typeText: 'Number', info: 'The storey the room stands on. Edit it in Properties, or move the room.' },
-    'size-x': { typeText: 'Number', info: 'How many cells the room spans along x. Edit it in Properties, or resize the room.' },
-    'size-y': { typeText: 'Number', info: 'How many cells the room spans along y. Edit it in Properties, or resize the room.' },
-    floors: { typeText: 'Number', info: 'How many storeys tall the room is. Edit it in Properties, or resize the room.' },
+    position: { typeText: 'Numbers x | y | z', info: 'Where the room’s lowest corner is, in cells: x, y and z (z is the Level, the storey it stands on). Edit it in Properties, or move the room.' },
+    size: { typeText: 'Numbers x | y | z', info: 'How many cells the room spans along x and y, and how many storeys tall it is (z, Floors). Edit it in Properties, or resize the room.' },
   },
   edges: {
     id: { typeText: 'Number', info: 'The edge’s permanent number. The app gives it when the edge is created; it never changes and is never reused.' },
@@ -231,7 +227,7 @@ export function keyHasIncompatibleValues(
   const lower = key.toLowerCase();
   for (const design of samples) {
     for (const item of collection === 'nodes' ? design.nodes : design.edges) {
-      for (const [k, v] of Object.entries(item.attributes)) {
+      for (const [k, v] of Object.entries(item.custom)) {
         if (k.toLowerCase() !== lower || v === null) continue;
         if (checkFieldValue(draft, v) !== 'ok') return true;
       }
@@ -255,7 +251,7 @@ export function storedValueCount(field: AttributeField, collection: AttributeCol
   let designs = 0;
   for (const design of samples) {
     let here = 0;
-    for (const item of collection === 'nodes' ? design.nodes : design.edges) if (Object.keys(item.attributes).some((k) => keys.has(k))) here++;
+    for (const item of collection === 'nodes' ? design.nodes : design.edges) if (Object.keys(item.custom).some((k) => keys.has(k))) here++;
     total += here;
     if (here > 0) designs++;
   }

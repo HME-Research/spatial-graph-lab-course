@@ -32,8 +32,10 @@ describe('P4 shared definitions', () => {
       expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
     }
     expect(EDGE_BUILT_IN_ATTRIBUTES.filter((a) => a.section === 'identity').map((a) => a.id)).toEqual(['id', 'source', 'target']);
-    expect(NODE_BUILT_IN_ATTRIBUTES.filter((a) => a.section === 'geometry').map((a) => a.id)).toEqual([
-      'position-x', 'position-y', 'level', 'size-x', 'size-y', 'floors',
+    // Position and Size: ONE attribute each, three values x | y | z (owner 2026-11-19).
+    expect(NODE_BUILT_IN_ATTRIBUTES.filter((a) => a.section === 'geometry').map((a) => [a.id, a.axes])).toEqual([
+      ['position', ['x', 'y', 'z (Level)']],
+      ['size', ['x', 'y', 'z (Floors)']],
     ]);
   });
 

@@ -136,18 +136,18 @@ describe('spatial transformation preview', () => {
       affectedNodeIds: [1],
     });
     // The preview never touched the current document.
-    expect(builtIn.nodes.find((n) => n.id === 1)!.attributes['daylight']).toBe('high');
+    expect(builtIn.nodes.find((n) => n.id === 1)!.custom['daylight']).toBe('high');
     const applied = applyPreviewV2(at(builtIn), preview, 1);
     if (!applied.ok) throw new Error(applied.message);
     expect(applied.doc).toBe(preview.after);
-    expect(applied.doc.nodes.find((n) => n.id === 1)!.attributes).toEqual({ daylight: 'medium', public: true });
+    expect(applied.doc.nodes.find((n) => n.id === 1)!.custom).toEqual({ daylight: 'medium', public: true });
     expect(validateDocumentV2(applied.doc).ok).toBe(true);
   });
 
   it('connect-storage-to-galleries: the added door changes the generated boundary only after Apply', () => {
     const preview = transformation(runEntryV2(at(builtIn), example, entry(example, 'connect-storage-to-galleries'), {}));
     expect(describePreview(preview)).toMatchObject({
-      addedEdges: [{ id: 7, source: 4, target: 3, kind: 'access' }], // store → reading-gallery; id from nextEdgeId
+      addedEdges: [{ id: 7, source: 4, target: 3, relationship: 'access' }], // store → reading-gallery; id from nextEdgeId
       affectedNodeIds: [3, 4],
     });
     const wall = (doc: DesignDocumentV2) =>
@@ -162,7 +162,7 @@ describe('spatial transformation preview', () => {
     const after = { ...builtIn, nodes: builtIn.nodes.map((n) => (n.id === 4 ? { ...n, size: [2, 1, 1] as const } : n)) };
     const node = builtIn.nodes.find((n) => n.id === 4)!;
     expect(describePreview({ before, after })).toMatchObject({
-      geometryChanges: [{ nodeId: 4, from: { grid: node.grid, size: node.size }, to: { grid: node.grid, size: [2, 1, 1] } }],
+      geometryChanges: [{ nodeId: 4, from: { position: node.position, size: node.size }, to: { position: node.position, size: [2, 1, 1] } }],
       affectedNodeIds: [4],
     });
   });
@@ -194,7 +194,7 @@ describe('spatial transformation preview', () => {
             kind: 'transformation',
             operations: [
               { op: 'set-node-attribute', nodeId: 1, key: 'daylight', value: 'low' },
-              { op: 'add-edge', source: 1, target: 4, kind: 'stair' },
+              { op: 'add-edge', source: 1, target: 4, relationship: 'stair' },
             ],
           }),
         },

@@ -46,12 +46,12 @@ export const BROKEN_TYPE_FACADE: FacadeSpec = Object.freeze({ windowFraction: 0 
  */
 export function projectFacadeProvider(project: ActiveToolkit | null): FacadeProvider {
   const cache = new Map<string, FacadeSpec>();
-  return (typeId) => {
-    let spec = cache.get(typeId);
+  return (functionId) => {
+    let spec = cache.get(functionId);
     if (!spec) {
-      const appearance = typeAppearance(project, typeId);
+      const appearance = typeAppearance(project, functionId);
       spec = appearance.status === 'ok' ? appearance.facade : BROKEN_TYPE_FACADE;
-      cache.set(typeId, spec);
+      cache.set(functionId, spec);
     }
     return spec;
   };
@@ -60,7 +60,7 @@ export function projectFacadeProvider(project: ActiveToolkit | null): FacadeProv
 /** Context for `doc`. Pass the project's `facade` provider to keep it stable across document edits. */
 export function buildProjectViewContext(
   project: ActiveToolkit | null,
-  doc: TypedNodes & { readonly edges?: readonly { readonly id: number; readonly attributes: { readonly [key: string]: string | number | boolean | null } }[] },
+  doc: TypedNodes & { readonly edges?: readonly { readonly id: number; readonly custom: { readonly [key: string]: string | number | boolean | null } }[] },
   facade: FacadeProvider = projectFacadeProvider(project),
   attributes: ProjectAttributeSchema = project?.attributeBaseline.schema ?? EMPTY_ATTRIBUTE_SCHEMA,
 ): ProjectViewContext {
@@ -68,7 +68,7 @@ export function buildProjectViewContext(
 }
 
 /**
- * How the active project knows a `typeId`:
+ * How the active project knows a `function`:
  * - `no-project`: there is no active project (today's behaviour);
  * - `undefined-type`: the project does not define it (fallback colour and façade);
  * - `registered`: a valid definition;
@@ -80,9 +80,9 @@ export type NodeTypeStatus =
   | { readonly kind: 'registered'; readonly label: string; readonly file: string }
   | { readonly kind: 'broken'; readonly label: string | null; readonly file: string; readonly problems: readonly string[] };
 
-export function nodeTypeStatus(project: ActiveToolkit | null, typeId: string): NodeTypeStatus {
+export function nodeTypeStatus(project: ActiveToolkit | null, functionId: string): NodeTypeStatus {
   if (!project) return { kind: 'no-project' };
-  const type = findNodeType(project, typeId);
+  const type = findNodeType(project, functionId);
   if (!type) return { kind: 'undefined-type' };
   if (type.status.ok) return { kind: 'registered', label: type.definition.label, file: type.file };
   const ids = new Set(type.status.diagnosticIds);
@@ -97,14 +97,14 @@ export function nodeTypeStatus(project: ActiveToolkit | null, typeId: string): N
 }
 
 /** Readable name of a type for menus and labels: "Gallery (gallery)", or the id alone. */
-export function typeDisplayName(status: NodeTypeStatus, typeId: string): string {
-  if (status.kind === 'registered') return `${status.label} (${typeId})`;
-  if (status.kind === 'broken') return `${status.label ?? typeId} (${typeId}) — invalid definition`;
-  return typeId;
+export function typeDisplayName(status: NodeTypeStatus, functionId: string): string {
+  if (status.kind === 'registered') return `${status.label} (${functionId})`;
+  if (status.kind === 'broken') return `${status.label ?? functionId} (${functionId}) — invalid definition`;
+  return functionId;
 }
 
 /** Ids of the document's node types whose definition is broken (sorted). */
 export function brokenTypeIds(project: ActiveToolkit | null, doc: TypedNodes): string[] {
   if (!project) return [];
-  return [...new Set((doc.nodes as readonly { readonly typeId: string }[]).map((n) => n.typeId))].filter((t) => nodeTypeStatus(project, t).kind === 'broken').sort();
+  return [...new Set((doc.nodes as readonly { readonly function: string }[]).map((n) => n.function))].filter((t) => nodeTypeStatus(project, t).kind === 'broken').sort();
 }

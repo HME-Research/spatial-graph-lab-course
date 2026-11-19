@@ -6,8 +6,9 @@ import {
   formatIssuePath,
   type GridCoord,
   gridKey,
-  gridSchema,
+  positionSchema,
   RELATIONSHIP_KINDS,
+  type RelationshipEdge,
   type RelationshipKind,
   type RoomNode,
   type RoomSize,
@@ -106,10 +107,10 @@ export function opError(index: number, code: ExtensionIssueCode, message: string
 }
 
 /** The node's type, if it is registered and valid; otherwise a diagnostic explaining why not. */
-export function writableType(project: ActiveToolkit, typeId: string, index: number, what: string): RegisteredNodeType | ExtensionDiagnostic {
-  const type = findNodeType(project, typeId);
-  if (!type) return opError(index, 'type-not-registered', `${what}: type "${typeId}" is not a node type of project "${project.id}"`);
-  if (!type.status.ok) return opError(index, 'broken-node-type', `${what}: type "${typeId}" (${type.file}) is invalid and cannot be used`);
+export function writableType(project: ActiveToolkit, functionId: string, index: number, what: string): RegisteredNodeType | ExtensionDiagnostic {
+  const type = findNodeType(project, functionId);
+  if (!type) return opError(index, 'type-not-registered', `${what}: type "${functionId}" is not a node type of project "${project.id}"`);
+  if (!type.status.ok) return opError(index, 'broken-node-type', `${what}: type "${functionId}" (${type.file}) is invalid and cannot be used`);
   return type;
 }
 
@@ -139,31 +140,31 @@ function addNode(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOper
   const what = op.ref === undefined ? 'add-node' : `add-node "${op.ref}"`;
   const badRef = refProblem(op.ref, draft.nodeRefs, i, what);
   if (badRef) return badRef;
-  const grid = gridSchema.safeParse(op.grid);
-  if (!grid.success) return opError(i, 'invalid-grid', `${what}: ${grid.error.issues[0]?.message ?? 'invalid grid'}`);
+  const pos = positionSchema.safeParse(op.position);
+  if (!pos.success) return opError(i, 'invalid-position', `${what}: ${pos.error.issues[0]?.message ?? 'invalid position'}`);
   const size = sizeSchema.safeParse(op.size ?? [1, 1, 1]);
   if (!size.success) return opError(i, 'invalid-size', `${what}: ${size.error.issues[0]?.message ?? 'invalid size'}`);
   const room = {
-    grid: [grid.data[0], grid.data[1], grid.data[2]] as GridCoord,
+    position: [pos.data[0], pos.data[1], pos.data[2]] as GridCoord,
     size: [size.data[0], size.data[1], size.data[2]] as RoomSize,
   };
   const limit = DEFAULT_LIMITS.maxAbsCoordinate;
   const cells = footprintCells(room);
   const far = cells.find((c) => c.some((v) => Math.abs(v) > limit));
-  if (far) return opError(i, 'invalid-grid', `${what}: cell ${fmt(far)} exceeds the coordinate limit of ±${limit}`);
+  if (far) return opError(i, 'invalid-position', `${what}: cell ${fmt(far)} exceeds the coordinate limit of ±${limit}`);
   for (const cell of cells) {
     const occupant = draft.cells.get(gridKey(cell));
     if (occupant !== undefined) return opError(i, 'occupied-cell', `${what}: cell ${fmt(cell)} is already occupied by node ${occupant}`);
   }
-  const type = writableType(project, op.typeId, i, what);
+  const type = writableType(project, op.function, i, what);
   if ('code' in type) return type;
-  let attributes: Record<string, AttributeValue> = {};
-  for (const [key, value] of Object.entries(op.attributes ?? {})) {
+  let custom: Record<string, AttributeValue> = {};
+  for (const [key, value] of Object.entries(op.custom ?? {})) {
     const field = fieldWrite(draft.schema, 'nodes', key, value, i, what, project.id);
     if ('code' in field) return field;
-    attributes = writeFieldValue(field, attributes, value);
+    custom = writeFieldValue(field, custom, value);
   }
-  const node: RoomNode = { id: draft.nextNodeId++, ...room, typeId: op.typeId, attributes };
+  const node: RoomNode = { id: draft.nextNodeId++, function: op.function, ...room, custom };
   if (op.ref !== undefined) draft.nodeRefs.set(op.ref, node.id);
   draft.nodes.push(node);
   draft.byId.set(node.id, node);
@@ -176,12 +177,12 @@ function addEdge(draft: DraftV2, op: Extract<SpatialOperation, { op: 'add-edge' 
   const what = op.ref === undefined ? 'add-edge' : `add-edge "${op.ref}"`;
   const badRef = refProblem(op.ref, draft.edgeRefs, i, what);
   if (badRef) return badRef;
-  const kind = relationshipKindOf(op.kind);
+  const kind = relationshipKindOf(op.relationship);
   if (kind === undefined) {
     return opError(
       i,
       'unknown-edge-kind',
-      `${what}: kind "${op.kind}" is not one of ${RELATIONSHIP_KINDS.join(', ')} (new kinds are not supported)`,
+      `${what}: relationship "${op.relationship}" is not one of ${RELATIONSHIP_KINDS.join(', ')}`,
     );
   }
   const source = resolveRef(op.source, draft.byId, draft.nodeRefs);
@@ -192,7 +193,10 @@ function addEdge(draft: DraftV2, op: Extract<SpatialOperation, { op: 'add-edge' 
   if (draft.pairs.has(unorderedPairKey(source, target))) {
     return opError(i, 'duplicate-relationship', `${what}: nodes ${source} and ${target} are already connected`);
   }
-  const edge = { id: draft.nextEdgeId++, source, target, kind, attributes: {} };
+  const corridor = op.corridor && (op.corridor.walls !== undefined || op.corridor.roof !== undefined)
+    ? { ...(op.corridor.walls !== undefined && { walls: op.corridor.walls }), ...(op.corridor.roof !== undefined && { roof: op.corridor.roof }) }
+    : undefined;
+  const edge: RelationshipEdge = { id: draft.nextEdgeId++, source, target, relationship: kind, ...(corridor && { corridor }), custom: {} };
   if (op.ref !== undefined) draft.edgeRefs.set(op.ref, edge.id);
   draft.edges.push(edge);
   draft.edgeById.set(edge.id, edge);
@@ -207,7 +211,7 @@ function setNodeAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<Sp
   if (!node) return opError(i, 'missing-node', `${what}: node ${describeRef(op.nodeId)} does not exist`);
   const field = fieldWrite(draft.schema, 'nodes', op.key, op.value, i, what, project.id);
   if ('code' in field) return field;
-  node.attributes = writeFieldValue(field, node.attributes, op.value);
+  node.custom = writeFieldValue(field, node.custom, op.value);
   return null;
 }
 
@@ -218,7 +222,7 @@ function setEdgeAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<Sp
   if (!edge) return opError(i, 'missing-edge', `${what}: edge ${describeRef(op.edgeId)} does not exist`);
   const field = fieldWrite(draft.schema, 'edges', op.key, op.value, i, what, project.id);
   if ('code' in field) return field;
-  edge.attributes = writeFieldValue(field, edge.attributes, op.value);
+  edge.custom = writeFieldValue(field, edge.custom, op.value);
   return null;
 }
 
@@ -227,19 +231,19 @@ function setNodeGeometry(draft: DraftV2, op: Extract<SpatialOperation, { op: 'se
   const id = resolveRef(op.nodeId, draft.byId, draft.nodeRefs);
   const node = id === undefined ? undefined : draft.byId.get(id);
   if (!node) return opError(i, 'missing-node', `${what}: node ${describeRef(op.nodeId)} does not exist`);
-  if (op.grid === undefined && op.size === undefined) return opError(i, 'invalid-grid', `${what}: give a new grid, a new size, or both`);
-  const grid = gridSchema.safeParse(op.grid ?? node.grid);
-  if (!grid.success) return opError(i, 'invalid-grid', `${what}: ${grid.error.issues[0]?.message ?? 'invalid grid'}`);
+  if (op.position === undefined && op.size === undefined) return opError(i, 'invalid-position', `${what}: give a new position, a new size, or both`);
+  const pos = positionSchema.safeParse(op.position ?? node.position);
+  if (!pos.success) return opError(i, 'invalid-position', `${what}: ${pos.error.issues[0]?.message ?? 'invalid position'}`);
   const size = sizeSchema.safeParse(op.size ?? node.size);
   if (!size.success) return opError(i, 'invalid-size', `${what}: ${size.error.issues[0]?.message ?? 'invalid size'}`);
   const box = {
-    grid: [grid.data[0], grid.data[1], grid.data[2]] as GridCoord,
+    position: [pos.data[0], pos.data[1], pos.data[2]] as GridCoord,
     size: [size.data[0], size.data[1], size.data[2]] as RoomSize,
   };
   const limit = DEFAULT_LIMITS.maxAbsCoordinate;
   const cells = footprintCells(box);
   const far = cells.find((c) => c.some((v) => Math.abs(v) > limit));
-  if (far) return opError(i, 'invalid-grid', `${what}: cell ${fmt(far)} exceeds the coordinate limit of ±${limit}`);
+  if (far) return opError(i, 'invalid-position', `${what}: cell ${fmt(far)} exceeds the coordinate limit of ±${limit}`);
   draft.routeCells ??= resolveRelationships(draft.source).occupancy;
   for (const cell of cells) {
     const occupant = draft.cells.get(gridKey(cell));
@@ -252,7 +256,7 @@ function setNodeGeometry(draft: DraftV2, op: Extract<SpatialOperation, { op: 'se
     }
   }
   for (const cell of footprintCells(node)) draft.cells.delete(gridKey(cell));
-  node.grid = box.grid;
+  node.position = box.position;
   node.size = box.size;
   for (const cell of cells) draft.cells.set(gridKey(cell), node.id);
   return null;

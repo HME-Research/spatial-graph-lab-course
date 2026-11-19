@@ -3,11 +3,11 @@ import type { RoomNode, RoomSize } from './schema';
 
 /**
  * Room footprints — FROZEN Gate 0 semantics. A room is an axis-aligned box of whole cells
- * anchored at its MINIMUM corner `grid`, extending `size` cells along +x, +y, +z.
+ * anchored at its MINIMUM corner `position`, extending `size` cells along +x, +y, +z.
  * Pure grid maths; no rendering units.
  */
 
-type Boxed = { readonly grid: GridCoord; readonly size: RoomSize };
+type Boxed = { readonly position: GridCoord; readonly size: RoomSize };
 
 /** Inclusive cell bounds of a room. */
 export interface CellBox {
@@ -16,8 +16,8 @@ export interface CellBox {
 }
 
 export const footprintBox = (room: Boxed): CellBox => ({
-  min: [room.grid[0], room.grid[1], room.grid[2]],
-  max: [room.grid[0] + room.size[0] - 1, room.grid[1] + room.size[1] - 1, room.grid[2] + room.size[2] - 1],
+  min: [room.position[0], room.position[1], room.position[2]],
+  max: [room.position[0] + room.size[0] - 1, room.position[1] + room.size[1] - 1, room.position[2] + room.size[2] - 1],
 });
 
 export const footprintCellCount = (room: Boxed): number => room.size[0] * room.size[1] * room.size[2];
@@ -45,7 +45,7 @@ export function footprintsOverlap(a: Boxed, b: Boxed): boolean {
 }
 
 /** z levels (storeys) the room spans, inclusive. */
-export const levelRange = (room: Boxed): readonly [number, number] => [room.grid[2], room.grid[2] + room.size[2] - 1];
+export const levelRange = (room: Boxed): readonly [number, number] => [room.position[2], room.position[2] + room.size[2] - 1];
 
 /** One unit face between a cell of room `a` and a face-adjacent cell of room `b`. */
 export interface SharedFace {

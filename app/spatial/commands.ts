@@ -47,11 +47,11 @@ import { resolveRelationships } from './resolve';
  * counter (P4), so the new room's id is the document's `nextNodeId` before the command.
  */
 export interface NewRoom {
-  readonly grid: GridCoord;
+  readonly position: GridCoord;
   /** Omitted: [1, 1, 1]. */
   readonly size?: RoomSize;
-  readonly typeId: string;
-  readonly attributes?: Attributes;
+  readonly function: string;
+  readonly custom?: Attributes;
 }
 
 /** A new relationship; like `NewRoom` it gets `doc.nextEdgeId` as its id. */
@@ -59,10 +59,10 @@ export interface NewRelationship {
   readonly source: number;
   readonly target: number;
   /** Omitted: `access`. The rooms need NOT touch (unresolved is valid). */
-  readonly kind?: RelationshipKind;
+  readonly relationship?: RelationshipKind;
   /** Its own corridor walls / roof (absent fields use the design's Corridors card). */
   readonly corridor?: CorridorLook;
-  readonly attributes?: Attributes;
+  readonly custom?: Attributes;
 }
 
 /** Look patch for one card: a value sets the field, `null` removes it (inherit again). */
@@ -98,12 +98,12 @@ export type DesignCommand =
   | {
       readonly type: 'set-node-geometry';
       readonly nodeId: number;
-      readonly grid?: GridCoord;
+      readonly position?: GridCoord;
       readonly size?: RoomSize;
       readonly confirmRouteDisplacement?: boolean;
     }
-  | { readonly type: 'set-node-type'; readonly nodeId: number; readonly typeId: string }
-  | { readonly type: 'set-node-attributes'; readonly nodeId: number; readonly attributes: Attributes }
+  | { readonly type: 'set-node-type'; readonly nodeId: number; readonly function: string }
+  | { readonly type: 'set-node-attributes'; readonly nodeId: number; readonly custom: Attributes }
   /** `null` removes the display id (the label falls back to the permanent id). */
   | { readonly type: 'set-diagram-position'; readonly nodeId: number; readonly position: DiagramPosition }
   | { readonly type: 'add-edge'; readonly edge: NewRelationship }
@@ -114,9 +114,9 @@ export type DesignCommand =
    * an edge that is not `unresolved` under `options.resolve ?? resolveRelationships`. Never automatic.
    */
   | { readonly type: 'remove-edges'; readonly edgeIds: readonly number[] }
-  | { readonly type: 'change-edge-kind'; readonly edgeId: number; readonly kind: RelationshipKind }
+  | { readonly type: 'change-edge-kind'; readonly edgeId: number; readonly relationship: RelationshipKind }
   /** Replaces the edge's stored custom attributes (additive after Gate 0; see docs/PROJECT-ATTRIBUTES.md). */
-  | { readonly type: 'set-edge-attributes'; readonly edgeId: number; readonly attributes: Attributes }
+  | { readonly type: 'set-edge-attributes'; readonly edgeId: number; readonly custom: Attributes }
   /**
    * One relationship's own corridor walls / roof (Properties). Only the fields given change; `null`
    * clears a field (the design's Corridors card applies). An empty result removes `corridor`.
@@ -215,10 +215,10 @@ export function applyDesignCommand(
       const id = doc.nextNodeId;
       const node = {
         id,
-        grid: [n.grid[0], n.grid[1], n.grid[2]] as GridCoord,
+        function: n.function,
+        position: [n.position[0], n.position[1], n.position[2]] as GridCoord,
         size: (n.size ? [n.size[0], n.size[1], n.size[2]] : [1, 1, 1]) as RoomSize,
-        typeId: n.typeId,
-        attributes: { ...n.attributes },
+        custom: { ...n.custom },
       };
       const diagram = command.diagramPosition
         ? { positions: { ...doc.diagram.positions, [id]: [command.diagramPosition[0], command.diagramPosition[1]] as DiagramPosition } }
@@ -258,16 +258,16 @@ export function applyDesignCommand(
     case 'set-node-geometry': {
       const request = {
         nodeId: command.nodeId,
-        ...(command.grid ? { grid: command.grid } : {}),
+        ...(command.position ? { position: command.position } : {}),
         ...(command.size ? { size: command.size } : {}),
       };
       const proposal = proposeSpatialEdit(doc, request, options);
       return commitSpatialEdit(proposal, { confirmRouteDisplacement: command.confirmRouteDisplacement === true });
     }
     case 'set-node-type':
-      return mapNode(command.nodeId, (n) => ({ ...n, typeId: command.typeId }));
+      return mapNode(command.nodeId, (n) => ({ ...n, function: command.function }));
     case 'set-node-attributes':
-      return mapNode(command.nodeId, (n) => ({ ...n, attributes: { ...command.attributes } }));
+      return mapNode(command.nodeId, (n) => ({ ...n, custom: { ...command.custom } }));
     case 'set-diagram-position':
       if (!hasNode(command.nodeId)) return notFound('node', command.nodeId);
       return validate({
@@ -282,9 +282,9 @@ export function applyDesignCommand(
         id,
         source: e.source,
         target: e.target,
-        kind: e.kind ?? DEFAULT_RELATIONSHIP_KIND,
+        relationship: e.relationship ?? DEFAULT_RELATIONSHIP_KIND,
         ...(corridor ? { corridor } : {}),
-        attributes: { ...e.attributes },
+        custom: { ...e.custom },
       };
       return validate({ ...doc, nextEdgeId: id + 1, edges: [...doc.edges, edge] });
     }
@@ -315,9 +315,9 @@ export function applyDesignCommand(
       return validate({ ...doc, edges: doc.edges.filter((e) => !listed.has(e.id)) });
     }
     case 'change-edge-kind':
-      return mapEdge(command.edgeId, (e) => ({ ...e, kind: command.kind }));
+      return mapEdge(command.edgeId, (e) => ({ ...e, relationship: command.relationship }));
     case 'set-edge-attributes':
-      return mapEdge(command.edgeId, (e) => ({ ...e, attributes: { ...command.attributes } }));
+      return mapEdge(command.edgeId, (e) => ({ ...e, custom: { ...command.custom } }));
     case 'set-edge-corridor':
       return mapEdge(command.edgeId, (e) => {
         const { corridor: old, ...rest } = e;

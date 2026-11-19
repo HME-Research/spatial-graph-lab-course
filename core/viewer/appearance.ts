@@ -1,6 +1,6 @@
 /**
  * Fallback node-type colours shared by all views until the student type registry exists
- * (Phase 6). Deterministic: the same typeId always gets the same colour in 2D and 3D.
+ * (Phase 6). Deterministic: the same functionId always gets the same colour in 2D and 3D.
  */
 export const FALLBACK_TYPE_PALETTE = [
   '#4e79a7',
@@ -16,8 +16,8 @@ export const FALLBACK_TYPE_PALETTE = [
 /** Colour used for selection highlights in every view. */
 export const SELECTION_COLOR = '#ff2d95';
 
-export function typeColor(typeId: string): string {
+export function typeColor(functionId: string): string {
   let hash = 0;
-  for (let i = 0; i < typeId.length; i++) hash = (hash * 31 + typeId.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < functionId.length; i++) hash = (hash * 31 + functionId.charCodeAt(i)) >>> 0;
   return FALLBACK_TYPE_PALETTE[hash % FALLBACK_TYPE_PALETTE.length]!;
 }

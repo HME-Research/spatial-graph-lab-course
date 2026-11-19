@@ -70,7 +70,7 @@ describe('node type menu', () => {
   });
 
   it('lists broken definitions as disabled', async () => {
-    const broken = await labToolkit({ 'toolkits/lab/types/kiosk.ts': { default: { id: 'kiosk', label: 7 } } });
+    const broken = await labToolkit({ 'toolkits/lab/functions/kiosk.ts': { default: { id: 'kiosk', label: 7 } } });
     const menu = typeMenu(broken, [], 'gallery');
     const kiosk = menu.options.find((o) => o.value === 'kiosk');
     expect(kiosk?.disabled).toBe(true);
@@ -90,13 +90,13 @@ describe('node type menu', () => {
 describe('move / resize plan (schema v2 port)', () => {
   it('commits a free move as one set-node-geometry command', () => {
     const port = fakePort();
-    const proposal = port.proposeEdit({ nodeId: 3, grid: [0, 8, 0] });
+    const proposal = port.proposeEdit({ nodeId: 3, position: [0, 8, 0] });
     expect(planGeometryEdit(proposal, port.doc, 3)).toEqual({ kind: 'commit' });
   });
 
   it('refuses a room overlap with a plain message naming the other room', () => {
     const port = fakePort();
-    const proposal = port.proposeEdit({ nodeId: 3, grid: [1, 1, 0] });
+    const proposal = port.proposeEdit({ nodeId: 3, position: [1, 1, 0] });
     const plan = planGeometryEdit(proposal, port.doc, 3);
     expect(plan.kind).toBe('reject');
     if (plan.kind !== 'reject') return;
@@ -108,25 +108,25 @@ describe('move / resize plan (schema v2 port)', () => {
   it('asks for confirmation when a generated corridor is in the way, naming the relationship', () => {
     const port = fakePort();
     expect(port.spatial.byEdge.get(1)?.status).toBe('routed');
-    const proposal = port.proposeEdit({ nodeId: 3, grid: [3, 0, 0] });
+    const proposal = port.proposeEdit({ nodeId: 3, position: [3, 0, 0] });
     expect(planGeometryEdit(proposal, port.doc, 3)).toEqual({ kind: 'confirm', relationships: ['1 → 2'] });
     expect(relationshipLabelIn(port.doc)(1)).toBe('1 → 2');
   });
 
   it('Cancel sends nothing; "Move anyway and recalculate" sends one confirmed command', () => {
     const cancelled = fakePort();
-    cancelled.proposeEdit({ nodeId: 3, grid: [3, 0, 0] });
+    cancelled.proposeEdit({ nodeId: 3, position: [3, 0, 0] });
     expect(cancelled.sent).toEqual([]);
     expect(cancelled.latest()).toBe(cancelled.doc);
 
     const port = fakePort();
     // Without confirmation the engine refuses; the document stays unchanged.
-    expect(port.onCommand({ type: 'set-node-geometry', nodeId: 3, grid: [3, 0, 0] })).toMatchObject({ ok: false });
+    expect(port.onCommand({ type: 'set-node-geometry', nodeId: 3, position: [3, 0, 0] })).toMatchObject({ ok: false });
     expect(port.latest()).toBe(port.doc);
-    const outcome = port.onCommand({ type: 'set-node-geometry', nodeId: 3, grid: [3, 0, 0], confirmRouteDisplacement: true });
+    const outcome = port.onCommand({ type: 'set-node-geometry', nodeId: 3, position: [3, 0, 0], confirmRouteDisplacement: true });
     expect(outcome).toEqual({ ok: true });
     const next = port.latest();
-    expect(next.nodes.find((n) => n.id === 3)?.grid).toEqual([3, 0, 0]);
+    expect(next.nodes.find((n) => n.id === 3)?.position).toEqual([3, 0, 0]);
     // The relationship is kept; its corridor is recalculated (here: blocked by the moved room).
     expect(next.edges.map((e) => e.id)).toEqual([1]);
   });

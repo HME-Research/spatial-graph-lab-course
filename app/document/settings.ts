@@ -26,7 +26,7 @@ import {
  * higher layers, so the caller passes them as `values` (node id → value).
  */
 
-/** What the toolkit says about a room's function (normally `FacadeProvider(typeId)` from app/building). */
+/** What the toolkit says about a room's function (normally `FacadeProvider(functionId)` from app/building). */
 export interface ProjectTypeDefaults {
   readonly windowFraction: number;
 }
@@ -134,9 +134,9 @@ export function effectiveLook(setup: StyleSetup, ref: StyleGroupRef, base: Proje
 export type StyleValues = ReadonlyMap<number, unknown>;
 
 /** The value of `by` for one room: Function and Level from the document; anything else from `values`. */
-export function styleValueOfNode(node: Pick<RoomNode, 'id' | 'typeId' | 'grid'>, by: StyleBy, values?: StyleValues): unknown {
-  if (by === 'function') return node.typeId;
-  if (by === 'level') return node.grid[2];
+export function styleValueOfNode(node: Pick<RoomNode, 'id' | 'function' | 'position'>, by: StyleBy, values?: StyleValues): unknown {
+  if (by === 'function') return node.function;
+  if (by === 'level') return node.position[2];
   return values?.get(node.id);
 }
 
@@ -147,11 +147,11 @@ export interface NodeLook {
 
 /**
  * Effective look of every room of `doc` under its active `styleBy` (node id → card + look).
- * `base(typeId)` is the toolkit default; `values` supplies attribute / measured values.
+ * `base(functionId)` is the toolkit default; `values` supplies attribute / measured values.
  */
 export function nodeLooks(
   doc: Pick<DesignDocumentV2, 'nodes' | 'settings'>,
-  base: (typeId: string) => ProjectTypeDefaults,
+  base: (functionId: string) => ProjectTypeDefaults,
   values?: StyleValues,
 ): Map<number, NodeLook> {
   const by = doc.settings.styleBy;
@@ -159,7 +159,7 @@ export function nodeLooks(
   const out = new Map<number, NodeLook>();
   for (const node of doc.nodes) {
     const group = groupOfValue(setup, styleValueOfNode(node, by, values));
-    out.set(node.id, { group, look: effectiveLook(setup, group, base(node.typeId)) });
+    out.set(node.id, { group, look: effectiveLook(setup, group, base(node.function)) });
   }
   return out;
 }
@@ -214,13 +214,13 @@ export const corridorLookOf = (edge: { readonly corridor?: CorridorLook | undefi
   return { walls: edge.corridor?.walls ?? design.walls, roof: edge.corridor?.roof ?? design.roof };
 };
 
-/** The function cards of a design as `typeId → look` (the `function` setup's value cards). */
+/** The function cards of a design as `functionId → look` (the `function` setup's value cards). */
 export function functionLooks(settings: Pick<DesignSettings, 'styles'>): Record<string, Look> {
   const setup = styleSetupOf({ styleBy: 'function', styles: settings.styles }, 'function');
   return Object.fromEntries((setup.groups ?? []).map((g) => [String(g.value), g.look]));
 }
 
-/** Settings styled by Function with one card per entry of `looks` (`typeId → look`). */
+/** Settings styled by Function with one card per entry of `looks` (`functionId → look`). */
 export function functionStyleSettings(looks: Readonly<Record<string, Look>>): DesignSettings {
   const groups = Object.entries(looks).map(([value, look]) => ({ value, look }));
   return { styleBy: 'function', styles: groups.length > 0 ? { function: { groups } } : {} };

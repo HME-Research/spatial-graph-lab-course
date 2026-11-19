@@ -93,10 +93,10 @@ const project = (c: ProjectController): OpenProject => {
 };
 
 function move(c: ProjectController, nodeId: number, grid: [number, number, number]) {
-  const r = c.command({ type: 'set-node-geometry', nodeId, grid });
+  const r = c.command({ type: 'set-node-geometry', nodeId, position: grid });
   if (!r.ok) throw new Error(r.issues.map((i) => i.message).join('; '));
 }
-const gridOf = (c: ProjectController, nodeId: number) => activeDesign(project(c)).nodes.find((n) => n.id === nodeId)!.grid;
+const gridOf = (c: ProjectController, nodeId: number) => activeDesign(project(c)).nodes.find((n) => n.id === nodeId)!.position;
 
 function stored(store: MemoryProjectStore, id: string): ProjectFileV2 {
   const r = readProjectFile(store.records.get(id) as string);
@@ -201,7 +201,7 @@ describe('autosave', () => {
     await c.flush();
     expect(c.getState().save.local).toBe('saved');
     expect(hasUnsavedLocalChanges(c.getState())).toBe(false);
-    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 8, 0]);
+    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.position).toEqual([6, 8, 0]);
   });
 
   it('stores every scenario, the active scenario and settings (not the histories)', async () => {
@@ -219,8 +219,8 @@ describe('autosave', () => {
     expect(file.scenarios.map((s) => s.name)).toEqual(['Scenario 1', 'Option B']);
     expect(file.activeScenarioId).toBe(s2.value);
     expect(file.scenarios[1]!.cameras).toHaveLength(1);
-    expect(file.scenarios[0]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 0, 0]);
-    expect(file.scenarios[1]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
+    expect(file.scenarios[0]!.design.nodes.find((n) => n.id === 2)!.position).toEqual([2, 0, 0]);
+    expect(file.scenarios[1]!.design.nodes.find((n) => n.id === 2)!.position).toEqual([2, 1, 0]);
   });
 
   it('never shows a quota failure as saved, and recovers on the next successful write', async () => {
@@ -317,15 +317,15 @@ describe('two tabs on one project', () => {
     const s = one.getState().save;
     expect(s.local === 'blocked' && s.reason).toBe('conflict');
     expect(s.local === 'blocked' && s.message).toBe(CONFLICT_MESSAGE);
-    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
+    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.position).toEqual([2, 1, 0]);
     // Further edits do not write while in conflict.
     move(one, 3, [6, 8, 0]);
     await one.flush();
-    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 6, 0]);
+    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.position).toEqual([6, 6, 0]);
     // Explicit choice.
     await one.overwriteStored();
     expect(one.getState().save.local).toBe('saved');
-    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 8, 0]);
+    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.position).toEqual([6, 8, 0]);
     expect(locks.log.every((n) => n === `sgl-project:${id}`)).toBe(true);
   });
 
@@ -341,8 +341,8 @@ describe('two tabs on one project', () => {
     expect(one.getState().save.local).toBe('saved');
     const mine = stored(store, project(one).meta.projectId);
     expect(mine.name).toBe('Mine');
-    expect(mine.scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 7, 0]);
-    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
+    expect(mine.scenarios[0]!.design.nodes.find((n) => n.id === 3)!.position).toEqual([6, 7, 0]);
+    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.position).toEqual([2, 1, 0]);
   });
 
   it('serialises concurrent writes of both tabs under the lock (the second detects the first)', async () => {
@@ -397,7 +397,7 @@ describe('writes in flight', () => {
     const closing = c.close();
     await g.release();
     expect(await closing).toBe(true);
-    expect(stored(g.store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 8, 0]);
+    expect(stored(g.store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.position).toEqual([6, 8, 0]);
   });
 
   it('switching project still writes the previous project’s newest changes', async () => {
@@ -415,7 +415,7 @@ describe('writes in flight', () => {
     await g.release();
     await opening;
     await c.flush();
-    expect(stored(g.store, a).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 9, 0]);
+    expect(stored(g.store, a).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.position).toEqual([6, 9, 0]);
     // Restoring A afterwards sees the final copy and saves without a false conflict.
     await c.restore(a);
     move(c, 2, [2, 1, 0]);
@@ -573,10 +573,10 @@ describe('cross-project isolation', () => {
     await c.flush();
     // Let the previous project's write finish too.
     await new Promise((r) => setTimeout(r, 0));
-    expect(stored(store, a).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 7, 0]);
-    expect(stored(store, a).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 0, 0]);
-    expect(stored(store, b).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
-    expect(stored(store, b).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 6, 0]);
+    expect(stored(store, a).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.position).toEqual([6, 7, 0]);
+    expect(stored(store, a).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.position).toEqual([2, 0, 0]);
+    expect(stored(store, b).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.position).toEqual([2, 1, 0]);
+    expect(stored(store, b).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.position).toEqual([6, 6, 0]);
   });
 
   it('Save As stores an independent project; later edits never reach the original', async () => {
@@ -634,7 +634,7 @@ describe('export and per-scenario undo through the controller', () => {
     expect(c.undo()).toBe(true);
     expect(gridOf(c, 2)).toEqual([2, 0, 0]);
     expect(c.redo()).toBe(true);
-    expect(currentDocument(activeSession(project(c))).design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
+    expect(currentDocument(activeSession(project(c))).design.nodes.find((n) => n.id === 2)!.position).toEqual([2, 1, 0]);
   });
 
   it('refuses to delete the last scenario through the controller', async () => {
@@ -685,7 +685,7 @@ describe('leaving a project is atomic with respect to edits (I1 audit repair)', 
     g.gate(other);
     const restoring = c.restore(other);
     await tick();
-    const r = c.command({ type: 'set-node-geometry', nodeId: 3, grid: [6, 9, 0] });
+    const r = c.command({ type: 'set-node-geometry', nodeId: 3, position: [6, 9, 0] });
     expect(r.ok).toBe(false);
     expect(r.ok === false && r.issues[0]!.message).toBe(BUSY_MESSAGE);
     expect(c.renameProject('Late').ok).toBe(false);
@@ -714,7 +714,7 @@ describe('leaving a project is atomic with respect to edits (I1 audit repair)', 
     g.gate(file.projectId);
     const opening = c.open(file, created);
     await tick();
-    expect(c.command({ type: 'set-node-geometry', nodeId: 3, grid: [6, 9, 0] }).ok).toBe(false);
+    expect(c.command({ type: 'set-node-geometry', nodeId: 3, position: [6, 9, 0] }).ok).toBe(false);
     await g.release();
     expect((await opening).ok).toBe(true);
     expect(gridOf(c, 3)).toEqual([6, 6, 0]);
@@ -731,14 +731,14 @@ describe('leaving a project is atomic with respect to edits (I1 audit repair)', 
     timers.run();
     await tick(); // a write of the original is running
     const saving = c.saveAs('Copy');
-    expect(c.command({ type: 'set-node-geometry', nodeId: 3, grid: [6, 9, 0] }).ok).toBe(false);
+    expect(c.command({ type: 'set-node-geometry', nodeId: 3, position: [6, 9, 0] }).ok).toBe(false);
     await g.release();
     const copy = await saving;
     if (!copy.ok) throw new Error(copy.message);
     expect(project(c).meta.projectId).not.toBe(original);
     expect(gridOf(c, 3)).toEqual([6, 7, 0]);
     await c.flush();
-    expect(stored(g.store, project(c).meta.projectId).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 7, 0]);
+    expect(stored(g.store, project(c).meta.projectId).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.position).toEqual([6, 7, 0]);
   });
 });
 

@@ -151,14 +151,14 @@ export function describeResolution(resolution: EdgeResolution): ResolutionText {
       if (resolution.contact === 'horizontal') {
         return {
           title: 'Direct',
-          detail: resolution.kind === 'access' ? 'The rooms share a wall, so a door is made in it.' : 'The rooms share a wall, which is left out.',
+          detail: resolution.relationship === 'access' ? 'The rooms share a wall, so a door is made in it.' : 'The rooms share a wall, which is left out.',
           tone: 'ok',
         };
       }
       return {
         title: 'Direct',
         detail:
-          resolution.kind === 'access'
+          resolution.relationship === 'access'
             ? 'The rooms are stacked: a floor opening with an access marker is made (not a designed stair).'
             : 'The rooms are stacked: an open void joins the two floors.',
         tone: 'ok',
@@ -178,7 +178,7 @@ export function describeResolution(resolution: EdgeResolution): ResolutionText {
 
 // ── Spatial guidance ────────────────────────────────────────────────────────────────────────
 
-/** The ONE place that explains diagram position vs grid position in Properties (phase 08, O02). */
+/** The ONE place that explains diagram position vs Position in Properties (phase 08, O02). */
 export const POSITION_HELP = 'Where the room is built: x and y across the site, z is the storey. Dragging its node in Graph 2D only tidies the diagram.';
 
 export const SIZE_HELP = 'How many cells the room spans along x, y and z. The room grows from its position (its lowest corner).';

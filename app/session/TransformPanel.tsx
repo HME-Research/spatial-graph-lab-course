@@ -322,7 +322,7 @@ function RunResult({
               <ul className="sgl-list">
                 {summary.addedNodes.map((n) => (
                   <li key={n.id}>
-                    <code>{n.id}</code> ({n.typeId}) at [{n.grid.join(', ')}]
+                    <code>{n.id}</code> ({n.function}) at [{n.position.join(', ')}]
                   </li>
                 ))}
               </ul>
@@ -334,7 +334,7 @@ function RunResult({
               <ul className="sgl-list">
                 {summary.addedEdges.map((e) => (
                   <li key={e.id}>
-                    <code>{e.id}</code>: {e.kind} between {e.source} and {e.target}
+                    <code>{e.id}</code>: {e.relationship} between {e.source} and {e.target}
                   </li>
                 ))}
               </ul>
@@ -358,7 +358,7 @@ function RunResult({
               <ul className="sgl-list">
                 {summary.geometryChanges.map((c) => (
                   <li key={c.nodeId}>
-                    {nodeButton(c.nodeId)}: {c.from.size.join('×')} at [{c.from.grid.join(', ')}] → {c.to.size.join('×')} at [{c.to.grid.join(', ')}]
+                    {nodeButton(c.nodeId)}: {c.from.size.join('×')} at [{c.from.position.join(', ')}] → {c.to.size.join('×')} at [{c.to.position.join(', ')}]
                   </li>
                 ))}
               </ul>

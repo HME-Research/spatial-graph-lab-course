@@ -15,7 +15,7 @@ import {
 
 /**
  * The attribute schema a project's FILES describe: its immutable baseline. Built from
- * `defineToolkit({ attributes: { nodes, edges } })` and, for nodes, from the attributes its node
+ * `defineToolkit({ custom: { nodes, edges } })` and, for nodes, from the attributes its node
  * types declare (the union of all valid types; a type's `default` becomes that type's default).
  *
  * The baseline seeds the project's stored schema when the browser has none. It is never compared
@@ -78,11 +78,11 @@ export function deriveAttributeBaseline(
   };
 
   for (const collection of ['nodes', 'edges'] as const) {
-    for (const [key, spec] of Object.entries(definition.attributes?.[collection] ?? {})) {
+    for (const [key, spec] of Object.entries(definition.custom?.[collection] ?? {})) {
       const problem = keyProblem(key);
       if (problem) {
         diagnostics.push(
-          diagnostic('invalid-attribute-schema', 'error', { kind: 'file', path: projectFile }, `attributes.${collection}: ${problem}; the field was ignored`, {
+          diagnostic('invalid-attribute-schema', 'error', { kind: 'file', path: projectFile }, `custom.${collection}: ${problem}; the field was ignored`, {
             attribute: key,
             detail: collection,
           }),
@@ -95,7 +95,7 @@ export function deriveAttributeBaseline(
             'attribute-declaration-conflict',
             'warning',
             { kind: 'file', path: projectFile },
-            `attributes.${collection}: "${key}" differs only in upper/lower case from another field; it was ignored`,
+            `custom.${collection}: "${key}" differs only in upper/lower case from another field; it was ignored`,
             { attribute: key, detail: collection },
           ),
         );
@@ -110,7 +110,7 @@ export function deriveAttributeBaseline(
   const nodeTypeDefaults: Record<string, Record<string, DefaultValue>> = {};
   for (const type of nodeTypes) {
     if (!type.status.ok) continue;
-    for (const [key, spec] of Object.entries(type.definition.attributes ?? {})) {
+    for (const [key, spec] of Object.entries(type.definition.custom ?? {})) {
       const subject = { kind: 'file', path: type.file } as const;
       const problem = keyProblem(key);
       if (problem) {
@@ -187,16 +187,16 @@ export function mergeBaseline(
     }
   }
   const nodeTypeDefaults: Record<string, Record<string, DefaultValue>> = {};
-  for (const [typeId, defaults] of Object.entries(current.nodeTypeDefaults)) nodeTypeDefaults[typeId] = { ...defaults };
-  for (const [typeId, defaults] of Object.entries(baseline.nodeTypeDefaults)) {
+  for (const [functionId, defaults] of Object.entries(current.nodeTypeDefaults)) nodeTypeDefaults[functionId] = { ...defaults };
+  for (const [functionId, defaults] of Object.entries(baseline.nodeTypeDefaults)) {
     for (const [baseFieldId, value] of Object.entries(defaults)) {
       const fieldId = nodeIdMap.get(baseFieldId);
       const field = next.nodes.find((f) => f.id === fieldId);
       if (!field || fieldId === undefined || checkFieldValue(field, value) !== 'ok') continue;
-      const own = (nodeTypeDefaults[typeId] ??= {});
+      const own = (nodeTypeDefaults[functionId] ??= {});
       if (!Object.prototype.hasOwnProperty.call(own, fieldId)) {
         own[fieldId] = value;
-        added.push(`default of "${field.key}" for type "${typeId}"`);
+        added.push(`default of "${field.key}" for type "${functionId}"`);
       }
     }
   }

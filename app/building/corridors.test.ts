@@ -29,10 +29,10 @@ function raw(corridors?: unknown, corridor?: unknown) {
     schemaVersion: 2,
     metadata: { name: 'corridors' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery', attributes: {} },
-      { id: 2, grid: [4, 0, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} },
+      { id: 1, position: [0, 0, 0], size: [1, 1, 1], function: 'gallery', custom: {} },
+      { id: 2, position: [4, 0, 0], size: [1, 1, 1], function: 'studio', custom: {} },
     ],
-    edges: [{ id: 1, source: 1, target: 2, kind: 'access', ...(corridor === undefined ? {} : { corridor }), attributes: {} }],
+    edges: [{ id: 1, source: 1, target: 2, relationship: 'access', ...(corridor === undefined ? {} : { corridor }), custom: {} }],
     diagram: { positions: {} },
     settings: { styleBy: 'function', styles: {}, ...(corridors === undefined ? {} : { corridors }) },
   };

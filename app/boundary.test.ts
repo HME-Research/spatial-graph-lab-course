@@ -174,7 +174,7 @@ describe('application layering', () => {
     expect(violation('./extensions/x.ts', '@app/views/contracts')).not.toBeNull();
     expect(violation('./extensions/x.ts', 'react')).not.toBeNull();
     expect(violation('./extensions/x.ts', '@core/viewer/three/SceneCanvas')).not.toBeNull();
-    expect(violation('./extensions/x.ts', '../../toolkits/house/types/kitchen')).not.toBeNull();
+    expect(violation('./extensions/x.ts', '../../toolkits/house/functions/kitchen')).not.toBeNull();
     expect(violation('./extensions/x.ts', '@student-api')).toBeNull();
     expect(violation('./extensions/x.ts', '@app/building')).toBeNull();
     expect(violation('./extensions/x.ts', '@core/viewer/appearance')).toBeNull();
@@ -212,10 +212,10 @@ describe('application layering', () => {
   it('flags globs into toolkits/ outside extensions and globs leaving app/ (self-check)', () => {
     expect(globViolation('./App.tsx', '/toolkits/*/toolkit.ts')).not.toBeNull();
     expect(globViolation('./views/x.ts', '/toolkits/**/*.json')).not.toBeNull();
-    expect(globViolation('./views/x.ts', '../../toolkits/*/types/*.ts')).not.toBeNull();
+    expect(globViolation('./views/x.ts', '../../toolkits/*/functions/*.ts')).not.toBeNull();
     expect(globViolation('./views/x.ts', '/core/**/*.ts')).not.toBeNull();
-    expect(globViolation('./extensions/toolkitGlobs.ts', '/toolkits/*/types/*.ts')).toBeNull();
-    expect(globViolation('./extensions/toolkitGlobs.ts', '!/toolkits/*/types/*.test.ts')).toBeNull();
+    expect(globViolation('./extensions/toolkitGlobs.ts', '/toolkits/*/functions/*.ts')).toBeNull();
+    expect(globViolation('./extensions/toolkitGlobs.ts', '!/toolkits/*/functions/*.test.ts')).toBeNull();
     expect(globViolation('./boundary.test.ts', './**/*.{ts,tsx}')).toBeNull();
     const call = ['import', 'meta', 'glob'].join('.'); // built so this file's own scan does not see it
     expect(globPatterns(`${call}<string>(['/a/*.ts', '!/a/*.test.ts'], {})`)).toEqual(['/a/*.ts', '!/a/*.test.ts']);

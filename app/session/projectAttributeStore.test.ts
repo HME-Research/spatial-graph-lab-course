@@ -80,8 +80,8 @@ describe('audit regressions (phase 01 review)', () => {
   it('undoing a merge also restores the "toolkit files changed" state', async () => {
     const storage = memoryStorage();
     persistAttributeSession(storage, addCapacity(loadAttributeSession(storage, await projectNamed('lab', 'Lab'))));
-    const kiosk = { id: 'kiosk', label: 'Kiosk', attributes: { open24h: { kind: 'boolean' } } };
-    const changed = await projectNamed('lab', 'Lab', { 'toolkits/lab/types/kiosk.ts': { default: kiosk } });
+    const kiosk = { id: 'kiosk', label: 'Kiosk', custom: { open24h: { kind: 'boolean' } } };
+    const changed = await projectNamed('lab', 'Lab', { 'toolkits/lab/functions/kiosk.ts': { default: kiosk } });
     const session = loadAttributeSession(storage, changed);
     expect(filesChangedSinceSaved(session)).toBe(true);
     const merged = mergeFilesIntoSession(session, changed).session;
@@ -112,7 +112,7 @@ describe('phase 10 audit: shown problems follow the session', () => {
 
     const fresh = memoryStorage();
     persistAttributeSession(fresh, addCapacity(loadAttributeSession(fresh, project)));
-    const changed = await projectNamed('lab', 'Lab', { 'toolkits/lab/types/kiosk.ts': { default: { id: 'kiosk', label: 'Kiosk', attributes: { open24h: { kind: 'boolean' } } } } });
+    const changed = await projectNamed('lab', 'Lab', { 'toolkits/lab/functions/kiosk.ts': { default: { id: 'kiosk', label: 'Kiosk', custom: { open24h: { kind: 'boolean' } } } } });
     const session = loadAttributeSession(fresh, changed);
     expect(attributeDiagnostics(session).map((d) => d.code)).toEqual(['attribute-baseline-changed']);
     expect(attributeDiagnostics(mergeFilesIntoSession(session, changed).session)).toEqual([]);
@@ -133,8 +133,8 @@ describe('project attribute session', () => {
   it('a field added while design A is open is saved and seen by design B after a reload', async () => {
     const storage = memoryStorage();
     const project = await projectNamed('lab', 'Lab');
-    const designA = doc('A', [{ id: 1, grid: [0, 0, 0], typeId: 'gallery' }]);
-    const designB = doc('B', [{ id: 1, grid: [0, 0, 0], typeId: 'studio', attributes: { capacity: 9 } }]);
+    const designA = doc('A', [{ id: 1, position: [0, 0, 0], function: 'gallery' }]);
+    const designB = doc('B', [{ id: 1, position: [0, 0, 0], function: 'studio', custom: { capacity: 9 } }]);
 
     const edited = addCapacity(loadAttributeSession(storage, project));
     expect(effectiveNodeValues(currentSchema(edited), designA.nodes[0]!)['capacity']).toBe(4);
@@ -159,9 +159,9 @@ describe('project attribute session', () => {
 
   it('schema undo/redo is its own history; design history and data are untouched', async () => {
     const project = await projectNamed('lab', 'Lab');
-    const design = doc('A', [{ id: 1, grid: [0, 0, 0], typeId: 'gallery' }]);
+    const design = doc('A', [{ id: 1, position: [0, 0, 0], function: 'gallery' }]);
     let designSession = openDocument(design, 'a.json', null);
-    const moved = applyDesignCommandToSession(designSession, { type: 'set-node-geometry', nodeId: 1, grid: [2, 0, 0] });
+    const moved = applyDesignCommandToSession(designSession, { type: 'set-node-geometry', nodeId: 1, position: [2, 0, 0] });
     if (!moved.ok) throw new Error('move failed');
     designSession = moved.session;
 
@@ -171,7 +171,7 @@ describe('project attribute session', () => {
     expect(currentSchema(undone).nodes.map((f) => f.key)).not.toContain('capacity');
     expect(currentSchema(redoAttributes(undone)).nodes.map((f) => f.key)).toContain('capacity');
     // Design undo only undoes the design move; the schema is not part of it.
-    expect(currentDocument(undoDocument(designSession)).nodes[0]!.grid).toEqual([0, 0, 0]);
+    expect(currentDocument(undoDocument(designSession)).nodes[0]!.position).toEqual([0, 0, 0]);
     expect(currentDocument(designSession)).toBe(moved.session.history.present);
     expect(undone.revision).toBeGreaterThan(schemaSession.revision);
   });
@@ -222,8 +222,8 @@ describe('project attribute session', () => {
   it('detects changed toolkit files and merges them only on request (additive)', async () => {
     const storage = memoryStorage();
     persistAttributeSession(storage, addCapacity(loadAttributeSession(storage, await projectNamed('lab', 'Lab'))));
-    const kiosk = { id: 'kiosk', label: 'Kiosk', attributes: { open24h: { kind: 'boolean', default: true } } };
-    const changed = await projectNamed('lab', 'Lab', { 'toolkits/lab/types/kiosk.ts': { default: kiosk } });
+    const kiosk = { id: 'kiosk', label: 'Kiosk', custom: { open24h: { kind: 'boolean', default: true } } };
+    const changed = await projectNamed('lab', 'Lab', { 'toolkits/lab/functions/kiosk.ts': { default: kiosk } });
     const session = loadAttributeSession(storage, changed);
     expect(session.diagnostics.map((d) => d.code)).toEqual(['attribute-baseline-changed']);
     expect(currentSchema(session).nodes.map((f) => f.key)).not.toContain('open24h');

@@ -182,10 +182,10 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   const activeProject = project?.project ?? null;
   const typeStatus = useMemo(() => {
     const map = new Map<string, ReturnType<typeof nodeTypeStatus>>();
-    for (const node of model.nodes) if (!map.has(node.typeId)) map.set(node.typeId, nodeTypeStatus(activeProject, node.typeId));
+    for (const node of model.nodes) if (!map.has(node.function)) map.set(node.function, nodeTypeStatus(activeProject, node.function));
     return map;
   }, [model, activeProject]);
-  const isBroken = (typeId: string) => typeStatus.get(typeId)?.kind === 'broken';
+  const isBroken = (functionId: string) => typeStatus.get(functionId)?.kind === 'broken';
 
   const emphasised = useMemo(() => {
     if (selection.kind !== 'edge') return new Set<number>();
@@ -211,20 +211,20 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
         const o = overlay[node.id];
         const p = positions.get(node.id) ?? [0, 0];
         const l = lines.get(node.id) ?? nodeLines(node, display);
-        const broken = typeStatus.get(node.typeId)?.kind === 'broken';
+        const broken = typeStatus.get(node.function)?.kind === 'broken';
         const unresolved = unresolvedCount.get(node.id) ?? 0;
         return {
           id: String(node.id),
           type: 'room',
           position: o?.drag ?? { x: p[0], y: p[1] },
-          ariaLabel: `Node ${node.label}, type ${node.typeId}`,
+          ariaLabel: `Node ${node.label}, type ${node.function}`,
           data: {
-            typeId: node.typeId,
+            function: node.function,
             lines: l.lines,
             hidden: l.hidden,
             diameter: l.diameter,
             tooltip:
-              `${node.label} · ${node.typeId}${broken ? ' (invalid type definition)' : ''}\n${describePlacement(node)}` +
+              `${node.label} · ${node.function}${broken ? ' (invalid type definition)' : ''}\n${describePlacement(node)}` +
               (unresolved ? `\n${unresolved} relationship(s) not buildable yet` : ''),
             emphasised: emphasised.has(node.id),
             brokenType: broken,
@@ -655,8 +655,8 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
           onClose={() => setPopoverNode(null)}
           onConnect={() => startConnect(popover.id)}
           rows={popoverRows(model, popover, {
-            brokenType: isBroken(popover.typeId),
-            typeName: typeDisplayName(typeStatus.get(popover.typeId) ?? { kind: 'no-project' }, popover.typeId),
+            brokenType: isBroken(popover.function),
+            typeName: typeDisplayName(typeStatus.get(popover.function) ?? { kind: 'no-project' }, popover.function),
             attributeKeys: display.attributeKeys,
           })}
           node={popover}
@@ -742,7 +742,7 @@ function NoticeLine({
   if (!edge) return null;
   const a = model.byNode.get(edge.source)?.label ?? edge.source;
   const b = model.byNode.get(edge.target)?.label ?? edge.target;
-  const kind = RELATIONSHIP_KIND_LABELS[edge.kind];
+  const kind = RELATIONSHIP_KIND_LABELS[edge.relationship];
   const unresolved = edge.resolution?.status === 'unresolved' ? edge.resolution : undefined;
   return (
     <>

@@ -1,3 +1,4 @@
+import { GEOMETRY_AXES, type GeometryAxis } from '@app/attributes/sections';
 import { type DesignDocumentV2, type GraphIssue, nodeLabel, relationshipLabel } from '@app/document';
 import type { ActiveToolkit } from '@app/extensions';
 import type { SpatialEditProposal } from '@app/spatial';
@@ -176,30 +177,23 @@ export function planGeometryEdit(proposal: SpatialEditProposal, doc: DesignDocum
   }
 }
 
-// ── Geometry rows (Programme P4: Position X/Y, Level, Size X/Y, Floors) ─────────────────────
+// ── Geometry values (Position x | y | z, Size x | y | z; owner 2026-11-19) ──────────────────
 
-/** The six Geometry rows of a room: which stored triple and axis each one edits. */
-export const GEOMETRY_ROWS: readonly { readonly id: string; readonly part: 'grid' | 'size'; readonly axis: 0 | 1 | 2 }[] = [
-  { id: 'position-x', part: 'grid', axis: 0 },
-  { id: 'position-y', part: 'grid', axis: 1 },
-  { id: 'level', part: 'grid', axis: 2 },
-  { id: 'size-x', part: 'size', axis: 0 },
-  { id: 'size-y', part: 'size', axis: 1 },
-  { id: 'floors', part: 'size', axis: 2 },
-];
+/** Each editable value of a room's Position and Size: which stored triple and axis it edits. */
+export const GEOMETRY_ROWS: readonly GeometryAxis[] = GEOMETRY_AXES;
 
 export type GeometryDraftEdit =
   | { readonly kind: 'unchanged' }
   | { readonly kind: 'invalid'; readonly message: string }
-  | { readonly kind: 'edit'; readonly request: { readonly grid?: Triple; readonly size?: Triple } };
+  | { readonly kind: 'edit'; readonly request: { readonly position?: Triple; readonly size?: Triple } };
 
 /**
- * One Geometry row's draft as a whole-geometry request (the other axes keep their stored values),
+ * One Geometry value's draft (e.g. `position.z`, the Level) as a whole-geometry request (the other axes keep their stored values),
  * for the same preview → `set-node-geometry` path the move/resize gizmo uses. Positions are any
  * whole number; sizes and floors are whole numbers from 1 to `maxSize`.
  */
 export function geometryDraftEdit(
-  node: { readonly grid: Triple; readonly size: Triple },
+  node: { readonly position: Triple; readonly size: Triple },
   rowId: string,
   name: string,
   draft: string,
@@ -215,5 +209,5 @@ export function geometryDraftEdit(
   if (stored[row.axis] === n + 0) return { kind: 'unchanged' };
   const next = [stored[0], stored[1], stored[2]] as [number, number, number];
   next[row.axis] = n + 0;
-  return { kind: 'edit', request: row.part === 'grid' ? { grid: next } : { size: next } };
+  return { kind: 'edit', request: row.part === 'position' ? { position: next } : { size: next } };
 }

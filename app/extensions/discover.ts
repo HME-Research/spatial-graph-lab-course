@@ -22,13 +22,13 @@ export type TextLoader = () => Promise<string>;
 
 export interface ToolkitGlobs {
   readonly toolkit: Readonly<Record<string, ModuleLoader>>;
-  readonly types: Readonly<Record<string, ModuleLoader>>;
+  readonly functions: Readonly<Record<string, ModuleLoader>>;
   readonly algorithms: Readonly<Record<string, ModuleLoader>>;
   readonly designs: Readonly<Record<string, TextLoader>>;
 }
 
 export interface SourceFile<L> {
-  /** Repository-relative path, e.g. "toolkits/house/types/kitchen.ts". */
+  /** Repository-relative path, e.g. "toolkits/house/functions/kitchen.ts". */
   readonly file: string;
   /** File name without extension: the design id for designs. */
   readonly stem: string;
@@ -39,14 +39,14 @@ export interface ToolkitSource {
   /** The folder name. */
   readonly id: string;
   readonly toolkit: SourceFile<ModuleLoader>;
-  readonly types: readonly SourceFile<ModuleLoader>[];
+  readonly functions: readonly SourceFile<ModuleLoader>[];
   readonly algorithms: readonly SourceFile<ModuleLoader>[];
   readonly designs: readonly SourceFile<TextLoader>[];
 }
 
-const PATH = /^\/?toolkits\/([^/]+)\/(?:(toolkit)\.ts|(types|algorithms)\/([^/]+)\.ts|(designs)\/([^/]+)\.json)$/;
+const PATH = /^\/?toolkits\/([^/]+)\/(?:(toolkit)\.ts|(functions|algorithms)\/([^/]+)\.ts|(designs)\/([^/]+)\.json)$/;
 
-type Section = 'toolkit' | 'types' | 'algorithms' | 'designs';
+type Section = 'toolkit' | 'functions' | 'algorithms' | 'designs';
 
 interface Parsed {
   readonly toolkitId: string;
@@ -73,20 +73,20 @@ export function discoverToolkits(globs: ToolkitGlobs): {
 } {
   interface Draft {
     toolkit?: SourceFile<ModuleLoader>;
-    types: SourceFile<ModuleLoader>[];
+    functions: SourceFile<ModuleLoader>[];
     algorithms: SourceFile<ModuleLoader>[];
     designs: SourceFile<TextLoader>[];
   }
   const drafts = new Map<string, Draft>();
   const draftFor = (id: string): Draft => {
     let d = drafts.get(id);
-    if (!d) drafts.set(id, (d = { types: [], algorithms: [], designs: [] }));
+    if (!d) drafts.set(id, (d = { functions: [], algorithms: [], designs: [] }));
     return d;
   };
 
   const sections: [Section, Readonly<Record<string, ModuleLoader | TextLoader>>][] = [
     ['toolkit', globs.toolkit],
-    ['types', globs.types],
+    ['functions', globs.functions],
     ['algorithms', globs.algorithms],
     ['designs', globs.designs],
   ];
@@ -122,7 +122,7 @@ export function discoverToolkits(globs: ToolkitGlobs): {
     toolkits.push({
       id,
       toolkit: d.toolkit,
-      types: d.types.sort(byFile),
+      functions: d.functions.sort(byFile),
       algorithms: d.algorithms.sort(byFile),
       designs: d.designs.sort(byFile),
     });

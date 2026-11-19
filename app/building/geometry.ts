@@ -51,7 +51,7 @@ export interface ArchitecturalElement {
   readonly outside?: true;
   readonly orientation: FaceOrientation;
   readonly ownerNodeId: number;
-  readonly ownerTypeId: string;
+  readonly ownerFunction: string;
   readonly neighbourNodeId: number | null;
   readonly edgeId: number | null;
   /** What picking this element selects: its edge if it has one, otherwise its owner node. */
@@ -116,7 +116,7 @@ export function buildArchitecture(faces: readonly ResolvedFace[], options: Archi
         ...(face.outside ? { outside: true as const } : {}),
         orientation: face.orientation,
         ownerNodeId: face.ownerNodeId,
-        ownerTypeId: face.ownerTypeId,
+        ownerFunction: face.ownerFunction,
         neighbourNodeId: face.neighbourNodeId,
         edgeId: face.edgeId,
         target,

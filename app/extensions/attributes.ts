@@ -3,7 +3,7 @@ import type { AttributeSpec, AttributeSpecs } from '@student-api';
 
 /**
  * The single implementation of typed-attribute semantics, shared by conformance checking,
- * parameter validation, `attributesOf` and transformation operations. Expects a definition that
+ * parameter validation, `customOf` and transformation operations. Expects a definition that
  * has already passed runtime validation (definitions.ts).
  */
 

@@ -1,10 +1,10 @@
 import { defineSpatialAlgorithm, type AttributeValue, type SpatialOperation } from '@student-api';
-import bath from '../types/bath';
-import bedroom from '../types/bedroom';
-import circulation from '../types/circulation';
-import entrance from '../types/entrance';
-import kitchen from '../types/kitchen';
-import living from '../types/living';
+import bath from '../functions/bath';
+import bedroom from '../functions/bedroom';
+import circulation from '../functions/circulation';
+import entrance from '../functions/entrance';
+import kitchen from '../functions/kitchen';
+import living from '../functions/living';
 
 /**
  * Grow to target area.
@@ -71,7 +71,7 @@ interface Room {
   readonly ref: string | undefined;
   /** The drawn room it is, or copies: its attributes are read from there. */
   readonly source: number;
-  readonly typeId: string;
+  readonly function: string;
   readonly house: number;
   /** Id order: drawn rooms by id, then copies in the order they are added (their ids follow). */
   readonly order: number;
@@ -88,14 +88,14 @@ type Reason =
 const LABELS: Record<string, string> = Object.fromEntries(
   [entrance, circulation, living, kitchen, bedroom, bath].map((type) => [type.id, type.label]),
 );
-const label = (typeId: string) => LABELS[typeId] ?? typeId.charAt(0).toUpperCase() + typeId.slice(1);
+const label = (functionId: string) => LABELS[functionId] ?? functionId.charAt(0).toUpperCase() + functionId.slice(1);
 
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
 const formatArea = (m2: number) => (Number.isInteger(m2) ? String(m2) : m2.toFixed(1));
-const boxOf = (r: { readonly grid: readonly number[]; readonly size: readonly number[] }): Box => ({
-  x: r.grid[0]!,
-  y: r.grid[1]!,
-  z: r.grid[2]!,
+const boxOf = (r: { readonly position: readonly number[]; readonly size: readonly number[] }): Box => ({
+  x: r.position[0]!,
+  y: r.position[1]!,
+  z: r.position[2]!,
   sx: r.size[0]!,
   sy: r.size[1]!,
   sz: r.size[2]!,
@@ -192,7 +192,7 @@ export default defineSpatialAlgorithm({
     // Read the two House attributes of every drawn room (copies use their original's values).
     const goals = new Map(
       drawn.map((r) => {
-        const values = ctx.nodeAttributes(r.id);
+        const values = ctx.nodeCustom(r.id);
         const target = typeof values.targetArea === 'number' && values.targetArea > 0 ? values.targetArea : undefined;
         const priority = typeof values.priority === 'number' ? values.priority : Number.POSITIVE_INFINITY;
         return [r.id, { target, priority }] as const;
@@ -212,7 +212,7 @@ export default defineSpatialAlgorithm({
     const houseOf = new Map(groups.flatMap((ids, h) => ids.map((id) => [id, h + 1] as const)));
 
     // Every room of the run, by index: the drawn rooms first, then the copies.
-    const rooms: Room[] = drawn.map((r) => ({ id: r.id, ref: undefined, source: r.id, typeId: r.typeId, house: houseOf.get(r.id)!, order: r.id }));
+    const rooms: Room[] = drawn.map((r) => ({ id: r.id, ref: undefined, source: r.id, function: r.function, house: houseOf.get(r.id)!, order: r.id }));
     const boxes = new Map<number, Box>(drawn.map((r, i) => [i, boxOf(r)]));
     const indexOf = new Map(drawn.map((r, i) => [r.id, i]));
     const links: [number, number][] = ctx.design.edges.map((e) => [indexOf.get(e.source)!, indexOf.get(e.target)!]);
@@ -229,18 +229,18 @@ export default defineSpatialAlgorithm({
       const model = drawn.filter((r) => houseOf.get(r.id) === 1).sort((a, b) => a.id - b.id);
       const reach = Math.max(...drawn.map((r) => missingCells(r.id, boxOf(r))));
       const gap = 2 * reach + 1;
-      const modelMinX = Math.min(...model.map((r) => r.grid[0]));
-      const modelWidth = Math.max(...model.map((r) => r.grid[0] + r.size[0])) - modelMinX;
-      const startX = Math.max(...drawn.map((r) => r.grid[0] + r.size[0])) + gap;
+      const modelMinX = Math.min(...model.map((r) => r.position[0]));
+      const modelWidth = Math.max(...model.map((r) => r.position[0] + r.size[0])) - modelMinX;
+      const startX = Math.max(...drawn.map((r) => r.position[0] + r.size[0])) + gap;
       const lastX = startX + (copies - 1) * (modelWidth + gap) + modelWidth - 1 + reach;
       if (lastX > MAX_COORDINATE) {
         return {
           kind: 'transformation',
-          summary: `There is not enough space for ${wantedHouses} houses in a row: the grid ends at x = ${MAX_COORDINATE}. Try fewer houses.`,
+          summary: `There is not enough space for ${wantedHouses} houses in a row: positions end at x = ${MAX_COORDINATE}. Try fewer houses.`,
           operations: [],
         };
       }
-      const fields = new Set(ctx.attributeFields.nodes.map((f) => f.key));
+      const fields = new Set(ctx.customFields.nodes.map((f) => f.key));
       const maxId = Math.max(...drawn.map((r) => r.id));
       for (let c = 0; c < copies; c++) {
         const house = groups.length + 1 + c;
@@ -248,19 +248,19 @@ export default defineSpatialAlgorithm({
         const copyOf = new Map<number, number>();
         for (const r of model) {
           const ref = `house-${house}-room-${r.id}`;
-          const attributes: Record<string, AttributeValue> = {};
-          for (const [k, v] of Object.entries(r.attributes)) if (fields.has(k)) attributes[k] = v;
-          const grid = [r.grid[0] + dx, r.grid[1], r.grid[2]] as const;
-          added.push({ op: 'add-node', ref, grid, size: r.size, typeId: r.typeId, attributes });
+          const custom: Record<string, AttributeValue> = {};
+          for (const [k, v] of Object.entries(r.custom)) if (fields.has(k)) custom[k] = v;
+          const position = [r.position[0] + dx, r.position[1], r.position[2]] as const;
+          added.push({ op: 'add-node', ref, position, size: r.size, function: r.function, custom });
           copyOf.set(r.id, rooms.length);
-          boxes.set(rooms.length, boxOf({ grid, size: r.size }));
-          rooms.push({ id: undefined, ref, source: r.id, typeId: r.typeId, house, order: maxId + 1 + rooms.length });
+          boxes.set(rooms.length, boxOf({ position, size: r.size }));
+          rooms.push({ id: undefined, ref, source: r.id, function: r.function, house, order: maxId + 1 + rooms.length });
         }
         for (const e of ctx.design.edges) {
           const a = copyOf.get(e.source);
           const b = copyOf.get(e.target);
           if (a === undefined || b === undefined) continue;
-          added.push({ op: 'add-edge', source: rooms[a]!.ref!, target: rooms[b]!.ref!, kind: e.kind });
+          added.push({ op: 'add-edge', source: rooms[a]!.ref!, target: rooms[b]!.ref!, relationship: e.relationship });
           links.push([a, b]);
         }
       }
@@ -272,7 +272,7 @@ export default defineSpatialAlgorithm({
     const lowestStorey = Math.min(...[...boxes.values()].map((b) => b.z));
     const plainName = (i: number) => {
       const r = rooms[i]!;
-      return r.id !== undefined ? `${label(r.typeId)} ${r.id}` : `${label(r.typeId)} (copy of ${r.source})`;
+      return r.id !== undefined ? `${label(r.function)} ${r.id}` : `${label(r.function)} (copy of ${r.source})`;
     };
     const name = (i: number) => (houseCount > 1 ? `House ${rooms[i]!.house} · ${plainName(i)}` : plainName(i));
 
@@ -391,7 +391,7 @@ export default defineSpatialAlgorithm({
       }
       if (end > start) {
         const b = boxes.get(i)!;
-        resized.push({ op: 'set-node-geometry', nodeId: rooms[i]!.id ?? rooms[i]!.ref!, grid: [b.x, b.y, b.z], size: [b.sx, b.sy, b.sz] });
+        resized.push({ op: 'set-node-geometry', nodeId: rooms[i]!.id ?? rooms[i]!.ref!, position: [b.x, b.y, b.z], size: [b.sx, b.sy, b.sz] });
         grew++;
       }
     }

@@ -40,7 +40,7 @@ describe('resolveDiagramPositions', () => {
   it('fallbacks do not depend on grid cells (moving a node in space does not move it in the diagram)', () => {
     const doc = withoutPositions([2]);
     const moved = expectOk(applyDesignCommand(doc, { type: 'remove-edge', edgeId: 1 }));
-    const relocated = expectOk(applyDesignCommand(moved, { type: 'set-node-geometry', nodeId: 2, grid: [5, 5, 3] }));
+    const relocated = expectOk(applyDesignCommand(moved, { type: 'set-node-geometry', nodeId: 2, position: [5, 5, 3] }));
     expect(resolveDiagramPositions(relocated).get(2)).toEqual(resolveDiagramPositions(doc).get(2));
   });
 
@@ -67,13 +67,13 @@ describe('new node and edge ids', () => {
     expect(doc.nextNodeId).toBe(4);
     expect(doc.nextEdgeId).toBe(3);
     const added = expectOk(
-      applyDesignCommand(doc, { type: 'add-node', node: { grid: [3, 0, 0], typeId: 'studio' }, diagramPosition: [300, 80] }),
+      applyDesignCommand(doc, { type: 'add-node', node: { position: [3, 0, 0], function: 'studio' }, diagramPosition: [300, 80] }),
     );
     expect(added.nodes.map((n) => n.id)).toEqual([1, 2, 3, 4]);
     expect(added.diagram.positions[4]).toEqual([300, 80]);
     expect(added.nextNodeId).toBe(5);
     const removed = expectOk(applyDesignCommand(added, { type: 'remove-node', nodeId: 4 }));
-    const again = expectOk(applyDesignCommand(removed, { type: 'add-node', node: { grid: [3, 0, 0], typeId: 'studio' } }));
+    const again = expectOk(applyDesignCommand(removed, { type: 'add-node', node: { position: [3, 0, 0], function: 'studio' } }));
     expect(again.nodes.map((n) => n.id)).toEqual([1, 2, 3, 5]);
     const edge = expectOk(applyDesignCommand(again, { type: 'add-edge', edge: { source: 2, target: 3 } }));
     expect(edge.edges.map((e) => e.id)).toEqual([1, 2, 3]);

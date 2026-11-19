@@ -17,7 +17,7 @@ const spied = (metric: ComputedMetric) => {
 
 const moveNode = (d: DesignDocumentV2, id: number, grid: [number, number, number]): DesignDocumentV2 => ({
   ...d,
-  nodes: d.nodes.map((n) => (n.id === id ? { ...n, grid } : n)),
+  nodes: d.nodes.map((n) => (n.id === id ? { ...n, position: grid } : n)),
 });
 
 describe('built-in metrics', () => {
@@ -128,14 +128,14 @@ describe('createMetricEvaluator memoisation', () => {
       collection: 'nodes',
       valueKind: 'text',
       dependsOn: ['types'],
-      compute: ({ doc }, nodeId) => doc.nodes.find((n) => n.id === nodeId)?.typeId ?? null,
+      compute: ({ doc }, nodeId) => doc.nodes.find((n) => n.id === nodeId)?.function ?? null,
     } satisfies ComputedMetric);
     const evaluator = createMetricEvaluator([typeOf.metric]);
     const before = doc();
     const original = evaluator.value(ctxOf(before), 'type-of', 1);
     evaluator.value(ctxOf(moveNode(before, 2, [7, 0, 0])), 'type-of', 1);
     expect(typeOf.compute).toHaveBeenCalledTimes(1);
-    const retyped: DesignDocumentV2 = { ...before, nodes: before.nodes.map((n) => (n.id === 1 ? { ...n, typeId: 'other-type' } : n)) };
+    const retyped: DesignDocumentV2 = { ...before, nodes: before.nodes.map((n) => (n.id === 1 ? { ...n, function: 'other-type' } : n)) };
     expect(evaluator.value(ctxOf(retyped), 'type-of', 1)).toBe('other-type');
     expect(original).not.toBe('other-type');
     expect(typeOf.compute).toHaveBeenCalledTimes(2);
@@ -150,13 +150,13 @@ describe('createMetricEvaluator memoisation', () => {
       dependsOn: ['topology'],
       compute: ({ doc }, edgeId) => {
         const e = doc.edges.find((x) => x.id === edgeId);
-        return e ? `${e.source}-${e.target}-${e.kind}` : null;
+        return e ? `${e.source}-${e.target}-${e.relationship}` : null;
       },
     } satisfies ComputedMetric);
     const evaluator = createMetricEvaluator([ends.metric]);
     const before = doc();
     const first = evaluator.value(ctxOf(before), 'ends', 1);
-    const flipped: DesignDocumentV2 = { ...before, edges: before.edges.map((e) => (e.id === 1 ? { ...e, kind: e.kind === 'access' ? 'open' : 'access' } : e)) };
+    const flipped: DesignDocumentV2 = { ...before, edges: before.edges.map((e) => (e.id === 1 ? { ...e, relationship: e.relationship === 'access' ? 'open' : 'access' } : e)) };
     const second = evaluator.value(ctxOf(flipped), 'ends', 1);
     expect(ends.compute).toHaveBeenCalledTimes(2);
     expect(second).not.toBe(first);

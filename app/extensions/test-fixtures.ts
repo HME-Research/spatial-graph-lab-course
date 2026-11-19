@@ -2,7 +2,7 @@
 import { expect } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
 import { validateDocumentV2, type DesignDocumentV2 } from '@app/document';
-import { defineNodeType, defineToolkit } from '@student-api';
+import { defineFunction, defineToolkit } from '@student-api';
 import { activate, type ActiveToolkit } from './activate';
 import type { ExtensionDiagnostic, ExtensionIssueCode, ExtensionResult } from './diagnostics';
 import type { ModuleLoader, ToolkitGlobs, TextLoader } from './discover';
@@ -16,7 +16,7 @@ export const LOAD_FAILS = Symbol('load fails');
  */
 export function fakeGlobs(files: Readonly<Record<string, unknown>>): ToolkitGlobs {
   const toolkit: Record<string, ModuleLoader> = {};
-  const types: Record<string, ModuleLoader> = {};
+  const functions: Record<string, ModuleLoader> = {};
   const algorithms: Record<string, ModuleLoader> = {};
   const designs: Record<string, TextLoader> = {};
   for (const [path, value] of Object.entries(files)) {
@@ -27,33 +27,33 @@ export function fakeGlobs(files: Readonly<Record<string, unknown>>): ToolkitGlob
     const key = `/${path}`;
     if (path.endsWith('.json')) designs[key] = load;
     else if (path.endsWith('/toolkit.ts')) toolkit[key] = load;
-    else if (path.includes('/types/')) types[key] = load;
+    else if (path.includes('/functions/')) functions[key] = load;
     else if (path.includes('/algorithms/')) algorithms[key] = load;
   }
-  return { toolkit, types, algorithms, designs };
+  return { toolkit, functions, algorithms, designs };
 }
 
-export const galleryType = defineNodeType({
+export const galleryType = defineFunction({
   id: 'gallery',
   label: 'Gallery',
   facade: { windowFraction: 0.6 },
-  attributes: {
+  custom: {
     daylight: { kind: 'enum', values: ['high', 'medium', 'low'] },
     public: { kind: 'boolean', default: true },
   },
 });
 
-export const studioType = defineNodeType({
+export const studioType = defineFunction({
   id: 'studio',
   label: 'Studio',
-  attributes: { occupancy: { kind: 'number', min: 0 }, public: { kind: 'boolean', default: false } },
+  custom: { occupancy: { kind: 'number', min: 0 }, public: { kind: 'boolean', default: false } },
 });
 
 /** Base files of the "lab" test toolkit; tests add or override entries. */
 export const LAB_FILES: Readonly<Record<string, unknown>> = {
   'toolkits/lab/toolkit.ts': { default: defineToolkit({ name: 'Lab' }) },
-  'toolkits/lab/types/gallery.ts': { default: galleryType },
-  'toolkits/lab/types/studio.ts': { default: studioType },
+  'toolkits/lab/functions/gallery.ts': { default: galleryType },
+  'toolkits/lab/functions/studio.ts': { default: studioType },
 };
 
 export async function labToolkit(extra: Readonly<Record<string, unknown>> = {}): Promise<ActiveToolkit> {
@@ -72,14 +72,14 @@ export function labDoc(): DesignDocumentV2 {
       schemaVersion: 2,
       metadata: { name: 'Lab' },
       nodes: [
-        { id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: { daylight: 'high', public: true } },
-        { id: 2, grid: [1, 0, 0], typeId: 'gallery', attributes: { daylight: 'bright', legacy: 'kept' } },
-        { id: 3, grid: [0, 1, 0], typeId: 'studio', attributes: { occupancy: 4 } },
-        { id: 4, grid: [5, 5, 0], typeId: 'kiosk', attributes: {} },
+        { id: 1, position: [0, 0, 0], function: 'gallery', custom: { daylight: 'high', public: true } },
+        { id: 2, position: [1, 0, 0], function: 'gallery', custom: { daylight: 'bright', legacy: 'kept' } },
+        { id: 3, position: [0, 1, 0], function: 'studio', custom: { occupancy: 4 } },
+        { id: 4, position: [5, 5, 0], function: 'kiosk', custom: {} },
       ],
       edges: [
-        { id: 1, source: 1, target: 2, kind: 'access', attributes: { width: 0.9 } },
-        { id: 2, source: 1, target: 3, kind: 'open', attributes: {} },
+        { id: 1, source: 1, target: 2, relationship: 'access', custom: { width: 0.9 } },
+        { id: 2, source: 1, target: 3, relationship: 'open', custom: {} },
       ],
       diagram: { positions: { 1: [0, 0] } },
     }),

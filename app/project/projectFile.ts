@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { fail, ok, type Issue, type IssuePath, type Result } from '@core/graph';
 import { savedCameraSchema, type CameraPose, type SavedCamera } from '@core/viewer/three/camera';
-import { type DesignDocumentV2, formatIssuePath, idSchema, readDesign, serializeDesignV2 } from '@app/document';
+import { type DesignDocumentV2, formatIssuePath, formatJson, idSchema, readDesign, serializeDesignV2 } from '@app/document';
 import { facePreferencesSchema, type FacePreferences } from '@app/spatial';
 import {
   DEFAULT_DISPLAY,
@@ -108,7 +108,7 @@ export interface ProjectSettings {
   readonly calculatedFields?: readonly string[];
   /**
    * Project functions (optional, UI refinement 2026-11-17): node types added in the browser, beside
-   * the toolkit's `types/`. Each is `{id (a document typeId), label}`; no façade or attributes
+   * the toolkit's `functions/`. Each is `{id (a node's `function`), label}`; no façade or attributes
    * of their own (the fallback façade and colour apply). A function whose id the toolkit also
    * defines is ignored (the code definition wins). Absent = none; written only when set.
    */
@@ -136,7 +136,7 @@ export interface ProjectSettings {
 
 /** A project function: a node type defined in the project file (`settings.functions`). */
 export interface ProjectFunction {
-  /** The document `typeId`: lowercase letters, digits and "-", starting with a letter. Never changes. */
+  /** The document `function`: lowercase letters, digits and "-", starting with a letter. Never changes. */
   readonly id: string;
   /** Display name. */
   readonly label: string;
@@ -314,7 +314,7 @@ export function readProjectFile(input: unknown): ProjectResult<ProjectFileV2> {
       } else if (preference.nodeId !== edge.source && preference.nodeId !== edge.target) {
         // A preference names a face of one of the edge's own rooms (CONTRACTS-V3 §4); anything else is corrupt input.
         issues.push(projectIssue([...path, 'nodeId'], 'invalid-preference', `face preference for edge "${edgeId}" names room "${preference.nodeId}", which is not one of its two rooms`));
-      } else if (edge.kind !== 'access') {
+      } else if (edge.relationship !== 'access') {
         issues.push(projectIssue(path, 'invalid-preference', `face preference for edge "${edgeId}", but preferred walls apply to Access relationships only`));
       }
     }
@@ -480,7 +480,7 @@ export function serializeProjectFile(file: ProjectFileV2): string {
     settings: canonicalSettings(file.settings),
     assets: projectAssetsOf(facadeAssetsOf(file.assets)),
   };
-  return `${JSON.stringify(canonical, null, 2)}\n`;
+  return `${formatJson(canonical)}\n`;
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -13,8 +13,8 @@ function design(): DesignDocumentV2 {
       metadata: { name: 'styles' },
       // low = 1 (ground), high = 2 (storey 2)
       nodes: [
-        { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
-        { id: 2, grid: [4, 0, 2], size: [1, 1, 1], typeId: 'gallery' },
+        { id: 1, position: [0, 0, 0], size: [1, 1, 1], function: 'gallery' },
+        { id: 2, position: [4, 0, 2], size: [1, 1, 1], function: 'gallery' },
       ],
       edges: [],
     }),

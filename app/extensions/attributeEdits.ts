@@ -69,7 +69,7 @@ export type SchemaEdit =
   | { readonly type: 'delete-field'; readonly collection: AttributeCollection; readonly fieldId: string }
   | { readonly type: 'move-field'; readonly collection: AttributeCollection; readonly fieldId: string; readonly toIndex: number }
   /** `value: null` removes the type default (the schema default applies again). */
-  | { readonly type: 'set-type-default'; readonly typeId: string; readonly fieldId: string; readonly value: DefaultValue | null };
+  | { readonly type: 'set-type-default'; readonly function: string; readonly fieldId: string; readonly value: DefaultValue | null };
 
 export type EditOutcome =
   | { readonly ok: true; readonly schema: ProjectAttributeSchema; readonly label: string; readonly fieldId?: string }
@@ -80,8 +80,8 @@ export interface DesignSample {
   readonly id: string;
   /** Human name, e.g. "two-storey-example (open)". */
   readonly label: string;
-  readonly nodes: readonly { readonly id: number; readonly typeId: string; readonly attributes: { readonly [key: string]: AttributeValue } }[];
-  readonly edges: readonly { readonly id: number; readonly attributes: { readonly [key: string]: AttributeValue } }[];
+  readonly nodes: readonly { readonly id: number; readonly function: string; readonly custom: { readonly [key: string]: AttributeValue } }[];
+  readonly edges: readonly { readonly id: number; readonly custom: { readonly [key: string]: AttributeValue } }[];
 }
 
 export interface EditContext {
@@ -149,10 +149,10 @@ export function fieldUsage(field: AttributeField, collection: AttributeCollectio
   for (const design of designs) {
     let count = 0;
     for (const item of design[collection]) {
-      const key = storedKeyOf(field, item.attributes);
+      const key = storedKeyOf(field, item.custom);
       if (key === undefined) continue;
       count++;
-      if (item.attributes[key] !== null) values.push(item.attributes[key]);
+      if (item.custom[key] !== null) values.push(item.custom[key]);
     }
     if (count > 0) entries.push({ designId: design.id, label: design.label, count });
   }
@@ -174,7 +174,7 @@ const preview = (values: readonly unknown[]) =>
 function invalidTypeDefaults(schema: ProjectAttributeSchema, candidate: AttributeField): string[] {
   return Object.entries(schema.nodeTypeDefaults)
     .filter(([, defaults]) => Object.prototype.hasOwnProperty.call(defaults, candidate.id) && checkFieldValue(candidate, defaults[candidate.id]) !== 'ok')
-    .map(([typeId]) => typeId);
+    .map(([functionId]) => functionId);
 }
 
 /** Refusal text if `candidate` would invalidate defaults or known stored values, else null. */
@@ -318,7 +318,7 @@ export function applySchemaEdit(schema: ProjectAttributeSchema, edit: SchemaEdit
       const nodeTypeDefaults =
         collection === 'nodes'
           ? Object.fromEntries(
-              Object.entries(schema.nodeTypeDefaults).map(([typeId, d]) => [typeId, Object.fromEntries(Object.entries(d).filter(([id]) => id !== fieldId))]),
+              Object.entries(schema.nodeTypeDefaults).map(([functionId, d]) => [functionId, Object.fromEntries(Object.entries(d).filter(([id]) => id !== fieldId))]),
             )
           : schema.nodeTypeDefaults;
       return finish(
@@ -340,19 +340,19 @@ export function applySchemaEdit(schema: ProjectAttributeSchema, edit: SchemaEdit
     }
 
     case 'set-type-default': {
-      const { typeId, fieldId, value } = edit;
+      const { function: functionId, fieldId, value } = edit;
       const field = findField(schema, 'nodes', fieldId);
       if (!field) return refuse(`there is no node field with id "${fieldId}"`);
-      const current = schema.nodeTypeDefaults[typeId] ?? {};
-      if (value !== null && checkFieldValue(field, value) !== 'ok') return refuse(`the default for “${typeId}” must be ${describeField(field)}`);
+      const current = schema.nodeTypeDefaults[functionId] ?? {};
+      if (value !== null && checkFieldValue(field, value) !== 'ok') return refuse(`the default for “${functionId}” must be ${describeField(field)}`);
       const nextDefaults = { ...current };
       if (value === null) {
-        if (!Object.prototype.hasOwnProperty.call(current, fieldId)) return refuse(`type “${typeId}” has no own default for “${field.key}”`);
+        if (!Object.prototype.hasOwnProperty.call(current, fieldId)) return refuse(`type “${functionId}” has no own default for “${field.key}”`);
         delete nextDefaults[fieldId];
       } else nextDefaults[fieldId] = value;
       return finish(
-        { ...schema, nodeTypeDefaults: { ...schema.nodeTypeDefaults, [typeId]: nextDefaults } },
-        value === null ? `Remove the “${typeId}” default of “${field.key}”` : `Set the “${typeId}” default of “${field.key}”`,
+        { ...schema, nodeTypeDefaults: { ...schema.nodeTypeDefaults, [functionId]: nextDefaults } },
+        value === null ? `Remove the “${functionId}” default of “${field.key}”` : `Set the “${functionId}” default of “${field.key}”`,
         field.id,
       );
     }

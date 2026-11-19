@@ -9,13 +9,13 @@ export function threeRoomsRaw() {
     schemaVersion: 2,
     metadata: { name: 'Three rooms' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: {} },
-      { id: 2, grid: [1, 0, 0], typeId: 'studio', attributes: {} },
-      { id: 3, grid: [0, 0, 1], typeId: 'gallery', attributes: {} },
+      { id: 1, position: [0, 0, 0], function: 'gallery', custom: {} },
+      { id: 2, position: [1, 0, 0], function: 'studio', custom: {} },
+      { id: 3, position: [0, 0, 1], function: 'gallery', custom: {} },
     ],
     edges: [
-      { id: 1, source: 1, target: 2, kind: 'access', attributes: {} },
-      { id: 2, source: 1, target: 3, kind: 'open', attributes: {} },
+      { id: 1, source: 1, target: 2, relationship: 'access', custom: {} },
+      { id: 2, source: 1, target: 3, relationship: 'open', custom: {} },
     ],
     diagram: { positions: { 1: [20, 80], 2: [180, 80], 3: [100, 0] } },
   } as Record<string, unknown> & {
@@ -52,10 +52,10 @@ export function v2Raw() {
     schemaVersion: 2,
     metadata: { name: 'v2' },
     nodes: [
-      { id: 1, grid: [0, 0, 0], size: [2, 3, 1], typeId: 'gallery', attributes: {} },
-      { id: 2, grid: [5, 0, 0], typeId: 'studio' },
+      { id: 1, position: [0, 0, 0], size: [2, 3, 1], function: 'gallery', custom: {} },
+      { id: 2, position: [5, 0, 0], function: 'studio' },
     ],
-    edges: [{ id: 1, source: 1, target: 2, kind: 'access' }],
+    edges: [{ id: 1, source: 1, target: 2, relationship: 'access' }],
     diagram: { positions: { 1: [0, 0], 2: [100, 0] } },
   } as Record<string, unknown> & { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
 }
