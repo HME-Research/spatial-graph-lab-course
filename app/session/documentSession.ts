@@ -1,5 +1,4 @@
-import type { GraphIssue } from '@app/document';
-import { nextDisplayId, nodeLabel, relationshipLabel, type DesignDocumentV2 } from '@app/document/v2';
+import { type DesignDocumentV2, type GraphIssue, nextDisplayId, nodeLabel, relationshipLabel } from '@app/document';
 import { applyDesignCommand, type DesignCommand } from '@app/spatial';
 import { createHistory, record, redo, undo, type History } from './history';
 

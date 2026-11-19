@@ -1,4 +1,4 @@
-import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesign, type DesignDocumentV2 } from '@app/document';
 import type { ProjectFileV2 } from '@app/project';
 import { newProjectFromDesign } from './projectStore';
 

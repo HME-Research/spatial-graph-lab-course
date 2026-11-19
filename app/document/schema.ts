@@ -6,7 +6,7 @@ import {
   idSchema,
   metadataSchema,
   typeIdSchema,
-} from '../primitives';
+} from './primitives';
 import {
   CONNECTOR_STYLES,
   DEFAULT_ROOM_SIZE,
@@ -24,7 +24,7 @@ import {
  * Design document schema v2 — FROZEN Gate 0 contract (structure only; graph and footprint
  * invariants live in validate.ts). See docs/CONTRACTS-V2.md.
  *
- * - Node `id` is the permanent identity (unchanged from v1). `displayId` is a short, optional,
+ * - Node `id` is the permanent identity. `displayId` is a short, optional,
  *   user-facing label (e.g. "01"), stored independently and never derived from array order at
  *   render time.
  * - `grid` is the room's MINIMUM corner cell [x, y, z] (z up); `size` is [sx, sy, sz], positive

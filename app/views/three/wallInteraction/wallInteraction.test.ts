@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { buildPlan, planSourceV2, resolveBuildingFaces } from '@app/building';
-import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesign, type DesignDocumentV2 } from '@app/document';
 import { applyScenarioCommand, resolveWithPreferences, type DesignPort } from '@app/spatial';
 import {
   addRelationshipCommand,

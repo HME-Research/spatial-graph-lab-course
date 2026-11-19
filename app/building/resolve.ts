@@ -1,4 +1,4 @@
-import type { RelationshipKind, RoomContact } from '@app/document/v2';
+import type { RelationshipKind, RoomContact } from '@app/document';
 import type { ConnectionCondition, FaceDirection, FaceOrientation } from './contracts';
 
 /**

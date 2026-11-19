@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { serializeDesignV2 } from '@app/document/v2';
+import { serializeDesignV2 } from '@app/document';
 import { BUILT_IN_METRICS, createMetricEvaluator, type ComputedMetric } from '@app/metrics';
 import { metricCtx, metricsLabDoc } from '@app/metrics/test-fixtures';
 import { projectFromLegacyDesign, serializeProjectFile } from '@app/project';

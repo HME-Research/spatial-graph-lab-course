@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { base64ToBytes, bytesToBase64, sha256Hex } from './binary';
-import { FACADE_VARIANTS, type FacadeVariantKind } from '@app/document/v2';
+import { FACADE_VARIANTS, type FacadeVariantKind } from '@app/document';
 import { METRES_PER_UNIT, type ComponentGroup, type FacadeComponent, type SourceOutward, type SourceUnit } from './facadeAdapter';
 
 /**

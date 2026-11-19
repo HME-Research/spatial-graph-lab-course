@@ -3,8 +3,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import exampleDesign from '../../document/test-designs/two-storey.json';
 import { expectOk } from '@app/document/test-fixtures';
-import { readDesignJson, serializeDesignV2, validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
-import { v2Raw } from '@app/document/v2/test-fixtures';
+import { readDesignJson, serializeDesignV2, validateDocumentV2, type DesignDocumentV2 } from '@app/document';
+import { v2Raw } from '@app/document/test-fixtures';
 import { applyDesignCommand, resolveRelationships, type EdgeResolution, type SpatialResolution } from '@app/spatial';
 import { circleBorderPoint, circleSegment, resolveDiagramPositions, suggestFreeCellV2 } from './diagram';
 import {

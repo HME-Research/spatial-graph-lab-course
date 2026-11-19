@@ -1,4 +1,4 @@
-import type { DesignDocumentV2 } from '@app/document/v2';
+import type { DesignDocumentV2 } from '@app/document';
 import { EMPTY_ATTRIBUTE_SCHEMA, makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import { formatProjectIssues, readProjectFile, serializeProjectFile, type ProjectFileV2, type ProjectIssue } from '@app/project';
 import type { KeyValueStorage } from '@app/session/projectAttributeStore';

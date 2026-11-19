@@ -1,4 +1,4 @@
-import type { ConnectorStyle, RelationshipKind } from '@app/document/v2';
+import type { ConnectorStyle, RelationshipKind } from '@app/document';
 import type { ResolutionStatus, UnresolvedReason } from '@app/spatial';
 import { SELECTION_COLOR } from '@core/viewer/appearance';
 

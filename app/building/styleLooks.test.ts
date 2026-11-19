@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { expectIssue, expectOk } from '@app/document/test-fixtures';
-import { validateDocumentV2, type DesignDocumentV2, type StyleSetup } from '@app/document/v2';
+import { validateDocumentV2, type DesignDocumentV2, type StyleSetup } from '@app/document';
 import { applyDesignCommand, type DesignCommand } from '@app/spatial';
 import { buildBuildingV2 } from './buildingV2';
 

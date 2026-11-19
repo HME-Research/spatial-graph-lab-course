@@ -1,5 +1,4 @@
-import { functionStyleSettings } from '@app/document/v2';
-import { functionLooks } from '@app/document/v2';
+import { functionLooks, functionStyleSettings } from '@app/document';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   createFacadeAsset,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { bandIndex } from '@app/document/v2';
+import { bandIndex } from '@app/document';
 import { bandStep, bandTrackRange, formatNumber, wholeNumbers, withAddedDivider, type StyleAttribute } from './designerModel';
 
 /** At most this many dividers (the format allows 20). */

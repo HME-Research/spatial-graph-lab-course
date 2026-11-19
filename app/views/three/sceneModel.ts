@@ -1,5 +1,4 @@
-import type { GridCoord } from '@app/document';
-import type { RelationshipEdge, RelationshipKind, RoomNode } from '@app/document/v2';
+import type { GridCoord, RelationshipEdge, RelationshipKind, RoomNode } from '@app/document';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '@core/viewer/coordinates';
 import type { Bounds, Framing, GroundGrid } from '@core/viewer/three/viewport';
 

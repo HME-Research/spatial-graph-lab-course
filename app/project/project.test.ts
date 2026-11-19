@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesign, type DesignDocumentV2 } from '@app/document';
 import { makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import twoStorey from '../document/test-designs/two-storey.json';
 import {

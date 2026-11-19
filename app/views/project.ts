@@ -1,5 +1,5 @@
 import type { FacadeProvider, FacadeSpec } from '@app/building';
-import type { DesignDocumentV2 } from '@app/document/v2';
+import type { DesignDocumentV2 } from '@app/document';
 
 /** Only node ids and types are read. */
 type TypedNodes = Pick<DesignDocumentV2, 'nodes'>;

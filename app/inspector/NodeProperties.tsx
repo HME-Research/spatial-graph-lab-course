@@ -2,7 +2,7 @@ import { HelpTip } from '@app/ui/help';
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { CustomAttributes, ManageAttributesLink } from '@app/attributes/CustomAttributes';
 import { ManageFunctionsContext, OpenAttributesContext } from '@app/attributes/navigation';
-import { MAX_ROOM_SIZE, nodeLabel, type RoomNode } from '@app/document/v2';
+import { MAX_ROOM_SIZE, nodeLabel, type RoomNode } from '@app/document';
 import { findNodeType } from '@app/extensions';
 import { nodeTypeStatus } from '@app/views/project';
 import { formatGrid, nextFreeId } from '@app/views/graph2d/diagram';

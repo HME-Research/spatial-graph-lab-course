@@ -1,5 +1,4 @@
-import { fail, issue, ok, type Result } from '@app/document';
-import type { DesignDocumentV2 } from '@app/document/v2';
+import { type DesignDocumentV2, fail, issue, ok, type Result } from '@app/document';
 import { applyDesignCommand, type DesignCommand, type DesignCommandOptions, type NewRelationship } from './commands';
 import {
   checkFacePreference,

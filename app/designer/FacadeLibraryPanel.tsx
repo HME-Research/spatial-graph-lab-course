@@ -11,7 +11,7 @@ import {
   type SourceUnit,
 } from '@app/assets';
 import type { ImportFacadeResult } from '@app/assets/importFacade';
-import { FACADE_PLACEMENTS, type FacadePlacement } from '@app/document/v2';
+import { FACADE_PLACEMENTS, type FacadePlacement } from '@app/document';
 import { CollapsibleSection } from '@app/ui';
 import { FACADE_PLACEMENT_HELP, FACADE_PLACEMENT_LABELS } from './designerModel';
 import { FacadeMaterialsDialog } from './FacadeMaterialsDialog';

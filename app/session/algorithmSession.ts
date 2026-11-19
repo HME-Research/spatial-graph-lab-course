@@ -1,5 +1,4 @@
-import type { AttributeValue, Attributes, GridCoord } from '@app/document';
-import { relationshipLabel, type DesignDocumentV2 } from '@app/document/v2';
+import { type Attributes, type AttributeValue, type DesignDocumentV2, type GridCoord, relationshipLabel } from '@app/document';
 
 export { relationshipLabel };
 import {

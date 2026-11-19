@@ -1,7 +1,7 @@
 /** Shared helpers for Properties tests (imported by *.test.ts only). */
 import type { GridCoord } from '@core/spatial';
 import { expectOk } from '@app/document/test-fixtures';
-import { footprintsOverlap, validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
+import { footprintsOverlap, validateDocumentV2, type DesignDocumentV2 } from '@app/document';
 import {
   applyDesignCommand,
   buildOccupancy,

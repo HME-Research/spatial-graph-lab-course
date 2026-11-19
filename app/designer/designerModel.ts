@@ -36,7 +36,7 @@ import {
   type RoofStyle,
   type WindowLayout,
   type WallStyle,
-} from '@app/document/v2';
+} from '@app/document';
 import { EMPTY_ATTRIBUTE_SCHEMA, findNodeType, type ActiveToolkit, type ProjectAttributeSchema } from '@app/extensions';
 import { METRIC_CATALOGUE, type EnabledMetricIds } from '@app/metrics';
 import type { DesignCommand, LookPatch, SpatialResolution } from '@app/spatial';

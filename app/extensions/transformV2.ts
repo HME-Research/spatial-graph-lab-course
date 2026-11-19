@@ -1,24 +1,22 @@
 import {
+  type AttributeValue,
   DEFAULT_LIMITS,
+  type DesignDocumentV2,
+  footprintCells,
   formatIssuePath,
+  type GridCoord,
   gridKey,
   gridSchema,
   idSchema,
-  unorderedPairKey,
-  type AttributeValue,
-  type GridCoord,
-} from '@app/document';
-import {
-  footprintCells,
   nextDisplayId,
   RELATIONSHIP_KINDS,
-  sizeSchema,
-  validateDocumentV2,
-  type DesignDocumentV2,
   type RelationshipKind,
   type RoomNode,
   type RoomSize,
-} from '@app/document/v2';
+  sizeSchema,
+  unorderedPairKey,
+  validateDocumentV2,
+} from '@app/document';
 import { resolveRelationships } from '@app/spatial';
 import type { SpatialOperation } from '@student-api';
 import type { ActiveToolkit, RegisteredNodeType } from './activate';

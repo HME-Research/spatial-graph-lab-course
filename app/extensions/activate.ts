@@ -1,6 +1,5 @@
 import type { ZodType } from 'zod';
-import type { Result } from '@app/document';
-import { readDesignJson, type DesignDocumentV2 } from '@app/document/v2';
+import { type DesignDocumentV2, readDesignJson, type Result } from '@app/document';
 import type { GraphAlgorithm, NodeTypeDefinition, ToolkitDefinition, SpatialAlgorithm } from '@student-api';
 import {
   algorithmDefinitionSchema,

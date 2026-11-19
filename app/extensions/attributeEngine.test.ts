@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readDesign, readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesign, readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document';
 import { applyDesignCommand } from '@app/spatial';
 import { defineNodeType, defineToolkit, defineSpatialAlgorithm, type SpatialOperation } from '@student-api';
 import { applySchemaEdit, type SchemaEdit } from './attributeEdits';

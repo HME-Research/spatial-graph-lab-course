@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateDocumentV2, serializeDesignV2 } from '@app/document/v2';
+import { validateDocumentV2, serializeDesignV2 } from '@app/document';
 import { exampleFacadeProvider } from '@app/building';
 import { expectOk } from '@app/document/test-fixtures';
 import { typeColor } from '@core/viewer/appearance';

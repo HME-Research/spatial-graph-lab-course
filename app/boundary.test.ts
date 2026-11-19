@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 /**
  * Application layering (automated architectural check, not an access-control mechanism):
  *
- * - `document/` (v1 design document and the schema-v2 contract in `document/v2/`): pure; may
+ * - `document/` (the schema-v2 design document: primitives, schema, validation, reading/writing): pure; may
  *   import core/graph and core/spatial only.
  * - `spatial/` (v2 relationship resolution, occupancy, spatial edits, v2 commands): pure; may
  *   import `document/`, core/graph and core/spatial only.
@@ -127,11 +127,11 @@ describe('application layering', () => {
 
   it('flags upward, UI and escaping imports (self-check)', () => {
     expect(violation('./document/x.ts', '@app/building')).not.toBeNull();
-    expect(violation('./document/v2/x.ts', '@app/spatial')).not.toBeNull();
+    expect(violation('./document/x.ts', '@app/spatial')).not.toBeNull();
     expect(violation('./spatial/x.ts', '@app/building')).not.toBeNull();
     expect(violation('./spatial/x.ts', 'three')).not.toBeNull();
     expect(violation('./spatial/x.ts', '@core/viewer/coordinates')).not.toBeNull();
-    expect(violation('./spatial/x.ts', '@app/document/v2')).toBeNull();
+    expect(violation('./spatial/x.ts', '@app/document')).toBeNull();
     expect(violation('./building/x.ts', '@app/spatial')).toBeNull();
     expect(violation('./views/contracts.ts', '@app/spatial')).toBeNull();
     expect(violation('./document/x.ts', '@core/viewer/selection')).not.toBeNull();

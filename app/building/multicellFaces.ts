@@ -1,5 +1,5 @@
 import { FACE_DIRECTIONS, FACE_DIRECTION_OFFSETS, gridKey, neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial';
-import { footprintCells, type ConnectorStyle, type DesignDocumentV2, type RoomNode } from '@app/document/v2';
+import { footprintCells, type ConnectorStyle, type DesignDocumentV2, type RoomNode } from '@app/document';
 import type { EdgeResolution, RoomFace, SpatialResolution } from '@app/spatial';
 import type { FaceCondition, ResolvedFace } from './contracts';
 import { connectionCondition, directionOrientation } from './resolve';

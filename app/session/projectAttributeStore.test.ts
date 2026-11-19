@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesign, type DesignDocumentV2 } from '@app/document';
 import { effectiveNodeValues, schemaSignature, type ActiveToolkit } from '@app/extensions';
 import { labToolkit } from '@app/extensions/test-fixtures';
 import { applyDesignCommandToSession, currentDocument, openDocument, undoDocument } from './documentSession';

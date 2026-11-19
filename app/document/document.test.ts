@@ -1,7 +1,7 @@
 import { functionLooks, functionStyleSettings } from './index';
 import { describe, expect, it } from 'vitest';
-import exampleJson from '../test-designs/two-storey.json?raw';
-import { expectIssue, expectOk } from '../test-fixtures';
+import exampleJson from './test-designs/two-storey.json?raw';
+import { expectIssue, expectOk } from './test-fixtures';
 import {
   effectiveLook,
   styleSetupOf,

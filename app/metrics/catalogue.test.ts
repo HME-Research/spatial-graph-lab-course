@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
+import { serializeDesignV2, type DesignDocumentV2 } from '@app/document';
 import { resolveRelationships, resolveWithPreferences } from '@app/spatial';
 import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 import { METRIC_DEPENDENCIES } from './contracts';

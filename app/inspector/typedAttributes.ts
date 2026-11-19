@@ -1,5 +1,4 @@
-import type { AttributeValue, Attributes } from '@app/document';
-import type { RoomNode } from '@app/document/v2';
+import type { Attributes, AttributeValue, RoomNode } from '@app/document';
 import type { DesignCommand } from '@app/spatial';
 import { checkValue, describeSpec, specFor, type AttributeSpec, type AttributeSpecs, type ValueStatus } from '@app/extensions';
 import { rowsToAttributes, type AttributeRow, type ParseResult } from './inspectorModel';

@@ -1,4 +1,4 @@
-import type { RoomNode } from '@app/document/v2';
+import type { RoomNode } from '@app/document';
 
 /**
  * Read-only accessor for the SYSTEM-backed node fields, so every UI (Properties, Attributes,

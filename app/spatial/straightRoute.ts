@@ -1,5 +1,5 @@
 import { gridKey, type FaceDirection, type GridCoord } from '@core/spatial';
-import { footprintBox, type RoomNode } from '@app/document/v2';
+import { footprintBox, type RoomNode } from '@app/document';
 import type { CellOccupant, RoomFace, UnresolvedReason } from './contracts';
 
 /**

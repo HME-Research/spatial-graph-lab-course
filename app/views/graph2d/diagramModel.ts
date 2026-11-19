@@ -1,5 +1,12 @@
-import type { Attributes, DiagramPosition, GridCoord } from '@app/document';
-import { nodeLabel, type DesignDocumentV2, type RelationshipKind, type RoomSize } from '@app/document/v2';
+import {
+  type Attributes,
+  type DesignDocumentV2,
+  type DiagramPosition,
+  type GridCoord,
+  nodeLabel,
+  type RelationshipKind,
+  type RoomSize,
+} from '@app/document';
 import type { DesignCommand, EdgeResolution, SpatialResolution } from '@app/spatial';
 import { EMPTY_ATTRIBUTE_SCHEMA, viewAttributes, type ProjectAttributeSchema } from '@app/extensions';
 import { formatGrid, nextFreeId, suggestDiagramPosition, suggestFreeCellV2, type DiagramSource } from './diagram';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readDesign, readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesign, readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document';
 import { defineGraphAlgorithm, defineNodeType, defineToolkit, defineSpatialAlgorithm } from '@student-api';
 import exampleV1 from '../document/test-designs/two-storey.json';
 import { activate, type ActiveToolkit } from './activate';

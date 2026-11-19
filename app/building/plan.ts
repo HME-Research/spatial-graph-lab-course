@@ -1,6 +1,6 @@
 import { gridKey, type GridCoord } from '@core/spatial';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize } from '@core/viewer/coordinates';
-import { levelRange, nodeLabel, type DesignDocumentV2, type RoomNode, type StyleValues } from '@app/document/v2';
+import { levelRange, nodeLabel, type DesignDocumentV2, type RoomNode, type StyleValues } from '@app/document';
 import type { SpatialResolution } from '@app/spatial';
 import type { FacadeProvider } from './contracts';
 import { buildingFacesV2 } from './buildingV2';

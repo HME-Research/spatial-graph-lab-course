@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
-import { validateDocumentV2, serializeDesignV2 } from '@app/document/v2';
+import { validateDocumentV2, serializeDesignV2 } from '@app/document';
 import { defineGraphAlgorithm, defineNodeType, defineToolkit } from '@student-api';
 import exampleJson from '../document/test-designs/two-storey.json';
 import { activate, activateToolkit, projectOnlyToolkit, resolveStartupDesign, type Activation } from './activate';

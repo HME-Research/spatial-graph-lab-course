@@ -1,13 +1,16 @@
 import { gridKey } from '@core/spatial';
-import { fail, issue, ok, type Result } from '@app/document';
 import {
+  type DesignDocumentV2,
+  fail,
   footprintCells,
   footprintsOverlap,
-  validateDocumentV2,
-  type DesignDocumentV2,
+  issue,
+  ok,
+  type Result,
   type RoomNode,
+  validateDocumentV2,
   type ValidationOptionsV2,
-} from '@app/document/v2';
+} from '@app/document';
 import type { EdgeImpact, RelationshipResolver, SpatialEditProposal, SpatialEditRequest } from './contracts';
 import { resolveRelationships } from './resolve';
 

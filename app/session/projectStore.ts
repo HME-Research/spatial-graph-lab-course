@@ -1,5 +1,4 @@
-import type { GraphIssue } from '@app/document';
-import { readDesign, relationshipLabel, type DesignDocumentV2 } from '@app/document/v2';
+import { type DesignDocumentV2, type GraphIssue, readDesign, relationshipLabel } from '@app/document';
 import type { DisplayDefaults, DisplayOverrides } from '@app/display/contracts';
 import {
   facadeAssetsOf,

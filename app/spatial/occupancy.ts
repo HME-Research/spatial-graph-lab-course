@@ -1,5 +1,5 @@
 import { gridKey, type GridCoord } from '@core/spatial';
-import { footprintCells, type DesignDocumentV2 } from '@app/document/v2';
+import { footprintCells, type DesignDocumentV2 } from '@app/document';
 import type { CellOccupant, EdgeResolution, Occupancy } from './contracts';
 
 /**

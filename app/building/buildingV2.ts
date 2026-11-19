@@ -1,4 +1,4 @@
-import { nodeLooks, type ConnectorStyle, type DesignDocumentV2, type NodeLook, type StyleValues } from '@app/document/v2';
+import { nodeLooks, type ConnectorStyle, type DesignDocumentV2, type NodeLook, type StyleValues } from '@app/document';
 import { resolveRelationships, type ResolutionStatus, type SpatialResolution, type UnresolvedReason } from '@app/spatial';
 import type { FacadeProvider } from './contracts';
 import type { RoofStyleProvider, WallStyleProvider, WindowLayoutProvider } from './faceLayout';

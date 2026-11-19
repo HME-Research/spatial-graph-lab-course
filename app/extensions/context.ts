@@ -1,7 +1,13 @@
 import { unorderedPairKey } from '@core/graph';
 import { gridKey } from '@core/spatial';
-import { SPATIAL_GRAPH_POLICY, type AttributeValue } from '@app/document';
-import { footprintCells, roomContact, type DesignDocumentV2, type RoomNode } from '@app/document/v2';
+import {
+  type AttributeValue,
+  type DesignDocumentV2,
+  footprintCells,
+  roomContact,
+  type RoomNode,
+  SPATIAL_GRAPH_POLICY,
+} from '@app/document';
 import type {
   AttributeSpecs,
   AttributesOf,

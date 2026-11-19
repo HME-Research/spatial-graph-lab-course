@@ -1,5 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent, type RefObject } from 'react';
-import { RELATIONSHIP_KINDS, type RelationshipKind } from '@app/document/v2';
+import { RELATIONSHIP_KINDS, type RelationshipKind } from '@app/document';
 import type { DiagramModel } from './diagramModel';
 import { placeAtPoint, useDismiss, usePlacement } from './NodePopover';
 import { RELATIONSHIP_KIND_LABELS } from './edgePresentation';

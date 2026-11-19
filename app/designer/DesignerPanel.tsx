@@ -6,7 +6,7 @@ import { useEnabledMetrics } from '@app/views/three/enabledMetrics';
 import { EMPTY_ATTRIBUTE_SCHEMA } from '@app/extensions';
 import { buildingFacesV2, exampleFacadeProvider } from '@app/building';
 import { designUsesFacadeModules, facadeAssetIdsOf, layoutFacadeModules, type FacadeAssetV1 } from '@app/assets';
-import { FACADE_VARIANTS, ROOF_STYLES, WINDOW_LAYOUTS, type FacadeModule, type FacadeVariant, type FacadeVariantKind } from '@app/document/v2';
+import { FACADE_VARIANTS, ROOF_STYLES, WINDOW_LAYOUTS, type FacadeModule, type FacadeVariant, type FacadeVariantKind } from '@app/document';
 import type { DesignPort } from '@app/spatial';
 import type { ProjectViewContext } from '@app/views/project';
 import { typeColor } from '@core/viewer/appearance';

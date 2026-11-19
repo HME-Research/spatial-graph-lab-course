@@ -1,9 +1,9 @@
 import type { core as zcore } from 'zod';
 import { validateGraph, type StructuralIssueCode } from '@core/graph';
 import { gridKey } from '@core/spatial';
-import { DEFAULT_LIMITS, type GraphLimits } from '../constants';
-import { fail, issue, ok, type GraphIssue, type IssueCode, type Result } from '../errors';
-import { SPATIAL_GRAPH_POLICY } from '../graph';
+import { DEFAULT_LIMITS, type GraphLimits } from './limits';
+import { fail, issue, ok, type GraphIssue, type IssueCode, type Result } from './errors';
+import { SPATIAL_GRAPH_POLICY } from './graph';
 import { MAX_ROOM_CELLS, SCHEMA_VERSION_V2 } from './constants';
 import { footprintBox, footprintCellCount, footprintCells } from './footprint';
 import { designDocumentV2Schema, type DesignDocumentV2 } from './schema';
@@ -12,7 +12,7 @@ import { designDocumentV2Schema, type DesignDocumentV2 } from './schema';
  * Validation of schema-v2 documents — FROZEN Gate 0 policy.
  *
  * Graph validity is STRUCTURAL ONLY: ids, endpoints, no self-edges, one relationship per
- * unordered pair (same policy as v1), plus room footprint rules (integer boxes inside the
+ * unordered pair, plus room footprint rules (integer boxes inside the
  * coordinate limits, no overlapping rooms, unique display ids). A relationship between rooms
  * that do not touch is VALID; whether it can be built (direct / routed / unresolved) is derived
  * by app/spatial and is never a validation error.

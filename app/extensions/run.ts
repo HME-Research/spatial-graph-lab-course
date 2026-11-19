@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import { attributeValueSchema, type AttributeValue } from '@app/document';
-import type { DesignDocumentV2 } from '@app/document/v2';
+import { type AttributeValue, attributeValueSchema, type DesignDocumentV2 } from '@app/document';
 import type { SpatialResolution } from '@app/spatial';
 import type { AnalysisResult, AttributeSpecs, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
 import type { ActiveToolkit } from './activate';

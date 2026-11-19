@@ -1,5 +1,5 @@
 import { wallAction, type BuildingFace, type WallAction } from '@app/building';
-import { nodeLabel, type DesignDocumentV2, type RelationshipKind } from '@app/document/v2';
+import { nodeLabel, type DesignDocumentV2, type RelationshipKind } from '@app/document';
 import {
   facePreferenceFor,
   type DesignCommand,

@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import exampleDesign from '../../document/test-designs/two-storey.json';
-import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesign, type DesignDocumentV2 } from '@app/document';
 import { resolveRelationships } from '@app/spatial';
 import { modelFromV2 } from './diagramModel';
 import { checkedEdgeIds, invalidConnectionRows, NO_INVALID_CONNECTIONS, removeInvalidCommand, removeSummary } from './invalidConnections';

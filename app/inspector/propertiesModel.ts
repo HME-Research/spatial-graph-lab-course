@@ -1,5 +1,4 @@
-import type { GraphIssue } from '@app/document';
-import { nodeLabel, type DesignDocumentV2, relationshipLabel } from '@app/document/v2';
+import { type DesignDocumentV2, type GraphIssue, nodeLabel, relationshipLabel } from '@app/document';
 import type { ActiveToolkit } from '@app/extensions';
 import type { SpatialEditProposal } from '@app/spatial';
 import { nodeTypeStatus, type NodeTypeStatus } from '@app/views/project';

@@ -1,7 +1,7 @@
 import type { GridCoord } from '@core/spatial';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize } from '@core/viewer/coordinates';
 import { AXIS_INDEX, type GizmoAxis, type GizmoMode, type GizmoSide } from '@core/viewer/three/gizmoMath';
-import { MAX_ROOM_SIZE, type RoomSize } from '@app/document/v2';
+import { MAX_ROOM_SIZE, type RoomSize } from '@app/document';
 
 /**
  * Integer room placement used by the 3D editing adapter (pure). A room is its minimum-corner cell

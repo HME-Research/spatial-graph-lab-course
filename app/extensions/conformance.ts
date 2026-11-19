@@ -1,6 +1,5 @@
 import { exampleFacadeProvider, type FacadeSpec } from '@app/building';
-import type { AttributeValue } from '@app/document';
-import type { DesignDocumentV2 } from '@app/document/v2';
+import type { AttributeValue, DesignDocumentV2 } from '@app/document';
 import { typeColor } from '@core/viewer/appearance';
 import type { ActiveToolkit, RegisteredNodeType } from './activate';
 import { diagnostic, isBlocking, type ExtensionDiagnostic } from './diagnostics';

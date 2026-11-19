@@ -1,5 +1,4 @@
-import type { DiagramPosition, GridCoord } from '@app/document';
-import { footprintBox, type DesignDocumentV2 } from '@app/document/v2';
+import { type DesignDocumentV2, type DiagramPosition, footprintBox, type GridCoord } from '@app/document';
 import type { Occupancy } from '@app/spatial';
 
 /**

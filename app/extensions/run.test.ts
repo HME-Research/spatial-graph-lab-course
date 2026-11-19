@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LIMITS } from '@app/document';
+import { DEFAULT_LIMITS, type DesignDocumentV2, serializeDesignV2, validateDocumentV2 } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
-import { validateDocumentV2, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
 import {
   defineGraphAlgorithm,
   defineNodeType,

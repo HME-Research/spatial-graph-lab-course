@@ -1,5 +1,5 @@
 import { FACE_DIRECTION_OFFSETS, neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial';
-import type { ConnectorStyle } from '@app/document/v2';
+import type { ConnectorStyle } from '@app/document';
 import type { ConnectorRoute, Occupancy } from '@app/spatial';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '@core/viewer/coordinates';
 import { selectEdge, type Selection } from '@core/viewer/selection';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { serializeDesignV2 } from '@app/document/v2';
+import { serializeDesignV2 } from '@app/document';
 import { fileOf, fixtureIds, twoRooms } from './projectStore.fixtures';
 import { makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import { projectFromLegacyDesign, readProjectFile, serializeProjectFile } from '@app/project';

@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyDesignCommand } from '@app/spatial';
-import { validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
+import { type DesignDocumentV2, idSchema, validateDocumentV2 } from '@app/document';
 import exampleDesign from '../../document/test-designs/two-storey.json';
-import { idSchema } from '@app/document';
 import { expectOk, threeRooms, threeRoomsRaw } from '@app/document/test-fixtures';
 import {
   nextFreeId,

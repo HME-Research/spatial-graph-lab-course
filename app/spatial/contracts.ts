@@ -1,12 +1,5 @@
 import type { GridCoord } from '@core/spatial';
-import type { GraphIssue } from '@app/document';
-import type {
-  ConnectorStyle,
-  DesignDocumentV2,
-  RelationshipKind,
-  RoomSize,
-  SharedFace,
-} from '@app/document/v2';
+import type { ConnectorStyle, DesignDocumentV2, GraphIssue, RelationshipKind, RoomSize, SharedFace } from '@app/document';
 
 /**
  * Spatial relationship resolution, occupancy and spatial edits — FROZEN Gate 0 contract

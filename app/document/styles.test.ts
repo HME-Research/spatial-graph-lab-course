@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { expectIssue, expectOk } from '../test-fixtures';
+import { expectIssue, expectOk } from './test-fixtures';
 import {
   bandIndex,
   effectiveLook,

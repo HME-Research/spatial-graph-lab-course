@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { expectOk } from '../document/test-fixtures';
-import { serializeDesignV2, validateDocumentV2, type DesignDocumentV2 } from '../document/v2';
-import { v2Raw } from '../document/v2/test-fixtures';
+import { serializeDesignV2, validateDocumentV2, type DesignDocumentV2 } from '../document';
+import { v2Raw } from '../document/test-fixtures';
 import { resolveRelationships } from '../spatial';
 import type { ComputedMetric, MetricContext } from './contracts';
 import { areaMetric, BUILT_IN_METRICS, createMetricEvaluator, degreeMetric } from './registry';

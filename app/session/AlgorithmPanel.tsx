@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import type { DesignDocumentV2 } from '@app/document/v2';
+import type { DesignDocumentV2 } from '@app/document';
 import type { ActiveToolkit, AttributeSpec, ExtensionDiagnostic, TransformationPreviewV2 } from '@app/extensions';
 import { ALGORITHM_GROUP_LABELS, EFFECT_LABELS, groupAlgorithms, presentAlgorithm } from '@app/ui';
 import { HelpTip } from '@app/ui/help';

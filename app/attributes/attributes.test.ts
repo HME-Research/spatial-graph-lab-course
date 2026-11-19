@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { applySchemaEdit, EMPTY_ATTRIBUTE_SCHEMA, resolveNodeAttributes, withProjectFunctions, PROJECT_FUNCTIONS_FILE, type ProjectAttributeSchema, type SchemaEdit } from '@app/extensions';
 import { labToolkit } from '@app/extensions/test-fixtures';
 import { canUndoAttributes, currentSchema, editAttributesBatch, loadAttributeSession, undoAttributes } from '@app/session/projectAttributeStore';
-import { readDesign } from '@app/document/v2';
+import { readDesign } from '@app/document';
 import { readProjectFile, serializeProjectFile } from '@app/project';
 import { fileOf } from '@app/session/projectStore.fixtures';
 import { DEFAULT_ENABLED_METRICS, METRIC_CATALOGUE } from '@app/metrics';

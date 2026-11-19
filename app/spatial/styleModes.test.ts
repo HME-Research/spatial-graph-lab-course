@@ -10,7 +10,7 @@ import {
   suggestDividers,
   validateDocumentV2,
   type DesignDocumentV2,
-} from '@app/document/v2';
+} from '@app/document';
 
 /** S3 (2026-11-19): numbers as value cards OR bands, both remembered; suggested starting bands. */
 

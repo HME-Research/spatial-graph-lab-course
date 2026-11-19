@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateDocumentV2 } from '@app/document/v2';
-import type { Attributes } from '@app/document';
-import type { RoomNode } from '@app/document/v2';
+import { type Attributes, type RoomNode, validateDocumentV2 } from '@app/document';
 import { expectOk, threeRooms } from '@app/document/test-fixtures';
 import example from '../../document/test-designs/two-storey.json';
 import { typeColor } from '@core/viewer/appearance';

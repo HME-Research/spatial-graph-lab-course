@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyDesignCommand } from '@app/spatial';
-import { serializeDesignV2, type RoomNode } from '@app/document/v2';
+import { serializeDesignV2, type RoomNode } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
 import { checkConformance } from '@app/extensions';
 import { galleryType, labDoc, labToolkit, studioType } from '@app/extensions/test-fixtures';

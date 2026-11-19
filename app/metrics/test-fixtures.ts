@@ -1,5 +1,5 @@
 /** Shared metric test fixtures (imported by *.test.ts only). Values are computed by hand in the tests. */
-import { validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
+import { validateDocumentV2, type DesignDocumentV2 } from '@app/document';
 import { resolveRelationships } from '@app/spatial';
 import type { MetricContext } from './contracts';
 

@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { buildBuildingV2, exampleFacadeProvider } from '@app/building';
 import { expectOk } from '@app/document/test-fixtures';
-import { functionLooks, nodeLooks, validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
+import { functionLooks, nodeLooks, validateDocumentV2, type DesignDocumentV2 } from '@app/document';
 import { applyDesignCommand, proposeSpatialEdit, resolveRelationships, type DesignCommand, type DesignPort } from '@app/spatial';
 import { RoomHighlightContext, SetRoomHighlightContext } from '@app/views/roomHighlight';
 import { DesignerPanel } from './DesignerPanel';

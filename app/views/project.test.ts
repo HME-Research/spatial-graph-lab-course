@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { readDesignJson } from '@app/document/v2';
+import { readDesignJson } from '@app/document';
 import { buildArchitecture, EXAMPLE_FACADES, exampleFacadeProvider, resolveBuildingFaces, toResolvedFace } from '@app/building';
 import { resolveRelationships } from '@app/spatial';
 import { expectOk } from '@app/document/test-fixtures';

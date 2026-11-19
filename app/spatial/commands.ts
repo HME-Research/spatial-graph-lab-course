@@ -1,32 +1,37 @@
 import { removeNode as graphRemoveNode } from '@core/graph';
 import type { GridCoord } from '@core/spatial';
-import { fail, issue, SPATIAL_GRAPH_POLICY, type Attributes, type DiagramPosition, type Result } from '@app/document';
 import {
+  type Attributes,
+  bandIndex,
   canonicalFacadeModule,
-  DEFAULT_RELATIONSHIP_KIND,
-  footprintCells,
-  nextDisplayId,
-  validateDocumentV2,
   type ConnectorStyle,
+  DEFAULT_RELATIONSHIP_KIND,
   type DesignDocumentV2,
+  type DiagramPosition,
   type FacadeModule,
+  fail,
+  footprintCells,
+  hasBands,
+  issue,
+  type Look,
+  nextDisplayId,
   type RelationshipKind,
+  type Result,
   type RoofStyle,
   type RoomSize,
-  bandIndex,
-  hasBands,
-  styleValueKey,
-  usesBands,
-  type Look,
+  SPATIAL_GRAPH_POLICY,
   type StyleBy,
   type StyleGroupRef,
   type StyleMode,
   type StyleSetup,
   type StyleValue,
+  styleValueKey,
+  usesBands,
+  validateDocumentV2,
   type ValidationOptionsV2,
-  type WindowLayout,
   type WallStyle,
-} from '@app/document/v2';
+  type WindowLayout,
+} from '@app/document';
 import { commitSpatialEdit, proposeSpatialEdit, type SpatialEditOptions } from './edit';
 import { resolveRelationships } from './resolve';
 

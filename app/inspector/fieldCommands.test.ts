@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readDesign } from '@app/document/v2';
+import { readDesign } from '@app/document';
 import { applySchemaEdit, EMPTY_ATTRIBUTE_SCHEMA, effectiveNodeValues, type ProjectAttributeSchema } from '@app/extensions';
 import { applyDesignCommand, resolveRelationships } from '@app/spatial';
 import { isStale } from '@app/session/algorithmSession';

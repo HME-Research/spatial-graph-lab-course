@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
-import { validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
+import { validateDocumentV2, type DesignDocumentV2 } from '@app/document';
 import { applyScenarioCommand, type ScenarioContent } from '@app/spatial';
 import { canUndo, undoLabel } from './history';
 import {

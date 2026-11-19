@@ -1,4 +1,4 @@
-import { fail, issue, ok, type Result } from '../errors';
+import { fail, issue, ok, type Result } from './errors';
 import { canonicalFacadeModule, type DesignDocumentV2, type Look } from './schema';
 
 /** Canonical look: fixed key order, only fields that are set. */

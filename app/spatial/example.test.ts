@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
-import { serializeDesignV2, validateDocumentV2 } from '@app/document/v2';
+import { serializeDesignV2, validateDocumentV2 } from '@app/document';
 import exampleJson from '../document/examples/house.json';
 import { resolveRelationships } from './resolve';
 

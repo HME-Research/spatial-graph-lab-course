@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readDesignJson, serializeDesignV2 } from '@app/document/v2';
+import { readDesignJson, serializeDesignV2 } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
 import { TOOLKIT_GLOBS } from '@app/extensions';
 import { fakeGlobs, LAB_FILES } from '@app/extensions/test-fixtures';

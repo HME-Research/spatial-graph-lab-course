@@ -3,7 +3,7 @@ import { DEFAULT_CELL_SIZE, type CellSize } from '@core/viewer/coordinates';
 import type { Selection } from '@core/viewer/selection';
 import { snapHint, type GizmoAxis, type GizmoMode, type GizmoSide, type GizmoTone } from '@core/viewer/three/gizmoMath';
 import type { GizmoBox } from '@core/viewer/three/SnappedGizmo';
-import { nodeLabel } from '@app/document/v2';
+import { nodeLabel } from '@app/document';
 import type { DesignPort } from '@app/spatial';
 import {
   beginDrag,

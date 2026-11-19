@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readDesign, readDesignJson, validateDocumentV2 } from '@app/document/v2';
+import { readDesign, readDesignJson, validateDocumentV2 } from '@app/document';
 import { readProjectFile } from '@app/project';
 import exampleJson from './document/examples/house.json';
 
@@ -15,8 +15,10 @@ const SELF = './retiredV1.test.ts';
 
 /** Modules of the retired v1 document and its bridges. */
 const RETIRED_FILES = [
-  /^\.\/document\/(schema|validate|commands|apply|serialize|adjacency)\.ts$/,
-  /^\.\/document\/v2\/migrate\.ts$/,
+  // The v1 command/adjacency modules and the v1→v2 migration; `document/v2/` was flattened into
+  // `document/` once v1 was gone (schema.ts, validate.ts and serialize.ts there are schema v2).
+  /^\.\/document\/(commands|apply|adjacency|migrate)\.ts$/,
+  /^\.\/document\/v2\//,
   /^\.\/document\/examples\/two-storey-example\.json$/,
   /^\.\/session\/legacyBridge\.ts$/,
   /^\.\/extensions\/transform\.ts$/,

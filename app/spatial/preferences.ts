@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { FACE_DIRECTIONS, FACE_DIRECTION_OFFSETS, neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial';
-import { idSchema } from '@app/document';
-import { footprintContains, type DesignDocumentV2, type RelationshipEdge, type SharedFace } from '@app/document/v2';
+import { type DesignDocumentV2, footprintContains, idSchema, type RelationshipEdge, type SharedFace } from '@app/document';
 import type { EdgeResolution, SpatialResolution } from './contracts';
 import { resolveRelationships } from './resolve';
 

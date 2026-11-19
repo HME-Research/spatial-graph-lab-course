@@ -1,4 +1,4 @@
-import type { DesignDocumentV2 } from '@app/document/v2';
+import type { DesignDocumentV2 } from '@app/document';
 import { defaultMetricEvaluator, type CatalogueMetric, type MetricContext, type MetricEvaluator } from '@app/metrics';
 import { resolveRelationships, type SpatialResolution } from '@app/spatial';
 import type { MetricInfo, MetricReader } from '@student-api';

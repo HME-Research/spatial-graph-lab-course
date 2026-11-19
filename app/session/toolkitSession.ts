@@ -1,4 +1,4 @@
-import type { DesignDocumentV2 } from '@app/document/v2';
+import type { DesignDocumentV2 } from '@app/document';
 import {
   activate,
   discoverToolkits,

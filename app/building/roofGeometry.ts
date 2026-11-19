@@ -1,4 +1,4 @@
-import type { RoofStyle } from '@app/document/v2';
+import type { RoofStyle } from '@app/document';
 import type { BuildingFace } from './multicellFaces';
 
 /**

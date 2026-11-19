@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import exampleJson from '../document/test-designs/two-storey.json';
-import { validateDocumentV2, type DesignDocumentV2, type RelationshipKind } from '@app/document/v2';
+import { validateDocumentV2, type DesignDocumentV2, type RelationshipKind } from '@app/document';
 import { resolveRelationships } from '@app/spatial';
 import { expectOk } from '@app/document/test-fixtures';
 import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';

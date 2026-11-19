@@ -1,4 +1,4 @@
-import type { ConnectorStyle, RelationshipKind } from '@app/document/v2';
+import type { ConnectorStyle, RelationshipKind } from '@app/document';
 import type { EdgeResolution, ResolutionStatus, SpatialResolution } from '@app/spatial';
 import {
   CONNECTOR_PRESENTATION,

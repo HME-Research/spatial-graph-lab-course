@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
-import { validateDocumentV2 } from '@app/document/v2';
+import { issue, validateDocumentV2 } from '@app/document';
 import { resolveRelationships, type EdgeResolution, type SpatialResolution, type UnresolvedReason } from '@app/spatial';
-import { issue } from '@app/document';
 import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 import { SELECTION_COLOR } from '@core/viewer/appearance';
 import { HORIZONTAL_EDGE_COLOR, VERTICAL_EDGE_COLOR } from '../three/edgeStyle';

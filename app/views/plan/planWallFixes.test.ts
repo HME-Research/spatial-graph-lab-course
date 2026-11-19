@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import exampleJson from '../../document/test-designs/two-storey.json';
 import { expectOk } from '@app/document/test-fixtures';
-import { readDesign } from '@app/document/v2';
+import { readDesign } from '@app/document';
 import { resolveRelationships, type DesignPort } from '@app/spatial';
 import { NO_SELECTION } from '@core/viewer/selection';
 import { PlanView } from './PlanView';

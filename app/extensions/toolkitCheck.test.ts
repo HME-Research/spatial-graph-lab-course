@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type DesignDocumentV2, validateDocumentV2 } from '@app/document/v2';
+import { type DesignDocumentV2, validateDocumentV2 } from '@app/document';
 import exampleDesign from '../document/test-designs/two-storey.json';
 import { activateToolkit, type ActiveToolkit } from './activate';
 import { checkConformance } from './conformance';

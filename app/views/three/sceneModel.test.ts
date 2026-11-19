@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DesignDocumentV2, RelationshipEdge, RoomNode } from '@app/document/v2';
+import type { DesignDocumentV2, RelationshipEdge, RoomNode } from '@app/document';
 import { threeRooms } from '@app/document/test-fixtures';
 import { DEFAULT_CELL_SIZE, spatialToThree } from '@core/viewer/coordinates';
 import {

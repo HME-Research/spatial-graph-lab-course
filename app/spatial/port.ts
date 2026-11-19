@@ -1,5 +1,4 @@
-import type { GraphIssue } from '@app/document';
-import type { DesignDocumentV2 } from '@app/document/v2';
+import type { DesignDocumentV2, GraphIssue } from '@app/document';
 import type { DesignCommand } from './commands';
 import type { SpatialEditProposal, SpatialEditRequest, SpatialResolution } from './contracts';
 import type { ScenarioCommand } from './scenario';

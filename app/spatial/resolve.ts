@@ -7,7 +7,7 @@ import {
   sharedFaces,
   type RelationshipEdge,
   type RoomNode,
-} from '@app/document/v2';
+} from '@app/document';
 import type { CellOccupant, EdgeResolution, Occupancy, RelationshipResolver, SpatialResolution } from './contracts';
 import { findStraightRoute } from './straightRoute';
 

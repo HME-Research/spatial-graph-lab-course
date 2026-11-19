@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { BoxGeometry, CylinderGeometry, EdgesGeometry, Quaternion, Vector3 } from 'three';
-import type { RelationshipEdge, RoomNode } from '@app/document/v2';
+import type { RelationshipEdge, RoomNode } from '@app/document';
 import type { DesignPort } from '@app/spatial';
 import { SELECTION_COLOR } from '@core/viewer/appearance';
 import { DEFAULT_CELL_SIZE, spatialToThree, type WorldPoint } from '@core/viewer/coordinates';

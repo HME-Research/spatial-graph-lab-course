@@ -1,5 +1,5 @@
 import type { GizmoAxis, GizmoMode, GizmoSide, GizmoTone } from '@core/viewer/three/gizmoMath';
-import { nodeLabel, type DesignDocumentV2, relationshipLabel } from '@app/document/v2';
+import { nodeLabel, type DesignDocumentV2, relationshipLabel } from '@app/document';
 import type { DesignPort, SpatialEditProposal } from '@app/spatial';
 import { applyAxisSteps, formatGrid, formatSize, sameGeometry, type RoomGeometry } from './roomGeometry';
 

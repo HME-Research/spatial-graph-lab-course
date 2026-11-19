@@ -13,7 +13,7 @@ import {
   type StyleBy,
   type StyleGroupRef,
   type StyleSetup,
-} from '@app/document/v2';
+} from '@app/document';
 import { placeComponent, targetFromFaceFrame, targetFromWallRun, type ComponentSize } from './facadeAdapter';
 
 /**

@@ -1,8 +1,7 @@
 import { z } from 'zod';
 import { fail, ok, type Issue, type IssuePath, type Result } from '@core/graph';
 import { savedCameraSchema, type CameraPose, type SavedCamera } from '@core/viewer/three/camera';
-import { formatIssuePath, idSchema } from '@app/document';
-import { readDesign, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
+import { type DesignDocumentV2, formatIssuePath, idSchema, readDesign, serializeDesignV2 } from '@app/document';
 import { facePreferencesSchema, type FacePreferences } from '@app/spatial';
 import {
   DEFAULT_DISPLAY,

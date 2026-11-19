@@ -1,12 +1,13 @@
 import type { FacadeSpec } from '@app/building';
-import type { AttributeValue as DocumentAttributeValue, GridCoord as DocumentGridCoord } from '@app/document';
 import type {
+  AttributeValue as DocumentAttributeValue,
   ConnectorStyle as DocumentConnectorStyle,
+  GridCoord as DocumentGridCoord,
   RelationshipEdge,
   RelationshipKind as DocumentRelationshipKind,
   RoomNode,
   RoomSize as DocumentRoomSize,
-} from '@app/document/v2';
+} from '@app/document';
 import type { ComputedMetric, MetricValue, MetricValueKind } from '@app/metrics';
 import type {
   AttributeValue,

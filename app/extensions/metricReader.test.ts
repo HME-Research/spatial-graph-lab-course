@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { serializeDesignV2 } from '@app/document/v2';
+import { serializeDesignV2 } from '@app/document';
 import { METRIC_CATALOGUE } from '@app/metrics';
 import { metricsLabDoc } from '@app/metrics/test-fixtures';
 import { resolveWithPreferences } from '@app/spatial';

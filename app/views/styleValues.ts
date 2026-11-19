@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { DesignDocumentV2, StyleBy, StyleValues } from '@app/document/v2';
+import type { DesignDocumentV2, StyleBy, StyleValues } from '@app/document';
 import { EMPTY_ATTRIBUTE_SCHEMA, resolveField, type ProjectAttributeSchema } from '@app/extensions';
 import { BUILT_IN_METRICS, defaultMetricEvaluator } from '@app/metrics';
 import type { SpatialResolution } from '@app/spatial';

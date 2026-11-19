@@ -1,7 +1,6 @@
-import { functionLooks, functionStyleSettings } from '@app/document/v2';
+import { type DesignDocumentV2, type FacadeModule, functionLooks, functionStyleSettings, validateDocumentV2 } from '@app/document';
 import { describe, expect, it } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
-import { validateDocumentV2, type DesignDocumentV2, type FacadeModule } from '@app/document/v2';
 import { buildBuildingV2, DEFAULT_WALL_THICKNESS, layoutFace, type BuildingFace, type Vec3 } from '@app/building';
 import { applyDesignCommand } from '@app/spatial';
 import type { GridCoord } from '@core/spatial';

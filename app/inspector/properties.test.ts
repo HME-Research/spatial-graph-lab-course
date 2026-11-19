@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
+import { validateDocumentV2, type DesignDocumentV2 } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
 import type { ActiveToolkit } from '@app/extensions';
 import { labDoc, labToolkit } from '@app/extensions/test-fixtures';

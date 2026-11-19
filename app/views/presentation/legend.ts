@@ -1,4 +1,4 @@
-import type { ConnectorStyle } from '@app/document/v2';
+import type { ConnectorStyle } from '@app/document';
 import type { ResolutionStatus } from '@app/spatial';
 import type { ViewMode } from '../contracts';
 import {

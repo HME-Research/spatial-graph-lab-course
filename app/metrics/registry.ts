@@ -1,4 +1,4 @@
-import type { DesignDocumentV2 } from '@app/document/v2';
+import type { DesignDocumentV2 } from '@app/document';
 import type { SpatialResolution } from '@app/spatial';
 import { METRIC_CATALOGUE } from './catalogue';
 import { METRIC_DEPENDENCIES, type ComputedMetric, type MetricContext, type MetricDependency, type MetricEvaluator, type MetricRegistry, type MetricValue } from './contracts';

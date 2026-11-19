@@ -1,5 +1,4 @@
-import type { AttributeValue } from '@app/document';
-import type { RelationshipEdge, RoomNode } from '@app/document/v2';
+import type { AttributeValue, RelationshipEdge, RoomNode } from '@app/document';
 import { typeColor } from '@core/viewer/appearance';
 import { formatMetricValue, formatNumber, type ComputedMetric, type MetricContext, type MetricEvaluator, type MetricValue } from '@app/metrics';
 import { accessGroups } from './sceneModel';

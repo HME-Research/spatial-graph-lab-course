@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BoxGeometry, EdgesGeometry } from 'three';
-import { nodeLabel } from '@app/document/v2';
+import { nodeLabel } from '@app/document';
 import { SELECTION_COLOR } from '@core/viewer/appearance';
 import type { ViewProps } from '../contracts';
 import { DEFAULT_CELL_SIZE, spatialToThree } from '@core/viewer/coordinates';

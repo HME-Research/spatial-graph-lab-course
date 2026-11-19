@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { readDesign, serializeDesignV2 } from '@app/document/v2';
+import { readDesign, serializeDesignV2 } from '@app/document';
 import { makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import { createLocalStorageKeptMarks, createMemoryKeptMarks, createMemoryProjectStore, readProjectFile, serializeProjectFile } from '@app/project';
 import { attributeStorageKey } from '@app/session/projectAttributeStore';

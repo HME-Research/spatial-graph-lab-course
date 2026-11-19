@@ -1,8 +1,15 @@
-import { functionStyleSettings, type Look } from '@app/document/v2';
+import {
+  type ConnectorStyle,
+  type DesignDocumentV2,
+  functionStyleSettings,
+  type Look,
+  readDesign,
+  type RelationshipKind,
+  validateDocumentV2,
+} from '@app/document';
 import { describe, expect, it } from 'vitest';
 import exampleJson from '../document/test-designs/two-storey.json';
 import { expectOk } from '@app/document/test-fixtures';
-import { readDesign, validateDocumentV2, type ConnectorStyle, type DesignDocumentV2, type RelationshipKind } from '@app/document/v2';
 import { resolveRelationships } from '@app/spatial';
 import type { GridCoord } from '@core/spatial';
 import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';

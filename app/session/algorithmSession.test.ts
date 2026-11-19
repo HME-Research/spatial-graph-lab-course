@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { applyDesignCommand, resolveRelationships } from '@app/spatial';
-import { readDesignJson, validateDocumentV2, serializeDesignV2, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesignJson, validateDocumentV2, serializeDesignV2, type DesignDocumentV2 } from '@app/document';
 import { resolveBuildingFaces, toResolvedFace } from '@app/building';
 import { expectOk } from '@app/document/test-fixtures';
 import { type ActiveToolkit } from '@app/extensions';

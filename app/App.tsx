@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import exampleDesign from './document/examples/house.json';
-import { formatIssuePath, type GraphIssue } from '@app/document';
-import { readDesign, type DesignDocumentV2 } from '@app/document/v2';
+import { type DesignDocumentV2, formatIssuePath, type GraphIssue, readDesign } from '@app/document';
 import {
   discoverToolkits,
   projectOnlyToolkit,

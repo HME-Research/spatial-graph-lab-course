@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import exampleJson from '../document/test-designs/two-storey.json';
 import { expectOk, threeRooms } from '@app/document/test-fixtures';
-import { validateDocumentV2, type DesignDocumentV2, type RelationshipKind } from '@app/document/v2';
+import { validateDocumentV2, type DesignDocumentV2, type RelationshipKind } from '@app/document';
 import { applyDesignCommand, resolveRelationships, type DesignCommand } from '@app/spatial';
 import { FACE_DIRECTIONS, type ResolvedFace } from './contracts';
 import { resolveBuildingFaces, toResolvedFace } from './multicellFaces';

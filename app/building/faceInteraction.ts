@@ -1,5 +1,5 @@
 import { FACE_DIRECTIONS, neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial';
-import { footprintContains, type DesignDocumentV2, type RelationshipKind } from '@app/document/v2';
+import { footprintContains, type DesignDocumentV2, type RelationshipKind } from '@app/document';
 import { facePreferenceFor, type FacePreference, type SpatialResolution } from '@app/spatial';
 import type { BuildingFace } from './multicellFaces';
 

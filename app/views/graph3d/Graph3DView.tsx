@@ -14,7 +14,7 @@ import { useViewportCamera } from '../viewportCamera';
 import type { CameraState } from '@core/viewer/three/viewport';
 import { ControlBar, InfoPanel, NAVIGATION_HINT } from '@core/viewer/three/ViewControls';
 import { ColorBySelect, Legend, LevelSelect } from '../three/SpatialControls';
-import { nodeLabel } from '@app/document/v2';
+import { nodeLabel } from '@app/document';
 import { useAnalysisOverlay } from '../analysisOverlay';
 import { analysisNodeStyle } from '../presentation/analysis';
 import { lineOf, RelationshipTube, tooltipOf, useSceneSource, ViewRelationshipLegend } from '../three/v2Scene';

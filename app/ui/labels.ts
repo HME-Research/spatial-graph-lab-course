@@ -1,5 +1,5 @@
 import { VIEW_MODE_LABELS, VIEW_MODES, type ViewMode } from '@app/views/contracts';
-import type { ConnectorStyle, RelationshipKind } from '@app/document/v2';
+import type { ConnectorStyle, RelationshipKind } from '@app/document';
 import type { EdgeResolution, UnresolvedReason } from '@app/spatial';
 
 /**

@@ -1,4 +1,4 @@
-import type { RelationshipKind } from '@app/document/v2';
+import type { RelationshipKind } from '@app/document';
 import type { ResolutionStatus, UnresolvedReason } from '@app/spatial';
 import {
   relationshipLine,

@@ -1,7 +1,7 @@
 /** Shared helpers for app/extensions tests (imported by *.test.ts only). */
 import { expect } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
-import { validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
+import { validateDocumentV2, type DesignDocumentV2 } from '@app/document';
 import { defineNodeType, defineToolkit } from '@student-api';
 import { activate, type ActiveToolkit } from './activate';
 import type { ExtensionDiagnostic, ExtensionIssueCode, ExtensionResult } from './diagnostics';

@@ -1,16 +1,19 @@
-import { effectiveLook, styleSetupOf } from '@app/document/v2';
-import { functionLooks, functionStyleSettings, type Look } from '@app/document/v2';
+import {
+  type DesignDocumentV2,
+  effectiveLook,
+  functionLooks,
+  functionStyleSettings,
+  type Look,
+  readDesignJson,
+  serializeDesignV2,
+  styleSetupOf,
+  validateDocumentV2,
+} from '@app/document';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { exampleFacadeProvider, type FacadeProvider } from '@app/building';
 import { expectOk } from '@app/document/test-fixtures';
-import {
-  readDesignJson,
-  serializeDesignV2,
-  validateDocumentV2,
-  type DesignDocumentV2,
-} from '@app/document/v2';
 import { labToolkit } from '@app/extensions/test-fixtures';
 import { applyDesignCommand, proposeSpatialEdit, resolveRelationships, type DesignCommand, type DesignPort } from '@app/spatial';
 import { createHistory, record, redo, undo } from '@app/session/history';

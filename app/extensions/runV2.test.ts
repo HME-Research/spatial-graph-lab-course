@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
-import { readDesignJson, validateDocumentV2, type DesignDocumentV2 } from '@app/document/v2';
+import { readDesignJson, validateDocumentV2, type DesignDocumentV2 } from '@app/document';
 import { resolveRelationships } from '@app/spatial';
 import { defineSpatialAlgorithm, roomCells, type SpatialAlgorithmContext, type SpatialOperation } from '@student-api';
 import type { ActiveToolkit } from './activate';

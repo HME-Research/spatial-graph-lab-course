@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BuildingFace } from '@app/building';
-import type { GraphIssue } from '@app/document';
-import type { RelationshipKind } from '@app/document/v2';
+import type { GraphIssue, RelationshipKind } from '@app/document';
 import type { DesignPort } from '@app/spatial';
 import { selectEdge, type SelectionHandler } from '@core/viewer/selection';
 import {

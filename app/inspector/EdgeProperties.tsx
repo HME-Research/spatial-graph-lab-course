@@ -1,5 +1,5 @@
 import { HelpTip } from '@app/ui/help';
-import { connectorStyleOf, nodeLabel, type ConnectorStyle, type RelationshipKind } from '@app/document/v2';
+import { connectorStyleOf, nodeLabel, type ConnectorStyle, type RelationshipKind } from '@app/document';
 import { formatGrid } from '@app/views/graph2d/diagram';
 import {
   CollapsibleSection,
