@@ -1,0 +1,79 @@
+.sgl-float {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--panel, #fff);
+  color: var(--fg, #1f1f1d);
+  border: 1px solid var(--line-strong, #c9c9c2);
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: var(--text-md, 14px);
+}
+.sgl-float-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 6px 0 12px;
+  background: var(--surface-muted, #f7f7f5);
+  border-bottom: 1px solid var(--line, #e1e1dc);
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+}
+.sgl-float.minimised .sgl-float-bar {
+  border-bottom: 0;
+}
+.sgl-float-bar:focus-visible {
+  outline: 2px solid var(--accent, #2c5d8f);
+  outline-offset: -2px;
+}
+.sgl-float-title {
+  flex: 1;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sgl-float-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted, #62625c);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.sgl-float-btn:hover {
+  background: var(--surface-hover, #efefec);
+  color: var(--fg, #1f1f1d);
+}
+.sgl-float-btn:focus-visible {
+  outline: 2px solid var(--accent, #2c5d8f);
+  outline-offset: 1px;
+}
+.sgl-float-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.sgl-float-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  touch-action: none;
+  background: linear-gradient(135deg, transparent 50%, var(--line-strong, #c9c9c2) 50%, var(--line-strong, #c9c9c2) 58%, transparent 58%, transparent 72%, var(--line-strong, #c9c9c2) 72%, var(--line-strong, #c9c9c2) 80%, transparent 80%);
+}
