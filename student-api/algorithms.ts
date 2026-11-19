@@ -216,6 +216,14 @@ export type SpatialOperation =
       readonly key: string;
       /** Valid for the field, or null for "no value". */
       readonly value: AttributeValue;
+    }
+  | {
+      /** Move and/or resize a room (its box: minimum corner `grid` + `size`); omitted parts stay. */
+      readonly op: 'set-node-geometry';
+      readonly nodeId: ItemRef;
+      readonly grid?: GridCoord;
+      /** Positive whole numbers. The box must not overlap another room or take generated connector cells. */
+      readonly size?: RoomSize;
     };
 
 export interface TransformationResult {

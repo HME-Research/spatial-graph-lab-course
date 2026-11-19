@@ -2,6 +2,10 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { VIEW_MODES } from '@app/views/contracts';
+import { CAMERA_VIEW_MODES } from '@app/camera/savedCamera';
+import { DISPLAY_FIELD_VIEWS, DISPLAY_VIEW_MODES } from '@app/display/contracts';
+import { PANEL_FIELDS } from '@app/display/displayStore';
+import { cameraTargets } from './cameraTargets';
 import { VIEW_COMPONENTS } from '@app/views/registry';
 import { VIEW_CAPTIONS, VIEW_DESCRIPTIONS, VIEW_LABELS } from '@app/ui';
 import { NO_SELECTION } from '@core/viewer/selection';
@@ -104,9 +108,10 @@ describe('panel slots through WorkspaceServices', () => {
   });
 });
 
-describe('five view modes', () => {
-  it('adds Plan with a label, description, caption and a registered (placeholder) view', () => {
-    expect(VIEW_MODES).toEqual(['graph2d', 'graph3d', 'voxels', 'architecture', 'plan']);
+describe('six view modes', () => {
+  it('adds Plan and Data with a label, description, caption and a registered view', () => {
+    expect(VIEW_MODES).toEqual(['graph2d', 'graph3d', 'voxels', 'architecture', 'plan', 'data']);
+    expect(VIEW_LABELS.data).toBe('Data');
     expect(VIEW_LABELS.plan).toBe('Plan');
     for (const mode of VIEW_MODES) {
       expect(VIEW_DESCRIPTIONS[mode], mode).toMatch(/\S/);
@@ -115,6 +120,19 @@ describe('five view modes', () => {
       expect(['function', 'object'], mode).toContain(typeof VIEW_COMPONENTS[mode]);
       expect(VIEW_COMPONENTS[mode], mode).toBeTruthy();
     }
+  });
+});
+
+describe('the Data view mode in every view-mode list', () => {
+  it('has no camera, no display settings and is never a camera target', () => {
+    expect(CAMERA_VIEW_MODES).not.toContain('data');
+    expect(DISPLAY_VIEW_MODES).toContain('data'); // resolvable (and accepted in project files), but
+    expect(PANEL_FIELDS.data).toEqual([]); // the Display panel offers nothing for it
+    for (const views of Object.values(DISPLAY_FIELD_VIEWS)) expect(views).not.toContain('data');
+    const infos = deriveViewports(setViewportMode(DEFAULT_VIEWPORT_STATE, 1, 'data'));
+    expect(infos[1]).toMatchObject({ mode: 'data', is3D: false });
+    expect(cameraTargets(infos).map((v) => v.mode)).not.toContain('data');
+    expect(editPanelOwner(infos, 1)).toBeNull();
   });
 });
 

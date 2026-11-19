@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { expectOk } from '@app/document/test-fixtures';
-import { readDesignJson, validateDocumentV2, type DesignDocumentV2 } from '@app/document';
+import { MAX_ROOM_SIZE, readDesignJson, validateDocumentV2, type DesignDocumentV2 } from '@app/document';
 import { resolveRelationships } from '@app/spatial';
 import { defineSpatialAlgorithm, roomCells, type SpatialAlgorithmContext, type SpatialOperation } from '@student-api';
 import type { ActiveToolkit } from './activate';
@@ -127,6 +127,69 @@ describe('transformations on a v2 document', () => {
     ]);
     expectExtOk(runAlgorithmV2(doc, project, 't'));
     expect(JSON.stringify(doc)).toBe(before);
+  });
+});
+
+describe('set-node-geometry: move and resize rooms (P4, additive)', () => {
+  const after = async (ops: readonly SpatialOperation[], doc = labV2()) => {
+    const outcome = expectExtOk(runAlgorithmV2(doc, await transforming(ops), 't'));
+    if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
+    return outcome.preview;
+  };
+  const run = async (ops: readonly SpatialOperation[], doc = labV2()) => runAlgorithmV2(doc, await transforming(ops), 't');
+
+  it('resizes at the minimum corner, grows towards -x by moving the corner, and keeps the draft cells in step', async () => {
+    const preview = await after([
+      { op: 'set-node-geometry', nodeId: 2, size: [2, 1, 1] }, // 2 now covers [2..3, 1]
+      { op: 'set-node-geometry', nodeId: 3, grid: [-1, 5, 0], size: [3, 1, 1] }, // grows one column to -x
+      { op: 'add-node', grid: [0, 6, 0], typeId: 'studio' }, // free before and after
+    ]);
+    const node = (id: number) => preview.after.nodes.find((n) => n.id === id)!;
+    expect([node(2).grid, node(2).size]).toEqual([[2, 1, 0], [2, 1, 1]]);
+    expect([node(3).grid, node(3).size]).toEqual([[-1, 5, 0], [3, 1, 1]]);
+    expect(validateDocumentV2(preview.after).ok).toBe(true);
+    // The draft knows the new cells: a later operation cannot take them…
+    expect(
+      expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, size: [2, 1, 1] }, { op: 'add-node', grid: [3, 1, 0], typeId: 'gallery' }]), 'occupied-cell')
+        .message,
+    ).toContain('occupied by node 2');
+    // …and cells a room leaves are free again in the same run.
+    const moved = await after([
+      { op: 'set-node-geometry', nodeId: 3, grid: [6, 5, 0] },
+      { op: 'add-node', grid: [0, 5, 0], typeId: 'studio' },
+    ]);
+    expect(moved.after.nodes.find((n) => n.id === 4)!.grid).toEqual([0, 5, 0]);
+  });
+
+  it('may resize a room added earlier in the same run (by ref)', async () => {
+    const preview = await after([
+      { op: 'add-node', ref: 'new', grid: [5, 0, 0], typeId: 'gallery' },
+      { op: 'set-node-geometry', nodeId: 'new', size: [1, 2, 1] },
+    ]);
+    expect(preview.after.nodes.find((n) => n.id === 4)!.size).toEqual([1, 2, 1]);
+  });
+
+  it('refuses unknown rooms, missing or invalid values, overlaps, the limits and connector cells, naming the operation', async () => {
+    expect(expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 99, size: [2, 1, 1] }]), 'missing-node').message).toContain(
+      'set-node-geometry 99',
+    );
+    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2 }]), 'invalid-grid');
+    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, size: [0, 1, 1] }]), 'invalid-size');
+    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, size: [1.5, 1, 1] }]), 'invalid-size');
+    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, size: [MAX_ROOM_SIZE + 1, 1, 1] }]), 'invalid-size');
+    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, grid: [0.5, 1, 0] }]), 'invalid-grid');
+    expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 3, grid: [1001, 5, 0] }]), 'invalid-grid');
+    const overlap = expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 2, grid: [1, 1, 0] }]), 'occupied-cell');
+    expect(overlap.message).toBe('operation 1: set-node-geometry 2: cell [1, 1, 0] is already occupied by node 1');
+    const withRoute = expectOk(
+      validateDocumentV2({ ...labV2(), nextEdgeId: 3, edges: [...labV2().edges, { id: 2, source: 1, target: 3, kind: 'access' as const, attributes: {} }] }),
+    );
+    const route = resolveRelationships(withRoute).byEdge.get(2)!;
+    const cell = route.status === 'routed' ? route.route.cells[0]! : ([0, 0, 0] as const);
+    const taken = expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 3, grid: cell, size: [1, 1, 1] }], withRoute), 'occupied-cell');
+    expect(taken.message).toContain('generated connector of relationship 2');
+    // Nothing changed: the run failed as a whole.
+    expect(withRoute.nodes.find((n) => n.id === 3)!.grid).toEqual([0, 5, 0]);
   });
 });
 

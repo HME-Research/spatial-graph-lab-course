@@ -196,11 +196,17 @@ export interface PreviewSummary {
     readonly from: AttributeValue | undefined;
     readonly to: AttributeValue;
   }[];
+  /** Existing rooms the transformation moves or resizes (P4 `set-node-geometry`). */
+  readonly geometryChanges: readonly {
+    readonly nodeId: number;
+    readonly from: { readonly grid: GridCoord; readonly size: readonly number[] };
+    readonly to: { readonly grid: GridCoord; readonly size: readonly number[] };
+  }[];
   /** Every node added, connected or changed (ascending). */
   readonly affectedNodeIds: readonly number[];
 }
 
-type SummaryNode = { readonly id: number; readonly typeId: string; readonly grid: GridCoord; readonly attributes: Attributes };
+type SummaryNode = { readonly id: number; readonly typeId: string; readonly grid: GridCoord; readonly size: readonly number[]; readonly attributes: Attributes };
 type SummaryEdge = { readonly id: number; readonly source: number; readonly target: number; readonly kind: string; readonly attributes: Attributes };
 
 /**
@@ -218,12 +224,18 @@ export function describePreview(preview: {
     Object.keys(to).filter((key) => !Object.prototype.hasOwnProperty.call(from, key) || from[key] !== to[key]);
   const addedNodes: PreviewSummary['addedNodes'][number][] = [];
   const attributeChanges: PreviewSummary['attributeChanges'][number][] = [];
+  const geometryChanges: PreviewSummary['geometryChanges'][number][] = [];
+  const box = (n: SummaryNode) => ({ grid: [n.grid[0], n.grid[1], n.grid[2]] as GridCoord, size: [...n.size] });
   for (const n of preview.after.nodes) {
     const old = beforeNodes.get(n.id);
     if (!old) {
       addedNodes.push({ id: n.id, typeId: n.typeId, grid: [n.grid[0], n.grid[1], n.grid[2]] });
       affected.add(n.id);
       continue;
+    }
+    if (old.grid.join() !== n.grid.join() || old.size.join() !== n.size.join()) {
+      geometryChanges.push({ nodeId: n.id, from: box(old), to: box(n) });
+      affected.add(n.id);
     }
     for (const key of changed(old.attributes, n.attributes)) {
       attributeChanges.push({ nodeId: n.id, key, from: Object.prototype.hasOwnProperty.call(old.attributes, key) ? old.attributes[key] : undefined, to: n.attributes[key]! });
@@ -244,7 +256,7 @@ export function describePreview(preview: {
       affected.add(e.source).add(e.target);
     }
   }
-  return { addedNodes, addedEdges, attributeChanges, edgeAttributeChanges, affectedNodeIds: [...affected].sort((a, b) => a - b) };
+  return { addedNodes, addedEdges, attributeChanges, edgeAttributeChanges, geometryChanges, affectedNodeIds: [...affected].sort((a, b) => a - b) };
 }
 
 export type ApplyOutcome<D extends object = DesignDocumentV2> =

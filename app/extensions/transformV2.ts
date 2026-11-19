@@ -34,6 +34,10 @@ import { writeFieldValue } from './resolveAttributes';
  *   names the new item for later operations (`ItemRef`).
  * - `add-edge`: `access` | `open`.
  *   The rooms need NOT touch: a non-adjacent relationship is valid; its spatial status is derived.
+ * - `set-node-geometry`: moves and/or resizes an existing (or earlier-added) room, anchored at the
+ *   minimum corner. Refused if the new box overlaps another room, exceeds the size or coordinate
+ *   limits, or takes cells of a connector generated for the document the run started from (a
+ *   transformation cannot ask for confirmation).
  * - New rooms that take cells of generated connectors are NOT refused here, but are never silent:
  *   `displacedRoutes` lists the affected relationships, and the host must ask for confirmation
  *   ("Move anyway and recalculate") before applying `after`.
@@ -67,6 +71,9 @@ interface DraftV2 {
   /** Local `ref` names of the nodes / edges added so far in this run → their assigned ids. */
   readonly nodeRefs: Map<string, number>;
   readonly edgeRefs: Map<string, number>;
+  /** The document the run started from (its generated connector cells are read lazily). */
+  readonly source: DesignDocumentV2;
+  routeCells?: ReturnType<typeof resolveRelationships>['occupancy'];
 }
 
 /** The id an operation's `ItemRef` stands for: an existing id, or the `ref` of an earlier addition. */
@@ -215,6 +222,42 @@ function setEdgeAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<Sp
   return null;
 }
 
+function setNodeGeometry(draft: DraftV2, op: Extract<SpatialOperation, { op: 'set-node-geometry' }>, i: number): Check {
+  const what = `set-node-geometry ${describeRef(op.nodeId)}`;
+  const id = resolveRef(op.nodeId, draft.byId, draft.nodeRefs);
+  const node = id === undefined ? undefined : draft.byId.get(id);
+  if (!node) return opError(i, 'missing-node', `${what}: node ${describeRef(op.nodeId)} does not exist`);
+  if (op.grid === undefined && op.size === undefined) return opError(i, 'invalid-grid', `${what}: give a new grid, a new size, or both`);
+  const grid = gridSchema.safeParse(op.grid ?? node.grid);
+  if (!grid.success) return opError(i, 'invalid-grid', `${what}: ${grid.error.issues[0]?.message ?? 'invalid grid'}`);
+  const size = sizeSchema.safeParse(op.size ?? node.size);
+  if (!size.success) return opError(i, 'invalid-size', `${what}: ${size.error.issues[0]?.message ?? 'invalid size'}`);
+  const box = {
+    grid: [grid.data[0], grid.data[1], grid.data[2]] as GridCoord,
+    size: [size.data[0], size.data[1], size.data[2]] as RoomSize,
+  };
+  const limit = DEFAULT_LIMITS.maxAbsCoordinate;
+  const cells = footprintCells(box);
+  const far = cells.find((c) => c.some((v) => Math.abs(v) > limit));
+  if (far) return opError(i, 'invalid-grid', `${what}: cell ${fmt(far)} exceeds the coordinate limit of ±${limit}`);
+  draft.routeCells ??= resolveRelationships(draft.source).occupancy;
+  for (const cell of cells) {
+    const occupant = draft.cells.get(gridKey(cell));
+    if (occupant !== undefined && occupant !== node.id) {
+      return opError(i, 'occupied-cell', `${what}: cell ${fmt(cell)} is already occupied by node ${occupant}`);
+    }
+    const route = draft.routeCells.at(cell);
+    if (route?.kind === 'route') {
+      return opError(i, 'occupied-cell', `${what}: cell ${fmt(cell)} is a generated connector of relationship ${route.edgeId}`);
+    }
+  }
+  for (const cell of footprintCells(node)) draft.cells.delete(gridKey(cell));
+  node.grid = box.grid;
+  node.size = box.size;
+  for (const cell of cells) draft.cells.set(gridKey(cell), node.id);
+  return null;
+}
+
 /** Apply `operations` atomically to a VALIDATED v2 `doc` (see module comment). Never mutates `doc`. */
 export function applyTransformationV2(
   doc: DesignDocumentV2,
@@ -237,6 +280,7 @@ export function applyTransformationV2(
     nextEdgeId: copy.nextEdgeId,
     nodeRefs: new Map(),
     edgeRefs: new Map(),
+    source: doc,
   };
 
   for (const [i, op] of operations.entries()) {
@@ -247,7 +291,9 @@ export function applyTransformationV2(
           ? addEdge(draft, op, i)
           : op.op === 'set-node-attribute'
             ? setNodeAttribute(draft, project, op, i)
-            : setEdgeAttribute(draft, project, op, i);
+            : op.op === 'set-edge-attribute'
+              ? setEdgeAttribute(draft, project, op, i)
+              : setNodeGeometry(draft, op, i);
     if (problem) return fail([problem]);
   }
 

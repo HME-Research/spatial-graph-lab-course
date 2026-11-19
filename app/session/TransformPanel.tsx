@@ -301,7 +301,7 @@ function RunResult({
   return (
     <section className="sgl-section algorithm-result">
       <h4>Preview: {run.label}</h4>
-      {preview.summary && <p>{preview.summary}</p>}
+      {preview.summary && <p style={{ whiteSpace: 'pre-line' }}>{preview.summary}</p>}
       {empty ? (
         <p className="meta">No changes to apply.</p>
       ) : (
@@ -346,6 +346,18 @@ function RunResult({
                 {summary.attributeChanges.map((c) => (
                   <li key={`${c.nodeId}.${c.key}`}>
                     {nodeButton(c.nodeId)}.{c.key}: {formatValue(c.from)} → {formatValue(c.to)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {summary.geometryChanges.length > 0 && (
+            <>
+              <h4>Moved or resized rooms</h4>
+              <ul className="sgl-list">
+                {summary.geometryChanges.map((c) => (
+                  <li key={c.nodeId}>
+                    {nodeButton(c.nodeId)}: {c.from.size.join('×')} at [{c.from.grid.join(', ')}] → {c.to.size.join('×')} at [{c.to.grid.join(', ')}]
                   </li>
                 ))}
               </ul>

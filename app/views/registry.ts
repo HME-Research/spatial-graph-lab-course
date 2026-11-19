@@ -1,5 +1,6 @@
 import { lazy } from 'react';
 import type { ViewComponent, ViewMode } from './contracts';
+import { DataView } from './data/DataView';
 import { Graph2DView } from './graph2d/Graph2DView';
 // Plan with the shared-wall interaction (wave 2, D): workstream C's PlanView + its onWallTarget hook.
 import { PlanWallView } from './three/wallInteraction/PlanWallView';
@@ -20,4 +21,6 @@ export const VIEW_COMPONENTS: Readonly<Record<ViewMode, ViewComponent>> = {
   voxels: VoxelView,
   architecture: ArchitectureView,
   plan: PlanWallView,
+  // Plain React (no Three.js): loaded with the main chunk.
+  data: DataView,
 };

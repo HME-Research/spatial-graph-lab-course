@@ -145,6 +145,7 @@ It returns a list of **operations**. You never choose ids: the app gives every n
 | `{ op: 'add-edge', ref?, source, target, kind }` | `source` / `target` are `ItemRef`s of existing, different rooms not related yet. `kind` is `access` or `open`. The rooms **don't need to touch**. Gets the next edge id |
 | `{ op: 'set-node-attribute', nodeId, key, value }` | `nodeId` is an `ItemRef`; `key` must be a project node field (any room may have any node field, whatever its type); the value must be valid, or `null` |
 | `{ op: 'set-edge-attribute', edgeId, key, value }` | `edgeId` is an `ItemRef`; `key` must be a project edge field; the value must be valid, or `null` |
+| `{ op: 'set-node-geometry', nodeId, grid?, size? }` | Moves and/or resizes a room (`nodeId` is an `ItemRef`); give `grid`, `size` or both, the rest stays. The size stays anchored at the minimum corner, so growing towards −x or −y means a smaller `grid` and a larger `size`. Whole numbers, sizes at least 1 and within the size limit; the new box must not overlap another room or take the cells of a generated connector |
 
 The preview (and the applied design) shows the ids the app gave; `preview.assigned` maps your `ref`s to them.
 
@@ -254,5 +255,7 @@ Exports of `@student-api`:
 - **Graph helpers:** `neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite` (ids are numbers)
 - **Grid helpers:** `FACE_DIRECTIONS`, `neighbourCell`, `roomCells` (every cell of a room's box)
 - **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `ConnectorStyle`, `SpatialOperation`, `ItemRef`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
+
+**Added in P4:** `set-node-geometry` (move or resize a room in a transformation).
 
 **Changes in P4 (19 November 2026).** Schema v1 is gone: the old kinds (`door`, `atrium`, `vertical-access`), `canConnect` and `uniqueId` no longer exist. Ids are whole numbers, `displayId` is removed (the id is the label), and operations use `ref`s instead of chosen ids.
