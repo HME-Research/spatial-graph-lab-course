@@ -1,592 +1,420 @@
 #!/usr/bin/env node
-// Spatial Graph Lab — Gate 1 end-to-end workflow check (integration). See scripts/smoke/README.md.
+// Spatial Graph Lab — end-to-end workflow check on the built-in example house. See scripts/smoke/README.md.
 //
-// Drives the REAL app (dev or production preview) through the complete workshop workflow on real
-// schema-v2 data with the real resolver: add node, connect, move/resize, corridor generation,
-// corridor walls / roof, Designer façade/roof, an algorithm, undo/redo, export/re-import; plus failure
-// cases (room collision, corridor displacement Cancel/confirm, unresolved route, invalid JSON,
-// unsupported version, unknown type, stale transformation preview) and four-view coordination.
+// Drives the REAL app (dev server or production preview) through the workshop workflow on real
+// schema-v2 data with the real resolver: add a room, move/resize it in Properties, connect it to a
+// separated room (a corridor is generated), the corridor's own walls/roof in Properties and the
+// "Corridors (generated)" card in the Building Designer, a function card, undo/redo of every step
+// (N operations = N undo steps), export and re-import (identical re-export); failure cases (room
+// collision, corridor displacement Cancel/confirm and the resulting Unresolved relationship,
+// invalid JSON, unsupported schema version, unknown Function); the selection across five views; an
+// Analyse run with highlights; and the house toolkit's "Grow to target area" transform (preview,
+// Apply = one undo step, stale preview).
 //
 // Same safety rules as smoke.mjs: never starts/stops Node or Vite, never writes into the
 // repository (output defaults to the OS temp dir), only closes the private browser it launched.
 //
 //   node scripts/smoke/workflow.mjs --url http://localhost:5181/ [--viewport 1366x768] [--out DIR]
 
-import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { findBrowser, launch } from './cdp.mjs';
+import {
+  delay,
+  expandSection,
+  expect,
+  createRunner,
+  openRail,
+  openWithToolkit,
+  redo,
+  runScript,
+  selectEdge,
+  selectNode,
+  setViewMode,
+  tryExample,
+  undo,
+} from './app.mjs';
 
-const args = process.argv.slice(2);
-const arg = (name, fallback) => {
-  const i = args.indexOf(`--${name}`);
-  return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
-};
-const url = arg('url', 'http://localhost:5181/');
-const [vw, vh] = arg('viewport', '1366x768').split('x').map(Number);
-const outDir = resolve(arg('out', join(tmpdir(), 'spatial-graph-lab-workflow', new Date().toISOString().replace(/[:.]/g, '-'))));
-const downloadDir = join(outDir, 'downloads');
-mkdirSync(downloadDir, { recursive: true });
-const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+const USAGE = `Spatial Graph Lab workflow check (built-in example house + house toolkit transform).
 
-const executable = findBrowser(arg('browser'));
-if (!executable) {
-  console.error('error: no Edge/Chromium found');
-  process.exit(2);
-}
-try {
-  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-} catch (e) {
-  console.error(`error: cannot reach ${url}: ${e instanceof Error ? e.message : e}`);
-  process.exit(2);
-}
+Usage: node scripts/smoke/workflow.mjs --url http://localhost:5181/ [--viewport 1366x768] [--out DIR] [--browser PATH] [--headed]
+The app must already be running; this script never starts or stops servers.
+Exit code: 0 = all PASS, 1 = a FAIL, 2 = could not run.`;
 
-const { page, browser, version } = await launch({ executable, headless: true });
-console.log(`      ${version}; viewport ${vw}x${vh}; output ${outDir}\n`);
+await runScript({ name: 'workflow', usage: USAGE, url: 'http://localhost:5181/', viewport: '1366x768' }, async (s, opts) => {
+  const { step, finish } = createRunner(s, 'workflow');
+  const vp = `${opts.viewport.width}x${opts.viewport.height}`;
+  const PROPS = '#sidebar-panel-properties';
+  const G2 = '.view-panel[data-panel="0"]';
+  const undoTitle = () => s.evaluate('__sgl.undoTitle()');
+  const props = () => s.evaluate('__sgl.props()');
 
-const consoleErrors = [];
-const failedRequests = [];
-const dialogs = [];
-page.on('Runtime.exceptionThrown', (p) => consoleErrors.push(`exception: ${p.exceptionDetails?.exception?.description ?? p.exceptionDetails?.text}`));
-page.on('Runtime.consoleAPICalled', (p) => {
-  if (p.type === 'error') consoleErrors.push(`console.error: ${p.args.map((a) => a.value ?? a.description ?? '').join(' ').slice(0, 400)}`);
-});
-page.on('Log.entryAdded', (p) => {
-  if (p.entry.level === 'error' && !/favicon\.ico/.test(p.entry.url ?? '')) consoleErrors.push(`${p.entry.source}: ${p.entry.text} ${p.entry.url ?? ''}`);
-});
-page.on('Network.loadingFailed', (p) => failedRequests.push(`${p.errorText} ${p.requestId}`));
-page.on('Page.javascriptDialogOpening', (p) => {
-  dialogs.push(`${p.type}: ${p.message}`);
-  void page.send('Page.handleJavaScriptDialog', { accept: true });
-});
-await page.send('Page.enable');
-await page.send('Runtime.enable');
-await page.send('Log.enable');
-await page.send('DOM.enable');
-await page.send('Network.enable');
-await page.send('Emulation.setDeviceMetricsOverride', { width: vw, height: vh, deviceScaleFactor: 1, mobile: false });
-await browser.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir, eventsEnabled: true });
-
-// ── helpers ───────────────────────────────────────────────────────────────────────────────────
-async function evaluate(expression) {
-  const r = await page.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
-  if (r.exceptionDetails) throw new Error(`page script failed: ${r.exceptionDetails.exception?.description ?? r.exceptionDetails.text}`);
-  return r.result.value;
-}
-async function waitFor(expression, what, timeout = 10000) {
-  const end = Date.now() + timeout;
-  while (Date.now() < end) {
-    const v = await evaluate(expression);
-    if (v) return v;
-    await delay(100);
-  }
-  throw new Error(`timed out waiting for ${what}`);
-}
-async function screenshot(name) {
-  const { data } = await page.send('Page.captureScreenshot', { format: 'png' });
-  const file = join(outDir, `${name}.png`);
-  writeFileSync(file, Buffer.from(data, 'base64'));
-  return file;
-}
-async function mouse(type, x, y, extra = {}) {
-  await page.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1, ...extra });
-}
-async function clickAt(x, y) {
-  await mouse('mouseMoved', x, y, { button: 'none' });
-  await mouse('mousePressed', x, y, { buttons: 1 });
-  await mouse('mouseReleased', x, y, { buttons: 0 });
-  await delay(150);
-}
-async function dragAt(x, y, dx, dy, steps = 10) {
-  await mouse('mouseMoved', x, y, { button: 'none' });
-  await mouse('mousePressed', x, y, { buttons: 1 });
-  for (let i = 1; i <= steps; i++) {
-    await mouse('mouseMoved', x + (dx * i) / steps, y + (dy * i) / steps, { buttons: 1 });
-    await delay(16);
-  }
-  await mouse('mouseReleased', x + dx, y + dy, { buttons: 0 });
-  await delay(250);
-}
-async function setFile(selector, path) {
-  const { root } = await page.send('DOM.getDocument', { depth: -1 });
-  const { nodeId } = await page.send('DOM.querySelector', { nodeId: root.nodeId, selector });
-  await page.send('DOM.setFileInputFiles', { nodeId, files: [path] });
-}
-/** Page-side helpers installed once per load. */
-const PAGE_HELPERS = `
-window.__wf = {
-  setValue(el, v) {
-    const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
-    Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, String(v));
-    el.dispatchEvent(new Event(el instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
-  },
-  enter(el) {
-    el.focus();
-    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }));
-    el.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
-  },
-  button(text, scope = document) {
-    return [...scope.querySelectorAll('button')].find((b) => b.offsetParent !== null && b.textContent.trim().startsWith(text)) ?? null;
-  },
-  click(text, scope = document) {
-    const b = this.button(text, scope);
-    if (!b) return 'missing';
-    if (b.disabled) return 'disabled';
-    b.click();
-    return 'clicked';
-  },
-  undoTitle() { return document.querySelector('.history-actions button')?.getAttribute('aria-label') ?? ''; },
-  redoTitle() { return document.querySelectorAll('.history-actions button')[1]?.getAttribute('aria-label') ?? ''; },
-  canUndo() { return !document.querySelector('.history-actions button').disabled; },
-  canRedo() { return !document.querySelectorAll('.history-actions button')[1].disabled; },
-  nodes() { return [...document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node')].map((n) => n.getAttribute('data-id')); },
-  edges() { return [...document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__edge')].length; },
-  props() { return document.querySelector('#sidebar-panel-properties')?.innerText ?? ''; },
-  // Geometry of Properties (2026-11-19): ONE Position row and ONE Size row, each with three value fields x | y | z.
-  GEO: { position: ['position.x', 'position.y', 'position.z'], size: ['size.x', 'size.y', 'size.z'] },
-  geo(id) { return (document.querySelector('#sidebar-panel-properties') ?? document).querySelector('.sgl-axis-value[data-axis="' + id + '"] input'); },
-  field(part, axis) { return this.geo(this.GEO[part][['x', 'y', 'z'].indexOf(axis)]); },
-  triple(part) { return this.GEO[part].map((id) => Number(this.geo(id)?.value)); },
-  // One edit per changed axis: each row is its own command and undo step (a 3-axis change is up to
-  // three steps, applied x, y, z in order). Returns the number of edits sent.
-  setTriple(part, values) {
-    let sent = 0;
-    this.GEO[part].forEach((id, i) => {
-      const el = this.geo(id);
-      if (!el || Number(el.value) === values[i]) return;
-      this.setValue(el, values[i]);
-      this.enter(el);
-      sent += 1;
+  // ── 0. fresh loads ──────────────────────────────────────────────────────────────────────────
+  for (let i = 1; i <= 2; i++) {
+    await step(`load/fresh-${i}`, async () => {
+      const errorsBefore = s.consoleErrors.length;
+      await s.goto();
+      await tryExample(s);
+      const bar = await s.evaluate(`document.querySelector('.sgl-identity-project')?.textContent ?? ''`);
+      expect(/^Example/.test(bar), `project identity: ${bar.slice(0, 120)}`);
+      const nodes = await s.evaluate('__sgl.nodes()');
+      const edges = await s.evaluate('__sgl.edgeIds()');
+      expect(nodes.join(',') === '1,2,3,4,5' && edges.join(',') === '1,2,3,4', `example: rooms ${nodes}, relationships ${edges}`);
+      expect(!(await s.evaluate('__sgl.canUndo()')), 'a fresh example offers Undo');
+      expect(s.consoleErrors.length === errorsBefore, `console errors: ${s.consoleErrors.slice(errorsBefore).join(' | ')}`);
+      return `"${bar}": rooms ${nodes}, relationships ${edges}, fresh history, no console errors`;
     });
-    return sent;
-  },
-  panel2(mode) { const s = document.querySelectorAll('.panel-header select')[1]; this.setValue(s, mode); return s.value; },
-  voxelInfo() { return document.querySelector('.view-panel[data-panel="1"] .viewer3d-info')?.innerText ?? ''; },
-  tab(id) { document.querySelector('#sidebar-tab-' + id)?.click(); },
-};
-true`;
-const helpers = () => evaluate(PAGE_HELPERS);
-const nodeCenter = (id) =>
-  evaluate(`(() => { const n = document.querySelector('.view-panel[data-panel="0"] .react-flow__node[data-id="${id}"]'); if (!n) return null;
-    const b = n.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; })()`);
-async function selectNodeInGraph(id) {
-  const c = await nodeCenter(id);
-  if (!c) throw new Error(`node ${id} not in Graph 2D`);
-  await clickAt(c.x, c.y);
-  // Since phase 06 a click only selects (the summary opens on double-click); close one if open.
-  await evaluate(`document.querySelector('.view-panel[data-panel="0"] .sgl-popover button[aria-label="Close details"]')?.click(); true`);
-  await evaluate(`__wf.tab('properties'); true`);
-  await waitFor(`__wf.field('position', 'x') !== null`, `Properties of ${id}`);
-}
-let downloads = 0;
-async function download() {
-  const before = new Set(readdirSync(downloadDir));
-  await evaluate(`__wf.tab('project'); true`);
-  if ((await evaluate(`__wf.click('Export project')`)) !== 'clicked') throw new Error('Export project not clickable');
-  for (const end = Date.now() + 8000; Date.now() < end; ) {
-    const name = readdirSync(downloadDir).find((x) => !before.has(x) && x.endsWith('.json'));
-    if (name) {
-      await delay(200);
-      // Rename, so a later export with the same name is detected as a new file.
-      const file = join(downloadDir, `export-${++downloads}-${name}`);
-      renameSync(join(downloadDir, name), file);
-      // A project file: the active scenario's design is what the old design export contained.
-      const project = JSON.parse(readFileSync(file, 'utf8'));
-      return { file, project, json: project.scenarios.find((s) => s.id === project.activeScenarioId).design };
-    }
-    await delay(150);
   }
-  throw new Error('no download');
-}
+  await s.screenshot(`00-loaded-${vp}.png`);
 
-const results = [];
-async function step(id, fn) {
-  try {
-    const message = await fn();
-    results.push({ id, status: 'PASS', message });
-    console.log(`PASS  ${id}  ${message}`);
-  } catch (e) {
-    const shot = await screenshot(`FAIL-${id.replace(/[^a-z0-9-]+/gi, '_')}`).catch(() => null);
-    const message = `${e instanceof Error ? e.message : String(e)}${shot ? ` (screenshot ${shot})` : ''}`;
-    results.push({ id, status: 'FAIL', message });
-    console.log(`FAIL  ${id}  ${message}`);
-  }
-}
-const expect = (cond, msg) => {
-  if (!cond) throw new Error(msg);
-};
+  // ── 1. workflow ─────────────────────────────────────────────────────────────────────────────
+  let newId = null;
+  let newEdge = null;
+  const undoLabels = [];
+  const record = async () => undoLabels.push(await undoTitle());
 
-// ── 0. fresh load (repeated, to look for the intermittent project-loading failure) ───────────────
-for (let i = 1; i <= 3; i++) {
-  await step(`load/fresh-${i}`, async () => {
-    const errorsBefore = consoleErrors.length;
-    await page.send('Page.navigate', { url });
-    // Welcome is always shown at startup (workstream B): open the example as a new local project.
-    await waitFor(`!!document.querySelector('.sgl-welcome')`, 'the Welcome screen', 20000);
-    await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try example'))?.click(); true`);
-    await waitFor(`document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node').length > 0`, 'the design', 20000);
-    await helpers();
-    // The toolkit (types, algorithms) of the local project is activated.
-    await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the toolkit to activate', 20000);
-    // The header names the project only (no internal or toolkit ids); the toolkit is listed in Project → Advanced.
-    const bar = await evaluate(`document.querySelector('.sgl-identity-project')?.textContent ?? ''`);
-    expect(/^Example/.test(bar), `project identity: ${bar.slice(0, 120)}`);
-    await evaluate(`__wf.tab('project'); true`);
-    const toolkit = await waitFor(`(() => { const dt = [...document.querySelectorAll('.sgl-project dt')].find((d) => d.textContent === 'Toolkit'); const t = dt?.nextElementSibling?.textContent ?? ''; return t && t !== 'loading…' ? t : null; })()`, 'the toolkit');
-    expect(toolkit.length > 0, `toolkit: ${toolkit}`);
-    expect(consoleErrors.length === errorsBefore, `console errors: ${consoleErrors.slice(errorsBefore).join(' | ')}`);
-    return `project active, ${(await evaluate('__wf.nodes()')).length} rooms, no console errors`;
+  await step('workflow/add-room', async () => {
+    const before = await s.evaluate('__sgl.nodes()');
+    await s.click('+ Add node', { within: G2 });
+    await s.waitFor(`__sgl.nodes().length === ${before.length + 1}`, 10_000, 'a new room');
+    newId = (await s.evaluate('__sgl.nodes()')).find((id) => !before.includes(id));
+    await record();
+    expect(/Add room \d+/.test(undoLabels.at(-1)), `undo label ${undoLabels.at(-1)}`);
+    return `added room ${newId}; "${undoLabels.at(-1)}"`;
   });
-}
-await screenshot(`00-loaded-${vw}x${vh}`);
 
-// ── 1. workflow ───────────────────────────────────────────────────────────────────────────────
-let newId = null;
-const undoLabels = [];
+  await step('workflow/move-in-properties', async () => {
+    await selectNode(s, newId);
+    // Position x | y | Level are separate fields: one command (one undo step) per changed axis.
+    const target = [5, 1, 0];
+    const next = await s.evaluate(`__sgl.triple('position')`);
+    for (let i = 0; i < 3; i++) {
+      if (next[i] === target[i]) continue;
+      next[i] = target[i];
+      const label = `Move room ${newId} to [${next.join(', ')}]`;
+      await s.evaluate(`(() => { const el = __sgl.geo(__sgl.GEO.position[${i}]); __sgl.setValue(el, ${target[i]}); __sgl.enter(el); return true; })()`);
+      await s.waitFor(`__sgl.undoTitle().includes(${JSON.stringify(label)})`, 10_000, label);
+      await record();
+    }
+    return `room ${newId} at ${JSON.stringify(await s.evaluate(`__sgl.triple('position')`))}; "${undoLabels.at(-1)}"`;
+  });
 
-await step('workflow/add-node', async () => {
-  const before = await evaluate('__wf.nodes()');
-  expect((await evaluate(`__wf.click('+ Add node')`)) === 'clicked', 'Add node button');
-  await waitFor(`__wf.nodes().length === ${before.length + 1}`, 'a new node');
-  newId = (await evaluate('__wf.nodes()')).find((id) => !before.includes(id));
-  const label = await evaluate('__wf.undoTitle()');
-  undoLabels.push(label);
-  expect(/Add room \d+/.test(label), `undo label ${label}`);
-  return `added ${newId}; ${label}`;
-});
+  await step('workflow/connect-generates-corridor', async () => {
+    const edgesBefore = await s.evaluate('__sgl.edgeIds()');
+    await expandSection(s, PROPS, /Relationships/);
+    await s.evaluate(`__sgl.setValue(document.querySelector('select[aria-label="Room to connect to"]'), '2'); true`);
+    await s.click('Connect', { within: PROPS });
+    await s.waitFor(`/Add connection/.test(__sgl.undoTitle())`, 10_000, 'the connection to be recorded');
+    await record();
+    newEdge = (await s.evaluate('__sgl.edgeIds()')).find((id) => !edgesBefore.includes(id));
+    expect(newEdge, 'no new edge in Graph 2D');
+    await selectEdge(s, newEdge);
+    await expandSection(s, PROPS, /In the building/);
+    const text = await props();
+    expect(/Connected via route/.test(text), `status: ${text.slice(0, 300)}`);
+    const walls = await s.evaluate(`(() => { const sel = document.querySelector('select[aria-label="Corridor walls"]'); return sel ? sel.value + '|' + sel.options[sel.selectedIndex].text : null; })()`);
+    expect(walls?.startsWith('|Design default'), `corridor walls follow the design default: ${walls}`);
+    await setViewMode(s, 1, 'voxels');
+    const info = await s.waitFor(`/connector cell/.test(__sgl.panel(1).innerText) && __sgl.panel(1).innerText.split('\\n').find((l) => /connector cell/.test(l))`, 10_000, 'connector cells in Voxels');
+    expect(/3 connector cells/.test(info), `Voxels: ${info}`);
+    await s.screenshot(`10-corridor-voxels-${vp}.png`);
+    return `"${undoLabels.at(-1)}" (edge ${newEdge}): Connected via route, walls "${walls.split('|')[1]}"; Voxels "${info}"`;
+  });
 
-await step('workflow/move-via-properties', async () => {
-  await selectNodeInGraph(newId);
-  // Position x / y / z (Level) are separate value fields: one edit and one undo step per changed axis.
-  const target = [5, 0, 0];
-  const next = await evaluate(`__wf.triple('position')`);
-  for (let i = 0; i < 3; i++) {
-    if (next[i] === target[i]) continue;
-    next[i] = target[i];
-    const label = `Move room ${newId} to [${next.join(', ')}]`;
-    await evaluate(`__wf.setTriple('position', ${JSON.stringify(next)}); true`);
-    await waitFor(`__wf.undoTitle().includes(${JSON.stringify(label)})`, label);
-    undoLabels.push(await evaluate('__wf.undoTitle()'));
-  }
-  return `${newId} at ${JSON.stringify(await evaluate(`__wf.triple('position')`))}; ${undoLabels.at(-1)}`;
-});
-
-await step('workflow/connect-generates-enclosed-corridor', async () => {
-  await evaluate(`(() => { const s = document.querySelector('select[aria-label="Room to connect to"]'); __wf.setValue(s, 'studio-ground'); return true; })()`);
-  expect((await evaluate(`__wf.click('Connect', document.querySelector('#sidebar-panel-properties'))`)) === 'clicked', 'Connect button');
-  await waitFor(`/Add connection/.test(__wf.undoTitle())`, 'the connection to be recorded');
-  undoLabels.push(await evaluate('__wf.undoTitle()'));
-  // Show the new relationship's Properties.
-  const shown = await evaluate(`(() => { const b = [...document.querySelectorAll('#sidebar-panel-properties button[title="Show this relationship"]')].pop(); if (!b) return false; b.click(); return true; })()`);
-  expect(shown, 'relationship link in Properties');
-  const text = await waitFor(`/In the building/i.test(__wf.props()) && __wf.props()`, 'relationship Properties');
-  expect(/Connected via route/.test(text), `status: ${text.slice(0, 300)}`);
-  const walls = await evaluate(`document.querySelector('select[aria-label="Corridor walls"]')?.value ?? null`);
-  expect(walls === '', `corridor walls follow the design default: ${walls}`);
-  await evaluate(`__wf.panel2('voxels'); true`);
-  const info = await waitFor(`/connector cells/.test(__wf.voxelInfo()) && __wf.voxelInfo()`, 'connector cells in Voxels');
-  expect(/3 connector cells/.test(info), `voxels: ${info}`);
-  await screenshot(`10-corridor-voxels-${vw}x${vh}`);
-  await evaluate(`__wf.panel2('architecture'); true`);
-  await delay(600);
-  await screenshot(`11-corridor-building-default-${vw}x${vh}`);
-  return `routed, design default (open + flat); Voxels "${info.split('\n').pop()}"`;
-});
-
-await step('workflow/change-corridor-look', async () => {
-  await evaluate(`__wf.setValue(document.querySelector('select[aria-label="Corridor walls"]'), 'enclosed'); true`);
-  await waitFor(`/corridor walls/.test(__wf.undoTitle())`, 'the walls change to be recorded');
-  undoLabels.push(await evaluate('__wf.undoTitle()'));
-  await delay(600);
-  await screenshot(`12-corridor-building-enclosed-${vw}x${vh}`);
-  await evaluate(`__wf.setValue(document.querySelector('select[aria-label="Corridor roof"]'), 'none'); true`);
-  await waitFor(`document.querySelector('select[aria-label="Corridor roof"]').value === 'none'`, 'no roof');
-  undoLabels.push(await evaluate('__wf.undoTitle()'));
-  await delay(600);
-  await screenshot(`13-corridor-building-enclosed-no-roof-${vw}x${vh}`);
-  return 'design default → own Enclosed walls → own no roof, one undo step each';
-});
-
-await step('workflow/resize-via-properties', async () => {
-  await selectNodeInGraph(newId);
-  await evaluate(`__wf.setTriple('size', [2, 1, 1]); true`);
-  await waitFor(`/Resize room .* to 2×1×1/.test(__wf.undoTitle())`, 'the resize to be recorded');
-  undoLabels.push(await evaluate('__wf.undoTitle()'));
-  return undoLabels.at(-1);
-});
-
-await step('workflow/move-in-properties-voxels', async () => {
-  await evaluate(`__wf.panel2('voxels'); true`);
-  // The Move/Resize step panel was removed (2026-11-17); the keyboard alternative to the gizmo is
-  // the room's Position in Properties (one change = one command).
-  expect(!(await evaluate(`!!document.querySelector('[aria-label$="plus one cell"]')`)), 'the Move/Resize step buttons are back');
-  const before = await evaluate(`__wf.triple('position')`);
-  await evaluate(`__wf.setTriple('position', [${before[0]}, ${before[1] + 1}, ${before[2]}]); true`);
-  await waitFor(`__wf.triple('position')[1] === ${before[1] + 1}`, 'the gizmo move');
-  const label = await evaluate('__wf.undoTitle()');
-  expect(/Move room/.test(label), label);
-  // Undo it: exactly one step returns the room.
-  await evaluate(`document.querySelector('.history-actions button').click(); true`);
-  await waitFor(`__wf.triple('position')[1] === ${before[1]}`, 'undo of the gizmo move');
-  return `+y moved ${JSON.stringify(before)} → y+1 in one step; undo restored`;
-});
-
-await step('workflow/orbit-keeps-selection', async () => {
-  const rect = await evaluate(`(() => { const c = document.querySelector('.view-panel[data-panel="1"] canvas'); const b = c.getBoundingClientRect(); return { x: b.x + 30, y: b.y + b.height - 60 }; })()`);
-  await dragAt(rect.x, rect.y, 80, -20);
-  const text = await evaluate('__wf.props()');
-  expect(new RegExp(`Room`).test(text) && (await evaluate(`__wf.field('position', 'x') !== null`)), 'selection lost after orbit');
-  return 'orbit drag on empty canvas kept the selected room';
-});
-
-await step('workflow/designer-windows-and-roof', async () => {
-  await evaluate(`__wf.tab('designer'); true`);
-  // "Style rooms by" (2026-11-18): functions get a card from "+ Style another function" (one undo step each).
-  await waitFor(`document.querySelector('select[aria-label="Style another function"]') !== null`, 'the Designer add menu');
-  for (const fn of ['gallery', 'studio']) {
-    const before = await evaluate('__wf.undoTitle()');
-    await evaluate(`(() => { const s = document.querySelector('select[aria-label="Style another function"]'); __wf.setValue(s, '${fn}'); return true; })()`);
-    await waitFor(`__wf.undoTitle() !== ${JSON.stringify(before)}`, `the ${fn} card`);
-    undoLabels.push(await evaluate('__wf.undoTitle()'));
-  }
-  await waitFor(`document.querySelector('input[aria-label="Gallery window coverage in percent"], input[aria-label$="window coverage in percent"]') !== null`, 'Designer rows');
-  const names = await evaluate(`[...document.querySelectorAll('input[aria-label$="window coverage in percent"]')].map((i) => i.getAttribute('aria-label'))`);
-  const gallery = names.find((n) => /gallery/i.test(n)) ?? names[0];
-  await evaluate(`(() => { const i = document.querySelector('input[aria-label="${gallery}"]'); __wf.setValue(i, '60'); __wf.enter(i); return true; })()`);
-  await waitFor(`/Designer settings/.test(__wf.undoTitle())`, 'the window change to be recorded');
-  undoLabels.push(await evaluate('__wf.undoTitle()'));
-  const roofSelects = await evaluate(`[...document.querySelectorAll('.sgl-designer-type select')].map((s) => s.id)`);
-  const studioRoof = roofSelects.find((id) => /studio/i.test(id)) ?? roofSelects[0];
-  const n = undoLabels.length;
-  await evaluate(`__wf.setValue(document.getElementById('${studioRoof}'), 'none'); true`);
-  await waitFor(`__wf.undoTitle() !== ${JSON.stringify(undoLabels[n - 1])} || document.getElementById('${studioRoof}').value === 'none'`, 'the roof change');
-  undoLabels.push(await evaluate('__wf.undoTitle()'));
-  await evaluate(`__wf.panel2('architecture'); true`);
-  await delay(700);
-  await screenshot(`14-designer-building-${vw}x${vh}`);
-  return `${gallery} = 60 %, ${studioRoof} = none`;
-});
-
-let edgesBeforeAlgorithm = 0;
-await step('workflow/run-transformation-and-apply', async () => {
-  await evaluate(`__wf.tab('transform'); true`);
-  edgesBeforeAlgorithm = await evaluate('__wf.edges()');
-  const picked = await evaluate(`(() => { const b = [...document.querySelectorAll('.algorithm-item')].find((x) => /storage|store/i.test(x.textContent)); if (!b) return false; b.click(); return true; })()`);
-  expect(picked, 'connect-storage-to-galleries in the list');
-  expect((await evaluate(`__wf.click('Run', document.querySelector('#sidebar-panel-transform'))`)) === 'clicked', 'Run');
-  await waitFor(`/preview:/i.test(document.querySelector('#sidebar-panel-transform').innerText)`, 'the preview');
-  expect((await evaluate(`__wf.click('Apply', document.querySelector('#sidebar-panel-transform'))`)) === 'clicked', 'Apply');
-  await waitFor(`/Apply “/.test(__wf.undoTitle())`, 'the apply to be recorded');
-  undoLabels.push(await evaluate('__wf.undoTitle()'));
-  const after = await evaluate('__wf.edges()');
-  expect(after > edgesBeforeAlgorithm, `edges ${edgesBeforeAlgorithm} → ${after}`);
-  return `edges ${edgesBeforeAlgorithm} → ${after}; ${undoLabels.at(-1)}`;
-});
-
-await step('workflow/undo-redo-every-step', async () => {
-  // Undo all recorded steps one at a time, checking each label, then redo them all.
-  const seen = [];
-  for (let i = undoLabels.length - 1; i >= 0; i--) {
-    const title = await evaluate('__wf.undoTitle()');
-    expect(title === undoLabels[i], `undo #${undoLabels.length - i}: expected "${undoLabels[i]}", got "${title}"`);
-    seen.push(title);
-    await evaluate(`document.querySelector('.history-actions button').click(); true`);
-    await delay(120);
-  }
-  expect(!(await evaluate('__wf.canUndo()')), 'undo still possible after undoing every step (an operation took more than one entry)');
-  expect((await evaluate('__wf.nodes()')).length === 7, 'baseline should have the 7 rooms of the example');
-  for (let i = 0; i < undoLabels.length; i++) {
-    await evaluate(`document.querySelectorAll('.history-actions button')[1].click(); true`);
-    await delay(120);
-  }
-  expect(!(await evaluate('__wf.canRedo()')), 'redo still possible');
-  expect((await evaluate('__wf.edges()')) > edgesBeforeAlgorithm, 'redo did not restore the algorithm result');
-  return `${undoLabels.length} operations = ${undoLabels.length} undo steps, all redone`;
-});
-
-let exported = null;
-await step('workflow/export-v2', async () => {
-  exported = await download();
-  const d = exported.json;
-  expect(d.schemaVersion === 2, `schemaVersion ${d.schemaVersion}`);
-  const room = d.nodes.find((n) => n.id === newId);
-  expect(room && JSON.stringify(room.size) === '[2,1,1]' && JSON.stringify(room.position) === '[5,0,0]', `new room ${JSON.stringify(room)}`);
-  const corridor = d.edges.find((e) => (e.source === newId || e.target === newId) && e.corridor);
-  expect(corridor?.corridor?.walls === 'enclosed' && corridor?.corridor?.roof === 'none', `connector edge ${JSON.stringify(corridor)}`);
-  // Function cards ("Style rooms by", 2026-11-18): settings.styles.function.groups[].look.
-  const cards = (d.settings?.styles?.function?.groups ?? []).map((g) => g.look);
-  expect(d.settings?.styleBy === 'function', `styleBy ${d.settings?.styleBy}`);
-  expect(cards.some((a) => a.windowFraction === 0.6) && cards.some((a) => a.roof === 'none'), `function cards ${JSON.stringify(cards)}`);
-  return `${exported.file}: v2, ${d.nodes.length} rooms, ${d.edges.length} relationships, function cards ${JSON.stringify(cards)}`;
-});
-
-await step('workflow/reimport-roundtrip', async () => {
-  await evaluate(`__wf.tab('project'); true`);
-  await setFile('.sgl-project-actions input[type="file"]', exported.file);
-  await waitFor(`!__wf.canUndo()`, 'the re-imported design (fresh history)');
-  const nodes = await evaluate('__wf.nodes()');
-  expect(nodes.length === exported.json.nodes.length, `rooms ${nodes.length}`);
-  const modified = await evaluate(`/unsaved|modified|not exported/i.test(document.querySelector('.project-bar')?.innerText ?? '')`);
-  expect(!modified, 'design marked modified right after import');
-  const again = await download();
-  // Re-opened in the same browser the project gets a new identity (a separate copy); its scenario design is identical.
-  expect(JSON.stringify(again.json) === JSON.stringify(exported.json), 're-exported scenario design differs from the imported one');
-  return `re-imported ${nodes.length} rooms; re-exported scenario design is identical; dialogs accepted: ${dialogs.length}`;
-});
-
-// ── 2. failure cases ─────────────────────────────────────────────────────────────────────────
-await step('fail/room-collision-rejected', async () => {
-  // Room 1 (the entrance at [0, 0, 0]) is never moved by the steps above: Position x = 1 (one
-  // Geometry edit) puts it into room 2.
-  await selectNodeInGraph('1');
-  const before = await evaluate('__wf.undoTitle()');
-  const pos = await evaluate(`__wf.triple('position')`);
-  await evaluate(`__wf.setTriple('position', [1, ${pos[1]}, ${pos[2]}]); true`);
-  const msg = await waitFor(`(/overlaps/i.test(__wf.props()) && __wf.props().match(/[^\\n]*overlaps[^\\n]*/i)[0])`, 'an overlap message');
-  expect((await evaluate('__wf.undoTitle()')) === before, 'a history entry was recorded for a rejected move');
-  await delay(200);
-  const after = await evaluate(`__wf.triple('position')`);
-  return `"${msg}"; no history entry; stored position ${JSON.stringify(pos)} (field shows ${JSON.stringify(after)})`;
-});
-
-await step('fail/corridor-displacement-cancel-and-confirm', async () => {
-  await selectNodeInGraph('gallery-upper');
-  const before = await evaluate('__wf.undoTitle()');
-  await evaluate(`__wf.setTriple('position', [3, 0, 0]); true`);
-  await waitFor(`__wf.button('Move anyway and recalculate') !== null`, 'the corridor confirmation');
-  await screenshot(`20-displacement-confirm-${vw}x${vh}`);
-  expect((await evaluate(`__wf.click('Cancel', document.querySelector('#sidebar-panel-properties'))`)) === 'clicked', 'Cancel');
-  await delay(200);
-  expect((await evaluate('__wf.undoTitle()')) === before, 'Cancel changed the document');
-  await evaluate(`__wf.setTriple('position', [3, 0, 0]); true`);
-  await waitFor(`__wf.button('Move anyway and recalculate') !== null`, 'the corridor confirmation again');
-  expect((await evaluate(`__wf.click('Move anyway and recalculate')`)) === 'clicked', 'confirm');
-  await waitFor(`/Move room .* to \\[3, 0, 0\\]/.test(__wf.undoTitle())`, 'the confirmed move');
-  return `Cancel kept the document; confirm recorded "${await evaluate('__wf.undoTitle()')}"`;
-});
-
-await step('fail/unresolved-route-after-displacement', async () => {
-  await selectNodeInGraph(newId);
-  const shown = await evaluate(`(() => { const b = [...document.querySelectorAll('#sidebar-panel-properties button[title="Show this relationship"]')].find((x) => /02/.test(x.textContent)) ?? [...document.querySelectorAll('#sidebar-panel-properties button[title="Show this relationship"]')][0]; if (!b) return false; b.click(); return true; })()`);
-  expect(shown, 'relationship link');
-  const text = await waitFor(`/In the building/i.test(__wf.props()) && __wf.props()`, 'relationship Properties');
-  expect(/Unresolved/.test(text), `expected Unresolved: ${text.slice(0, 300)}`);
-  const red = await evaluate(`[...document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__edge path')].some((p) => (p.getAttribute('stroke') ?? getComputedStyle(p).stroke).toLowerCase().includes('a2453f') || getComputedStyle(p).stroke === 'rgb(162, 69, 63)')`);
-  await screenshot(`21-unresolved-${vw}x${vh}`);
-  // One undo returns the corridor.
-  await evaluate(`document.querySelector('.history-actions button').click(); true`);
-  const back = await waitFor(`/In the building/i.test(__wf.props()) && __wf.props()`, 'relationship Properties after undo');
-  expect(/Connected via route/.test(back), 'undo did not restore the corridor');
-  return `status Unresolved with reason; red dashed edge in Graph 2D: ${red}; one undo restored "Connected via route"`;
-});
-
-await step('fail/stale-transformation-preview', async () => {
-  await evaluate(`__wf.tab('transform'); true`);
-  await evaluate(`(() => { const b = [...document.querySelectorAll('.algorithm-item')].find((x) => /daylight/i.test(x.textContent)); b?.click(); return true; })()`);
-  expect((await evaluate(`__wf.click('Run', document.querySelector('#sidebar-panel-transform'))`)) === 'clicked', 'Run');
-  await waitFor(`/preview:/i.test(document.querySelector('#sidebar-panel-transform').innerText)`, 'the preview');
-  // Change the shown document elsewhere (one undo or redo step), which makes the preview stale.
-  const viaUndo = await evaluate('__wf.canUndo()');
-  expect(viaUndo || (await evaluate('__wf.canRedo()')), 'neither undo nor redo is available');
-  await evaluate(`document.querySelectorAll('.history-actions button')[${viaUndo ? 0 : 1}].click(); true`);
-  await waitFor(`/can no longer be applied/.test(document.querySelector('#sidebar-panel-transform').innerText)`, 'the stale message');
-  const disabled = await evaluate(`__wf.button('Apply', document.querySelector('#sidebar-panel-transform'))?.disabled === true`);
-  expect(disabled, 'Apply still enabled on a stale preview');
-  await evaluate(`document.querySelectorAll('.history-actions button')[${viaUndo ? 1 : 0}].click(); true`);
-  // Returning to the same content does not make the old preview current again (revision-bound).
-  await delay(200);
-  const stillStale = await evaluate(`/can no longer be applied/.test(document.querySelector('#sidebar-panel-transform').innerText)`);
-  expect(stillStale, 'preview became applicable again after returning to the same content');
-  return `stale after ${viaUndo ? 'undo' : 'redo'}: message shown, Apply disabled; still stale after returning`;
-});
-
-const writeTemp = (name, text) => {
-  const file = join(outDir, name);
-  writeFileSync(file, text);
-  return file;
-};
-
-await step('fail/invalid-json-import', async () => {
-  const before = (await evaluate('__wf.nodes()')).length;
-  await evaluate(`__wf.tab('project'); true`);
-  await setFile('.sgl-project-actions input[type="file"]', writeTemp('broken.json', '{ "schemaVersion": 2, "nodes": ['));
-  const h = await waitFor(`document.querySelector('section.issues[role="alert"] h2')?.textContent`, 'the import error');
-  expect(/broken\.json/.test(h) && /kept unchanged/.test(h), h);
-  expect((await evaluate('__wf.nodes()')).length === before, 'design changed');
-  await evaluate(`__wf.click('Dismiss', document.querySelector('section.issues[role="alert"]')); true`);
-  return h;
-});
-
-await step('fail/unsupported-version-import', async () => {
-  await setFile('.sgl-project-actions input[type="file"]', writeTemp('future.json', JSON.stringify({ schemaVersion: 3, metadata: { name: 'x' }, nodes: [], edges: [] })));
-  const text = await waitFor(`document.querySelector('section.issues[role="alert"]')?.innerText`, 'the version error');
-  expect(/future\.json/.test(text), text);
-  await evaluate(`__wf.click('Dismiss', document.querySelector('section.issues[role="alert"]')); true`);
-  return text.split('\n')[0];
-});
-
-await step('fail/unknown-type-import', async () => {
-  const doc = {
-    schemaVersion: 2,
-    metadata: { name: 'Unknown type' },
-    nodes: [
-      { id: 1, position: [0, 0, 0], size: [1, 1, 1], function: 'spaceship', custom: {} },
-      { id: 2, position: [3, 0, 0], size: [1, 1, 1], function: 'gallery', custom: {} },
-    ],
-    edges: [{ id: 1, source: 1, target: 2, relationship: 'access', custom: {} }],
-    diagram: { positions: {} },
-    settings: { styleBy: 'function', styles: {} },
-  };
-  const errorsBefore = consoleErrors.length;
-  await evaluate(`__wf.tab('project'); true`);
-  await setFile('.sgl-project-actions input[type="file"]', writeTemp('unknown-type.json', JSON.stringify(doc)));
-  await waitFor(`__wf.nodes().length === 2`, 'the imported design');
-  const bar = await evaluate(`document.querySelector('.project-bar')?.innerText ?? ''`);
-  await evaluate(`__wf.panel2('architecture'); true`);
-  await delay(600);
-  await screenshot(`30-unknown-type-${vw}x${vh}`);
-  expect(consoleErrors.length === errorsBefore, `console errors: ${consoleErrors.slice(errorsBefore).join(' | ')}`);
-  return `loaded; project checks: "${bar.split('\n').find((l) => /check/i.test(l)) ?? bar.slice(0, 80)}"`;
-});
-
-// ── 3. coordination across the four views ────────────────────────────────────────────────────
-await step('views/coordinated-selection', async () => {
-  // A fresh example project: reload (Welcome shows at every startup) → Try example. (New project
-  // opens a clean project directly since 2026-11-17, so it no longer leads back to Welcome.)
-  await page.send('Page.navigate', { url });
-  await waitFor(`!!document.querySelector('.sgl-welcome')`, 'the Welcome screen', 20000);
-  await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try example'))?.click(); true`);
-  await waitFor(`document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node').length > 0`, 'the design', 20000);
-  await helpers();
-  await waitFor(`__wf.nodes().length === 7`, 'the example');
-  await selectNodeInGraph('6');
-  const out = [];
-  for (const mode of ['graph3d', 'voxels', 'architecture']) {
-    await evaluate(`__wf.panel2('${mode}'); true`);
+  await step('workflow/corridor-own-walls-and-roof', async () => {
+    await setViewMode(s, 1, 'architecture');
+    await selectEdge(s, newEdge);
+    await expandSection(s, PROPS, /In the building/);
+    const before = await undoTitle();
+    await s.evaluate(`__sgl.setValue(document.querySelector('select[aria-label="Corridor walls"]'), 'enclosed'); true`);
+    await s.waitFor(`__sgl.undoTitle() !== ${JSON.stringify(before)}`, 10_000, 'the walls change to be recorded');
+    await record();
+    await s.evaluate(`__sgl.setValue(document.querySelector('select[aria-label="Corridor roof"]'), 'none'); true`);
+    await s.waitFor(`__sgl.undoTitle() !== ${JSON.stringify(undoLabels.at(-1))}`, 10_000, 'the roof change to be recorded');
+    await record();
+    const shown = await s.evaluate(`[document.querySelector('select[aria-label="Corridor walls"]').value, document.querySelector('select[aria-label="Corridor roof"]').value].join('/')`);
+    expect(shown === 'enclosed/none', `Properties shows ${shown}`);
     await delay(500);
-    const still = await evaluate(`__wf.field('position', 'x') !== null && /Room\\s+6/.test(__wf.props())`);
-    expect(still, `selection lost when panel 2 shows ${mode}`);
-    await screenshot(`40-selected-${mode}-${vw}x${vh}`);
-    out.push(mode);
-  }
-  // An edit in Properties is reflected in the other views (Voxels hover info counts / Graph 2D label).
-  // One Geometry edit: room 6 (the bedroom at [2, 0, 1]) moves along x to free cells.
-  await evaluate(`__wf.setTriple('position', [4, 0, 1]); true`);
-  await waitFor(`__wf.undoTitle().includes('Move room 6 to [4, 0, 1]')`, 'the move');
-  await evaluate(`__wf.panel2('voxels'); true`);
-  const info = await waitFor(`__wf.voxelInfo()`, 'voxel info');
-  return `selection kept across ${out.join(', ')}; Voxels: ${info.split('\n').pop()}`;
-});
+    await s.screenshot(`11-corridor-enclosed-no-roof-${vp}.png`);
+    return `own walls Enclosed, own roof None: "${undoLabels.at(-2)}", "${undoLabels.at(-1)}"`;
+  });
 
-await step('console/no-errors', async () => {
-  expect(consoleErrors.length === 0, consoleErrors.join(' | '));
-  return `no console errors; failed requests: ${failedRequests.length}`;
-});
+  await step('workflow/corridors-card', async () => {
+    await openRail(s, 'Building Designer');
+    const card = '#sidebar-panel-designer [data-card="corridors"]';
+    await s.evaluate(`(() => { const h = document.querySelector('${card} .sgl-designer-type-head'); if (h && h.getAttribute('aria-expanded') !== 'true') h.click(); return true; })()`);
+    const roof = await s.waitFor(`document.querySelector('${card} select')?.value ?? null`, 10_000, 'the Corridors card roof');
+    const before = await undoTitle();
+    await s.evaluate(`__sgl.setValue(document.querySelector('${card} select'), 'pergola'); true`);
+    await s.waitFor(`__sgl.undoTitle() !== ${JSON.stringify(before)}`, 10_000, 'the card change to be recorded');
+    await record();
+    const summary = await s.waitFor(`(() => { const t = document.querySelector('${card} .sgl-designer-summary')?.textContent ?? ''; return /Pergola/i.test(t) && t; })()`, 10_000, 'the card summary');
+    const note = await s.evaluate(`document.querySelector('${card}').innerText.split('\\n').find((l) => /own walls or roof/.test(l)) ?? ''`);
+    expect(/1 relationship sets its own/.test(note), `card note: ${note}`);
+    // The per-edge override still wins: Properties says the corridor has no roof.
+    await selectEdge(s, newEdge);
+    await expandSection(s, PROPS, /In the building/);
+    const own = await s.evaluate(`document.querySelector('select[aria-label="Corridor roof"]').value`);
+    const def = await s.evaluate(`document.querySelector('select[aria-label="Corridor roof"]').options[0].text`);
+    expect(own === 'none' && /Pergola/i.test(def), `edge roof ${own}, default option "${def}"`);
+    return `card roof ${roof} → pergola ("${summary}"), "${undoLabels.at(-1)}"; ${note}; edge ${newEdge} keeps its own roof, default option "${def}"`;
+  });
 
-await screenshot(`99-final-${vw}x${vh}`);
-const failed = results.filter((r) => r.status === 'FAIL').length;
-writeFileSync(join(outDir, 'workflow.json'), JSON.stringify({ url, viewport: `${vw}x${vh}`, results, consoleErrors, failedRequests, dialogs }, null, 2));
-console.log(`\n${results.length - failed} passed, ${failed} failed — ${outDir}`);
-await browser.send('Browser.close', {}).catch(() => {});
-process.exit(failed ? 1 : 0);
+  await step('workflow/resize-in-properties', async () => {
+    await selectNode(s, newId);
+    await s.evaluate(`__sgl.setTriple('size', [2, 1, 1]); true`);
+    await s.waitFor(`/Resize room .* to 2×1×1/.test(__sgl.undoTitle())`, 10_000, 'the resize to be recorded');
+    await record();
+    const area = await s.waitFor(`(__sgl.props().match(/Area\\s*\\n?\\s*([0-9.,]+ m²)/) ?? [])[1] ?? null`, 10_000, 'the Area value');
+    expect(area === '18 m²', `Area after resize: ${area}`);
+    return `"${undoLabels.at(-1)}"; Area ${area}`;
+  });
+
+  await step('workflow/function-card-window', async () => {
+    await openRail(s, 'Building Designer');
+    const before = await undoTitle();
+    await s.evaluate(`__sgl.setValue(document.querySelector('select[aria-label="Style another function"]'), 'living'); true`);
+    await s.waitFor(`__sgl.undoTitle() !== ${JSON.stringify(before)}`, 10_000, 'the Living card');
+    await record();
+    // The Living card ("Living (living)"): open it when folded, then its window coverage field.
+    const card = `[...document.querySelectorAll('#sidebar-panel-designer article.sgl-designer-type')].find((a) => /^Living/.test(a.querySelector('.sgl-designer-type-name')?.textContent ?? ''))`;
+    const input = `${card}?.querySelector('input[aria-label$="window coverage in percent"]')`;
+    await s.evaluate(`(() => { const h = ${card}?.querySelector('[aria-expanded]'); if (h && h.getAttribute('aria-expanded') !== 'true') h.click(); return true; })()`);
+    await s.waitFor(`!!${input}`, 10_000, 'the Living window coverage field');
+    await s.evaluate(`(() => { const i = ${input}; __sgl.setValue(i, '60'); __sgl.enter(i); return true; })()`);
+    // The card add and the window change share the label "Change Designer settings for living": wait for the card's summary.
+    const summary = await s.waitFor(`(() => { const t = ${card}?.querySelector('.sgl-designer-summary')?.textContent ?? ''; return /60\\s*%/.test(t) && t; })()`, 10_000, 'the window change on the Living card');
+    await record();
+    await setViewMode(s, 1, 'architecture');
+    await s.screenshot(`12-designer-building-${vp}.png`);
+    return `Living card added ("${undoLabels.at(-2)}"), window coverage 60 % ("${undoLabels.at(-1)}"; card "${summary.replace(/\s+/g, ' ')}")`;
+  });
+
+  await step('workflow/undo-redo-every-step', async () => {
+    for (let i = undoLabels.length - 1; i >= 0; i--) {
+      const title = await undoTitle();
+      expect(title === undoLabels[i], `undo #${undoLabels.length - i}: expected "${undoLabels[i]}", got "${title}"`);
+      await undo(s);
+      // Two consecutive steps may share a label (card added, then its window changed): wait for the label
+      // of the step below, or the end of the history.
+      await s.waitFor(i > 0 ? `__sgl.undoTitle() === ${JSON.stringify(undoLabels[i - 1])}` : `!__sgl.canUndo()`, 5000, `undo of "${title}"`);
+      await delay(150);
+    }
+    expect(!(await s.evaluate('__sgl.canUndo()')), 'Undo still possible after undoing every step (an operation took more than one entry)');
+    expect((await s.evaluate('__sgl.nodes()')).length === 5, 'baseline should be the 5 rooms of the example');
+    for (let i = 0; i < undoLabels.length; i++) {
+      await redo(s);
+      await s.waitFor(`__sgl.undoTitle() === ${JSON.stringify(undoLabels[i])}`, 5000, `redo of "${undoLabels[i]}"`);
+      await delay(150);
+    }
+    expect(!(await s.evaluate('__sgl.canRedo()')), 'Redo still possible');
+    return `${undoLabels.length} operations = ${undoLabels.length} undo steps, all redone`;
+  });
+
+  let exported = null;
+  const exportProject = async () => {
+    await openRail(s, 'Project');
+    const file = await s.download(() => s.click('Export project', { within: '#sidebar-panel-project' }));
+    const project = s.readJson(file);
+    return { file, project, json: project.scenarios.find((x) => x.id === project.activeScenarioId).design };
+  };
+
+  await step('workflow/export-v2', async () => {
+    exported = await exportProject();
+    const d = exported.json;
+    expect(d.schemaVersion === 2, `schemaVersion ${d.schemaVersion}`);
+    const room = d.nodes.find((n) => String(n.id) === newId);
+    expect(room && JSON.stringify(room.size) === '[2,1,1]' && JSON.stringify(room.position) === '[5,1,0]', `new room ${JSON.stringify(room)}`);
+    const edge = d.edges.find((e) => String(e.id) === newEdge);
+    expect(edge?.corridor?.walls === 'enclosed' && edge?.corridor?.roof === 'none', `corridor override ${JSON.stringify(edge)}`);
+    expect(/"pergola"/.test(JSON.stringify(d.settings ?? {})), `the Corridors card roof is not in settings: ${JSON.stringify(d.settings).slice(0, 300)}`);
+    const cards = (d.settings?.styles?.function?.groups ?? []).map((g) => g.look);
+    expect(cards.some((a) => a.windowFraction === 0.6), `function cards ${JSON.stringify(cards)}`);
+    return `${exported.file}: v2, ${d.nodes.length} rooms, ${d.edges.length} relationships, corridor ${JSON.stringify(edge.corridor)}, cards ${JSON.stringify(cards)}`;
+  });
+
+  await step('workflow/reimport-roundtrip', async () => {
+    await openRail(s, 'Project');
+    await s.setFiles('#sidebar-panel-project input[type="file"]', exported.file);
+    await s.waitFor(`!__sgl.canUndo() && __sgl.nodes().length === ${exported.json.nodes.length}`, 15_000, 'the re-imported project (fresh history)');
+    const again = await exportProject();
+    // Re-opened in the same browser the project is a separate copy; its scenario design is identical.
+    expect(JSON.stringify(again.json) === JSON.stringify(exported.json), 're-exported scenario design differs from the imported one');
+    return `re-imported ${exported.json.nodes.length} rooms with fresh history; re-exported design identical; dialogs accepted: ${s.dialogs.length}`;
+  });
+
+  // ── 2. failure cases ────────────────────────────────────────────────────────────────────────
+  await step('fail/room-collision-rejected', async () => {
+    // Room 1 (Entrance [0,1,0]) next to room 2 (Living [1,1,0]): Position x = 1 overlaps it.
+    await selectNode(s, '1');
+    const before = await undoTitle();
+    await s.evaluate(`(() => { const el = __sgl.geo('position.x'); __sgl.setValue(el, 1); __sgl.enter(el); return true; })()`);
+    const msg = await s.waitFor(`/overlap/i.test(__sgl.props()) && __sgl.props().split('\\n').find((l) => /overlap/i.test(l))`, 10_000, 'an overlap message');
+    await delay(200);
+    expect((await undoTitle()) === before, 'a history entry was recorded for a rejected move');
+    return `"${msg}"; no history entry`;
+  });
+
+  await step('fail/corridor-displacement-cancel-and-confirm', async () => {
+    // The corridor of the new room runs through cells x 2..4 at y 1: moving the Entrance to x = 3 takes one.
+    await selectNode(s, '1');
+    const before = await undoTitle();
+    const move = `(() => { const el = __sgl.geo('position.x'); __sgl.setValue(el, 3); __sgl.enter(el); return true; })()`;
+    await s.evaluate(move);
+    await s.waitFor(`!!__sgl.byText('Move anyway and recalculate')`, 10_000, 'the corridor confirmation');
+    await s.screenshot(`20-displacement-confirm-${vp}.png`);
+    await s.click('Cancel', { within: PROPS });
+    await delay(250);
+    expect((await undoTitle()) === before, 'Cancel changed the document');
+    await s.evaluate(move);
+    await s.click('Move anyway and recalculate');
+    await s.waitFor(`/Move room 1 to \\[3, 1, 0\\]/.test(__sgl.undoTitle())`, 10_000, 'the confirmed move');
+    return `Cancel kept the document; confirm recorded "${await undoTitle()}"`;
+  });
+
+  await step('fail/unresolved-after-displacement', async () => {
+    await selectEdge(s, newEdge);
+    await expandSection(s, PROPS, /In the building/);
+    const text = await props();
+    expect(/Unresolved/.test(text), `expected Unresolved: ${text.slice(0, 300)}`);
+    const dash = await s.evaluate(`__sgl.graphPanel().querySelector('.react-flow__edge[data-id="${newEdge}"] path.react-flow__edge-path')?.style.strokeDasharray ?? ''`);
+    await s.screenshot(`21-unresolved-${vp}.png`);
+    await undo(s);
+    await s.waitFor(`/Connected via route/.test(__sgl.props())`, 10_000, 'Connected via route after one Undo');
+    return `edge ${newEdge} Unresolved (Graph 2D dash "${dash}"); one Undo restored "Connected via route"`;
+  });
+
+  await step('fail/invalid-json-import', async () => {
+    const before = (await s.evaluate('__sgl.nodes()')).length;
+    await openRail(s, 'Project');
+    await s.setFiles('#sidebar-panel-project input[type="file"]', s.writeTemp('broken.json', '{ "schemaVersion": 2, "nodes": ['));
+    const h = await s.waitFor(`document.querySelector('section.issues[role="alert"] h2')?.textContent`, 10_000, 'the import error');
+    expect(/broken\.json/.test(h) && /kept unchanged/.test(h), h);
+    expect((await s.evaluate('__sgl.nodes()')).length === before, 'design changed');
+    await s.click('Dismiss', { within: 'section.issues[role="alert"]' });
+    return h;
+  });
+
+  await step('fail/unsupported-version-import', async () => {
+    await s.setFiles('#sidebar-panel-project input[type="file"]', s.writeTemp('future.json', JSON.stringify({ schemaVersion: 3, metadata: { name: 'x' }, nodes: [], edges: [] })));
+    const text = await s.waitFor(`document.querySelector('section.issues[role="alert"]')?.innerText`, 10_000, 'the version error');
+    expect(/future\.json/.test(text), text);
+    await s.click('Dismiss', { within: 'section.issues[role="alert"]' });
+    return text.split('\n')[0];
+  });
+
+  await step('fail/unknown-function-import', async () => {
+    const doc = {
+      schemaVersion: 2,
+      metadata: { name: 'Unknown function' },
+      nodes: [
+        { id: 1, position: [0, 0, 0], size: [1, 1, 1], function: 'spaceship', custom: {} },
+        { id: 2, position: [3, 0, 0], size: [1, 1, 1], function: 'living', custom: {} },
+      ],
+      edges: [{ id: 1, source: 1, target: 2, relationship: 'access', custom: {} }],
+      diagram: { positions: {} },
+      settings: { styleBy: 'function', styles: {} },
+    };
+    const errorsBefore = s.consoleErrors.length;
+    await openRail(s, 'Project');
+    await s.setFiles('#sidebar-panel-project input[type="file"]', s.writeTemp('unknown-function.json', JSON.stringify(doc)));
+    await s.waitFor(`__sgl.nodes().length === 2`, 15_000, 'the imported design');
+    await setViewMode(s, 1, 'architecture');
+    await s.screenshot(`30-unknown-function-${vp}.png`);
+    expect(s.consoleErrors.length === errorsBefore, `console errors: ${s.consoleErrors.slice(errorsBefore).join(' | ')}`);
+    return 'loaded (2 rooms, 1 corridor relationship) without console errors';
+  });
+
+  // ── 3. one selection across five views ──────────────────────────────────────────────────────
+  await step('views/selection-across-views', async () => {
+    await tryExample(s);
+    await selectNode(s, '4');
+    const out = [];
+    for (const mode of ['graph3d', 'voxels', 'architecture', 'plan', 'data']) {
+      await setViewMode(s, 1, mode);
+      const still = await s.evaluate(`!!__sgl.geo('position.x') && /Room\\s*\\n?\\s*4\\b/.test(__sgl.props()) && !!__sgl.graphPanel().querySelector('.react-flow__node.selected[data-id="4"]')`);
+      expect(still, `selection lost when panel 2 shows ${mode}`);
+      await s.screenshot(`40-selected-${mode}-${vp}.png`);
+      out.push(mode);
+    }
+    // An edit in Properties reaches the other views: the Bedroom (over the Living) moves one cell east.
+    await s.evaluate(`(() => { const el = __sgl.geo('position.x'); __sgl.setValue(el, 2); __sgl.enter(el); return true; })()`);
+    await s.waitFor(`__sgl.undoTitle().includes('Move room 4 to [2, 1, 1]')`, 10_000, 'the move');
+    await setViewMode(s, 1, 'voxels');
+    const info = await s.waitFor(`__sgl.panel(1).innerText.split('\\n').find((l) => /rooms ·/.test(l))`, 10_000, 'Voxels info');
+    return `room 4 stays selected with panel 2 in ${out.join(', ')}; after a move Voxels: "${info}"`;
+  });
+
+  // ── 4. Analyse: a run with highlights ───────────────────────────────────────────────────────
+  await step('analyse/neighbours-highlight-stale-clear', async () => {
+    await undo(s);
+    await selectNode(s, '2');
+    await openRail(s, 'Analyse');
+    const item = `#sidebar-panel-analyse [data-analysis]`;
+    await s.waitFor(`[...document.querySelectorAll('${item}')].some((li) => /Neighbours/.test(li.textContent))`, 10_000, 'the Neighbours analysis');
+    await s.clickElement(`[...document.querySelectorAll('${item}')].find((li) => /Neighbours/.test(li.textContent))?.querySelector('button')`, 'Neighbours');
+    const result = await s.waitFor(`document.querySelector('#sidebar-panel-analyse .sgl-analysis-result:not(.failed)')?.innerText`, 10_000, 'the result');
+    expect(/1, 3, 4/.test(result), `result: ${result}`);
+    const marked = await s.waitFor(`(() => { const m = [...__sgl.graphPanel().querySelectorAll('.react-flow__node .sgl-has-analysis')].map((e) => e.closest('.react-flow__node').dataset.id).sort(); return m.length ? m : null; })()`, 10_000, 'highlights in Graph 2D');
+    expect(marked.join(',') === '1,3,4', `Graph 2D highlights ${marked}`);
+    await s.screenshot(`50-analyse-${vp}.png`);
+    // An edit makes the shown result out of date (never silently wrong).
+    await selectNode(s, '5');
+    await s.evaluate(`(() => { const el = __sgl.geo('position.x'); __sgl.setValue(el, 3); __sgl.enter(el); return true; })()`);
+    await s.waitFor(`/Move room 5/.test(__sgl.undoTitle())`, 10_000, 'an edit');
+    await openRail(s, 'Analyse');
+    await s.waitFor(`!!document.querySelector('#sidebar-panel-analyse .sgl-analysis-result.stale')`, 10_000, 'the out-of-date mark');
+    await s.click('Clear', { within: '#sidebar-panel-analyse .sgl-analysis-result' });
+    await s.waitFor(`!__sgl.graphPanel().querySelector('.sgl-has-analysis') && !document.querySelector('#sidebar-panel-analyse .sgl-analysis-result')`, 10_000, 'Clear to remove the result and highlights');
+    await undo(s);
+    return `Neighbours of 2: "${result.replace(/\s+/g, ' ').slice(0, 60)}"; Graph 2D highlights ${marked}; stale after an edit; Clear removed result and highlights`;
+  });
+
+  // ── 5. Transform with the house toolkit ─────────────────────────────────────────────────────
+  const TP = '#sidebar-panel-transform';
+  const runGrow = async () => {
+    await openRail(s, 'Transform');
+    await s.clickElement(`[...document.querySelectorAll('${TP} .algorithm-item')].find((b) => /Grow to target area/.test(b.textContent))`, 'Grow to target area');
+    await s.click('Run', { within: TP });
+    return s.waitFor(`document.querySelector('${TP} .algorithm-result')?.innerText ?? null`, 15_000, 'the preview');
+  };
+
+  await step('transform/grow-preview-apply-undo', async () => {
+    await openWithToolkit(s, 'house');
+    const nodes = await s.evaluate('__sgl.nodes()');
+    expect(nodes.length === 5, `house design rooms ${nodes}`);
+    const preview = await runGrow();
+    expect(/Living 2: 9 → 36 m²/.test(preview) && /Kitchen 3: 9 → 18 m²/.test(preview) && /Bedroom 4: 9 → 18 m²/.test(preview), `preview: ${preview.slice(0, 400)}`);
+    expect(!(await s.evaluate('__sgl.canUndo()')), 'the preview changed the design (Undo offered)');
+    await s.click('Apply', { within: `${TP} .algorithm-result` });
+    await s.waitFor(`/Apply “Grow to target area”/.test(__sgl.undoTitle())`, 10_000, 'the Apply to be recorded');
+    await selectNode(s, '2');
+    const size = await s.evaluate(`__sgl.triple('size').join('×')`);
+    expect(size === '2×2×1', `Living size after Apply: ${size}`);
+    const area = await s.evaluate(`(__sgl.props().match(/Area\\s*\\n?\\s*([0-9.,]+ m²)/) ?? [])[1] ?? null`);
+    await s.screenshot(`60-grown-${vp}.png`);
+    // ONE Undo reverses the whole transform.
+    await undo(s);
+    await s.waitFor(`__sgl.triple('size').join('×') === '1×1×1'`, 10_000, 'the Living back to 1×1×1');
+    expect(!(await s.evaluate('__sgl.canUndo()')), 'more than one undo step for one Apply');
+    return `preview lists Living 36, Kitchen 18, Bedroom 18 m²; Apply → Living ${size} (Area ${area}); one Undo restored 1×1×1 with no further undo`;
+  });
+
+  await step('transform/stale-preview', async () => {
+    await runGrow();
+    // Change the design elsewhere (Redo of the Apply): the preview can no longer be applied.
+    await redo(s);
+    await s.waitFor(`/can no longer be applied/.test(__sgl.railText('transform'))`, 10_000, 'the stale message');
+    const disabled = await s.evaluate(`[...document.querySelectorAll('${TP} .apply-button')].every((b) => b.disabled)`);
+    expect(disabled, 'Apply still enabled on a stale preview');
+    await undo(s);
+    await delay(250);
+    expect(/can no longer be applied/.test(await s.evaluate(`__sgl.railText('transform')`)), 'the preview became applicable again after returning to the same content');
+    return 'stale after Redo: message shown, Apply disabled; still stale after Undo back to the same content';
+  });
+
+  await step('console/no-errors', async () => {
+    expect(s.consoleErrors.length === 0, s.consoleErrors.join(' | '));
+    return `no console errors${s.ignoredConsole.length ? ` (${s.ignoredConsole.length} ignored favicon 404)` : ''}`;
+  });
+
+  await s.screenshot(`99-final-${vp}.png`);
+  return finish();
+});

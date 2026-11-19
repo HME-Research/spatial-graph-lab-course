@@ -26,7 +26,7 @@ The output is one `PASS` / `FAIL` / `SKIP` line per check, followed by a summary
 - `1`: at least one failure. The failure message gives measured values, and a `FAIL-*.png` screenshot is saved.
 - `2`: the check could not run, because no browser or server was found.
 
-Unit tests for the harness helpers: `node --test scripts/smoke/lib.test.mjs`.
+Unit tests for the harness helpers (`lib.mjs`, `cdp.mjs` and the pure helpers of `app.mjs`): `node --test scripts/smoke/lib.test.mjs`.
 
 ## Checks
 
@@ -72,45 +72,157 @@ Use `--only viewports,select,...` to run selected groups. The groups are `viewpo
 8. After integration: Tab to a "?" help button, and a one-sentence tooltip appears. Enter shows "More details" and Escape closes it.
 9. After integration: Direct is a solid neutral line, Routed long-dashed neutral and Unresolved short-dashed muted red in every view; Access is thin and Open heavy; each view's legend says "Unresolved" in the same way.
 
-## Gate 1 workflow check (`workflow.mjs`)
+## Scenario scripts: `workflow.mjs`, `walls.mjs`, `gate-i1.mjs`
 
-An end-to-end check of the integrated app on real schema-v2 data and the real resolver. Same safety rules as `smoke.mjs` (it never starts or stops servers and never writes into the repository).
-
-```powershell
-node scripts/smoke/workflow.mjs --url http://localhost:5181/ --viewport 1366x768
-node scripts/smoke/workflow.mjs --url http://localhost:5181/ --viewport 1280x720
-```
-
-It loads the app three times from scratch, then: adds a room, moves it with Properties, connects it to a separated room (an enclosed corridor is generated: 3 connector cells in Voxels), gives the corridor its own Enclosed walls and then no roof (Properties), resizes the room, moves it with the gizmo's step buttons (one undo step), orbits without losing the selection, changes window coverage and a roof in the Designer, applies a transformation, undoes every step one at a time (N operations = N undo steps) and redoes them, exports v2 and re-imports it (byte-identical re-export). Failure cases: room collision (rejected, no history entry), corridor displacement (Cancel keeps the document; "Move anyway and recalculate" records one step), the resulting Unresolved relationship and its undo, a stale transformation preview, invalid JSON, an unsupported schema version and an unknown room type. Finally the selection is checked across Graph 3D, Voxels and Building, and the console must be free of errors.
-
-## Integration Gate I1 scenario (`gate-i1.mjs`)
-
-The mandatory integrated scenario of Gate I1 (projects, scenarios, cameras, display, Plan and calculated values together). Same safety rules as `smoke.mjs`. It creates its own uniquely named project in the private browser profile.
+Three longer end-to-end scripts drive the real app with real pointer input. They use the built-in example house (Welcome → **Try example**: rooms 1 Entrance [0,1,0], 2 Living [1,1,0], 3 Kitchen [1,0,0], 4 Bedroom [1,1,1] and 5 Bath [0,1,1]; relationships 1–2 Access, 2–3 Open, 2–4 Access and 4–5 Access; no toolkit). Where a toolkit is needed, they use the house toolkit (`toolkits/house/`). They follow the same safety rules as `smoke.mjs`: they never start or stop Node/Vite, never write into the repository, and only close the private browser they launched. All three share the helper module `app.mjs` (next section).
 
 ```powershell
-node scripts/smoke/gate-i1.mjs --url http://localhost:5291/ --viewport 1280x720
-node scripts/smoke/gate-i1.mjs --url http://localhost:5291/ --viewport 1366x768
+# the app must already run, e.g. npm run dev -- --port 5390 --strictPort
+node scripts/smoke/workflow.mjs --url http://localhost:5390/ --viewport 1366x768
+node scripts/smoke/walls.mjs    --url http://localhost:5390/ --viewport 1280x720
+node scripts/smoke/gate-i1.mjs  --url http://localhost:5390/ --viewport 1280x720
 ```
 
-Items (each PASS only when all its checks pass; `gate-i1.json` and screenshots go to `--out`):
-1. Welcome → Create project → a second scenario → a different room moved in each (no leak, Undo only for the active scenario) → a node attribute field shared by both scenarios → reload (Welcome, no auto-resume) → Recent → both scenarios, the edits and the field restored with fresh history → Export Project (two scenarios, the field, `settings.calculatedFields`, cameras per scenario, no metric values) → import as a separate copy → scenarios, schema and separate histories intact.
-2. Add a relationship in Graph 2D ("Add connection…") between two touching rooms → Building's status legend counts one more Direct and Plan draws a door for the new edge id; moving a room to another storey keeps the edge (Unresolved, no Plan door) until it is removed explicitly; undo restores the door.
-3. Enable "Exposed façade area" in Attributes → Calculated → Properties shows it read-only (no inputs, Level shown once) → Voxels "Colour by" offers and uses it → a move refreshes the value and the legend, undo restores it; still enabled after reload.
-4. Layout 4 with Graph 2D, Building, Voxels/Graph 3D and Plan, with and without a selected room, maximise/restore of each viewport, layouts 1 and 2: no page scroll, panels inside the workspace, header controls not clipped, the projection toggle never covering an overlay, one visible layout selector.
-5. Camera: explicit target viewport 2 (Building), a saved view in one scenario only, kept target across scenario switches, exact recall; after reload the target and the saved view are back and recall gives the saved pose.
+Common options: `--url`, `--viewport WxH` (default 1366x768 for `workflow.mjs`, 1280x720 for the others), `--out DIR` (default `<temp>/spatial-graph-lab-<script>/<timestamp>`), `--browser PATH`, `--headed` and `--help`. Each script prints one `PASS`/`FAIL` line per step. A failed step saves a `FAIL-<step>.png`. Lines starting with `NOTE` report an app issue that was worked around (see `ensureGraphEdges` below); they are not failures. The script writes `<script>.json` (results, console errors, notes) to `--out`. Exit codes: `0` all steps pass, `1` at least one failure, `2` could not run (no browser or server).
 
-## Wave 2 D wall ↔ graph check (`walls.mjs`)
+Run the scripts **one at a time** against a dev server. With several headless browsers rendering WebGL at once, the dev server and the browsers slow down until waits time out.
 
-Real pointer checks of the shared-wall interaction and "Remove invalid connections". Same safety rules as `smoke.mjs`; it opens the example with Try Example in a private browser profile.
+### `workflow.mjs`: the workshop workflow
 
-```powershell
-node scripts/smoke/walls.mjs --url http://localhost:5306/ --viewport 1280x720
-node scripts/smoke/walls.mjs --url http://localhost:5306/ --viewport 1366x768
+| Step | What is checked |
+|---|---|
+| `load/fresh-1`, `load/fresh-2` | Reload → Welcome → Try example: the header names the example, 5 rooms and 4 relationships, fresh history, no console errors. |
+| `workflow/add-room` | **+ Add node** adds room 6 ("Add room 6"). |
+| `workflow/move-in-properties` | Properties → Position moves it to [5,1,0]: one command and one undo step per changed axis. |
+| `workflow/connect-generates-corridor` | Properties → Relationships → **Connect** to room 2: the relationship is "Connected via route", its Corridor walls follow "Design default (…)", and Voxels counts 3 connector cells. |
+| `workflow/corridor-own-walls-and-roof` | The relationship's own Corridor walls (Enclosed) and roof (None) in Properties: one undo step each. |
+| `workflow/corridors-card` | Building Designer → **Corridors (generated)** card: roof Pergola is one undo step, the card summary changes and the card says one relationship sets its own look. The edge keeps its own roof, and its default option now reads "Design default (Pergola…)". |
+| `workflow/resize-in-properties` | Size [2,1,1] ("Resize room 6 to 2×1×1"); the calculated Area shows 18 m². |
+| `workflow/function-card-window` | "Style another function" → Living card, then window coverage 60 %: one undo step each. The two steps share a label, so the check waits for the card summary. |
+| `workflow/undo-redo-every-step` | Undo every recorded step one at a time, checking each label, until no Undo is left (N operations = N undo steps). Then redo all of them. |
+| `workflow/export-v2`, `workflow/reimport-roundtrip` | Export project: schema 2, room 6 geometry, the edge's `corridor` override, the corridor card in `settings`, the Living card's `windowFraction`. Open the file again: fresh history, and the re-exported design is identical. |
+| `fail/room-collision-rejected` | Entrance Position x = 1 overlaps the Living: an overlap message and no history entry. |
+| `fail/corridor-displacement-cancel-and-confirm` | Entrance x = 3 lands on the corridor: **Cancel** keeps the document, and **Move anyway and recalculate** records one step. |
+| `fail/unresolved-after-displacement` | The corridor relationship is now Unresolved (dashed in Graph 2D). One Undo gives "Connected via route" again. |
+| `fail/invalid-json-import`, `fail/unsupported-version-import`, `fail/unknown-function-import` | The import error names the file and says the design was kept. Schema version 3 is refused. An unknown Function loads without console errors. |
+| `views/selection-across-views` | Room 4 stays selected (Properties and Graph 2D) while panel 2 shows Graph 3D, Voxels, Building, Plan and Data. A move then reaches Voxels. |
+| `analyse/neighbours-highlight-stale-clear` | Analyse → Neighbours of room 2: the result names 1, 3, 4 and Graph 2D highlights exactly those nodes. After an edit the result is marked out of date. **Clear** removes the result and the highlights. |
+| `transform/grow-preview-apply-undo` | With the house toolkit: Transform → Grow to target area → Run. The preview lists Living 36, Kitchen 18 and Bedroom 18 m², and nothing changes yet. Apply makes the Living 2×2×1. One Undo restores everything and leaves no further Undo. |
+| `transform/stale-preview` | A preview becomes stale after Redo changes the design: a message is shown and Apply is disabled. It stays stale after Undo returns to the same content. |
+| `console/no-errors` | No uncaught exceptions or console errors. The favicon 404 is ignored. |
+
+### `walls.mjs`: shared wall ↔ graph and Remove invalid connections
+
+Setup (`open-example`): Try example, then add room 6 at [0,0,0], beside the Kitchen and in front of the Entrance. The Kitchen | room 6 wall (face `3:-x`, owner room 3) is then a free shared wall. The Building hides its roofs.
+
+| Step | What is checked |
+|---|---|
+| `building-add-access` | Hover over the wall in the Building until it reports `data-wall-hover="3:-x"`, then click → **Add relationship** → **Access**. Graph 2D gains exactly that edge, the wall panel reports "door on this wall", the Building's Direct count goes up by one and its pixels change, and the Plan draws a door on face `3:-x`. One Undo removes it everywhere. |
+| `plan-add-access` | The same from the Plan's wall line (hover highlight, active highlight), with the same edge id as before. The Building's panel for that wall then offers Change to Open / Remove only, never Add. One Undo. |
+| `remove-invalid` | Three single-axis moves make three relationships unresolved. Graph 2D **Remove invalid connections (3)** → review list (all checked, preview marks) → uncheck one → **Remove 2 selected**. The Building, Graph 3D and Voxels unresolved counts all drop by 2 ("Remove 2 invalid connections"). One Undo restores both. |
+| `no-invalid-explained` | Back at the base state, the Graph 2D canvas menu item explains that there are no invalid connections. |
+| `i2/wall-click-selects-owner-room` | A wall click in the Building and in the Plan selects the owner room (room 3) and opens the wall panel. |
+| `i2/remove-from-wall-panel-clears-edge-selection` | Add, then **Remove relationship** in the wall panel: the panel offers Add again, room 3 is selected and no edge stays selected. |
+| `i2/five-view-sync` | One wall-added Access edge, checked in five views: selected in Graph 2D, selection-colour pixels in Graph 3D and Voxels, Direct +1 in every 3D legend, and the Plan door on the same face. One Undo removes it everywhere. Redo, then room 6 moves away: the edge stays, dashed, Unresolved in every legend, with no Plan door. Remove invalid connections lists it, checked, as "no longer shared". Only it is removed, and one Undo restores it. |
+| `graph2d-legend-4-viewports` | Layout 4: the Graph 2D legend starts folded, no node is under it, and it opens on click. |
+| `console/no-errors` | No console errors. |
+
+### `gate-i1.mjs`: projects, scenarios, calculated values, layouts, cameras
+
+Each step belongs to an item, and an item passes only when all its steps pass. The script prints `ITEM n: PASS|FAIL` and writes `gate-i1.json`.
+
+| Item · step | What is checked |
+|---|---|
+| 1 · `welcome-create-empty` | Welcome at startup with no project reopened, and it offers Create / Open / Try example. **Create project** with the House toolkit gives an empty graph, and the header shows House. |
+| 1 · `example-named-and-saved` | Try example, rename it in Project (unique name), then **Save locally**: the header says "Saved locally". |
+| 1 · `two-scenarios-different-geometry` | **+ New scenario** → Create scenario (a copy). Move the Kitchen in scenario 2 and the Entrance in scenario 1: no edit leaks into the other scenario, and each has its own undo history. |
+| 1 · `shared-custom-attribute` | Attributes → **+ Add attribute** → Custom attribute "capacity" (Number). It is listed in both scenarios and in Properties, and it is not a design undo step. |
+| 5 · `save-view-and-switch` | Camera: target Viewport 2 (Building), orbit, Save view "Gate view". The other scenario lists 0 saved views, the target is kept across switches, and Recall restores the exact pose. |
+| 3 · `add-calculated-attribute` | Area is listed by default. **+ Add attribute** → Calculated attribute → "Exposed façade area". |
+| 3 · `properties-readonly-colour-by-refresh` | The Kitchen's row in Properties is read-only. Voxels "Colour by" offers it (and Area) and uses it (legend). Resizing the Kitchen refreshes its value (36 → 54 m²) and its Area, and Undo restores the value. |
+| 2 · `add-edge-in-graph2d` | Graph 2D **Add connection…** from the Entrance to the Kitchen (touching, no relationship): the Building's Direct count goes up by one and the Plan draws a door with the new edge id. Clicking the Plan door shows its status in Properties. |
+| 2 · `invalid-edge-kept-until-undo` | Moving the Kitchen up a storey keeps the edge, Unresolved, with no Plan door, and "Remove invalid connections" is offered. Undo brings the door back. |
+| 1 · `reload-recent-restore` | Reload → Welcome with no project reopened → Recent → the named project. Its scenarios, geometry, relationship counts (from the Scenarios list), "capacity" and a fresh history are back. |
+| 3 · `calculated-attribute-persisted` | "Exposed façade area" is still listed and shown after the reload. |
+| 5 · `camera-after-reload` | The target and "Gate view" are restored, and Recall gives the saved pose. |
+| 1 · `export-import-project` | Export project: 2 scenarios, the capacity attribute, `settings.calculatedFields`, cameras per scenario, and no calculated values. Open it again as a copy: scenarios, attributes and separate histories are intact. |
+| 4 · `views-layouts-maximise` | Layout 4 with Graph 2D / Building / Voxels / Plan, then with Graph 3D / Data, then with a room selected. Each viewport is maximised and restored, and layouts 1 and 2 are checked. Every time: no page scroll, panels inside the workspace, header controls not clipped, the projection toggle never covering an overlay, and one visible layout selector. Six view modes are on offer. |
+| – · `console/no-errors` | No console errors. |
+
+### Checks dropped or changed in the P4 rewrite
+
+- The old scripts used the deleted "example-gallery" toolkit (reading gallery, store, studios) and the Algorithms tab. They now use the built-in example house and the Analyse and Transform destinations.
+- The "connect-storage-to-galleries" transformation and the stale "daylight" preview are now the house toolkit's **Grow to target area** (apply, one undo step, stale preview).
+- `workflow.mjs`: the gizmo orbit check (`orbit-keeps-selection`) and the per-function roof change were removed. The Designer check is now the Corridors card plus one function card. The 7-room baseline is now the example's 5 rooms. The project-bar toolkit check is gone, because the example has no toolkit.
+- `gate-i1.mjs`: Create project now gives an empty graph, so the scenario work runs on the named and saved example. The shared field is a **custom attribute** added through the Add attribute dialog (the old "Add a node field" form is gone). The opt-in calculated value is still "Exposed façade area", added through that dialog. The check that the colour-by legend *text* changes after a move was dropped: its bands may stay the same. The value refresh is checked in Properties instead. Relationship counts after the restore come from the stored data (the Scenarios list), not from the edges Graph 2D draws.
+- `walls.mjs`: the example has no free shared wall, so the script adds room 6 to create one.
+
+## Shared helper module (`app.mjs`)
+
+`scripts/smoke/app.mjs` holds the browser-driving code shared by the three scripts. Any tool that drives the app can use it, for example a guide-screenshot script. It uses only Node built-ins and `cdp.mjs`. A small page-side helper, `window.__sgl`, is installed into every document (it survives reloads).
+
+```js
+import { openSession, tryExample, openRail, setViewMode, selectNode, setLayout } from './smoke/app.mjs';
+
+const s = await openSession({ url: 'http://localhost:5390/', viewport: { width: 1366, height: 768 } });
+try {
+  await tryExample(s);                       // Welcome → Try example, 5 rooms + 4 edges in Graph 2D
+  await setLayout(s, 2);
+  await setViewMode(s, 1, 'building');       // panel index 1 (data-panel="1"), alias of 'architecture'
+  await selectNode(s, 2);
+  await openRail(s, 'Building Designer');
+  const box = await s.rect('#sidebar-panel-designer');
+  await s.screenshot('designer.webp', { clip: box, format: 'webp', quality: 90 });
+  if (s.consoleErrors.length) console.error(s.consoleErrors);
+} finally {
+  await s.close();
+}
 ```
 
-Checks: Building (roofs off, orbit, hover until the wall reports itself) → click the reading gallery | store wall → Add relationship → Access → Graph 2D gains the edge, the Building legend counts one more Direct, the wall panel reports the door on this wall and the Plan draws the door on the same face id; one Undo removes it everywhere. The same from the Plan (wall line hover/click), with the Building panel confirming the door and offering change/remove only (no duplicate). Three unresolved relationships → Graph 2D review list (all checked) → uncheck one → only the two checked are removed (Graph 2D, Building, Graph 3D, Voxels legends, Plan note) → one Undo restores both. With nothing unresolved the canvas menu explains it. Layout 4: the Graph 2D legend starts folded with no node under it. No console errors.
+### Session
 
-Integration gate I2 steps (`i2/*`, same run):
-- `i2/wall-click-selects-owner-room`: clicking the free wall in the Building opens the panel AND selects the owner room (room editor shown); the Plan does the same.
-- `i2/remove-from-wall-panel-clears-edge-selection`: Add → Access, then Remove relationship in the panel: the panel offers Add again, the owner room is selected and no edge stays selected in Graph 2D.
-- `i2/five-view-sync`: one Access edge added by a Building wall click is the same id in Graph 2D (selected), Graph 3D and Voxels (selection-colour pixels in the canvas, direct legend +1), the Building (door on the clicked face) and the Plan (door on the same face id). One Undo removes it everywhere. Redo, then moving the store away keeps the edge, dashed in Graph 2D and unresolved in every legend, with no Plan opening. Remove invalid connections lists it, checked, as "no longer shared" (`preferred-face-unavailable`). Removing only it updates every view, and one Undo restores it.
+`openSession({ url, viewport = {width: 1366, height: 768}, out?, headless = true, browser?, navigate = true })` launches the private browser, sets the viewport, allows downloads into `<out>/downloads` and opens `url`. It throws `SetupError` when no browser or server is found. `out` defaults to `<temp>/spatial-graph-lab-session/<timestamp>`. The session object has:
+
+| Member | Meaning |
+|---|---|
+| `page`, `browser` | The raw CDP connections (`page.send(method, params)`, `page.on(event, fn)`). |
+| `url`, `viewport`, `out`, `downloadDir`, `version` | What the session was opened with. |
+| `consoleErrors`, `ignoredConsole`, `dialogs`, `notes` | Uncaught exceptions, `console.error` and network errors; ignored ones (favicon 404); accepted confirm dialogs; worked-around app issues. |
+| `evaluate(expr)` | Runs a page expression (awaits promises) and returns its JSON value. Throws on a page exception. |
+| `waitFor(predicateExpr, timeoutMs = 10000, what?)` | Polls until the expression is truthy and returns its value. Throws "timed out … waiting for <what>". |
+| `click(selectorOrText, { within?, timeout?, button? })` | A real mouse click at the centre of the first match: a CSS selector, or else the visible button/tab/label whose text starts with (or whose aria-label equals) the text. `within` is a scope selector. Waits until the element is enabled. |
+| `clickElement(finderExpr, what?)` | A real click on the element a page expression returns. |
+| `clickAt(x, y, { button?, settle? })`, `moveTo(x, y)`, `drag(x, y, dx, dy, { steps? })`, `key(name)` | Raw input in CSS px. |
+| `rect(selector)` | Bounding rectangle `{x, y, width, height}` in CSS px, or null. |
+| `screenshot(filePath, { clip?, format?, quality? })` | `clip` is a rect or a CSS selector; `format` is `png`, `webp` or `jpeg` (by default taken from the file extension). A relative path goes into `out`. Returns `{ file, data }`. |
+| `setFiles(selector, paths)` | Fills a file input (Open project / import). |
+| `goto(url?)` | Navigate and wait until the document is complete. |
+| `download(trigger)` | Runs `trigger()` and returns the path of the new file in `downloadDir`. |
+| `writeTemp(name, text)`, `readJson(file)` | Scratch files in `out/tmp` (never the repository). |
+| `close()` | Closes the private browser and deletes its profile. |
+
+### App helpers (each takes the session first)
+
+| Helper | What it does |
+|---|---|
+| `gotoWelcome(s, url?)` | Reload and wait for Welcome to be ready. |
+| `tryExample(s)` | Welcome → **Try example** (it reloads first when Welcome is not shown). Waits for 5 rooms and 4 edges in Graph 2D. |
+| `openWithToolkit(s, toolkitId = 'house', designFile?)` | Loads `?toolkit=<id>`, then Welcome → Open project with `toolkits/<id>/designs/<id>.json`. A design file becomes a new project that uses that toolkit. Waits for its rooms and edges. Use it for the house example **with** the house toolkit (the Transform, the custom attributes targetArea and priority). |
+| `createProject(s, { toolkit? })` | Welcome → **Create project**, with the toolkit chosen in the Welcome picker (or `?toolkit=`). Today this gives an empty graph. |
+| `waitForProject(s, nodes?)` | Waits until Welcome has closed, Graph 2D shows `nodes` rooms (or any number) and the project has finished activating. |
+| `openRail(s, label)` | Project, Attributes, Building Designer (or Designer), Analyse, Transform, Scenarios, Camera, Display, or Properties (the right pane). It expands a collapsed left pane and returns the panel selector `#sidebar-panel-<id>`. |
+| `setViewMode(s, panelIndex, mode)` | `panelIndex` is 0-based (`data-panel`). `mode` is `graph2d`, `graph3d`, `voxels`, `architecture` (alias `building`), `plan` or `data`. It waits for the view's surface. |
+| `setLayout(s, n)` | Viewport layout 1, 2 or 4. |
+| `selectNode(s, id)`, `selectEdge(s, id)` | A real click on the Graph 2D node, or on the midpoint of the edge (a Graph 2D panel must be shown). Shows Properties and waits for the selection. |
+| `nodeCenter(s, id)` | The centre of a node in Graph 2D. |
+| `moveRoom(s, id, [x, y, z])` | Select the room and set its Position (one command per changed axis). |
+| `expandSection(s, scopeSelector, title)` | Opens folded `.sgl-csection-toggle` sections, for example Properties → "Relationships" or "In the building". |
+| `undo(s)`, `redo(s)` | Click the header's Undo or Redo. |
+| `ensureGraphEdges(s, expected)` | Waits until Graph 2D draws `expected` edges. If it does not (a known intermittent app issue right after a project opens, most often from Recent), it remounts the view, records a `NOTE` and returns false. |
+| `dismissNotices(s)`, `pageOverflow(s)` | Close transient notices; document vs viewport scroll sizes. |
+| `createRunner(s, name)` → `{ step(id, fn, { item? }), results, finish(extra) }` | PASS/FAIL recording with `FAIL-*.png`. `finish` writes `<name>.json`, prints the notes and the summary, closes the browser and returns the exit code. |
+| `runScript({ name, usage, url, viewport }, body)` | Standard entry point. It parses `--url --viewport --out --browser --headed --timeout --help`, opens the session, runs `body(s, opts)` and exits 0, 1 or 2. |
+
+Pure helpers, unit-tested in `lib.test.mjs`: `parseViewport`, `resolveViewMode`, `railId`, `parseCliArgs`, `urlWithToolkit`, `defaultOutDir`, `VIEW_MODES`, `RAIL`. Paths: `REPO_ROOT`, `EXAMPLE_DESIGN_FILE`, `HOUSE_DESIGN_FILE` (read-only).
+
+The page helper `window.__sgl` gives, among others, `nodes()`, `edgeIds()`, `undoTitle()`, `canUndo()`, `props()`, `railText(id)`, `geo('position.x')`, `triple('size')`, `setTriple(part, [x, y, z])`, `panel(i)`, `graphPanel()`, `panelMode(i, mode)`, `legendCount(i, 'status:direct')`, `planOpenings(i)`, `wallPanel(i)`, `pose(i)`, `canvas(i)`, `wallHover(i)`, `setValue(el, v)`, `enter(el)`, `byText(text, scope)` and `rect(el)`.

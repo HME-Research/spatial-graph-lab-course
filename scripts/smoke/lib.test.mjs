@@ -1,6 +1,7 @@
 // Run with: node --test scripts/smoke/lib.test.mjs
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
+import { defaultOutDir, parseCliArgs, parseViewport, railId, resolveViewMode, urlWithToolkit, VIEW_MODES } from './app.mjs';
 import { browserCandidates } from './cdp.mjs';
 import { FEATURES, formatMarkdown, formatTable, isIgnorableConsoleError, overflowProblem, parseArgs, rectChanges, summarize, timestamp } from './lib.mjs';
 
@@ -66,4 +67,39 @@ test('timestamp and browser candidates', () => {
   const win = browserCandidates({ 'ProgramFiles(x86)': 'C:\\PF86', ProgramFiles: 'C:\\PF' }, 'win32');
   assert.ok(win[0].endsWith('msedge.exe'));
   assert.ok(browserCandidates({}, 'linux').every((p) => p.startsWith('/')));
+});
+
+// ── app.mjs pure helpers (the shared browser-driving module) ──────────────────────────────────
+
+test('app.mjs: viewport, view mode and rail names', () => {
+  assert.deepEqual(parseViewport('1366x768'), { width: 1366, height: 768 });
+  assert.deepEqual(parseViewport(' 1280×720 '), { width: 1280, height: 720 });
+  assert.equal(parseViewport('big'), null);
+  assert.equal(resolveViewMode('building'), 'architecture');
+  assert.equal(resolveViewMode('Graph 2D'), 'graph2d');
+  assert.equal(resolveViewMode('plan'), 'plan');
+  assert.throws(() => resolveViewMode('sections'), /unknown view mode/);
+  assert.deepEqual(VIEW_MODES, ['graph2d', 'graph3d', 'voxels', 'architecture', 'plan', 'data']);
+  assert.equal(railId('Building Designer'), 'designer');
+  assert.equal(railId('Designer'), 'designer');
+  assert.equal(railId('Analyse'), 'analyse');
+  assert.equal(railId('properties'), 'properties');
+  assert.throws(() => railId('Algorithms'), /unknown destination/);
+});
+
+test('app.mjs: command line, toolkit URL and output folder', () => {
+  const d = parseCliArgs([], { name: 'walls', url: 'http://localhost:5306/', viewport: '1280x720' });
+  assert.deepEqual(d.errors, []);
+  assert.equal(d.opts.url, 'http://localhost:5306/');
+  assert.deepEqual(d.opts.viewport, { width: 1280, height: 720 });
+  assert.match(d.opts.out, /spatial-graph-lab-walls/);
+  const r = parseCliArgs(['--url', 'http://127.0.0.1:5390/', '--viewport', '1366x768', '--headed', '--out', 'x'], {});
+  assert.deepEqual(r.errors, []);
+  assert.equal(r.opts.headless, false);
+  assert.deepEqual(r.opts.viewport, { width: 1366, height: 768 });
+  assert.match(parseCliArgs(['--viewport', 'huge'], {}).errors[0], /--viewport/);
+  assert.match(parseCliArgs(['--nope'], {}).errors[0], /unknown argument/);
+  assert.equal(parseCliArgs([], { env: { SGL_SMOKE_URL: 'http://localhost:4173/' } }).opts.url, 'http://localhost:4173/');
+  assert.equal(urlWithToolkit('http://localhost:5390/?a=1', 'house'), 'http://localhost:5390/?a=1&toolkit=house');
+  assert.match(defaultOutDir('gate-i1', new Date(2026, 10, 19, 8, 5, 3)), /spatial-graph-lab-gate-i1[\\/]20261119-080503$/);
 });
