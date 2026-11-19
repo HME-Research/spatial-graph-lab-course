@@ -1,5 +1,5 @@
-import { isBaselineField, type ActiveToolkit, type AttributeCollection, type AttributeField, type SchemaEdit, type ProjectAttributeSchema } from '@app/extensions';
-import { canDeleteCustomAttribute, type CustomAttributeSource } from './sections';
+import type { ActiveToolkit, AttributeCollection, AttributeField, SchemaEdit, ProjectAttributeSchema } from '@app/extensions';
+import { canDeleteCustomAttribute, customAttributeSource, type CustomAttributeSource } from './sections';
 
 /**
  * Where each custom attribute comes from (Programme P4, item C). Pure.
@@ -14,15 +14,12 @@ import { canDeleteCustomAttribute, type CustomAttributeSource } from './sections
 /** The parts of the active toolkit that decide origins. */
 export type AttributeOrigin = Pick<ActiveToolkit, 'definition' | 'attributeBaseline'>;
 
-export function customAttributeSourceOf(
+/** = `customAttributeSource` in `sections.ts` (the pure helper views may import). */
+export const customAttributeSourceOf: (
   field: Pick<AttributeField, 'key' | 'formerKeys'>,
   collection: AttributeCollection,
   toolkit: AttributeOrigin | null | undefined,
-): CustomAttributeSource {
-  return toolkit && isBaselineField(field, collection, toolkit.attributeBaseline.schema)
-    ? { kind: 'toolkit', toolkitName: toolkit.definition.name }
-    : { kind: 'yours' };
-}
+) => CustomAttributeSource = customAttributeSource;
 
 /** `customAttributeSourceOf` bound to one collection and toolkit. */
 export const sourceResolver =

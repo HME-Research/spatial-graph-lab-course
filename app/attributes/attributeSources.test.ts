@@ -16,6 +16,7 @@ import { readProjectFile, serializeProjectFile } from '@app/project';
 import { fileOf } from '@app/session/projectStore.fixtures';
 import { readAttributeRecord } from '@app/extensions';
 import { customAttributeSourceOf, toolkitDeleteRefusal } from './attributeSources';
+import { customAttributeSource as viewHelper } from './sections';
 import { customAttributeTag } from './sections';
 
 /** Origin tracking of custom attributes (Programme P4, item C): derived from the toolkit baseline, never stored. */
@@ -86,6 +87,8 @@ describe('custom attribute origin', () => {
     const session = edit(loadAttributeSession(null, bare), { type: 'add-field', collection: 'nodes', field: { key: 'daylight', label: 'Daylight', kind: 'text' } });
     expect(tags(currentSchema(session), 'nodes', bare)).toEqual({ daylight: 'Yours' });
     expect(customAttributeSourceOf({ key: 'daylight' }, 'nodes', null)).toEqual({ kind: 'yours' });
+    // The pure helper in sections.ts (importable by views, e.g. the Data table) is the same function.
+    expect(viewHelper).toBe(customAttributeSourceOf);
   });
 
   it('matches keys ignoring case, per collection (the rule mergeBaseline uses)', async () => {

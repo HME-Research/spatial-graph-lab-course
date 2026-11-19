@@ -12,6 +12,8 @@
  * - calculated: values the app works out (metrics). Never stored. Locked.
  */
 
+import { isBaselineField, type ActiveToolkit, type AttributeCollection, type AttributeField } from '@app/extensions';
+
 export const ATTRIBUTE_SECTION_IDS = ['identity', 'required', 'geometry', 'custom', 'calculated'] as const;
 export type AttributeSectionId = (typeof ATTRIBUTE_SECTION_IDS)[number];
 
@@ -61,6 +63,22 @@ export const customAttributeTag = (source: CustomAttributeSource): string =>
   source.kind === 'toolkit' ? `Toolkit: ${source.toolkitName}` : 'Yours';
 
 export const canDeleteCustomAttribute = (source: CustomAttributeSource): boolean => source.kind === 'yours';
+
+/**
+ * Where a custom attribute comes from (P4, item C). Derived, never stored: "toolkit" when the active
+ * toolkit's files declare it (`isBaselineField` against `ActiveToolkit.attributeBaseline`, the key
+ * rule `mergeBaseline` uses, so renames, reloads, project files and attribute exports keep it),
+ * otherwise "yours". No toolkit (or a project without one) → always yours. Pure; usable by views.
+ */
+export function customAttributeSource(
+  field: Pick<AttributeField, 'key' | 'formerKeys'>,
+  collection: AttributeCollection,
+  toolkit: Pick<ActiveToolkit, 'definition' | 'attributeBaseline'> | null | undefined,
+): CustomAttributeSource {
+  return toolkit && isBaselineField(field, collection, toolkit.attributeBaseline.schema)
+    ? { kind: 'toolkit', toolkitName: toolkit.definition.name }
+    : { kind: 'yours' };
+}
 
 /** Built-in (non-custom, non-calculated) members of each section, in display order. */
 export interface BuiltInAttribute {
