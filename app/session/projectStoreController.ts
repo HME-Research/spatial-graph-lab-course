@@ -20,6 +20,7 @@ import {
 import type { ScenarioCommand } from '@app/spatial';
 import type { SavedCamera } from '@core/viewer/three/camera';
 import type { FacadeAssetV1, FacadeRole } from '@app/assets';
+import type { StoredUpload } from '@app/extensions';
 import {
   addFacadeAsset,
   applyActiveCommand,
@@ -44,6 +45,7 @@ import {
   setAttributeRecord,
   setCalculatedFields,
   setShownAnalyses,
+  setUploadedAnalyses,
   setDisplayDefaults,
   setProjectFunctions,
   setProjectDescription,
@@ -196,6 +198,8 @@ export interface ProjectController {
   setCalculatedFields(ids: readonly string[]): void;
   /** Project `settings.analyses` (the built-ins listed in Analyse, P4). Not undoable; autosaved. */
   setShownAnalyses(ids: readonly string[]): void;
+  /** Project `settings.uploadedAnalyses` (the student's uploaded analyses, P4 item I). Not undoable; autosaved. */
+  setUploadedAnalyses(uploads: readonly StoredUpload[]): void;
   /** Project `settings.functions` (node types added in the browser). Not undoable; autosaved. */
   setFunctions(functions: readonly ProjectFunction[], hiddenFunctions: readonly string[]): void;
   setAttributeRecord(record: unknown | null): void;
@@ -677,6 +681,9 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
     setCalculatedFields(ids) {
       mutate((p) => setCalculatedFields(p, ids));
+    },
+    setUploadedAnalyses(uploads) {
+      mutate((p) => setUploadedAnalyses(p, uploads));
     },
     setShownAnalyses(ids) {
       mutate((p) => setShownAnalyses(p, ids));

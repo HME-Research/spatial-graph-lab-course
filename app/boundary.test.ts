@@ -29,7 +29,9 @@ import { describe, expect, it } from 'vitest';
  * - shell (`App`, `Workspace`, `main`, `inspector/`): composes everything.
  *
  * Lower layers never import higher ones. No relative import leaves app/; the built-in example
- * design lives in `document/examples/`.
+ * design lives in `document/examples/`. Two exceptions into `docs/` (P4 item I): any file as text
+ * (`?raw`, e.g. the Guide's downloads), and the student templates in `docs/templates/` as code from
+ * tests only (they prove a template works as a toolkit analysis).
  */
 const sources = import.meta.glob<string>('./**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true });
 
@@ -90,7 +92,11 @@ function violation(file: string, specifier: string): string | null {
   if (specifier.startsWith('@app/')) target = `./${specifier.slice('@app/'.length)}`;
   else if (specifier.startsWith('.')) {
     target = resolveRelative(file, specifier);
-    if (!target.startsWith('./')) return `leaves app/ (${target})`;
+    if (!target.startsWith('./')) {
+      if (target.startsWith('docs/') && specifier.endsWith('?raw')) return null;
+      if (target.startsWith('docs/templates/') && /\.test\.tsx?$/.test(file)) return null;
+      return `leaves app/ (${target})`;
+    }
   }
 
   if (target === null) {
@@ -157,6 +163,12 @@ describe('application layering', () => {
     expect(violation('./metrics/x.ts', '@app/attributes/sections')).not.toBeNull();
     expect(violation('./views/graph2d/x.ts', '../../App')).not.toBeNull();
     expect(violation('./views/x.ts', '../../toolkits/a/b.ts')).not.toBeNull();
+    expect(violation('./ui/guide/content.ts', '../../../docs/ALGORITHM-PROMPT.md?raw')).toBeNull();
+    expect(violation('./ui/guide/content.ts', '../../../docs/templates/graph-analysis-template.ts?raw')).toBeNull();
+    expect(violation('./ui/guide/content.ts', '../../../docs/templates/graph-analysis-template')).not.toBeNull();
+    expect(violation('./extensions/x.test.ts', '../../docs/templates/graph-analysis-template')).toBeNull();
+    expect(violation('./extensions/x.test.ts', '../../docs/other')).not.toBeNull();
+    expect(violation('./extensions/x.test.ts', '../../toolkits/a/b.ts?raw')).not.toBeNull();
     expect(violation('./views/x.ts', '@student-api')).not.toBeNull();
     expect(violation('./document/x.ts', '@student-api')).not.toBeNull();
     expect(violation('./extensions/x.ts', '@app/views/contracts')).not.toBeNull();

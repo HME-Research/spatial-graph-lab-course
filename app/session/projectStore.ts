@@ -33,6 +33,7 @@ import {
   type FacadeRole,
 } from '@app/assets';
 import type { SavedCamera } from '@core/viewer/three/camera';
+import type { StoredUpload } from '@app/extensions';
 import {
   commitDocument,
   currentDocument,
@@ -453,6 +454,20 @@ export function setShownAnalyses(project: OpenProject, ids: readonly string[]): 
   const current = project.meta.settings.analyses;
   if (current && current.length === ids.length && current.every((id, i) => id === ids[i])) return project;
   return changed(project, { meta: { ...project.meta, settings: { ...project.meta.settings, analyses: [...ids] } } });
+}
+
+/**
+ * The uploaded analyses (`settings.uploadedAnalyses`, P4 item I): source text per upload, in panel
+ * order. The caller has already checked each new upload. Not undoable; autosaved and exported.
+ */
+export function setUploadedAnalyses(project: OpenProject, uploads: readonly StoredUpload[]): OpenProject {
+  const current = project.meta.settings.uploadedAnalyses ?? [];
+  const same =
+    current.length === uploads.length &&
+    current.every((u, i) => u.id === uploads[i]!.id && u.source === uploads[i]!.source && u.fileName === uploads[i]!.fileName && u.addedAt === uploads[i]!.addedAt);
+  if (same) return project;
+  const settings = { ...project.meta.settings, uploadedAnalyses: uploads.map((u) => ({ id: u.id, fileName: u.fileName, source: u.source, addedAt: u.addedAt })) };
+  return changed(project, { meta: { ...project.meta, settings } });
 }
 
 /** The project functions (`settings.functions`): node types added in the browser. Not undoable; autosaved. */

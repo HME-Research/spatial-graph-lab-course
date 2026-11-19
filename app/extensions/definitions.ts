@@ -111,6 +111,9 @@ export const algorithmIdSchema = typeIdSchema;
 /** At most this many inputs per analysis (a sanity limit, not a contract field). */
 export const MAX_ANALYSIS_INPUTS = 8;
 
+/** Longest optional `description` of a graph analysis (shown by its ⓘ). */
+export const MAX_ANALYSIS_DESCRIPTION = 300;
+
 const inputLabel = z.string({ error: 'an input label must be text' }).trim().min(1, { error: 'an input label must not be empty' }).max(40);
 
 /** One declared analysis input (Student API `AnalysisInput`). */
@@ -137,6 +140,12 @@ export const algorithmDefinitionSchema = z.discriminatedUnion(
     z.strictObject({
       id: algorithmIdSchema,
       label,
+      description: z
+        .string({ error: 'description must be text' })
+        .trim()
+        .min(1, { error: 'description must not be empty' })
+        .max(MAX_ANALYSIS_DESCRIPTION, { error: `description must be at most ${MAX_ANALYSIS_DESCRIPTION} characters` })
+        .optional(),
       scope: z.literal('graph'),
       inputs: z
         .array(analysisInputSchema, { error: 'inputs must be a list such as [{ kind: "node", label: "Node" }] (use [] for the whole graph)' })

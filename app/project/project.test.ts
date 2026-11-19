@@ -454,6 +454,47 @@ describe('settings.calculatedFields (I1, optional)', () => {
   });
 });
 
+describe('settings.uploadedAnalyses (P4 item I, optional)', () => {
+  const upload = (id: string, source = "export default { kind: 'graph analysis source' };\n// ünïcode\n") => ({
+    id,
+    fileName: `${id}.ts`,
+    source,
+    addedAt: '2026-11-19T10:00:00.000Z',
+  });
+
+  it('is absent by default; stores source text (never compiled code) and round-trips byte for byte', () => {
+    expect(JSON.parse(serializeProjectFile(validFile())).settings).not.toHaveProperty('uploadedAnalyses');
+    const raw = rawFile();
+    raw.settings = { ...raw.settings, uploadedAnalyses: [upload('upload-a'), upload('upload-b', 'export default 1;\n')] };
+    const file = okValue(readProjectFile(raw));
+    expect(file.settings.uploadedAnalyses).toEqual([upload('upload-a'), upload('upload-b', 'export default 1;\n')]);
+    const text = serializeProjectFile(file);
+    expect(Object.keys(JSON.parse(text).settings)).toEqual(['display', 'uploadedAnalyses']);
+    expect(serializeProjectFile(okValue(readProjectFile(text)))).toBe(text);
+  });
+
+  it('keeps an upload that would no longer compile (the app lists it disabled; opening never fails for it)', () => {
+    const raw = rawFile();
+    raw.settings = { ...raw.settings, uploadedAnalyses: [upload('upload-a', 'this is not ( valid code')] };
+    expect(okValue(readProjectFile(raw)).settings.uploadedAnalyses?.[0]?.source).toBe('this is not ( valid code');
+  });
+
+  it('rejects a malformed list before anything replaces state', () => {
+    for (const bad of [
+      'x',
+      [{ id: 'A b', fileName: 'a.ts', source: '', addedAt: '2026-11-19T10:00:00.000Z' }],
+      [upload('a'), upload('a')],
+      [{ ...upload('a'), compiled: 'x' }],
+      [{ ...upload('a'), source: 'x'.repeat(100_001) }],
+      Array.from({ length: 21 }, (_, n) => upload(`u${n}`)),
+    ]) {
+      const raw = rawFile();
+      raw.settings = { ...raw.settings, uploadedAnalyses: bad };
+      expect(codes(readProjectFile(raw))).toContain('schema');
+    }
+  });
+});
+
 describe('numeric ids survive save → reopen (P4)', () => {
   /** Rooms 1, 2 and 5 (ids 3 and 4 were deleted earlier), edges 1 and 3; counters 9 and 4. */
   const gappedDesign = () =>

@@ -71,6 +71,8 @@ export interface GraphAlgorithmDefinition {
   /** Unique within the project: lowercase letters, digits and "-", starting with a letter. */
   readonly id: string;
   readonly label: string;
+  /** Optional: one or two plain sentences on what it tells you (shown by its ⓘ in Analyse). */
+  readonly description?: string;
   /** REQUIRED: the exact, ordered inputs the student picks (`[]` = the whole network). */
   readonly inputs: readonly AnalysisInput[];
   run(ctx: GraphAlgorithmContext): AnalysisResult;

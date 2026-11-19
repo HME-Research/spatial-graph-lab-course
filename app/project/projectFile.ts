@@ -14,6 +14,8 @@ import {
 } from '@app/display/contracts';
 import { readAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import { toolkitIdSchema } from '@app/extensions/discover';
+import type { StoredUpload } from '@app/extensions/uploadedAnalyses';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_FILE_NAME, MAX_UPLOADED_ANALYSES } from '@app/extensions/uploadSource';
 import { canonicalFacadeAsset, FACADE_LIMITS, facadeAssetsBytes, formatBytes, readFacadeAsset, type FacadeAssetV1 } from '@app/assets';
 
 /**
@@ -123,6 +125,13 @@ export interface ProjectSettings {
    * `sanitizeShownAnalyses` (unknown ids ignored). Written only when set.
    */
   readonly analyses?: readonly string[];
+  /**
+   * The student's uploaded graph analyses (optional, P4 item I), in panel order: the SOURCE text of
+   * each `.ts`/`.js` file (never compiled code), compiled again when the project opens. A stored
+   * analysis that no longer compiles or validates is listed as disabled with the reason; it never
+   * blocks opening the project. Written only when set.
+   */
+  readonly uploadedAnalyses?: readonly StoredUpload[];
 }
 
 /** A project function: a node type defined in the project file (`settings.functions`). */
@@ -137,6 +146,9 @@ export interface ProjectFunction {
 export const FUNCTION_ID_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
 export const MAX_FUNCTION_LABEL = 60;
 export const MAX_PROJECT_FUNCTIONS = 64;
+
+/** Id of an uploaded analysis entry (`settings.uploadedAnalyses[].id`). */
+export const UPLOAD_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 export type ProjectIssueCode =
   | 'invalid-json'
@@ -223,6 +235,20 @@ const projectShape = z.strictObject({
       .max(MAX_PROJECT_FUNCTIONS)
       .optional(),
     analyses: z.array(z.string().min(1).max(64), { error: 'analyses must be a list of analysis ids' }).max(64).optional(),
+    uploadedAnalyses: z
+      .array(
+        z.strictObject({
+          id: z.string().regex(UPLOAD_ID_PATTERN, { error: 'an uploaded analysis id must be lowercase letters, digits or "-"' }),
+          fileName: z.string().min(1, { error: 'a file name must not be empty' }).max(MAX_UPLOAD_FILE_NAME),
+          // Characters ≤ UTF-8 bytes, so every accepted upload fits; the byte limit is checked on upload.
+          source: z.string({ error: 'source must be text' }).max(MAX_UPLOAD_BYTES, { error: `an uploaded analysis may be at most ${MAX_UPLOAD_BYTES} characters` }),
+          addedAt: isoSchema,
+        }),
+        { error: 'uploadedAnalyses must be a list of {id, fileName, source, addedAt}' },
+      )
+      .max(MAX_UPLOADED_ANALYSES, { error: `at most ${MAX_UPLOADED_ANALYSES} uploaded analyses per project` })
+      .refine((list) => new Set(list.map((u) => u.id)).size === list.length, { error: 'uploaded analysis ids must be unique' })
+      .optional(),
   }),
   assets: z.union(
     [
@@ -419,12 +445,16 @@ const canonicalSettings = (settings: {
   readonly functions?: readonly ProjectFunction[] | undefined;
   readonly hiddenFunctions?: readonly string[] | undefined;
   readonly analyses?: readonly string[] | undefined;
+  readonly uploadedAnalyses?: readonly StoredUpload[] | undefined;
 }): ProjectSettings => ({
   display: canonicalDefaults(settings.display),
   ...(settings.calculatedFields !== undefined && { calculatedFields: [...settings.calculatedFields] }),
   ...(settings.functions !== undefined && { functions: settings.functions.map((f) => ({ id: f.id, label: f.label })) }),
   ...(settings.hiddenFunctions !== undefined && { hiddenFunctions: [...settings.hiddenFunctions] }),
   ...(settings.analyses !== undefined && { analyses: [...settings.analyses] }),
+  ...(settings.uploadedAnalyses !== undefined && {
+    uploadedAnalyses: settings.uploadedAnalyses.map((u) => ({ id: u.id, fileName: u.fileName, source: u.source, addedAt: u.addedAt })),
+  }),
 });
 
 export function serializeProjectFile(file: ProjectFileV2): string {
