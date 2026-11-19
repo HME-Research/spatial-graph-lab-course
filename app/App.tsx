@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import exampleDesign from './document/examples/house.json';
-import { type DesignDocumentV2, formatIssuePath, type GraphIssue, readDesign } from '@app/document';
+import { type DesignDocumentV2, formatIssuePath, type GraphIssue, nodeLabel, readDesign } from '@app/document';
 import {
   discoverToolkits,
   projectOnlyToolkit,
@@ -520,7 +520,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
       ranOnNodeIds: shownAnalysis.doc.nodes.map((n) => n.id),
       currentNodeIds: doc.nodes.map((n) => n.id),
       stale: isStale(shownAnalysis, version, attributes?.revision),
-      labelOf: new Map(doc.nodes.map((n) => [n.id, n.displayId ?? n.id] as const)),
+      labelOf: new Map(doc.nodes.map((n) => [n.id, nodeLabel(n)] as const)),
     });
   }, [shownAnalysis, doc, version, attributes?.revision]);
 

@@ -9,7 +9,7 @@ import type { Bounds, Framing, GroundGrid } from '@core/viewer/three/viewport';
  */
 
 export interface NodeItem {
-  readonly id: string;
+  readonly id: number;
   readonly typeId: string;
   /** Minimum-corner cell. */
   readonly grid: GridCoord;
@@ -36,10 +36,10 @@ const centreOf = (n: SizedNode): readonly [number, number, number] => {
 };
 
 export interface EdgeItem {
-  readonly id: string;
+  readonly id: number;
   readonly kind: RelationshipKind;
-  readonly source: string;
-  readonly target: string;
+  readonly source: number;
+  readonly target: number;
   readonly start: WorldPoint;
   readonly end: WorldPoint;
   readonly mid: WorldPoint;
@@ -185,7 +185,7 @@ export function groundGrid(
 
 export interface AccessGroups {
   /** Node ID → group index (0-based). Groups are numbered by their smallest node ID. */
-  readonly groupOf: ReadonlyMap<string, number>;
+  readonly groupOf: ReadonlyMap<number, number>;
   readonly count: number;
 }
 
@@ -195,7 +195,7 @@ export interface AccessGroups {
  */
 export function accessGroups(nodes: readonly Pick<RoomNode, 'id'>[], edges: readonly Pick<RelationshipEdge, 'source' | 'target'>[]): AccessGroups {
   const parent = new Map(nodes.map((n) => [n.id, n.id] as const));
-  const find = (id: string): string => {
+  const find = (id: number): number => {
     let r = id;
     while (parent.get(r) !== r) r = parent.get(r)!;
     let c = id;

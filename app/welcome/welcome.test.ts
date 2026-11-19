@@ -209,7 +209,7 @@ describe('Welcome flow', () => {
     const h = host();
     await tryExample(h, twoRooms(), 'two.json');
     h.controller.createScenario({ from: 'current', name: 'Option B' });
-    h.controller.command({ type: 'set-node-geometry', nodeId: 'b', grid: [2, 1, 0] });
+    h.controller.command({ type: 'set-node-geometry', nodeId: 2, grid: [2, 1, 0] });
     let text = '';
     expect(exportProject(h.controller, (t) => (text = t))).toBeNull();
     const original = h.controller.getState().project!;
@@ -220,7 +220,7 @@ describe('Welcome flow', () => {
     expect(reopened.meta.projectId).not.toBe(original.meta.projectId);
     expect(reopened.scenarios.map((s) => s.name)).toEqual(['Scenario 1', 'Option B']);
     const read = readProjectFile(text);
-    expect(read.ok && read.value.scenarios[1]!.design.nodes.find((n) => n.id === 'b')!.grid).toEqual([2, 1, 0]);
+    expect(read.ok && read.value.scenarios[1]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
   });
 
   it('a failed download does not mark the project exported', async () => {

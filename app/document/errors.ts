@@ -21,7 +21,7 @@ export type IssueCode =
   | 'not-found'
   // Room footprints and connectors:
   | 'room-overlap'
-  | 'duplicate-display-id'
+  | 'id-counter'
   | 'too-many-cells'
   | 'route-displacement';
 

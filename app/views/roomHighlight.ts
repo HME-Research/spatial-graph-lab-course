@@ -9,7 +9,7 @@ import { createContext, useContext } from 'react';
 export interface RoomHighlight {
   /** Who asked (e.g. the Designer card key), so the same button can switch it off again. */
   readonly key: string;
-  readonly nodeIds: ReadonlySet<string>;
+  readonly nodeIds: ReadonlySet<number>;
 }
 
 export const RoomHighlightContext = createContext<RoomHighlight | null>(null);
@@ -20,4 +20,4 @@ export const SetRoomHighlightContext = createContext<((highlight: RoomHighlight 
 export const useSetRoomHighlight = (): ((highlight: RoomHighlight | null) => void) | null => useContext(SetRoomHighlightContext);
 
 /** Same rooms (order does not matter). */
-export const sameRooms = (a: ReadonlySet<string>, b: ReadonlySet<string>): boolean => a.size === b.size && [...a].every((id) => b.has(id));
+export const sameRooms = (a: ReadonlySet<number>, b: ReadonlySet<number>): boolean => a.size === b.size && [...a].every((id) => b.has(id));

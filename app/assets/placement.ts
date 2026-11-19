@@ -46,7 +46,7 @@ export interface FacadeModuleInstance {
   readonly placement: FacadePlacement;
   /** Which module of the function: its wall module, or the `door` / `open` bay variant (always `repeat`). */
   readonly variant: 'wall' | FacadeVariantKind;
-  readonly ownerNodeId: string;
+  readonly ownerNodeId: number;
   readonly ownerTypeId: string;
   /** The exterior wall faces the instance covers (one for repeat). */
   readonly faceIds: readonly string[];
@@ -134,7 +134,7 @@ export function withoutFacadeAsset<D extends Pick<DesignDocumentV2, 'settings'>>
 export function layoutFacadeModules(
   faces: readonly WallFace[],
   /** Per-room looks (`nodeLooks` / `buildingFacesV2(...).looks` / `BuildingModelV2.looks`). */
-  looks: ReadonlyMap<string, NodeLook>,
+  looks: ReadonlyMap<number, NodeLook>,
   sizeOf: (assetId: string) => ComponentSize | null,
   options: FacadeModuleOptions = {},
 ): FacadeModuleLayout {
@@ -143,7 +143,7 @@ export function layoutFacadeModules(
   const wallThickness = options.wallThickness ?? DEFAULT_WALL_THICKNESS;
   const optionsFor = (module: FacadeModule) => ({ mountOffset: -wallThickness / 2, flip: module.flip === true });
 
-  const moduleOf = (nodeId: string): FacadeModule | null => {
+  const moduleOf = (nodeId: number): FacadeModule | null => {
     const look = looks.get(nodeId)?.look;
     return look && look.walls === 'enclosed' ? look.facade : null;
   };
@@ -239,7 +239,7 @@ export function layoutFacadeModules(
 
 /** Instances of one type scaled by more than `tolerance` (default 5 %) along or up: a fit warning. */
 /** Modules scaled more than `tolerance` of a function (`owner` = type id) or of these rooms (a set of node ids). */
-export function distortedModules(instances: readonly FacadeModuleInstance[], owner: string | ReadonlySet<string>, tolerance = 0.05): {
+export function distortedModules(instances: readonly FacadeModuleInstance[], owner: string | ReadonlySet<number>, tolerance = 0.05): {
   readonly count: number;
   readonly minAlong: number;
   readonly maxAlong: number;

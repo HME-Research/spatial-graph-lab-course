@@ -50,9 +50,10 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
       doc.metadata.description === undefined
         ? { name: doc.metadata.name }
         : { name: doc.metadata.name, description: doc.metadata.description },
+    nextNodeId: doc.nextNodeId,
+    nextEdgeId: doc.nextEdgeId,
     nodes: doc.nodes.map((n) => ({
       id: n.id,
-      ...(n.displayId === undefined ? {} : { displayId: n.displayId }),
       grid: [...n.grid],
       size: [...n.size],
       typeId: n.typeId,

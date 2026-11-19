@@ -52,7 +52,7 @@ export type RelationshipGeometry =
   | 'route-rejected';
 
 export interface RelationshipBuildInfo {
-  readonly edgeId: string;
+  readonly edgeId: number;
   readonly status: ResolutionStatus;
   readonly geometry: RelationshipGeometry;
   /** Ids of every room element / connector element generated for this relationship. */
@@ -68,7 +68,7 @@ export interface BuildingModelV2 {
   readonly connectors: readonly ConnectorElement[];
   readonly relationships: readonly RelationshipBuildInfo[];
   /** Effective look of every room (node id → card + look), as used for the faces. */
-  readonly looks: ReadonlyMap<string, NodeLook>;
+  readonly looks: ReadonlyMap<number, NodeLook>;
 }
 
 /**
@@ -88,16 +88,17 @@ export function buildingFacesV2(
   readonly walls: WallStyleProvider;
   readonly roof: RoofStyleProvider;
   readonly styleKey: 'node';
-  readonly looks: ReadonlyMap<string, NodeLook>;
+  readonly looks: ReadonlyMap<number, NodeLook>;
 } {
   const looks = nodeLooks(doc, base, styleValues);
   // A face's owner is always a room of `doc`; the example default only guards a stale resolution.
-  const look = (nodeId: string) => looks.get(nodeId)?.look;
+  // Providers are called with the style key: the room id as text (`styleKey: 'node'`).
+  const look = (key: string) => looks.get(Number(key))?.look;
   const facade: FacadeProvider = (nodeId) => ({ windowFraction: look(nodeId)?.windowFraction ?? 0 });
   const windowLayout: WindowLayoutProvider = (nodeId) => look(nodeId)?.windowLayout ?? 'repeat';
   const walls: WallStyleProvider = (nodeId) => look(nodeId)?.walls ?? 'enclosed';
   const roof: RoofStyleProvider = (nodeId) => look(nodeId)?.roof ?? 'flat';
-  const faces = resolveBuildingFaces(doc, spatial).filter((f) => !isExposedTop(f) || roof(f.ownerNodeId) !== 'none');
+  const faces = resolveBuildingFaces(doc, spatial).filter((f) => !isExposedTop(f) || roof(String(f.ownerNodeId)) !== 'none');
   return { faces, facade, windowLayout, walls, roof, styleKey: 'node', looks };
 }
 
@@ -115,7 +116,7 @@ export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Option
     ...(options.slabThickness !== undefined ? { slabThickness: options.slabThickness } : {}),
   });
 
-  const styleByEdge = new Map<string, ConnectorStyle>();
+  const styleByEdge = new Map<number, ConnectorStyle>();
   for (const r of spatial.edges) if (r.status === 'routed') styleByEdge.set(r.edgeId, r.route.style);
 
   const connectors: ConnectorElement[] = [];

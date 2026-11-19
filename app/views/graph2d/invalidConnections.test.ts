@@ -22,16 +22,16 @@ const withInvalid = () =>
     schemaVersion: 2,
     metadata: { name: 'Invalid' },
     nodes: [
-      { id: 'a', displayId: '01', grid: [0, 0, 0], typeId: 'gallery' },
-      { id: 'b', displayId: '02', grid: [1, 0, 0], typeId: 'studio' },
-      { id: 'c', displayId: '03', grid: [6, 6, 1], typeId: 'studio' },
-      { id: 'd', grid: [9, 1, 2], typeId: 'store' },
+      { id: 1, grid: [0, 0, 0], typeId: 'gallery' },
+      { id: 2, grid: [1, 0, 0], typeId: 'studio' },
+      { id: 3, grid: [6, 6, 1], typeId: 'studio' },
+      { id: 4, grid: [9, 1, 2], typeId: 'store' },
     ],
     edges: [
-      { id: 'ab', source: 'a', target: 'b', kind: 'access' },
-      { id: 'ac', source: 'a', target: 'c', kind: 'access' },
-      { id: 'bc', source: 'b', target: 'c', kind: 'open' },
-      { id: 'ad', source: 'a', target: 'd', kind: 'access' },
+      { id: 1, source: 1, target: 2, kind: 'access' },
+      { id: 2, source: 1, target: 3, kind: 'access' },
+      { id: 3, source: 2, target: 3, kind: 'open' },
+      { id: 4, source: 1, target: 4, kind: 'access' },
     ],
     diagram: { positions: {} },
   });
@@ -41,21 +41,21 @@ const model = (doc: DesignDocumentV2) => modelFromV2(doc, resolveRelationships(d
 describe('Remove invalid connections (pure)', () => {
   it('lists only unresolved relationships, with readable names, kinds and reasons, in document order', () => {
     const rows = invalidConnectionRows(model(withInvalid()));
-    expect(rows.map((r) => r.edgeId)).toEqual(['ac', 'bc', 'ad']);
-    expect(rows[0]).toMatchObject({ label: '01 ↔ 03', kindLabel: 'Access', reason: 'different-level' });
-    expect(rows[1]).toMatchObject({ label: '02 ↔ 03', kindLabel: 'Open' });
-    // A node without a display id falls back to its id; raw edge ids are never the label.
-    expect(rows[2]!.label).toBe('01 ↔ d');
+    expect(rows.map((r) => r.edgeId)).toEqual([2, 3, 4]);
+    expect(rows[0]).toMatchObject({ label: '1 ↔ 3', kindLabel: 'Access', reason: 'different-level' });
+    expect(rows[1]).toMatchObject({ label: '2 ↔ 3', kindLabel: 'Open' });
+    // Labels are the room ids; raw edge ids are never the label.
+    expect(rows[2]!.label).toBe('1 ↔ 4');
     expect(rows.every((r) => r.reasonText.length > 10)).toBe(true);
   });
 
   it('every row starts checked; unchecking keeps that edge out of the ONE remove-edges command', () => {
     const rows = invalidConnectionRows(model(withInvalid()));
-    expect(checkedEdgeIds(rows, new Set())).toEqual(['ac', 'bc', 'ad']);
-    expect(removeInvalidCommand(rows, new Set(['bc']))).toEqual({ type: 'remove-edges', edgeIds: ['ac', 'ad'] });
-    expect(removeInvalidCommand(rows, new Set(['ac', 'bc', 'ad']))).toBeNull();
+    expect(checkedEdgeIds(rows, new Set())).toEqual([2, 3, 4]);
+    expect(removeInvalidCommand(rows, new Set([3]))).toEqual({ type: 'remove-edges', edgeIds: [2, 4] });
+    expect(removeInvalidCommand(rows, new Set([2, 3, 4]))).toBeNull();
     // Stale unchecked ids (edges no longer listed) are harmless.
-    expect(removeInvalidCommand(rows, new Set(['gone']))).toEqual({ type: 'remove-edges', edgeIds: ['ac', 'bc', 'ad'] });
+    expect(removeInvalidCommand(rows, new Set([99]))).toEqual({ type: 'remove-edges', edgeIds: [2, 3, 4] });
   });
 
   it('a design without unresolved relationships has nothing to remove', () => {
@@ -82,16 +82,16 @@ describe('Remove invalid connections (pure)', () => {
 
   it('the review list shows every row checked unless unchecked, and disables Remove with nothing checked', () => {
     const rows = invalidConnectionRows(model(withInvalid()));
-    const render = (unchecked: ReadonlySet<string>) =>
+    const render = (unchecked: ReadonlySet<number>) =>
       renderToStaticMarkup(createElement(RemoveInvalidDialog, { rows, unchecked, onToggle: () => {}, onConfirm: () => {}, onCancel: () => {} }));
     const all = render(new Set());
     expect(all.match(/checked=""/g)?.length).toBe(3);
     expect(all).toContain('Remove 3 selected');
-    expect(all).toContain('01 ↔ 03');
-    const one = render(new Set(['ac', 'ad']));
+    expect(all).toContain('1 ↔ 3');
+    const one = render(new Set([2, 4]));
     expect(one.match(/checked=""/g)?.length).toBe(1);
     expect(one).toContain('Remove 1 selected');
-    expect(render(new Set(['ac', 'bc', 'ad']))).toMatch(/disabled=""[^>]*>Remove 0 selected|>Remove 0 selected/);
+    expect(render(new Set([2, 3, 4]))).toMatch(/disabled=""[^>]*>Remove 0 selected|>Remove 0 selected/);
   });
 });
 

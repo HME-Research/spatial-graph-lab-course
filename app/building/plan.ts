@@ -39,7 +39,7 @@ export interface PlanRect {
 }
 
 export interface PlanRoom {
-  readonly nodeId: string;
+  readonly nodeId: number;
   /** `displayId ?? id`. */
   readonly label: string;
   readonly typeId: string;
@@ -52,9 +52,9 @@ export interface PlanWall {
   /** `${faceId}:wall:${index}`. */
   readonly id: string;
   readonly faceId: string;
-  readonly ownerNodeId: string;
-  readonly neighbourNodeId: string | null;
-  readonly edgeId: string | null;
+  readonly ownerNodeId: number;
+  readonly neighbourNodeId: number | null;
+  readonly edgeId: number | null;
   readonly condition: BuildingFace['condition'];
   readonly rect: PlanRect;
 }
@@ -66,10 +66,10 @@ export interface PlanOpening {
   readonly id: string;
   readonly faceId: string;
   readonly kind: PlanOpeningKind;
-  readonly ownerNodeId: string;
-  readonly neighbourNodeId: string | null;
+  readonly ownerNodeId: number;
+  readonly neighbourNodeId: number | null;
   /** The relationship that made it; null for a façade window. */
-  readonly edgeId: string | null;
+  readonly edgeId: number | null;
   /** Width along the wall in metres (= FaceLayout opening `u1 − u0`). */
   readonly width: number;
   /** The opening's footprint: its width along the wall × the wall thickness. */
@@ -89,14 +89,14 @@ export interface PlanSlabMark {
   readonly kind: PlanSlabKind;
   /** `floor` = in this storey's floor; `ceiling` = in the slab above (drawn as "above"). */
   readonly position: 'floor' | 'ceiling';
-  readonly ownerNodeId: string;
-  readonly neighbourNodeId: string | null;
-  readonly edgeId: string | null;
+  readonly ownerNodeId: number;
+  readonly neighbourNodeId: number | null;
+  readonly edgeId: number | null;
   readonly rect: PlanRect;
 }
 
 export interface PlanRouteCell {
-  readonly edgeId: string;
+  readonly edgeId: number;
   readonly cell: GridCoord;
   readonly rect: PlanRect;
 }
@@ -107,9 +107,9 @@ export interface PlanRouteCell {
  */
 export interface PlanWallTarget {
   readonly faceId: string;
-  readonly ownerNodeId: string;
-  readonly neighbourNodeId: string;
-  readonly edgeId: string | null;
+  readonly ownerNodeId: number;
+  readonly neighbourNodeId: number;
+  readonly edgeId: number | null;
   readonly condition: BuildingFace['condition'];
   readonly line: { readonly x0: number; readonly y0: number; readonly x1: number; readonly y1: number };
 }
@@ -131,8 +131,8 @@ export interface PlanModel {
 /** What the Plan needs: face layouts (Gate F) and the rooms; optionally the connector cells. */
 export interface PlanSource {
   readonly layouts: readonly FaceLayout<BuildingFace>[];
-  readonly rooms: readonly Pick<RoomNode, 'id' | 'grid' | 'size' | 'typeId' | 'displayId'>[];
-  readonly routeCells?: readonly { readonly cell: GridCoord; readonly edgeId: string }[];
+  readonly rooms: readonly Pick<RoomNode, 'id' | 'grid' | 'size' | 'typeId'>[];
+  readonly routeCells?: readonly { readonly cell: GridCoord; readonly edgeId: number }[];
 }
 
 export interface PlanOptions {
@@ -167,7 +167,7 @@ export function planSourceV2(doc: DesignDocumentV2, spatial: SpatialResolution, 
     ...(options.cell ? { cell: options.cell } : {}),
     ...(options.wallThickness !== undefined ? { wallThickness: options.wallThickness } : {}),
   });
-  const routeCells: { cell: GridCoord; edgeId: string }[] = [];
+  const routeCells: { cell: GridCoord; edgeId: number }[] = [];
   const seen = new Set<string>();
   for (const r of spatial.edges) {
     if (r.status !== 'routed') continue;

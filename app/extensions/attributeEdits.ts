@@ -80,8 +80,8 @@ export interface DesignSample {
   readonly id: string;
   /** Human name, e.g. "two-storey-example (open)". */
   readonly label: string;
-  readonly nodes: readonly { readonly id: string; readonly typeId: string; readonly attributes: { readonly [key: string]: AttributeValue } }[];
-  readonly edges: readonly { readonly id: string; readonly attributes: { readonly [key: string]: AttributeValue } }[];
+  readonly nodes: readonly { readonly id: number; readonly typeId: string; readonly attributes: { readonly [key: string]: AttributeValue } }[];
+  readonly edges: readonly { readonly id: number; readonly attributes: { readonly [key: string]: AttributeValue } }[];
 }
 
 export interface EditContext {

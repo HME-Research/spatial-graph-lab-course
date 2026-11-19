@@ -9,7 +9,6 @@ import {
   type SpatialResolution,
 } from '@app/spatial';
 import { STATUS_PRESENTATION, unresolvedReasonText } from '../../presentation/vocabulary';
-import { nextFreeId } from '../../graph2d/diagram';
 import { NO_SELECTION, selectEdge, selectNode, type Selection } from '@core/viewer/selection';
 
 /**
@@ -23,7 +22,7 @@ import { NO_SELECTION, selectEdge, selectNode, type Selection } from '@core/view
  */
 
 export interface WallRoom {
-  readonly id: string;
+  readonly id: number;
   /** Readable label (display id), never only the raw id. */
   readonly label: string;
   readonly typeId: string;
@@ -37,8 +36,8 @@ export type WallPanel =
       readonly kind: 'add';
       readonly faceId: string;
       readonly rooms: readonly [WallRoom, WallRoom];
-      readonly source: string;
-      readonly target: string;
+      readonly source: number;
+      readonly target: number;
       /** The clicked face, as the preferred door location (`add-edge-at-face`). */
       readonly preference: FacePreference;
     }
@@ -47,7 +46,7 @@ export type WallPanel =
       readonly kind: 'existing';
       readonly faceId: string;
       readonly rooms: readonly [WallRoom, WallRoom];
-      readonly edgeId: string;
+      readonly edgeId: number;
       readonly relationshipKind: RelationshipKind;
       readonly status: ResolutionStatus;
       readonly statusLabel: string;
@@ -93,9 +92,9 @@ export function eligibleWallFaces(faces: readonly BuildingFace[], doc: DesignDoc
   return out;
 }
 
-function roomOf(doc: DesignDocumentV2, id: string): WallRoom {
+function roomOf(doc: DesignDocumentV2, id: number): WallRoom {
   const n = doc.nodes.find((x) => x.id === id);
-  return { id, label: n ? nodeLabel(n) : id, typeId: n?.typeId ?? '' };
+  return { id, label: n ? nodeLabel(n) : String(id), typeId: n?.typeId ?? '' };
 }
 
 /**
@@ -163,10 +162,11 @@ export type WallCommand =
 export function addRelationshipCommand(
   panel: Extract<WallPanel, { kind: 'add' }>,
   kind: RelationshipKind,
-  doc: Pick<DesignDocumentV2, 'edges'>,
-): { readonly edgeId: string; readonly command: WallCommand } {
-  const edgeId = nextFreeId('edge', doc.edges.map((e) => e.id));
-  const edge = { id: edgeId, source: panel.source, target: panel.target, kind };
+  doc: Pick<DesignDocumentV2, 'nextEdgeId'>,
+): { readonly edgeId: number; readonly command: WallCommand } {
+  // The new relationship gets the design's next edge id.
+  const edgeId = doc.nextEdgeId;
+  const edge = { source: panel.source, target: panel.target, kind };
   return kind === 'access'
     ? { edgeId, command: { port: 'scenario', command: { type: 'add-edge-at-face', edge, preference: panel.preference } } }
     : { edgeId, command: { port: 'design', command: { type: 'add-edge', edge } } };

@@ -55,7 +55,7 @@ export function metricRows(
 ): MetricRow[] {
   if (selection.kind === 'none') return [];
   const collection = selection.kind === 'node' ? 'nodes' : 'edges';
-  const items: readonly { readonly id: string }[] = collection === 'nodes' ? ctx.doc.nodes : ctx.doc.edges;
+  const items: readonly { readonly id: number }[] = collection === 'nodes' ? ctx.doc.nodes : ctx.doc.edges;
   if (!items.some((item) => item.id === selection.id)) return [];
   return enabledMetrics(enabledIds, collection, evaluator.metrics).map((metric) => {
     const value = evaluator.value(ctx, metric.id, selection.id);

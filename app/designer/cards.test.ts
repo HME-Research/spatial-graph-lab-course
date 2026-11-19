@@ -29,10 +29,10 @@ function lab(settings: unknown = undefined): DesignDocumentV2 {
       schemaVersion: 2,
       metadata: { name: 'cards' },
       nodes: [
-        { id: 'g1', grid: [0, 0, 0], typeId: 'gallery' },
-        { id: 'g2', grid: [1, 0, 0], typeId: 'gallery' },
-        { id: 's1', grid: [0, 2, 0], typeId: 'studio' },
-        { id: 'k1', grid: [6, 6, 0], typeId: 'kiosk' },
+        { id: 1, grid: [0, 0, 0], typeId: 'gallery' },
+        { id: 2, grid: [1, 0, 0], typeId: 'gallery' },
+        { id: 3, grid: [0, 2, 0], typeId: 'studio' },
+        { id: 4, grid: [6, 6, 0], typeId: 'kiosk' },
       ],
       edges: [],
       settings,
@@ -52,7 +52,7 @@ describe('designerCards', () => {
     const cards = designerCards(lab(), null, facade);
     expect(cards.by).toBe('function');
     expect(cards.defaultCard).toMatchObject({ key: 'default', name: 'Default', removable: false, hasOverride: false });
-    expect(cards.defaultCard.nodeIds).toEqual(['g1', 'g2', 's1', 'k1']);
+    expect(cards.defaultCard.nodeIds).toEqual([1, 2, 3, 4]);
     expect(cards.cards).toEqual([]);
     expect(cards.addable.map((a) => [a.value, a.nodeCount])).toEqual([
       ['gallery', 2],
@@ -65,9 +65,9 @@ describe('designerCards', () => {
     const doc = apply(lab(), addCardEdit(lab(), 'function', 'gallery', 'Gallery'));
     expect(functionLooks(doc.settings)).toEqual({ gallery: {} });
     const cards = designerCards(doc, null, facade);
-    expect(cards.cards.map((c) => [c.key, c.nodeIds])).toEqual([['v:gallery', ['g1', 'g2']]]);
+    expect(cards.cards.map((c) => [c.key, c.nodeIds])).toEqual([['v:gallery', [1, 2]]]);
     expect(cards.cards[0]).toMatchObject({ removable: true, hasOverride: true, typeId: 'gallery' });
-    expect(cards.defaultCard.nodeIds).toEqual(['s1', 'k1']);
+    expect(cards.defaultCard.nodeIds).toEqual([3, 4]);
     expect(cards.addable.map((a) => a.value)).toEqual(['kiosk', 'studio']);
     // Adding it again changes nothing; removing it brings the rooms back to Default.
     expect(addCardEdit(doc, 'function', 'gallery').kind).toBe('unchanged');
@@ -81,37 +81,37 @@ describe('designerCards', () => {
     doc = apply(doc, setRoofEdit(doc, DEFAULT, 'pergola'));
     doc = apply(doc, setWindowFractionEdit(doc, functionTarget('gallery'), 0.8, facade('gallery').windowFraction));
     const looks = nodeLooks(doc, facade);
-    expect(looks.get('g1')!.look).toMatchObject({ windowFraction: 0.8, roof: 'pergola' }); // roof from Default
-    expect(looks.get('s1')!.look).toMatchObject({ windowFraction: 0.1, roof: 'pergola' });
+    expect(looks.get(1)!.look).toMatchObject({ windowFraction: 0.8, roof: 'pergola' }); // roof from Default
+    expect(looks.get(3)!.look).toMatchObject({ windowFraction: 0.1, roof: 'pergola' });
     const cards = designerCards(doc, null, facade);
     expect(cards.cards[0]!.inheritedWindowText).toBe('Default, 10 %');
     expect(cards.defaultCard.hasOverride).toBe(true);
     // Reset Default empties it; the gallery card keeps its own value.
     const reset = apply(doc, resetTypeEdit(doc, DEFAULT));
     expect(reset.settings.styles.function?.default).toBeUndefined();
-    expect(nodeLooks(reset, facade).get('g1')!.look.windowFraction).toBe(0.8);
+    expect(nodeLooks(reset, facade).get(1)!.look.windowFraction).toBe(0.8);
   });
 
   it('a card can be Automatic under an Open or imported Default (stores only the difference)', () => {
     const module = { assetId: 'facade-0123456789abcdef', placement: 'repeat' as const };
     let doc = apply(lab(), setFacadeModeEdit(lab(), DEFAULT, 'import', module, 'Brick'));
     doc = apply(doc, addCardEdit(doc, 'function', 'gallery'));
-    expect(nodeLooks(doc, facade).get('g1')!.look.facade).toEqual(module); // inherited from Default
+    expect(nodeLooks(doc, facade).get(1)!.look.facade).toEqual(module); // inherited from Default
     doc = apply(doc, setFacadeModeEdit(doc, functionTarget('gallery'), 'automatic'));
     expect(functionLooks(doc.settings).gallery).toEqual({ facade: 'none' });
-    expect(nodeLooks(doc, facade).get('g1')!.look.facade).toBeNull();
-    expect(nodeLooks(doc, facade).get('s1')!.look.facade).toEqual(module);
+    expect(nodeLooks(doc, facade).get(1)!.look.facade).toBeNull();
+    expect(nodeLooks(doc, facade).get(3)!.look.facade).toEqual(module);
     // Open Default: Automatic stores walls 'enclosed'.
     let open = apply(lab(), setFacadeModeEdit(lab(), DEFAULT, 'open'));
     open = apply(open, setFacadeModeEdit(open, functionTarget('studio'), 'automatic'));
     expect(functionLooks(open.settings).studio).toEqual({ walls: 'enclosed' });
-    expect(nodeLooks(open, facade).get('s1')!.look.walls).toBe('enclosed');
-    expect(nodeLooks(open, facade).get('g1')!.look.walls).toBe('open');
+    expect(nodeLooks(open, facade).get(3)!.look.walls).toBe('enclosed');
+    expect(nodeLooks(open, facade).get(1)!.look.walls).toBe('open');
     // Open rooms keep only slim posts under the roof and no windows; the enclosed studio has glazing.
     const building = buildBuildingV2(open);
-    const glazing = (id: string) => building.elements.filter((e) => e.ownerNodeId === id && e.part === 'glazing').length;
-    expect(glazing('s1')).toBeGreaterThan(0);
-    expect(glazing('g1')).toBe(0);
+    const glazing = (id: number) => building.elements.filter((e) => e.ownerNodeId === id && e.part === 'glazing').length;
+    expect(glazing(3)).toBeGreaterThan(0);
+    expect(glazing(1)).toBe(0);
   });
 
   it('names number bands in plain words', () => {
@@ -157,7 +157,7 @@ describe('Designer panel: Style rooms by, Default, + Style another function, hig
         { value: () => {} },
         createElement(
           RoomHighlightContext.Provider,
-          { value: { key: 'designer:function|v:gallery', nodeIds: new Set(['g1', 'g2']) } },
+          { value: { key: 'designer:function|v:gallery', nodeIds: new Set([1, 2]) } },
           createElement(DesignerPanel, { design: port(doc) }),
         ),
       ),

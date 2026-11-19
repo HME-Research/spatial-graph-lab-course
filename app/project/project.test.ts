@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readDesign, type DesignDocumentV2 } from '@app/document';
+import { readDesign, readDesignJson, serializeDesignV2, type DesignDocumentV2 } from '@app/document';
 import { makeAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import twoStorey from '../document/test-designs/two-storey.json';
 import {
@@ -32,11 +32,11 @@ const designA = () =>
     schemaVersion: 2,
     metadata: { name: 'Option A' },
     nodes: [
-      { id: 'a', grid: [0, 0, 0], size: [2, 1, 1], typeId: 'gallery', attributes: { area: 12 } },
-      { id: 'b', grid: [2, 0, 0], typeId: 'studio' },
+      { id: 1, grid: [0, 0, 0], size: [2, 1, 1], typeId: 'gallery', attributes: { area: 12 } },
+      { id: 2, grid: [2, 0, 0], typeId: 'studio' },
     ],
-    edges: [{ id: 'ab', source: 'a', target: 'b', kind: 'access' }],
-    diagram: { positions: { a: [0, 0], b: [100, 0] } },
+    edges: [{ id: 1, source: 1, target: 2, kind: 'access' }],
+    diagram: { positions: { 1: [0, 0], 2: [100, 0] } },
   });
 
 /** Scenario B: different topology and geometry (three rooms, a tall room, an open edge). */
@@ -45,15 +45,15 @@ const designB = () =>
     schemaVersion: 2,
     metadata: { name: 'Option B' },
     nodes: [
-      { id: 'a', grid: [0, 0, 0], typeId: 'gallery' },
-      { id: 'b', grid: [0, 1, 0], size: [1, 1, 2], typeId: 'studio' },
-      { id: 'c', grid: [5, 5, 0], typeId: 'gallery' },
+      { id: 1, grid: [0, 0, 0], typeId: 'gallery' },
+      { id: 2, grid: [0, 1, 0], size: [1, 1, 2], typeId: 'studio' },
+      { id: 3, grid: [5, 5, 0], typeId: 'gallery' },
     ],
     edges: [
-      { id: 'ab', source: 'a', target: 'b', kind: 'open' },
-      { id: 'bc', source: 'b', target: 'c', kind: 'access' },
+      { id: 1, source: 1, target: 2, kind: 'open' },
+      { id: 2, source: 2, target: 3, kind: 'access' },
     ],
-    diagram: { positions: { a: [0, 0], b: [0, 100], c: [200, 100] } },
+    diagram: { positions: { 1: [0, 0], 2: [0, 100], 3: [200, 100] } },
   });
 
 const attributeRecord = () =>
@@ -88,7 +88,7 @@ function twoScenarioState(): ProjectState {
       {
         id: 's1',
         name: 'Option A',
-        content: { design: designA(), facePreferences: { ab: { nodeId: 'a', offset: [1, 0, 0], direction: '+x' } } },
+        content: { design: designA(), facePreferences: { 1: { nodeId: 1, offset: [1, 0, 0], direction: '+x' } } },
         cameras: [
           { id: 'front', name: 'Front', viewMode: 'architecture', pose: { projection: 'perspective', position: [10, 8, 10], target: [0, 0, 0], up: [0, 1, 0], fov: 50 } },
         ],
@@ -171,7 +171,7 @@ describe('project file', () => {
 
   it('rejects the whole file when any scenario design is invalid, with paths', () => {
     const bad = rawFile();
-    bad.scenarios[1].design.edges[0].target = 'ghost';
+    bad.scenarios[1].design.edges[0].target = 99;
     const r = readProjectFile(bad);
     expect(codes(r)).toContain('invalid-design');
     expect(!r.ok && r.issues[0]!.path.slice(0, 3)).toEqual(['scenarios', 1, 'design']);
@@ -182,10 +182,10 @@ describe('project file', () => {
     const index = file.scenarios.findIndex((s: { design: { edges: unknown[] } }) => s.design.edges.length > 0);
     expect(index).toBeGreaterThanOrEqual(0);
     const edge = file.scenarios[index].design.edges[0];
-    file.scenarios[index].facePreferences = { [edge.id]: { nodeId: 'not-an-endpoint', offset: [0, 0, 0], direction: '+x' } };
+    file.scenarios[index].facePreferences = { [edge.id]: { nodeId: 99, offset: [0, 0, 0], direction: '+x' } };
     const r = readProjectFile(file);
     expect(codes(r)).toEqual(['invalid-preference']);
-    expect(!r.ok && r.issues[0]!.path).toEqual(['scenarios', index, 'facePreferences', edge.id, 'nodeId']);
+    expect(!r.ok && r.issues[0]!.path).toEqual(['scenarios', index, 'facePreferences', String(edge.id), 'nodeId']);
 
     const open = rawFile();
     const openEdge = open.scenarios[index].design.edges[0];
@@ -196,10 +196,10 @@ describe('project file', () => {
 
   it('rejects preferences of missing edges, duplicate camera ids, bad cameras and display', () => {
     const pref = rawFile();
-    pref.scenarios[1].facePreferences = { ghost: { nodeId: 'a', offset: [0, 0, 0], direction: '+x' } };
+    pref.scenarios[1].facePreferences = { 99: { nodeId: 1, offset: [0, 0, 0], direction: '+x' } };
     const r = readProjectFile(pref);
     expect(codes(r)).toEqual(['unknown-preference-edge']);
-    expect(!r.ok && r.issues[0]!.path).toEqual(['scenarios', 1, 'facePreferences', 'ghost']);
+    expect(!r.ok && r.issues[0]!.path).toEqual(['scenarios', 1, 'facePreferences', '99']);
 
     const cams = rawFile();
     cams.scenarios[0].cameras.push(cams.scenarios[0].cameras[0]);
@@ -282,7 +282,7 @@ describe('Save As New Project', () => {
     const c = copy as any;
     c.scenarios[0].design.nodes[0].grid[0] = 99;
     c.scenarios[0].design.nodes[0].attributes.area = 1;
-    c.scenarios[0].facePreferences.ab.offset[0] = 0;
+    c.scenarios[0].facePreferences[1].offset[0] = 0;
     c.scenarios[0].cameras[0].pose.position[0] = -1;
     c.scenarios[0].display.views.voxels.labels = true;
     c.attributes.schema.nodes[0].label = 'Changed';
@@ -451,5 +451,70 @@ describe('settings.calculatedFields (I1, optional)', () => {
       raw.settings = { ...raw.settings, calculatedFields: bad };
       expect(codes(readProjectFile(raw))).toContain('schema');
     }
+  });
+});
+
+describe('numeric ids survive save → reopen (P4)', () => {
+  /** Rooms 1, 2 and 5 (ids 3 and 4 were deleted earlier), edges 1 and 3; counters 9 and 4. */
+  const gappedDesign = () =>
+    design({
+      schemaVersion: 2,
+      metadata: { name: 'Gapped' },
+      nextNodeId: 9,
+      nextEdgeId: 4,
+      nodes: [
+        { id: 1, grid: [0, 0, 0], size: [2, 1, 1], typeId: 'gallery', attributes: { area: 12 } },
+        { id: 2, grid: [2, 0, 0], typeId: 'studio' },
+        { id: 5, grid: [2, 1, 0], typeId: 'gallery' },
+      ],
+      edges: [
+        { id: 1, source: 1, target: 2, kind: 'access' },
+        { id: 3, source: 2, target: 5, kind: 'open' },
+      ],
+      diagram: { positions: { 1: [0, 0], 2: [100, 0], 5: [100, 100] } },
+    });
+
+  it('serializeDesignV2 → readDesignJson is lossless for a design with a gap in its ids', () => {
+    const doc = gappedDesign();
+    expect(doc.nextNodeId).toBe(9);
+    expect(doc.nextEdgeId).toBe(4);
+    const text = serializeDesignV2(doc);
+    const back = readDesignJson(text);
+    if (!back.ok) throw new Error(JSON.stringify(back.issues));
+    expect(back.value.doc).toEqual(doc);
+    expect(back.value.doc.nodes.map((n) => n.id)).toEqual([1, 2, 5]);
+    expect(back.value.doc.edges.map((e) => [e.id, e.source, e.target])).toEqual([[1, 1, 2], [3, 2, 5]]);
+    expect(back.value.doc.nextNodeId).toBe(9);
+    expect(back.value.doc.nextEdgeId).toBe(4);
+    expect(back.value.doc.diagram?.positions?.[5]).toEqual([100, 100]);
+    expect(serializeDesignV2(back.value.doc)).toBe(text);
+  });
+
+  it('serializeProjectFile → readProjectFile is lossless (ids, counters, positions, face preferences keyed by edge id)', () => {
+    const state = twoScenarioState();
+    const withGap: ProjectState = {
+      ...state,
+      scenarios: [
+        {
+          ...state.scenarios[0]!,
+          content: { design: gappedDesign(), facePreferences: { 1: { nodeId: 1, offset: [1, 0, 0], direction: '+x' } } },
+        },
+        state.scenarios[1]!,
+      ],
+    };
+    const file = okValue(projectFileFromState(withGap));
+    const text = serializeProjectFile(file);
+    const reopened = okValue(readProjectFile(text));
+    expect(reopened).toEqual(file);
+    expect(serializeProjectFile(reopened)).toBe(text);
+    const scenario = reopened.scenarios[0]!;
+    expect(scenario.design.nodes.map((n) => n.id)).toEqual([1, 2, 5]);
+    expect(scenario.design.nextNodeId).toBe(9);
+    expect(scenario.design.nextEdgeId).toBe(4);
+    expect(scenario.design.diagram?.positions?.[5]).toEqual([100, 100]);
+    expect(scenario.facePreferences).toEqual({ 1: { nodeId: 1, offset: [1, 0, 0], direction: '+x' } });
+    expect(Object.keys(scenario.facePreferences)).toEqual(['1']);
+    // The state rebuilt from the reopened file equals the original state.
+    expect(projectStateFromFile(reopened)).toEqual(projectStateFromFile(file));
   });
 });

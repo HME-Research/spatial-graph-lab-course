@@ -11,10 +11,10 @@ import {
   type FacadeModule,
   fail,
   footprintCells,
+  relationshipLabel,
   hasBands,
   issue,
   type Look,
-  nextDisplayId,
   type RelationshipKind,
   type Result,
   type RoofStyle,
@@ -42,10 +42,11 @@ import { resolveRelationships } from './resolve';
  * Implementation owner: 02-spatial-engine (shapes are frozen; bodies may improve).
  */
 
+/**
+ * A new room. It gets no id from the caller: `add-node` gives it `doc.nextNodeId` and advances the
+ * counter (P4), so the new room's id is the document's `nextNodeId` before the command.
+ */
 export interface NewRoom {
-  readonly id: string;
-  /** Omitted: `nextDisplayId(doc)`. */
-  readonly displayId?: string;
   readonly grid: GridCoord;
   /** Omitted: [1, 1, 1]. */
   readonly size?: RoomSize;
@@ -53,10 +54,10 @@ export interface NewRoom {
   readonly attributes?: Attributes;
 }
 
+/** A new relationship; like `NewRoom` it gets `doc.nextEdgeId` as its id. */
 export interface NewRelationship {
-  readonly id: string;
-  readonly source: string;
-  readonly target: string;
+  readonly source: number;
+  readonly target: number;
   /** Omitted: `access`. The rooms need NOT touch (unresolved is valid). */
   readonly kind?: RelationshipKind;
   readonly connectorStyle?: ConnectorStyle;
@@ -76,33 +77,32 @@ export interface LookPatch {
 export type DesignCommand =
   /** A new room taking connector cells needs `confirmRouteDisplacement`, like a move (phase 07, A11). */
   | { readonly type: 'add-node'; readonly node: NewRoom; readonly diagramPosition?: DiagramPosition; readonly confirmRouteDisplacement?: boolean }
-  | { readonly type: 'remove-node'; readonly nodeId: string }
+  | { readonly type: 'remove-node'; readonly nodeId: number }
   /** Move and/or resize (min-corner anchored). Taking connector cells needs `confirmRouteDisplacement`. */
   | {
       readonly type: 'set-node-geometry';
-      readonly nodeId: string;
+      readonly nodeId: number;
       readonly grid?: GridCoord;
       readonly size?: RoomSize;
       readonly confirmRouteDisplacement?: boolean;
     }
-  | { readonly type: 'set-node-type'; readonly nodeId: string; readonly typeId: string }
-  | { readonly type: 'set-node-attributes'; readonly nodeId: string; readonly attributes: Attributes }
+  | { readonly type: 'set-node-type'; readonly nodeId: number; readonly typeId: string }
+  | { readonly type: 'set-node-attributes'; readonly nodeId: number; readonly attributes: Attributes }
   /** `null` removes the display id (the label falls back to the permanent id). */
-  | { readonly type: 'set-display-id'; readonly nodeId: string; readonly displayId: string | null }
-  | { readonly type: 'set-diagram-position'; readonly nodeId: string; readonly position: DiagramPosition }
+  | { readonly type: 'set-diagram-position'; readonly nodeId: number; readonly position: DiagramPosition }
   | { readonly type: 'add-edge'; readonly edge: NewRelationship }
-  | { readonly type: 'remove-edge'; readonly edgeId: string }
+  | { readonly type: 'remove-edge'; readonly edgeId: number }
   /**
    * Remove several UNRESOLVED relationships in one step ("Remove N invalid connections", Gate F).
    * Refused, with no change, when the list is empty, repeats an id, names an unknown edge, or names
    * an edge that is not `unresolved` under `options.resolve ?? resolveRelationships`. Never automatic.
    */
-  | { readonly type: 'remove-edges'; readonly edgeIds: readonly string[] }
-  | { readonly type: 'change-edge-kind'; readonly edgeId: string; readonly kind: RelationshipKind }
+  | { readonly type: 'remove-edges'; readonly edgeIds: readonly number[] }
+  | { readonly type: 'change-edge-kind'; readonly edgeId: number; readonly kind: RelationshipKind }
   /** Replaces the edge's stored custom attributes (additive after Gate 0; see docs/PROJECT-ATTRIBUTES.md). */
-  | { readonly type: 'set-edge-attributes'; readonly edgeId: string; readonly attributes: Attributes }
+  | { readonly type: 'set-edge-attributes'; readonly edgeId: number; readonly attributes: Attributes }
   /** `null` removes the explicit style (default `enclosed` applies). */
-  | { readonly type: 'set-connector-style'; readonly edgeId: string; readonly style: ConnectorStyle | null }
+  | { readonly type: 'set-connector-style'; readonly edgeId: number; readonly style: ConnectorStyle | null }
   /**
    * Style rooms by another attribute; every attribute's setup stays remembered. `dividers`: starting
    * number bands, stored only when that attribute has no bands yet (same undo step).
@@ -133,8 +133,8 @@ export interface DesignCommandOptions extends SpatialEditOptions {
   readonly validation?: ValidationOptionsV2;
 }
 
-const notFound = (what: 'node' | 'edge', id: string): Result<DesignDocumentV2> =>
-  fail([issue([what === 'node' ? 'nodes' : 'edges'], 'not-found', `${what} "${id}" does not exist`)]);
+const notFound = (what: 'node' | 'edge', id: number): Result<DesignDocumentV2> =>
+  fail([issue([what === 'node' ? 'nodes' : 'edges'], 'not-found', `${what} ${id} does not exist`)]);
 
 function withoutKey<V>(record: Readonly<Record<string, V>>, key: string): Record<string, V> {
   const copy: Record<string, V> = {};
@@ -172,11 +172,11 @@ export function applyDesignCommand(
   options: DesignCommandOptions = {},
 ): Result<DesignDocumentV2> {
   const validate = (next: DesignDocumentV2) => validateDocumentV2(next, options.validation);
-  const hasNode = (id: string) => doc.nodes.some((n) => n.id === id);
-  const hasEdge = (id: string) => doc.edges.some((e) => e.id === id);
-  const mapNode = (id: string, f: (n: DesignDocumentV2['nodes'][number]) => DesignDocumentV2['nodes'][number]) =>
+  const hasNode = (id: number) => doc.nodes.some((n) => n.id === id);
+  const hasEdge = (id: number) => doc.edges.some((e) => e.id === id);
+  const mapNode = (id: number, f: (n: DesignDocumentV2['nodes'][number]) => DesignDocumentV2['nodes'][number]) =>
     hasNode(id) ? validate({ ...doc, nodes: doc.nodes.map((n) => (n.id === id ? f(n) : n)) }) : notFound('node', id);
-  const mapEdge = (id: string, f: (e: DesignDocumentV2['edges'][number]) => DesignDocumentV2['edges'][number]) =>
+  const mapEdge = (id: number, f: (e: DesignDocumentV2['edges'][number]) => DesignDocumentV2['edges'][number]) =>
     hasEdge(id) ? validate({ ...doc, edges: doc.edges.map((e) => (e.id === id ? f(e) : e)) }) : notFound('edge', id);
   /** Store `setup` for `by` (an empty setup is removed). */
   const withSetup = (by: StyleBy, setup: StyleSetup) => {
@@ -188,23 +188,23 @@ export function applyDesignCommand(
   switch (command.type) {
     case 'add-node': {
       const n = command.node;
+      const id = doc.nextNodeId;
       const node = {
-        id: n.id,
-        displayId: n.displayId ?? nextDisplayId(doc),
+        id,
         grid: [n.grid[0], n.grid[1], n.grid[2]] as GridCoord,
         size: (n.size ? [n.size[0], n.size[1], n.size[2]] : [1, 1, 1]) as RoomSize,
         typeId: n.typeId,
         attributes: { ...n.attributes },
       };
       const diagram = command.diagramPosition
-        ? { positions: { ...doc.diagram.positions, [n.id]: [command.diagramPosition[0], command.diagramPosition[1]] as DiagramPosition } }
+        ? { positions: { ...doc.diagram.positions, [id]: [command.diagramPosition[0], command.diagramPosition[1]] as DiagramPosition } }
         : doc.diagram;
-      const added = validate({ ...doc, nodes: [...doc.nodes, node], diagram });
+      const added = validate({ ...doc, nextNodeId: id + 1, nodes: [...doc.nodes, node], diagram });
       if (!added.ok) return added;
       // A new room never silently fills a generated connector: place it elsewhere and move it with
       // `set-node-geometry` + `confirmRouteDisplacement` ("Move anyway and recalculate").
       const occupancy = (options.resolve ?? resolveRelationships)(doc).occupancy;
-      const displaced = new Set<string>();
+      const displaced = new Set<number>();
       for (const cell of footprintCells(node)) {
         const o = occupancy.at(cell);
         if (o?.kind === 'route') displaced.add(o.edgeId);
@@ -214,7 +214,7 @@ export function applyDesignCommand(
           issue(
             ['nodes'],
             'route-displacement',
-            `room "${n.id}" would take cells of the connector(s) of ${[...displaced].sort().map((e) => `"${e}"`).join(', ')}; ` +
+            `room ${id} would take cells of the connector(s) of ${[...displaced].sort((a, b) => a - b).map((e) => relationshipLabel(doc, e)).join(', ')}; ` +
               'confirm to add it anyway and recalculate those connectors, or place it elsewhere',
           ),
         ]);
@@ -228,7 +228,7 @@ export function applyDesignCommand(
         ...doc,
         nodes: [...result.value.nodes],
         edges: [...result.value.edges],
-        diagram: { positions: withoutKey(doc.diagram.positions, command.nodeId) },
+        diagram: { positions: withoutKey(doc.diagram.positions, String(command.nodeId)) },
       });
     }
     case 'set-node-geometry': {
@@ -244,11 +244,6 @@ export function applyDesignCommand(
       return mapNode(command.nodeId, (n) => ({ ...n, typeId: command.typeId }));
     case 'set-node-attributes':
       return mapNode(command.nodeId, (n) => ({ ...n, attributes: { ...command.attributes } }));
-    case 'set-display-id':
-      return mapNode(command.nodeId, (n) => {
-        const { displayId: _old, ...rest } = n;
-        return command.displayId === null ? rest : { ...rest, displayId: command.displayId };
-      });
     case 'set-diagram-position':
       if (!hasNode(command.nodeId)) return notFound('node', command.nodeId);
       return validate({
@@ -257,15 +252,16 @@ export function applyDesignCommand(
       });
     case 'add-edge': {
       const e = command.edge;
+      const id = doc.nextEdgeId;
       const edge = {
-        id: e.id,
+        id,
         source: e.source,
         target: e.target,
         kind: e.kind ?? DEFAULT_RELATIONSHIP_KIND,
         ...(e.connectorStyle === undefined ? {} : { connectorStyle: e.connectorStyle }),
         attributes: { ...e.attributes },
       };
-      return validate({ ...doc, edges: [...doc.edges, edge] });
+      return validate({ ...doc, nextEdgeId: id + 1, edges: [...doc.edges, edge] });
     }
     case 'remove-edge':
       if (!hasEdge(command.edgeId)) return notFound('edge', command.edgeId);
@@ -273,9 +269,9 @@ export function applyDesignCommand(
     case 'remove-edges': {
       const ids = command.edgeIds;
       if (ids.length === 0) return fail([issue(['edges'], 'schema', 'no connections were chosen to remove')]);
-      const listed = new Set<string>();
+      const listed = new Set<number>();
       for (const id of ids) {
-        if (listed.has(id)) return fail([issue(['edges'], 'duplicate-edge-id', `connection "${id}" is listed more than once`)]);
+        if (listed.has(id)) return fail([issue(['edges'], 'duplicate-edge-id', `connection ${relationshipLabel(doc, id)} is listed more than once`)]);
         listed.add(id);
         if (!hasEdge(id)) return notFound('edge', id);
       }
@@ -286,7 +282,7 @@ export function applyDesignCommand(
           issue(
             ['edges'],
             'schema',
-            `only unresolved connections can be removed together; ${built.map((id) => `"${id}"`).join(', ')} ` +
+            `only unresolved connections can be removed together; ${built.map((id) => relationshipLabel(doc, id)).join(', ')} ` +
               `${built.length === 1 ? 'is' : 'are'} built`,
           ),
         ]);

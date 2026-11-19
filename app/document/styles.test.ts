@@ -17,7 +17,7 @@ import {
 
 /** "Style rooms by" (owner 2026-11-18): the evaluator and the stored format. */
 
-type Room = { id: string; typeId: string; z?: number };
+type Room = { id: number; typeId: string; z?: number };
 
 function design(rooms: Room[], settings: unknown): DesignDocumentV2 {
   return expectOk(
@@ -84,17 +84,17 @@ describe('effective look: card → Default → toolkit → built-in', () => {
 
 describe('nodeLooks: every room exactly one look', () => {
   const rooms: Room[] = [
-    { id: 'g0', typeId: 'gallery', z: 0 },
-    { id: 'g1', typeId: 'gallery', z: 1 },
-    { id: 's2', typeId: 'studio', z: 2 },
+    { id: 1, typeId: 'gallery', z: 0 },
+    { id: 2, typeId: 'gallery', z: 1 },
+    { id: 3, typeId: 'studio', z: 2 },
   ];
 
   it('by Function (the default attribute): rooms of a function share its card', () => {
     const doc = design(rooms, { styleBy: 'function', styles: { function: { groups: [{ value: 'gallery', look: { roof: 'none' } }] } } });
     const looks = nodeLooks(doc, base(0.2));
-    expect(looks.get('g0')!.look.roof).toBe('none');
-    expect(looks.get('g1')!.look.roof).toBe('none');
-    expect(looks.get('s2')!).toMatchObject({ group: { kind: 'default' }, look: { roof: 'flat', windowFraction: 0.2 } });
+    expect(looks.get(1)!.look.roof).toBe('none');
+    expect(looks.get(2)!.look.roof).toBe('none');
+    expect(looks.get(3)!).toMatchObject({ group: { kind: 'default' }, look: { roof: 'flat', windowFraction: 0.2 } });
   });
 
   it('by Level with bands: rooms of the SAME function can look different', () => {
@@ -107,27 +107,27 @@ describe('nodeLooks: every room exactly one look', () => {
       },
     };
     const looks = nodeLooks(design(rooms, settings), base(0.2));
-    expect(looks.get('g0')!.look).toMatchObject({ windowFraction: 0.05, roof: 'flat' });
-    expect(looks.get('g1')!.look).toMatchObject({ windowFraction: 0.8, roof: 'flat' });
-    expect(looks.get('s2')!.group).toEqual({ kind: 'band', index: 1 });
+    expect(looks.get(1)!.look).toMatchObject({ windowFraction: 0.05, roof: 'flat' });
+    expect(looks.get(2)!.look).toMatchObject({ windowFraction: 0.8, roof: 'flat' });
+    expect(looks.get(3)!.group).toEqual({ kind: 'band', index: 1 });
   });
 
   it('custom and measured attributes come from the caller; rooms without a value use Default', () => {
     const settings = { styleBy: 'metric:area', styles: { 'metric:area': { default: { roof: 'pergola' }, dividers: [20], bands: [{}, { roof: 'none' }] } } };
-    const values = new Map<string, unknown>([
-      ['g0', 9],
-      ['g1', 45],
+    const values = new Map<number, unknown>([
+      [1, 9],
+      [2, 45],
     ]);
     const looks = nodeLooks(design(rooms, settings), base(0.2), values);
-    expect(looks.get('g0')!.look.roof).toBe('pergola'); // band 0 sets nothing: Default
-    expect(looks.get('g1')!.look.roof).toBe('none');
-    expect(looks.get('s2')!.group).toEqual({ kind: 'default' });
+    expect(looks.get(1)!.look.roof).toBe('pergola'); // band 0 sets nothing: Default
+    expect(looks.get(2)!.look.roof).toBe('none');
+    expect(looks.get(3)!.group).toEqual({ kind: 'default' });
   });
 });
 
 describe('stored format', () => {
   it('defaults to styling by Function with nothing set, and round-trips every kind of setup', () => {
-    const plain = design([{ id: 'a', typeId: 'gallery' }], undefined);
+    const plain = design([{ id: 1, typeId: 'gallery' }], undefined);
     expect(plain.settings).toEqual({ styleBy: 'function', styles: {} });
     const settings: DesignSettings = {
       styleBy: 'attribute:usage',
@@ -137,7 +137,7 @@ describe('stored format', () => {
         level: { dividers: [1, 3], bands: [{}, { windowLayout: 'stretch' }, {}] },
       },
     };
-    const doc = design([{ id: 'a', typeId: 'gallery' }], settings);
+    const doc = design([{ id: 1, typeId: 'gallery' }], settings);
     const back = expectOk(readDesignJson(serializeDesignV2(doc))).doc;
     expect(back.settings).toEqual(settings);
     expect([...storedLooks(back.settings)]).toHaveLength(7); // 2 function + 2 usage cards + 3 level bands

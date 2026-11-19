@@ -30,8 +30,8 @@ import { resolveBuildingFaces, toResolvedFace } from './multicellFaces';
  * which overwrites them; review the `__golden__/` diff before keeping it.
  */
 
-type N = { id: string; grid: GridCoord; size?: [number, number, number]; typeId?: string };
-type E = { id: string; source: string; target: string; kind?: RelationshipKind; connectorStyle?: ConnectorStyle };
+type N = { id: number; grid: GridCoord; size?: [number, number, number]; typeId?: string };
+type E = { id: number; source: number; target: number; kind?: RelationshipKind; connectorStyle?: ConnectorStyle };
 
 function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown> = {}): DesignDocumentV2 {
   return expectOk(
@@ -54,6 +54,11 @@ function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown>
 const example = expectOk(readDesign(exampleJson)).doc;
 const exampleTypes = [...new Set(example.nodes.map((n) => n.typeId))].sort();
 
+/**
+ * Ids are numbered in the alphabetical order of the letters they replaced (m..r = 1..6, g0..g3 = 1..4,
+ * a..l, s, t = 1..14; edges likewise: h-access, v-access, v-open, v-up = 1..4; ab, al, cd, ef, gh, ij,
+ * st = 1..7), so ownership and routing order are unchanged by the move to numeric ids.
+ */
 const FIXTURES: Readonly<Record<string, DesignDocumentV2>> = {
   'two-storey-example': example,
   'two-storey-example-roofs-off': {
@@ -66,60 +71,60 @@ const FIXTURES: Readonly<Record<string, DesignDocumentV2>> = {
   },
   'multi-cell-rooms': v2(
     [
-      { id: 'm', grid: [0, 0, 0], size: [2, 3, 1] },
-      { id: 'n', grid: [2, 0, 0], size: [1, 1, 2], typeId: 'studio' },
-      { id: 'o', grid: [0, 0, 1], size: [2, 2, 1], typeId: 'storage' },
-      { id: 'p', grid: [0, 2, 1], typeId: 'studio' },
-      { id: 'q', grid: [3, 0, 0], size: [1, 1, 2] },
-      { id: 'r', grid: [1, 2, 1], size: [1, 1, 2], typeId: 'lab' },
+      { id: 1, grid: [0, 0, 0], size: [2, 3, 1] }, // m
+      { id: 2, grid: [2, 0, 0], size: [1, 1, 2], typeId: 'studio' }, // n
+      { id: 3, grid: [0, 0, 1], size: [2, 2, 1], typeId: 'storage' }, // o
+      { id: 4, grid: [0, 2, 1], typeId: 'studio' }, // p
+      { id: 5, grid: [3, 0, 0], size: [1, 1, 2] }, // q
+      { id: 6, grid: [1, 2, 1], size: [1, 1, 2], typeId: 'lab' }, // r
     ],
     [
-      { id: 'mn', source: 'm', target: 'n', kind: 'access' },
-      { id: 'mo', source: 'm', target: 'o', kind: 'open' },
-      { id: 'mp', source: 'p', target: 'm', kind: 'access' },
-      { id: 'nq', source: 'n', target: 'q', kind: 'open' },
-      { id: 'pr', source: 'p', target: 'r', kind: 'access' },
+      { id: 1, source: 1, target: 2, kind: 'access' }, // mn
+      { id: 2, source: 1, target: 3, kind: 'open' }, // mo
+      { id: 3, source: 4, target: 1, kind: 'access' }, // mp
+      { id: 4, source: 2, target: 5, kind: 'open' }, // nq
+      { id: 5, source: 4, target: 6, kind: 'access' }, // pr
     ],
   ),
   'vertical-access-and-open': v2(
     [
-      { id: 'g0', grid: [0, 0, 0], size: [2, 2, 1] },
-      { id: 'g1', grid: [0, 0, 1], size: [2, 1, 1], typeId: 'studio' },
-      { id: 'g2', grid: [0, 1, 1], size: [2, 1, 1], typeId: 'storage' },
-      { id: 'g3', grid: [0, 0, 2], size: [2, 2, 1] },
+      { id: 1, grid: [0, 0, 0], size: [2, 2, 1] }, // g0
+      { id: 2, grid: [0, 0, 1], size: [2, 1, 1], typeId: 'studio' }, // g1
+      { id: 3, grid: [0, 1, 1], size: [2, 1, 1], typeId: 'storage' }, // g2
+      { id: 4, grid: [0, 0, 2], size: [2, 2, 1] }, // g3
     ],
     [
-      { id: 'v-access', source: 'g0', target: 'g1', kind: 'access' },
-      { id: 'v-open', source: 'g2', target: 'g0', kind: 'open' },
-      { id: 'v-up', source: 'g1', target: 'g3', kind: 'open' },
-      { id: 'h-access', source: 'g1', target: 'g2', kind: 'access' },
+      { id: 2, source: 1, target: 2, kind: 'access' }, // v-access
+      { id: 3, source: 3, target: 1, kind: 'open' }, // v-open
+      { id: 4, source: 2, target: 4, kind: 'open' }, // v-up
+      { id: 1, source: 2, target: 3, kind: 'access' }, // h-access
     ],
   ),
   'routed-connectors': v2(
     [
-      { id: 'a', grid: [0, 0, 0] },
-      { id: 'b', grid: [4, 0, 0], typeId: 'studio' },
-      { id: 'c', grid: [0, 2, 0], size: [1, 1, 2] },
-      { id: 'd', grid: [4, 2, 0], typeId: 'storage' },
-      { id: 'e', grid: [0, 4, 0], size: [2, 1, 1] },
-      { id: 'f', grid: [5, 4, 0] },
-      { id: 'g', grid: [0, 6, 0] },
-      { id: 'h', grid: [4, 6, 0] },
-      { id: 'i', grid: [0, 7, 0], typeId: 'studio' },
-      { id: 'j', grid: [4, 7, 0], typeId: 'studio' },
-      { id: 'k', grid: [2, 6, 1], typeId: 'storage' },
-      { id: 'l', grid: [10, 10, 3] },
-      { id: 's', grid: [2, 9, 0] },
-      { id: 't', grid: [2, 12, 0], size: [1, 2, 1] },
+      { id: 1, grid: [0, 0, 0] }, // a
+      { id: 2, grid: [4, 0, 0], typeId: 'studio' }, // b
+      { id: 3, grid: [0, 2, 0], size: [1, 1, 2] }, // c
+      { id: 4, grid: [4, 2, 0], typeId: 'storage' }, // d
+      { id: 5, grid: [0, 4, 0], size: [2, 1, 1] }, // e
+      { id: 6, grid: [5, 4, 0] }, // f
+      { id: 7, grid: [0, 6, 0] }, // g
+      { id: 8, grid: [4, 6, 0] }, // h
+      { id: 9, grid: [0, 7, 0], typeId: 'studio' }, // i
+      { id: 10, grid: [4, 7, 0], typeId: 'studio' }, // j
+      { id: 11, grid: [2, 6, 1], typeId: 'storage' }, // k
+      { id: 12, grid: [10, 10, 3] }, // l
+      { id: 13, grid: [2, 9, 0] }, // s
+      { id: 14, grid: [2, 12, 0], size: [1, 2, 1] }, // t
     ],
     [
-      { id: 'ab', source: 'a', target: 'b', kind: 'access' },
-      { id: 'cd', source: 'c', target: 'd', kind: 'open', connectorStyle: 'covered' },
-      { id: 'ef', source: 'f', target: 'e', kind: 'access', connectorStyle: 'deck' },
-      { id: 'gh', source: 'g', target: 'h', kind: 'access', connectorStyle: 'enclosed' },
-      { id: 'ij', source: 'i', target: 'j', kind: 'open', connectorStyle: 'covered' },
-      { id: 'al', source: 'a', target: 'l', kind: 'access' },
-      { id: 'st', source: 's', target: 't', kind: 'access' },
+      { id: 1, source: 1, target: 2, kind: 'access' }, // ab
+      { id: 3, source: 3, target: 4, kind: 'open', connectorStyle: 'covered' }, // cd
+      { id: 4, source: 6, target: 5, kind: 'access', connectorStyle: 'deck' }, // ef
+      { id: 5, source: 7, target: 8, kind: 'access', connectorStyle: 'enclosed' }, // gh
+      { id: 6, source: 9, target: 10, kind: 'open', connectorStyle: 'covered' }, // ij
+      { id: 2, source: 1, target: 12, kind: 'access' }, // al
+      { id: 7, source: 13, target: 14, kind: 'access' }, // st
     ],
   ),
 };

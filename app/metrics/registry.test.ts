@@ -15,7 +15,7 @@ const spied = (metric: ComputedMetric) => {
   return { metric: { ...metric, compute }, compute };
 };
 
-const moveNode = (d: DesignDocumentV2, id: string, grid: [number, number, number]): DesignDocumentV2 => ({
+const moveNode = (d: DesignDocumentV2, id: number, grid: [number, number, number]): DesignDocumentV2 => ({
   ...d,
   nodes: d.nodes.map((n) => (n.id === id ? { ...n, grid } : n)),
 });
@@ -30,15 +30,15 @@ describe('built-in metrics', () => {
   it('computes footprint area at 3 m cells and incident-edge degree', () => {
     const evaluator = createMetricEvaluator();
     const ctx = ctxOf(doc());
-    expect(evaluator.value(ctx, 'area', 'a')).toBe(2 * 3 * 9); // 2×3 cells
-    expect(evaluator.value(ctx, 'area', 'b')).toBe(9); // default 1×1×1
-    expect(evaluator.value(ctx, 'degree', 'a')).toBe(1);
+    expect(evaluator.value(ctx, 'area', 1)).toBe(2 * 3 * 9); // 2×3 cells
+    expect(evaluator.value(ctx, 'area', 2)).toBe(9); // default 1×1×1
+    expect(evaluator.value(ctx, 'degree', 1)).toBe(1);
     expect([...evaluator.values(ctx, 'degree')]).toEqual([
-      ['a', 1],
-      ['b', 1],
+      [1, 1],
+      [2, 1],
     ]);
-    expect(evaluator.value(ctx, 'area', 'missing')).toBeNull();
-    expect(() => evaluator.value(ctx, 'nope', 'a')).toThrow(/unknown metric/);
+    expect(evaluator.value(ctx, 'area', 999)).toBeNull();
+    expect(() => evaluator.value(ctx, 'nope', 1)).toThrow(/unknown metric/);
   });
 
   it('is deterministic: equal documents give equal values in fresh evaluators', () => {
@@ -60,8 +60,8 @@ describe('createMetricEvaluator memoisation', () => {
     const area = spied(areaMetric);
     const evaluator = createMetricEvaluator([area.metric]);
     const ctx = ctxOf(doc());
-    evaluator.value(ctx, 'area', 'a');
-    evaluator.value(ctx, 'area', 'a');
+    evaluator.value(ctx, 'area', 1);
+    evaluator.value(ctx, 'area', 1);
     evaluator.values(ctx, 'area');
     expect(area.compute).toHaveBeenCalledTimes(2); // a once, b once
   });
@@ -71,21 +71,21 @@ describe('createMetricEvaluator memoisation', () => {
     const degree = spied(degreeMetric);
     const evaluator = createMetricEvaluator([area.metric, degree.metric]);
     const before = ctxOf(doc());
-    expect(evaluator.value(before, 'area', 'a')).toBe(54);
-    expect(evaluator.value(before, 'degree', 'a')).toBe(1);
+    expect(evaluator.value(before, 'area', 1)).toBe(54);
+    expect(evaluator.value(before, 'degree', 1)).toBe(1);
 
     // Resize room a (geometry only): new doc and new spatial identities, same topology.
-    const resizedDoc: DesignDocumentV2 = { ...before.doc, nodes: before.doc.nodes.map((n) => (n.id === 'a' ? { ...n, size: [1, 1, 1] } : n)) };
+    const resizedDoc: DesignDocumentV2 = { ...before.doc, nodes: before.doc.nodes.map((n) => (n.id === 1 ? { ...n, size: [1, 1, 1] } : n)) };
     const after = ctxOf(resizedDoc);
-    expect(evaluator.value(after, 'area', 'a')).toBe(9);
-    expect(evaluator.value(after, 'degree', 'a')).toBe(1);
+    expect(evaluator.value(after, 'area', 1)).toBe(9);
+    expect(evaluator.value(after, 'degree', 1)).toBe(1);
     expect(area.compute).toHaveBeenCalledTimes(2);
     expect(degree.compute).toHaveBeenCalledTimes(1);
 
     // Moving a room is geometry as well.
-    const moved = ctxOf(moveNode(resizedDoc, 'b', [7, 0, 0]));
-    evaluator.value(moved, 'area', 'a');
-    evaluator.value(moved, 'degree', 'a');
+    const moved = ctxOf(moveNode(resizedDoc, 2, [7, 0, 0]));
+    evaluator.value(moved, 'area', 1);
+    evaluator.value(moved, 'degree', 1);
     expect(area.compute).toHaveBeenCalledTimes(3);
     expect(degree.compute).toHaveBeenCalledTimes(1);
   });
@@ -95,11 +95,11 @@ describe('createMetricEvaluator memoisation', () => {
     const degree = spied(degreeMetric);
     const evaluator = createMetricEvaluator([area.metric, degree.metric]);
     const before = ctxOf(doc());
-    evaluator.value(before, 'area', 'a');
-    evaluator.value(before, 'degree', 'a');
+    evaluator.value(before, 'area', 1);
+    evaluator.value(before, 'degree', 1);
     const noEdges = ctxOf({ ...before.doc, edges: [] });
-    expect(evaluator.value(noEdges, 'degree', 'a')).toBe(0);
-    expect(evaluator.value(noEdges, 'area', 'a')).toBe(54);
+    expect(evaluator.value(noEdges, 'degree', 1)).toBe(0);
+    expect(evaluator.value(noEdges, 'area', 1)).toBe(54);
     expect(degree.compute).toHaveBeenCalledTimes(2);
     expect(area.compute).toHaveBeenCalledTimes(1);
   });
@@ -115,8 +115,8 @@ describe('createMetricEvaluator memoisation', () => {
     } satisfies ComputedMetric);
     const evaluator = createMetricEvaluator([routed.metric]);
     const d = doc();
-    const first = evaluator.value(ctxOf(d), 'resolved-edges', 'ab');
-    evaluator.value(ctxOf(d), 'resolved-edges', 'ab'); // same doc, new spatial object
+    const first = evaluator.value(ctxOf(d), 'resolved-edges', 1);
+    evaluator.value(ctxOf(d), 'resolved-edges', 1); // same doc, new spatial object
     expect(routed.compute).toHaveBeenCalledTimes(2);
     expect(typeof first).toBe('string');
   });
@@ -132,11 +132,11 @@ describe('createMetricEvaluator memoisation', () => {
     } satisfies ComputedMetric);
     const evaluator = createMetricEvaluator([typeOf.metric]);
     const before = doc();
-    const original = evaluator.value(ctxOf(before), 'type-of', 'a');
-    evaluator.value(ctxOf(moveNode(before, 'b', [7, 0, 0])), 'type-of', 'a');
+    const original = evaluator.value(ctxOf(before), 'type-of', 1);
+    evaluator.value(ctxOf(moveNode(before, 2, [7, 0, 0])), 'type-of', 1);
     expect(typeOf.compute).toHaveBeenCalledTimes(1);
-    const retyped: DesignDocumentV2 = { ...before, nodes: before.nodes.map((n) => (n.id === 'a' ? { ...n, typeId: 'other-type' } : n)) };
-    expect(evaluator.value(ctxOf(retyped), 'type-of', 'a')).toBe('other-type');
+    const retyped: DesignDocumentV2 = { ...before, nodes: before.nodes.map((n) => (n.id === 1 ? { ...n, typeId: 'other-type' } : n)) };
+    expect(evaluator.value(ctxOf(retyped), 'type-of', 1)).toBe('other-type');
     expect(original).not.toBe('other-type');
     expect(typeOf.compute).toHaveBeenCalledTimes(2);
   });
@@ -155,9 +155,9 @@ describe('createMetricEvaluator memoisation', () => {
     } satisfies ComputedMetric);
     const evaluator = createMetricEvaluator([ends.metric]);
     const before = doc();
-    const first = evaluator.value(ctxOf(before), 'ends', 'ab');
-    const flipped: DesignDocumentV2 = { ...before, edges: before.edges.map((e) => (e.id === 'ab' ? { ...e, kind: e.kind === 'access' ? 'open' : 'access' } : e)) };
-    const second = evaluator.value(ctxOf(flipped), 'ends', 'ab');
+    const first = evaluator.value(ctxOf(before), 'ends', 1);
+    const flipped: DesignDocumentV2 = { ...before, edges: before.edges.map((e) => (e.id === 1 ? { ...e, kind: e.kind === 'access' ? 'open' : 'access' } : e)) };
+    const second = evaluator.value(ctxOf(flipped), 'ends', 1);
     expect(ends.compute).toHaveBeenCalledTimes(2);
     expect(second).not.toBe(first);
   });
@@ -166,10 +166,10 @@ describe('createMetricEvaluator memoisation', () => {
     const area = spied(areaMetric);
     const evaluator = createMetricEvaluator([area.metric]);
     const one = ctxOf(doc());
-    const two = ctxOf({ ...one.doc, nodes: one.doc.nodes.map((n) => (n.id === 'a' ? { ...n, size: [1, 1, 1] } : n)) });
+    const two = ctxOf({ ...one.doc, nodes: one.doc.nodes.map((n) => (n.id === 1 ? { ...n, size: [1, 1, 1] } : n)) });
     for (let i = 0; i < 5; i++) {
-      evaluator.value(one, 'area', 'a');
-      evaluator.value(two, 'area', 'a');
+      evaluator.value(one, 'area', 1);
+      evaluator.value(two, 'area', 1);
     }
     expect(area.compute).toHaveBeenCalledTimes(2);
   });

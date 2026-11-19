@@ -41,15 +41,15 @@ const twoRooms = expectOk(
     schemaVersion: 2,
     metadata: { name: 'plan-view' },
     nodes: [
-      { id: 'a', grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery', displayId: '1' },
-      { id: 'b', grid: [1, 0, 0], size: [1, 1, 2], typeId: 'studio', displayId: '2' },
-      { id: 'c', grid: [5, 5, 0], size: [1, 1, 1], typeId: 'studio', displayId: '3' },
-      { id: 'd', grid: [5, 7, 3], size: [1, 1, 1], typeId: 'studio', displayId: '4' },
+      { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
+      { id: 2, grid: [1, 0, 0], size: [1, 1, 2], typeId: 'studio' },
+      { id: 3, grid: [5, 5, 0], size: [1, 1, 1], typeId: 'studio' },
+      { id: 4, grid: [5, 7, 3], size: [1, 1, 1], typeId: 'studio' },
     ],
     edges: [
-      { id: 'ab', source: 'a', target: 'b', kind: 'access' },
+      { id: 1, source: 1, target: 2, kind: 'access' },
       // Not adjacent and on different storeys: unresolved, so never drawn as an opening.
-      { id: 'cd', source: 'c', target: 'd', kind: 'access' },
+      { id: 2, source: 3, target: 4, kind: 'access' },
     ],
     settings: { styleBy: 'function', styles: {} },
   }),
@@ -64,7 +64,7 @@ describe('PlanView', () => {
     expect(html).toContain('sgl-plan-opening door');
   });
 
-  it('offers only existing storeys in the selector and labels rooms with displayId ?? id', () => {
+  it('offers only existing storeys in the selector and labels rooms with their id', () => {
     const html = render(twoRooms);
     const options = [...html.matchAll(/<option value="(-?\d+)"/g)].map((m) => Number(m[1]));
     expect(options).toEqual([0, 1, 3]);
@@ -76,8 +76,8 @@ describe('PlanView', () => {
   it('the remembered storey is shown; a multi-storey room appears on its upper storey too', () => {
     const html = render(twoRooms, NO_SELECTION, 1);
     expect(html).toContain('aria-label="Floor plan of Level 1"');
-    expect(html).toContain('data-node-id="b"');
-    expect(html).not.toContain('data-node-id="a"');
+    expect(html).toContain('data-node-id="2"');
+    expect(html).not.toContain('data-node-id="1"');
   });
 
   it('a remembered storey that no longer exists falls back to the ground storey', () => {
@@ -85,15 +85,15 @@ describe('PlanView', () => {
   });
 
   it('highlights the selected room, and the selected relationship with its rooms', () => {
-    expect(render(twoRooms, selectNode('a'))).toMatch(/class="sgl-plan-room selected" data-node-id="a"/);
-    const edge = render(twoRooms, selectEdge('ab'));
-    expect(edge).toMatch(/class="sgl-plan-opening door selected"[^>]*data-edge-id="ab"/);
-    expect(edge).toMatch(/class="sgl-plan-room related" data-node-id="a"/);
+    expect(render(twoRooms, selectNode(1))).toMatch(/class="sgl-plan-room selected" data-node-id="1"/);
+    const edge = render(twoRooms, selectEdge(1));
+    expect(edge).toMatch(/class="sgl-plan-opening door selected"[^>]*data-edge-id="1"/);
+    expect(edge).toMatch(/class="sgl-plan-room related" data-node-id="1"/);
   });
 
   it('never draws an unresolved relationship and says it is not drawn', () => {
     const html = render(twoRooms);
-    expect(html).not.toContain('data-edge-id="cd"');
+    expect(html).not.toContain('data-edge-id="2"');
     expect(html).toContain('1 unresolved relationship not drawn');
   });
 
@@ -108,8 +108,8 @@ describe('PlanView', () => {
       }),
     );
     const targets = [...html.matchAll(/class="sgl-plan-wall-target[^"]*" data-face-id="([^"]+)"/g)].map((m) => m[1]);
-    // a | b share exactly one wall on Level 0; c stands alone.
-    expect(targets).toEqual(['a:+x']);
+    // 1 | 2 share exactly one wall on Level 0; 3 stands alone.
+    expect(targets).toEqual(['1:+x']);
   });
 
   it('an empty design shows an explanation and a disabled storey selector', () => {
@@ -167,18 +167,18 @@ describe('plan shapes', () => {
         schemaVersion: 2,
         metadata: { name: 'door' },
         nodes: [
-          { id: 'a', grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
-          { id: 'b', grid: [0, 1, 0], size: [1, 1, 1], typeId: 'gallery' },
+          { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
+          { id: 2, grid: [0, 1, 0], size: [1, 1, 1], typeId: 'gallery' },
         ],
-        edges: [{ id: 'ab', source: 'a', target: 'b', kind: 'access' }],
+        edges: [{ id: 1, source: 1, target: 2, kind: 'access' }],
         settings: { styleBy: 'function', styles: {} },
       }),
     );
     const plan = buildPlan(planSourceV2(doc, resolveRelationships(doc)), 0);
     const door = plan.openings.find((o) => o.kind === 'door')! as PlanOpening;
-    const owner = plan.rooms.find((r) => r.nodeId === 'a')!;
-    // `a:+y` faces grid +y = plan −y; the leaf goes the other way, into room a.
-    expect(door.faceId).toBe('a:+y');
+    const owner = plan.rooms.find((r) => r.nodeId === 1)!;
+    // `1:+y` faces grid +y = plan −y; the leaf goes the other way, into room 1.
+    expect(door.faceId).toBe('1:+y');
     const nums = doorSwingPath(door).match(/-?\d+(\.\d+)?/g)!.map(Number);
     const [hx, hy, lx, ly] = nums;
     expect(lx).toBeCloseTo(hx!, 9);

@@ -3,7 +3,7 @@
  * undirected, with configurable self-loop and parallel-edge policies. Pure TypeScript only:
  * no imports from spatial, architecture, app, viewer or student code, and no dependencies.
  */
-export type { EdgeRecord, Graph, GraphPolicy, NodeRecord } from './types';
+export type { EdgeRecord, Graph, GraphId, GraphPolicy, NodeRecord } from './types';
 export { fail, formatIssuePath, ok, type Issue, type IssuePath, type Result } from './result';
 export { validateGraph, type StructuralIssue, type StructuralIssueCode } from './validate';
 export {

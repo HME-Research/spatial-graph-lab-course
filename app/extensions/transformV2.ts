@@ -7,8 +7,6 @@ import {
   type GridCoord,
   gridKey,
   gridSchema,
-  idSchema,
-  nextDisplayId,
   RELATIONSHIP_KINDS,
   type RelationshipKind,
   type RoomNode,
@@ -18,7 +16,7 @@ import {
   validateDocumentV2,
 } from '@app/document';
 import { resolveRelationships } from '@app/spatial';
-import type { SpatialOperation } from '@student-api';
+import type { ItemRef, SpatialOperation } from '@student-api';
 import type { ActiveToolkit, RegisteredNodeType } from './activate';
 import { checkConformance, findNodeType, findRegressions } from './conformance';
 import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionIssueCode, type ExtensionResult } from './diagnostics';
@@ -31,7 +29,9 @@ import { writeFieldValue } from './resolveAttributes';
  * diagnostics on failure. Rules:
  *
  * - `add-node`: optional `size` (default [1, 1, 1]); the room's footprint must not overlap
- *   another room (`occupied-cell`); a `displayId` is assigned with `nextDisplayId`.
+ *   another room (`occupied-cell`). New nodes and edges get the document's next ids
+ *   (`nextNodeId` / `nextEdgeId`, in operation order; never reused); an operation's optional `ref`
+ *   names the new item for later operations (`ItemRef`).
  * - `add-edge`: `access` | `open`.
  *   The rooms need NOT touch: a non-adjacent relationship is valid; its spatial status is derived.
  * - New rooms that take cells of generated connectors are NOT refused here, but are never silent:
@@ -45,7 +45,9 @@ export interface TransformationPreviewV2 {
   readonly operations: readonly SpatialOperation[];
   readonly resolvedDiagnosticIds: readonly string[];
   /** Relationship ids whose generated connector cells the new rooms would take (sorted). */
-  readonly displacedRoutes: readonly string[];
+  readonly displacedRoutes: readonly number[];
+  /** The ids the app gave to the operations' local `ref` names (new nodes and edges). */
+  readonly assigned: { readonly nodes: Readonly<Record<string, number>>; readonly edges: Readonly<Record<string, number>> };
   readonly summary?: string;
 }
 
@@ -54,12 +56,33 @@ interface DraftV2 {
   readonly schema: ProjectAttributeSchema;
   readonly nodes: RoomNode[];
   readonly edges: DesignDocumentV2['edges'];
-  readonly byId: Map<string, RoomNode>;
-  readonly edgeById: Map<string, DesignDocumentV2['edges'][number]>;
-  readonly cells: Map<string, string>;
-  readonly edgeIds: Set<string>;
+  readonly byId: Map<number, RoomNode>;
+  readonly edgeById: Map<number, DesignDocumentV2['edges'][number]>;
+  readonly cells: Map<string, number>;
   readonly pairs: Set<string>;
   readonly added: RoomNode[];
+  /** The ids the next new node / edge get (the document's counters, advanced in operation order). */
+  nextNodeId: number;
+  nextEdgeId: number;
+  /** Local `ref` names of the nodes / edges added so far in this run → their assigned ids. */
+  readonly nodeRefs: Map<string, number>;
+  readonly edgeRefs: Map<string, number>;
+}
+
+/** The id an operation's `ItemRef` stands for: an existing id, or the `ref` of an earlier addition. */
+function resolveRef(ref: ItemRef, ids: ReadonlyMap<number, unknown>, refs: ReadonlyMap<string, number>): number | undefined {
+  if (typeof ref === 'number') return ids.has(ref) ? ref : undefined;
+  return refs.get(ref);
+}
+
+const describeRef = (ref: ItemRef) => (typeof ref === 'number' ? String(ref) : `"${ref}"`);
+
+/** A new `ref` must be text and not used yet in this run. */
+function refProblem(ref: string | undefined, refs: ReadonlyMap<string, number>, i: number, what: string): Check {
+  if (ref === undefined) return null;
+  if (ref.trim() === '') return opError(i, 'invalid-id', `${what}: ref must be a non-empty text`);
+  if (refs.has(ref)) return opError(i, 'invalid-id', `${what}: ref "${ref}" is already used by an earlier operation`);
+  return null;
 }
 
 type Check = ExtensionDiagnostic | null;
@@ -106,10 +129,9 @@ function fieldWrite(
 }
 
 function addNode(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'add-node' }>, i: number): Check {
-  const what = `add-node "${op.id}"`;
-  const id = idSchema.safeParse(op.id);
-  if (!id.success) return opError(i, 'invalid-id', `${what}: ${id.error.issues[0]?.message ?? 'invalid id'}`);
-  if (draft.byId.has(op.id)) return opError(i, 'duplicate-node-id', `${what}: a node with id "${op.id}" already exists`);
+  const what = op.ref === undefined ? 'add-node' : `add-node "${op.ref}"`;
+  const badRef = refProblem(op.ref, draft.nodeRefs, i, what);
+  if (badRef) return badRef;
   const grid = gridSchema.safeParse(op.grid);
   if (!grid.success) return opError(i, 'invalid-grid', `${what}: ${grid.error.issues[0]?.message ?? 'invalid grid'}`);
   const size = sizeSchema.safeParse(op.size ?? [1, 1, 1]);
@@ -124,7 +146,7 @@ function addNode(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOper
   if (far) return opError(i, 'invalid-grid', `${what}: cell ${fmt(far)} exceeds the coordinate limit of ±${limit}`);
   for (const cell of cells) {
     const occupant = draft.cells.get(gridKey(cell));
-    if (occupant !== undefined) return opError(i, 'occupied-cell', `${what}: cell ${fmt(cell)} is already occupied by node "${occupant}"`);
+    if (occupant !== undefined) return opError(i, 'occupied-cell', `${what}: cell ${fmt(cell)} is already occupied by node ${occupant}`);
   }
   const type = writableType(project, op.typeId, i, what);
   if ('code' in type) return type;
@@ -134,7 +156,8 @@ function addNode(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOper
     if ('code' in field) return field;
     attributes = writeFieldValue(field, attributes, value);
   }
-  const node: RoomNode = { id: op.id, displayId: nextDisplayId({ nodes: draft.nodes }), ...room, typeId: op.typeId, attributes };
+  const node: RoomNode = { id: draft.nextNodeId++, ...room, typeId: op.typeId, attributes };
+  if (op.ref !== undefined) draft.nodeRefs.set(op.ref, node.id);
   draft.nodes.push(node);
   draft.byId.set(node.id, node);
   draft.added.push(node);
@@ -143,10 +166,9 @@ function addNode(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOper
 }
 
 function addEdge(draft: DraftV2, op: Extract<SpatialOperation, { op: 'add-edge' }>, i: number): Check {
-  const what = `add-edge "${op.id}"`;
-  const id = idSchema.safeParse(op.id);
-  if (!id.success) return opError(i, 'invalid-id', `${what}: ${id.error.issues[0]?.message ?? 'invalid id'}`);
-  if (draft.edgeIds.has(op.id)) return opError(i, 'duplicate-edge-id', `${what}: an edge with id "${op.id}" already exists`);
+  const what = op.ref === undefined ? 'add-edge' : `add-edge "${op.ref}"`;
+  const badRef = refProblem(op.ref, draft.edgeRefs, i, what);
+  if (badRef) return badRef;
   const kind = relationshipKindOf(op.kind);
   if (kind === undefined) {
     return opError(
@@ -155,25 +177,27 @@ function addEdge(draft: DraftV2, op: Extract<SpatialOperation, { op: 'add-edge' 
       `${what}: kind "${op.kind}" is not one of ${RELATIONSHIP_KINDS.join(', ')} (new kinds are not supported)`,
     );
   }
-  for (const end of [op.source, op.target]) {
-    if (!draft.byId.has(end)) return opError(i, 'missing-node', `${what}: node "${end}" does not exist`);
+  const source = resolveRef(op.source, draft.byId, draft.nodeRefs);
+  const target = resolveRef(op.target, draft.byId, draft.nodeRefs);
+  if (source === undefined) return opError(i, 'missing-node', `${what}: node ${describeRef(op.source)} does not exist (yet)`);
+  if (target === undefined) return opError(i, 'missing-node', `${what}: node ${describeRef(op.target)} does not exist (yet)`);
+  if (source === target) return opError(i, 'self-edge', `${what}: an edge cannot connect node ${source} to itself`);
+  if (draft.pairs.has(unorderedPairKey(source, target))) {
+    return opError(i, 'duplicate-relationship', `${what}: nodes ${source} and ${target} are already connected`);
   }
-  if (op.source === op.target) return opError(i, 'self-edge', `${what}: an edge cannot connect node "${op.source}" to itself`);
-  if (draft.pairs.has(unorderedPairKey(op.source, op.target))) {
-    return opError(i, 'duplicate-relationship', `${what}: "${op.source}" and "${op.target}" are already connected`);
-  }
-  const edge = { id: op.id, source: op.source, target: op.target, kind, attributes: {} };
+  const edge = { id: draft.nextEdgeId++, source, target, kind, attributes: {} };
+  if (op.ref !== undefined) draft.edgeRefs.set(op.ref, edge.id);
   draft.edges.push(edge);
   draft.edgeById.set(edge.id, edge);
-  draft.edgeIds.add(op.id);
-  draft.pairs.add(unorderedPairKey(op.source, op.target));
+  draft.pairs.add(unorderedPairKey(source, target));
   return null;
 }
 
 function setNodeAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'set-node-attribute' }>, i: number): Check {
-  const what = `set-node-attribute "${op.nodeId}.${op.key}"`;
-  const node = draft.byId.get(op.nodeId);
-  if (!node) return opError(i, 'missing-node', `${what}: node "${op.nodeId}" does not exist`);
+  const what = `set-node-attribute ${describeRef(op.nodeId)}.${op.key}`;
+  const id = resolveRef(op.nodeId, draft.byId, draft.nodeRefs);
+  const node = id === undefined ? undefined : draft.byId.get(id);
+  if (!node) return opError(i, 'missing-node', `${what}: node ${describeRef(op.nodeId)} does not exist`);
   const field = fieldWrite(draft.schema, 'nodes', op.key, op.value, i, what, project.id);
   if ('code' in field) return field;
   node.attributes = writeFieldValue(field, node.attributes, op.value);
@@ -181,9 +205,10 @@ function setNodeAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<Sp
 }
 
 function setEdgeAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'set-edge-attribute' }>, i: number): Check {
-  const what = `set-edge-attribute "${op.edgeId}.${op.key}"`;
-  const edge = draft.edgeById.get(op.edgeId);
-  if (!edge) return opError(i, 'missing-edge', `${what}: edge "${op.edgeId}" does not exist`);
+  const what = `set-edge-attribute ${describeRef(op.edgeId)}.${op.key}`;
+  const id = resolveRef(op.edgeId, draft.edgeById, draft.edgeRefs);
+  const edge = id === undefined ? undefined : draft.edgeById.get(id);
+  if (!edge) return opError(i, 'missing-edge', `${what}: edge ${describeRef(op.edgeId)} does not exist`);
   const field = fieldWrite(draft.schema, 'edges', op.key, op.value, i, what, project.id);
   if ('code' in field) return field;
   edge.attributes = writeFieldValue(field, edge.attributes, op.value);
@@ -206,9 +231,12 @@ export function applyTransformationV2(
     byId: new Map(copy.nodes.map((n) => [n.id, n] as const)),
     edgeById: new Map(copy.edges.map((e) => [e.id, e] as const)),
     cells: new Map(copy.nodes.flatMap((n) => footprintCells(n).map((c) => [gridKey(c), n.id] as const))),
-    edgeIds: new Set(copy.edges.map((e) => e.id)),
     pairs: new Set(copy.edges.map((e) => unorderedPairKey(e.source, e.target))),
     added: [],
+    nextNodeId: copy.nextNodeId,
+    nextEdgeId: copy.nextEdgeId,
+    nodeRefs: new Map(),
+    edgeRefs: new Map(),
   };
 
   for (const [i, op] of operations.entries()) {
@@ -223,7 +251,7 @@ export function applyTransformationV2(
     if (problem) return fail([problem]);
   }
 
-  const validated = validateDocumentV2(copy);
+  const validated = validateDocumentV2({ ...copy, nextNodeId: draft.nextNodeId, nextEdgeId: draft.nextEdgeId });
   if (!validated.ok) {
     return fail(
       validated.issues.map((issue, n) =>
@@ -251,7 +279,7 @@ export function applyTransformationV2(
     );
   }
 
-  const displaced = new Set<string>();
+  const displaced = new Set<number>();
   if (draft.added.length > 0) {
     const occupancy = resolveRelationships(doc).occupancy;
     for (const node of draft.added) {
@@ -268,7 +296,8 @@ export function applyTransformationV2(
     after: validated.value,
     operations,
     resolvedDiagnosticIds: before.filter((d) => !afterIds.has(d.id)).map((d) => d.id),
-    displacedRoutes: [...displaced].sort(),
+    displacedRoutes: [...displaced].sort((a, b) => a - b),
+    assigned: { nodes: Object.fromEntries(draft.nodeRefs), edges: Object.fromEntries(draft.edgeRefs) },
     ...(summary !== undefined && { summary }),
   });
 }

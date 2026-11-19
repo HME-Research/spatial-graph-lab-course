@@ -22,7 +22,6 @@ describe('Student API frozen surface', () => {
       'neighbours',
       'opposite',
       'roomCells',
-      'uniqueId',
     ]);
   });
 

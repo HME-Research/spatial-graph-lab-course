@@ -39,20 +39,20 @@ describe('spatialToThree', () => {
 
 describe('selection', () => {
   it('predicates and equality', () => {
-    expect(isNodeSelected(selectNode('a'), 'a')).toBe(true);
-    expect(isNodeSelected(selectEdge('a'), 'a')).toBe(false);
-    expect(isEdgeSelected(selectEdge('ab'), 'ab')).toBe(true);
-    expect(sameSelection(selectNode('a'), selectNode('a'))).toBe(true);
-    expect(sameSelection(selectNode('a'), selectEdge('a'))).toBe(false);
+    expect(isNodeSelected(selectNode(1), 1)).toBe(true);
+    expect(isNodeSelected(selectEdge(1), 1)).toBe(false);
+    expect(isEdgeSelected(selectEdge(1), 1)).toBe(true);
+    expect(sameSelection(selectNode(1), selectNode(1))).toBe(true);
+    expect(sameSelection(selectNode(1), selectEdge(1))).toBe(false);
     expect(sameSelection(NO_SELECTION, { kind: 'none' })).toBe(true);
   });
 
   it('reconcileSelection keeps valid selections by identity and drops missing ones', () => {
-    const items = { nodes: [{ id: 'a' }, { id: 'b' }], edges: [{ id: 'ab' }] };
-    const sel = selectNode('a');
+    const items = { nodes: [{ id: 1 }, { id: 2 }], edges: [{ id: 1 }] };
+    const sel = selectNode(1);
     expect(reconcileSelection(sel, items)).toBe(sel);
-    expect(reconcileSelection(sel, { ...items, nodes: [{ id: 'b' }] })).toBe(NO_SELECTION);
-    const edge = selectEdge('ab');
+    expect(reconcileSelection(sel, { ...items, nodes: [{ id: 2 }] })).toBe(NO_SELECTION);
+    const edge = selectEdge(1);
     expect(reconcileSelection(edge, items)).toBe(edge);
     expect(reconcileSelection(edge, { ...items, edges: [] })).toBe(NO_SELECTION);
     expect(reconcileSelection(NO_SELECTION, items)).toBe(NO_SELECTION);

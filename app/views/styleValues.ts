@@ -23,7 +23,7 @@ export function styleValuesFor(
   if (by.startsWith('attribute:')) {
     const id = by.slice('attribute:'.length);
     const field = schema.nodes.find((f) => f.id === id);
-    const out = new Map<string, unknown>();
+    const out = new Map<number, unknown>();
     if (!field) return out;
     for (const node of doc.nodes) {
       const defaults = Object.prototype.hasOwnProperty.call(schema.nodeTypeDefaults, node.typeId) ? schema.nodeTypeDefaults[node.typeId]! : {};
@@ -34,7 +34,7 @@ export function styleValuesFor(
   }
   if (by.startsWith('metric:')) {
     const id = by.slice('metric:'.length);
-    const out = new Map<string, unknown>();
+    const out = new Map<number, unknown>();
     if (!BUILT_IN_METRICS.some((m) => m.id === id && m.collection === 'nodes')) return out;
     for (const [nodeId, value] of defaultMetricEvaluator.values({ doc, spatial }, id)) {
       if (value !== null) out.set(nodeId, value);

@@ -1,6 +1,6 @@
 import { endpointKey } from './queries';
 import { fail, ok, type Issue, type Result } from './result';
-import type { EdgeRecord, Graph, GraphPolicy, NodeRecord } from './types';
+import type { EdgeRecord, Graph, GraphId, GraphPolicy, NodeRecord } from './types';
 import { structuralIssue, validateGraph, type StructuralIssue, type StructuralIssueCode } from './validate';
 
 /**
@@ -12,13 +12,13 @@ export type GraphOperationIssueCode = StructuralIssueCode | 'not-found' | 'id-ch
 export type GraphOperationIssue = Issue<GraphOperationIssueCode>;
 export type GraphResult<N extends NodeRecord, E extends EdgeRecord> = Result<Graph<N, E>, GraphOperationIssue>;
 
-const notFound = (what: 'node' | 'edge', id: string): GraphOperationIssue => ({
+const notFound = (what: 'node' | 'edge', id: GraphId): GraphOperationIssue => ({
   path: [what === 'node' ? 'nodes' : 'edges'],
   code: 'not-found',
   message: `${what} "${id}" does not exist`,
 });
 
-const idChanged = (what: 'node' | 'edge', index: number, from: string, to: string): GraphOperationIssue => ({
+const idChanged = (what: 'node' | 'edge', index: number, from: GraphId, to: GraphId): GraphOperationIssue => ({
   path: [what === 'node' ? 'nodes' : 'edges', index, 'id'],
   code: 'id-changed',
   message: `an update may not change ${what} id "${from}" to "${to}"`,
@@ -42,7 +42,7 @@ export function addNode<N extends NodeRecord, E extends EdgeRecord>(graph: Graph
 }
 
 /** Remove a node and every edge incident to it. */
-export function removeNode<N extends NodeRecord, E extends EdgeRecord>(graph: Graph<N, E>, nodeId: string): GraphResult<N, E> {
+export function removeNode<N extends NodeRecord, E extends EdgeRecord>(graph: Graph<N, E>, nodeId: GraphId): GraphResult<N, E> {
   if (!graph.nodes.some((n) => n.id === nodeId)) return fail([notFound('node', nodeId)]);
   return ok({
     ...graph,
@@ -54,7 +54,7 @@ export function removeNode<N extends NodeRecord, E extends EdgeRecord>(graph: Gr
 /** Replace a node's record with `update(node)`. The ID must stay the same. */
 export function updateNode<N extends NodeRecord, E extends EdgeRecord>(
   graph: Graph<N, E>,
-  nodeId: string,
+  nodeId: GraphId,
   update: (node: N) => N,
 ): GraphResult<N, E> {
   const index = graph.nodes.findIndex((n) => n.id === nodeId);
@@ -88,7 +88,7 @@ export function addEdge<N extends NodeRecord, E extends EdgeRecord>(graph: Graph
   return issues.length > 0 ? fail(issues) : ok({ ...graph, edges: [...graph.edges, edge] });
 }
 
-export function removeEdge<N extends NodeRecord, E extends EdgeRecord>(graph: Graph<N, E>, edgeId: string): GraphResult<N, E> {
+export function removeEdge<N extends NodeRecord, E extends EdgeRecord>(graph: Graph<N, E>, edgeId: GraphId): GraphResult<N, E> {
   if (!graph.edges.some((e) => e.id === edgeId)) return fail([notFound('edge', edgeId)]);
   return ok({ ...graph, edges: graph.edges.filter((e) => e.id !== edgeId) });
 }
@@ -99,7 +99,7 @@ export function removeEdge<N extends NodeRecord, E extends EdgeRecord>(graph: Gr
  */
 export function updateEdge<N extends NodeRecord, E extends EdgeRecord>(
   graph: Graph<N, E>,
-  edgeId: string,
+  edgeId: GraphId,
   update: (edge: E) => E,
 ): GraphResult<N, E> {
   const index = graph.edges.findIndex((e) => e.id === edgeId);

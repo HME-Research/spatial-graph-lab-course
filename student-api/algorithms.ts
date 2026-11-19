@@ -1,4 +1,4 @@
-import type { EdgeRecord, Graph, NodeRecord } from '@core/graph';
+import type { EdgeRecord, Graph, NodeRecord } from './graph';
 import type { AttributeSpecs, AttributeValue, AttributesOf } from './attributes';
 import type { GridCoord, RelationshipKind, RoomSize, SpatialEdge, SpatialNode } from './spatial';
 import type { NodeTypeDefinition } from './types';
@@ -31,8 +31,8 @@ export interface GraphAlgorithmContext<P extends AttributeSpecs = AttributeSpecs
 export interface AnalysisResult {
   readonly kind: 'analysis';
   readonly summary?: string;
-  /** One value per node id (every key must be an existing node id). */
-  readonly nodeValues: { readonly [nodeId: string]: AttributeValue };
+  /** One value per node id (every key must be an existing node id; `nodeValues[node.id] = …`). */
+  readonly nodeValues: { readonly [nodeId: number]: AttributeValue };
 }
 
 export interface GraphAlgorithmDefinition<P extends AttributeSpecs = AttributeSpecs> extends AlgorithmDefinitionBase<P> {
@@ -50,18 +50,18 @@ export interface SpatialAlgorithmContext<P extends AttributeSpecs = AttributeSpe
   readonly design: Graph<SpatialNode, SpatialEdge>;
   readonly params: AttributesOf<P>;
   /** Id of the room whose footprint contains `cell`, or undefined if no room occupies it. */
-  nodeAt(cell: GridCoord): string | undefined;
+  nodeAt(cell: GridCoord): number | undefined;
   /**
    * Whether rooms `aNodeId` and `bNodeId` share at least one face (wall or floor/ceiling), i.e.
    * a relationship between them would be built directly, without a connector. False for unknown
    * ids or the same room.
    */
-  touches(aNodeId: string, bNodeId: string): boolean;
+  touches(aNodeId: number, bNodeId: number): boolean;
   /**
    * Whether a relationship between `aNodeId` and `bNodeId` may be created: both rooms exist,
    * they are different, and they are not related yet. The rooms need NOT touch.
    */
-  canRelate(aNodeId: string, bNodeId: string): boolean;
+  canRelate(aNodeId: number, bNodeId: number): boolean;
   /**
    * Effective typed attributes of `node` for its type definition `type` (imported from the
    * project's `types/` folder): only the attributes that type declares. Values come from the
@@ -79,9 +79,9 @@ export interface SpatialAlgorithmContext<P extends AttributeSpecs = AttributeSpe
    * the node type's default, else the field default. Fields without any value are absent; `null`
    * means the value was explicitly set to "no value". The run fails for an unknown id.
    */
-  nodeAttributes(nodeId: string): { readonly [key: string]: AttributeValue };
+  nodeAttributes(nodeId: number): { readonly [key: string]: AttributeValue };
   /** Effective values of every project edge field for the edge `edgeId` (as `nodeAttributes`). */
-  edgeAttributes(edgeId: string): { readonly [key: string]: AttributeValue };
+  edgeAttributes(edgeId: number): { readonly [key: string]: AttributeValue };
   /**
    * The app's calculated values (read-only): the same values Properties and colour-by show, for
    * the design as it was when the run started. Your operations do not change them during the run.
@@ -111,7 +111,7 @@ export interface MetricReader {
    * `null` when it has no value (e.g. `route-length` of an unresolved relationship). The run
    * fails with a diagnostic for an unknown metric id or an id that is not in that collection.
    */
-  value(metricId: string, itemId: string): number | boolean | string | null;
+  value(metricId: string, itemId: number): number | boolean | string | null;
 }
 
 /** One project-wide custom field, as algorithms see it. */
@@ -130,13 +130,22 @@ export interface AttributeFieldInfo {
 }
 
 /**
+ * A reference to a node or edge in an operation: the id (a number) of one that exists, or the
+ * `ref` (a text you choose, e.g. "new-kitchen") of one an EARLIER operation of the same run adds.
+ * You never choose ids: the app gives every new node and edge the next free number, in operation
+ * order, and never reuses an id. The preview and the applied design show the ids it gave.
+ */
+export type ItemRef = number | string;
+
+/**
  * Atomic changes. A transformation's operations are applied in order to a private draft and the
  * result replaces the document only if every operation and the final document are valid.
  */
 export type SpatialOperation =
   | {
       readonly op: 'add-node';
-      readonly id: string;
+      /** Optional local name for later operations of this run to refer to the new node. */
+      readonly ref?: string;
       /** Minimum corner cell of the new room. */
       readonly grid: GridCoord;
       /** Extent in cells; omitted: `[1, 1, 1]`. The room must not overlap another room. */
@@ -148,15 +157,16 @@ export type SpatialOperation =
     }
   | {
       readonly op: 'add-edge';
-      readonly id: string;
-      readonly source: string;
-      readonly target: string;
+      /** Optional local name for later operations of this run to refer to the new edge. */
+      readonly ref?: string;
+      readonly source: ItemRef;
+      readonly target: ItemRef;
       /** `access` or `open`. */
       readonly kind: RelationshipKind;
     }
   | {
       readonly op: 'set-node-attribute';
-      readonly nodeId: string;
+      readonly nodeId: ItemRef;
       /** A project node field (every node has the same fields, whatever its type). */
       readonly key: string;
       /** Valid for the field, or null for "no value". */
@@ -164,7 +174,7 @@ export type SpatialOperation =
     }
   | {
       readonly op: 'set-edge-attribute';
-      readonly edgeId: string;
+      readonly edgeId: ItemRef;
       /** A project edge field (Access and Open edges have the same fields). */
       readonly key: string;
       /** Valid for the field, or null for "no value". */

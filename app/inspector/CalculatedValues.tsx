@@ -58,7 +58,7 @@ export function CalculatedRows({
 }: {
   readonly design: Pick<DesignPort, 'doc' | 'spatial'>;
   readonly collection: 'nodes' | 'edges';
-  readonly itemId: string;
+  readonly itemId: number;
 }) {
   const enabled = useEnabledMetrics();
   const selection = collection === 'nodes' ? selectNode(itemId) : selectEdge(itemId);

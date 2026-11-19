@@ -35,7 +35,7 @@ export type UnresolvedReason =
 
 /** A unit face of a room: the room's cell and the outward direction. */
 export interface RoomFace extends SharedFace {
-  readonly nodeId: string;
+  readonly nodeId: number;
 }
 
 /**
@@ -43,7 +43,7 @@ export interface RoomFace extends SharedFace {
  * faces, ordered from `from` to `to`; all on one storey (`level`) and one horizontal axis.
  */
 export interface ConnectorRoute {
-  readonly edgeId: string;
+  readonly edgeId: number;
   readonly axis: 'x' | 'y';
   readonly level: number;
   readonly cells: readonly GridCoord[];
@@ -56,7 +56,7 @@ export interface ConnectorRoute {
 }
 
 interface ResolutionBase {
-  readonly edgeId: string;
+  readonly edgeId: number;
   readonly kind: RelationshipKind;
 }
 
@@ -83,8 +83,8 @@ export type EdgeResolution =
 // ── Occupancy (rooms + generated connector reservations, one API) ──────────────────────────
 
 export type CellOccupant =
-  | { readonly kind: 'room'; readonly nodeId: string }
-  | { readonly kind: 'route'; readonly edgeId: string };
+  | { readonly kind: 'room'; readonly nodeId: number }
+  | { readonly kind: 'route'; readonly edgeId: number };
 
 export interface Occupancy {
   /** Occupant keyed by `gridKey(cell)`. Room cells are never also route cells. */
@@ -96,7 +96,7 @@ export interface Occupancy {
 export interface SpatialResolution {
   /** One entry per edge, in document edge order. */
   readonly edges: readonly EdgeResolution[];
-  readonly byEdge: ReadonlyMap<string, EdgeResolution>;
+  readonly byEdge: ReadonlyMap<number, EdgeResolution>;
   readonly occupancy: Occupancy;
 }
 
@@ -117,14 +117,14 @@ export type RelationshipResolver = (doc: DesignDocumentV2) => SpatialResolution;
  * Whole cells only; callers snap world-space drags to integers before proposing.
  */
 export interface SpatialEditRequest {
-  readonly nodeId: string;
+  readonly nodeId: number;
   readonly grid?: GridCoord;
   readonly size?: RoomSize;
 }
 
 /** How one relationship's derived status changes because of an edit. */
 export interface EdgeImpact {
-  readonly edgeId: string;
+  readonly edgeId: number;
   readonly before: ResolutionStatus;
   readonly after: ResolutionStatus;
 }
@@ -140,11 +140,11 @@ export interface EdgeImpact {
  *   become unresolved). Never silently rerouted.
  */
 export type SpatialEditProposal =
-  | { readonly status: 'rejected'; readonly issues: readonly GraphIssue[]; readonly collidingRooms: readonly string[] }
+  | { readonly status: 'rejected'; readonly issues: readonly GraphIssue[]; readonly collidingRooms: readonly number[] }
   | { readonly status: 'ok'; readonly next: DesignDocumentV2; readonly impacted: readonly EdgeImpact[] }
   | {
       readonly status: 'needs-confirmation';
       readonly next: DesignDocumentV2;
-      readonly displacedRoutes: readonly string[];
+      readonly displacedRoutes: readonly number[];
       readonly impacted: readonly EdgeImpact[];
     };

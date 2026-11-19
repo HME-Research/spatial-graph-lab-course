@@ -48,20 +48,20 @@ const designA = () =>
     schemaVersion: 2,
     metadata: { name: 'A' },
     nodes: [
-      { id: 'g', grid: [0, 0, 0], typeId: 'gallery', attributes: { daylight: 'high' } },
-      { id: 's', grid: [1, 0, 0], typeId: 'storage', attributes: {} },
+      { id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: { daylight: 'high' } },
+      { id: 2, grid: [1, 0, 0], typeId: 'storage', attributes: {} },
     ],
-    edges: [{ id: 'gs', source: 'g', target: 's', kind: 'access', attributes: {} }],
+    edges: [{ id: 1, source: 1, target: 2, kind: 'access', attributes: {} }],
   });
 const designB = () =>
   v2({
     schemaVersion: 2,
     metadata: { name: 'B' },
     nodes: [
-      { id: 'g2', grid: [0, 0, 0], typeId: 'gallery', attributes: { public: false } },
-      { id: 'x', grid: [4, 0, 0], typeId: 'kiosk', attributes: { capacity: 12 } },
+      { id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: { public: false } },
+      { id: 2, grid: [4, 0, 0], typeId: 'kiosk', attributes: { capacity: 12 } },
     ],
-    edges: [{ id: 'gx', source: 'g2', target: 'x', kind: 'open', attributes: { weight: 2 } }],
+    edges: [{ id: 1, source: 1, target: 2, kind: 'open', attributes: { weight: 2 } }],
   });
 
 const storageType = defineNodeType({ id: 'storage', label: 'Storage', attributes: { public: { kind: 'boolean', default: false } } });
@@ -166,7 +166,7 @@ describe('effective values (shared by every design of the project)', () => {
     const { schema } = (await gallery()).attributeBaseline;
     const next = ok(edit(schema, { type: 'add-field', collection: 'nodes', field: { key: 'capacity', kind: 'number', default: 5 } }));
     const [a, b] = [designA(), designB()];
-    for (const node of [...a.nodes, ...b.nodes.filter((n) => n.id !== 'x')]) expect(effectiveNodeValues(next, node)['capacity']).toBe(5);
+    for (const node of [...a.nodes, ...b.nodes.filter((n) => n.id !== 2)]) expect(effectiveNodeValues(next, node)['capacity']).toBe(5);
     // b.x already stored capacity 12 (legacy data): it becomes that field's instance value.
     expect(effectiveNodeValues(next, b.nodes[1]!)['capacity']).toBe(12);
     expect(designA()).toEqual(a); // designs are untouched
@@ -251,7 +251,7 @@ describe('schema edits', () => {
 
   it('kind change is refused while known values or defaults would become invalid', () => {
     const schema = base();
-    const usage = { usage: designSamples(null, { doc: { nodes: [{ id: 'a', typeId: 'g', attributes: { capacity: 8 } }], edges: [] }, source: 'a.json' }) };
+    const usage = { usage: designSamples(null, { doc: { nodes: [{ id: 1, typeId: 'g', attributes: { capacity: 8 } }], edges: [] }, source: 'a.json' }) };
     expect(refused(edit(schema, { type: 'change-field-kind', collection: 'nodes', fieldId: 'capacity', kind: 'boolean' }, usage))).toMatch(/1 stored value \(8\)/);
     expect(edit(schema, { type: 'change-field-kind', collection: 'nodes', fieldId: 'capacity', kind: 'text' }).ok).toBe(true);
     const withDefault = ok(edit(schema, { type: 'set-type-default', typeId: 'g', fieldId: 'capacity', value: 3 }));
@@ -332,7 +332,7 @@ describe('algorithm reference warnings (heuristic)', () => {
     const reads = defineSpatialAlgorithm({
       id: 'reads',
       label: 'Reads',
-      run: (ctx) => ({ kind: 'transformation', operations: ctx.design.nodes.filter((n) => n.attributes['daylight'] === 'high').map(() => ({ op: 'add-edge', id: 'e', source: 'a', target: 'b', kind: 'access' }) as const) }),
+      run: (ctx) => ({ kind: 'transformation', operations: ctx.design.nodes.filter((n) => n.attributes['daylight'] === 'high').map(() => ({ op: 'add-edge', source: 1, target: 2, kind: 'access' }) as const) }),
     });
     const other = defineGraphAlgorithm({ id: 'other', label: 'Other', run: ({ graph }) => ({ kind: 'analysis', nodeValues: Object.fromEntries(graph.nodes.map((n) => [n.id, 1])) }) });
     const project = await labToolkit({ 'toolkits/lab/algorithms/reads.ts': { default: reads }, 'toolkits/lab/algorithms/other.ts': { default: other } });
@@ -388,7 +388,7 @@ describe('legacy and round-trip compatibility', () => {
     expect(read.ok).toBe(true);
     const doc = read.ok ? read.value.doc : (null as never);
     const { schema } = (await gallery()).attributeBaseline;
-    const store = doc.nodes.find((n) => n.id === 'store')!;
+    const store = doc.nodes.find((n) => n.id === 4)! // store;
     expect(store.attributes).toEqual({ daylight: null, public: false });
     expect(resolveNodeAttributes(schema, store).find((r) => r.field.key === 'daylight')?.stored).toBe('null');
     // v2 export → import keeps every attribute (no schema information is written to designs).

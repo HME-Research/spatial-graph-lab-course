@@ -40,17 +40,17 @@ describe('plan wheel zoom honours deltaMode', () => {
 });
 
 describe('plan wall hover never goes stale', () => {
-  const targets = [{ faceId: 'reading-gallery:+x' }];
+  const targets = [{ faceId: '3:+x' }];
   it('a storey switch always resets it; a design change only when the wall is gone', () => {
-    expect(staleWallHover('reading-gallery:+x', true, targets)).toBe(true);
-    expect(staleWallHover('reading-gallery:+x', false, targets)).toBe(false);
-    expect(staleWallHover('reading-gallery:+x', false, [])).toBe(true);
+    expect(staleWallHover('3:+x', true, targets)).toBe(true);
+    expect(staleWallHover('3:+x', false, targets)).toBe(false);
+    expect(staleWallHover('3:+x', false, [])).toBe(true);
   });
 });
 
 describe('Plan open-wall highlight', () => {
   it('draws the shared walls as targets and highlights the open one', () => {
-    const html = renderToStaticMarkup(createElement(PlanView, { ...baseProps, onWallTarget: () => {}, activeWall: 'reading-gallery:+x' }));
-    expect(html).toMatch(/class="sgl-plan-wall-target active" data-face-id="reading-gallery:\+x"/);
+    const html = renderToStaticMarkup(createElement(PlanView, { ...baseProps, onWallTarget: () => {}, activeWall: '3:+x' }));
+    expect(html).toMatch(/class="sgl-plan-wall-target active" data-face-id="3:\+x"/);
   });
 });

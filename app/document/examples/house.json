@@ -4,22 +4,24 @@
     "name": "House – graph only",
     "description": "A small two-storey house: seven rooms with only a Function, a position and a size, joined by Access and Open relationships. No toolkit and no custom attributes."
   },
+  "nextNodeId": 8,
+  "nextEdgeId": 7,
   "nodes": [
-    { "id": "1", "grid": [0, 0, 0], "size": [1, 1, 1], "typeId": "entrance", "attributes": {} },
-    { "id": "2", "grid": [1, 0, 0], "size": [1, 1, 1], "typeId": "circulation", "attributes": {} },
-    { "id": "3", "grid": [2, 0, 0], "size": [2, 2, 1], "typeId": "living", "attributes": {} },
-    { "id": "4", "grid": [0, 1, 0], "size": [2, 1, 1], "typeId": "kitchen", "attributes": {} },
-    { "id": "5", "grid": [1, 0, 1], "size": [1, 1, 1], "typeId": "circulation", "attributes": {} },
-    { "id": "6", "grid": [2, 0, 1], "size": [2, 2, 1], "typeId": "bedroom", "attributes": {} },
-    { "id": "7", "grid": [0, 0, 1], "size": [1, 1, 1], "typeId": "bath", "attributes": {} }
+    { "id": 1, "grid": [0, 0, 0], "size": [1, 1, 1], "typeId": "entrance", "attributes": {} },
+    { "id": 2, "grid": [1, 0, 0], "size": [1, 1, 1], "typeId": "circulation", "attributes": {} },
+    { "id": 3, "grid": [2, 0, 0], "size": [2, 2, 1], "typeId": "living", "attributes": {} },
+    { "id": 4, "grid": [0, 1, 0], "size": [2, 1, 1], "typeId": "kitchen", "attributes": {} },
+    { "id": 5, "grid": [1, 0, 1], "size": [1, 1, 1], "typeId": "circulation", "attributes": {} },
+    { "id": 6, "grid": [2, 0, 1], "size": [2, 2, 1], "typeId": "bedroom", "attributes": {} },
+    { "id": 7, "grid": [0, 0, 1], "size": [1, 1, 1], "typeId": "bath", "attributes": {} }
   ],
   "edges": [
-    { "id": "1", "source": "1", "target": "2", "kind": "access", "attributes": {} },
-    { "id": "2", "source": "2", "target": "3", "kind": "access", "attributes": {} },
-    { "id": "3", "source": "3", "target": "4", "kind": "open", "attributes": {} },
-    { "id": "4", "source": "2", "target": "5", "kind": "access", "attributes": {} },
-    { "id": "5", "source": "5", "target": "6", "kind": "access", "attributes": {} },
-    { "id": "6", "source": "5", "target": "7", "kind": "access", "attributes": {} }
+    { "id": 1, "source": 1, "target": 2, "kind": "access", "attributes": {} },
+    { "id": 2, "source": 2, "target": 3, "kind": "access", "attributes": {} },
+    { "id": 3, "source": 3, "target": 4, "kind": "open", "attributes": {} },
+    { "id": 4, "source": 2, "target": 5, "kind": "access", "attributes": {} },
+    { "id": 5, "source": 5, "target": 6, "kind": "access", "attributes": {} },
+    { "id": 6, "source": 5, "target": 7, "kind": "access", "attributes": {} }
   ],
   "diagram": {
     "positions": {

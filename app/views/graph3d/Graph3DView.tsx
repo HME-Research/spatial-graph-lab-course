@@ -149,7 +149,7 @@ export function Graph3DView({ selection, onSelect, design, project }: ViewProps)
             {showLabels && !ghost && (
               <SceneLabel
                 position={[0, NODE_RADIUS * 1.9, 0]}
-                text={overlay.valueLabel !== null ? `${labelOf.get(n.id) ?? n.id}: ${overlay.valueLabel}` : (labelOf.get(n.id) ?? n.id)}
+                text={overlay.valueLabel !== null ? `${labelOf.get(n.id) ?? String(n.id)}: ${overlay.valueLabel}` : (labelOf.get(n.id) ?? String(n.id))}
                 strong={primary || secondary}
               />
             )}

@@ -28,7 +28,7 @@ import {
 import { applyAxisSteps, roomWorldBox, sameGeometry, type RoomGeometry } from './roomGeometry';
 
 /**
- * Fixture (v2Raw): room a "01" at [0,0,0] size 2×3×1, room b "02" at [5,0,0] 1×1×1, edge "ab".
+ * Fixture (v2Raw): room 1 at [0,0,0] size 2×3×1, room 2 at [5,0,0] 1×1×1, edge 1 (1–2).
  * `router` reserves a straight connector at x = 2…4, y = 0 while those cells are free of rooms.
  */
 const router: RelationshipResolver = (d) => {
@@ -91,10 +91,10 @@ function fakeHost(resolve: RelationshipResolver = resolveRelationships, doc = ba
   return host;
 }
 
-const room = (port: DesignPort, id: string) => port.doc.nodes.find((n) => n.id === id)!;
+const room = (port: DesignPort, id: number) => port.doc.nodes.find((n) => n.id === id)!;
 
 /** Simulate one pointer gesture: press, a sequence of snapped step values, release. */
-function gesture(host: ReturnType<typeof fakeHost>, nodeId: string, mode: 'move' | 'resize', axis: 'x' | 'y' | 'z', steps: number[]) {
+function gesture(host: ReturnType<typeof fakeHost>, nodeId: number, mode: 'move' | 'resize', axis: 'x' | 'y' | 'z', steps: number[]) {
   let s: RoomEditState = beginDrag(host.port, nodeId, mode, axis);
   for (const n of steps) s = updateDrag(host.port, s, n);
   return { during: s, ...endDrag(host.port, s) };
@@ -146,39 +146,39 @@ describe('room geometry', () => {
 describe('one gesture = at most one command', () => {
   it('previews while dragging and commits exactly once on release', () => {
     const host = fakeHost();
-    const r = gesture(host, 'b', 'move', 'y', [1, 2, 3, 4, 3]);
+    const r = gesture(host, 2, 'move', 'y', [1, 2, 3, 4, 3]);
     expect(host.sent).toHaveLength(1);
     expect(host.history).toHaveLength(1);
-    expect(host.sent[0]).toEqual({ type: 'set-node-geometry', nodeId: 'b', grid: [5, 3, 0], size: [1, 1, 1] });
-    expect(room(host.port, 'b').grid).toEqual([5, 3, 0]);
+    expect(host.sent[0]).toEqual({ type: 'set-node-geometry', nodeId: 2, grid: [5, 3, 0], size: [1, 1, 1] });
+    expect(room(host.port, 2).grid).toEqual([5, 3, 0]);
     expect(r.state).toBe(IDLE);
-    // Real resolver: b leaves the a–b corridor axis, so ab goes from routed to unresolved.
-    expect(r.feedback).toEqual({ tone: 'info', text: 'Moved room 02 to [5, 3, 0]. 1 relationship changed status.' });
+    // Real resolver: 2 leaves the 1–2 corridor axis, so edge 1 goes from routed to unresolved.
+    expect(r.feedback).toEqual({ tone: 'info', text: 'Moved room 2 to [5, 3, 0]. 1 relationship changed status.' });
   });
 
   it('a drag that returns to the start sends nothing', () => {
     const host = fakeHost();
-    const r = gesture(host, 'b', 'move', 'x', [1, 2, 0]);
+    const r = gesture(host, 2, 'move', 'x', [1, 2, 0]);
     expect(host.sent).toHaveLength(0);
     expect(r.feedback).toBeNull();
   });
 
   it('Escape (cancel) during a drag sends nothing and restores the stored geometry', () => {
     const host = fakeHost();
-    let s = beginDrag(host.port, 'b', 'move', 'x');
+    let s = beginDrag(host.port, 2, 'move', 'x');
     s = updateDrag(host.port, s, 3);
-    expect(displayedGeometry(host.port.doc, s, 'b')?.grid).toEqual([8, 0, 0]);
+    expect(displayedGeometry(host.port.doc, s, 2)?.grid).toEqual([8, 0, 0]);
     const r = cancelEdit(s);
     expect(r.state).toBe(IDLE);
     expect(host.sent).toHaveLength(0);
-    expect(displayedGeometry(host.port.doc, r.state, 'b')?.grid).toEqual([5, 0, 0]);
+    expect(displayedGeometry(host.port.doc, r.state, 2)?.grid).toEqual([5, 0, 0]);
   });
 
   it('resizing commits size only, anchored at the minimum corner', () => {
     const host = fakeHost();
-    gesture(host, 'a', 'resize', 'z', [1]);
-    expect(host.sent).toEqual([{ type: 'set-node-geometry', nodeId: 'a', grid: [0, 0, 0], size: [2, 3, 2] }]);
-    expect(room(host.port, 'a')).toMatchObject({ grid: [0, 0, 0], size: [2, 3, 2] });
+    gesture(host, 1, 'resize', 'z', [1]);
+    expect(host.sent).toEqual([{ type: 'set-node-geometry', nodeId: 1, grid: [0, 0, 0], size: [2, 3, 2] }]);
+    expect(room(host.port, 1)).toMatchObject({ grid: [0, 0, 0], size: [2, 3, 2] });
   });
 
   it('proposes only when the snapped step changes', () => {
@@ -186,7 +186,7 @@ describe('one gesture = at most one command', () => {
     let calls = 0;
     const port = host.port;
     const counting: DesignPort = { ...port, proposeEdit: (r) => (calls++, port.proposeEdit(r)) };
-    let s = beginDrag(counting, 'b', 'move', 'x');
+    let s = beginDrag(counting, 2, 'move', 'x');
     for (const n of [1, 1, 1, 2, 2]) s = updateDrag(counting, s, n);
     expect(calls).toBe(2);
   });
@@ -195,78 +195,78 @@ describe('one gesture = at most one command', () => {
 describe('room collisions are refused', () => {
   it('blocks, names the room, sends nothing and restores', () => {
     const host = fakeHost();
-    const r = gesture(host, 'b', 'move', 'x', [-1, -2, -3, -4]);
+    const r = gesture(host, 2, 'move', 'x', [-1, -2, -3, -4]);
     expect(previewTone(r.during)).toBe('blocked');
-    expect(dragStatus(host.port.doc, r.during)).toBe('1 × 1 × 1 at [1, 0, 0]: overlaps room 01');
+    expect(dragStatus(host.port.doc, r.during)).toBe('1 × 1 × 1 at [1, 0, 0]: overlaps room 1');
     expect(host.sent).toHaveLength(0);
-    expect(r.feedback).toEqual({ tone: 'error', text: 'Room 02 cannot go there: it would overlap room 01. Restored.' });
-    expect(room(host.port, 'b').grid).toEqual([5, 0, 0]);
+    expect(r.feedback).toEqual({ tone: 'error', text: 'Room 2 cannot go there: it would overlap room 1. Restored.' });
+    expect(room(host.port, 2).grid).toEqual([5, 0, 0]);
   });
 
   it('a resize into another room is refused too', () => {
     const host = fakeHost();
-    const r = gesture(host, 'a', 'resize', 'x', [4]);
+    const r = gesture(host, 1, 'resize', 'x', [4]);
     expect(r.feedback?.tone).toBe('error');
     expect(host.sent).toHaveLength(0);
   });
 
   it('the keyboard nudge follows the same rules (one command or none)', () => {
     const host = fakeHost();
-    expect(nudge(host.port, 'b', 'move', 'z', 1).feedback?.tone).toBe('info');
+    expect(nudge(host.port, 2, 'move', 'z', 1).feedback?.tone).toBe('info');
     expect(host.sent).toHaveLength(1);
-    expect(nudge(host.port, 'b', 'resize', 'x', -1).feedback?.text).toMatch(/at least 1 cell/);
+    expect(nudge(host.port, 2, 'resize', 'x', -1).feedback?.text).toMatch(/at least 1 cell/);
     expect(host.sent).toHaveLength(1);
-    expect(nudge(host.port, 'missing', 'move', 'x', 1)).toEqual({ state: IDLE, feedback: null });
+    expect(nudge(host.port, 99, 'move', 'x', 1)).toEqual({ state: IDLE, feedback: null });
   });
 });
 
 describe('corridor reservations need confirmation', () => {
   it('warns, sends nothing until "Move anyway and recalculate", then exactly one confirmed command', () => {
     const host = fakeHost(router);
-    const r = gesture(host, 'b', 'move', 'x', [-1, -2]);
+    const r = gesture(host, 2, 'move', 'x', [-1, -2]);
     expect(previewTone(r.during)).toBe('warning');
     expect(r.state.phase).toBe('confirm');
     expect(r.feedback?.tone).toBe('warning');
-    expect(r.feedback?.text).toContain('relationship 01 ↔ 02'); // phase 07 (O08): room labels, not the raw id
+    expect(r.feedback?.text).toContain('relationship 1 → 2'); // phase 07 (O08): room labels, not the raw id
     expect(host.sent).toHaveLength(0);
-    expect(displayedGeometry(host.port.doc, r.state, 'b')?.grid).toEqual([3, 0, 0]);
+    expect(displayedGeometry(host.port.doc, r.state, 2)?.grid).toEqual([3, 0, 0]);
 
     const c = confirmEdit(host.port, r.state);
     expect(host.sent).toEqual([
-      { type: 'set-node-geometry', nodeId: 'b', grid: [3, 0, 0], size: [1, 1, 1], confirmRouteDisplacement: true },
+      { type: 'set-node-geometry', nodeId: 2, grid: [3, 0, 0], size: [1, 1, 1], confirmRouteDisplacement: true },
     ]);
     expect(host.history).toHaveLength(1);
     expect(c.state).toBe(IDLE);
-    expect(host.port.doc.edges.map((e) => e.id)).toEqual(['ab']); // relationship kept
-    expect(host.port.spatial.byEdge.get('ab')?.status).toBe('unresolved');
+    expect(host.port.doc.edges.map((e) => e.id)).toEqual([1]); // relationship kept
+    expect(host.port.spatial.byEdge.get(1)?.status).toBe('unresolved');
   });
 
   it('Cancel sends nothing', () => {
     const host = fakeHost(router);
-    const r = gesture(host, 'b', 'move', 'x', [-2]);
+    const r = gesture(host, 2, 'move', 'x', [-2]);
     const c = cancelEdit(r.state);
     expect(c.state).toBe(IDLE);
     expect(c.feedback?.text).toMatch(/nothing changed/);
     expect(host.sent).toHaveLength(0);
-    expect(room(host.port, 'b').grid).toEqual([5, 0, 0]);
+    expect(room(host.port, 2).grid).toEqual([5, 0, 0]);
   });
 
   it('a host refusal is reported and not retried', () => {
     const host = fakeHost(router);
-    const r = gesture(host, 'b', 'move', 'x', [-2]);
+    const r = gesture(host, 2, 'move', 'x', [-2]);
     const refusing: DesignPort = { ...host.port, onCommand: () => ({ ok: false, issues: [{ path: [], code: 'route-displacement', message: 'nope' }] }) };
     const c = confirmEdit(refusing, r.state);
     expect(c.state).toBe(IDLE);
-    expect(c.feedback).toEqual({ tone: 'error', text: 'Room 02 was not changed: nope.' });
+    expect(c.feedback).toEqual({ tone: 'error', text: 'Room 2 was not changed: nope.' });
   });
 });
 
 describe('robustness', () => {
   it('ending a drag of a room that disappeared (e.g. undo mid-drag) sends nothing', () => {
     const host = fakeHost();
-    let s = beginDrag(host.port, 'b', 'move', 'x');
+    let s = beginDrag(host.port, 2, 'move', 'x');
     s = updateDrag(host.port, s, 1);
-    host.port.onCommand({ type: 'remove-node', nodeId: 'b' });
+    host.port.onCommand({ type: 'remove-node', nodeId: 2 });
     host.sent.length = 0;
     const r = endDrag(host.port, s);
     expect(r).toEqual({ state: IDLE, feedback: null });
@@ -275,7 +275,7 @@ describe('robustness', () => {
 
   it('beginDrag on an unknown room stays idle; actions outside their phase are no-ops', () => {
     const host = fakeHost();
-    expect(beginDrag(host.port, 'zzz', 'move', 'x')).toBe(IDLE);
+    expect(beginDrag(host.port, 99, 'move', 'x')).toBe(IDLE);
     expect(updateDrag(host.port, IDLE, 3)).toBe(IDLE);
     expect(endDrag(host.port, IDLE).state).toBe(IDLE);
     expect(confirmEdit(host.port, IDLE).state).toBe(IDLE);

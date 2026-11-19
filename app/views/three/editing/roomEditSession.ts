@@ -21,7 +21,7 @@ export type RoomEditState =
   | { readonly phase: 'idle' }
   | {
       readonly phase: 'dragging';
-      readonly nodeId: string;
+      readonly nodeId: number;
       readonly mode: GizmoMode;
       readonly axis: GizmoAxis;
       /** Face being resized (+1 maximum, −1 minimum); irrelevant for move. */
@@ -33,10 +33,10 @@ export type RoomEditState =
     }
   | {
       readonly phase: 'confirm';
-      readonly nodeId: string;
+      readonly nodeId: number;
       readonly mode: GizmoMode;
       readonly draft: RoomGeometry;
-      readonly displacedRoutes: readonly string[];
+      readonly displacedRoutes: readonly number[];
     };
 
 export const IDLE: RoomEditState = Object.freeze({ phase: 'idle' });
@@ -52,10 +52,10 @@ export interface EditStep {
   readonly feedback: EditFeedback | null;
 }
 
-const roomOf = (doc: DesignDocumentV2, nodeId: string) => doc.nodes.find((n) => n.id === nodeId);
+const roomOf = (doc: DesignDocumentV2, nodeId: number) => doc.nodes.find((n) => n.id === nodeId);
 
 /** "room 01" (display label, falling back to the id). */
-function roomName(doc: DesignDocumentV2, nodeId: string): string {
+function roomName(doc: DesignDocumentV2, nodeId: number): string {
   const node = roomOf(doc, nodeId);
   return `room ${node ? nodeLabel(node) : nodeId}`;
 }
@@ -68,7 +68,7 @@ function list(items: readonly string[]): string {
 /** Start a gesture on the room's current stored geometry. Idle if the room does not exist. */
 export function beginDrag(
   port: DesignPort,
-  nodeId: string,
+  nodeId: number,
   mode: GizmoMode,
   axis: GizmoAxis,
   side: GizmoSide = 1,
@@ -113,7 +113,7 @@ export function cancelEdit(state: RoomEditState): EditStep {
 }
 
 /** Keyboard/button alternative: one whole-cell step as a complete gesture (at most one command). */
-export function nudge(port: DesignPort, nodeId: string, mode: GizmoMode, axis: GizmoAxis, steps: number): EditStep {
+export function nudge(port: DesignPort, nodeId: number, mode: GizmoMode, axis: GizmoAxis, steps: number): EditStep {
   const started = beginDrag(port, nodeId, mode, axis);
   if (started.phase !== 'dragging') return { state: IDLE, feedback: null };
   const draft = applyAxisSteps(started.start, mode, axis, steps);
@@ -123,7 +123,7 @@ export function nudge(port: DesignPort, nodeId: string, mode: GizmoMode, axis: G
   return endDrag(port, { ...started, draft });
 }
 
-function settle(port: DesignPort, nodeId: string, mode: GizmoMode, draft: RoomGeometry, proposal: SpatialEditProposal): EditStep {
+function settle(port: DesignPort, nodeId: number, mode: GizmoMode, draft: RoomGeometry, proposal: SpatialEditProposal): EditStep {
   const name = roomName(port.doc, nodeId);
   switch (proposal.status) {
     case 'rejected':
@@ -145,11 +145,11 @@ function settle(port: DesignPort, nodeId: string, mode: GizmoMode, draft: RoomGe
 
 function send(
   port: DesignPort,
-  nodeId: string,
+  nodeId: number,
   mode: GizmoMode,
   draft: RoomGeometry,
   confirmRouteDisplacement: boolean,
-  impacted: readonly string[],
+  impacted: readonly number[],
 ): EditStep {
   const name = roomName(port.doc, nodeId);
   const outcome = port.onCommand({
@@ -178,7 +178,7 @@ function rejectionText(doc: DesignDocumentV2, name: string, proposal: Extract<Sp
 }
 
 /** "relationship 04 ↔ 07" — readable room labels, never raw edge ids (phase 07, O08). */
-const relationships = (doc: DesignDocumentV2, ids: readonly string[]) =>
+const relationships = (doc: DesignDocumentV2, ids: readonly number[]) =>
   `relationship${ids.length === 1 ? '' : 's'} ${list(ids.map((id) => relationshipLabel(doc, id)))}`;
 
 
@@ -219,7 +219,7 @@ export function dragStatus(doc: DesignDocumentV2, state: RoomEditState): string 
 }
 
 /** Geometry to draw for the selected room: the draft during a gesture, else the stored room. */
-export function displayedGeometry(doc: DesignDocumentV2, state: RoomEditState, nodeId: string): RoomGeometry | null {
+export function displayedGeometry(doc: DesignDocumentV2, state: RoomEditState, nodeId: number): RoomGeometry | null {
   if ((state.phase === 'dragging' || state.phase === 'confirm') && state.nodeId === nodeId) return state.draft;
   const node = roomOf(doc, nodeId);
   return node ? { grid: node.grid, size: node.size } : null;

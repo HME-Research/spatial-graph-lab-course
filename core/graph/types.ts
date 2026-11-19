@@ -4,16 +4,22 @@
  * endpoint IDs. Payload is whatever extra fields the caller's record types declare.
  */
 
+/**
+ * A node or edge identity: a string or a number. Within one graph every id has the same type
+ * (the application's design document uses whole numbers).
+ */
+export type GraphId = string | number;
+
 /** Minimum shape of a node. Extend it with any payload fields. */
 export interface NodeRecord {
-  readonly id: string;
+  readonly id: GraphId;
 }
 
 /** Minimum shape of an edge. For undirected graphs `source`/`target` order carries no meaning. */
 export interface EdgeRecord {
-  readonly id: string;
-  readonly source: string;
-  readonly target: string;
+  readonly id: GraphId;
+  readonly source: GraphId;
+  readonly target: GraphId;
 }
 
 /** Structural rules a graph enforces. Chosen per graph, never assumed. */

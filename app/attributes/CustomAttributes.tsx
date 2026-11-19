@@ -59,7 +59,7 @@ export function CustomAttributes({
   after,
 }: {
   readonly collection: AttributeCollection;
-  readonly item: { readonly id: string; readonly typeId?: string; readonly attributes: Stored };
+  readonly item: { readonly id: number; readonly typeId?: string; readonly attributes: Stored };
   readonly schema: ProjectAttributeSchema;
   /** Sends one design command; false when refused (the host shows why). */
   readonly run: (command: DesignCommand) => boolean;

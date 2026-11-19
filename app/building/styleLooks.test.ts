@@ -11,9 +11,10 @@ function design(): DesignDocumentV2 {
     validateDocumentV2({
       schemaVersion: 2,
       metadata: { name: 'styles' },
+      // low = 1 (ground), high = 2 (storey 2)
       nodes: [
-        { id: 'low', grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
-        { id: 'high', grid: [4, 0, 2], size: [1, 1, 1], typeId: 'gallery' },
+        { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
+        { id: 2, grid: [4, 0, 2], size: [1, 1, 1], typeId: 'gallery' },
       ],
       edges: [],
     }),
@@ -102,12 +103,12 @@ describe('the Building follows the per-room look', () => {
       { type: 'set-look', by: 'level', group: { kind: 'band', index: 1 }, patch: { roof: 'none' } },
     );
     const building = buildBuildingV2(doc);
-    const glazing = (owner: string) => building.elements.filter((e) => e.ownerNodeId === owner && e.part === 'glazing').length;
-    const roofs = (owner: string) => building.elements.filter((e) => e.ownerNodeId === owner && e.part === 'roof').length;
-    expect(glazing('low')).toBe(0); // windows 0 %
-    expect(glazing('high')).toBeGreaterThan(0); // the example façade of gallery
-    expect(roofs('low')).toBeGreaterThan(0);
-    expect(roofs('high')).toBe(0); // roof: none
-    expect(building.looks.get('high')!.group).toEqual({ kind: 'band', index: 1 });
+    const glazing = (owner: number) => building.elements.filter((e) => e.ownerNodeId === owner && e.part === 'glazing').length;
+    const roofs = (owner: number) => building.elements.filter((e) => e.ownerNodeId === owner && e.part === 'roof').length;
+    expect(glazing(1)).toBe(0); // windows 0 %
+    expect(glazing(2)).toBeGreaterThan(0); // the example façade of gallery
+    expect(roofs(1)).toBeGreaterThan(0);
+    expect(roofs(2)).toBe(0); // roof: none
+    expect(building.looks.get(2)!.group).toEqual({ kind: 'band', index: 1 });
   });
 });

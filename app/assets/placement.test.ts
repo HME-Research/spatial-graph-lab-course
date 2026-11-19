@@ -16,20 +16,20 @@ const sizes: Record<string, { width: number; height: number; depth: number }> = 
 };
 const sizeOf = (id: string) => sizes[id] ?? null;
 
-type N = { id: string; grid: GridCoord; size?: [number, number, number]; typeId: string };
+type N = { id: number; grid: GridCoord; size?: [number, number, number]; typeId: string };
 
-/** Gallery A: 3 × 1 × 1 bays at the origin; studio B: one cell east of it, joined by an access edge. */
+/** Gallery A (1): 3 × 1 × 1 bays at the origin; studio B (2): one cell east of it, joined by access edge 1. */
 function design(settings: Record<string, unknown> = {}, nodes?: N[]): DesignDocumentV2 {
   const rooms: N[] = nodes ?? [
-    { id: 'a', grid: [0, 0, 0], size: [3, 1, 1], typeId: 'gallery' },
-    { id: 'b', grid: [3, 0, 0], typeId: 'studio' },
+    { id: 1, grid: [0, 0, 0], size: [3, 1, 1], typeId: 'gallery' },
+    { id: 2, grid: [3, 0, 0], typeId: 'studio' },
   ];
   return expectOk(
     validateDocumentV2({
       schemaVersion: 2,
       metadata: { name: 'facades' },
       nodes: rooms.map((n) => ({ id: n.id, grid: n.grid, size: n.size ?? [1, 1, 1], typeId: n.typeId })),
-      edges: nodes ? [] : [{ id: 'ab', source: 'a', target: 'b', kind: 'access' }],
+      edges: nodes ? [] : [{ id: 1, source: 1, target: 2, kind: 'access' }],
       settings: { styleBy: 'function', styles: {}, ...settings },
     }),
   );
@@ -45,7 +45,7 @@ function modules(doc: DesignDocumentV2) {
   return { faces: built.faces, layout: layoutFacadeModules(built.faces, built.looks, sizeOf) };
 }
 
-const exteriorWalls = (faces: readonly BuildingFace[], owner?: string) =>
+const exteriorWalls = (faces: readonly BuildingFace[], owner?: number) =>
   faces.filter((f) => f.orientation === 'wall' && f.condition === 'exterior' && (owner === undefined || f.ownerNodeId === owner));
 
 const sub = (p: Vec3, q: Vec3): Vec3 => [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
@@ -71,8 +71,8 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
     const { faces, layout } = modules(doc);
     expect(layout.missingAssets).toEqual([]);
     // a: −y 3 bays, +y 3 bays, −x 1 (its +x side is shared with b); b: −y, +y, +x.
-    expect(exteriorWalls(faces, 'a')).toHaveLength(7);
-    expect(exteriorWalls(faces, 'b')).toHaveLength(3);
+    expect(exteriorWalls(faces, 1)).toHaveLength(7);
+    expect(exteriorWalls(faces, 2)).toHaveLength(3);
     expect(layout.instances).toHaveLength(10);
     expect(new Set(layout.instances.map((i) => i.id)).size).toBe(10);
     for (const i of layout.instances) {
@@ -87,7 +87,7 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
   it('Stretch fits one module across each wall run (3 bays → one 9 m module)', () => {
     const doc = design(functionStyleSettings({ gallery: { facade: stretch(A2) } }));
     const { layout } = modules(doc);
-    const a = layout.instances.filter((i) => i.ownerNodeId === 'a');
+    const a = layout.instances.filter((i) => i.ownerNodeId === 1);
     expect(a.map((i) => [i.placement, i.faceIds.length]).sort()).toEqual([
       ['stretch', 1],
       ['stretch', 3],
@@ -99,7 +99,7 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
     expect(short.scaleAlong).toBeCloseTo(1 / 3, 12); // the 9 m module squeezed onto one 3 m bay
     expect(distortedModules(layout.instances, 'gallery')).toMatchObject({ count: 1, minAlong: 1 / 3, maxAlong: 1 / 3 });
     // The studio chose nothing: no module.
-    expect(layout.instances.some((i) => i.ownerNodeId === 'b')).toBe(false);
+    expect(layout.instances.some((i) => i.ownerNodeId === 2)).toBe(false);
   });
 
   it('a 3 m module repeated stays true size; the same module stretched over 3 bays is scaled ×3', () => {
@@ -136,13 +136,13 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
     const doc = design(functionStyleSettings({ gallery: { facade: repeat(missing) }, studio: { facade: repeat(A1) } }));
     const { layout } = modules(doc);
     expect(layout.missingAssets).toEqual([missing]);
-    expect(layout.instances.every((i) => i.assetId === A1 && i.ownerNodeId === 'b')).toBe(true);
+    expect(layout.instances.every((i) => i.assetId === A1 && i.ownerNodeId === 2)).toBe(true);
   });
 });
 
 describe('imported façade modules: mounting (Rhino coordinate adaptation; the module replaces the wall)', () => {
   /** A single room: four exterior walls with outward normals +X, −X, −Z (grid +y) and +Z (grid −y). */
-  const single = design(functionStyleSettings({ gallery: { facade: repeat() } }), [{ id: 'r', grid: [2, 5, 1], typeId: 'gallery' }]);
+  const single = design(functionStyleSettings({ gallery: { facade: repeat() } }), [{ id: 1, grid: [2, 5, 1], typeId: 'gallery' }]);
   const { faces, layout } = modules(single);
   const t = DEFAULT_WALL_THICKNESS;
   const depth = 0.2;
@@ -170,8 +170,8 @@ describe('imported façade modules: mounting (Rhino coordinate adaptation; the m
 });
 
 describe('Outside +Y (flip): the module is turned round, not mirrored', () => {
-  const flipped = design(functionStyleSettings({ gallery: { facade: { ...repeat(), flip: true } } }), [{ id: 'r', grid: [2, 5, 1], typeId: 'gallery' }]);
-  const plain = design(functionStyleSettings({ gallery: { facade: repeat() } }), [{ id: 'r', grid: [2, 5, 1], typeId: 'gallery' }]);
+  const flipped = design(functionStyleSettings({ gallery: { facade: { ...repeat(), flip: true } } }), [{ id: 1, grid: [2, 5, 1], typeId: 'gallery' }]);
+  const plain = design(functionStyleSettings({ gallery: { facade: repeat() } }), [{ id: 1, grid: [2, 5, 1], typeId: 'gallery' }]);
   it.each(['+x', '-x', '+y', '-y'] as const)('wall %s: same bay and depth slot, other side out, a rotation', (direction) => {
     const f = modules(flipped);
     const p = modules(plain);
@@ -230,13 +230,13 @@ describe('door / open bay variants (optional per function)', () => {
         schemaVersion: 2,
         metadata: { name: 'variants' },
         nodes: [
-          { id: 'a', grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
-          { id: 'b', grid: [3, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
-          { id: 'c', grid: [0, 1, 0], size: [1, 1, 1], typeId: 'gallery' },
+          { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
+          { id: 2, grid: [3, 0, 0], size: [1, 1, 1], typeId: 'gallery' },
+          { id: 3, grid: [0, 1, 0], size: [1, 1, 1], typeId: 'gallery' },
         ],
         edges: [
-          { id: 'ab', source: 'a', target: 'b', kind, connectorStyle },
-          { id: 'ac', source: 'a', target: 'c', kind: 'access' },
+          { id: 1, source: 1, target: 2, kind, connectorStyle },
+          { id: 2, source: 1, target: 3, kind: 'access' },
         ],
         settings: functionStyleSettings({ gallery: { facade } }),
       }),

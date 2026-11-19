@@ -4,10 +4,11 @@
     "name": "Two-storey example",
     "description": "Six cells over two storeys. The reading gallery and store touch but have no edge, so a solid wall will separate them."
   },
+  "nextNodeId": 7,
+  "nextEdgeId": 7,
   "nodes": [
     {
-      "id": "entry-gallery",
-      "displayId": "01",
+      "id": 1,
       "grid": [
         0,
         0,
@@ -25,8 +26,7 @@
       }
     },
     {
-      "id": "studio-ground",
-      "displayId": "02",
+      "id": 2,
       "grid": [
         1,
         0,
@@ -44,8 +44,7 @@
       }
     },
     {
-      "id": "reading-gallery",
-      "displayId": "03",
+      "id": 3,
       "grid": [
         0,
         1,
@@ -63,8 +62,7 @@
       }
     },
     {
-      "id": "store",
-      "displayId": "04",
+      "id": 4,
       "grid": [
         1,
         1,
@@ -82,8 +80,7 @@
       }
     },
     {
-      "id": "studio-upper",
-      "displayId": "05",
+      "id": 5,
       "grid": [
         0,
         0,
@@ -101,8 +98,7 @@
       }
     },
     {
-      "id": "gallery-upper",
-      "displayId": "06",
+      "id": 6,
       "grid": [
         1,
         0,
@@ -122,71 +118,71 @@
   ],
   "edges": [
     {
-      "id": "entry-to-studio",
-      "source": "entry-gallery",
-      "target": "studio-ground",
+      "id": 1,
+      "source": 1,
+      "target": 2,
       "kind": "access",
       "attributes": {}
     },
     {
-      "id": "entry-to-reading",
-      "source": "entry-gallery",
-      "target": "reading-gallery",
+      "id": 2,
+      "source": 1,
+      "target": 3,
       "kind": "open",
       "attributes": {}
     },
     {
-      "id": "studio-to-store",
-      "source": "studio-ground",
-      "target": "store",
+      "id": 3,
+      "source": 2,
+      "target": 4,
       "kind": "access",
       "attributes": {}
     },
     {
-      "id": "entry-up",
-      "source": "entry-gallery",
-      "target": "studio-upper",
+      "id": 4,
+      "source": 1,
+      "target": 5,
       "kind": "access",
       "attributes": {}
     },
     {
-      "id": "studio-atrium",
-      "source": "studio-ground",
-      "target": "gallery-upper",
+      "id": 5,
+      "source": 2,
+      "target": 6,
       "kind": "open",
       "attributes": {}
     },
     {
-      "id": "upper-door",
-      "source": "studio-upper",
-      "target": "gallery-upper",
+      "id": 6,
+      "source": 5,
+      "target": 6,
       "kind": "access",
       "attributes": {}
     }
   ],
   "diagram": {
     "positions": {
-      "entry-gallery": [
+      "1": [
         0,
         140
       ],
-      "studio-ground": [
+      "2": [
         240,
         140
       ],
-      "reading-gallery": [
+      "3": [
         -120,
         300
       ],
-      "store": [
+      "4": [
         360,
         300
       ],
-      "studio-upper": [
+      "5": [
         60,
         0
       ],
-      "gallery-upper": [
+      "6": [
         300,
         0
       ]

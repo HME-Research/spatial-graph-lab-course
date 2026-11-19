@@ -90,44 +90,44 @@ describe('node type menu', () => {
 describe('move / resize plan (schema v2 port)', () => {
   it('commits a free move as one set-node-geometry command', () => {
     const port = fakePort();
-    const proposal = port.proposeEdit({ nodeId: 'c', grid: [0, 8, 0] });
-    expect(planGeometryEdit(proposal, port.doc, 'c')).toEqual({ kind: 'commit' });
+    const proposal = port.proposeEdit({ nodeId: 3, grid: [0, 8, 0] });
+    expect(planGeometryEdit(proposal, port.doc, 3)).toEqual({ kind: 'commit' });
   });
 
   it('refuses a room overlap with a plain message naming the other room', () => {
     const port = fakePort();
-    const proposal = port.proposeEdit({ nodeId: 'c', grid: [1, 1, 0] });
-    const plan = planGeometryEdit(proposal, port.doc, 'c');
+    const proposal = port.proposeEdit({ nodeId: 3, grid: [1, 1, 0] });
+    const plan = planGeometryEdit(proposal, port.doc, 3);
     expect(plan.kind).toBe('reject');
     if (plan.kind !== 'reject') return;
-    const messages = friendlyMessages(plan.issues, { subjectNodeId: 'c', roomLabel: (id) => port.doc.nodes.find((n) => n.id === id)?.displayId ?? id });
-    expect(messages[0]?.text).toBe('This room overlaps room 01. Rooms cannot share cells.');
+    const messages = friendlyMessages(plan.issues, { subjectNodeId: '3', roomLabel: (id) => id });
+    expect(messages[0]?.text).toBe('This room overlaps room 1. Rooms cannot share cells.');
     expect(messages[0]?.technical).toContain('room-overlap');
   });
 
   it('asks for confirmation when a generated corridor is in the way, naming the relationship', () => {
     const port = fakePort();
-    expect(port.spatial.byEdge.get('ab')?.status).toBe('routed');
-    const proposal = port.proposeEdit({ nodeId: 'c', grid: [3, 0, 0] });
-    expect(planGeometryEdit(proposal, port.doc, 'c')).toEqual({ kind: 'confirm', relationships: ['01 ↔ 02'] });
-    expect(relationshipLabelIn(port.doc)('ab')).toBe('01 ↔ 02');
+    expect(port.spatial.byEdge.get(1)?.status).toBe('routed');
+    const proposal = port.proposeEdit({ nodeId: 3, grid: [3, 0, 0] });
+    expect(planGeometryEdit(proposal, port.doc, 3)).toEqual({ kind: 'confirm', relationships: ['1 → 2'] });
+    expect(relationshipLabelIn(port.doc)(1)).toBe('1 → 2');
   });
 
   it('Cancel sends nothing; "Move anyway and recalculate" sends one confirmed command', () => {
     const cancelled = fakePort();
-    cancelled.proposeEdit({ nodeId: 'c', grid: [3, 0, 0] });
+    cancelled.proposeEdit({ nodeId: 3, grid: [3, 0, 0] });
     expect(cancelled.sent).toEqual([]);
     expect(cancelled.latest()).toBe(cancelled.doc);
 
     const port = fakePort();
     // Without confirmation the engine refuses; the document stays unchanged.
-    expect(port.onCommand({ type: 'set-node-geometry', nodeId: 'c', grid: [3, 0, 0] })).toMatchObject({ ok: false });
+    expect(port.onCommand({ type: 'set-node-geometry', nodeId: 3, grid: [3, 0, 0] })).toMatchObject({ ok: false });
     expect(port.latest()).toBe(port.doc);
-    const outcome = port.onCommand({ type: 'set-node-geometry', nodeId: 'c', grid: [3, 0, 0], confirmRouteDisplacement: true });
+    const outcome = port.onCommand({ type: 'set-node-geometry', nodeId: 3, grid: [3, 0, 0], confirmRouteDisplacement: true });
     expect(outcome).toEqual({ ok: true });
     const next = port.latest();
-    expect(next.nodes.find((n) => n.id === 'c')?.grid).toEqual([3, 0, 0]);
+    expect(next.nodes.find((n) => n.id === 3)?.grid).toEqual([3, 0, 0]);
     // The relationship is kept; its corridor is recalculated (here: blocked by the moved room).
-    expect(next.edges.map((e) => e.id)).toEqual(['ab']);
+    expect(next.edges.map((e) => e.id)).toEqual([1]);
   });
 });

@@ -68,8 +68,8 @@ export type ExtensionIssueCode =
 export type DiagnosticSubject =
   | { readonly kind: 'toolkit'; readonly id: string }
   | { readonly kind: 'file'; readonly path: string }
-  | { readonly kind: 'node'; readonly id: string }
-  | { readonly kind: 'edge'; readonly id: string }
+  | { readonly kind: 'node'; readonly id: number }
+  | { readonly kind: 'edge'; readonly id: number }
   | { readonly kind: 'algorithm'; readonly id: string }
   | { readonly kind: 'operation'; readonly index: number };
 

@@ -11,7 +11,7 @@ export interface WallRun {
   /** Deterministic: `${ownerNodeId}:${direction}:${level}:${index}` (index along u, from 0). */
   readonly id: string;
   readonly direction: FaceDirection;
-  readonly ownerNodeId: string;
+  readonly ownerNodeId: number;
   readonly conditionClass: 'exterior';
   /** Storey (grid z). */
   readonly level: number;
@@ -31,7 +31,6 @@ const alongU = (face: WallFace): number => (face.direction === '+x' || face.dire
 /** Grid coordinate of the wall plane (constant within a run). */
 const planeOf = (face: WallFace): number => (face.direction === '+x' || face.direction === '-x' ? face.cell[0] : face.cell[1]);
 
-const byString = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 /**
  * Group exterior wall faces into runs. Output order: owner id, storey, FACE_DIRECTIONS order,
@@ -51,7 +50,7 @@ export function groupWallRuns(faces: readonly WallFace[]): WallRun[] {
     const fa = a[0]!;
     const fb = b[0]!;
     return (
-      byString(fa.ownerNodeId, fb.ownerNodeId) ||
+      fa.ownerNodeId - fb.ownerNodeId ||
       fa.cell[2] - fb.cell[2] ||
       FACE_DIRECTIONS.indexOf(fa.direction) - FACE_DIRECTIONS.indexOf(fb.direction) ||
       planeOf(fa) - planeOf(fb)

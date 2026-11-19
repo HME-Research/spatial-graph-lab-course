@@ -45,14 +45,14 @@ function labDocV2(typeAppearance: Record<string, unknown> = {}): DesignDocumentV
       schemaVersion: 2,
       metadata: { name: 'Lab v2' },
       nodes: [
-        { id: 'g1', displayId: '01', grid: [0, 0, 0], typeId: 'gallery' },
-        { id: 'g2', displayId: '02', grid: [1, 0, 0], typeId: 'gallery' },
-        { id: 's1', displayId: '03', grid: [0, 2, 0], typeId: 'studio' },
-        { id: 'k1', displayId: '04', grid: [6, 6, 0], typeId: 'kiosk' },
+        { id: 1, grid: [0, 0, 0], typeId: 'gallery' },
+        { id: 2, grid: [1, 0, 0], typeId: 'gallery' },
+        { id: 3, grid: [0, 2, 0], typeId: 'studio' },
+        { id: 4, grid: [6, 6, 0], typeId: 'kiosk' },
       ],
       edges: [
-        { id: 'e1', source: 'g1', target: 'g2', kind: 'access' },
-        { id: 'e2', source: 'g1', target: 'k1', kind: 'open', connectorStyle: 'deck' },
+        { id: 1, source: 1, target: 2, kind: 'access' },
+        { id: 2, source: 1, target: 4, kind: 'open', connectorStyle: 'deck' },
       ],
       settings: functionStyleSettings(typeAppearance as Record<string, Look>),
     }),
@@ -224,25 +224,25 @@ describe('window layout per function', () => {
     expect(functionLooks(expectOk(readDesignJson(text)).doc.settings)).toEqual({ kiosk: { walls: 'open', roof: 'pergola' } });
     expect(functionLooks(apply(open, resetTypeEdit(open, 'kiosk', 'walls')).settings)).toEqual({});
 
-    const parts = (typeAppearance: Record<string, unknown>, owner: string) =>
+    const parts = (typeAppearance: Record<string, unknown>, owner: number) =>
       buildBuildingV2(labDocV2(typeAppearance), { facade: exampleFacadeProvider }).elements.filter((e) => e.ownerNodeId === owner);
     const P = 0.15 + 1e-9;
     // Open + flat roof: no glazing; the only exterior wall parts are slim posts; the roof stays.
-    const pavilion = parts({ kiosk: { walls: 'open' } }, 'k1');
+    const pavilion = parts({ kiosk: { walls: 'open' } }, 4);
     expect(pavilion.some((e) => e.part === 'glazing')).toBe(false);
     const posts = pavilion.filter((e) => e.part === 'wall' && e.condition === 'exterior');
     expect(posts.length).toBe(8); // two per side, four sides
     expect(posts.every((e) => [e.size[0], e.size[2]].filter((d) => d <= P).length === 2)).toBe(true);
     expect(pavilion.filter((e) => e.part === 'roof')).toHaveLength(1);
     // Open + no roof: a floor only.
-    const terrace = parts({ kiosk: { walls: 'open', roof: 'none' } }, 'k1');
+    const terrace = parts({ kiosk: { walls: 'open', roof: 'none' } }, 4);
     expect(terrace.map((e) => e.part).sort()).toEqual(['slab']);
     // Pergola roof on an enclosed room: open slats instead of one roof plate; walls unchanged.
-    const pergola = parts({ studio: { roof: 'pergola' } }, 's1');
+    const pergola = parts({ studio: { roof: 'pergola' } }, 3);
     expect(pergola.filter((e) => e.part === 'roof')).toHaveLength(6);
-    expect(parts({}, 's1').filter((e) => e.part === 'wall').length).toBe(pergola.filter((e) => e.part === 'wall').length);
+    expect(parts({}, 3).filter((e) => e.part === 'wall').length).toBe(pergola.filter((e) => e.part === 'wall').length);
     // A wall shared with another room stays even when the room is open-sided.
-    const g1 = parts({ gallery: { walls: 'open' } }, 'g1');
+    const g1 = parts({ gallery: { walls: 'open' } }, 1);
     expect(g1.some((e) => e.part === 'wall' && e.condition === 'door')).toBe(true);
   });
 
@@ -289,15 +289,15 @@ describe('selected relationship summary', () => {
   it('summarises the selected relationship connector style for Properties', () => {
     const doc = labDocV2();
     const spatial = resolveRelationships(doc);
-    expect(selectedRelationship(doc, selectEdge('e2'), spatial)).toMatchObject({
-      edgeId: 'e2',
-      label: '01 → 04',
+    expect(selectedRelationship(doc, selectEdge(2), spatial)).toMatchObject({
+      edgeId: 2,
+      label: '1 → 4',
       style: 'deck',
       styleIsDefault: false,
     });
-    expect(selectedRelationship(doc, selectEdge('e1'), spatial)).toMatchObject({ style: 'deck', styleIsDefault: true, status: 'direct' });
-    expect(selectedRelationship(doc, selectNode('g1'), spatial)).toBeNull();
-    expect(selectedRelationship(doc, selectEdge('missing'), spatial)).toBeNull();
+    expect(selectedRelationship(doc, selectEdge(1), spatial)).toMatchObject({ style: 'deck', styleIsDefault: true, status: 'direct' });
+    expect(selectedRelationship(doc, selectNode(1), spatial)).toBeNull();
+    expect(selectedRelationship(doc, selectEdge(999), spatial)).toBeNull();
   });
 });
 
@@ -361,7 +361,7 @@ describe('DesignerPanel (static render)', () => {
     const context = buildProjectViewContext(project, noRooms);
     const doc = labDocV2({ gallery: { windowFraction: 0.35 }, kiosk: {} });
     const html = renderToStaticMarkup(
-      createElement(DesignerPanel, { design: fakePort(doc), project: context, selection: selectEdge('e2'), onShowRelationship: () => {} }),
+      createElement(DesignerPanel, { design: fakePort(doc), project: context, selection: selectEdge(2), onShowRelationship: () => {} }),
     );
     expect(html).toMatch(/<label for="sgl-designer-style-by"[^>]*>Style rooms by<\/label>/);
     expect(html).toMatch(/Gallery \(gallery\)/);

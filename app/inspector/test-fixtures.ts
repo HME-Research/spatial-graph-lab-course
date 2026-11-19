@@ -22,11 +22,11 @@ export function corridorRaw() {
     schemaVersion: 2,
     metadata: { name: 'corridor' },
     nodes: [
-      { id: 'a', displayId: '01', grid: [0, 0, 0], size: [2, 3, 1], typeId: 'gallery', attributes: {} },
-      { id: 'b', displayId: '02', grid: [5, 0, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} },
-      { id: 'c', displayId: '03', grid: [0, 6, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} },
+      { id: 1, grid: [0, 0, 0], size: [2, 3, 1], typeId: 'gallery', attributes: {} },
+      { id: 2, grid: [5, 0, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} },
+      { id: 3, grid: [0, 6, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} },
     ],
-    edges: [{ id: 'ab', source: 'a', target: 'b', kind: 'access', attributes: {} }],
+    edges: [{ id: 1, source: 1, target: 2, kind: 'access', attributes: {} }],
     diagram: { positions: {} },
     settings: { styleBy: 'function', styles: {} },
   };
@@ -46,20 +46,20 @@ export const fixedCorridorResolver: RelationshipResolver = (doc) => {
   const real = resolveRelationships(doc);
   const free = !doc.nodes.some((n) => CORRIDOR.some((cell) => footprintsOverlap(n, { grid: cell, size: [1, 1, 1] })));
   const edges = real.edges.map((r): EdgeResolution => {
-    if (r.edgeId !== 'ab' || r.status === 'direct') return r;
+    if (r.edgeId !== 1 || r.status === 'direct') return r;
     if (!free) return { edgeId: r.edgeId, kind: r.kind, status: 'unresolved', reason: 'blocked-by-room', message: 'blocked' };
     return {
       edgeId: r.edgeId,
       kind: r.kind,
       status: 'routed',
       route: {
-        edgeId: 'ab',
+        edgeId: 1,
         axis: 'x',
         level: 0,
         cells: CORRIDOR,
-        from: { nodeId: 'a', cell: [1, 0, 0], direction: '+x' },
-        to: { nodeId: 'b', cell: [5, 0, 0], direction: '-x' },
-        style: doc.edges.find((e) => e.id === 'ab')?.connectorStyle ?? 'enclosed',
+        from: { nodeId: 1, cell: [1, 0, 0], direction: '+x' },
+        to: { nodeId: 2, cell: [5, 0, 0], direction: '-x' },
+        style: doc.edges.find((e) => e.id === 1)?.connectorStyle ?? 'enclosed',
       },
     };
   });

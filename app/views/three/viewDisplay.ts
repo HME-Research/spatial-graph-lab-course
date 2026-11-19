@@ -67,7 +67,7 @@ export const presetColour = (functionColour: string, display: SceneDisplay | nul
  * unchanged by the caller (it only calls this for the type colouring).
  */
 export function neutralColoring(coloring: Coloring): Coloring {
-  const colorOf = new Map<string, string>();
+  const colorOf = new Map<number, string>();
   for (const id of coloring.colorOf.keys()) colorOf.set(id, NEUTRAL_COLOUR);
   const count = coloring.legend.reduce((sum, e) => sum + e.count, 0);
   return {

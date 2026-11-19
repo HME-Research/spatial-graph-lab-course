@@ -70,7 +70,7 @@ interface OpenMenu {
 
 /** Short status line after an action; `created` follows the new edge's live status. */
 type Notice =
-  | { readonly kind: 'created'; readonly edgeId: string }
+  | { readonly kind: 'created'; readonly edgeId: number }
   | { readonly kind: 'message'; readonly text: string };
 
 /**
@@ -93,12 +93,12 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   const [overlay, setOverlay] = useState<Readonly<Record<string, NodeOverlay>>>({});
   const [issues, setIssues] = useState<readonly GraphIssue[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
-  const [popoverNode, setPopoverNode] = useState<string | null>(null);
+  const [popoverNode, setPopoverNode] = useState<number | null>(null);
   const [menu, setMenu] = useState<OpenMenu | null>(null);
-  const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  const [connectFrom, setConnectFrom] = useState<number | null>(null);
   /** "Remove invalid connections" review: open, and the rows the student unchecked (rows start checked). */
   const [reviewInvalid, setReviewInvalid] = useState(false);
-  const [keepInvalid, setKeepInvalid] = useState<ReadonlySet<string>>(() => new Set());
+  const [keepInvalid, setKeepInvalid] = useState<ReadonlySet<number>>(() => new Set());
   /** Panel size (CSS px), so the legend starts folded in small (split / 4-viewport) panels. */
   const [panelSize, setPanelSize] = useState<{ readonly width: number; readonly height: number } | null>(null);
   /** Legend open state chosen by the user; null = automatic (open only in a large panel). */
@@ -157,7 +157,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
 
   // A different design (no room in common with the previous one, e.g. Load example / Open JSON)
   // is fitted too while automatic fitting is on; edits within a design never move the diagram.
-  const previousIds = useRef<ReadonlySet<string> | null>(null);
+  const previousIds = useRef<ReadonlySet<number> | null>(null);
   useEffect(() => {
     const ids = new Set(model.nodes.map((n) => n.id));
     const before = previousIds.current;
@@ -188,13 +188,13 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   const isBroken = (typeId: string) => typeStatus.get(typeId)?.kind === 'broken';
 
   const emphasised = useMemo(() => {
-    if (selection.kind !== 'edge') return new Set<string>();
+    if (selection.kind !== 'edge') return new Set<number>();
     const edge = model.edges.find((e) => e.id === selection.id);
     return new Set(edge ? [edge.source, edge.target] : []);
   }, [model, selection]);
 
   const unresolvedCount = useMemo(() => {
-    const counts = new Map<string, number>();
+    const counts = new Map<number, number>();
     for (const e of model.edges) {
       if (e.resolution?.status !== 'unresolved') continue;
       counts.set(e.source, (counts.get(e.source) ?? 0) + 1);
@@ -214,7 +214,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
         const broken = typeStatus.get(node.typeId)?.kind === 'broken';
         const unresolved = unresolvedCount.get(node.id) ?? 0;
         return {
-          id: node.id,
+          id: String(node.id),
           type: 'room',
           position: o?.drag ?? { x: p[0], y: p[1] },
           ariaLabel: `Node ${node.label}, type ${node.typeId}`,
@@ -264,9 +264,9 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   const edges = useMemo<RelationFlowEdge[]>(
     () =>
       model.edges.map((edge) => ({
-        id: edge.id,
-        source: edge.source,
-        target: edge.target,
+        id: String(edge.id),
+        source: String(edge.source),
+        target: String(edge.target),
         type: 'relation',
         data: { presentation: presentEdge(model, edge), ...(removePreview?.has(edge.id) && { removePreview: true }) },
         selected: selection.kind === 'edge' && selection.id === edge.id,
@@ -295,7 +295,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   const onNodeDragStart = useCallback<OnNodeDrag<RoomFlowNode>>(
     (_event, node) => {
       setPopoverNode(null);
-      onSelect(selectNode(node.id));
+      onSelect(selectNode(Number(node.id)));
     },
     [onSelect],
   );
@@ -311,13 +311,13 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
       });
       const stored = model.diagram.positions[node.id];
       if (stored && stored[0] === position[0] && stored[1] === position[1]) return;
-      run(diagramPositionCommand(model, node.id, position));
+      run(diagramPositionCommand(model, Number(node.id), position));
     },
     [model, run],
   );
 
   /** Create the relationship at once (default kind), select it and show a short status. */
-  const connect = (source: string, target: string) => {
+  const connect = (source: number, target: number) => {
     setConnectFrom(null);
     const request = connectRequest(model, source, target);
     if (request.status === 'existing') {
@@ -331,14 +331,14 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
     }
   };
 
-  const startConnect = (nodeId: string) => {
+  const startConnect = (nodeId: number) => {
     setPopoverNode(null);
     setNotice(null);
     setConnectFrom(nodeId);
     onSelect(selectNode(nodeId));
   };
 
-  const addNode = (nearNodeId?: string, at?: DiagramPosition) => {
+  const addNode = (nearNodeId?: number, at?: DiagramPosition) => {
     const { nodeId, command } = addNodeRequest(model, nearNodeId, at);
     if (run(command)) onSelect(selectNode(nodeId));
   };
@@ -416,7 +416,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   };
 
   /** Centre and radius of a node in container pixels (for keyboard-opened menus and the popover). */
-  const nodeAnchor = (nodeId: string, viewport: Viewport) => {
+  const nodeAnchor = (nodeId: number, viewport: Viewport) => {
     const p = overlay[nodeId]?.drag ?? (() => {
       const q = positions.get(nodeId) ?? [0, 0];
       return { x: q[0], y: q[1] };
@@ -434,18 +434,19 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
     if (target.closest('input, select, textarea, button, .sgl-menu, .sgl-popover')) return;
     // An open menu, popover or review list closes itself on Escape.
     if (menu || popoverNode || reviewing) return;
-    const focusedNode = target.closest('.react-flow__node')?.getAttribute('data-id') ?? null;
+    const focusedAttr = target.closest('.react-flow__node')?.getAttribute('data-id');
+    const focusedNode = focusedAttr === null || focusedAttr === undefined ? null : Number(focusedAttr);
     if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
       removeSelected();
     } else if (event.key === 'Escape') {
-      if (connectFrom) setConnectFrom(null);
+      if (connectFrom !== null) setConnectFrom(null);
       else onSelect(NO_SELECTION);
     } else if (event.key === 'Enter' || event.key === ' ') {
       const nodeId = focusedNode ?? (selection.kind === 'node' ? selection.id : null);
-      if (!nodeId) return;
+      if (nodeId === null) return;
       event.preventDefault();
-      if (connectFrom && connectFrom !== nodeId) connect(connectFrom, nodeId);
+      if (connectFrom !== null && connectFrom !== nodeId) connect(connectFrom, nodeId);
       else {
         onSelect(selectNode(nodeId));
         setPopoverNode(nodeId);
@@ -454,7 +455,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
       const nodeId = focusedNode ?? (selection.kind === 'node' ? selection.id : null);
       event.preventDefault();
       const box = containerRef.current?.getBoundingClientRect();
-      if (nodeId) {
+      if (nodeId !== null) {
         const a = nodeAnchor(nodeId, flow.getViewport());
         onSelect(selectNode(nodeId));
         setMenu({ target: { kind: 'node', id: nodeId }, point: { x: a.x + a.radius, y: a.y } });
@@ -466,7 +467,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
 
   const isValidConnection = useCallback<IsValidConnection>((c) => c.source !== c.target, []);
   const onConnect = (c: Connection) => {
-    if (c.source !== c.target) connect(c.source, c.target);
+    if (c.source !== c.target) connect(Number(c.source), Number(c.target));
   };
 
   const legendOpen = legendChoice ?? (panelSize === null ? false : legendStartsOpen(panelSize));
@@ -495,30 +496,32 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
         // "Inspect" in the context menu or Enter, so it never covers a neighbouring circle that the
         // student wants to click next (phase 06, G01).
         onNodeClick={(_e, node) => {
-          if (connectFrom && connectFrom !== node.id) return connect(connectFrom, node.id);
+          // React Flow ids are the room ids as text.
+          const id = Number(node.id);
+          if (connectFrom !== null && connectFrom !== id) return connect(connectFrom, id);
           setConnectFrom(null);
           setNotice(null);
-          onSelect(selectNode(node.id));
-          setPopoverNode((open) => (open === node.id ? open : null));
+          onSelect(selectNode(id));
+          setPopoverNode((open) => (open === id ? open : null));
         }}
         onNodeDoubleClick={(_e, node) => {
-          if (connectFrom) return;
-          onSelect(selectNode(node.id));
-          setPopoverNode(node.id);
+          if (connectFrom !== null) return;
+          onSelect(selectNode(Number(node.id)));
+          setPopoverNode(Number(node.id));
         }}
         zoomOnDoubleClick={false}
         onEdgeClick={(_e, edge) => {
           setConnectFrom(null);
           setNotice(null);
-          onSelect(selectEdge(edge.id));
+          onSelect(selectEdge(Number(edge.id)));
         }}
         onPaneClick={() => {
           setConnectFrom(null);
           setNotice(null);
           onSelect(NO_SELECTION);
         }}
-        onNodeContextMenu={(e, node) => openMenu(e, { kind: 'node', id: node.id })}
-        onEdgeContextMenu={(e, edge) => openMenu(e, { kind: 'edge', id: edge.id })}
+        onNodeContextMenu={(e, node) => openMenu(e, { kind: 'node', id: Number(node.id) })}
+        onEdgeContextMenu={(e, edge) => openMenu(e, { kind: 'edge', id: Number(edge.id) })}
         onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
         onConnect={onConnect}
         isValidConnection={isValidConnection}
@@ -701,8 +704,8 @@ function PopoverLayer({
   ...rest
 }: {
   readonly containerRef: RefObject<HTMLDivElement | null>;
-  readonly anchorOf: (nodeId: string, viewport: Viewport) => { x: number; y: number; radius: number };
-  readonly nodeId: string;
+  readonly anchorOf: (nodeId: number, viewport: Viewport) => { x: number; y: number; radius: number };
+  readonly nodeId: number;
 } & Omit<Parameters<typeof NodePopover>[0], 'anchor' | 'containerRef'>) {
   const viewport = useViewport();
   return <NodePopover {...rest} containerRef={containerRef} anchor={anchorOf(nodeId, viewport)} />;
@@ -716,7 +719,7 @@ function NoticeLine({
 }: {
   readonly notice: Notice;
   readonly model: DiagramModel;
-  readonly onRemove: (edgeId: string) => void;
+  readonly onRemove: (edgeId: number) => void;
   readonly onDismiss: () => void;
 }) {
   const dismiss = (

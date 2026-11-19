@@ -28,20 +28,23 @@ const analysisSchema = z.strictObject({
 
 const attributesRecord = z.record(z.string().min(1, { error: 'attribute names must not be empty' }), attributeValueSchema);
 
+/** An existing id (a whole number) or the `ref` of an item added earlier in the same run. */
+const itemRefSchema = z.union([z.int().min(0), z.string().min(1)], { error: 'must be an id (a whole number) or the ref of a node / edge added earlier' });
+
 const operationSchema = z.discriminatedUnion(
   'op',
   [
     z.strictObject({
       op: z.literal('add-node'),
-      id: z.string(),
+      ref: z.string().optional(),
       grid: z.tuple([z.number(), z.number(), z.number()], { error: 'grid must be [x, y, z]' }),
       size: z.tuple([z.number(), z.number(), z.number()], { error: 'size must be [sx, sy, sz]' }).optional(),
       typeId: z.string(),
       attributes: attributesRecord.optional(),
     }),
-    z.strictObject({ op: z.literal('add-edge'), id: z.string(), source: z.string(), target: z.string(), kind: z.string() }),
-    z.strictObject({ op: z.literal('set-node-attribute'), nodeId: z.string(), key: z.string().min(1), value: attributeValueSchema }),
-    z.strictObject({ op: z.literal('set-edge-attribute'), edgeId: z.string(), key: z.string().min(1), value: attributeValueSchema }),
+    z.strictObject({ op: z.literal('add-edge'), ref: z.string().optional(), source: itemRefSchema, target: itemRefSchema, kind: z.string() }),
+    z.strictObject({ op: z.literal('set-node-attribute'), nodeId: itemRefSchema, key: z.string().min(1), value: attributeValueSchema }),
+    z.strictObject({ op: z.literal('set-edge-attribute'), edgeId: itemRefSchema, key: z.string().min(1), value: attributeValueSchema }),
   ],
   { error: 'op must be "add-node", "add-edge", "set-node-attribute" or "set-edge-attribute"' },
 );
@@ -148,10 +151,10 @@ function runWith<D extends GraphSource, Preview>(
     if (!parsed.success) return invalidResult(algorithmId, zodMessages(parsed.error.issues));
     const known = new Set(doc.nodes.map((n) => n.id));
     // Keys are read from the raw object so that unusual keys (e.g. "__proto__") are not lost.
-    const unknown = Object.keys((raw as { nodeValues: object }).nodeValues).filter((k) => !known.has(k));
+    const unknown = Object.keys((raw as { nodeValues: object }).nodeValues).filter((k) => !(/^(0|[1-9][0-9]*)$/.test(k) && known.has(Number(k))));
     if (unknown.length > 0) {
       return fail(
-        unknown.map((k) => diagnostic('unknown-node-reference', 'error', subject, `nodeValues refers to node "${k}", which does not exist`, { detail: k })),
+        unknown.map((k) => diagnostic('unknown-node-reference', 'error', subject, `nodeValues refers to node ${JSON.stringify(k)}, which does not exist`, { detail: k })),
       );
     }
     const result: AnalysisResult = {

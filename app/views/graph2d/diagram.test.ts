@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { applyDesignCommand } from '@app/spatial';
-import { type DesignDocumentV2, idSchema, validateDocumentV2 } from '@app/document';
+import { type DesignDocumentV2, validateDocumentV2 } from '@app/document';
 import exampleDesign from '../../document/test-designs/two-storey.json';
 import { expectOk, threeRooms, threeRoomsRaw } from '@app/document/test-fixtures';
 import {
-  nextFreeId,
   rectBorderPoint,
   resolveDiagramPositions,
   suggestDiagramPosition,
@@ -12,7 +11,7 @@ import {
 
 const example = (): DesignDocumentV2 => expectOk(validateDocumentV2(exampleDesign));
 
-function withoutPositions(ids: readonly string[]): DesignDocumentV2 {
+function withoutPositions(ids: readonly number[]): DesignDocumentV2 {
   const raw = threeRoomsRaw();
   for (const id of ids) delete raw.diagram.positions[id];
   return expectOk(validateDocumentV2(raw));
@@ -27,27 +26,27 @@ describe('resolveDiagramPositions', () => {
   });
 
   it('gives missing nodes deterministic, distinct fallbacks below the stored layout, without writing the document', () => {
-    const doc = withoutPositions(['b', 'c']);
+    const doc = withoutPositions([2, 3]);
     const snapshot = JSON.stringify(doc);
     const first = resolveDiagramPositions(doc);
     const second = resolveDiagramPositions(expectOk(validateDocumentV2(JSON.parse(snapshot))));
-    expect(first.get('b')).toEqual(second.get('b'));
-    expect(first.get('c')).toEqual(second.get('c'));
-    expect(first.get('b')).not.toEqual(first.get('c'));
-    expect(first.get('b')![1]).toBeGreaterThan(80); // below the stored node a at y = 80
+    expect(first.get(2)).toEqual(second.get(2));
+    expect(first.get(3)).toEqual(second.get(3));
+    expect(first.get(2)).not.toEqual(first.get(3));
+    expect(first.get(2)![1]).toBeGreaterThan(80); // below the stored node 1 at y = 80
     expect(JSON.stringify(doc)).toBe(snapshot);
   });
 
   it('fallbacks do not depend on grid cells (moving a node in space does not move it in the diagram)', () => {
-    const doc = withoutPositions(['b']);
-    const moved = expectOk(applyDesignCommand(doc, { type: 'remove-edge', edgeId: 'ab' }));
-    const relocated = expectOk(applyDesignCommand(moved, { type: 'set-node-geometry', nodeId: 'b', grid: [5, 5, 3] }));
-    expect(resolveDiagramPositions(relocated).get('b')).toEqual(resolveDiagramPositions(doc).get('b'));
+    const doc = withoutPositions([2]);
+    const moved = expectOk(applyDesignCommand(doc, { type: 'remove-edge', edgeId: 1 }));
+    const relocated = expectOk(applyDesignCommand(moved, { type: 'set-node-geometry', nodeId: 2, grid: [5, 5, 3] }));
+    expect(resolveDiagramPositions(relocated).get(2)).toEqual(resolveDiagramPositions(doc).get(2));
   });
 
   it('lays out a document with no stored positions from the origin', () => {
-    const positions = resolveDiagramPositions(withoutPositions(['a', 'b', 'c']));
-    expect(positions.get('a')).toEqual([0, 0]);
+    const positions = resolveDiagramPositions(withoutPositions([1, 2, 3]));
+    expect(positions.get(1)).toEqual([0, 0]);
     expect(new Set([...positions.values()].map((p) => p.join(','))).size).toBe(3);
   });
 });
@@ -55,19 +54,30 @@ describe('resolveDiagramPositions', () => {
 describe('diagram drag command', () => {
   it('set-diagram-position changes only the diagram, never the spatial cell (acceptance B)', () => {
     const doc = threeRooms();
-    const next = expectOk(applyDesignCommand(doc, { type: 'set-diagram-position', nodeId: 'b', position: [400, -20] }));
-    expect(next.diagram.positions.b).toEqual([400, -20]);
+    const next = expectOk(applyDesignCommand(doc, { type: 'set-diagram-position', nodeId: 2, position: [400, -20] }));
+    expect(next.diagram.positions[2]).toEqual([400, -20]);
     expect(next.nodes).toEqual(doc.nodes);
     expect(next.edges).toEqual(doc.edges);
   });
 });
 
-describe('nextFreeId', () => {
-  it('returns the smallest unused prefixed ID that satisfies the schema ID pattern', () => {
-    expect(nextFreeId('node', [])).toBe('node-1');
-    expect(nextFreeId('node', ['node-1', 'node-2', 'node-4'])).toBe('node-3');
-    expect(nextFreeId('edge', ['a', 'b'])).toBe('edge-1');
-    expect(idSchema.safeParse(nextFreeId('edge', ['edge-1'])).success).toBe(true);
+describe('new node and edge ids', () => {
+  it('come from the document counters and are never reused after a delete', () => {
+    const doc = threeRooms();
+    expect(doc.nextNodeId).toBe(4);
+    expect(doc.nextEdgeId).toBe(3);
+    const added = expectOk(
+      applyDesignCommand(doc, { type: 'add-node', node: { grid: [3, 0, 0], typeId: 'studio' }, diagramPosition: [300, 80] }),
+    );
+    expect(added.nodes.map((n) => n.id)).toEqual([1, 2, 3, 4]);
+    expect(added.diagram.positions[4]).toEqual([300, 80]);
+    expect(added.nextNodeId).toBe(5);
+    const removed = expectOk(applyDesignCommand(added, { type: 'remove-node', nodeId: 4 }));
+    const again = expectOk(applyDesignCommand(removed, { type: 'add-node', node: { grid: [3, 0, 0], typeId: 'studio' } }));
+    expect(again.nodes.map((n) => n.id)).toEqual([1, 2, 3, 5]);
+    const edge = expectOk(applyDesignCommand(again, { type: 'add-edge', edge: { source: 2, target: 3 } }));
+    expect(edge.edges.map((e) => e.id)).toEqual([1, 2, 3]);
+    expect(edge.nextEdgeId).toBe(4);
   });
 });
 
@@ -75,7 +85,7 @@ describe('suggestDiagramPosition', () => {
   it('does not overlap existing nodes', () => {
     const doc = example();
     const taken = [...resolveDiagramPositions(doc).values()];
-    for (const near of [undefined, 'entry-gallery', 'store']) {
+    for (const near of [undefined, 1, 4]) {
       const p = suggestDiagramPosition(doc, near);
       expect(taken.some((q) => Math.abs(q[0] - p[0]) < 150 && Math.abs(q[1] - p[1]) < 64)).toBe(false);
     }

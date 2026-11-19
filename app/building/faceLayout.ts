@@ -48,7 +48,7 @@ export interface FaceOpening {
   readonly kind: FaceOpeningKind;
   readonly rect: FaceRect;
   /** The relationship that made the opening; null for a façade window. */
-  readonly edgeId: string | null;
+  readonly edgeId: number | null;
 }
 
 export interface FaceLayout<F extends ResolvedFace = ResolvedFace> {
@@ -87,7 +87,7 @@ export interface FaceLayoutOptions {
 
 /** The key the style providers are called with for `face` (see `FaceLayoutOptions.styleKey`). */
 export const styleKeyOf = (face: Pick<ResolvedFace, 'ownerNodeId' | 'ownerTypeId'>, options: Pick<FaceLayoutOptions, 'styleKey'>): string =>
-  options.styleKey === 'node' ? face.ownerNodeId : face.ownerTypeId;
+  options.styleKey === 'node' ? String(face.ownerNodeId) : face.ownerTypeId;
 
 /** Abstract opening proportions, relative to the cell, with absolute caps in metres. */
 export const OPENING_PROPORTIONS = Object.freeze({
@@ -359,7 +359,7 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
   const panel = fullFaceRect(frame);
   const solids: FaceRect[] = [];
   const openings: FaceOpening[] = [];
-  const opening = (kind: FaceOpeningKind, rect: FaceRect, edgeId: string | null = face.edgeId) => openings.push({ kind, rect, edgeId });
+  const opening = (kind: FaceOpeningKind, rect: FaceRect, edgeId: number | null = face.edgeId) => openings.push({ kind, rect, edgeId });
 
   if (face.orientation === 'wall') {
     switch (face.condition) {

@@ -51,7 +51,7 @@ describe('project appearance in the views', () => {
     expect(status.kind === 'broken' && status.problems.join(' ')).toContain('windowFraction must be between 0 and 1');
     expect(typeDisplayName(status, 'kiosk')).toBe('Kiosk (kiosk) — invalid definition');
     expect(brokenTypeIds(lab, labDoc())).toEqual(['kiosk']);
-    expect(buildProjectViewContext(lab, labDoc()).conformance.map((d) => d.id)).toContain('broken-node-type|node:k1');
+    expect(buildProjectViewContext(lab, labDoc()).conformance.map((d) => d.id)).toContain('broken-node-type|node:4');
   });
 
   it('type status distinguishes registered, undefined and no project', async () => {

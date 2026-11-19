@@ -16,22 +16,23 @@ const v2 = (raw: unknown): DesignDocumentV2 => {
   if (!r.ok) throw new Error(JSON.stringify(r.issues));
   return r.value.doc;
 };
+/** g 1 gallery, s 2 studio, k 3 kiosk; edges gs 1 (access), sk 2 (open). */
 const docA = () =>
   v2({
     schemaVersion: 2,
     metadata: { name: 'A' },
     nodes: [
-      { id: 'g', grid: [0, 0, 0], typeId: 'gallery', attributes: {} },
-      { id: 's', grid: [1, 0, 0], typeId: 'studio', attributes: { capacity: 3 } },
-      { id: 'k', grid: [2, 0, 0], typeId: 'kiosk', attributes: {} },
+      { id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: {} },
+      { id: 2, grid: [1, 0, 0], typeId: 'studio', attributes: { capacity: 3 } },
+      { id: 3, grid: [2, 0, 0], typeId: 'kiosk', attributes: {} },
     ],
     edges: [
-      { id: 'gs', source: 'g', target: 's', kind: 'access', attributes: {} },
-      { id: 'sk', source: 's', target: 'k', kind: 'open', attributes: { weight: 5 } },
+      { id: 1, source: 1, target: 2, kind: 'access', attributes: {} },
+      { id: 2, source: 2, target: 3, kind: 'open', attributes: { weight: 5 } },
     ],
   });
 const docB = () =>
-  v2({ schemaVersion: 2, metadata: { name: 'B' }, nodes: [{ id: 'g2', grid: [0, 0, 0], typeId: 'gallery', attributes: { capacity: 40 } }], edges: [] });
+  v2({ schemaVersion: 2, metadata: { name: 'B' }, nodes: [{ id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: { capacity: 40 } }], edges: [] });
 
 function schemaWith(base: ProjectAttributeSchema, ...edits: SchemaEdit[]): ProjectAttributeSchema {
   return edits.reduce((s, e) => {
@@ -70,8 +71,8 @@ describe('Student API reads effective values (same resolver as the app)', () => 
     const p = await project();
     const schema = schemaWith(p.attributeBaseline.schema, { type: 'set-type-default', typeId: 'gallery', fieldId: 'capacity', value: 25 });
     for (const [doc, expected] of [
-      [docA(), { g: { capacity: 25, public: true }, s: { capacity: 3, public: false }, k: { capacity: 10 } }],
-      [docB(), { g2: { capacity: 40, public: true } }],
+      [docA(), { 1: { capacity: 25, public: true }, 2: { capacity: 3, public: false }, 3: { capacity: 10 } }],
+      [docB(), { 1: { capacity: 40, public: true } }],
     ] as const) {
       const preview = expectExtOk(runAlgorithmV2(doc, p, 'reader', {}, { attributes: schema }));
       if (preview.kind !== 'transformation') throw new Error('expected a transformation');
@@ -101,7 +102,7 @@ describe('Student API reads effective values (same resolver as the app)', () => 
   });
 
   it('unknown node/edge ids fail the run with a diagnostic', async () => {
-    const bad = defineSpatialAlgorithm({ id: 'bad', label: 'Bad', run: (ctx) => (ctx.nodeAttributes('nope'), { kind: 'transformation', operations: [] }) });
+    const bad = defineSpatialAlgorithm({ id: 'bad', label: 'Bad', run: (ctx) => (ctx.nodeAttributes(99), { kind: 'transformation', operations: [] }) });
     const p = await project({ 'toolkits/lab/algorithms/bad.ts': { default: bad } });
     const r = runAlgorithmV2(docA(), p, 'bad');
     expect(r.ok ? 'ok' : r.issues[0]!.code).toBe('unknown-node-reference');
@@ -116,13 +117,13 @@ describe('transformations write project fields', () => {
 
   it('any node may get any node field, whatever its type (unknown type included); edges get edge fields', async () => {
     const r = await run([
-      { op: 'set-node-attribute', nodeId: 'k', key: 'capacity', value: 7 },
-      { op: 'set-edge-attribute', edgeId: 'gs', key: 'weight', value: 2 },
-      { op: 'set-edge-attribute', edgeId: 'sk', key: 'weight', value: null },
+      { op: 'set-node-attribute', nodeId: 3, key: 'capacity', value: 7 },
+      { op: 'set-edge-attribute', edgeId: 1, key: 'weight', value: 2 },
+      { op: 'set-edge-attribute', edgeId: 2, key: 'weight', value: null },
     ]);
     const preview = expectExtOk(r);
     if (preview.kind !== 'transformation') throw new Error('expected a transformation');
-    expect(preview.preview.after.nodes.find((n) => n.id === 'k')!.attributes).toEqual({ capacity: 7 });
+    expect(preview.preview.after.nodes.find((n) => n.id === 3)!.attributes).toEqual({ capacity: 7 });
     expect(preview.preview.after.edges.map((e) => e.attributes)).toEqual([{ weight: 2 }, { weight: null }]);
   });
 
@@ -131,19 +132,19 @@ describe('transformations write project fields', () => {
       const r = await run([op]);
       return r.ok ? 'ok' : r.issues[0]!.code;
     };
-    expect(await code({ op: 'set-node-attribute', nodeId: 'g', key: 'weight', value: 1 })).toBe('undeclared-attribute-write');
-    expect(await code({ op: 'set-edge-attribute', edgeId: 'gs', key: 'capacity', value: 1 })).toBe('undeclared-attribute-write');
-    expect(await code({ op: 'set-node-attribute', nodeId: 'g', key: 'capacity', value: -1 })).toBe('invalid-attribute-value');
-    expect(await code({ op: 'set-edge-attribute', edgeId: 'nope', key: 'weight', value: 1 })).toBe('missing-edge');
+    expect(await code({ op: 'set-node-attribute', nodeId: 1, key: 'weight', value: 1 })).toBe('undeclared-attribute-write');
+    expect(await code({ op: 'set-edge-attribute', edgeId: 1, key: 'capacity', value: 1 })).toBe('undeclared-attribute-write');
+    expect(await code({ op: 'set-node-attribute', nodeId: 1, key: 'capacity', value: -1 })).toBe('invalid-attribute-value');
+    expect(await code({ op: 'set-edge-attribute', edgeId: 99, key: 'weight', value: 1 })).toBe('missing-edge');
   });
 
   it('after a rename, writes through the old key land on the new key; a deleted field is refused', async () => {
     const p = await project();
     const renamed = schemaWith(p.attributeBaseline.schema, { type: 'rename-field', collection: 'nodes', fieldId: 'capacity', key: 'seats' });
-    const r = expectExtOk(await run([{ op: 'set-node-attribute', nodeId: 's', key: 'capacity', value: 9 }], renamed));
-    expect(r.kind === 'transformation' && r.preview.after.nodes.find((n) => n.id === 's')!.attributes).toEqual({ seats: 9 });
+    const r = expectExtOk(await run([{ op: 'set-node-attribute', nodeId: 2, key: 'capacity', value: 9 }], renamed));
+    expect(r.kind === 'transformation' && r.preview.after.nodes.find((n) => n.id === 2)!.attributes).toEqual({ seats: 9 });
     const deleted = schemaWith(p.attributeBaseline.schema, { type: 'delete-field', collection: 'nodes', fieldId: 'capacity' });
-    const refused = await run([{ op: 'set-node-attribute', nodeId: 's', key: 'capacity', value: 9 }], deleted);
+    const refused = await run([{ op: 'set-node-attribute', nodeId: 2, key: 'capacity', value: 9 }], deleted);
     expect(refused.ok ? 'ok' : refused.issues[0]!.message).toMatch(/not a node field/);
   });
 });
@@ -153,8 +154,8 @@ describe('type defaults, overrides and undo', () => {
     const p = await project();
     const before = p.attributeBaseline.schema;
     const after = schemaWith(before, { type: 'set-type-default', typeId: 'studio', fieldId: 'capacity', value: 50 });
-    const studioA = docA().nodes.find((n) => n.id === 's')!; // overridden: capacity 3
-    const fresh = { id: 'n', typeId: 'studio', attributes: {} };
+    const studioA = docA().nodes.find((n) => n.id === 2)!; // overridden: capacity 3
+    const fresh = { id: 99, typeId: 'studio', attributes: {} };
     expect(effectiveNodeValues(after, fresh)['capacity']).toBe(50);
     expect(effectiveNodeValues(after, studioA)['capacity']).toBe(3);
     expect(effectiveNodeValues(before, fresh)['capacity']).toBe(10);
@@ -164,20 +165,20 @@ describe('type defaults, overrides and undo', () => {
     const p = await project();
     const schema = p.attributeBaseline.schema;
     const doc = docA();
-    const changed = applyDesignCommand(doc, { type: 'change-edge-kind', edgeId: 'sk', kind: 'access' });
+    const changed = applyDesignCommand(doc, { type: 'change-edge-kind', edgeId: 2, kind: 'access' });
     if (!changed.ok) throw new Error('kind change failed');
     expect(effectiveEdgeValues(schema, changed.value.edges[1]!)).toEqual({ weight: 5 });
-    const withValue = applyDesignCommand(doc, { type: 'set-edge-attributes', edgeId: 'gs', attributes: { weight: 4 } });
+    const withValue = applyDesignCommand(doc, { type: 'set-edge-attributes', edgeId: 1, attributes: { weight: 4 } });
     expect(withValue.ok && withValue.value.edges[0]!.attributes).toEqual({ weight: 4 });
-    const missing = applyDesignCommand(doc, { type: 'set-edge-attributes', edgeId: 'nope', attributes: {} });
+    const missing = applyDesignCommand(doc, { type: 'set-edge-attributes', edgeId: 99, attributes: {} });
     expect(missing.ok).toBe(false);
-    const removed = applyDesignCommand(doc, { type: 'remove-node', nodeId: 'k' });
-    expect(removed.ok && removed.value.edges.map((e) => e.id)).toEqual(['gs']);
+    const removed = applyDesignCommand(doc, { type: 'remove-node', nodeId: 3 });
+    expect(removed.ok && removed.value.edges.map((e) => e.id)).toEqual([1]);
   });
 
   it('values survive v2 export → import unchanged; views see effective values plus legacy keys', async () => {
     const p = await project();
-    const doc = v2({ ...JSON.parse(serializeDesignV2(docA())), nodes: [...docA().nodes.map((n) => (n.id === 'k' ? { ...n, attributes: { legacy: 'x' } } : n))] });
+    const doc = v2({ ...JSON.parse(serializeDesignV2(docA())), nodes: [...docA().nodes.map((n) => (n.id === 3 ? { ...n, attributes: { legacy: 'x' } } : n))] });
     const again = readDesignJson(serializeDesignV2(doc));
     expect(again.ok && again.value.doc).toEqual(doc);
     expect(viewAttributes(p.attributeBaseline.schema, 'nodes', doc.nodes[2]!)).toEqual({ capacity: 10, legacy: 'x' });

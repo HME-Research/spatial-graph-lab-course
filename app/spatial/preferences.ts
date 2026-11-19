@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { FACE_DIRECTIONS, FACE_DIRECTION_OFFSETS, neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial';
-import { type DesignDocumentV2, footprintContains, idSchema, type RelationshipEdge, type SharedFace } from '@app/document';
+import { type DesignDocumentV2, footprintContains, itemIdSchema, type RelationshipEdge, type SharedFace } from '@app/document';
 import type { EdgeResolution, SpatialResolution } from './contracts';
 import { resolveRelationships } from './resolve';
 
@@ -17,7 +17,7 @@ import { resolveRelationships } from './resolve';
 
 export interface FacePreference {
   /** The edge's source or target room the offset is measured from. */
-  readonly nodeId: string;
+  readonly nodeId: number;
   /** Cell offset from that room's minimum corner (`grid`). */
   readonly offset: readonly [number, number, number];
   /** Outward from that cell, towards the other room. */
@@ -36,12 +36,12 @@ export type FacePreferences = Readonly<Record<string, FacePreference>>;
 const offsetIntSchema = z.int({ error: 'offset values must be integers' });
 
 export const facePreferenceSchema = z.strictObject({
-  nodeId: idSchema,
+  nodeId: itemIdSchema,
   offset: z.tuple([offsetIntSchema, offsetIntSchema, offsetIntSchema], { error: 'offset must be three integers [dx, dy, dz]' }),
   direction: z.enum(FACE_DIRECTIONS),
 });
 
-export const facePreferencesSchema = z.record(idSchema, facePreferenceSchema);
+export const facePreferencesSchema = z.record(z.string().regex(/^(0|[1-9][0-9]*)$/, { error: 'face preferences are keyed by an edge id (a whole number)' }), facePreferenceSchema);
 
 export const EMPTY_FACE_PREFERENCES: FacePreferences = Object.freeze({});
 
@@ -64,7 +64,7 @@ export function preferenceCell(room: { readonly grid: GridCoord }, preference: F
 }
 
 /** The preference for a face of `room` given as an absolute cell + direction. */
-export function facePreferenceFor(room: { readonly id: string; readonly grid: GridCoord }, cell: GridCoord, direction: FaceDirection): FacePreference {
+export function facePreferenceFor(room: { readonly id: number; readonly grid: GridCoord }, cell: GridCoord, direction: FaceDirection): FacePreference {
   return { nodeId: room.id, offset: [cell[0] - room.grid[0], cell[1] - room.grid[1], cell[2] - room.grid[2]], direction };
 }
 
@@ -151,8 +151,8 @@ export function rebasePreferences(
  * Without (applicable) preferences the result is exactly `resolveRelationships(doc)`.
  */
 export function resolveWithPreferences(doc: DesignDocumentV2, preferences: FacePreferences): SpatialResolution {
-  const preferred = new Map<string, SharedFace>();
-  const unavailable = new Map<string, string>();
+  const preferred = new Map<number, SharedFace>();
+  const unavailable = new Map<number, string>();
   for (const edge of doc.edges) {
     if (edge.kind !== 'access' || !Object.prototype.hasOwnProperty.call(preferences, edge.id)) continue;
     const check = checkFacePreference(doc, edge, preferences[edge.id]!);

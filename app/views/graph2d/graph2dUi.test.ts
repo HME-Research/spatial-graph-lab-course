@@ -44,13 +44,12 @@ function applyV2(doc: DesignDocumentV2, command: ModelCommand): DesignDocumentV2
 /** n rooms on storey 0 in a row with gaps (never touching), n-1 chain relationships. */
 function separatedRooms(n: number): DesignDocumentV2 {
   const nodes = Array.from({ length: n }, (_, i) => ({
-    id: `r${i}`,
-    displayId: String(i + 1).padStart(2, '0'),
+    id: i + 1,
     grid: [i * 2, (i % 3) * 4, 0],
     typeId: ['gallery', 'studio', 'storage'][i % 3],
     attributes: { area: 10 + i },
   }));
-  const edges = nodes.slice(1).map((node, i) => ({ id: `e${i}`, source: nodes[i]!.id, target: node.id, kind: 'access' }));
+  const edges = nodes.slice(1).map((node, i) => ({ id: i + 1, source: nodes[i]!.id, target: node.id, kind: 'access' }));
   return v2Doc({ schemaVersion: 2, metadata: { name: `${n} rooms` }, nodes, edges, diagram: { positions: {} } });
 }
 
@@ -77,43 +76,46 @@ describe('circle edge attachment', () => {
   });
 });
 
-// ── Display ids ─────────────────────────────────────────────────────────────────────────────
+// ── Node labels (the numeric id) ────────────────────────────────────────────────────────────
 
-describe('display ids', () => {
-  it('shows the stored v2 displayId, not the permanent id or array position', () => {
+describe('node labels', () => {
+  it('shows the permanent numeric id, not the array position', () => {
     const doc = v2Doc();
     const model = v2Model(doc);
     expect(model.nodes.map((n) => [n.id, n.label])).toEqual([
-      ['a', '01'],
-      ['b', '02'],
+      [1, '1'],
+      [2, '2'],
     ]);
     const reordered = v2Doc({ ...v2Raw(), nodes: [...v2Raw().nodes].reverse() });
-    expect(v2Model(reordered).byNode.get('a')?.label).toBe('01');
-    expect(v2Model(reordered).byNode.get('b')?.label).toBe('02');
+    expect(v2Model(reordered).byNode.get(1)?.label).toBe('1');
+    expect(v2Model(reordered).byNode.get(2)?.label).toBe('2');
   });
 
-  it('keeps other display ids on deletion, type change and export/import', () => {
+  it('keeps other labels on deletion, type change and export/import', () => {
     let doc = oneCellExample();
     const before = new Map(v2Model(doc).nodes.map((n) => [n.id, n.label]));
-    doc = expectOk(applyDesignCommand(doc, { type: 'remove-node', nodeId: 'entry-gallery' }));
-    doc = expectOk(applyDesignCommand(doc, { type: 'set-node-type', nodeId: 'store', typeId: 'archive' }));
+    doc = expectOk(applyDesignCommand(doc, { type: 'remove-node', nodeId: 1 }));
+    doc = expectOk(applyDesignCommand(doc, { type: 'set-node-type', nodeId: 4, typeId: 'archive' }));
     const after = v2Model(doc);
     for (const node of after.nodes) expect(node.label).toBe(before.get(node.id));
     const reread = expectOk(readDesignJson(serializeDesignV2(doc))).doc;
     expect(v2Model(reread).nodes.map((n) => n.label)).toEqual(after.nodes.map((n) => n.label));
   });
 
-  it('gives a new node the next display id and a free cell', () => {
+  it('gives a new node the next id from the counter and a free cell', () => {
     const doc = v2Doc();
     const model = v2Model(doc);
-    const { nodeId, command } = addNodeRequest(model, 'a');
+    const { nodeId, command } = addNodeRequest(model, 1);
+    expect(nodeId).toBe(doc.nextNodeId);
+    expect(nodeId).toBe(3);
     const next = applyV2(doc, command);
     const added = v2Model(next).byNode.get(nodeId);
-    expect(added?.label).toBe('03');
-    // Beside room a (2×3×1 at the origin): first free cell on its +x side.
-    // With real routing (02) the a–b corridor reserves x = 2…4, y = 0, so the +x cell is a
+    expect(added?.label).toBe('3');
+    expect(next.nextNodeId).toBe(4);
+    // Beside room 1 (2×3×1 at the origin): first free cell on its +x side.
+    // With real routing (02) the 1–2 corridor reserves x = 2…4, y = 0, so the +x cell is a
     // connector cell and the next free cell (+y side) is used.
-    expect(resolveRelationships(doc).occupancy.at([2, 0, 0])).toEqual({ kind: 'route', edgeId: 'ab' });
+    expect(resolveRelationships(doc).occupancy.at([2, 0, 0])).toEqual({ kind: 'route', edgeId: 1 });
     expect(added?.grid).toEqual([0, 3, 0]);
   });
 });
@@ -123,17 +125,20 @@ describe('display ids', () => {
 describe('connectRequest', () => {
   it('v2: creates an add-edge without a kind, so the new relationship is Access', () => {
     const doc = v2Doc({ ...v2Raw(), edges: [] });
-    const request = connectRequest(v2Model(doc), 'a', 'b');
+    const request = connectRequest(v2Model(doc), 1, 2);
     expect(request.status).toBe('command');
     if (request.status !== 'command') return;
-    expect(request.command).toEqual({ type: 'add-edge', edge: { id: 'edge-1', source: 'a', target: 'b' } });
+    // The new edge takes the document's edge counter (1 here: there are no edges yet).
+    expect(request.edgeId).toBe(doc.nextEdgeId);
+    expect(request.edgeId).toBe(1);
+    expect(request.command).toEqual({ type: 'add-edge', edge: { source: 1, target: 2 } });
     const next = applyV2(doc, request.command);
-    expect(next.edges).toEqual([expect.objectContaining({ id: 'edge-1', kind: 'access' })]);
+    expect(next.edges).toEqual([expect.objectContaining({ id: request.edgeId, kind: 'access' })]);
   });
 
   it('v2: a relationship between rooms that do not touch is created and shown as unresolved, not refused', () => {
-    const doc = v2Doc({ ...v2Raw(), edges: [], nodes: [v2Raw().nodes[0], { id: 'b', displayId: '02', grid: [0, 0, 3], typeId: 'studio' }] });
-    const request = connectRequest(v2Model(doc), 'a', 'b');
+    const doc = v2Doc({ ...v2Raw(), edges: [], nodes: [v2Raw().nodes[0], { id: 2, grid: [0, 0, 3], typeId: 'studio' }] });
+    const request = connectRequest(v2Model(doc), 1, 2);
     if (request.status !== 'command') throw new Error('expected a command');
     const model = v2Model(applyV2(doc, request.command));
     const edge = model.edges[0]!;
@@ -146,13 +151,13 @@ describe('connectRequest', () => {
 
   it('reports an existing pair instead of duplicating it (either direction)', () => {
     const model = v2Model(v2Doc());
-    expect(connectRequest(model, 'b', 'a')).toEqual({ status: 'existing', edgeId: 'ab' });
+    expect(connectRequest(model, 2, 1)).toEqual({ status: 'existing', edgeId: 1 });
   });
 
   it('refuses self-connections and missing nodes', () => {
     const model = v2Model(v2Doc());
-    expect(connectRequest(model, 'a', 'a').status).toBe('refused');
-    expect(connectRequest(model, 'a', 'zzz').status).toBe('refused');
+    expect(connectRequest(model, 1, 1).status).toBe('refused');
+    expect(connectRequest(model, 1, 99).status).toBe('refused');
   });
 
 });
@@ -160,8 +165,8 @@ describe('connectRequest', () => {
 describe('diagram drag', () => {
   it('changes only the diagram position, never the room cell (v2)', () => {
     const doc = v2Doc();
-    const next = applyV2(doc, diagramPositionCommand(v2Model(doc), 'a', [400, -50]));
-    expect(next.diagram.positions['a']).toEqual([400, -50]);
+    const next = applyV2(doc, diagramPositionCommand(v2Model(doc), 1, [400, -50]));
+    expect(next.diagram.positions[1]).toEqual([400, -50]);
     expect(next.nodes).toEqual(doc.nodes);
   });
 
@@ -187,20 +192,20 @@ describe('edge presentation', () => {
     const doc = v2Doc();
     const real = resolveRelationships(doc);
     const routed: EdgeResolution = {
-      edgeId: 'ab',
+      edgeId: 1,
       kind: 'access',
       status: 'routed',
       route: {
-        edgeId: 'ab',
+        edgeId: 1,
         axis: 'x',
         level: 0,
         cells: [[2, 0, 0], [3, 0, 0], [4, 0, 0]],
-        from: { nodeId: 'a', cell: [1, 0, 0], direction: '+x' } as never,
-        to: { nodeId: 'b', cell: [5, 0, 0], direction: '-x' } as never,
+        from: { nodeId: 1, cell: [1, 0, 0], direction: '+x' },
+        to: { nodeId: 2, cell: [5, 0, 0], direction: '-x' },
         style: 'enclosed',
       },
     };
-    const spatial: SpatialResolution = { ...real, edges: [routed], byEdge: new Map([['ab', routed]]) };
+    const spatial: SpatialResolution = { ...real, edges: [routed], byEdge: new Map([[1, routed]]) };
     const model = modelFromV2(doc, spatial);
     const p = presentEdge(model, model.edges[0]!);
     expect(p.status).toBe('routed');
@@ -223,7 +228,7 @@ describe('node display', () => {
 
   it('shows the id by default in the base circle', () => {
     expect(DEFAULT_DISPLAY.showId).toBe(true);
-    expect(nodeLines(node, DEFAULT_DISPLAY)).toEqual({ lines: ['01'], hidden: 0, diameter: BASE_NODE_DIAMETER });
+    expect(nodeLines(node, DEFAULT_DISPLAY)).toEqual({ lines: ['1'], hidden: 0, diameter: BASE_NODE_DIAMETER });
   });
 
   it('grows within a conservative bound and summarises the rest', () => {
@@ -306,10 +311,10 @@ describe('popover placement', () => {
 
 describe('popoverRows', () => {
   it('lists id, type, placement and why a relationship is not buildable (read-only facts)', () => {
-    const doc = v2Doc({ ...v2Raw(), nodes: [v2Raw().nodes[0], { id: 'b', displayId: '02', grid: [0, 0, 3], typeId: 'studio' }] });
+    const doc = v2Doc({ ...v2Raw(), nodes: [v2Raw().nodes[0], { id: 2, grid: [0, 0, 3], typeId: 'studio' }] });
     const model = v2Model(doc);
-    const rows = popoverRows(model, model.byNode.get('a')!, { brokenType: false, attributeKeys: [] });
-    expect(rows.map((r) => r.label)).toEqual(['Permanent id', 'Type', 'Placement', 'Relationships', '↔ 02']);
+    const rows = popoverRows(model, model.byNode.get(1)!, { brokenType: false, attributeKeys: [] });
+    expect(rows.map((r) => r.label)).toEqual(['Type', 'Placement', 'Relationships', '↔ 2']);
     expect(rows.find((r) => r.label === 'Placement')?.value).toBe('cell [0, 0, 0] · 2×3×1 cells · storey 0');
     expect(rows.at(-1)).toMatchObject({ tone: 'unresolved' });
   });
@@ -326,19 +331,19 @@ describe('popoverRows', () => {
 describe('context menu items', () => {
   it('node menu offers Inspect and Add connection, and nothing for a deleted node', () => {
     const model = v2Model(v2Doc());
-    const labels = menuItems(model, { kind: 'node', id: 'a' }).map((i) => i.label);
+    const labels = menuItems(model, { kind: 'node', id: 1 }).map((i) => i.label);
     expect(labels).toEqual(['Inspect', 'Add connection…', 'Add node next to it', 'Delete node']);
-    expect(menuItems(model, { kind: 'node', id: 'gone' })).toEqual([]);
+    expect(menuItems(model, { kind: 'node', id: 99 })).toEqual([]);
   });
 
   it('v2 edge menu toggles Access ↔ Open', () => {
-    const items = menuItems(v2Model(v2Doc()), { kind: 'edge', id: 'ab' });
+    const items = menuItems(v2Model(v2Doc()), { kind: 'edge', id: 1 });
     expect(items.map((i) => [i.label, !!i.disabled])).toEqual([
       ['✓ Access', true],
       ['Open', false],
       ['Delete relationship', false],
     ]);
-    expect(items[1]!.action).toEqual({ type: 'set-relationship-kind', edgeId: 'ab', kind: 'open' });
+    expect(items[1]!.action).toEqual({ type: 'set-relationship-kind', edgeId: 1, kind: 'open' });
   });
 
 });

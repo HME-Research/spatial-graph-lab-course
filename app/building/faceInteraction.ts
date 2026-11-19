@@ -14,19 +14,21 @@ import type { BuildingFace } from './multicellFaces';
  */
 export type WallAction =
   | { readonly kind: 'not-eligible'; readonly reason: 'exterior' | 'slab' | 'route' | 'interior' | 'unknown-face' }
-  | { readonly kind: 'add'; readonly source: string; readonly target: string; readonly preference: FacePreference }
-  | { readonly kind: 'existing'; readonly edgeId: string; readonly relationshipKind: RelationshipKind };
+  | { readonly kind: 'add'; readonly source: number; readonly target: number; readonly preference: FacePreference }
+  | { readonly kind: 'existing'; readonly edgeId: number; readonly relationshipKind: RelationshipKind };
 
 /** Parse a building face id (`buildingFaceId`): `${nodeId}:${dir}` or `${nodeId}:${dx}.${dy}.${dz}:${dir}`. */
-function parseFaceId(faceId: string): { nodeId: string; offset: GridCoord; direction: FaceDirection } | null {
+function parseFaceId(faceId: string): { nodeId: number; offset: GridCoord; direction: FaceDirection } | null {
   const parts = faceId.split(':');
   const direction = parts[parts.length - 1] as FaceDirection;
   if (!FACE_DIRECTIONS.includes(direction)) return null;
-  if (parts.length === 2) return { nodeId: parts[0]!, offset: [0, 0, 0], direction };
+  const nodeId = Number(parts[0]);
+  if (!Number.isInteger(nodeId)) return null;
+  if (parts.length === 2) return { nodeId, offset: [0, 0, 0], direction };
   if (parts.length !== 3) return null;
   const offset = parts[1]!.split('.').map(Number);
   if (offset.length !== 3 || !offset.every((n) => Number.isInteger(n))) return null;
-  return { nodeId: parts[0]!, offset: offset as unknown as GridCoord, direction };
+  return { nodeId, offset: offset as unknown as GridCoord, direction };
 }
 
 export function wallAction(

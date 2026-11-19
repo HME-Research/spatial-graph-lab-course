@@ -9,7 +9,7 @@ import {
 } from '@app/document';
 import type { DesignCommand, EdgeResolution, SpatialResolution } from '@app/spatial';
 import { EMPTY_ATTRIBUTE_SCHEMA, viewAttributes, type ProjectAttributeSchema } from '@app/extensions';
-import { formatGrid, nextFreeId, suggestDiagramPosition, suggestFreeCellV2, type DiagramSource } from './diagram';
+import { formatGrid, suggestDiagramPosition, suggestFreeCellV2, type DiagramSource } from './diagram';
 
 /**
  * What the Graph 2D view draws, read from the design port (`ViewProps.design`). Pure; the model
@@ -18,7 +18,7 @@ import { formatGrid, nextFreeId, suggestDiagramPosition, suggestFreeCellV2, type
 
 export interface DiagramNode {
   /** Permanent node id (selection, commands). Never renumbered. */
-  readonly id: string;
+  readonly id: number;
   /** Short label shown in the circle: the stored `displayId`, else the permanent id. */
   readonly label: string;
   readonly typeId: string;
@@ -35,9 +35,9 @@ export interface DiagramNode {
 }
 
 export interface DiagramEdge {
-  readonly id: string;
-  readonly source: string;
-  readonly target: string;
+  readonly id: number;
+  readonly source: number;
+  readonly target: number;
   readonly kind: RelationshipKind;
   /** The derived spatial status from the host's resolver. */
   readonly resolution?: EdgeResolution;
@@ -46,7 +46,7 @@ export interface DiagramEdge {
 export interface DiagramModel {
   readonly nodes: readonly DiagramNode[];
   readonly edges: readonly DiagramEdge[];
-  readonly byNode: ReadonlyMap<string, DiagramNode>;
+  readonly byNode: ReadonlyMap<number, DiagramNode>;
   readonly diagram: DiagramSource['diagram'];
   readonly doc: DesignDocumentV2;
   readonly spatial: SpatialResolution;
@@ -69,7 +69,7 @@ export function modelFromV2(doc: DesignDocumentV2, spatial: SpatialResolution, s
 }
 
 /** The relationship already joining `a` and `b` in either direction (one per pair is allowed). */
-export function edgeBetween(model: DiagramModel, a: string, b: string): DiagramEdge | undefined {
+export function edgeBetween(model: DiagramModel, a: number, b: number): DiagramEdge | undefined {
   return model.edges.find((e) => (e.source === a && e.target === b) || (e.source === b && e.target === a));
 }
 
@@ -86,8 +86,8 @@ export function describePlacement(node: DiagramNode): string {
 export type ModelCommand = DesignCommand;
 
 export type ConnectRequest =
-  | { readonly status: 'command'; readonly edgeId: string; readonly command: ModelCommand }
-  | { readonly status: 'existing'; readonly edgeId: string }
+  | { readonly status: 'command'; readonly edgeId: number; readonly command: ModelCommand }
+  | { readonly status: 'existing'; readonly edgeId: number }
   | { readonly status: 'refused'; readonly message: string };
 
 /**
@@ -96,42 +96,43 @@ export type ConnectRequest =
  * touch: an unresolved relationship is valid graph data and is shown as such.
  * A pair that is already connected is reported (`existing`) instead of duplicated.
  */
-export function connectRequest(model: DiagramModel, sourceId: string, targetId: string): ConnectRequest {
+export function connectRequest(model: DiagramModel, sourceId: number, targetId: number): ConnectRequest {
   const source = model.byNode.get(sourceId);
   const target = model.byNode.get(targetId);
   if (!source || !target) return { status: 'refused', message: 'That node no longer exists.' };
   if (sourceId === targetId) return { status: 'refused', message: 'A node cannot be connected to itself.' };
   const existing = edgeBetween(model, sourceId, targetId);
   if (existing) return { status: 'existing', edgeId: existing.id };
-  const edgeId = nextFreeId('edge', model.edges.map((e) => e.id));
-  return { status: 'command', edgeId, command: { type: 'add-edge', edge: { id: edgeId, source: sourceId, target: targetId } } };
+  // The command gives the new relationship the design's next edge id.
+  const edgeId = model.doc.nextEdgeId;
+  return { status: 'command', edgeId, command: { type: 'add-edge', edge: { source: sourceId, target: targetId } } };
 }
 
 /** Add a node beside `nearNodeId` (if given), at an explicit diagram position or a suggested one. */
 export function addNodeRequest(
   model: DiagramModel,
-  nearNodeId?: string,
+  nearNodeId?: number,
   at?: DiagramPosition,
-): { readonly nodeId: string; readonly command: ModelCommand } {
+): { readonly nodeId: number; readonly command: ModelCommand } {
   const near = nearNodeId === undefined ? undefined : model.byNode.get(nearNodeId);
-  const nodeId = nextFreeId('node', model.nodes.map((n) => n.id));
+  // The command gives the new room the design's next node id.
+  const nodeId = model.doc.nextNodeId;
   const typeId = near?.typeId ?? 'room';
   const diagramPosition = at ?? suggestDiagramPosition(model, near?.id);
-  // displayId omitted: the command assigns `nextDisplayId(doc)`.
   const grid = suggestFreeCellV2(model.doc, model.spatial.occupancy, near?.id);
-  return { nodeId, command: { type: 'add-node', node: { id: nodeId, grid, typeId, attributes: {} }, diagramPosition } };
+  return { nodeId, command: { type: 'add-node', node: { grid, typeId, attributes: {} }, diagramPosition } };
 }
 
-export const removeNodeCommand = (_model: DiagramModel, nodeId: string): ModelCommand => ({ type: 'remove-node', nodeId });
+export const removeNodeCommand = (_model: DiagramModel, nodeId: number): ModelCommand => ({ type: 'remove-node', nodeId });
 
-export const removeEdgeCommand = (_model: DiagramModel, edgeId: string): ModelCommand => ({ type: 'remove-edge', edgeId });
+export const removeEdgeCommand = (_model: DiagramModel, edgeId: number): ModelCommand => ({ type: 'remove-edge', edgeId });
 
 /** Diagram drag: changes only `diagram.positions`, never the room's cell. */
-export const diagramPositionCommand = (_model: DiagramModel, nodeId: string, position: DiagramPosition): ModelCommand => ({
+export const diagramPositionCommand = (_model: DiagramModel, nodeId: number, position: DiagramPosition): ModelCommand => ({
   type: 'set-diagram-position',
   nodeId,
   position,
 });
 
 /** Relationship intent change (Access ↔ Open). */
-export const changeRelationshipKindCommand = (edgeId: string, kind: RelationshipKind): ModelCommand => ({ type: 'change-edge-kind', edgeId, kind });
+export const changeRelationshipKindCommand = (edgeId: number, kind: RelationshipKind): ModelCommand => ({ type: 'change-edge-kind', edgeId, kind });

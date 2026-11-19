@@ -25,14 +25,14 @@ import { findStraightRoute } from './straightRoute';
  *   and ends on an exterior face of each room, which a straight run of empty cells guarantees.
  */
 export const resolveRelationships: RelationshipResolver = (doc) => {
-  const byId = new Map<string, RoomNode>(doc.nodes.map((n) => [n.id, n]));
+  const byId = new Map<number, RoomNode>(doc.nodes.map((n) => [n.id, n]));
   const cells = new Map<string, CellOccupant>();
   for (const node of doc.nodes) {
     for (const cell of footprintCells(node)) cells.set(gridKey(cell), { kind: 'room', nodeId: node.id });
   }
 
   const order = [...doc.edges].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  const resolved = new Map<string, EdgeResolution>();
+  const resolved = new Map<number, EdgeResolution>();
   for (const edge of order) {
     const a = byId.get(edge.source);
     const b = byId.get(edge.target);
@@ -50,12 +50,12 @@ export const resolveRelationships: RelationshipResolver = (doc) => {
 };
 
 const UNRESOLVED_MESSAGES = {
-  'not-aligned': (a: string, b: string) =>
-    `"${a}" and "${b}" share a storey but no straight line joins facing walls; move one room into line`,
-  'blocked-by-room': (a: string, b: string) =>
-    `every straight connector between "${a}" and "${b}" would pass through another room`,
-  'blocked-by-route': (a: string, b: string) =>
-    `every straight connector between "${a}" and "${b}" would cross a connector of another relationship`,
+  'not-aligned': (a: number, b: number) =>
+    `Rooms ${a} and ${b} share a storey but no straight line joins facing walls; move one room into line`,
+  'blocked-by-room': (a: number, b: number) =>
+    `every straight connector between rooms ${a} and ${b} would pass through another room`,
+  'blocked-by-route': (a: number, b: number) =>
+    `every straight connector between rooms ${a} and ${b} would cross a connector of another relationship`,
 } as const;
 
 function resolveOne(
@@ -75,7 +75,7 @@ function resolveOne(
       ...base,
       status: 'unresolved',
       reason: 'different-level',
-      message: `"${a.id}" and "${b.id}" are on different storeys; vertical connections between separated rooms are not built`,
+      message: `Rooms ${a.id} and ${b.id} are on different storeys; vertical connections between separated rooms are not built`,
     };
   }
 

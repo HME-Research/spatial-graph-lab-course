@@ -33,14 +33,14 @@ export const findNodeType = (project: ActiveToolkit, typeId: string): Registered
   project.nodeTypes.find((t) => t.id === typeId);
 
 type CheckedDocument = Pick<DesignDocumentV2, 'nodes'> & {
-  readonly edges?: readonly { readonly id: string; readonly attributes: { readonly [key: string]: AttributeValue } }[];
+  readonly edges?: readonly { readonly id: number; readonly attributes: { readonly [key: string]: AttributeValue } }[];
 };
 
 /** Attribute diagnostics of one node or edge against the project's fields (one shared resolver). */
 function attributeChecks(
   resolved: readonly EffectiveAttribute[],
   outside: { readonly [key: string]: AttributeValue },
-  subject: { readonly kind: 'node' | 'edge'; readonly id: string },
+  subject: { readonly kind: 'node' | 'edge'; readonly id: number },
   projectId: string,
 ): ExtensionDiagnostic[] {
   const out: ExtensionDiagnostic[] = [];

@@ -27,8 +27,8 @@ describe('colour preset', () => {
     const coloring: Coloring = {
       title: 'Type',
       colorOf: new Map([
-        ['a', '#111111'],
-        ['b', '#222222'],
+        [1, '#111111'],
+        [2, '#222222'],
       ]),
       missing: new Set(),
       legend: [
@@ -39,7 +39,7 @@ describe('colour preset', () => {
     const n = neutralColoring(coloring);
     expect([...n.colorOf.values()]).toEqual([NEUTRAL_COLOUR, NEUTRAL_COLOUR]);
     expect(n.legend).toEqual([{ label: 'All rooms (Display: neutral)', color: NEUTRAL_COLOUR, count: 2 }]);
-    expect(coloring.colorOf.get('a')).toBe('#111111'); // input untouched
+    expect(coloring.colorOf.get(1)).toBe('#111111'); // input untouched
     expect(neutralColoring({ ...coloring, colorOf: new Map(), legend: [] }).legend).toEqual([]);
   });
 });

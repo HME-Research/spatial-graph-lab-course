@@ -14,9 +14,9 @@ export interface FriendlyMessage {
 }
 
 export interface MessageContext {
-  /** Short label for a room id (e.g. its display id "03"); defaults to the id. */
+  /** Short label for a room id as written in an issue message; defaults to the id (the id is the label). */
   readonly roomLabel?: (nodeId: string) => string;
-  /** Short label for a relationship id (e.g. "01 ↔ 03"); defaults to the id. */
+  /** Short label for a relationship id as written in an issue message (e.g. "3 → 7"); defaults to the id. */
   readonly relationshipLabel?: (edgeId: string) => string;
   /** The room being edited: "this room" instead of its label. */
   readonly subjectNodeId?: string;
@@ -87,8 +87,6 @@ export function friendlyText(issue: GraphIssue, context: MessageContext = {}): s
       return 'That item no longer exists. It may have been deleted or undone.';
     case 'coordinate-out-of-range':
       return sentence(`${issue.message}. Choose a position closer to the origin`);
-    case 'duplicate-display-id':
-      return names[0] !== undefined ? `The label ${names[0]} is already used by another room.` : 'That label is already used by another room.';
     case 'too-many-cells':
     case 'too-many-nodes':
       return sentence(`The design is too large: ${issue.message}`);

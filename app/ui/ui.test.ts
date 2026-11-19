@@ -40,7 +40,7 @@ describe('beginner vocabulary', () => {
   });
 
   it('describes every spatial status; unresolved is a warning with a reason', () => {
-    const base = { edgeId: 'e', kind: 'access' } as const;
+    const base = { edgeId: 1, kind: 'access' } as const;
     const direct: EdgeResolution = { ...base, status: 'direct', contact: 'horizontal', faces: [] };
     expect(describeResolution(direct)).toMatchObject({ title: 'Direct', tone: 'ok' });
     expect(describeResolution({ ...direct, contact: 'vertical' }).detail).toContain('not a designed stair');
@@ -49,15 +49,15 @@ describe('beginner vocabulary', () => {
       ...base,
       status: 'routed',
       route: {
-        edgeId: 'e',
+        edgeId: 1,
         axis: 'x',
         level: 1,
         cells: [
           [1, 0, 1],
           [2, 0, 1],
         ],
-        from: { nodeId: 'a', cell: [0, 0, 1], direction: '+x' },
-        to: { nodeId: 'b', cell: [3, 0, 1], direction: '-x' },
+        from: { nodeId: 1, cell: [0, 0, 1], direction: '+x' },
+        to: { nodeId: 2, cell: [3, 0, 1], direction: '-x' },
         style: 'covered',
       },
     };

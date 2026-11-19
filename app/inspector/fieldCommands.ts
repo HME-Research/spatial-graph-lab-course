@@ -22,13 +22,13 @@ function check(field: AttributeField, value: AttributeValue | undefined): string
   return checkFieldValue(field, value) === 'ok' ? null : `“${field.label}” must be ${describeField(field)}`;
 }
 
-export function setNodeFieldCommand(node: { readonly id: string; readonly attributes: Stored }, field: AttributeField, value: AttributeValue | undefined): FieldCommandResult {
+export function setNodeFieldCommand(node: { readonly id: number; readonly attributes: Stored }, field: AttributeField, value: AttributeValue | undefined): FieldCommandResult {
   const problem = check(field, value);
   if (problem) return { ok: false, message: problem };
   return { ok: true, command: { type: 'set-node-attributes', nodeId: node.id, attributes: writeFieldValue(field, node.attributes, value) } };
 }
 
-export function setEdgeFieldCommand(edge: { readonly id: string; readonly attributes: Stored }, field: AttributeField, value: AttributeValue | undefined): FieldCommandResult {
+export function setEdgeFieldCommand(edge: { readonly id: number; readonly attributes: Stored }, field: AttributeField, value: AttributeValue | undefined): FieldCommandResult {
   const problem = check(field, value);
   if (problem) return { ok: false, message: problem };
   return { ok: true, command: { type: 'set-edge-attributes', edgeId: edge.id, attributes: writeFieldValue(field, edge.attributes, value) } };

@@ -36,15 +36,15 @@ export interface ResolvedFace {
    * Node that authors this face. Exterior: the only node. Shared: the node whose ID sorts first
    * by JavaScript string comparison (`a < b`), so each shared face is produced exactly once.
    */
-  readonly ownerNodeId: string;
+  readonly ownerNodeId: number;
   readonly ownerTypeId: string;
   /** Owner's grid cell. Face centre in grid space = cell + offset(direction) / 2. */
   readonly cell: GridCoord;
   /** Outward from the owner cell. */
   readonly direction: FaceDirection;
   readonly orientation: FaceOrientation;
-  readonly neighbourNodeId: string | null;
-  readonly edgeId: string | null;
+  readonly neighbourNodeId: number | null;
+  readonly edgeId: number | null;
   readonly condition: FaceCondition;
   /**
    * Set only on the endpoint face of an open-air (`deck` / `covered`) connector: the face is

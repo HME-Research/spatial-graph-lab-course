@@ -48,9 +48,9 @@ describe('colour by a calculated value', () => {
     const c = resolveColoring(ctx.doc.nodes, [], { kind: 'metric', metricId: 'exposed-facade-length' }, sourceFor(ctx));
     expect(c.title).toBe('Exposed façade length (m)');
     expect(c.scale).toEqual({ min: 6, max: 45 });
-    expect(c.colorOf.get('shop')).toBe(NUMERIC_LOW);
-    expect(c.colorOf.get('hall')).toBe(NUMERIC_HIGH);
-    expect(c.colorOf.get('loft')).toBe(numericColor(12, 6, 45));
+    expect(c.colorOf.get(2)).toBe(NUMERIC_LOW);
+    expect(c.colorOf.get(1)).toBe(NUMERIC_HIGH);
+    expect(c.colorOf.get(5)).toBe(numericColor(12, 6, 45));
     expect(c.legend.map((e) => [e.label, e.count])).toEqual([
       ['6 m', 1],
       ['9 m', 2],
@@ -65,15 +65,16 @@ describe('colour by a calculated value', () => {
     // Wall kiosk in: rooms on every side of it on storey 0 → no exterior façade.
     const enclosed = {
       ...doc,
+      nextNodeId: 9,
       nodes: [
         ...doc.nodes,
-        ...([[4, 1, 0], [3, 2, 0], [2, 1, 0]] as [number, number, number][]).map((grid, i) => ({ id: `wall${i}`, displayId: `9${i}`, grid, size: [1, 1, 1] as [number, number, number], typeId: 'studio', attributes: {} })),
+        ...([[4, 1, 0], [3, 2, 0], [2, 1, 0]] as [number, number, number][]).map((grid, i) => ({ id: 6 + i, grid, size: [1, 1, 1] as [number, number, number], typeId: 'studio', attributes: {} })),
       ],
     };
     const ctx = metricCtx(enclosed);
     const c = resolveColoring(ctx.doc.nodes, [], { kind: 'metric', metricId: 'has-exterior-facade' }, sourceFor(ctx));
-    expect(c.colorOf.get('kiosk')).toBe(BOOLEAN_COLORS.false);
-    expect(c.colorOf.get('hall')).toBe(BOOLEAN_COLORS.true);
+    expect(c.colorOf.get(4)).toBe(BOOLEAN_COLORS.false);
+    expect(c.colorOf.get(1)).toBe(BOOLEAN_COLORS.true);
     expect(c.legend).toEqual([
       { label: 'yes', color: BOOLEAN_COLORS.true, count: 7 },
       { label: 'no', color: BOOLEAN_COLORS.false, count: 1 },
@@ -81,21 +82,21 @@ describe('colour by a calculated value', () => {
   });
 
   it('text metric: categorical; missing and non-finite values are "no value"', () => {
-    const nodes = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }].map((n) => ({ ...n, grid: [0, 0, 0] as [number, number, number], typeId: 't', attributes: {} }));
-    const values = new Map<string, string | number | null>([
-      ['a', 'north'],
-      ['b', 'south'],
-      ['c', null],
+    const nodes = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }].map((n) => ({ ...n, grid: [0, 0, 0] as [number, number, number], typeId: 't', attributes: {} }));
+    const values = new Map<number, string | number | null>([
+      [1, 'north'],
+      [2, 'south'],
+      [3, null],
     ]);
     const text: MetricColorSource = { metrics: [{ id: 'side', label: 'Side', valueKind: 'text' }], values: () => values };
     const c = resolveColoring(nodes, [], { kind: 'metric', metricId: 'side' }, text);
-    expect(c.colorOf.get('a')).toBe(CATEGORY_PALETTE[0]);
-    expect(c.colorOf.get('b')).toBe(CATEGORY_PALETTE[1]);
-    expect([...c.missing]).toEqual(['c', 'd']);
+    expect(c.colorOf.get(1)).toBe(CATEGORY_PALETTE[0]);
+    expect(c.colorOf.get(2)).toBe(CATEGORY_PALETTE[1]);
+    expect([...c.missing]).toEqual([3, 4]);
     expect(c.legend.at(-1)).toMatchObject({ color: MISSING_COLOR, count: 2, missing: true });
 
-    const nan: MetricColorSource = { metrics: [{ id: 'x', label: 'X', valueKind: 'number' }], values: () => new Map([['a', Number.NaN], ['b', 2]]) };
-    expect([...resolveColoring(nodes.slice(0, 2), [], { kind: 'metric', metricId: 'x' }, nan).missing]).toEqual(['a']);
+    const nan: MetricColorSource = { metrics: [{ id: 'x', label: 'X', valueKind: 'number' }], values: () => new Map([[1, Number.NaN], [2, 2]]) };
+    expect([...resolveColoring(nodes.slice(0, 2), [], { kind: 'metric', metricId: 'x' }, nan).missing]).toEqual([1]);
   });
 
   it('falls back to type without a source or for a metric not on offer', () => {
@@ -104,7 +105,7 @@ describe('colour by a calculated value', () => {
     const byType = resolveColoring(ctx.doc.nodes, [], DEFAULT_COLOR_MODE);
     expect(resolveColoring(ctx.doc.nodes, [], mode)).toEqual(byType);
     expect(resolveColoring(ctx.doc.nodes, [], { kind: 'metric', metricId: 'route-length' }, sourceFor(ctx))).toEqual(byType);
-    expect(byType.colorOf.get('hall')).toBe(typeColor('gallery'));
+    expect(byType.colorOf.get(1)).toBe(typeColor('gallery'));
     expect(effectiveColorMode(mode, [], ['volume'])).toBe(mode);
     expect(effectiveColorMode(mode, [], ['area'])).toBe(DEFAULT_COLOR_MODE);
     expect(effectiveColorMode(mode, [])).toBe(DEFAULT_COLOR_MODE);
@@ -123,12 +124,12 @@ describe('colour by a calculated value', () => {
     const before = lab();
     const mode: ColorMode = { kind: 'metric', metricId: 'volume' };
     const c1 = resolveColoring(before.doc.nodes, [], mode, metricColorSource(evaluator, before));
-    expect(c1.colorOf.get('loft')).toBe(NUMERIC_LOW);
-    const grown = { ...before.doc, nodes: before.doc.nodes.map((n) => (n.id === 'loft' ? { ...n, size: [3, 3, 1] as [number, number, number] } : n)) };
+    expect(c1.colorOf.get(5)).toBe(NUMERIC_LOW);
+    const grown = { ...before.doc, nodes: before.doc.nodes.map((n) => (n.id === 5 ? { ...n, size: [3, 3, 1] as [number, number, number] } : n)) };
     const after = metricCtx(grown);
     const c2 = resolveColoring(after.doc.nodes, [], mode, metricColorSource(evaluator, after));
-    expect(c2.colorOf.get('loft')).toBe(numericColor(243, 27, 243));
-    expect(c2.colorOf.get('hall')).toBe(numericColor(216, 27, 243));
+    expect(c2.colorOf.get(5)).toBe(numericColor(243, 27, 243));
+    expect(c2.colorOf.get(1)).toBe(numericColor(216, 27, 243));
   });
 });
 

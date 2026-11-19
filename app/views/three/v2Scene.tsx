@@ -35,10 +35,10 @@ export function useSceneSource(design: DesignPort): SceneSource {
 }
 
 /** Line token for an edge from the derived resolution, or null for an unknown edge. */
-export const lineOf = (design: DesignPort, edgeId: string): LineToken | null => presentEdgeById(design.spatial, edgeId)?.line ?? null;
+export const lineOf = (design: DesignPort, edgeId: number): LineToken | null => presentEdgeById(design.spatial, edgeId)?.line ?? null;
 
 /** One-line tooltip for an edge from the shared presentation (status, kind, reason). */
-export const tooltipOf = (design: DesignPort, edgeId: string): string | null => presentEdgeById(design.spatial, edgeId)?.tooltip ?? null;
+export const tooltipOf = (design: DesignPort, edgeId: number): string | null => presentEdgeById(design.spatial, edgeId)?.tooltip ?? null;
 
 /** A relationship drawn as a (dashed) tube with the shared line token. */
 export function RelationshipTube({
@@ -95,7 +95,7 @@ export function useUnitCylinder(): CylinderGeometry {
 
 export interface ConnectorCell {
   readonly key: string;
-  readonly edgeId: string;
+  readonly edgeId: number;
   readonly position: WorldPoint;
   readonly size: WorldPoint;
 }
@@ -133,7 +133,7 @@ export function ConnectorCells({
   readonly selection: Selection;
   readonly onSelect: Parameters<typeof pickHandlers>[2];
   readonly setHovered: Parameters<typeof pickHandlers>[3];
-  readonly hoveredEdge: string | null;
+  readonly hoveredEdge: number | null;
 }) {
   const geo = useMemo(() => {
     const box = new BoxGeometry(1, 1, 1);

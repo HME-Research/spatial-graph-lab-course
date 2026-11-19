@@ -274,7 +274,7 @@ export function readProjectFile(input: unknown): ProjectResult<ProjectFileV2> {
     }
     const edgesById = new Map(design.value.doc.edges.map((e) => [e.id, e] as const));
     for (const [edgeId, preference] of Object.entries(s.facePreferences)) {
-      const edge = edgesById.get(edgeId);
+      const edge = edgesById.get(Number(edgeId));
       const path = ['scenarios', index, 'facePreferences', edgeId];
       if (!edge) {
         issues.push(projectIssue(path, 'unknown-preference-edge', `face preference for edge "${edgeId}", which is not in the scenario's design`));

@@ -20,7 +20,7 @@ import { CalculatedRows, FieldRow } from './CalculatedValues';
 import { messageContextFor, useCommands, type PanelProps } from './panelSupport';
 
 /** Properties of one relationship. v2 (with the design port): Access/Open, status, connector. */
-export function EdgeProperties(props: PanelProps & { readonly edgeId: string }) {
+export function EdgeProperties(props: PanelProps & { readonly edgeId: number }) {
   return <EdgePropertiesV2 {...props} />;
 }
 
@@ -34,14 +34,14 @@ function RemoveConnection({ onRemove }: { readonly onRemove: () => void }) {
   );
 }
 
-function EdgePropertiesV2(props: PanelProps & { readonly edgeId: string }) {
+function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   const { design, onSelect, edgeId, project } = props;
   const { issues, clearIssues, showIssues, runShared, runV2 } = useCommands(props);
   const openAttributes = useContext(OpenAttributesContext);
   const edge = design?.doc.edges.find((e) => e.id === edgeId);
   if (!design || !edge) return null;
   const rooms = [edge.source, edge.target].map((id) => design.doc.nodes.find((n) => n.id === id));
-  const label = (id: string) => {
+  const label = (id: number) => {
     const n = design.doc.nodes.find((x) => x.id === id);
     return n ? nodeLabel(n) : id;
   };

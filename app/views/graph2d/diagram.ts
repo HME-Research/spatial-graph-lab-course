@@ -19,7 +19,7 @@ const FALLBACK_COLUMNS = 6;
  * The part of a design document the diagram layout reads.
  */
 export interface DiagramSource {
-  readonly nodes: readonly { readonly id: string }[];
+  readonly nodes: readonly { readonly id: number }[];
   readonly diagram: { readonly positions: Readonly<Record<string, DiagramPosition>> };
 }
 
@@ -31,9 +31,9 @@ export const formatGrid = (g: readonly number[]): string => `[${g.join(', ')}]`;
  * node ID, so they are stable across renders and independent of grid cells. Nothing is written
  * to the document; a fallback only becomes stored when the user drags the node.
  */
-export function resolveDiagramPositions(doc: DiagramSource): ReadonlyMap<string, DiagramPosition> {
-  const result = new Map<string, DiagramPosition>();
-  const missing: string[] = [];
+export function resolveDiagramPositions(doc: DiagramSource): ReadonlyMap<number, DiagramPosition> {
+  const result = new Map<number, DiagramPosition>();
+  const missing: number[] = [];
   let minX = Infinity;
   let maxY = -Infinity;
   for (const node of doc.nodes) {
@@ -48,7 +48,7 @@ export function resolveDiagramPositions(doc: DiagramSource): ReadonlyMap<string,
   }
   const originX = Number.isFinite(minX) ? minX : 0;
   const originY = Number.isFinite(maxY) ? maxY + FALLBACK_GAP_Y + NODE_HEIGHT : 0;
-  missing.sort();
+  missing.sort((a, b) => a - b);
   missing.forEach((id, i) => {
     const col = i % FALLBACK_COLUMNS;
     const row = Math.floor(i / FALLBACK_COLUMNS);
@@ -57,20 +57,9 @@ export function resolveDiagramPositions(doc: DiagramSource): ReadonlyMap<string,
   return result;
 }
 
-/**
- * Smallest unused ID of the form `${prefix}-N` (N ≥ 1). Matches the schema ID pattern for any
- * alphanumeric prefix and is never derived from coordinates.
- */
-export function nextFreeId(prefix: string, existing: Iterable<string>): string {
-  const used = new Set(existing);
-  for (let n = 1; ; n++) {
-    const candidate = `${prefix}-${n}`;
-    if (!used.has(candidate)) return candidate;
-  }
-}
 
 /** Diagram position for a new node: beside `nearNodeId`, or below everything already shown. */
-export function suggestDiagramPosition(doc: DiagramSource, nearNodeId?: string): DiagramPosition {
+export function suggestDiagramPosition(doc: DiagramSource, nearNodeId?: number): DiagramPosition {
   const positions = resolveDiagramPositions(doc);
   const taken = [...positions.values()];
   const clear = (p: DiagramPosition) =>
@@ -153,7 +142,7 @@ export function circleSegment(a: Circle, b: Circle): { readonly from: [number, n
  * each side, same storey first, then above and below), else the free cell on storey 0 closest to
  * the origin. "Free" means no room and no generated connector occupies it. Deterministic.
  */
-export function suggestFreeCellV2(doc: DesignDocumentV2, occupancy: Occupancy, nearNodeId?: string): GridCoord {
+export function suggestFreeCellV2(doc: DesignDocumentV2, occupancy: Occupancy, nearNodeId?: number): GridCoord {
   const isFree = (g: GridCoord) => occupancy.at(g) === undefined;
   const near = nearNodeId === undefined ? undefined : doc.nodes.find((n) => n.id === nearNodeId);
   if (near) {

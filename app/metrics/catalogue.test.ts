@@ -18,19 +18,19 @@ describe('metric catalogue: hand-computed values (multi-cell, multi-storey, rout
 
   it('the fixture resolves as sketched', () => {
     const status = Object.fromEntries(resolveRelationships(doc).edges.map((r) => [r.edgeId, r.status]));
-    expect(status).toEqual({ e1: 'direct', e2: 'routed', e3: 'unresolved', e4: 'unresolved', e5: 'unresolved' });
+    expect(status).toEqual({ 1: 'direct', 2: 'routed', 3: 'unresolved', 4: 'unresolved', 5: 'unresolved' });
   });
 
   it('area: plan footprint at 3 m cells, not summed over storeys', () => {
-    expect(table(doc, 'area')).toEqual({ hall: 36, shop: 9, cafe: 9, kiosk: 9, loft: 9 });
+    expect(table(doc, 'area')).toEqual({ 1: 36, 2: 9, 3: 9, 4: 9, 5: 9 });
   });
 
   it('volume: x × y × z cells × 27 m³', () => {
-    expect(table(doc, 'volume')).toEqual({ hall: 216, shop: 27, cafe: 27, kiosk: 27, loft: 27 });
+    expect(table(doc, 'volume')).toEqual({ 1: 216, 2: 27, 3: 27, 4: 27, 5: 27 });
   });
 
   it('degree: incident relationships, built or not', () => {
-    expect(table(doc, 'degree')).toEqual({ hall: 3, shop: 2, cafe: 3, kiosk: 0, loft: 2 });
+    expect(table(doc, 'degree')).toEqual({ 1: 3, 2: 2, 3: 3, 4: 0, 5: 2 });
   });
 
   it('exposed façade length: exterior unit wall faces × 3 m, summed over storeys', () => {
@@ -38,56 +38,56 @@ describe('metric catalogue: hand-computed values (multi-cell, multi-storey, rout
     // shop: −x shared with hall, +x is the connector endpoint → only ±y (2).
     // cafe: −x is the connector endpoint → 3. kiosk: −y runs alongside the enclosed connector (solid) → 3.
     // loft: free-standing → 4.
-    expect(table(doc, 'exposed-facade-length')).toEqual({ hall: 45, shop: 6, cafe: 9, kiosk: 9, loft: 12 });
-    expect(table(doc, 'exposed-facade-area')).toEqual({ hall: 135, shop: 18, cafe: 27, kiosk: 27, loft: 36 });
-    expect(table(doc, 'has-exterior-facade')).toEqual({ hall: true, shop: true, cafe: true, kiosk: true, loft: true });
+    expect(table(doc, 'exposed-facade-length')).toEqual({ 1: 45, 2: 6, 3: 9, 4: 9, 5: 12 });
+    expect(table(doc, 'exposed-facade-area')).toEqual({ 1: 135, 2: 18, 3: 27, 4: 27, 5: 36 });
+    expect(table(doc, 'has-exterior-facade')).toEqual({ 1: true, 2: true, 3: true, 4: true, 5: true });
   });
 
   it('an enclosed room has no exterior façade (roof and floor do not count)', () => {
     const enclosed = enclosedDoc();
-    expect(table(enclosed, 'has-exterior-facade')).toEqual({ c: false, n: true, s: true, e: true, w: true });
-    expect(table(enclosed, 'exposed-facade-length')).toEqual({ c: 0, n: 9, s: 9, e: 9, w: 9 });
+    expect(table(enclosed, 'has-exterior-facade')).toEqual({ 1: false, 2: true, 3: true, 4: true, 5: true });
+    expect(table(enclosed, 'exposed-facade-length')).toEqual({ 1: 0, 2: 9, 3: 9, 4: 9, 5: 9 });
   });
 
   it('unresolved connections: incident relationships whose status is unresolved', () => {
-    expect(table(doc, 'unresolved-connections')).toEqual({ hall: 2, shop: 0, cafe: 2, kiosk: 0, loft: 2 });
+    expect(table(doc, 'unresolved-connections')).toEqual({ 1: 2, 2: 0, 3: 2, 4: 0, 5: 2 });
   });
 
   it('edge metrics: spatial status and connector length (0 direct, cells × 3 m routed, none unresolved)', () => {
-    expect(table(doc, 'resolution-status')).toEqual({ e1: 'direct', e2: 'routed', e3: 'unresolved', e4: 'unresolved', e5: 'unresolved' });
-    expect(table(doc, 'route-length')).toEqual({ e1: 0, e2: 6, e3: null, e4: null, e5: null });
+    expect(table(doc, 'resolution-status')).toEqual({ 1: 'direct', 2: 'routed', 3: 'unresolved', 4: 'unresolved', 5: 'unresolved' });
+    expect(table(doc, 'route-length')).toEqual({ 1: 0, 2: 6, 3: null, 4: null, 5: null });
   });
 
   it('follows the resolution it is given: an unavailable preferred face makes the edge unresolved', () => {
     // hall's −x wall is not shared with shop, so e1 keeps its relationship but is not built.
-    const spatial = resolveWithPreferences(doc, { e1: { nodeId: 'hall', offset: [0, 0, 0], direction: '-x' } });
-    expect(spatial.byEdge.get('e1')?.status).toBe('unresolved');
-    expect(table(doc, 'unresolved-connections', spatial)).toMatchObject({ hall: 3, shop: 1 });
-    expect(table(doc, 'resolution-status', spatial)).toMatchObject({ e1: 'unresolved' });
+    const spatial = resolveWithPreferences(doc, { 1: { nodeId: 1, offset: [0, 0, 0], direction: '-x' } });
+    expect(spatial.byEdge.get(1)?.status).toBe('unresolved');
+    expect(table(doc, 'unresolved-connections', spatial)).toMatchObject({ 1: 3, 2: 1 });
+    expect(table(doc, 'resolution-status', spatial)).toMatchObject({ 1: 'unresolved' });
     // The hall/shop wall becomes a plain solid wall: still not exterior.
-    expect(table(doc, 'exposed-facade-length', spatial)).toMatchObject({ hall: 45, shop: 6 });
+    expect(table(doc, 'exposed-facade-length', spatial)).toMatchObject({ 1: 45, 2: 6 });
   });
 
   it('recomputes after a graph change: removing the connector exposes the walls it touched', () => {
     const evaluator = createMetricEvaluator();
     const before = metricCtx(doc);
-    expect(evaluator.value(before, 'exposed-facade-length', 'shop')).toBe(6);
-    const withoutE2: DesignDocumentV2 = { ...doc, edges: doc.edges.filter((e) => e.id !== 'e2') };
+    expect(evaluator.value(before, 'exposed-facade-length', 2)).toBe(6);
+    const withoutE2: DesignDocumentV2 = { ...doc, edges: doc.edges.filter((e) => e.id !== 2) };
     const after = metricCtx(withoutE2);
-    expect(evaluator.value(after, 'exposed-facade-length', 'shop')).toBe(9);
-    expect(evaluator.value(after, 'exposed-facade-length', 'cafe')).toBe(12);
-    expect(evaluator.value(after, 'exposed-facade-length', 'kiosk')).toBe(12);
-    expect(evaluator.value(after, 'degree', 'shop')).toBe(1);
+    expect(evaluator.value(after, 'exposed-facade-length', 2)).toBe(9);
+    expect(evaluator.value(after, 'exposed-facade-length', 3)).toBe(12);
+    expect(evaluator.value(after, 'exposed-facade-length', 4)).toBe(12);
+    expect(evaluator.value(after, 'degree', 2)).toBe(1);
   });
 
   it('recomputes after a geometry change: stacking the loft on hall makes e3 direct', () => {
     const evaluator = createMetricEvaluator();
-    expect(evaluator.value(metricCtx(doc), 'unresolved-connections', 'loft')).toBe(2);
-    const moved: DesignDocumentV2 = { ...doc, nodes: doc.nodes.map((n) => (n.id === 'loft' ? { ...n, grid: [0, 0, 2] } : n)) };
+    expect(evaluator.value(metricCtx(doc), 'unresolved-connections', 5)).toBe(2);
+    const moved: DesignDocumentV2 = { ...doc, nodes: doc.nodes.map((n) => (n.id === 5 ? { ...n, grid: [0, 0, 2] } : n)) };
     const ctx = metricCtx(moved);
-    expect(ctx.spatial.byEdge.get('e3')?.status).toBe('direct');
-    expect(evaluator.value(ctx, 'unresolved-connections', 'loft')).toBe(1);
-    expect(evaluator.value(ctx, 'exposed-facade-length', 'loft')).toBe(12);
+    expect(ctx.spatial.byEdge.get(3)?.status).toBe('direct');
+    expect(evaluator.value(ctx, 'unresolved-connections', 5)).toBe(1);
+    expect(evaluator.value(ctx, 'exposed-facade-length', 5)).toBe(12);
   });
 
   it('every metric has a definition, a valid kind, declared dependencies, and null for unknown items', () => {
@@ -96,7 +96,7 @@ describe('metric catalogue: hand-computed values (multi-cell, multi-storey, rout
       expect(m.definition.length, m.id).toBeGreaterThan(20);
       expect(m.dependsOn.length, m.id).toBeGreaterThan(0);
       for (const d of m.dependsOn) expect(METRIC_DEPENDENCIES).toContain(d);
-      expect(m.compute(ctx, 'nope'), m.id).toBeNull();
+      expect(m.compute(ctx, 999), m.id).toBeNull();
     }
   });
 
@@ -142,7 +142,7 @@ describe('metricRows view-model', () => {
   const ctx = metricCtx(metricsLabDoc());
 
   it('rows of the enabled metrics of the selected node, formatted with units', () => {
-    const rows = metricRows(selectNode('hall'), ctx, ['volume', 'area', 'has-exterior-facade', 'route-length'], createMetricEvaluator());
+    const rows = metricRows(selectNode(1), ctx, ['volume', 'area', 'has-exterior-facade', 'route-length'], createMetricEvaluator());
     expect(rows.map((r) => [r.id, r.text])).toEqual([
       ['area', '36 m²'],
       ['volume', '216 m³'],
@@ -152,13 +152,13 @@ describe('metricRows view-model', () => {
   });
 
   it('edge rows; "no value" for an unresolved connector length; nothing for no or unknown selection', () => {
-    const rows = metricRows(selectEdge('e3'), ctx, ['resolution-status', 'route-length', 'area']);
+    const rows = metricRows(selectEdge(3), ctx, ['resolution-status', 'route-length', 'area']);
     expect(rows.map((r) => [r.id, r.value, r.text])).toEqual([
       ['resolution-status', 'unresolved', 'unresolved'],
       ['route-length', null, 'no value'],
     ]);
     expect(metricRows(NO_SELECTION, ctx, ['area'])).toEqual([]);
-    expect(metricRows(selectNode('gone'), ctx, ['area'])).toEqual([]);
+    expect(metricRows(selectNode(999), ctx, ['area'])).toEqual([]);
   });
 
   it('formats numbers to at most two decimals', () => {

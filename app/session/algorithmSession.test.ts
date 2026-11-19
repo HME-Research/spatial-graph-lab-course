@@ -109,21 +109,21 @@ describe('algorithm parameters', () => {
 describe('generic analysis results', () => {
   it('shows the summary and node values and does not modify the document', () => {
     const before = serializeDesignV2(builtIn);
-    const run = runEntryV2(at(builtIn), example, entry(example, 'access-depth'), { start: 'store' });
+    const run = runEntryV2(at(builtIn), example, entry(example, 'access-depth'), { start: '4' });
     expect(serializeDesignV2(builtIn)).toBe(before);
     if (!run.outcome.ok || run.outcome.value.kind !== 'analysis') throw new Error('expected an analysis');
     const { result } = run.outcome.value;
-    expect(result.summary).toBe('0 room(s) cannot be reached from "store".');
+    expect(result.summary).toBe('0 room(s) cannot be reached from room 4.');
     expect(analysisRows(result.nodeValues, run.doc, builtIn)).toEqual([
-      { nodeId: 'entry-gallery', value: 2, exists: true },
-      { nodeId: 'studio-ground', value: 1, exists: true },
-      { nodeId: 'reading-gallery', value: 3, exists: true },
-      { nodeId: 'store', value: 0, exists: true },
-      { nodeId: 'studio-upper', value: 3, exists: true },
-      { nodeId: 'gallery-upper', value: 2, exists: true },
+      { nodeId: 1, value: 2, exists: true }, // entry-gallery
+      { nodeId: 2, value: 1, exists: true }, // studio-ground
+      { nodeId: 3, value: 3, exists: true }, // reading-gallery
+      { nodeId: 4, value: 0, exists: true }, // store
+      { nodeId: 5, value: 3, exists: true }, // studio-upper
+      { nodeId: 6, value: 2, exists: true }, // gallery-upper
     ]);
-    const smaller = expectOk(applyDesignCommand(builtIn, { type: 'remove-node', nodeId: 'store' }));
-    expect(analysisRows(result.nodeValues, run.doc, smaller).find((r) => r.nodeId === 'store')!.exists).toBe(false);
+    const smaller = expectOk(applyDesignCommand(builtIn, { type: 'remove-node', nodeId: 4 }));
+    expect(analysisRows(result.nodeValues, run.doc, smaller).find((r) => r.nodeId === 4)!.exists).toBe(false);
     expect(isStale(run, at(builtIn))).toBe(false);
     expect(isStale(run, at(smaller, 2))).toBe(true);
   });
@@ -136,27 +136,27 @@ describe('spatial transformation preview', () => {
     expect(describePreview(preview)).toEqual({
       addedNodes: [],
       addedEdges: [],
-      attributeChanges: [{ nodeId: 'entry-gallery', key: 'daylight', from: 'high', to: 'medium' }],
+      attributeChanges: [{ nodeId: 1, key: 'daylight', from: 'high', to: 'medium' }],
       edgeAttributeChanges: [],
-      affectedNodeIds: ['entry-gallery'],
+      affectedNodeIds: [1],
     });
     // The preview never touched the current document.
-    expect(builtIn.nodes.find((n) => n.id === 'entry-gallery')!.attributes['daylight']).toBe('high');
+    expect(builtIn.nodes.find((n) => n.id === 1)!.attributes['daylight']).toBe('high');
     const applied = applyPreviewV2(at(builtIn), preview, 1);
     if (!applied.ok) throw new Error(applied.message);
     expect(applied.doc).toBe(preview.after);
-    expect(applied.doc.nodes.find((n) => n.id === 'entry-gallery')!.attributes).toEqual({ daylight: 'medium', public: true });
+    expect(applied.doc.nodes.find((n) => n.id === 1)!.attributes).toEqual({ daylight: 'medium', public: true });
     expect(validateDocumentV2(applied.doc).ok).toBe(true);
   });
 
   it('connect-storage-to-galleries: the added door changes the generated boundary only after Apply', () => {
     const preview = transformation(runEntryV2(at(builtIn), example, entry(example, 'connect-storage-to-galleries'), {}));
     expect(describePreview(preview)).toMatchObject({
-      addedEdges: [{ id: 'door-1', source: 'store', target: 'reading-gallery', kind: 'access' }],
-      affectedNodeIds: ['reading-gallery', 'store'],
+      addedEdges: [{ id: 7, source: 4, target: 3, kind: 'access' }], // store → reading-gallery; id from nextEdgeId
+      affectedNodeIds: [3, 4],
     });
     const wall = (doc: DesignDocumentV2) =>
-      resolveFaces(doc).find((f) => [f.ownerNodeId, f.neighbourNodeId].sort().join() === 'reading-gallery,store')!.condition;
+      resolveFaces(doc).find((f) => f.ownerNodeId === 3 && f.neighbourNodeId === 4)!.condition;
     expect(wall(builtIn)).toBe('solid');
     const applied = applyPreviewV2(at(builtIn), preview, 1);
     expect(applied.ok && wall(applied.doc)).toBe('door');
@@ -170,7 +170,7 @@ describe('spatial transformation preview', () => {
 
   it('rejects a stale preview when the document changed after the run', () => {
     const preview = transformation(runEntryV2(at(builtIn), example, entry(example, 'daylight-from-exposure'), {}));
-    const edited = expectOk(applyDesignCommand(builtIn, { type: 'set-diagram-position', nodeId: 'store', position: [1, 2] }));
+    const edited = expectOk(applyDesignCommand(builtIn, { type: 'set-diagram-position', nodeId: 4, position: [1, 2] }));
     expect(applyPreviewV2(at(edited, 2), preview, 1)).toMatchObject({ ok: false, reason: 'stale' });
     // Applying twice is also refused: after the first apply the document is a different one.
     const once = applyPreviewV2(at(builtIn), preview, 1);
@@ -188,8 +188,8 @@ describe('spatial transformation preview', () => {
           run: () => ({
             kind: 'transformation',
             operations: [
-              { op: 'set-node-attribute', nodeId: 'g1', key: 'daylight', value: 'low' },
-              { op: 'add-edge', id: 'x', source: 'g1', target: 'k1', kind: 'stair' },
+              { op: 'set-node-attribute', nodeId: 1, key: 'daylight', value: 'low' },
+              { op: 'add-edge', source: 1, target: 4, kind: 'stair' },
             ],
           }),
         },
@@ -211,15 +211,15 @@ describe('runEntryV2 passes the host (preference-aware) resolution (I1)', () => 
       id: 'probe',
       label: 'Probe',
       scope: 'spatial',
-      run: (ctx: { metrics: { value: (m: string, id: string) => unknown } }) => {
-        seen.push(ctx.metrics.value('resolution-status', 'e1'));
+      run: (ctx: { metrics: { value: (m: string, id: number) => unknown } }) => {
+        seen.push(ctx.metrics.value('resolution-status', 1));
         return { kind: 'transformation', operations: [] };
       },
     };
     const project = await labToolkit({ 'toolkits/lab/algorithms/probe.ts': { default: probe } });
     const entry = listAlgorithms(project).find((a) => a.id === 'probe')!;
     const doc = metricsLabDoc();
-    const spatial = resolveWithPreferences(doc, { e1: { nodeId: 'hall', offset: [0, 0, 0], direction: '-x' } });
+    const spatial = resolveWithPreferences(doc, { 1: { nodeId: 1, offset: [0, 0, 0], direction: '-x' } });
     const version = { doc, revision: 1 };
     runEntryV2(version, project, entry, {});
     runEntryV2(version, project, entry, {}, undefined, { doc, spatial });

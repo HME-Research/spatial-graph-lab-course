@@ -14,7 +14,6 @@ import {
   getNode,
   neighbourCell,
   neighbours,
-  uniqueId,
   type SpatialOperation,
 } from '@student-api';
 import twoStoreyText from '../document/test-designs/two-storey.json?raw';
@@ -54,10 +53,11 @@ export const studio = defineNodeType({
 export const accessDepth = defineGraphAlgorithm({
   id: 'access-depth',
   label: 'Access depth from a room',
-  parameters: { start: { kind: 'text', default: 'entry-gallery' } },
+  // Room 1 is the entrance gallery of the two-storey design.
+  parameters: { start: { kind: 'number', default: 1 } },
   run({ graph, params }) {
-    const start = params.start ?? '';
-    const depth = new Map<string, number>();
+    const start = params.start ?? -1;
+    const depth = new Map<number, number>();
     if (graph.nodes.some((n) => n.id === start)) {
       depth.set(start, 0);
       const queue = [start];
@@ -71,12 +71,12 @@ export const accessDepth = defineGraphAlgorithm({
         }
       }
     }
-    const nodeValues: Record<string, number | null> = {};
+    const nodeValues: Record<number, number | null> = {};
     for (const n of graph.nodes) nodeValues[n.id] = depth.get(n.id) ?? null;
     const unreachable = graph.nodes.length - depth.size;
     return {
       kind: 'analysis',
-      summary: depth.size === 0 ? `Start room "${start}" does not exist.` : `${unreachable} room(s) cannot be reached from "${start}".`,
+      summary: depth.size === 0 ? `Start room ${start} does not exist.` : `${unreachable} room(s) cannot be reached from room ${start}.`,
       nodeValues,
     };
   },
@@ -88,7 +88,6 @@ export const connectStorage = defineSpatialAlgorithm({
   label: 'Connect storage to neighbouring galleries',
   run(ctx) {
     const operations: SpatialOperation[] = [];
-    const newIds: string[] = [];
     for (const room of ctx.design.nodes) {
       if (room.typeId !== storage.id) continue;
       for (const direction of HORIZONTAL) {
@@ -96,9 +95,7 @@ export const connectStorage = defineSpatialAlgorithm({
         const other = otherId === undefined ? undefined : getNode(ctx.design, otherId);
         if (!other || other.typeId !== gallery.id) continue;
         if (edgesBetween(ctx.design, room.id, other.id).length > 0) continue;
-        const id = uniqueId(ctx.design, 'door', newIds);
-        newIds.push(id);
-        operations.push({ op: 'add-edge', id, source: room.id, target: other.id, kind: 'access' });
+        operations.push({ op: 'add-edge', source: room.id, target: other.id, kind: 'access' });
       }
     }
     return { kind: 'transformation', summary: `${operations.length} door(s) added.`, operations };

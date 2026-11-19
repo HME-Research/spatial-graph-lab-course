@@ -1,4 +1,4 @@
-import type { EdgeRecord, NodeRecord } from '@core/graph';
+import type { EdgeRecord, NodeRecord } from './graph';
 import { FACE_DIRECTIONS as CORE_FACE_DIRECTIONS, neighbourCell as coreNeighbourCell, type FaceDirection } from '@core/spatial';
 import type { AttributeValue } from './attributes';
 
@@ -45,8 +45,6 @@ export interface SpatialNode extends NodeRecord {
   readonly grid: GridCoord;
   /** Extent in cells (`[1, 1, 1]` for a single-cell room). */
   readonly size: RoomSize;
-  /** Short label shown to people (e.g. "01"); presentation only, never an identity. */
-  readonly displayId?: string | undefined;
   readonly attributes: { readonly [key: string]: AttributeValue };
 }
 

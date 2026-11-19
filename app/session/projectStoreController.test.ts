@@ -92,11 +92,11 @@ const project = (c: ProjectController): OpenProject => {
   return p;
 };
 
-function move(c: ProjectController, nodeId: string, grid: [number, number, number]) {
+function move(c: ProjectController, nodeId: number, grid: [number, number, number]) {
   const r = c.command({ type: 'set-node-geometry', nodeId, grid });
   if (!r.ok) throw new Error(r.issues.map((i) => i.message).join('; '));
 }
-const gridOf = (c: ProjectController, nodeId: string) => activeDesign(project(c)).nodes.find((n) => n.id === nodeId)!.grid;
+const gridOf = (c: ProjectController, nodeId: number) => activeDesign(project(c)).nodes.find((n) => n.id === nodeId)!.grid;
 
 function stored(store: MemoryProjectStore, id: string): ProjectFileV2 {
   const r = readProjectFile(store.records.get(id) as string);
@@ -134,13 +134,13 @@ describe('startup and Welcome', () => {
     const store = createMemoryProjectStore();
     const a = makeController(store).c;
     await a.open(fileOf(), created);
-    move(a, 'c', [6, 7, 0]);
+    move(a, 3, [6, 7, 0]);
     await a.flush();
     const text = store.records.get(project(a).meta.projectId);
     const b = makeController(store).c;
     const r = await b.restore(project(a).meta.projectId);
     expect(r.ok).toBe(true);
-    expect(gridOf(b, 'c')).toEqual([6, 7, 0]);
+    expect(gridOf(b, 3)).toEqual([6, 7, 0]);
     expect(b.getState().save.local).toBe('saved');
     expect(canUndo(activeSession(project(b)).history)).toBe(false);
     await b.flush();
@@ -191,8 +191,8 @@ describe('autosave', () => {
     const id = project(c).meta.projectId;
     const firstText = store.records.get(id);
 
-    move(c, 'c', [6, 7, 0]);
-    move(c, 'c', [6, 8, 0]);
+    move(c, 3, [6, 7, 0]);
+    move(c, 3, [6, 8, 0]);
     expect(c.getState().save.local).toBe('pending');
     expect(hasUnsavedLocalChanges(c.getState())).toBe(true);
     expect(timers.pending()).toBe(1);
@@ -201,16 +201,16 @@ describe('autosave', () => {
     await c.flush();
     expect(c.getState().save.local).toBe('saved');
     expect(hasUnsavedLocalChanges(c.getState())).toBe(false);
-    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 8, 0]);
+    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 8, 0]);
   });
 
   it('stores every scenario, the active scenario and settings (not the histories)', async () => {
     const { c, store } = makeController();
     await c.open(fileOf(), created);
-    move(c, 'c', [6, 7, 0]);
+    move(c, 3, [6, 7, 0]);
     const s2 = c.createScenario({ from: 'current', name: 'Option B' });
     if (!s2.ok) throw new Error(s2.message);
-    move(c, 'b', [2, 1, 0]);
+    move(c, 2, [2, 1, 0]);
     c.setCameras(s2.value, [
       { id: 'cam', name: 'Front', viewMode: 'architecture', pose: { projection: 'perspective', position: [1, 2, 3], target: [0, 0, 0], up: [0, 1, 0], fov: 50 } },
     ]);
@@ -219,8 +219,8 @@ describe('autosave', () => {
     expect(file.scenarios.map((s) => s.name)).toEqual(['Scenario 1', 'Option B']);
     expect(file.activeScenarioId).toBe(s2.value);
     expect(file.scenarios[1]!.cameras).toHaveLength(1);
-    expect(file.scenarios[0]!.design.nodes.find((n) => n.id === 'b')!.grid).toEqual([2, 0, 0]);
-    expect(file.scenarios[1]!.design.nodes.find((n) => n.id === 'b')!.grid).toEqual([2, 1, 0]);
+    expect(file.scenarios[0]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 0, 0]);
+    expect(file.scenarios[1]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
   });
 
   it('never shows a quota failure as saved, and recovers on the next successful write', async () => {
@@ -239,7 +239,7 @@ describe('autosave', () => {
     expect(s.local === 'blocked' && s.reason).toBe('quota');
     expect(hasUnsavedLocalChanges(t.getState())).toBe(true);
     // A further edit keeps the blocked state visible until a write succeeds.
-    move(t, 'c', [6, 7, 0]);
+    move(t, 3, [6, 7, 0]);
     expect(t.getState().save.local).toBe('blocked');
   });
 
@@ -275,7 +275,7 @@ describe('autosave', () => {
     await c.flush();
     const id = project(c).meta.projectId;
     store.records.set(id, 'garbage');
-    move(c, 'c', [6, 7, 0]);
+    move(c, 3, [6, 7, 0]);
     await c.flush();
     const s = c.getState().save;
     expect(s.local === 'blocked' && s.reason).toBe('refused-unreadable');
@@ -308,32 +308,32 @@ describe('two tabs on one project', () => {
   it('refuses to overwrite a newer copy saved by another tab (conflict), until explicitly overwritten', async () => {
     const locks = fakeLocks();
     const { store, one, two, id } = await twoTabs(locks);
-    move(two, 'b', [2, 1, 0]);
+    move(two, 2, [2, 1, 0]);
     await two.flush();
     expect(two.getState().save.local).toBe('saved');
     // Tab one has not seen tab two's write.
-    move(one, 'c', [6, 7, 0]);
+    move(one, 3, [6, 7, 0]);
     await one.flush();
     const s = one.getState().save;
     expect(s.local === 'blocked' && s.reason).toBe('conflict');
     expect(s.local === 'blocked' && s.message).toBe(CONFLICT_MESSAGE);
-    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 'b')!.grid).toEqual([2, 1, 0]);
+    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
     // Further edits do not write while in conflict.
-    move(one, 'c', [6, 8, 0]);
+    move(one, 3, [6, 8, 0]);
     await one.flush();
-    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 6, 0]);
+    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 6, 0]);
     // Explicit choice.
     await one.overwriteStored();
     expect(one.getState().save.local).toBe('saved');
-    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 8, 0]);
+    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 8, 0]);
     expect(locks.log.every((n) => n === `sgl-project:${id}`)).toBe(true);
   });
 
   it('Save As from a conflicted tab keeps both versions', async () => {
     const { store, one, two, id } = await twoTabs(fakeLocks());
-    move(two, 'b', [2, 1, 0]);
+    move(two, 2, [2, 1, 0]);
     await two.flush();
-    move(one, 'c', [6, 7, 0]);
+    move(one, 3, [6, 7, 0]);
     await one.flush();
     const copy = await one.saveAs('Mine');
     expect(copy.ok).toBe(true);
@@ -341,14 +341,14 @@ describe('two tabs on one project', () => {
     expect(one.getState().save.local).toBe('saved');
     const mine = stored(store, project(one).meta.projectId);
     expect(mine.name).toBe('Mine');
-    expect(mine.scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 7, 0]);
-    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 'b')!.grid).toEqual([2, 1, 0]);
+    expect(mine.scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 7, 0]);
+    expect(stored(store, id).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
   });
 
   it('serialises concurrent writes of both tabs under the lock (the second detects the first)', async () => {
     const { one, two } = await twoTabs(fakeLocks());
-    move(one, 'c', [6, 7, 0]);
-    move(two, 'b', [2, 1, 0]);
+    move(one, 3, [6, 7, 0]);
+    move(two, 2, [2, 1, 0]);
     await Promise.all([one.flush(), two.flush()]);
     const states = [one.getState().save, two.getState().save].map((s) => (s.local === 'blocked' ? s.reason : s.local));
     expect(states.sort()).toEqual(['conflict', 'saved']);
@@ -390,14 +390,14 @@ describe('writes in flight', () => {
     await c.flush();
     const id = project(c).meta.projectId;
     g.gate();
-    move(c, 'c', [6, 7, 0]);
+    move(c, 3, [6, 7, 0]);
     timers.run();
     await tick();
-    move(c, 'c', [6, 8, 0]); // during the write
+    move(c, 3, [6, 8, 0]); // during the write
     const closing = c.close();
     await g.release();
     expect(await closing).toBe(true);
-    expect(stored(g.store, id).scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 8, 0]);
+    expect(stored(g.store, id).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 8, 0]);
   });
 
   it('switching project still writes the previous project’s newest changes', async () => {
@@ -407,18 +407,18 @@ describe('writes in flight', () => {
     await c.flush();
     const a = project(c).meta.projectId;
     g.gate();
-    move(c, 'c', [6, 7, 0]);
+    move(c, 3, [6, 7, 0]);
     timers.run();
     await tick();
-    move(c, 'c', [6, 9, 0]); // during the write
+    move(c, 3, [6, 9, 0]); // during the write
     const opening = c.open(fileOf(), created);
     await g.release();
     await opening;
     await c.flush();
-    expect(stored(g.store, a).scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 9, 0]);
+    expect(stored(g.store, a).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 9, 0]);
     // Restoring A afterwards sees the final copy and saves without a false conflict.
     await c.restore(a);
-    move(c, 'b', [2, 1, 0]);
+    move(c, 2, [2, 1, 0]);
     await c.flush();
     expect(c.getState().save.local).toBe('saved');
   });
@@ -441,17 +441,17 @@ describe('writes in flight', () => {
     await c.flush();
     const a = project(c).meta.projectId;
     g.gate();
-    move(c, 'c', [6, 7, 0]);
+    move(c, 3, [6, 7, 0]);
     timers.run();
     await tick();
     store.records.set(a, 'garbage'); // the stored copy becomes unreadable before the write lands
-    move(c, 'c', [6, 8, 0]);
+    move(c, 3, [6, 8, 0]);
     const opening = c.open(fileOf(), created);
     await g.release();
     const r = await opening;
     expect(r.ok === false && r.needsConfirmation).toBe(true);
     expect(project(c).meta.projectId).toBe(a);
-    expect(gridOf(c, 'c')).toEqual([6, 8, 0]);
+    expect(gridOf(c, 3)).toEqual([6, 8, 0]);
     expect(store.records.get(a)).toBe('garbage');
   });
 
@@ -483,9 +483,9 @@ describe('writes in flight', () => {
     const id = project(one).meta.projectId;
     const two = makeController(store).c;
     await two.restore(id);
-    move(two, 'b', [2, 1, 0]);
+    move(two, 2, [2, 1, 0]);
     await two.flush();
-    move(one, 'c', [6, 7, 0]);
+    move(one, 3, [6, 7, 0]);
     await one.flush();
     expect(one.getState().save.local).toBe('blocked');
     const r = await one.open(fileOf(), created);
@@ -494,7 +494,7 @@ describe('writes in flight', () => {
     const copy = await one.saveAs('Mine');
     expect(copy.ok).toBe(true);
     await one.flush();
-    expect(gridOf(one, 'c')).toEqual([6, 7, 0]);
+    expect(gridOf(one, 3)).toEqual([6, 7, 0]);
     expect(one.getState().save.local).toBe('saved');
     expect(one.hasPendingWork()).toBe(false);
   });
@@ -521,9 +521,9 @@ describe('writes in flight', () => {
     const id = project(one).meta.projectId;
     const two = makeController(store).c;
     await two.restore(id);
-    move(two, 'b', [2, 1, 0]);
+    move(two, 2, [2, 1, 0]);
     await two.flush();
-    move(one, 'c', [6, 7, 0]);
+    move(one, 3, [6, 7, 0]);
     await one.flush();
     store.records.set(id, 'garbage');
     await one.overwriteStored();
@@ -531,10 +531,10 @@ describe('writes in flight', () => {
     expect(s.local === 'blocked' && s.reason).toBe('refused-unreadable');
     // The record becomes readable again (another tab discards and saves): this tab must not overwrite it silently.
     store.records.delete(id);
-    move(two, 'b', [2, 2, 0]);
+    move(two, 2, [2, 2, 0]);
     await two.retrySave();
     await two.flush();
-    move(one, 'c', [6, 8, 0]);
+    move(one, 3, [6, 8, 0]);
     await one.retrySave();
     await one.flush();
     const after = one.getState().save;
@@ -549,7 +549,7 @@ describe('cross-project isolation', () => {
     const { c, store } = makeController();
     const file = fileOf();
     await c.open(file, created);
-    move(c, 'c', [6, 7, 0]);
+    move(c, 3, [6, 7, 0]);
     await c.flush();
     const before = store.records.get(file.projectId);
     const r = await c.open(file, { kind: 'opened-file', label: 'same.json' }, { exported: true });
@@ -566,17 +566,17 @@ describe('cross-project isolation', () => {
     await c.open(fileOf(), created);
     await c.flush();
     const a = project(c).meta.projectId;
-    move(c, 'c', [6, 7, 0]);
+    move(c, 3, [6, 7, 0]);
     await c.open(fileOf(), created);
     const b = project(c).meta.projectId;
-    move(c, 'b', [2, 1, 0]);
+    move(c, 2, [2, 1, 0]);
     await c.flush();
     // Let the previous project's write finish too.
     await new Promise((r) => setTimeout(r, 0));
-    expect(stored(store, a).scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 7, 0]);
-    expect(stored(store, a).scenarios[0]!.design.nodes.find((n) => n.id === 'b')!.grid).toEqual([2, 0, 0]);
-    expect(stored(store, b).scenarios[0]!.design.nodes.find((n) => n.id === 'b')!.grid).toEqual([2, 1, 0]);
-    expect(stored(store, b).scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 6, 0]);
+    expect(stored(store, a).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 7, 0]);
+    expect(stored(store, a).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 0, 0]);
+    expect(stored(store, b).scenarios[0]!.design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
+    expect(stored(store, b).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 6, 0]);
   });
 
   it('Save As stores an independent project; later edits never reach the original', async () => {
@@ -588,7 +588,7 @@ describe('cross-project isolation', () => {
     const originalText = store.records.get(original);
     const copy = await c.saveAs('Copy');
     if (!copy.ok) throw new Error(copy.message);
-    move(c, 'b', [2, 1, 0]);
+    move(c, 2, [2, 1, 0]);
     await c.flush();
     expect(store.records.get(original)).toBe(originalText);
     const copied = stored(store, project(c).meta.projectId);
@@ -619,22 +619,22 @@ describe('export and per-scenario undo through the controller', () => {
     const { c } = makeController();
     await c.open(fileOf(), created);
     const first = project(c).activeScenarioId;
-    move(c, 'c', [6, 7, 0]);
+    move(c, 3, [6, 7, 0]);
     const second = c.duplicateScenario(first);
     if (!second.ok) throw new Error(second.message);
     expect(c.undo()).toBe(false);
-    move(c, 'b', [2, 1, 0]);
+    move(c, 2, [2, 1, 0]);
     c.switchScenario(first);
     expect(c.undo()).toBe(true);
-    expect(gridOf(c, 'c')).toEqual([6, 6, 0]);
+    expect(gridOf(c, 3)).toEqual([6, 6, 0]);
     expect(c.undo()).toBe(false);
     c.switchScenario(second.value);
-    expect(gridOf(c, 'b')).toEqual([2, 1, 0]);
-    expect(gridOf(c, 'c')).toEqual([6, 7, 0]);
+    expect(gridOf(c, 2)).toEqual([2, 1, 0]);
+    expect(gridOf(c, 3)).toEqual([6, 7, 0]);
     expect(c.undo()).toBe(true);
-    expect(gridOf(c, 'b')).toEqual([2, 0, 0]);
+    expect(gridOf(c, 2)).toEqual([2, 0, 0]);
     expect(c.redo()).toBe(true);
-    expect(currentDocument(activeSession(project(c))).design.nodes.find((n) => n.id === 'b')!.grid).toEqual([2, 1, 0]);
+    expect(currentDocument(activeSession(project(c))).design.nodes.find((n) => n.id === 2)!.grid).toEqual([2, 1, 0]);
   });
 
   it('refuses to delete the last scenario through the controller', async () => {
@@ -685,7 +685,7 @@ describe('leaving a project is atomic with respect to edits (I1 audit repair)', 
     g.gate(other);
     const restoring = c.restore(other);
     await tick();
-    const r = c.command({ type: 'set-node-geometry', nodeId: 'c', grid: [6, 9, 0] });
+    const r = c.command({ type: 'set-node-geometry', nodeId: 3, grid: [6, 9, 0] });
     expect(r.ok).toBe(false);
     expect(r.ok === false && r.issues[0]!.message).toBe(BUSY_MESSAGE);
     expect(c.renameProject('Late').ok).toBe(false);
@@ -701,8 +701,8 @@ describe('leaving a project is atomic with respect to edits (I1 audit repair)', 
     expect(serializeProjectFile(stored(g.store, left))).toBe(before);
     expect(c.hasPendingWork()).toBe(false);
     // After the transition editing works again.
-    move(c, 'c', [6, 7, 0]);
-    expect(gridOf(c, 'c')).toEqual([6, 7, 0]);
+    move(c, 3, [6, 7, 0]);
+    expect(gridOf(c, 3)).toEqual([6, 7, 0]);
   });
 
   it('an edit while open() checks the stored id is refused', async () => {
@@ -714,10 +714,10 @@ describe('leaving a project is atomic with respect to edits (I1 audit repair)', 
     g.gate(file.projectId);
     const opening = c.open(file, created);
     await tick();
-    expect(c.command({ type: 'set-node-geometry', nodeId: 'c', grid: [6, 9, 0] }).ok).toBe(false);
+    expect(c.command({ type: 'set-node-geometry', nodeId: 3, grid: [6, 9, 0] }).ok).toBe(false);
     await g.release();
     expect((await opening).ok).toBe(true);
-    expect(gridOf(c, 'c')).toEqual([6, 6, 0]);
+    expect(gridOf(c, 3)).toEqual([6, 6, 0]);
   });
 
   it('Save As copies the state at commit time; edits while it waits are refused', async () => {
@@ -727,18 +727,18 @@ describe('leaving a project is atomic with respect to edits (I1 audit repair)', 
     await c.flush();
     const original = project(c).meta.projectId;
     g.gate();
-    move(c, 'c', [6, 7, 0]);
+    move(c, 3, [6, 7, 0]);
     timers.run();
     await tick(); // a write of the original is running
     const saving = c.saveAs('Copy');
-    expect(c.command({ type: 'set-node-geometry', nodeId: 'c', grid: [6, 9, 0] }).ok).toBe(false);
+    expect(c.command({ type: 'set-node-geometry', nodeId: 3, grid: [6, 9, 0] }).ok).toBe(false);
     await g.release();
     const copy = await saving;
     if (!copy.ok) throw new Error(copy.message);
     expect(project(c).meta.projectId).not.toBe(original);
-    expect(gridOf(c, 'c')).toEqual([6, 7, 0]);
+    expect(gridOf(c, 3)).toEqual([6, 7, 0]);
     await c.flush();
-    expect(stored(g.store, project(c).meta.projectId).scenarios[0]!.design.nodes.find((n) => n.id === 'c')!.grid).toEqual([6, 7, 0]);
+    expect(stored(g.store, project(c).meta.projectId).scenarios[0]!.design.nodes.find((n) => n.id === 3)!.grid).toEqual([6, 7, 0]);
   });
 });
 
@@ -760,7 +760,7 @@ describe('"exported" is remembered beside the stored record (I1 audit repair)', 
     const marks = createMemoryExportMarks();
     const c = controllerWith(store, marks);
     await c.open(fileOf(), created);
-    move(c, 'c', [6, 7, 0]);
+    move(c, 3, [6, 7, 0]);
     await c.flush();
     const id = project(c).meta.projectId;
     expect(isExported(project(c))).toBe(false);
@@ -781,7 +781,7 @@ describe('"exported" is remembered beside the stored record (I1 audit repair)', 
     const r = await d.restore(id);
     expect(r.ok).toBe(true);
     expect(isExported(project(d))).toBe(true);
-    move(d, 'b', [2, 1, 0]);
+    move(d, 2, [2, 1, 0]);
     expect(isExported(project(d))).toBe(false);
     await d.flush();
     await d.close();

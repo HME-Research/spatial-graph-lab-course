@@ -36,7 +36,7 @@ export interface ScenarioContent {
 
 export type ScenarioCommand =
   | DesignCommand
-  | { readonly type: 'set-face-preference'; readonly edgeId: string; readonly preference: FacePreference | null }
+  | { readonly type: 'set-face-preference'; readonly edgeId: number; readonly preference: FacePreference | null }
   | { readonly type: 'add-edge-at-face'; readonly edge: NewRelationship; readonly preference: FacePreference };
 
 const CHECK_TEXT = {
@@ -45,9 +45,9 @@ const CHECK_TEXT = {
   'not-shared': 'the chosen face is not shared by the two rooms of the connection',
 } as const;
 
-function withPreference(prefs: FacePreferences, edgeId: string, preference: FacePreference | null): FacePreferences {
+function withPreference(prefs: FacePreferences, edgeId: number, preference: FacePreference | null): FacePreferences {
   const next: Record<string, FacePreference> = {};
-  for (const [k, v] of Object.entries(prefs)) if (k !== edgeId) next[k] = v;
+  for (const [k, v] of Object.entries(prefs)) if (k !== String(edgeId)) next[k] = v;
   if (preference !== null) next[edgeId] = { nodeId: preference.nodeId, offset: [...preference.offset], direction: preference.direction };
   return next;
 }
@@ -62,9 +62,9 @@ const samePreference = (a: FacePreference, b: FacePreference) =>
 export function prunePreferences(prefs: FacePreferences, doc: Pick<DesignDocumentV2, 'edges'>): FacePreferences {
   const ids = new Set(doc.edges.filter((e) => e.kind === 'access').map((e) => e.id));
   const keys = Object.keys(prefs);
-  if (keys.every((k) => ids.has(k))) return prefs;
+  if (keys.every((k) => ids.has(Number(k)))) return prefs;
   const next: Record<string, FacePreference> = {};
-  for (const k of keys) if (ids.has(k)) next[k] = prefs[k]!;
+  for (const k of keys) if (ids.has(Number(k))) next[k] = prefs[k]!;
   return next;
 }
 
@@ -78,7 +78,7 @@ export function nextPreferences(prefs: FacePreferences, before: DesignDocumentV2
 }
 
 /** Validate `preference` against `doc` for `edgeId`; null when acceptable. */
-function preferenceIssue(doc: DesignDocumentV2, edgeId: string, preference: FacePreference) {
+function preferenceIssue(doc: DesignDocumentV2, edgeId: number, preference: FacePreference) {
   const parsed = facePreferenceSchema.safeParse(preference);
   if (!parsed.success) return issue(['facePreferences', edgeId], 'schema', parsed.error.issues[0]?.message ?? 'invalid face preference');
   const edge = doc.edges.find((e) => e.id === edgeId);
@@ -102,7 +102,7 @@ export function applyScenarioCommand(
   switch (command.type) {
     case 'set-face-preference': {
       const { design, facePreferences } = content;
-      if (!design.edges.some((e) => e.id === command.edgeId)) return fail([issue(['edges'], 'not-found', `edge "${command.edgeId}" does not exist`)]);
+      if (!design.edges.some((e) => e.id === command.edgeId)) return fail([issue(['edges'], 'not-found', `edge ${command.edgeId} does not exist`)]);
       const has = Object.prototype.hasOwnProperty.call(facePreferences, command.edgeId);
       if (command.preference === null) {
         return ok(has ? { design, facePreferences: withPreference(facePreferences, command.edgeId, null) } : content);
@@ -113,13 +113,15 @@ export function applyScenarioCommand(
       return ok({ design, facePreferences: withPreference(facePreferences, command.edgeId, command.preference) });
     }
     case 'add-edge-at-face': {
+      // The new relationship gets the design's next edge id (`add-edge`).
+      const edgeId = content.design.nextEdgeId;
       const added = applyScenarioCommand(content, { type: 'add-edge', edge: command.edge }, options);
       if (!added.ok) return added;
-      const problem = preferenceIssue(added.value.design, command.edge.id, command.preference);
+      const problem = preferenceIssue(added.value.design, edgeId, command.preference);
       if (problem) return fail([problem]);
       return ok({
         design: added.value.design,
-        facePreferences: withPreference(added.value.facePreferences, command.edge.id, command.preference),
+        facePreferences: withPreference(added.value.facePreferences, edgeId, command.preference),
       });
     }
     default: {

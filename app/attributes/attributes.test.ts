@@ -44,7 +44,7 @@ const schema = schemaOf(
 );
 
 const docOf = (attributes: Record<string, unknown>) => {
-  const r = readDesign({ schemaVersion: 2, metadata: { name: 'd' }, nodes: [{ id: 'a', grid: [0, 0, 0], typeId: 'gallery', attributes }], edges: [] });
+  const r = readDesign({ schemaVersion: 2, metadata: { name: 'd' }, nodes: [{ id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes }], edges: [] });
   if (!r.ok) throw new Error('design');
   return r.value.doc;
 };
@@ -296,7 +296,7 @@ describe('custom attributes in Properties', () => {
     renderToStaticMarkup(createElement(CustomAttributes, { collection, item: item as never, schema, run: () => true, onError: () => {}, onManage: () => {} }));
 
   it('lists every project attribute with its effective source; legacy values separately; no identifiers', () => {
-    const html = render('nodes', { id: 'g', typeId: 'gallery', attributes: { capacity: 4, legacy: 'kept' } });
+    const html = render('nodes', { id: 7, typeId: 'gallery', attributes: { capacity: 4, legacy: 'kept' } });
     expect(html).toContain('Capacity');
     expect(html).toContain('set here');
     expect(html).toContain('gallery default');
@@ -307,7 +307,7 @@ describe('custom attributes in Properties', () => {
   });
 
   it('edges show the edge attributes only, and an invalid stored value is flagged but kept', () => {
-    const html = render('edges', { id: 'e', attributes: { weight: 'heavy' } });
+    const html = render('edges', { id: 5, attributes: { weight: 'heavy' } });
     expect(html).toContain('Weight');
     expect(html).not.toContain('Capacity');
     expect(html).toContain('invalid stored value');

@@ -6,6 +6,7 @@ import {
   footprintsOverlap,
   issue,
   ok,
+  relationshipLabel,
   type Result,
   type RoomNode,
   validateDocumentV2,
@@ -58,7 +59,7 @@ export function proposeSpatialEdit(
   const next = validated.value;
   const before = resolve(doc);
   const after = resolve(next);
-  const displaced = new Set<string>();
+  const displaced = new Set<number>();
   for (const cell of footprintCells(moved)) {
     const occupant = before.occupancy.cells.get(gridKey(cell));
     if (occupant?.kind === 'route') displaced.add(occupant.edgeId);
@@ -74,7 +75,7 @@ export function proposeSpatialEdit(
   const needsConfirmation =
     [...displaced].some((id) => !own.has(id)) || (ownBreaks && [...displaced].some((id) => own.has(id))) || (otherBreaks && displaced.size > 0);
   return needsConfirmation
-    ? { status: 'needs-confirmation', next, displacedRoutes: [...displaced].sort(), impacted }
+    ? { status: 'needs-confirmation', next, displacedRoutes: [...displaced].sort((a, b) => a - b), impacted }
     : { status: 'ok', next, impacted };
 }
 
@@ -98,7 +99,7 @@ export function commitSpatialEdit(
             issue(
               ['nodes'],
               'route-displacement',
-              `this would take cells of the connector(s) of ${proposal.displacedRoutes.map((e) => `"${e}"`).join(', ')}; ` +
+              `this would take cells of the connector(s) of ${proposal.displacedRoutes.map((e) => relationshipLabel(proposal.next, e)).join(', ')}; ` +
                 'confirm "Move anyway and recalculate" to continue',
             ),
           ]);

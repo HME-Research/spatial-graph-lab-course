@@ -37,14 +37,14 @@ import {
 } from './index';
 import { AnalysisLegend, RelationshipLegend } from './LegendViews';
 
-const direct = (edgeId: string, kind: 'access' | 'open', contact: 'horizontal' | 'vertical'): EdgeResolution => ({
+const direct = (edgeId: number, kind: 'access' | 'open', contact: 'horizontal' | 'vertical'): EdgeResolution => ({
   edgeId,
   kind,
   status: 'direct',
   contact,
   faces: [],
 });
-const routed = (edgeId: string, style: 'enclosed' | 'covered' | 'deck', cells = 3): EdgeResolution => ({
+const routed = (edgeId: number, style: 'enclosed' | 'covered' | 'deck', cells = 3): EdgeResolution => ({
   edgeId,
   kind: 'access',
   status: 'routed',
@@ -53,12 +53,12 @@ const routed = (edgeId: string, style: 'enclosed' | 'covered' | 'deck', cells = 
     axis: 'x',
     level: 0,
     cells: Array.from({ length: cells }, (_, i) => [i + 1, 0, 0] as const),
-    from: { nodeId: 'a', cell: [0, 0, 0], direction: [1, 0, 0] } as never,
-    to: { nodeId: 'b', cell: [cells + 1, 0, 0], direction: [-1, 0, 0] } as never,
+    from: { nodeId: 1, cell: [0, 0, 0], direction: [1, 0, 0] } as never,
+    to: { nodeId: 2, cell: [cells + 1, 0, 0], direction: [-1, 0, 0] } as never,
     style,
   },
 });
-const unresolved = (edgeId: string, reason: UnresolvedReason): EdgeResolution => ({
+const unresolved = (edgeId: number, reason: UnresolvedReason): EdgeResolution => ({
   edgeId,
   kind: 'open',
   status: 'unresolved',
@@ -143,18 +143,18 @@ describe('vocabulary and line tokens', () => {
 
 describe('relationship presentation', () => {
   it('describes direct, routed and unresolved edges in plain words', () => {
-    const d = presentRelationship(direct('e1', 'access', 'horizontal'));
+    const d = presentRelationship(direct(1, 'access', 'horizontal'));
     expect(d.statusLabel).toBe('Direct');
     expect(d.built).toBe('door in the shared wall');
     expect(d.reason).toBeNull();
-    expect(presentRelationship(direct('e2', 'open', 'vertical')).built).toMatch(/void/);
+    expect(presentRelationship(direct(2, 'open', 'vertical')).built).toMatch(/void/);
 
-    const r = presentRelationship(routed('e3', 'covered', 4));
+    const r = presentRelationship(routed(3, 'covered', 4));
     expect(r.statusLabel).toBe('Connected via route');
     expect(r.built).toBe('Covered walkway (4 cells)');
-    expect(presentRelationship(routed('e4', 'deck', 1)).built).toBe('Open deck (1 cell)');
+    expect(presentRelationship(routed(4, 'deck', 1)).built).toBe('Open deck (1 cell)');
 
-    const u = presentRelationship(unresolved('e5', 'different-level'));
+    const u = presentRelationship(unresolved(5, 'different-level'));
     expect(u.statusLabel).toBe('Unresolved');
     expect(u.line).toEqual(relationshipLine('open', 'unresolved'));
     expect(u.reason).toBe(UNRESOLVED_REASON_TEXT['different-level']);
@@ -163,22 +163,22 @@ describe('relationship presentation', () => {
   });
 
   it('returns null for unknown edge ids', () => {
-    const spatial = spatialOf([direct('e1', 'access', 'horizontal')]);
-    expect(presentEdgeById(spatial, 'e1')?.edgeId).toBe('e1');
-    expect(presentEdgeById(spatial, 'gone')).toBeNull();
+    const spatial = spatialOf([direct(1, 'access', 'horizontal')]);
+    expect(presentEdgeById(spatial, 1)?.edgeId).toBe(1);
+    expect(presentEdgeById(spatial, 99)).toBeNull();
   });
 
   it('summarises statuses in one sentence and lists unresolved ids in order', () => {
     const spatial = spatialOf([
-      direct('e1', 'access', 'horizontal'),
-      unresolved('e9', 'not-aligned'),
-      routed('e2', 'enclosed'),
-      unresolved('e3', 'blocked-by-room'),
-      routed('e4', 'deck'),
+      direct(1, 'access', 'horizontal'),
+      unresolved(9, 'not-aligned'),
+      routed(2, 'enclosed'),
+      unresolved(3, 'blocked-by-room'),
+      routed(4, 'deck'),
     ]);
     const s = summarizeRelationships(spatial);
     expect(s.counts).toEqual({ direct: 1, routed: 2, unresolved: 2 });
-    expect(s.unresolvedIds).toEqual(['e9', 'e3']);
+    expect(s.unresolvedIds).toEqual([9, 3]);
     expect(s.sentence).toBe('5 relationships: 1 direct, 2 via route, 2 unresolved.');
     expect(summarizeRelationships(spatialOf([])).sentence).toBe('No relationships yet.');
     expect(connectorStylesInUse(spatial)).toEqual(['enclosed', 'deck']);
@@ -189,13 +189,13 @@ describe('relationship presentation', () => {
       schemaVersion: 2,
       metadata: { name: 't' },
       nodes: [
-        { id: 'a', grid: [0, 0, 0], typeId: 'x' },
-        { id: 'b', grid: [1, 0, 0], typeId: 'x' },
-        { id: 'c', grid: [5, 5, 1], typeId: 'x' },
+        { id: 1, grid: [0, 0, 0], typeId: 'x' },
+        { id: 2, grid: [1, 0, 0], typeId: 'x' },
+        { id: 3, grid: [5, 5, 1], typeId: 'x' },
       ],
       edges: [
-        { id: 'ab', source: 'a', target: 'b', kind: 'access' },
-        { id: 'ac', source: 'a', target: 'c', kind: 'open' },
+        { id: 1, source: 1, target: 2, kind: 'access' },
+        { id: 2, source: 1, target: 3, kind: 'open' },
       ],
       diagram: { positions: {} },
     };
@@ -203,8 +203,8 @@ describe('relationship presentation', () => {
     expect(doc.ok).toBe(true);
     if (!doc.ok) return;
     const spatial = resolveRelationships(doc.value);
-    expect(presentEdgeById(spatial, 'ab')?.status).toBe('direct');
-    const ac = presentEdgeById(spatial, 'ac')!;
+    expect(presentEdgeById(spatial, 1)?.status).toBe('direct');
+    const ac = presentEdgeById(spatial, 2)!;
     expect(ac.status).toBe('unresolved');
     expect(ac.line).toEqual(relationshipLine('open', 'unresolved'));
     expect(ac.reason).toBe(UNRESOLVED_REASON_TEXT['different-level']);
@@ -264,9 +264,9 @@ describe('view legends', () => {
 describe('analysis presentation', () => {
   const base: AnalysisInput = {
     title: 'Access depth',
-    nodeValues: { a: 0, b: 1, c: 2, d: null },
-    ranOnNodeIds: ['a', 'b', 'c', 'd'],
-    currentNodeIds: ['a', 'b', 'c', 'd'],
+    nodeValues: { 1: 0, 2: 1, 3: 2, 4: null },
+    ranOnNodeIds: [1, 2, 3, 4],
+    currentNodeIds: [1, 2, 3, 4],
     stale: false,
   };
 
@@ -284,26 +284,26 @@ describe('analysis presentation', () => {
     const p = presentAnalysis(base);
     expect(p.valueKind).toBe('numeric');
     expect(p.scale).toEqual({ min: 0, max: 2 });
-    expect(p.colorOf.get('d')).toBe(MISSING_COLOR);
-    expect(p.valueLabelOf.get('d')).toBe('no value');
+    expect(p.colorOf.get(4)).toBe(MISSING_COLOR);
+    expect(p.valueLabelOf.get(4)).toBe('no value');
     expect(p.legend.at(-1)).toMatchObject({ missing: true, count: 1 });
-    expect(new Set([p.colorOf.get('a'), p.colorOf.get('b'), p.colorOf.get('c')]).size).toBe(3);
+    expect(new Set([p.colorOf.get(1), p.colorOf.get(2), p.colorOf.get(3)]).size).toBe(3);
     expect(p.staleMessage).toBeNull();
   });
 
   it('handles unknown ids, deleted nodes, new nodes and non-finite numbers gracefully', () => {
     const p = presentAnalysis({
       ...base,
-      nodeValues: { a: 1, b: Number.POSITIVE_INFINITY, ghost: 5 },
-      currentNodeIds: ['a', 'c', 'new'],
+      nodeValues: { 1: 1, 2: Number.POSITIVE_INFINITY, 9: 5 }, // 9: a node the run never saw
+      currentNodeIds: [1, 3, 5], // 2 deleted, 5 new
       stale: true,
     });
-    expect(p.unknownIds).toEqual(['ghost']);
-    expect(p.deletedIds).toEqual(['b']);
-    expect(p.colorOf.has('ghost')).toBe(false);
-    expect(p.colorOf.get('new')).toBe(MISSING_COLOR);
-    expect(p.valueLabelOf.get('c')).toBe('no value');
-    expect(p.rows.find((r) => r.nodeId === 'b')).toMatchObject({ exists: false, missing: true });
+    expect(p.unknownIds).toEqual([9]);
+    expect(p.deletedIds).toEqual([2]);
+    expect(p.colorOf.has(9)).toBe(false);
+    expect(p.colorOf.get(5)).toBe(MISSING_COLOR);
+    expect(p.valueLabelOf.get(3)).toBe('no value');
+    expect(p.rows.find((r) => r.nodeId === 2)).toMatchObject({ exists: false, missing: true });
     expect(p.stale).toBe(true);
     expect(p.staleMessage).toMatch(/Out of date/);
     expect(p.overlayOpacity).toBeLessThan(presentAnalysis(base).overlayOpacity);
@@ -311,13 +311,13 @@ describe('analysis presentation', () => {
   });
 
   it('handles booleans, categories (1 vs "1") and empty results', () => {
-    const b = presentAnalysis({ ...base, nodeValues: { a: true, b: false, c: true } });
+    const b = presentAnalysis({ ...base, nodeValues: { 1: true, 2: false, 3: true } });
     expect(b.valueKind).toBe('boolean');
     expect(b.legend.map((e) => [e.label, e.count])).toEqual([['yes', 2], ['no', 1], ['no value (unreachable, null or not reported)', 1]]);
-    const c = presentAnalysis({ ...base, nodeValues: { a: 1, b: '1', c: 'x', d: 1 } });
+    const c = presentAnalysis({ ...base, nodeValues: { 1: 1, 2: '1', 3: 'x', 4: 1 } });
     expect(c.valueKind).toBe('categorical');
-    expect(c.colorOf.get('a')).toBe(c.colorOf.get('d'));
-    expect(c.colorOf.get('a')).not.toBe(c.colorOf.get('b'));
+    expect(c.colorOf.get(1)).toBe(c.colorOf.get(4));
+    expect(c.colorOf.get(1)).not.toBe(c.colorOf.get(2));
     const e = presentAnalysis({ ...base, nodeValues: {} });
     expect(e.valueKind).toBe('empty');
     expect(e.legend).toEqual([{ label: 'no value (unreachable, null or not reported)', color: MISSING_COLOR, count: 4, missing: true }]);
@@ -325,13 +325,13 @@ describe('analysis presentation', () => {
 
   it('keeps the selection ring above analysis colours', () => {
     const p = presentAnalysis(base);
-    const sel = analysisNodeStyle('a', p, selectNode('a'));
+    const sel = analysisNodeStyle(1, p, selectNode(1));
     expect(sel.ring).toBe(SELECTION_COLOR);
-    expect(sel.fill).toBe(p.colorOf.get('a'));
-    expect(analysisNodeStyle('b', p, selectNode('a')).ring).toBeNull();
-    expect(analysisNodeStyle('a', p, selectEdge('a')).ring).toBeNull();
-    expect(analysisNodeStyle('a', null, selectNode('a'))).toEqual({ fill: null, fillOpacity: 1, ring: SELECTION_COLOR, valueLabel: null, staleBadge: null });
-    expect(analysisNodeStyle('unknown', p, NO_SELECTION)).toMatchObject({ fill: MISSING_COLOR, valueLabel: 'no value' });
+    expect(sel.fill).toBe(p.colorOf.get(1));
+    expect(analysisNodeStyle(2, p, selectNode(1)).ring).toBeNull();
+    expect(analysisNodeStyle(1, p, selectEdge(1)).ring).toBeNull();
+    expect(analysisNodeStyle(1, null, selectNode(1))).toEqual({ fill: null, fillOpacity: 1, ring: SELECTION_COLOR, valueLabel: null, staleBadge: null });
+    expect(analysisNodeStyle(99, p, NO_SELECTION)).toMatchObject({ fill: MISSING_COLOR, valueLabel: 'no value' });
   });
 
   it('renders a stale analysis legend with a clear action', () => {
@@ -346,9 +346,9 @@ describe('analysis presentation', () => {
 describe('concise validation feedback', () => {
   it('summarises issues with a headline, plain hints and a remainder count', () => {
     const issues = [
-      issue(['nodes', 0, 'id'], 'duplicate-node-id', 'duplicate node id "a"'),
-      issue(['nodes', 1, 'id'], 'duplicate-node-id', 'duplicate node id "a"'),
-      issue(['edges', 0], 'dangling-edge', 'edge "e" references unknown node "z"'),
+      issue(['nodes', 0, 'id'], 'duplicate-node-id', 'duplicate node id 1'),
+      issue(['nodes', 1, 'id'], 'duplicate-node-id', 'duplicate node id 1'),
+      issue(['edges', 0], 'dangling-edge', 'edge 1 references unknown node 9'),
       issue([], 'schema', 'bad'),
       issue(['nodes', 2], 'room-overlap', 'overlap'),
     ];

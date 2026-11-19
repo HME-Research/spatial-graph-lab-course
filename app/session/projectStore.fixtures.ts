@@ -16,15 +16,15 @@ export const twoRooms = (): DesignDocumentV2 =>
     schemaVersion: 2,
     metadata: { name: 'Two rooms' },
     nodes: [
-      { id: 'a', grid: [0, 0, 0], size: [2, 1, 1], typeId: 'gallery' },
-      { id: 'b', grid: [2, 0, 0], typeId: 'studio' },
-      { id: 'c', grid: [6, 6, 0], typeId: 'studio' },
+      { id: 1, grid: [0, 0, 0], size: [2, 1, 1], typeId: 'gallery' },
+      { id: 2, grid: [2, 0, 0], typeId: 'studio' },
+      { id: 3, grid: [6, 6, 0], typeId: 'studio' },
     ],
     edges: [
-      { id: 'ab', source: 'a', target: 'b', kind: 'access' },
-      { id: 'ac', source: 'a', target: 'c', kind: 'access' },
+      { id: 1, source: 1, target: 2, kind: 'access' },
+      { id: 2, source: 1, target: 3, kind: 'access' },
     ],
-    diagram: { positions: { a: [0, 0], b: [100, 0], c: [200, 0] } },
+    diagram: { positions: { 1: [0, 0], 2: [100, 0], 3: [200, 0] } },
   });
 
 let seq = 0;

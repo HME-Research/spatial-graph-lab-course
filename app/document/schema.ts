@@ -3,7 +3,6 @@ import {
   attributesSchema,
   diagramSchema,
   gridSchema,
-  idSchema,
   metadataSchema,
   typeIdSchema,
 } from './primitives';
@@ -21,12 +20,13 @@ import {
 } from './constants';
 
 /**
- * Design document schema v2 — FROZEN Gate 0 contract (structure only; graph and footprint
- * invariants live in validate.ts). See docs/CONTRACTS-V2.md.
+ * Design document schema v2 (structure only; graph and footprint invariants live in
+ * validate.ts). See docs/CONTRACTS-V2.md.
  *
- * - Node `id` is the permanent identity. `displayId` is a short, optional,
- *   user-facing label (e.g. "01"), stored independently and never derived from array order at
- *   render time.
+ * - Node and edge `id`s are plain non-negative integers (P4), the permanent identity and the label
+ *   shown everywhere. New ids come from the counters `nextNodeId` / `nextEdgeId` (`allocate…`), so
+ *   an id is never reused after a delete. Counters missing in a file are filled on read (largest
+ *   id + 1, or 1); they are always written.
  * - `grid` is the room's MINIMUM corner cell [x, y, z] (z up); `size` is [sx, sy, sz], positive
  *   integers. The room occupies every cell grid + [0..sx-1, 0..sy-1, 0..sz-1].
  * - Edge `kind` is relationship intent (`access` | `open`), independent of adjacency.
@@ -37,11 +37,14 @@ import {
  * - `diagram.positions` stay independent 2D diagram coordinates.
  */
 
-const DISPLAY_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,11}$/;
+/** Node and edge ids (P4): whole numbers 0, 1, 2, … */
+export const itemIdSchema = z
+  .int({ error: 'ids must be whole numbers (e.g. 3)' })
+  .min(0, { error: 'ids must not be negative' })
+  .max(Number.MAX_SAFE_INTEGER, { error: 'id is too large' });
 
-export const displayIdSchema = z.string().regex(DISPLAY_ID_PATTERN, {
-  error: 'displayId must be 1–12 letters, digits, "_", "." or "-", starting with a letter or digit (e.g. "01")',
-});
+/** A counter for new ids: the next id to give (never lowered). */
+const idCounterSchema = z.int({ error: 'id counters must be whole numbers' }).min(0, { error: 'id counters must not be negative' }).max(Number.MAX_SAFE_INTEGER);
 
 const sizeIntSchema = z
   .int({ error: 'size components must be integers' })
@@ -73,8 +76,7 @@ export const windowFractionSchema = z
   .max(1, { error: 'windowFraction must be between 0 and 1' });
 
 export const roomNodeSchema = z.strictObject({
-  id: idSchema,
-  displayId: displayIdSchema.optional(),
+  id: itemIdSchema,
   grid: gridSchema,
   size: sizeSchema.default([...DEFAULT_ROOM_SIZE]),
   typeId: typeIdSchema,
@@ -82,9 +84,9 @@ export const roomNodeSchema = z.strictObject({
 });
 
 export const relationshipEdgeSchema = z.strictObject({
-  id: idSchema,
-  source: idSchema,
-  target: idSchema,
+  id: itemIdSchema,
+  source: itemIdSchema,
+  target: itemIdSchema,
   kind: relationshipKindSchema,
   connectorStyle: connectorStyleSchema.optional(),
   attributes: attributesSchema.default({}),
@@ -189,14 +191,32 @@ export const designSettingsSchema = z.strictObject({
   styles: z.record(styleBySchema, styleSetupSchema).default({}),
 });
 
-export const designDocumentV2Schema = z.strictObject({
-  schemaVersion: z.literal(SCHEMA_VERSION_V2),
-  metadata: metadataSchema,
-  nodes: z.array(roomNodeSchema),
-  edges: z.array(relationshipEdgeSchema),
-  diagram: diagramSchema.default({ positions: {} }),
-  settings: designSettingsSchema.default({ styleBy: 'function', styles: {} }),
-});
+/** The counter value that follows every id in `items` (1 for none). */
+export const counterAfter = (items: readonly { readonly id: number }[]): number => items.reduce((n, item) => Math.max(n, item.id + 1), 1);
+
+export const designDocumentV2Schema = z
+  .strictObject({
+    schemaVersion: z.literal(SCHEMA_VERSION_V2),
+    metadata: metadataSchema,
+    /** The id the next new node gets. Optional in a file (filled on read); always written. */
+    nextNodeId: idCounterSchema.optional(),
+    /** The id the next new edge gets. Optional in a file (filled on read); always written. */
+    nextEdgeId: idCounterSchema.optional(),
+    nodes: z.array(roomNodeSchema),
+    edges: z.array(relationshipEdgeSchema),
+    diagram: diagramSchema.default({ positions: {} }),
+    settings: designSettingsSchema.default({ styleBy: 'function', styles: {} }),
+  })
+  .transform(({ nextNodeId, nextEdgeId, ...doc }) => ({
+    schemaVersion: doc.schemaVersion,
+    metadata: doc.metadata,
+    nextNodeId: nextNodeId ?? counterAfter(doc.nodes),
+    nextEdgeId: nextEdgeId ?? counterAfter(doc.edges),
+    nodes: doc.nodes,
+    edges: doc.edges,
+    diagram: doc.diagram,
+    settings: doc.settings,
+  }));
 
 export type RoomSize = z.infer<typeof sizeSchema>;
 export type RoomNode = z.infer<typeof roomNodeSchema>;

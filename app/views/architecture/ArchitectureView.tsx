@@ -135,7 +135,7 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
   const [showRoofs, setShowRoofs] = useRoofsDisplay(true);
   const [fitRequest, setFitRequest] = useState(0);
   const [hovered, setHovered] = useState(false);
-  const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<number | null>(null);
   // A façade module replaces its wall (owner 2026-11-17): the wall and Designer windows of every face
   // a module covers are not drawn. The Building model itself (and the Plan) is unchanged.
   const covered = useMemo(() => new Set(modules.instances.flatMap((i) => i.faceIds)), [modules]);

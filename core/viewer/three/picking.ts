@@ -5,13 +5,13 @@ import { isDeliberateObjectClick } from './interaction';
 /** The pickable item under the pointer. */
 export interface Hover {
   readonly kind: 'node' | 'edge';
-  readonly id: string;
+  readonly id: number;
 }
 
 /** Pointer handlers for a pickable node or edge, following the click-vs-drag rule. */
 export function pickHandlers(
   kind: Hover['kind'],
-  id: string,
+  id: number,
   onSelect: SelectionHandler,
   setHovered: (update: (prev: Hover | null) => Hover | null) => void,
 ) {

@@ -27,10 +27,10 @@ const doc = (() => {
     schemaVersion: 2,
     metadata: { name: 'x' },
     nodes: [
-      { id: 'g', grid: [0, 0, 0], typeId: 'gallery', attributes: { other: 'kept' } },
-      { id: 's', grid: [3, 0, 0], typeId: 'studio' },
+      { id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: { other: 'kept' } },
+      { id: 2, grid: [3, 0, 0], typeId: 'studio' },
     ],
-    edges: [{ id: 'gs', source: 'g', target: 's', kind: 'open' }],
+    edges: [{ id: 1, source: 1, target: 2, kind: 'open' }],
   });
   if (!r.ok) throw new Error('bad');
   return r.value.doc;
@@ -58,7 +58,7 @@ describe('field commands', () => {
   it('refuses invalid values with the field label; edges use set-edge-attributes', () => {
     expect(setNodeFieldCommand(doc.nodes[0]!, capacity, -1)).toEqual({ ok: false, message: '“Capacity” must be a number ≥ 0' });
     const r = setEdgeFieldCommand(doc.edges[0]!, weight, 2);
-    expect(r.ok && r.command).toEqual({ type: 'set-edge-attributes', edgeId: 'gs', attributes: { weight: 2 } });
+    expect(r.ok && r.command).toEqual({ type: 'set-edge-attributes', edgeId: 1, attributes: { weight: 2 } });
   });
 });
 

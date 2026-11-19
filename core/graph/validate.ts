@@ -1,6 +1,6 @@
 import { endpointKey } from './queries';
 import type { Issue, IssuePath } from './result';
-import type { EdgeRecord, Graph } from './types';
+import type { EdgeRecord, Graph, GraphId } from './types';
 
 /** Structural problems a graph value can have, independent of what its nodes mean. */
 export type StructuralIssueCode =
@@ -16,15 +16,15 @@ const at = (path: IssuePath, code: StructuralIssueCode, message: string): Struct
 
 /** Issue builders shared by whole-graph validation and single-edge operations. */
 export const structuralIssue = {
-  duplicateNodeId: (index: number, id: string, firstIndex: number) =>
+  duplicateNodeId: (index: number, id: GraphId, firstIndex: number) =>
     at(['nodes', index, 'id'], 'duplicate-node-id', `duplicate node id "${id}" (first used at nodes[${firstIndex}])`),
-  duplicateEdgeId: (index: number, id: string, firstIndex: number) =>
+  duplicateEdgeId: (index: number, id: GraphId, firstIndex: number) =>
     at(['edges', index, 'id'], 'duplicate-edge-id', `duplicate edge id "${id}" (first used at edges[${firstIndex}])`),
   selfLoop: (index: number, edge: EdgeRecord) =>
     at(['edges', index], 'self-loop', `edge "${edge.id}" connects node "${edge.source}" to itself`),
   dangling: (index: number, edge: EdgeRecord, end: 'source' | 'target') =>
     at(['edges', index, end], 'dangling-edge', `edge "${edge.id}" references missing node "${edge[end]}"`),
-  parallel: (index: number, edge: EdgeRecord, existingId: string) =>
+  parallel: (index: number, edge: EdgeRecord, existingId: GraphId) =>
     at(
       ['edges', index],
       'parallel-edge',
@@ -41,15 +41,15 @@ export function validateGraph(graph: Graph): StructuralIssue[] {
   const { policy } = graph;
   const issues: StructuralIssue[] = [];
 
-  const nodeIndexById = new Map<string, number>();
+  const nodeIndexById = new Map<GraphId, number>();
   graph.nodes.forEach((node, i) => {
     const first = nodeIndexById.get(node.id);
     if (first !== undefined) issues.push(structuralIssue.duplicateNodeId(i, node.id, first));
     else nodeIndexById.set(node.id, i);
   });
 
-  const edgeIndexById = new Map<string, number>();
-  const edgeIdByEndpoints = new Map<string, string>();
+  const edgeIndexById = new Map<GraphId, number>();
+  const edgeIdByEndpoints = new Map<string, GraphId>();
   graph.edges.forEach((edge, i) => {
     const first = edgeIndexById.get(edge.id);
     if (first !== undefined) issues.push(structuralIssue.duplicateEdgeId(i, edge.id, first));

@@ -4,7 +4,7 @@ import type { DesignCommand, DesignPort } from '@app/spatial';
 import type { SelectionHandler } from '@app/views/contracts';
 import type { ProjectViewContext } from '@app/views/project';
 import type { MessageContext } from '@app/ui';
-import { relationshipLabelIn, roomLabelIn } from './propertiesModel';
+import { relationshipLabelIn } from './propertiesModel';
 
 /** Commands the Properties panel sends for any room or relationship. */
 export type SharedCommand = Extract<DesignCommand, { readonly type: 'set-node-type' | 'set-node-attributes' | 'remove-node' | 'remove-edge' }>;
@@ -39,11 +39,11 @@ export function useCommands({ design }: PanelProps) {
 }
 
 /** Labels for messages: the rooms' display labels. */
-export function messageContextFor({ design }: PanelProps, subjectNodeId?: string): MessageContext {
+export function messageContextFor({ design }: PanelProps, subjectNodeId?: number): MessageContext {
   const base: MessageContext = {
-    roomLabel: roomLabelIn(design.doc),
-    relationshipLabel: relationshipLabelIn(design.doc),
-    nodeIdAt: (i) => design.doc.nodes[i]?.id,
+    // Issue messages name ids as text; the id is the room's label.
+    relationshipLabel: (id) => relationshipLabelIn(design.doc)(Number(id)),
+    nodeIdAt: (i) => (design.doc.nodes[i] === undefined ? undefined : String(design.doc.nodes[i]!.id)),
   };
-  return subjectNodeId === undefined ? base : { ...base, subjectNodeId };
+  return subjectNodeId === undefined ? base : { ...base, subjectNodeId: String(subjectNodeId) };
 }

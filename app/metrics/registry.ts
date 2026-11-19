@@ -25,9 +25,9 @@ function signature(doc: DesignDocumentV2, dependency: DocumentDependency): strin
   return (entry[dependency] ??= JSON.stringify(SIGNATURE_TEXT[dependency](doc)));
 }
 
-const idCache = new WeakMap<DesignDocumentV2, { nodes?: ReadonlySet<string>; edges?: ReadonlySet<string> }>();
+const idCache = new WeakMap<DesignDocumentV2, { nodes?: ReadonlySet<number>; edges?: ReadonlySet<number> }>();
 
-function itemIds(doc: DesignDocumentV2, collection: 'nodes' | 'edges'): ReadonlySet<string> {
+function itemIds(doc: DesignDocumentV2, collection: 'nodes' | 'edges'): ReadonlySet<number> {
   let entry = idCache.get(doc);
   if (!entry) idCache.set(doc, (entry = {}));
   return (entry[collection] ??= new Set((collection === 'nodes' ? doc.nodes : doc.edges).map((item) => item.id)));
@@ -47,7 +47,7 @@ interface CacheEntry {
   doc: DesignDocumentV2;
   spatial: SpatialResolution;
   key: DependencyKey;
-  readonly values: Map<string, MetricValue | null>;
+  readonly values: Map<number, MetricValue | null>;
 }
 
 /**
@@ -113,9 +113,9 @@ export function createMetricEvaluator(registry: MetricRegistry = BUILT_IN_METRIC
     return fresh;
   };
 
-  const itemExists = (ctx: MetricContext, metric: ComputedMetric, itemId: string) => itemIds(ctx.doc, metric.collection).has(itemId);
+  const itemExists = (ctx: MetricContext, metric: ComputedMetric, itemId: number) => itemIds(ctx.doc, metric.collection).has(itemId);
 
-  const value = (ctx: MetricContext, metricId: string, itemId: string): MetricValue | null => {
+  const value = (ctx: MetricContext, metricId: string, itemId: number): MetricValue | null => {
     const metric = metricOf(metricId);
     if (!itemExists(ctx, metric, itemId)) return null;
     const entry = entryFor(ctx, metric);

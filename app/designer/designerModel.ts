@@ -289,7 +289,7 @@ export interface DesignerCardRow {
   /** Card title, e.g. "Default", "Gallery (gallery)". */
   readonly name: string;
   /** The rooms this card styles now (each room is in exactly one card). */
-  readonly nodeIds: readonly string[];
+  readonly nodeIds: readonly number[];
   readonly effective: EffectiveLook;
   /** What the window coverage falls back to when the card does not set it, as text. */
   readonly inheritedWindowText: string;
@@ -330,7 +330,7 @@ const cardKey = (group: StyleGroupRef): string =>
 const MIXED_BASE = 0.25;
 
 /** The single toolkit window coverage of these rooms, or null when their functions' defaults differ. */
-function sharedBase(doc: DesignDocumentV2, nodeIds: readonly string[], facade: FacadeProvider): number | null {
+function sharedBase(doc: DesignDocumentV2, nodeIds: readonly number[], facade: FacadeProvider): number | null {
   const ids = new Set(nodeIds);
   const values = new Set(doc.nodes.filter((n) => ids.has(n.id)).map((n) => facade(n.typeId).windowFraction));
   return values.size === 1 ? [...values][0]! : null;
@@ -776,7 +776,7 @@ export const FACADE_PLACEMENT_HELP: Readonly<Record<FacadePlacement, string>> = 
 };
 
 /** One sentence for a function's fit warning, or null (≤ 5 % scaling everywhere). */
-export function distortionMessage(instances: readonly FacadeModuleInstance[], owner: string | ReadonlySet<string>): string | null {
+export function distortionMessage(instances: readonly FacadeModuleInstance[], owner: string | ReadonlySet<number>): string | null {
   const d = distortedModules(instances, owner);
   if (!d) return null;
   const range = (lo: number, hi: number) => (Math.abs(hi - lo) < 0.005 ? `×${lo.toFixed(2)}` : `×${lo.toFixed(2)}–${hi.toFixed(2)}`);
@@ -811,7 +811,7 @@ export const CONNECTOR_STYLE_LABELS: Readonly<Record<ConnectorStyle, string>> = 
 
 /** Read-only summary of the selected relationship, so the Designer can point to Properties. */
 export interface SelectedRelationshipSummary {
-  readonly edgeId: string;
+  readonly edgeId: number;
   /** "01 → 02". */
   readonly label: string;
   readonly style: ConnectorStyle;
@@ -828,7 +828,7 @@ export function selectedRelationship(
   if (selection?.kind !== 'edge') return null;
   const edge = doc.edges.find((e) => e.id === selection.id);
   if (!edge) return null;
-  const labelOf = (id: string) => {
+  const labelOf = (id: number) => {
     const node = doc.nodes.find((n) => n.id === id);
     return node ? nodeLabel(node) : id;
   };

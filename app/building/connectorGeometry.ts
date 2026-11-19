@@ -28,7 +28,7 @@ export type ConnectorPart = 'connector-floor' | 'connector-roof' | 'connector-wa
 export interface ConnectorElement {
   /** Deterministic: `${edgeId}:route:${cellIndex}:${part}:${n}`. */
   readonly id: string;
-  readonly edgeId: string;
+  readonly edgeId: number;
   readonly style: ConnectorStyle;
   readonly part: ConnectorPart;
   /** Route cell this element belongs to (grid space). */
@@ -47,7 +47,7 @@ export interface ConnectorOptions {
   readonly slabThickness?: number;
   readonly postSize?: number;
   /** Effective style of another route by edge id (for walls shared by parallel routes). */
-  readonly styleOfEdge?: (edgeId: string) => ConnectorStyle | undefined;
+  readonly styleOfEdge?: (edgeId: number) => ConnectorStyle | undefined;
 }
 
 export const DEFAULT_POST_SIZE = 0.15;

@@ -5,20 +5,23 @@ import {
   defineToolkit,
   defineSpatialAlgorithm,
   FACE_DIRECTIONS,
+  getEdge,
+  getNode,
+  incidentEdges,
   neighbourCell,
   neighbours,
-  uniqueId,
   type AttributesOf,
   type Graph,
   type GridCoord,
+  type ItemRef,
 } from './index';
 
 const graph: Graph = {
   policy: { directed: false, allowSelfLoops: false, allowParallelEdges: false },
-  nodes: [{ id: 'a' }, { id: 'door-1' }, { id: 'c' }],
+  nodes: [{ id: 1 }, { id: 2 }, { id: 3 }],
   edges: [
-    { id: 'e-1', source: 'a', target: 'door-1' },
-    { id: 'door-2', source: 'door-1', target: 'c' },
+    { id: 1, source: 1, target: 2 },
+    { id: 2, source: 2, target: 3 },
   ],
 };
 
@@ -34,14 +37,21 @@ describe('Student API runtime helpers', () => {
     expect(defineSpatialAlgorithm({ id: 's', label: 'S', run: runT }).scope).toBe('spatial');
   });
 
-  it('uniqueId skips node ids, edge ids and taken ids', () => {
-    expect(uniqueId(graph, 'door')).toBe('door-3');
-    expect(uniqueId(graph, 'door', ['door-3'])).toBe('door-4');
-    expect(uniqueId(graph, 'room')).toBe('room-1');
+  it('re-exports generic queries that work on plain id/endpoint graphs', () => {
+    expect(neighbours(graph, 2)).toEqual([1, 3]);
   });
 
-  it('re-exports generic queries that work on plain id/endpoint graphs', () => {
-    expect(neighbours(graph, 'door-1')).toEqual(['a', 'c']);
+  it('graph helpers take and return whole-number ids', () => {
+    expect(getNode(graph, 3)).toEqual({ id: 3 });
+    expect(getNode(graph, 4)).toBeUndefined();
+    expect(getEdge(graph, 2)).toEqual({ id: 2, source: 2, target: 3 });
+    expect(incidentEdges(graph, 1).map((e) => e.id)).toEqual([1]);
+    expect(neighbours(graph, 1)).toEqual([2]);
+    // Node ids and edge ids are separate sequences: the same number names a node and an edge.
+    expect(getNode(graph, 1)).toEqual({ id: 1 });
+    expect(getEdge(graph, 1)?.target).toBe(2);
+    expectTypeOf(neighbours(graph, 3)).toEqualTypeOf<number[]>();
+    expectTypeOf<ItemRef>().toEqualTypeOf<number | string>();
   });
 
   it('neighbourCell does pure grid arithmetic without mutating its input', () => {

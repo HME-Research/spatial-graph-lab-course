@@ -29,7 +29,7 @@ export type ColorMode =
  */
 export interface MetricColorSource {
   readonly metrics: readonly Pick<ComputedMetric, 'id' | 'label' | 'unit' | 'valueKind'>[];
-  values(metricId: string): ReadonlyMap<string, MetricValue | null>;
+  values(metricId: string): ReadonlyMap<number, MetricValue | null>;
 }
 
 /**
@@ -81,9 +81,9 @@ export interface LegendEntry {
 
 export interface Coloring {
   readonly title: string;
-  readonly colorOf: ReadonlyMap<string, string>;
+  readonly colorOf: ReadonlyMap<number, string>;
   /** Nodes with no value for the chosen attribute. */
-  readonly missing: ReadonlySet<string>;
+  readonly missing: ReadonlySet<number>;
   readonly legend: readonly LegendEntry[];
   /** Present for numeric attributes: draw a gradient bar from min to max. */
   readonly scale?: { readonly min: number; readonly max: number };
@@ -185,7 +185,7 @@ function byAttribute(nodes: readonly ColorNode[], key: string): Coloring {
 function byMetric(
   nodes: readonly ColorNode[],
   metric: Pick<ComputedMetric, 'id' | 'label' | 'unit' | 'valueKind'>,
-  values: ReadonlyMap<string, MetricValue | null>,
+  values: ReadonlyMap<number, MetricValue | null>,
 ): Coloring {
   return byValues(
     nodes,
@@ -213,8 +213,8 @@ function byValues(
   title: string,
   options: ValueOptions,
 ): Coloring {
-  const missing = new Set<string>();
-  const present: { id: string; value: Exclude<AttributeValue, null> }[] = [];
+  const missing = new Set<number>();
+  const present: { id: number; value: Exclude<AttributeValue, null> }[] = [];
   for (const n of nodes) {
     const v = valueOf(n);
     if (v === undefined || v === null) missing.add(n.id);
@@ -223,7 +223,7 @@ function byValues(
   const missingEntry: LegendEntry[] = missing.size
     ? [{ label: 'no value (missing or null)', color: MISSING_COLOR, count: missing.size, missing: true }]
     : [];
-  const colorOf = new Map<string, string>([...missing].map((id) => [id, MISSING_COLOR] as const));
+  const colorOf = new Map<number, string>([...missing].map((id) => [id, MISSING_COLOR] as const));
 
   const numbers = present.every((p) => typeof p.value === 'number');
   if (numbers && present.length > 0) {

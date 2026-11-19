@@ -35,15 +35,15 @@ export function createMetricReader(
 
   return Object.freeze({
     list: () => infos,
-    value(metricId: string, itemId: string) {
+    value(metricId: string, itemId: number) {
       const metric = typeof metricId === 'string' ? byId.get(metricId) : undefined;
       if (!metric) {
         throw fail('unknown-metric', `metrics.value: there is no calculated value "${String(metricId)}" (see ctx.metrics.list())`);
       }
       const ids = metric.collection === 'nodes' ? nodeIds : edgeIds;
-      if (typeof itemId !== 'string' || !ids.has(itemId)) {
+      if (typeof itemId !== 'number' || !ids.has(itemId)) {
         const what = metric.collection === 'nodes' ? 'node' : 'edge';
-        throw fail('unknown-node-reference', `metrics.value: "${metricId}" is a ${what} value and there is no ${what} "${String(itemId)}"`);
+        throw fail('unknown-node-reference', `metrics.value: "${metricId}" is a ${what} value and there is no ${what} ${String(itemId)}`);
       }
       ctx ??= { doc, spatial: spatial ?? resolveRelationships(doc) };
       return evaluator.value(ctx, metric.id, itemId);

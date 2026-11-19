@@ -72,16 +72,16 @@ export function labDoc(): DesignDocumentV2 {
       schemaVersion: 2,
       metadata: { name: 'Lab' },
       nodes: [
-        { id: 'g1', grid: [0, 0, 0], typeId: 'gallery', attributes: { daylight: 'high', public: true } },
-        { id: 'g2', grid: [1, 0, 0], typeId: 'gallery', attributes: { daylight: 'bright', legacy: 'kept' } },
-        { id: 's1', grid: [0, 1, 0], typeId: 'studio', attributes: { occupancy: 4 } },
-        { id: 'k1', grid: [5, 5, 0], typeId: 'kiosk', attributes: {} },
+        { id: 1, grid: [0, 0, 0], typeId: 'gallery', attributes: { daylight: 'high', public: true } },
+        { id: 2, grid: [1, 0, 0], typeId: 'gallery', attributes: { daylight: 'bright', legacy: 'kept' } },
+        { id: 3, grid: [0, 1, 0], typeId: 'studio', attributes: { occupancy: 4 } },
+        { id: 4, grid: [5, 5, 0], typeId: 'kiosk', attributes: {} },
       ],
       edges: [
-        { id: 'e1', source: 'g1', target: 'g2', kind: 'access', attributes: { width: 0.9 } },
-        { id: 'e2', source: 'g1', target: 's1', kind: 'open', attributes: {} },
+        { id: 1, source: 1, target: 2, kind: 'access', attributes: { width: 0.9 } },
+        { id: 2, source: 1, target: 3, kind: 'open', attributes: {} },
       ],
-      diagram: { positions: { g1: [0, 0] } },
+      diagram: { positions: { 1: [0, 0] } },
     }),
   );
 }

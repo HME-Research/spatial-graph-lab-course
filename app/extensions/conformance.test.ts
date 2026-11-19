@@ -34,26 +34,26 @@ describe('conformance', () => {
     const project = await labToolkit();
     const ds = checkConformance(labDoc(), project);
     expect(ds.map((d) => [d.id, d.severity])).toEqual([
-      ['invalid-attribute-value|node:g2|daylight', 'warning'],
-      ['undeclared-attribute|node:g2|legacy', 'info'],
-      ['unknown-node-type|node:k1', 'warning'],
+      ['invalid-attribute-value|node:2|daylight', 'warning'],
+      ['undeclared-attribute|node:2|legacy', 'info'],
+      ['unknown-node-type|node:4', 'warning'],
       // Phase 02: edges are checked against the project's edge fields (the lab project has none).
-      ['undeclared-attribute|edge:e1|width', 'info'],
+      ['undeclared-attribute|edge:1|width', 'info'],
     ]);
   });
 
   it('missing declared attributes produce no diagnostic', async () => {
     const project = await labToolkit();
     const doc = labDoc();
-    expect(checkConformance(doc, project).some((d) => d.subject.kind === 'node' && d.subject.id === 's1')).toBe(false);
+    expect(checkConformance(doc, project).some((d) => d.subject.kind === 'node' && d.subject.id === 3)).toBe(false);
   });
 
   it('marks nodes of a broken type as errors and skips their attribute checks', async () => {
     const project = await labToolkit({ 'toolkits/lab/types/gallery.ts': { default: { id: 'gallery', label: '' } } });
     const ds = checkConformance(labDoc(), project);
     expect(ds.filter((d) => d.code === 'broken-node-type').map((d) => [d.id, d.severity])).toEqual([
-      ['broken-node-type|node:g1', 'error'],
-      ['broken-node-type|node:g2', 'error'],
+      ['broken-node-type|node:1', 'error'],
+      ['broken-node-type|node:2', 'error'],
     ]);
     expect(ds.some((d) => d.code === 'invalid-attribute-value')).toBe(false);
   });
@@ -74,7 +74,7 @@ describe('conformance', () => {
     const ids = (d: typeof doc) => checkConformance(d, project).map((x) => x.id).sort();
     const reordered = { ...doc, nodes: [...doc.nodes].reverse() };
     const extended = expectOk(
-      validateDocumentV2({ ...doc, nodes: [{ id: 'aa', grid: [9, 9, 0], typeId: 'studio', attributes: {} }, ...doc.nodes] }),
+      validateDocumentV2({ ...doc, nextNodeId: 100, nodes: [{ id: 99, grid: [9, 9, 0], typeId: 'studio', attributes: {} }, ...doc.nodes] }),
     );
     expect(ids(reordered)).toEqual(ids(doc));
     expect(ids(extended)).toEqual(ids(doc));
@@ -90,18 +90,18 @@ describe('conformance', () => {
 });
 
 describe('conformance non-regression (identity-based)', () => {
-  const d = (code: 'invalid-attribute-value' | 'undeclared-attribute', id: string, severity: 'warning' | 'info' = 'warning') =>
+  const d = (code: 'invalid-attribute-value' | 'undeclared-attribute', id: number, severity: 'warning' | 'info' = 'warning') =>
     diagnostic(code, severity, { kind: 'node', id }, `${code} ${id}`, { attribute: 'x' });
 
   it('flags a new blocking identity even when the total count is unchanged', () => {
-    const before = [d('invalid-attribute-value', 'a')];
-    const after = [d('invalid-attribute-value', 'b')];
-    expect(findRegressions(before, after).map((r) => r.id)).toEqual(['invalid-attribute-value|node:b|x']);
+    const before = [d('invalid-attribute-value', 1)];
+    const after = [d('invalid-attribute-value', 2)];
+    expect(findRegressions(before, after).map((r) => r.id)).toEqual(['invalid-attribute-value|node:2|x']);
   });
 
   it('tolerates persisting diagnostics (reordered, reworded) and ignores information', () => {
-    const before = [d('invalid-attribute-value', 'a'), d('invalid-attribute-value', 'b')];
-    const after = [{ ...d('invalid-attribute-value', 'b'), message: 'reworded' }, d('undeclared-attribute', 'c', 'info')];
+    const before = [d('invalid-attribute-value', 1), d('invalid-attribute-value', 2)];
+    const after = [{ ...d('invalid-attribute-value', 2), message: 'reworded' }, d('undeclared-attribute', 3, 'info')];
     expect(findRegressions(before, after)).toEqual([]);
   });
 });

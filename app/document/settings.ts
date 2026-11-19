@@ -131,7 +131,7 @@ export function effectiveLook(setup: StyleSetup, ref: StyleGroupRef, base: Proje
 }
 
 /** Node id → value of the styling attribute, for attributes the document cannot read itself. */
-export type StyleValues = ReadonlyMap<string, unknown>;
+export type StyleValues = ReadonlyMap<number, unknown>;
 
 /** The value of `by` for one room: Function and Level from the document; anything else from `values`. */
 export function styleValueOfNode(node: Pick<RoomNode, 'id' | 'typeId' | 'grid'>, by: StyleBy, values?: StyleValues): unknown {
@@ -153,10 +153,10 @@ export function nodeLooks(
   doc: Pick<DesignDocumentV2, 'nodes' | 'settings'>,
   base: (typeId: string) => ProjectTypeDefaults,
   values?: StyleValues,
-): Map<string, NodeLook> {
+): Map<number, NodeLook> {
   const by = doc.settings.styleBy;
   const setup = styleSetupOf(doc.settings, by);
-  const out = new Map<string, NodeLook>();
+  const out = new Map<number, NodeLook>();
   for (const node of doc.nodes) {
     const group = groupOfValue(setup, styleValueOfNode(node, by, values));
     out.set(node.id, { group, look: effectiveLook(setup, group, base(node.typeId)) });

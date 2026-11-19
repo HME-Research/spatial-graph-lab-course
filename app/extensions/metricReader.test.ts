@@ -14,6 +14,8 @@ import { expectDiagnostic, expectExtOk, labDoc, labToolkit } from './test-fixtur
 
 const ALG = 'toolkits/lab/algorithms/m.ts';
 
+// metricsLabDoc(): hall 1, shop 2, cafe 3, kiosk 4, loft 5; edges e1..e5 = 1..5. labDoc(): g1 = 1.
+
 async function withAlgorithm(run: (ctx: SpatialAlgorithmContext) => readonly SpatialOperation[] | void) {
   return labToolkit({
     [ALG]: {
@@ -52,7 +54,7 @@ describe('ctx.metrics in spatial algorithms', () => {
     const preview = expectExtOk(runAlgorithmV2(doc, project, 'daylight-from-facade'));
     if (preview.kind !== 'transformation') throw new Error('expected a transformation');
     const daylight = Object.fromEntries(preview.preview.after.nodes.filter((n) => n.typeId === 'gallery').map((n) => [n.id, n.attributes.daylight]));
-    expect(daylight).toEqual({ hall: 'high', loft: 'medium' }); // 45 m and 12 m
+    expect(daylight).toEqual({ 1: 'high', 5: 'medium' }); // hall 45 m and loft 12 m
   });
 
   it('list() describes every catalogue metric (frozen), value() reads nodes and edges', async () => {
@@ -61,13 +63,13 @@ describe('ctx.metrics in spatial algorithms', () => {
     const project = await withAlgorithm((ctx) => {
       list = ctx.metrics.list();
       read = {
-        area: ctx.metrics.value('area', 'hall'),
-        volume: ctx.metrics.value('volume', 'hall'),
-        facade: ctx.metrics.value('has-exterior-facade', 'kiosk'),
-        unresolved: ctx.metrics.value('unresolved-connections', 'loft'),
-        status: ctx.metrics.value('resolution-status', 'e2'),
-        route: ctx.metrics.value('route-length', 'e2'),
-        none: ctx.metrics.value('route-length', 'e4'),
+        area: ctx.metrics.value('area', 1),
+        volume: ctx.metrics.value('volume', 1),
+        facade: ctx.metrics.value('has-exterior-facade', 4),
+        unresolved: ctx.metrics.value('unresolved-connections', 5),
+        status: ctx.metrics.value('resolution-status', 2),
+        route: ctx.metrics.value('route-length', 2),
+        none: ctx.metrics.value('route-length', 4),
       };
     });
     expectExtOk(runAlgorithmV2(metricsLabDoc(), project, 'm'));
@@ -87,29 +89,31 @@ describe('ctx.metrics in spatial algorithms', () => {
 
   it('uses the host resolution when given (face preferences), else resolves the document', async () => {
     const seen: unknown[] = [];
-    const project = await withAlgorithm((ctx) => void seen.push(ctx.metrics.value('resolution-status', 'e1')));
+    const project = await withAlgorithm((ctx) => void seen.push(ctx.metrics.value('resolution-status', 1)));
     const doc = metricsLabDoc();
     expectExtOk(runAlgorithmV2(doc, project, 'm'));
-    const spatial = resolveWithPreferences(doc, { e1: { nodeId: 'hall', offset: [0, 0, 0], direction: '-x' } });
+    const spatial = resolveWithPreferences(doc, { 1: { nodeId: 1, offset: [0, 0, 0], direction: '-x' } });
     expectExtOk(runAlgorithmV2(doc, project, 'm', undefined, { spatial }));
     expect(seen).toEqual(['direct', 'unresolved']);
   });
 
   it('works for schema-v1 runs (read through the migrated copy)', async () => {
     let area: unknown;
-    const project = await withAlgorithm((ctx) => void (area = ctx.metrics.value('area', 'g1')));
+    const project = await withAlgorithm((ctx) => void (area = ctx.metrics.value('area', 1)));
     expectExtOk(runAlgorithmV2(labDoc(), project, 'm'));
     expect(area).toBe(9);
   });
 
-  it('fails the run with a diagnostic for an unknown metric or item, or the wrong collection', async () => {
+  it('fails the run with a diagnostic for an unknown metric, or an id missing from the metric’s collection', async () => {
     const run = async (body: (ctx: SpatialAlgorithmContext) => unknown) => {
       const project = await withAlgorithm((ctx) => void body(ctx));
       return runAlgorithmV2(metricsLabDoc(), project, 'm');
     };
-    expect(expectDiagnostic(await run((c) => c.metrics.value('daylight', 'hall')), 'unknown-metric').message).toMatch(/no calculated value "daylight"/);
-    expect(expectDiagnostic(await run((c) => c.metrics.value('area', 'nope')), 'unknown-node-reference').message).toMatch(/no node "nope"/);
-    expect(expectDiagnostic(await run((c) => c.metrics.value('route-length', 'hall')), 'unknown-node-reference').message).toMatch(/edge value/);
+    expect(expectDiagnostic(await run((c) => c.metrics.value('daylight', 1)), 'unknown-metric').message).toMatch(/no calculated value "daylight"/);
+    expect(expectDiagnostic(await run((c) => c.metrics.value('area', 99)), 'unknown-node-reference').message).toMatch(/no node 99/);
+    expect(expectDiagnostic(await run((c) => c.metrics.value('route-length', 99)), 'unknown-node-reference').message).toMatch(/edge value and there is no edge 99/);
+    // The metric decides the collection: the same number reads edge 1 for an edge metric, node 1 for a node metric.
+    expectExtOk(await run((c) => c.metrics.value('route-length', 1)));
   });
 
   it('reading metrics never changes the document', async () => {

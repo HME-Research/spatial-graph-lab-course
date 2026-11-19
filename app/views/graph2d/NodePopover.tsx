@@ -113,7 +113,6 @@ export function popoverRows(
   options: { readonly brokenType: boolean; readonly typeName?: string; readonly attributeKeys: readonly string[] },
 ): readonly PopoverRow[] {
   const rows: PopoverRow[] = [];
-  if (node.label !== node.id) rows.push({ label: 'Permanent id', value: node.id });
   rows.push({ label: 'Type', value: options.brokenType ? node.typeId : (options.typeName ?? node.typeId) });
   if (options.brokenType) rows.push({ label: 'Warning', value: 'This type’s definition in the project is invalid.', tone: 'warning' });
   rows.push({ label: 'Placement', value: describePlacement(node) });

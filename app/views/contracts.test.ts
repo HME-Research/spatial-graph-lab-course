@@ -6,11 +6,11 @@ import { NO_SELECTION, reconcileSelection, selectEdge, selectNode } from '@core/
 describe('selection against the design document', () => {
   it('reconcileSelection keeps valid selections by identity and drops removed ones', () => {
     const doc = threeRooms();
-    const sel = selectNode('a');
+    const sel = selectNode(1);
     expect(reconcileSelection(sel, doc)).toBe(sel);
-    expect(reconcileSelection(sel, expectOk(applyDesignCommand(doc, { type: 'remove-node', nodeId: 'a' })))).toBe(NO_SELECTION);
-    const edge = selectEdge('ab');
+    expect(reconcileSelection(sel, expectOk(applyDesignCommand(doc, { type: 'remove-node', nodeId: 1 })))).toBe(NO_SELECTION);
+    const edge = selectEdge(1);
     expect(reconcileSelection(edge, doc)).toBe(edge);
-    expect(reconcileSelection(edge, expectOk(applyDesignCommand(doc, { type: 'remove-edge', edgeId: 'ab' })))).toBe(NO_SELECTION);
+    expect(reconcileSelection(edge, expectOk(applyDesignCommand(doc, { type: 'remove-edge', edgeId: 1 })))).toBe(NO_SELECTION);
   });
 });

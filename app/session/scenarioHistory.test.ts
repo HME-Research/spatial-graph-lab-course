@@ -12,21 +12,21 @@ import {
   type DocumentSession,
 } from './documentSession';
 
-/** a–b touch (direct); c and d are on far storeys, so ac and ad are unresolved. */
+/** a=1, b=2 touch (direct); c=3 and d=4 are on far storeys, so ac=1 and ad=2 are unresolved. */
 const doc = (): DesignDocumentV2 =>
   expectOk(
     validateDocumentV2({
       schemaVersion: 2,
       metadata: { name: 't' },
       nodes: [
-        { id: 'a', grid: [0, 0, 0], size: [1, 3, 1], typeId: 'room' },
-        { id: 'b', grid: [1, 0, 0], size: [1, 3, 1], typeId: 'room' },
-        { id: 'c', grid: [5, 5, 3], typeId: 'room' },
-        { id: 'd', grid: [9, 9, 6], typeId: 'room' },
+        { id: 1, grid: [0, 0, 0], size: [1, 3, 1], typeId: 'room' },
+        { id: 2, grid: [1, 0, 0], size: [1, 3, 1], typeId: 'room' },
+        { id: 3, grid: [5, 5, 3], typeId: 'room' },
+        { id: 4, grid: [9, 9, 6], typeId: 'room' },
       ],
       edges: [
-        { id: 'ac', source: 'a', target: 'c', kind: 'access' },
-        { id: 'ad', source: 'a', target: 'd', kind: 'access' },
+        { id: 1, source: 1, target: 3, kind: 'access' },
+        { id: 2, source: 1, target: 4, kind: 'access' },
       ],
     }),
   );
@@ -34,7 +34,7 @@ const doc = (): DesignDocumentV2 =>
 describe('remove-edges history', () => {
   it('is one labelled step, and one undo restores every removed edge', () => {
     const start = openDocument(doc(), 'test', null);
-    const r = applyDesignCommandToSession(start, { type: 'remove-edges', edgeIds: ['ac', 'ad'] });
+    const r = applyDesignCommandToSession(start, { type: 'remove-edges', edgeIds: [1, 2] });
     if (!r.ok) throw new Error(r.issues.map((i) => i.message).join('; '));
     expect(currentDocument(r.session).edges).toEqual([]);
     expect(undoLabel(r.session.history)).toBe('Remove 2 invalid connections');
@@ -45,7 +45,7 @@ describe('remove-edges history', () => {
 
   it('a refused removal records nothing', () => {
     const start = openDocument(doc(), 'test', null);
-    expect(applyDesignCommandToSession(start, { type: 'remove-edges', edgeIds: ['ac', 'ac'] }).ok).toBe(false);
+    expect(applyDesignCommandToSession(start, { type: 'remove-edges', edgeIds: [1, 1] }).ok).toBe(false);
     expect(canUndo(start.history)).toBe(false);
   });
 });
@@ -56,13 +56,13 @@ describe('scenario content history', () => {
     const next = expectOk(
       applyScenarioCommand(currentDocument(session), {
         type: 'add-edge-at-face',
-        edge: { id: 'ab', source: 'a', target: 'b' },
-        preference: { nodeId: 'a', offset: [0, 2, 0], direction: '+x' },
+        edge: { source: 1, target: 2 },
+        preference: { nodeId: 1, offset: [0, 2, 0], direction: '+x' },
       }),
     );
     session = commitDocument(session, next, 'Add connection');
-    expect(currentDocument(session).design.edges.map((e) => e.id)).toContain('ab');
-    expect(currentDocument(session).facePreferences).toHaveProperty('ab');
+    expect(currentDocument(session).design.edges.map((e) => e.id)).toContain(3) // the new edge gets nextEdgeId;
+    expect(currentDocument(session).facePreferences).toHaveProperty('3');
     const undone = undoDocument(session);
     expect(currentDocument(undone)).toEqual({ design: doc(), facePreferences: {} });
     expect(canUndo(undone.history)).toBe(false);

@@ -27,18 +27,18 @@ async function transforming(operations: readonly SpatialOperation[] | ((ctx: Spa
   });
 }
 
-/** Lab rooms in v2: a 2×2×1 gallery g1, gallery g2 east of it, studio s1 far away on storey 0. */
+/** Lab rooms in v2: a 2×2×1 gallery 1, gallery 2 east of it, studio 3 far away on storey 0; access edge 1 (1–2). */
 function labV2(): DesignDocumentV2 {
   return expectOk(
     validateDocumentV2({
       schemaVersion: 2,
       metadata: { name: 'Lab v2' },
       nodes: [
-        { id: 'g1', displayId: '01', grid: [0, 0, 0], size: [2, 2, 1], typeId: 'gallery', attributes: { daylight: 'high' } },
-        { id: 'g2', displayId: '02', grid: [2, 1, 0], typeId: 'gallery', attributes: {} },
-        { id: 's1', displayId: '03', grid: [0, 5, 0], typeId: 'studio', attributes: {} },
+        { id: 1, grid: [0, 0, 0], size: [2, 2, 1], typeId: 'gallery', attributes: { daylight: 'high' } },
+        { id: 2, grid: [2, 1, 0], typeId: 'gallery', attributes: {} },
+        { id: 3, grid: [0, 5, 0], typeId: 'studio', attributes: {} },
       ],
-      edges: [{ id: 'e1', source: 'g1', target: 'g2', kind: 'access', attributes: {} }],
+      edges: [{ id: 1, source: 1, target: 2, kind: 'access', attributes: {} }],
     }),
   );
 }
@@ -49,20 +49,20 @@ describe('spatial context on a v2 document', () => {
     const project = await transforming((ctx) => ((seen = ctx), []));
     expectExtOk(runAlgorithmV2(labV2(), project, 't'));
     const ctx = seen!;
-    expect(ctx.nodeAt([1, 1, 0])).toBe('g1');
+    expect(ctx.nodeAt([1, 1, 0])).toBe(1);
     expect(ctx.nodeAt([2, 0, 0])).toBeUndefined();
     expect(ctx.design.nodes[0]!.size).toEqual([2, 2, 1]);
     expect(roomCells(ctx.design.nodes[0]!)).toHaveLength(4);
     // touches: direct contact between rooms (multi-cell aware).
-    expect(ctx.touches('g1', 'g2')).toBe(true);
-    expect(ctx.touches('g1', 's1')).toBe(false);
-    expect(ctx.touches('g1', 'g1')).toBe(false);
-    expect(ctx.touches('g1', 'ghost')).toBe(false);
+    expect(ctx.touches(1, 2)).toBe(true);
+    expect(ctx.touches(1, 3)).toBe(false);
+    expect(ctx.touches(1, 1)).toBe(false);
+    expect(ctx.touches(1, 99)).toBe(false); // no such room
     // canRelate: may a relationship be created (no adjacency needed).
-    expect(ctx.canRelate('g1', 's1')).toBe(true);
-    expect(ctx.canRelate('g2', 'g1')).toBe(false); // already related
-    expect(ctx.canRelate('g1', 'g1')).toBe(false);
-    expect(ctx.canRelate('g1', 'ghost')).toBe(false);
+    expect(ctx.canRelate(1, 3)).toBe(true);
+    expect(ctx.canRelate(2, 1)).toBe(false); // already related
+    expect(ctx.canRelate(1, 1)).toBe(false);
+    expect(ctx.canRelate(1, 99)).toBe(false);
     // The retired schema-v1 cell query is gone (P4).
     expect(Object.keys(ctx).some((k) => k.startsWith('canConn'))).toBe(false);
   });
@@ -70,63 +70,113 @@ describe('spatial context on a v2 document', () => {
 
 describe('transformations on a v2 document', () => {
   it('adds a relationship between rooms that do not touch (valid; spatial status is derived)', async () => {
-    const project = await transforming([{ op: 'add-edge', id: 'e2', source: 'g1', target: 's1', kind: 'access' }]);
+    const project = await transforming([{ op: 'add-edge', source: 1, target: 3, kind: 'access' }]);
     const outcome = expectExtOk(runAlgorithmV2(labV2(), project, 't'));
     if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
-    expect(outcome.preview.after.edges.at(-1)).toEqual({ id: 'e2', source: 'g1', target: 's1', kind: 'access', attributes: {} });
-    expect(resolveRelationships(outcome.preview.after).byEdge.get('e2')!.status).toBe('routed');
+    expect(outcome.preview.after.edges.at(-1)).toEqual({ id: 2, source: 1, target: 3, kind: 'access', attributes: {} });
+    expect(resolveRelationships(outcome.preview.after).byEdge.get(2)!.status).toBe('routed');
   });
 
   it.each(['door', 'vertical-access', 'atrium'])('refuses the retired schema-v1 kind %s (P4)', async (legacy) => {
-    const project = await transforming([{ op: 'add-edge', id: 'e2', source: 'g1', target: 's1', kind: legacy as never }]);
+    const project = await transforming([{ op: 'add-edge', source: 1, target: 3, kind: legacy as never }]);
     expectDiagnostic(runAlgorithmV2(labV2(), project, 't'), 'unknown-edge-kind');
   });
 
   it('rejects unknown kinds, overlapping rooms and invalid sizes', async () => {
     const run = async (op: SpatialOperation) => runAlgorithmV2(labV2(), await transforming([op]), 't');
-    expectDiagnostic(await run({ op: 'add-edge', id: 'x', source: 'g1', target: 's1', kind: 'stair' as never }), 'unknown-edge-kind');
+    expectDiagnostic(await run({ op: 'add-edge', source: 1, target: 3, kind: 'stair' as never }), 'unknown-edge-kind');
     expect(
-      expectDiagnostic(await run({ op: 'add-node', id: 'n', grid: [1, -1, 0], size: [1, 2, 1], typeId: 'gallery' }), 'occupied-cell').message,
-    ).toContain('"g1"');
-    expectDiagnostic(await run({ op: 'add-node', id: 'n', grid: [9, 9, 0], size: [0, 1, 1], typeId: 'gallery' }), 'invalid-size');
-    expectDiagnostic(await run({ op: 'add-node', id: 'n', grid: [9, 9, 0], size: [1.5, 1, 1], typeId: 'gallery' }), 'invalid-size');
+      expectDiagnostic(await run({ op: 'add-node', grid: [1, -1, 0], size: [1, 2, 1], typeId: 'gallery' }), 'occupied-cell').message,
+    ).toContain('occupied by node 1');
+    expectDiagnostic(await run({ op: 'add-node', grid: [9, 9, 0], size: [0, 1, 1], typeId: 'gallery' }), 'invalid-size');
+    expectDiagnostic(await run({ op: 'add-node', grid: [9, 9, 0], size: [1.5, 1, 1], typeId: 'gallery' }), 'invalid-size');
   });
 
-  it('adds a multi-cell room with the next display id', async () => {
-    const project = await transforming([{ op: 'add-node', id: 'n', grid: [5, 0, 0], size: [2, 3, 1], typeId: 'gallery' }]);
+  it('adds a multi-cell room with the next node id from the counter', async () => {
+    const project = await transforming([{ op: 'add-node', grid: [5, 0, 0], size: [2, 3, 1], typeId: 'gallery' }]);
     const outcome = expectExtOk(runAlgorithmV2(labV2(), project, 't'));
     expect(outcome.kind === 'transformation' && outcome.preview.after.nodes.at(-1)).toEqual({
-      id: 'n',
-      displayId: '04',
+      id: 4,
       grid: [5, 0, 0],
       size: [2, 3, 1],
       typeId: 'gallery',
       attributes: {},
     });
+    expect(outcome.kind === 'transformation' && outcome.preview.after.nextNodeId).toBe(5);
     expect(outcome.kind === 'transformation' && outcome.preview.displacedRoutes).toEqual([]);
   });
 
   it('reports (never silently fills) generated connector cells taken by a new room', async () => {
     const withRoute = expectOk(
-      validateDocumentV2({ ...labV2(), edges: [...labV2().edges, { id: 'e2', source: 'g1', target: 's1', kind: 'access', attributes: {} }] }),
+      validateDocumentV2({ ...labV2(), nextEdgeId: 3, edges: [...labV2().edges, { id: 2, source: 1, target: 3, kind: 'access', attributes: {} }] }),
     );
-    const route = resolveRelationships(withRoute).byEdge.get('e2')!;
+    const route = resolveRelationships(withRoute).byEdge.get(2)!;
     expect(route.status).toBe('routed');
     const cell = route.status === 'routed' ? route.route.cells[0]! : ([0, 0, 0] as const);
-    const project = await transforming([{ op: 'add-node', id: 'n', grid: cell, typeId: 'gallery' }]);
+    const project = await transforming([{ op: 'add-node', grid: cell, typeId: 'gallery' }]);
     const outcome = expectExtOk(runAlgorithmV2(withRoute, project, 't'));
-    expect(outcome.kind === 'transformation' && outcome.preview.displacedRoutes).toEqual(['e2']);
+    expect(outcome.kind === 'transformation' && outcome.preview.displacedRoutes).toEqual([2]);
   });
 
   it('never mutates the input document', async () => {
     const doc = labV2();
     const before = JSON.stringify(doc);
     const project = await transforming([
-      { op: 'add-node', id: 'n', grid: [5, 0, 0], typeId: 'gallery' },
-      { op: 'set-node-attribute', nodeId: 'g2', key: 'daylight', value: 'low' },
+      { op: 'add-node', grid: [5, 0, 0], typeId: 'gallery' },
+      { op: 'set-node-attribute', nodeId: 2, key: 'daylight', value: 'low' },
     ]);
     expectExtOk(runAlgorithmV2(doc, project, 't'));
     expect(JSON.stringify(doc)).toBe(before);
+  });
+});
+
+describe('refs: the app assigns ids to new items in operation order (P4)', () => {
+  it('two new rooms with refs, an edge between them by ref and an attribute set by ref get ids from the counters', async () => {
+    const doc = labV2(); // nextNodeId 4, nextEdgeId 2
+    expect([doc.nextNodeId, doc.nextEdgeId]).toEqual([4, 2]);
+    const project = await transforming([
+      { op: 'add-node', ref: 'north', grid: [5, 0, 0], typeId: 'gallery' },
+      { op: 'add-node', ref: 'south', grid: [6, 0, 0], typeId: 'gallery' },
+      { op: 'add-edge', ref: 'link', source: 'north', target: 'south', kind: 'open' },
+      { op: 'add-edge', source: 3, target: 'south', kind: 'access' },
+      { op: 'set-node-attribute', nodeId: 'south', key: 'daylight', value: 'low' },
+    ]);
+    const outcome = expectExtOk(runAlgorithmV2(doc, project, 't'));
+    if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
+    const { preview } = outcome;
+    expect(preview.assigned).toEqual({ nodes: { north: 4, south: 5 }, edges: { link: 2 } });
+    expect(preview.after.nodes.slice(-2).map((n) => n.id)).toEqual([4, 5]);
+    expect(preview.after.edges.slice(-2)).toEqual([
+      { id: 2, source: 4, target: 5, kind: 'open', attributes: {} },
+      { id: 3, source: 3, target: 5, kind: 'access', attributes: {} },
+    ]);
+    expect(preview.after.nodes.find((n) => n.id === 5)!.attributes).toEqual({ daylight: 'low' });
+    expect([preview.after.nextNodeId, preview.after.nextEdgeId]).toEqual([6, 4]);
+    // The input is untouched (counters included).
+    expect([doc.nextNodeId, doc.nextEdgeId]).toEqual([4, 2]);
+  });
+
+  it('refuses an unknown ref and a ref reused in the same run', async () => {
+    const run = async (ops: readonly SpatialOperation[]) => runAlgorithmV2(labV2(), await transforming(ops), 't');
+    expectDiagnostic(await run([{ op: 'add-edge', source: 1, target: 'nowhere', kind: 'access' }]), 'missing-node');
+    expectDiagnostic(await run([{ op: 'set-node-attribute', nodeId: 'nowhere', key: 'daylight', value: 'low' }]), 'missing-node');
+    // A ref only names an item added by an EARLIER operation.
+    expectDiagnostic(
+      await run([
+        { op: 'add-edge', source: 1, target: 'later', kind: 'access' },
+        { op: 'add-node', ref: 'later', grid: [5, 0, 0], typeId: 'gallery' },
+      ]),
+      'missing-node',
+    );
+    expectDiagnostic(
+      await run([
+        { op: 'add-node', ref: 'twin', grid: [5, 0, 0], typeId: 'gallery' },
+        { op: 'add-node', ref: 'twin', grid: [6, 0, 0], typeId: 'gallery' },
+      ]),
+      'invalid-id',
+    );
+    // An unknown NUMBER is refused too (numbers name existing items only).
+    expectDiagnostic(await run([{ op: 'add-edge', source: 1, target: 99, kind: 'access' }]), 'missing-node');
   });
 });
 
@@ -142,8 +192,9 @@ describe('the gallery test toolkit on schema v2', () => {
       kind: 'analysis',
       result: {
         kind: 'analysis',
-        summary: '0 room(s) cannot be reached from "entry-gallery".',
-        nodeValues: { 'entry-gallery': 0, 'studio-ground': 1, 'reading-gallery': 1, store: 2, 'studio-upper': 1, 'gallery-upper': 2 },
+        summary: '0 room(s) cannot be reached from room 1.',
+        // entry-gallery 1, studio-ground 2, reading-gallery 3, store 4, studio-upper 5, gallery-upper 6
+        nodeValues: { 1: 0, 2: 1, 3: 1, 4: 2, 5: 1, 6: 2 },
       },
     });
   });
@@ -151,8 +202,10 @@ describe('the gallery test toolkit on schema v2', () => {
   it('connect-storage-to-galleries adds the one missing access relationship (store – reading gallery)', () => {
     const outcome = expectExtOk(runAlgorithmV2(design(), toolkit, 'connect-storage-to-galleries'));
     if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
-    expect(outcome.preview.after.edges.at(-1)).toEqual({ id: 'door-1', source: 'store', target: 'reading-gallery', kind: 'access', attributes: {} });
-    expect(resolveRelationships(outcome.preview.after).byEdge.get('door-1')!.status).toBe('direct');
+    // store 4 → reading gallery 3; the new edge takes nextEdgeId 7.
+    expect(outcome.preview.after.edges.at(-1)).toEqual({ id: 7, source: 4, target: 3, kind: 'access', attributes: {} });
+    expect(outcome.preview.after.nextEdgeId).toBe(8);
+    expect(resolveRelationships(outcome.preview.after).byEdge.get(7)!.status).toBe('direct');
     const again = expectExtOk(runAlgorithmV2(outcome.preview.after, toolkit, 'connect-storage-to-galleries'));
     expect(again.kind === 'transformation' && again.preview.operations).toEqual([]);
   });
@@ -160,7 +213,7 @@ describe('the gallery test toolkit on schema v2', () => {
   it('daylight-from-exposure changes only the entry gallery (two exposed walls → medium)', () => {
     const outcome = expectExtOk(runAlgorithmV2(design(), toolkit, 'daylight-from-exposure'));
     if (outcome.kind !== 'transformation') throw new Error('expected a transformation');
-    expect(outcome.preview.operations).toEqual([{ op: 'set-node-attribute', nodeId: 'entry-gallery', key: 'daylight', value: 'medium' }]);
+    expect(outcome.preview.operations).toEqual([{ op: 'set-node-attribute', nodeId: 1, key: 'daylight', value: 'medium' }]);
   });
 
   it('never changes the design it ran on', () => {

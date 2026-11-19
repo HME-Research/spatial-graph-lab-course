@@ -15,8 +15,8 @@ export function RemoveInvalidDialog({
   onCancel,
 }: {
   readonly rows: readonly InvalidConnectionRow[];
-  readonly unchecked: ReadonlySet<string>;
-  readonly onToggle: (edgeId: string, checked: boolean) => void;
+  readonly unchecked: ReadonlySet<number>;
+  readonly onToggle: (edgeId: number, checked: boolean) => void;
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
 }) {

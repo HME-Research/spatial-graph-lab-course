@@ -47,10 +47,10 @@ function lab(settings: unknown = undefined): DesignDocumentV2 {
       schemaVersion: 2,
       metadata: { name: 'style-by' },
       nodes: [
-        { id: 'g1', grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery', attributes: { comfort: 'Quiet', zone: 'North ', public: true, seats: 10 } },
-        { id: 'g2', grid: [4, 0, 0], size: [2, 1, 1], typeId: 'gallery', attributes: { comfort: 'Lively', zone: 'north', seats: 10 } },
-        { id: 's1', grid: [0, 4, 1], size: [2, 2, 1], typeId: 'studio', attributes: { comfort: 'Nope', zone: 'South', seats: 25 } },
-        { id: 'k1', grid: [8, 8, 0], size: [4, 2, 1], typeId: 'kiosk', attributes: {} },
+        { id: 1, grid: [0, 0, 0], size: [1, 1, 1], typeId: 'gallery', attributes: { comfort: 'Quiet', zone: 'North ', public: true, seats: 10 } },
+        { id: 2, grid: [4, 0, 0], size: [2, 1, 1], typeId: 'gallery', attributes: { comfort: 'Lively', zone: 'north', seats: 10 } },
+        { id: 3, grid: [0, 4, 1], size: [2, 2, 1], typeId: 'studio', attributes: { comfort: 'Nope', zone: 'South', seats: 25 } },
+        { id: 4, grid: [8, 8, 0], size: [4, 2, 1], typeId: 'kiosk', attributes: {} },
       ],
       edges: [],
       settings,
@@ -69,13 +69,13 @@ const cardsOf = (doc: DesignDocumentV2) => designerCards(doc, null, facade, valu
 describe('styleValuesFor: the rooms’ values of a custom attribute or a measured value', () => {
   it('custom attributes resolve like Properties: instance, type default, schema default; invalid values fall back', () => {
     const d = lab();
-    expect([...valuesOf(d, 'attribute:comfort')!]).toEqual([['g1', 'Quiet'], ['g2', 'Lively'], ['k1', 'Busy']]); // s1 'Nope' is not an option
-    expect(valuesOf(d, 'attribute:public')!.get('g2')).toBe(false); // schema default
+    expect([...valuesOf(d, 'attribute:comfort')!]).toEqual([[1, 'Quiet'], [2, 'Lively'], [4, 'Busy']]); // s1 'Nope' is not an option
+    expect(valuesOf(d, 'attribute:public')!.get(2)).toBe(false); // schema default
     expect(valuesOf(d, 'attribute:missing')!.size).toBe(0); // removed field: every room uses Default
   });
   it('measured values come from the catalogue metric; unknown metrics give nothing; Function / Level need none', () => {
     const d = lab();
-    expect([...valuesOf(d, 'metric:area')!]).toEqual([['g1', 9], ['g2', 18], ['s1', 36], ['k1', 72]]);
+    expect([...valuesOf(d, 'metric:area')!]).toEqual([[1, 9], [2, 18], [3, 36], [4, 72]]);
     expect(valuesOf(d, 'metric:nope')!.size).toBe(0);
     expect(valuesOf(d, 'function')).toBeUndefined();
     expect(valuesOf(d, 'level')).toBeUndefined();
@@ -113,7 +113,7 @@ describe('cards per kind of attribute', () => {
     d = apply(d, addCardEdit(d, 'attribute:comfort', 'Busy'));
     d = apply(d, addCardEdit(d, 'attribute:comfort', 'Gone'));
     const cards = cardsOf(d);
-    expect(cards.cards.map((c) => [c.name, c.nodeIds, c.warning !== null])).toEqual([['Busy', ['k1'], false], ['Gone', [], true]]);
+    expect(cards.cards.map((c) => [c.name, c.nodeIds, c.warning !== null])).toEqual([['Busy', [4], false], ['Gone', [], true]]);
     expect(cards.cards[1]!.warning).toMatch(/no longer an option of Comfort/);
   });
 
@@ -121,7 +121,7 @@ describe('cards per kind of attribute', () => {
     const d = apply(lab(), styleByEdit(lab(), styleAttributeOf('attribute:public', SCHEMA)));
     expect(cardsOf(d).addable.map((a) => [a.label, a.nodeCount])).toEqual([['Yes', 1], ['No', 3]]);
     const yes = apply(d, addCardEdit(d, 'attribute:public', true, 'Yes'));
-    expect(cardsOf(yes).cards.map((c) => [c.name, c.nodeIds])).toEqual([['Yes', ['g1']]]);
+    expect(cardsOf(yes).cards.map((c) => [c.name, c.nodeIds])).toEqual([['Yes', [1]]]);
   });
 
   it('Text: typed values, trimmed and case-insensitive; suggestions are the values rooms have now, with counts', () => {
@@ -130,7 +130,7 @@ describe('cards per kind of attribute', () => {
     expect(addCardEdit(d, 'attribute:zone', '   ')).toEqual({ kind: 'invalid', message: 'Type a value first.' });
     const north = apply(d, addCardEdit(d, 'attribute:zone', '  NORTH '));
     expect(north.settings.styles['attribute:zone']!.groups).toEqual([{ value: 'NORTH', look: {} }]);
-    expect(cardsOf(north).cards[0]!.nodeIds).toEqual(['g1', 'g2']);
+    expect(cardsOf(north).cards[0]!.nodeIds).toEqual([1, 2]);
     expect(addCardEdit(north, 'attribute:zone', 'north').kind).toBe('unchanged');
   });
 
@@ -141,7 +141,7 @@ describe('cards per kind of attribute', () => {
     expect(cards.mode).toBe('values');
     expect(cards.addable.map((a) => [a.label, a.nodeCount])).toEqual([['Level 0', 3], ['Level 1', 1]]);
     const one = apply(d, addCardEdit(d, 'level', 1, 'Level 1'));
-    expect(cardsOf(one).cards.map((c) => [c.name, c.nodeIds])).toEqual([['Level 1', ['s1']]]);
+    expect(cardsOf(one).cards.map((c) => [c.name, c.nodeIds])).toEqual([['Level 1', [3]]]);
   });
 
   it('a measured number starts with suggested bands in ONE step, named with the unit; counts follow', () => {
@@ -153,9 +153,9 @@ describe('cards per kind of attribute', () => {
     expect(cards.mode).toBe('bands');
     expect(cards.dividers).toEqual([20, 40]);
     expect(cards.cards.map((c) => [c.name, c.nodeIds])).toEqual([
-      ['Under 20 m²', ['g1', 'g2']],
-      ['20 – 40 m²', ['s1']],
-      ['40 m² or more', ['k1']],
+      ['Under 20 m²', [1, 2]],
+      ['20 – 40 m²', [3]],
+      ['40 m² or more', [4]],
     ]);
     expect(cards.numbers).toEqual([9, 18, 36, 72]);
     // Switching away and back restores the bands (no new suggestion).
@@ -181,7 +181,7 @@ describe('cards per kind of attribute', () => {
     const d = lab({ styleBy: 'attribute:gone', styles: { 'attribute:gone': { groups: [{ value: 'x', look: { roof: 'none' } }] } } });
     const cards = designerCards(d, null, facade, valuesOf(d), styleAttributeOf('attribute:gone', SCHEMA));
     expect(cards.attribute.status).toBe('removed');
-    expect(cards.defaultCard.nodeIds).toEqual(['g1', 'g2', 's1', 'k1']);
+    expect(cards.defaultCard.nodeIds).toEqual([1, 2, 3, 4]);
     expect(cards.cards.map((c) => c.name)).toEqual(['x']);
   });
 });
@@ -229,31 +229,31 @@ describe('band names, dividers and value names', () => {
     // Degree starts with whole-number bands.
     const degree = styleAttributeOf('metric:degree');
     const d = lab();
-    const edit = styleByEdit(d, degree, new Map([['g1', 1], ['g2', 2], ['s1', 2], ['k1', 3]]));
+    const edit = styleByEdit(d, degree, new Map([[1, 1], [2, 2], [3, 2], [4, 3]]));
     expect(edit.kind === 'command' && edit.command.type === 'set-style-by' && edit.command.dividers!.every(Number.isInteger)).toBe(true);
   });
 });
 
 describe('the Building styles rooms by the chosen attribute', () => {
-  const roofOf = (doc: DesignDocumentV2, values: ReturnType<typeof valuesOf>, id: string) => nodeLooks(doc, facade, values).get(id)!.look.roof;
+  const roofOf = (doc: DesignDocumentV2, values: ReturnType<typeof valuesOf>, id: number) => nodeLooks(doc, facade, values).get(id)!.look.roof;
 
   it('by Area bands: a large room gets its band’s look in the 3D building', () => {
     const d = lab({ styleBy: 'metric:area', styles: { 'metric:area': { dividers: [40], bands: [{}, { roof: 'none' }] } } });
     const values = valuesOf(d);
-    expect(roofOf(d, values, 'k1')).toBe('none');
-    expect(roofOf(d, values, 'g1')).toBe('flat');
+    expect(roofOf(d, values, 4)).toBe('none');
+    expect(roofOf(d, values, 1)).toBe('flat');
     const building = buildBuildingV2(d, { spatial: resolveRelationships(d), facade, ...(values && { styleValues: values }) });
-    expect(building.looks.get('k1')!.look.roof).toBe('none');
-    const roofs = (id: string) => building.elements.filter((e) => e.ownerNodeId === id && e.part === 'roof').length;
-    expect(roofs('k1')).toBe(0);
-    expect(roofs('g1')).toBeGreaterThan(0);
+    expect(building.looks.get(4)!.look.roof).toBe('none');
+    const roofs = (id: number) => building.elements.filter((e) => e.ownerNodeId === id && e.part === 'roof').length;
+    expect(roofs(4)).toBe(0);
+    expect(roofs(1)).toBeGreaterThan(0);
   });
 
   it('by a Choice attribute: rooms of the same function can look different', () => {
     const d = lab({ styleBy: 'attribute:comfort', styles: { 'attribute:comfort': { groups: [{ value: 'quiet', look: { walls: 'open' } }] } } });
     const looks = nodeLooks(d, facade, valuesOf(d));
-    expect(looks.get('g1')!.look.walls).toBe('open');
-    expect(looks.get('g2')!.look.walls).toBe('enclosed');
+    expect(looks.get(1)!.look.walls).toBe('open');
+    expect(looks.get(2)!.look.walls).toBe('enclosed');
   });
 });
 

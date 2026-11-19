@@ -19,7 +19,7 @@ export interface CatalogueMetric extends ComputedMetric {
 const CELL = DEFAULT_CELL_SIZE.horizontal;
 const STOREY = DEFAULT_CELL_SIZE.vertical;
 
-const nodeOf = ({ doc }: MetricContext, nodeId: string) => doc.nodes.find((n) => n.id === nodeId);
+const nodeOf = ({ doc }: MetricContext, nodeId: number) => doc.nodes.find((n) => n.id === nodeId);
 
 // ── Node metrics ──────────────────────────────────────────────────────────────────────────────
 

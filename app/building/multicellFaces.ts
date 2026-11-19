@@ -59,7 +59,7 @@ export function unitFaceKey(cell: GridCoord, direction: FaceDirection): string {
 }
 
 interface DirectFace {
-  readonly edgeId: string;
+  readonly edgeId: number;
   readonly condition: FaceCondition;
 }
 
@@ -92,7 +92,7 @@ function directFaceConditions(resolutions: readonly EdgeResolution[]): Map<strin
 /** Endpoint faces of generated connectors, keyed by `unitFaceKey`. */
 function routeEndpointFaces(resolutions: readonly EdgeResolution[]): Map<string, DirectFace> {
   const out = new Map<string, DirectFace>();
-  const add = (face: RoomFace, edgeId: string, condition: FaceCondition) =>
+  const add = (face: RoomFace, edgeId: number, condition: FaceCondition) =>
     out.set(unitFaceKey(face.cell, face.direction), { edgeId, condition });
   for (const r of resolutions) {
     if (r.status !== 'routed') continue;
@@ -103,7 +103,7 @@ function routeEndpointFaces(resolutions: readonly EdgeResolution[]): Map<string,
   return out;
 }
 
-const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+const byId = (a: { id: number }, b: { id: number }) => a.id - b.id;
 
 /**
  * Every bounding face of every room of a VALIDATED v2 document, given its spatial resolution.
@@ -112,7 +112,7 @@ const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id 
 export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialResolution): BuildingFace[] {
   const direct = directFaceConditions(spatial.edges);
   const endpoints = routeEndpointFaces(spatial.edges);
-  const routeStyle = new Map<string, ConnectorStyle>();
+  const routeStyle = new Map<number, ConnectorStyle>();
   for (const r of spatial.edges) if (r.status === 'routed') routeStyle.set(r.edgeId, r.route.style);
   const typeOf = new Map(doc.nodes.map((n) => [n.id, n.typeId]));
   const faces: BuildingFace[] = [];
@@ -129,7 +129,7 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
 
         const key = unitFaceKey(cell, direction);
         let condition: FaceCondition = 'exterior';
-        let edgeId: string | null = null;
+        let edgeId: number | null = null;
         let via: FaceVia = 'none';
         let outside = false;
         if (occupant?.kind === 'room') {

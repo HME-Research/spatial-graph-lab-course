@@ -90,9 +90,8 @@ export function checkDocumentV2Invariants(doc: DesignDocumentV2, options: Valida
     issues.push(issue(['nodes'], 'too-many-cells', `rooms occupy ${totalCells} cells; the limit is ${maxCells}`));
   }
 
-  const nodeIds = new Set<string>();
-  const displayOwner = new Map<string, string>();
-  const occupant = new Map<string, string>();
+  const nodeIds = new Set<number>();
+  const occupant = new Map<string, number>();
 
   doc.nodes.forEach((node, i) => {
     nodeIds.add(node.id);
@@ -113,13 +112,8 @@ export function checkDocumentV2Invariants(doc: DesignDocumentV2, options: Valida
       }
     }
 
-    if (node.displayId !== undefined) {
-      const owner = displayOwner.get(node.displayId);
-      if (owner !== undefined && owner !== node.id) {
-        issues.push(
-          issue(['nodes', i, 'displayId'], 'duplicate-display-id', `display id "${node.displayId}" is already used by node "${owner}"`),
-        );
-      } else displayOwner.set(node.displayId, node.id);
+    if (node.id >= doc.nextNodeId) {
+      issues.push(issue(['nodes', i, 'id'], 'id-counter', `node id ${node.id} is not below nextNodeId ${doc.nextNodeId}; new ids would repeat it`));
     }
 
     if (cellsChecked) {
@@ -139,9 +133,16 @@ export function checkDocumentV2Invariants(doc: DesignDocumentV2, options: Valida
     }
   });
 
-  for (const nodeId of Object.keys(doc.diagram.positions)) {
-    if (!nodeIds.has(nodeId)) {
-      issues.push(issue(['diagram', 'positions', nodeId], 'unknown-node-position', `diagram position refers to missing node "${nodeId}"`));
+  doc.edges.forEach((edge, i) => {
+    if (edge.id >= doc.nextEdgeId) {
+      issues.push(issue(['edges', i, 'id'], 'id-counter', `edge id ${edge.id} is not below nextEdgeId ${doc.nextEdgeId}; new ids would repeat it`));
+    }
+  });
+
+  // Diagram positions are keyed by the node id written as a JSON key ("3").
+  for (const key of Object.keys(doc.diagram.positions)) {
+    if (!(/^(0|[1-9][0-9]*)$/.test(key) && nodeIds.has(Number(key)))) {
+      issues.push(issue(['diagram', 'positions', key], 'unknown-node-position', `diagram position refers to missing node ${key}`));
     }
   }
   // Style cards for values no room has (or attributes the project does not define) are tolerated:

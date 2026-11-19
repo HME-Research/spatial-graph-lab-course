@@ -81,8 +81,8 @@ describe('Properties panel, schema v2 (with the design port)', () => {
 
   it('shows display labels, position and size', () => {
     const design = fakePort();
-    const html = render({ doc: v1(), design, selection: selectNode('a') });
-    expect(html).toContain('Room <span class="sgl-room-label">01</span>');
+    const html = render({ doc: v1(), design, selection: selectNode(1) });
+    expect(html).toContain('Room <span class="sgl-room-label">1</span>');
     expect(html).toContain('aria-label="Size (cells) x"');
     expect(html).toMatch(/aria-label="Size \(cells\) y"[^>]*value="3"|value="3"[^>]*aria-label="Size \(cells\) y"/);
     expect(html).toContain('Position (lowest corner)');
@@ -91,17 +91,17 @@ describe('Properties panel, schema v2 (with the design port)', () => {
 
   it('lists relationships with their spatial status and offers Connect', () => {
     const design = fakePort();
-    const html = render({ doc: v1(), design, selection: selectNode('a') });
-    expect(html).toContain('room 02');
+    const html = render({ doc: v1(), design, selection: selectNode(1) });
+    expect(html).toContain('room 2');
     expect(html).toContain('>Connected via route</span>');
-    expect(selectOptions(html, 'Room to connect to')).toEqual(['Connect to room…', '03 (studio)']);
+    expect(selectOptions(html, 'Room to connect to')).toEqual(['Connect to room…', '3 (studio)']);
   });
 
   it('selected relationship: Access/Open, corridor style and plain status', () => {
     const design = fakePort();
-    const html = render({ doc: v1(), design, selection: selectEdge('ab') });
-    expect(html).toContain('Relationship 01 ↔ 02');
-    expect(html).toMatch(/<input type="radio" name="kind-ab" checked="" value="access"\/>Access/);
+    const html = render({ doc: v1(), design, selection: selectEdge(1) });
+    expect(html).toContain('Relationship 1 ↔ 2');
+    expect(html).toMatch(/<input type="radio" name="kind-1" checked="" value="access"\/>Access/);
     expect(html).toContain('>Open</label>');
     expect(selectOptions(html, 'Corridor style')).toEqual(['Enclosed', 'Covered', 'Deck']);
     expect(html).toContain('Joined by a generated enclosed corridor, 3 cells long, on storey 0.');
@@ -110,9 +110,9 @@ describe('Properties panel, schema v2 (with the design port)', () => {
 
   it('an unresolved relationship is a non-blocking warning with technical details', () => {
     const raw = corridorRaw();
-    const blocked = { ...raw, nodes: [...raw.nodes, { id: 'd', displayId: '04', grid: [3, 0, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} }] };
+    const blocked = { ...raw, nodes: [...raw.nodes, { id: 4, grid: [3, 0, 0], size: [1, 1, 1], typeId: 'studio', attributes: {} }] };
     const design = fakePort(blocked);
-    const html = render({ doc: v1(), design, selection: selectEdge('ab') });
+    const html = render({ doc: v1(), design, selection: selectEdge(1) });
     expect(html).toContain('Unresolved: nothing can be built yet. The relationship is kept.');
     expect(html).toContain('Another room is in the way of every straight corridor between these rooms.');
     expect(html).toContain('role="status"');
@@ -155,7 +155,7 @@ describe('Properties grouping (wave 1)', () => {
   };
 
   it('a room shows Attributes first, then Geometry and Relationships, all collapsed', () => {
-    const html = render({ doc: v1(), design: fakePort(), selection: selectNode('a') });
+    const html = render({ doc: v1(), design: fakePort(), selection: selectNode(1) });
     const order = ['attributes', 'geometry', 'relationships'].map((id) => html.indexOf(`data-section="${id}"`));
     expect(order.every((i) => i >= 0)).toBe(true);
     expect([...order].sort((x, y) => x - y)).toEqual(order);
@@ -167,7 +167,7 @@ describe('Properties grouping (wave 1)', () => {
   });
 
   it('one attribute list: Function and Level first, then calculated values (read-only text)', () => {
-    const html = render({ doc: v1(), design: fakePort(), selection: selectNode('a') });
+    const html = render({ doc: v1(), design: fakePort(), selection: selectNode(1) });
     const ids = attributeIds(html);
     expect(ids.slice(0, 2)).toEqual(['function', 'level']);
     expect(ids).toContain('area');
@@ -190,7 +190,7 @@ describe('Properties grouping (wave 1)', () => {
         createElement(
           EnabledMetricsContext.Provider,
           { value: ids },
-          createElement(Inspector, { onSelect: () => {}, design: fakePort(), selection: selectNode('a') }),
+          createElement(Inspector, { onSelect: () => {}, design: fakePort(), selection: selectNode(1) }),
         ),
       );
     const html = withIds(['volume', 'has-exterior-facade']);
@@ -201,8 +201,8 @@ describe('Properties grouping (wave 1)', () => {
 
   it('Function and Level are editable in the attribute list (Level = z)', () => {
     const design = fakePort();
-    const node = design.doc.nodes.find((n) => n.id === 'a')!;
-    const html = render({ doc: v1(), design, selection: selectNode('a') });
+    const node = design.doc.nodes.find((n) => n.id === 1)!;
+    const html = render({ doc: v1(), design, selection: selectNode(1) });
     expect(rowOf(html, 'function')).toContain('aria-label="Room type"');
     const level = rowOf(html, 'level');
     expect(level).toMatch(new RegExp(`<input aria-label="Level" type="number"[^>]*value="${node.grid[2]}"`));
@@ -216,7 +216,7 @@ describe('Properties grouping (wave 1)', () => {
       createElement(
         OpenAttributesContext.Provider,
         { value: () => {} },
-        createElement(Inspector, { onSelect: () => {}, design, project: context, selection: selectNode('a') }),
+        createElement(Inspector, { onSelect: () => {}, design, project: context, selection: selectNode(1) }),
       ),
     );
     const attributes = sectionBody(html, 'attributes');
@@ -225,7 +225,7 @@ describe('Properties grouping (wave 1)', () => {
   });
 
   it('a relationship explains Access/Open with an `i` concept dialog instead of a tooltip', () => {
-    const html = render({ doc: v1(), design: fakePort(), selection: selectEdge('ab') });
+    const html = render({ doc: v1(), design: fakePort(), selection: selectEdge(1) });
     const row = rowOf(html, 'relationship');
     expect(attributeIds(html)[0]).toBe('relationship');
     expect(row).toContain('aria-label="About Access and Open"');

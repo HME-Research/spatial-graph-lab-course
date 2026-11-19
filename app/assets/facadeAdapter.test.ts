@@ -77,7 +77,8 @@ function triangleNormal(positions: ArrayLike<number>, indices: ArrayLike<number>
   return [n[0] / l + 0, n[1] / l + 0, n[2] / l + 0];
 }
 
-const exteriorWall = (owner: string, cell: [number, number, number], direction: FaceDirection): ResolvedFace => ({
+/** Rooms in these tests: r = 1, hall = 2. */
+const exteriorWall = (owner: number, cell: [number, number, number], direction: FaceDirection): ResolvedFace => ({
   id: `${owner}:${cell.join(',')}:${direction}`,
   ownerNodeId: owner,
   ownerTypeId: 'gallery',
@@ -170,7 +171,7 @@ describe('normaliseFacadeSource: units, axes and bounding box', () => {
 
 describe('placement onto FaceLayout frames', () => {
   const panel = component({ unit: 'm', meshes: windowPanel(1) });
-  const frameOf = (direction: FaceDirection, cell: [number, number, number] = [0, 0, 0]) => layoutFace(exteriorWall('r', cell, direction)).frame;
+  const frameOf = (direction: FaceDirection, cell: [number, number, number] = [0, 0, 0]) => layoutFace(exteriorWall(1, cell, direction)).frame;
 
   it('places one bay on a −y wall: back face just outside the wall centre plane, bay corners aligned', () => {
     const target = targetFromFaceFrame(frameOf('-y'));
@@ -209,14 +210,14 @@ describe('placement onto FaceLayout frames', () => {
   });
 
   it('refuses slab frames', () => {
-    expect(() => targetFromFaceFrame(layoutFace({ ...exteriorWall('r', [0, 0, 0], '+z'), orientation: 'slab' }).frame)).toThrow(/wall faces only/);
+    expect(() => targetFromFaceFrame(layoutFace({ ...exteriorWall(1, [0, 0, 0], '+z'), orientation: 'slab' }).frame)).toThrow(/wall faces only/);
   });
 });
 
 describe('Repeat unit bays vs Stretch wall run', () => {
   // A 3-bay room along grid x; its −y exterior faces form one wall run.
   const cells: [number, number, number][] = [[0, 0, 0], [1, 0, 0], [2, 0, 0]];
-  const faces = cells.map((c) => exteriorWall('hall', c, '-y'));
+  const faces = cells.map((c) => exteriorWall(2, c, '-y'));
   const [run] = groupWallRuns(faces);
   const frameById = new Map(faces.map((f) => [f.id, layoutFace(f).frame]));
   const runFrames: FaceFrame[] = run!.faceIds.map((id) => frameById.get(id)!);
@@ -261,7 +262,7 @@ describe('Repeat unit bays vs Stretch wall run', () => {
   });
 
   it('places a run on a +x wall from right to left in layout u without mirroring', () => {
-    const xFaces = [[2, 0, 0], [2, 1, 0], [2, 2, 0]].map((c) => exteriorWall('hall', c as [number, number, number], '+x'));
+    const xFaces = [[2, 0, 0], [2, 1, 0], [2, 2, 0]].map((c) => exteriorWall(2, c as [number, number, number], '+x'));
     const [xRun] = groupWallRuns(xFaces);
     const frames = xRun!.faceIds.map((id) => layoutFace(xFaces.find((f) => f.id === id)!).frame);
     const target = targetFromWallRun(frames);
@@ -274,7 +275,7 @@ describe('Repeat unit bays vs Stretch wall run', () => {
   it('refuses frames that are not one contiguous coplanar run', () => {
     expect(() => targetFromWallRun([])).toThrow();
     expect(() => targetFromWallRun([runFrames[0]!, runFrames[2]!])).toThrow(/contiguous/);
-    expect(() => targetFromWallRun([runFrames[0]!, layoutFace(exteriorWall('hall', [0, 0, 0], '-x')).frame])).toThrow(/normal/);
-    expect(() => targetFromWallRun([runFrames[0]!, layoutFace(exteriorWall('hall', [1, 0, 1], '-y')).frame])).toThrow(/coplanar/);
+    expect(() => targetFromWallRun([runFrames[0]!, layoutFace(exteriorWall(2, [0, 0, 0], '-x')).frame])).toThrow(/normal/);
+    expect(() => targetFromWallRun([runFrames[0]!, layoutFace(exteriorWall(2, [1, 0, 1], '-y')).frame])).toThrow(/coplanar/);
   });
 });

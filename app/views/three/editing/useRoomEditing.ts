@@ -33,7 +33,7 @@ import { roomWorldBox, type RoomGeometry } from './roomGeometry';
  */
 export interface RoomEditing {
   readonly active: boolean;
-  readonly nodeId: string | null;
+  readonly nodeId: number | null;
   /** Display label of the selected room ("01"). */
   readonly label: string;
   /** Move or resize for `nudge` (no UI uses it since the step panel was removed, 2026-11-17; the gizmo offers both at once). */

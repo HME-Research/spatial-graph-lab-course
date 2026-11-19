@@ -18,8 +18,8 @@ import { DEFAULT_WALL_THICKNESS, doorRect } from './faceLayout';
 import { wallAction } from './faceInteraction';
 import { DEFAULT_CUT_HEIGHT, buildPlan, planBoundsAllLevels, planLevels, planSourceV2, type PlanModel, type PlanRect } from './plan';
 
-type N = { id: string; grid: GridCoord; size?: [number, number, number]; typeId?: string; displayId?: string };
-type E = { id: string; source: string; target: string; kind?: RelationshipKind; connectorStyle?: ConnectorStyle };
+type N = { id: number; grid: GridCoord; size?: [number, number, number]; typeId?: string };
+type E = { id: number; source: number; target: number; kind?: RelationshipKind; connectorStyle?: ConnectorStyle };
 
 function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown> = {}): DesignDocumentV2 {
   return expectOk(
@@ -31,7 +31,6 @@ function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown>
         grid: n.grid,
         size: n.size ?? [1, 1, 1],
         typeId: n.typeId ?? 'gallery',
-        ...(n.displayId !== undefined ? { displayId: n.displayId } : {}),
       })),
       edges: edges.map((e) => ({
         id: e.id,
@@ -48,64 +47,69 @@ function v2(nodes: N[], edges: E[] = [], typeAppearance: Record<string, unknown>
 const example = expectOk(readDesign(exampleJson)).doc;
 
 /** The same designs as the Building golden fixtures (golden.test.ts). */
+/**
+ * Ids are numbered in the alphabetical order of the letters they replaced (m..r = 1..6, g0..g3 = 1..4,
+ * a..l, s, t = 1..14; edges likewise: h-access, v-access, v-open, v-up = 1..4; ab, al, cd, ef, gh, ij,
+ * st = 1..7), so ownership and routing order are unchanged by the move to numeric ids.
+ */
 const FIXTURES: Readonly<Record<string, DesignDocumentV2>> = {
   'two-storey-example': example,
   'multi-cell-rooms': v2(
     [
-      { id: 'm', grid: [0, 0, 0], size: [2, 3, 1] },
-      { id: 'n', grid: [2, 0, 0], size: [1, 1, 2], typeId: 'studio' },
-      { id: 'o', grid: [0, 0, 1], size: [2, 2, 1], typeId: 'storage' },
-      { id: 'p', grid: [0, 2, 1], typeId: 'studio' },
-      { id: 'q', grid: [3, 0, 0], size: [1, 1, 2] },
-      { id: 'r', grid: [1, 2, 1], size: [1, 1, 2], typeId: 'lab' },
+      { id: 1, grid: [0, 0, 0], size: [2, 3, 1] }, // m
+      { id: 2, grid: [2, 0, 0], size: [1, 1, 2], typeId: 'studio' }, // n
+      { id: 3, grid: [0, 0, 1], size: [2, 2, 1], typeId: 'storage' }, // o
+      { id: 4, grid: [0, 2, 1], typeId: 'studio' }, // p
+      { id: 5, grid: [3, 0, 0], size: [1, 1, 2] }, // q
+      { id: 6, grid: [1, 2, 1], size: [1, 1, 2], typeId: 'lab' }, // r
     ],
     [
-      { id: 'mn', source: 'm', target: 'n', kind: 'access' },
-      { id: 'mo', source: 'm', target: 'o', kind: 'open' },
-      { id: 'mp', source: 'p', target: 'm', kind: 'access' },
-      { id: 'nq', source: 'n', target: 'q', kind: 'open' },
-      { id: 'pr', source: 'p', target: 'r', kind: 'access' },
+      { id: 1, source: 1, target: 2, kind: 'access' }, // mn
+      { id: 2, source: 1, target: 3, kind: 'open' }, // mo
+      { id: 3, source: 4, target: 1, kind: 'access' }, // mp
+      { id: 4, source: 2, target: 5, kind: 'open' }, // nq
+      { id: 5, source: 4, target: 6, kind: 'access' }, // pr
     ],
   ),
   'vertical-access-and-open': v2(
     [
-      { id: 'g0', grid: [0, 0, 0], size: [2, 2, 1] },
-      { id: 'g1', grid: [0, 0, 1], size: [2, 1, 1], typeId: 'studio' },
-      { id: 'g2', grid: [0, 1, 1], size: [2, 1, 1], typeId: 'storage' },
-      { id: 'g3', grid: [0, 0, 2], size: [2, 2, 1] },
+      { id: 1, grid: [0, 0, 0], size: [2, 2, 1] }, // g0
+      { id: 2, grid: [0, 0, 1], size: [2, 1, 1], typeId: 'studio' }, // g1
+      { id: 3, grid: [0, 1, 1], size: [2, 1, 1], typeId: 'storage' }, // g2
+      { id: 4, grid: [0, 0, 2], size: [2, 2, 1] }, // g3
     ],
     [
-      { id: 'v-access', source: 'g0', target: 'g1', kind: 'access' },
-      { id: 'v-open', source: 'g2', target: 'g0', kind: 'open' },
-      { id: 'v-up', source: 'g1', target: 'g3', kind: 'open' },
-      { id: 'h-access', source: 'g1', target: 'g2', kind: 'access' },
+      { id: 2, source: 1, target: 2, kind: 'access' }, // v-access
+      { id: 3, source: 3, target: 1, kind: 'open' }, // v-open
+      { id: 4, source: 2, target: 4, kind: 'open' }, // v-up
+      { id: 1, source: 2, target: 3, kind: 'access' }, // h-access
     ],
   ),
   'routed-connectors': v2(
     [
-      { id: 'a', grid: [0, 0, 0] },
-      { id: 'b', grid: [4, 0, 0], typeId: 'studio' },
-      { id: 'c', grid: [0, 2, 0], size: [1, 1, 2] },
-      { id: 'd', grid: [4, 2, 0], typeId: 'storage' },
-      { id: 'e', grid: [0, 4, 0], size: [2, 1, 1] },
-      { id: 'f', grid: [5, 4, 0] },
-      { id: 'g', grid: [0, 6, 0] },
-      { id: 'h', grid: [4, 6, 0] },
-      { id: 'i', grid: [0, 7, 0], typeId: 'studio' },
-      { id: 'j', grid: [4, 7, 0], typeId: 'studio' },
-      { id: 'k', grid: [2, 6, 1], typeId: 'storage' },
-      { id: 'l', grid: [10, 10, 3] },
-      { id: 's', grid: [2, 9, 0] },
-      { id: 't', grid: [2, 12, 0], size: [1, 2, 1] },
+      { id: 1, grid: [0, 0, 0] }, // a
+      { id: 2, grid: [4, 0, 0], typeId: 'studio' }, // b
+      { id: 3, grid: [0, 2, 0], size: [1, 1, 2] }, // c
+      { id: 4, grid: [4, 2, 0], typeId: 'storage' }, // d
+      { id: 5, grid: [0, 4, 0], size: [2, 1, 1] }, // e
+      { id: 6, grid: [5, 4, 0] }, // f
+      { id: 7, grid: [0, 6, 0] }, // g
+      { id: 8, grid: [4, 6, 0] }, // h
+      { id: 9, grid: [0, 7, 0], typeId: 'studio' }, // i
+      { id: 10, grid: [4, 7, 0], typeId: 'studio' }, // j
+      { id: 11, grid: [2, 6, 1], typeId: 'storage' }, // k
+      { id: 12, grid: [10, 10, 3] }, // l
+      { id: 13, grid: [2, 9, 0] }, // s
+      { id: 14, grid: [2, 12, 0], size: [1, 2, 1] }, // t
     ],
     [
-      { id: 'ab', source: 'a', target: 'b', kind: 'access' },
-      { id: 'cd', source: 'c', target: 'd', kind: 'open', connectorStyle: 'covered' },
-      { id: 'ef', source: 'f', target: 'e', kind: 'access', connectorStyle: 'deck' },
-      { id: 'gh', source: 'g', target: 'h', kind: 'access', connectorStyle: 'enclosed' },
-      { id: 'ij', source: 'i', target: 'j', kind: 'open', connectorStyle: 'covered' },
-      { id: 'al', source: 'a', target: 'l', kind: 'access' },
-      { id: 'st', source: 's', target: 't', kind: 'access' },
+      { id: 1, source: 1, target: 2, kind: 'access' }, // ab
+      { id: 3, source: 3, target: 4, kind: 'open', connectorStyle: 'covered' }, // cd
+      { id: 4, source: 6, target: 5, kind: 'access', connectorStyle: 'deck' }, // ef
+      { id: 5, source: 7, target: 8, kind: 'access', connectorStyle: 'enclosed' }, // gh
+      { id: 6, source: 9, target: 10, kind: 'open', connectorStyle: 'covered' }, // ij
+      { id: 2, source: 1, target: 12, kind: 'access' }, // al
+      { id: 7, source: 13, target: 14, kind: 'access' }, // st
     ],
   ),
 };
@@ -191,7 +195,7 @@ describe('buildPlan — consistency with the Building (same FaceLayout)', () => 
         const unresolved = new Set(spatial.edges.filter((r) => r.status === 'unresolved').map((r) => r.edgeId));
         for (const plan of plans.values()) {
           for (const x of [...plan.openings, ...plan.slabs, ...plan.routeCells, ...plan.walls]) {
-            if (x.edgeId !== null) expect(unresolved.has(x.edgeId), x.edgeId).toBe(false);
+            if (x.edgeId !== null) expect(unresolved.has(x.edgeId), String(x.edgeId)).toBe(false);
           }
         }
       });
@@ -233,15 +237,16 @@ describe('buildPlan — storeys', () => {
     const doc = FIXTURES['multi-cell-rooms']!;
     const { plans } = setup(doc);
     const on = (z: number) => plans.get(z)!.rooms.map((r) => r.nodeId);
-    expect(on(0)).toEqual(['m', 'n', 'q']);
-    expect(on(1)).toEqual(['n', 'o', 'p', 'q', 'r']);
-    expect(on(2)).toEqual(['r']);
-    const n0 = plans.get(0)!.rooms.find((r) => r.nodeId === 'n')!;
-    const n1 = plans.get(1)!.rooms.find((r) => r.nodeId === 'n')!;
+    // m = 1, n = 2, o = 3, p = 4, q = 5, r = 6
+    expect(on(0)).toEqual([1, 2, 5]);
+    expect(on(1)).toEqual([2, 3, 4, 5, 6]);
+    expect(on(2)).toEqual([6]);
+    const n0 = plans.get(0)!.rooms.find((r) => r.nodeId === 2)!;
+    const n1 = plans.get(1)!.rooms.find((r) => r.nodeId === 2)!;
     expect(n0.rect).toEqual(n1.rect);
     expect(n0.levels).toEqual([0, 1]);
     // 2 × 3 cells: no partitions inside the room — no wall lies strictly inside its footprint.
-    const m = plans.get(0)!.rooms.find((r) => r.nodeId === 'm')!;
+    const m = plans.get(0)!.rooms.find((r) => r.nodeId === 1)!;
     const inside = (r: PlanRect) => r.x0 > m.rect.x0 + T && r.x1 < m.rect.x1 - T && r.y0 > m.rect.y0 + T && r.y1 < m.rect.y1 - T;
     expect(plans.get(0)!.walls.filter((w) => inside(w.rect))).toEqual([]);
     expect(m.rect.x1 - m.rect.x0).toBeCloseTo(2 * W, 9);
@@ -269,34 +274,34 @@ describe('buildPlan — storeys', () => {
     expect(plans.get(levels[0]!)!.walls).not.toEqual(plans.get(levels[1]!)!.walls);
   });
 
-  it('labels rooms with displayId, else id', () => {
+  it('labels rooms with their id', () => {
     const doc = v2([
-      { id: 'room-a', grid: [0, 0, 0], displayId: '7' },
-      { id: 'room-b', grid: [1, 0, 0] },
+      { id: 7, grid: [0, 0, 0] },
+      { id: 12, grid: [1, 0, 0] },
     ]);
     const { plans } = setup(doc);
-    expect(plans.get(0)!.rooms.map((r) => r.label)).toEqual(['7', 'room-b']);
+    expect(plans.get(0)!.rooms.map((r) => r.label)).toEqual(['7', '12']);
   });
 
   it('vertical access: slab opening + marker in the upper floor, shown as "above" on the storey below', () => {
     const { plans } = setup(FIXTURES['vertical-access-and-open']!);
     const kinds = (z: number, pos: 'floor' | 'ceiling') =>
-      plans.get(z)!.slabs.filter((s) => s.position === pos && s.edgeId === 'v-access').map((s) => s.kind);
+      plans.get(z)!.slabs.filter((s) => s.position === pos && s.edgeId === 2 /* v-access */).map((s) => s.kind);
     expect(kinds(1, 'floor')).toEqual(['slab-opening', 'access-marker']);
     expect(kinds(0, 'ceiling')).toEqual(['slab-opening', 'access-marker']);
-    expect(plans.get(1)!.slabs.some((s) => s.position === 'floor' && s.kind === 'slab-void' && s.edgeId === 'v-open')).toBe(true);
+    expect(plans.get(1)!.slabs.some((s) => s.position === 'floor' && s.kind === 'slab-void' && s.edgeId === 3 /* v-open */)).toBe(true);
   });
 });
 
 describe('buildPlan — cut height', () => {
-  const doc = v2([{ id: 'a', grid: [0, 0, 0] }, { id: 'b', grid: [1, 0, 0] }], [{ id: 'ab', source: 'a', target: 'b', kind: 'access' }]);
+  const doc = v2([{ id: 1, grid: [0, 0, 0] }, { id: 2, grid: [1, 0, 0] }], [{ id: 1, source: 1, target: 2, kind: 'access' }]);
 
   it('the default cut (1.2 m) goes through doors; a cut above the door head shows solid wall', () => {
     const { source } = setup(doc);
     const low = buildPlan(source, 0);
     expect(low.cutHeight).toBe(DEFAULT_CUT_HEIGHT);
     const door = low.openings.find((o) => o.kind === 'door')!;
-    expect(door.edgeId).toBe('ab');
+    expect(door.edgeId).toBe(1);
     const d = doorRect(DEFAULT_CELL_SIZE);
     expect(door.width).toBeCloseTo(d.u1 - d.u0, 9);
     const high = buildPlan(source, 0, DEFAULT_CELL_SIZE.vertical - 0.2);
@@ -316,13 +321,13 @@ describe('buildPlan — cut height', () => {
   });
 
   it('a cut through a window shows a window opening carrying no edge', () => {
-    const { source } = setup(v2([{ id: 'a', grid: [0, 0, 0] }], [], { gallery: { windowFraction: 0.5 } }));
+    const { source } = setup(v2([{ id: 1, grid: [0, 0, 0] }], [], { gallery: { windowFraction: 0.5 } }));
     const plan = buildPlan(source, 0);
     const windows = plan.openings.filter((o) => o.kind === 'window');
     expect(windows).toHaveLength(4);
     for (const w of windows) expect(w.edgeId).toBeNull();
     // A closed façade: no window anywhere.
-    const closed = buildPlan(setup(v2([{ id: 'a', grid: [0, 0, 0] }], [], { gallery: { windowFraction: 0 } })).source, 0);
+    const closed = buildPlan(setup(v2([{ id: 1, grid: [0, 0, 0] }], [], { gallery: { windowFraction: 0 } })).source, 0);
     expect(closed.openings).toEqual([]);
     expect(closed.walls).toHaveLength(4);
   });

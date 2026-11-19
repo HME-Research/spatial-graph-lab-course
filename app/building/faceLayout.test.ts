@@ -5,14 +5,15 @@ import { DEFAULT_WALL_THICKNESS, OPENING_PROPORTIONS, faceCentre, faceRectBox, l
 import { buildArchitecture } from './geometry';
 import { directionOrientation } from './resolve';
 
-const face = (direction: FaceDirection, condition: FaceCondition, typeId = 'gallery', edgeId: string | null = null): ResolvedFace => ({
-  id: `n:${direction}`,
-  ownerNodeId: 'n',
+const face = (direction: FaceDirection, condition: FaceCondition, typeId = 'gallery', edgeId: number | null = null): ResolvedFace => ({
+  // Room n = 1 (its neighbour m = 2).
+  id: `1:${direction}`,
+  ownerNodeId: 1,
   ownerTypeId: typeId,
   cell: [1, 2, 0],
   direction,
   orientation: directionOrientation(direction),
-  neighbourNodeId: condition === 'exterior' ? null : 'm',
+  neighbourNodeId: condition === 'exterior' ? null : 2,
   edgeId,
   condition,
 });
@@ -34,9 +35,9 @@ describe('layoutFaces', () => {
     const cases: [ResolvedFace, string[]][] = [
       [face('+y', 'exterior', 'gallery'), ['window']],
       [face('+y', 'exterior', 'nothing-known'), ['window']],
-      [face('+y', 'door', 'gallery', 'e'), ['door']],
-      [face('+z', 'atrium', 'gallery', 'e'), ['slab-void']],
-      [face('+z', 'vertical-access', 'gallery', 'e'), ['slab-opening', 'access-marker']],
+      [face('+y', 'door', 'gallery', 1), ['door']],
+      [face('+z', 'atrium', 'gallery', 1), ['slab-void']],
+      [face('+z', 'vertical-access', 'gallery', 1), ['slab-opening', 'access-marker']],
     ];
     for (const [f, kinds] of cases) {
       const l = layoutFace(f);
@@ -48,16 +49,16 @@ describe('layoutFaces', () => {
   });
 
   it('openings carry their edge; a window carries none; an open wall has no solid part', () => {
-    expect(layoutFace(face('+y', 'door', 'gallery', 'e1')).openings[0]!.edgeId).toBe('e1');
+    expect(layoutFace(face('+y', 'door', 'gallery', 1)).openings[0]!.edgeId).toBe(1);
     expect(layoutFace(face('+y', 'exterior')).openings[0]!.edgeId).toBeNull();
-    const open = layoutFace(face('+x', 'open', 'gallery', 'e2'));
+    const open = layoutFace(face('+x', 'open', 'gallery', 2));
     expect(open.solids).toEqual([]);
-    expect(open.openings).toEqual([{ kind: 'open', rect: { u0: -open.frame.width / 2, u1: open.frame.width / 2, v0: -H / 2, v1: H / 2 }, edgeId: 'e2' }]);
+    expect(open.openings).toEqual([{ kind: 'open', rect: { u0: -open.frame.width / 2, u1: open.frame.width / 2, v0: -H / 2, v1: H / 2 }, edgeId: 2 }]);
   });
 
   it('window layout: Stretch is ONE window per façade that follows its outline with an even frame', () => {
     const opts = { facade: () => ({ windowFraction: 0.25 }), windowLayout: () => 'stretch' as const };
-    const bay = (cellAt: [number, number, number], direction: FaceDirection, owner = 'n'): ResolvedFace => ({
+    const bay = (cellAt: [number, number, number], direction: FaceDirection, owner = 1): ResolvedFace => ({
       ...face(direction, 'exterior', 'g'),
       id: `${owner}:${cellAt.join(',')}:${direction}`,
       ownerNodeId: owner,
@@ -102,7 +103,7 @@ describe('layoutFaces', () => {
     expect(x.map((r) => Math.max(Math.abs(r.u0), Math.abs(r.u1)))).toContainEqual(expect.closeTo((W + DEFAULT_WALL_THICKNESS) / 2));
 
     // Different rooms are different façades; other types keep Repeat; 0 % has no glass.
-    const [p] = glassOf([bay([1, 2, 0], '+y', 'n'), bay([2, 2, 0], '+y', 'm')]);
+    const [p] = glassOf([bay([1, 2, 0], '+y', 1), bay([2, 2, 0], '+y', 2)]);
     expect(p![0]!.u0).toBeCloseTo(repeat.u0);
     const mixed = layoutFaces([face('+y', 'exterior', 'h')], { ...opts, windowLayout: (t: string) => (t === 'g' ? 'stretch' : 'repeat') });
     expect(mixed[0]!.openings[0]!.rect).toEqual(repeat);
@@ -118,13 +119,13 @@ describe('layoutFaces', () => {
   });
 
   it('the door sits on the floor with the abstract proportions', () => {
-    const door = layoutFace(face('+y', 'door', 'g', 'e')).openings[0]!.rect;
+    const door = layoutFace(face('+y', 'door', 'g', 1)).openings[0]!.rect;
     expect(door.v0).toBe(-H / 2);
     expect(door.v1 - door.v0).toBeCloseTo(Math.min(OPENING_PROPORTIONS.doorHeight, H * OPENING_PROPORTIONS.doorHeightMaxFraction));
   });
 
   it('buildArchitecture boxes are the layout rectangles mapped by faceRectBox', () => {
-    const faces = [face('+y', 'exterior'), face('-x', 'door', 'gallery', 'e')];
+    const faces = [face('+y', 'exterior'), face('-x', 'door', 'gallery', 1)];
     const layouts = layoutFaces(faces);
     const els = buildArchitecture(faces);
     const walls = els.filter((e) => e.part === 'wall');

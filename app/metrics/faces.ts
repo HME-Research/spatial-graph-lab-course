@@ -9,14 +9,14 @@ import type { MetricContext } from './contracts';
  * empty: faces shared with another room, and faces touching a generated connector cell, are not.
  * Slabs (floor, roof) are never counted. Memoised per (document, resolution) identity pair.
  */
-const cache = new WeakMap<DesignDocumentV2, WeakMap<SpatialResolution, ReadonlyMap<string, number>>>();
+const cache = new WeakMap<DesignDocumentV2, WeakMap<SpatialResolution, ReadonlyMap<number, number>>>();
 
-export function exteriorWallFaceCounts({ doc, spatial }: MetricContext): ReadonlyMap<string, number> {
+export function exteriorWallFaceCounts({ doc, spatial }: MetricContext): ReadonlyMap<number, number> {
   let bySpatial = cache.get(doc);
   if (!bySpatial) cache.set(doc, (bySpatial = new WeakMap()));
   let counts = bySpatial.get(spatial);
   if (!counts) {
-    const out = new Map<string, number>(doc.nodes.map((n) => [n.id, 0] as const));
+    const out = new Map<number, number>(doc.nodes.map((n) => [n.id, 0] as const));
     for (const face of resolveBuildingFaces(doc, spatial)) {
       if (face.orientation === 'wall' && face.condition === 'exterior') out.set(face.ownerNodeId, (out.get(face.ownerNodeId) ?? 0) + 1);
     }

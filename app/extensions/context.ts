@@ -51,8 +51,8 @@ export function freezeDeep<T>(value: T): T {
 
 /** The parts of a document a graph analysis may see. */
 export interface GraphSource {
-  readonly nodes: readonly { readonly id: string }[];
-  readonly edges: readonly { readonly id: string; readonly source: string; readonly target: string }[];
+  readonly nodes: readonly { readonly id: number }[];
+  readonly edges: readonly { readonly id: number; readonly source: number; readonly target: number }[];
 }
 
 export function buildGraphContext<P extends AttributeSpecs>(doc: GraphSource, params: AttributesOf<P>): GraphAlgorithmContext<P> {
@@ -81,12 +81,12 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
     nodes: structuredClone(doc.nodes),
     edges: structuredClone(doc.edges),
   });
-  const occupant = new Map<string, string>();
+  const occupant = new Map<string, number>();
   for (const n of doc.nodes) for (const cell of footprintCells(n)) occupant.set(gridKey(cell), n.id);
-  const rooms = new Map<string, RoomNode>(structuredClone(doc.nodes).map((n) => [n.id, n] as const));
+  const rooms = new Map<number, RoomNode>(structuredClone(doc.nodes).map((n) => [n.id, n] as const));
   const links = new Map(structuredClone(doc.edges).map((e) => [e.id, e] as const));
   const pairs = new Set(doc.edges.map((e) => unorderedPairKey(e.source, e.target)));
-  const isId = (v: unknown): v is string => typeof v === 'string';
+  const isId = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v);
   const subject = { kind: 'algorithm', id: algorithmId } as const;
   const runError = (code: 'type-not-registered' | 'broken-node-type' | 'type-mismatch' | 'unknown-node-reference' | 'unknown-metric', message: string) =>
     new ExtensionRunError(diagnostic(code, 'error', subject, message));
@@ -108,23 +108,23 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
     params: freezeDeep(structuredClone(params)),
     attributeFields,
     metrics: createMetricReader(doc, spatial, runError),
-    nodeAttributes: (nodeId: string) => {
+    nodeAttributes: (nodeId: number) => {
       const node = isId(nodeId) ? rooms.get(nodeId) : undefined;
-      if (!node) throw runError('unknown-node-reference', `nodeAttributes: there is no node "${String(nodeId)}"`);
+      if (!node) throw runError('unknown-node-reference', `nodeAttributes: there is no node ${String(nodeId)}`);
       return freezeDeep(effectiveNodeValues(schema, node));
     },
-    edgeAttributes: (edgeId: string) => {
+    edgeAttributes: (edgeId: number) => {
       const edge = isId(edgeId) ? links.get(edgeId) : undefined;
-      if (!edge) throw runError('unknown-node-reference', `edgeAttributes: there is no edge "${String(edgeId)}"`);
+      if (!edge) throw runError('unknown-node-reference', `edgeAttributes: there is no edge ${String(edgeId)}`);
       return freezeDeep(effectiveEdgeValues(schema, edge));
     },
     nodeAt: (cell: GridCoord) => (isGrid(cell) ? occupant.get(gridKey([cell[0], cell[1], cell[2]])) : undefined),
-    touches: (a: string, b: string) => {
+    touches: (a: number, b: number) => {
       const ra = isId(a) ? rooms.get(a) : undefined;
       const rb = isId(b) ? rooms.get(b) : undefined;
       return ra !== undefined && rb !== undefined && a !== b && roomContact(ra, rb) !== null;
     },
-    canRelate: (a: string, b: string) =>
+    canRelate: (a: number, b: number) =>
       isId(a) && isId(b) && a !== b && rooms.has(a) && rooms.has(b) && !pairs.has(unorderedPairKey(a, b)),
     attributesOf<A extends AttributeSpecs>(node: SpatialNode, type: NodeTypeDefinition<A>): AttributesOf<A> {
       const entry = project.nodeTypes.find((t) => t.definition === type);

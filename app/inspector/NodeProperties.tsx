@@ -5,7 +5,7 @@ import { ManageFunctionsContext, OpenAttributesContext } from '@app/attributes/n
 import { MAX_ROOM_SIZE, nodeLabel, type RoomNode } from '@app/document';
 import { findNodeType } from '@app/extensions';
 import { nodeTypeStatus } from '@app/views/project';
-import { formatGrid, nextFreeId } from '@app/views/graph2d/diagram';
+import { formatGrid } from '@app/views/graph2d/diagram';
 import {
   CollapsibleSection,
   describeResolution,
@@ -38,7 +38,7 @@ interface PendingConfirmation {
 const toCoord = (t: Triple): [number, number, number] => [t[0], t[1], t[2]];
 
 /** Properties of one room: one attribute list (Function, Level, custom, calculated), geometry, relationships. */
-export function NodeProperties(props: PanelProps & { readonly nodeId: string }) {
+export function NodeProperties(props: PanelProps & { readonly nodeId: number }) {
   const { design, project, nodeId } = props;
   const { issues, showIssues, clearIssues, runShared, runV2 } = useCommands(props);
   const [pending, setPending] = useState<PendingConfirmation | null>(null);
@@ -281,15 +281,15 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: string }) 
   );
 }
 
-const incidentCount = ({ design }: PanelProps, nodeId: string): number =>
+const incidentCount = ({ design }: PanelProps, nodeId: number): number =>
   design.doc.edges.filter((e) => e.source === nodeId || e.target === nodeId).length;
 
 /** v2: every relationship of the room with its spatial status, and "Connect to…". */
-function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { readonly nodeId: string; readonly runV2: ReturnType<typeof useCommands>['runV2'] }) {
+function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { readonly nodeId: number; readonly runV2: ReturnType<typeof useCommands>['runV2'] }) {
   const [target, setTarget] = useState('');
   if (!design) return null;
   const v2 = design.doc;
-  const label = (id: string) => {
+  const label = (id: number) => {
     const n = v2.nodes.find((x) => x.id === id);
     return n ? nodeLabel(n) : id;
   };
@@ -299,8 +299,7 @@ function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { rea
 
   const connect = () => {
     if (target === '') return;
-    const id = nextFreeId('edge', v2.edges.map((e) => e.id));
-    if (runV2({ type: 'add-edge', edge: { id, source: nodeId, target } })) setTarget('');
+    if (runV2({ type: 'add-edge', edge: { source: nodeId, target: Number(target) } })) setTarget('');
   };
 
   return (

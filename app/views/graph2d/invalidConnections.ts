@@ -10,7 +10,7 @@ import { RELATIONSHIP_KIND_LABELS, UNRESOLVED_REASON_TEXT } from './edgePresenta
  */
 
 export interface InvalidConnectionRow {
-  readonly edgeId: string;
+  readonly edgeId: number;
   /** "01 ↔ 04": the rooms' readable labels (never the raw edge id). */
   readonly label: string;
   /** "Access" / "Open". */
@@ -22,7 +22,7 @@ export interface InvalidConnectionRow {
 
 /** The unresolved relationships of a model, in document order. */
 export function invalidConnectionRows(model: DiagramModel): readonly InvalidConnectionRow[] {
-  const label = (id: string) => model.byNode.get(id)?.label ?? id;
+  const label = (id: number) => model.byNode.get(id)?.label ?? String(id);
   const rows: InvalidConnectionRow[] = [];
   for (const edge of model.edges) {
     const r = edge.resolution;
@@ -39,12 +39,12 @@ export function invalidConnectionRows(model: DiagramModel): readonly InvalidConn
 }
 
 /** Ids that will be removed: every CURRENT row that the student did not uncheck (rows are checked by default). */
-export function checkedEdgeIds(rows: readonly InvalidConnectionRow[], unchecked: ReadonlySet<string>): readonly string[] {
+export function checkedEdgeIds(rows: readonly InvalidConnectionRow[], unchecked: ReadonlySet<number>): readonly number[] {
   return rows.filter((r) => !unchecked.has(r.edgeId)).map((r) => r.edgeId);
 }
 
 /** The one command for the checked rows, or null when nothing is checked. */
-export function removeInvalidCommand(rows: readonly InvalidConnectionRow[], unchecked: ReadonlySet<string>): DesignCommand | null {
+export function removeInvalidCommand(rows: readonly InvalidConnectionRow[], unchecked: ReadonlySet<number>): DesignCommand | null {
   const edgeIds = checkedEdgeIds(rows, unchecked);
   return edgeIds.length === 0 ? null : { type: 'remove-edges', edgeIds };
 }

@@ -29,29 +29,29 @@ function design(raw: unknown): DesignDocumentV2 {
   return r.value.doc;
 }
 
-// ── Fixture: a and b share a two-face wall (no relationship); c↔d and c↔e cannot be built ─────────
+// ── Fixture: 1 and 2 share a two-face wall (no relationship); 3↔4 and 3↔5 cannot be built ─────────
 
 const doc = () =>
   design({
     schemaVersion: 2,
     metadata: { name: 'Walls' },
     nodes: [
-      { id: 'a', displayId: '01', grid: [0, 1, 0], size: [1, 2, 1], typeId: 'gallery' },
-      { id: 'b', displayId: '02', grid: [1, 1, 0], size: [1, 2, 1], typeId: 'studio' },
-      { id: 'c', displayId: '03', grid: [5, 5, 0], typeId: 'studio' },
-      { id: 'd', displayId: '04', grid: [8, 8, 1], typeId: 'studio' },
-      { id: 'e', displayId: '05', grid: [9, 2, 1], typeId: 'store' },
+      { id: 1, grid: [0, 1, 0], size: [1, 2, 1], typeId: 'gallery' },
+      { id: 2, grid: [1, 1, 0], size: [1, 2, 1], typeId: 'studio' },
+      { id: 3, grid: [5, 5, 0], typeId: 'studio' },
+      { id: 4, grid: [8, 8, 1], typeId: 'studio' },
+      { id: 5, grid: [9, 2, 1], typeId: 'store' },
     ],
     edges: [
-      { id: 'cd', source: 'c', target: 'd', kind: 'access' },
-      { id: 'ce', source: 'c', target: 'e', kind: 'open' },
+      { id: 1, source: 3, target: 4, kind: 'access' },
+      { id: 2, source: 3, target: 5, kind: 'open' },
     ],
-    diagram: { positions: { a: [0, 0], b: [100, 0], c: [200, 0], d: [300, 0], e: [400, 0] } },
+    diagram: { positions: { 1: [0, 0], 2: [100, 0], 3: [200, 0], 4: [300, 0], 5: [400, 0] } },
   });
 
-/** The two unit faces of the a|b wall (a owns them: 'a' < 'b'). */
-const FACE_SOUTH = 'a:0.0.0:+x';
-const FACE_NORTH = 'a:0.1.0:+x';
+/** The two unit faces of the 1|2 wall (1 owns them: the lower id). */
+const FACE_SOUTH = '1:0.0.0:+x';
+const FACE_NORTH = '1:0.1.0:+x';
 
 // ── Pure UI model ─────────────────────────────────────────────────────────────────────────────
 
@@ -69,9 +69,9 @@ describe('wall panel model (wallAction-driven)', () => {
   });
 
   it('explains exterior, slab and unknown faces instead of offering an action', () => {
-    expect(wallPanelModel('a:0.0.0:-x', index, d, spatial)).toMatchObject({ kind: 'unavailable', message: expect.stringMatching(/exterior/) });
-    expect(wallPanelModel('a:0.0.0:-z', index, d, spatial)).toMatchObject({ kind: 'unavailable', message: expect.stringMatching(/floor or ceiling/) });
-    expect(wallPanelModel('a:0.0.0:+y', index, d, spatial)).toMatchObject({ kind: 'unavailable', message: expect.stringMatching(/inside one room/) });
+    expect(wallPanelModel('1:0.0.0:-x', index, d, spatial)).toMatchObject({ kind: 'unavailable', message: expect.stringMatching(/exterior/) });
+    expect(wallPanelModel('1:0.0.0:-z', index, d, spatial)).toMatchObject({ kind: 'unavailable', message: expect.stringMatching(/floor or ceiling/) });
+    expect(wallPanelModel('1:0.0.0:+y', index, d, spatial)).toMatchObject({ kind: 'unavailable', message: expect.stringMatching(/inside one room/) });
     expect(wallPanelModel('nope:+x', index, d, spatial)).toMatchObject({ kind: 'unavailable' });
   });
 
@@ -80,32 +80,34 @@ describe('wall panel model (wallAction-driven)', () => {
     expect(panel).toMatchObject({
       kind: 'add',
       rooms: [
-        { id: 'a', label: '01', typeId: 'gallery' },
-        { id: 'b', label: '02', typeId: 'studio' },
+        { id: 1, label: '1', typeId: 'gallery' },
+        { id: 2, label: '2', typeId: 'studio' },
       ],
-      source: 'a',
-      target: 'b',
-      preference: { nodeId: 'a', offset: [0, 1, 0], direction: '+x' },
+      source: 1,
+      target: 2,
+      preference: { nodeId: 1, offset: [0, 1, 0], direction: '+x' },
     });
   });
 
   it('Access = ONE add-edge-at-face (edge + preference); Open = a plain add-edge (preferences are access-only)', () => {
     const panel = wallPanelModel(FACE_NORTH, index, d, spatial);
     if (panel.kind !== 'add') throw new Error('add expected');
+    // The new relationship takes the design's next edge id (3: edges 1 and 2 exist).
+    expect(d.nextEdgeId).toBe(3);
     expect(addRelationshipCommand(panel, 'access', d)).toEqual({
-      edgeId: 'edge-1',
+      edgeId: 3,
       command: {
         port: 'scenario',
         command: {
           type: 'add-edge-at-face',
-          edge: { id: 'edge-1', source: 'a', target: 'b', kind: 'access' },
-          preference: { nodeId: 'a', offset: [0, 1, 0], direction: '+x' },
+          edge: { source: 1, target: 2, kind: 'access' },
+          preference: { nodeId: 1, offset: [0, 1, 0], direction: '+x' },
         },
       },
     });
     expect(addRelationshipCommand(panel, 'open', d)).toEqual({
-      edgeId: 'edge-1',
-      command: { port: 'design', command: { type: 'add-edge', edge: { id: 'edge-1', source: 'a', target: 'b', kind: 'open' } } },
+      edgeId: 3,
+      command: { port: 'design', command: { type: 'add-edge', edge: { source: 1, target: 2, kind: 'open' } } },
     });
   });
 
@@ -118,7 +120,7 @@ describe('wall panel model (wallAction-driven)', () => {
       proposeEdit: () => ({ status: 'rejected', issues: [], collidingRooms: [] }),
     };
     const html = renderToStaticMarkup(createElement(WallActionPanel, { design: port, faceId: FACE_NORTH, faces: index, onSelect: () => {}, onClose: () => {} }));
-    expect(html).toContain('Wall between 01 and 02');
+    expect(html).toContain('Wall between 1 and 2');
     expect(html).toContain('Add relationship');
     expect(html).toContain('data-wall-state="add"');
     expect(html).not.toContain('Remove relationship');
@@ -130,7 +132,7 @@ describe('wall panel for a related wall', () => {
     const d = doc();
     const added = applyScenarioCommand(
       { design: d, facePreferences: {} },
-      { type: 'add-edge-at-face', edge: { id: 'edge-1', source: 'a', target: 'b', kind: 'access' }, preference: { nodeId: 'a', offset: [0, 0, 0], direction: '+x' } },
+      { type: 'add-edge-at-face', edge: { source: 1, target: 2, kind: 'access' }, preference: { nodeId: 1, offset: [0, 0, 0], direction: '+x' } },
     );
     if (!added.ok) throw new Error('add-edge-at-face refused');
     const { design: d2, facePreferences } = added.value;
@@ -140,7 +142,7 @@ describe('wall panel for a related wall', () => {
     expect(wallPanelModel(FACE_NORTH, index, d2, spatial)).toMatchObject({
       kind: 'existing',
       opening: 'elsewhere',
-      moveDoorHere: { nodeId: 'a', offset: [0, 1, 0], direction: '+x' },
+      moveDoorHere: { nodeId: 1, offset: [0, 1, 0], direction: '+x' },
     });
     const port: DesignPort = {
       doc: d2,
@@ -171,28 +173,28 @@ describe('what a wall click selects (integration I2)', () => {
     for (const face of [FACE_SOUTH, FACE_NORTH]) {
       const action = wallActionOf(face, index, d, spatial);
       expect(action.kind).toBe('add');
-      expect(wallClickSelection(face, index, action)).toEqual(selectNode('a'));
+      expect(wallClickSelection(face, index, action)).toEqual(selectNode(1));
     }
     // A non-eligible face selects nothing (the views do not even open the panel for it).
-    expect(wallClickSelection('a:0.0.0:-x', index, wallActionOf('a:0.0.0:-x', index, d, spatial))).toEqual(NO_SELECTION);
+    expect(wallClickSelection('1:0.0.0:-x', index, wallActionOf('1:0.0.0:-x', index, d, spatial))).toEqual(NO_SELECTION);
   });
 
   it('a wall of two related rooms selects the relationship, on the door wall and on the other shared wall', () => {
     const added = applyScenarioCommand(
       { design: doc(), facePreferences: {} },
-      { type: 'add-edge-at-face', edge: { id: 'edge-1', source: 'a', target: 'b', kind: 'access' }, preference: { nodeId: 'a', offset: [0, 0, 0], direction: '+x' } },
+      { type: 'add-edge-at-face', edge: { source: 1, target: 2, kind: 'access' }, preference: { nodeId: 1, offset: [0, 0, 0], direction: '+x' } },
     );
     if (!added.ok) throw new Error('add-edge-at-face refused');
     const { design: d2, facePreferences } = added.value;
     const spatial = resolveWithPreferences(d2, facePreferences);
     const index = faceIndex(resolveBuildingFaces(d2, spatial));
-    expect(index.get(FACE_SOUTH)?.edgeId).toBe('edge-1');
-    expect(wallClickSelection(FACE_SOUTH, index, wallActionOf(FACE_SOUTH, index, d2, spatial))).toEqual(selectEdge('edge-1'));
-    expect(wallClickSelection(FACE_NORTH, index, wallActionOf(FACE_NORTH, index, d2, spatial))).toEqual(selectEdge('edge-1'));
+    expect(index.get(FACE_SOUTH)?.edgeId).toBe(3);
+    expect(wallClickSelection(FACE_SOUTH, index, wallActionOf(FACE_SOUTH, index, d2, spatial))).toEqual(selectEdge(3));
+    expect(wallClickSelection(FACE_NORTH, index, wallActionOf(FACE_NORTH, index, d2, spatial))).toEqual(selectEdge(3));
     // After "Remove relationship" the removed edge is not left selected: the owner room is, as a fresh click would.
     const panel = wallPanelModel(FACE_SOUTH, index, d2, spatial);
     if (panel.kind !== 'existing') throw new Error('expected an existing relationship');
-    expect(selectionAfterRemove(panel)).toEqual(selectNode('a'));
+    expect(selectionAfterRemove(panel)).toEqual(selectNode(1));
   });
 });
 
@@ -205,10 +207,10 @@ describe('Plan with the wall interaction (the registry Plan view)', () => {
     proposeEdit: () => ({ status: 'rejected', issues: [], collidingRooms: [] }),
   };
   const baseProps = { selection: NO_SELECTION, onSelect: () => {}, design: port };
-  it('offers the wall targets (reading gallery | store has no relationship)', () => {
+  it('offers the wall targets (reading gallery 3 | store 4 has no relationship)', () => {
     const html = renderToStaticMarkup(createElement(PlanWallView, baseProps));
     expect(html).toContain('data-view-surface="plan"');
-    expect(html).toMatch(/class="sgl-plan-wall-target" data-face-id="reading-gallery:\+x"/);
+    expect(html).toMatch(/class="sgl-plan-wall-target" data-face-id="3:\+x"/);
     // No wall panel until a wall is clicked.
     expect(html).not.toContain('sgl-wall-panel');
   });

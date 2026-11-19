@@ -38,7 +38,7 @@ export const ISSUE_HINTS: Readonly<Record<IssueCode, string>> = {
   'unknown-node-position': 'A diagram position refers to a room that does not exist.',
   'not-found': 'The item no longer exists (it may have been deleted).',
   'room-overlap': 'Two rooms would occupy the same cells. Move or resize one of them.',
-  'duplicate-display-id': 'Two rooms use the same short label. Labels must be unique.',
+  'id-counter': 'An id is not below the next-id counter of the design, so a new room or relationship could repeat it.',
   'too-many-cells': 'The rooms together use more cells than the app allows.',
   'route-displacement': 'This move would take the space of a generated connector. Confirm to recalculate it.',
 };

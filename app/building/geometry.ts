@@ -50,10 +50,10 @@ export interface ArchitecturalElement {
   /** Copied from the face: an open-air connector's end wall (façade colour, glass door). */
   readonly outside?: true;
   readonly orientation: FaceOrientation;
-  readonly ownerNodeId: string;
+  readonly ownerNodeId: number;
   readonly ownerTypeId: string;
-  readonly neighbourNodeId: string | null;
-  readonly edgeId: string | null;
+  readonly neighbourNodeId: number | null;
+  readonly edgeId: number | null;
   /** What picking this element selects: its edge if it has one, otherwise its owner node. */
   readonly target: Selection;
   /** Box centre in Three.js world space. */

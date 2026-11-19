@@ -1,4 +1,4 @@
-import { type DesignDocumentV2, type GraphIssue, nextDisplayId, nodeLabel, relationshipLabel } from '@app/document';
+import { type DesignDocumentV2, type GraphIssue, nodeLabel, relationshipLabel } from '@app/document';
 import { applyDesignCommand, type DesignCommand } from '@app/spatial';
 import { createHistory, record, redo, undo, type History } from './history';
 
@@ -126,19 +126,19 @@ export const isModified = (session: DocumentSession<object> | null): boolean =>
 
 /**
  * Short label for a schema-v2 command, in the app's vocabulary (rooms, connections, Building), using
- * the rooms' short display labels from the document the command applies to.
+ * the room ids (P4: the id is the label) of the document the command applies to.
  */
 export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocumentV2, 'nodes'> & { readonly edges?: DesignDocumentV2['edges'] }): string {
-  const room = (id: string) => {
+  const room = (id: number) => {
     const node = doc.nodes.find((n) => n.id === id);
     return `room ${node ? nodeLabel(node) : id}`;
   };
-  /** "01 ↔ 04" for a relationship id (phase 07, O08); the raw id only if it is unknown. */
-  const connection = (edgeId: string) => (doc.edges ? relationshipLabel({ nodes: doc.nodes, edges: doc.edges }, edgeId) : edgeId);
+  /** "3 → 7" for a relationship id; the raw id only if it is unknown. */
+  const connection = (edgeId: number) => (doc.edges ? relationshipLabel({ edges: doc.edges }, edgeId) : String(edgeId));
   switch (command.type) {
     case 'add-node':
-      // The command assigns `nextDisplayId(doc)` when no display id is given.
-      return `Add room ${command.node.displayId ?? nextDisplayId(doc)}`;
+      // The command gives the new room the document's next node id.
+      return `Add room ${'nextNodeId' in doc ? (doc as Pick<DesignDocumentV2, 'nextNodeId'>).nextNodeId : ''}`.trimEnd();
     case 'remove-node':
       return `Delete ${room(command.nodeId)}`;
     case 'set-node-geometry': {
@@ -156,12 +156,10 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       return `Change the type of ${room(command.nodeId)}`;
     case 'set-node-attributes':
       return `Edit the attributes of ${room(command.nodeId)}`;
-    case 'set-display-id':
-      return `Rename ${room(command.nodeId)}`;
     case 'set-diagram-position':
       return `Move ${room(command.nodeId)} in the diagram`;
     case 'add-edge':
-      return `Add connection ${room(command.edge.source)} ↔ ${room(command.edge.target).slice(5)}`;
+      return `Add connection ${command.edge.source} → ${command.edge.target}`;
     case 'remove-edge':
       return `Remove connection ${connection(command.edgeId)}`;
     case 'remove-edges': {

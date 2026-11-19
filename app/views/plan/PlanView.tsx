@@ -371,9 +371,9 @@ export function PlanDrawing({
   readonly onWallHover?: (t: PlanWallTarget | null) => void;
   readonly onWallClick?: (t: PlanWallTarget) => void;
   /** Rooms lit up by the Designer's highlight button. */
-  readonly lit?: ReadonlySet<string> | undefined;
+  readonly lit?: ReadonlySet<number> | undefined;
 }) {
-  const edgeClass = (base: string, edgeId: string | null) => (edgeId !== null && emphasis.edges.has(edgeId) ? `${base} selected` : base);
+  const edgeClass = (base: string, edgeId: number | null) => (edgeId !== null && emphasis.edges.has(edgeId) ? `${base} selected` : base);
   const hit = 4 * px; // 4 px of extra hit area around thin elements
   const labelSize = 12 * px;
   return (

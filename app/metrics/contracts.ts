@@ -47,7 +47,7 @@ export interface ComputedMetric {
   /** Non-empty; see `METRIC_DEPENDENCIES`. */
   readonly dependsOn: readonly MetricDependency[];
   /** Pure. `null` when the item does not exist or the metric has no value for it. */
-  compute(ctx: MetricContext, itemId: string): MetricValue | null;
+  compute(ctx: MetricContext, itemId: number): MetricValue | null;
 }
 
 export type MetricRegistry = readonly ComputedMetric[];
@@ -55,7 +55,7 @@ export type MetricRegistry = readonly ComputedMetric[];
 export interface MetricEvaluator {
   readonly metrics: MetricRegistry;
   /** One value; `null` for an unknown item. Throws for an unknown metric id (a programming error). */
-  value(ctx: MetricContext, metricId: string, itemId: string): MetricValue | null;
+  value(ctx: MetricContext, metricId: string, itemId: number): MetricValue | null;
   /** Every item of the metric's collection, in document order. */
-  values(ctx: MetricContext, metricId: string): ReadonlyMap<string, MetricValue | null>;
+  values(ctx: MetricContext, metricId: string): ReadonlyMap<number, MetricValue | null>;
 }

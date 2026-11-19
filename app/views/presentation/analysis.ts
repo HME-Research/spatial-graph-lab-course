@@ -17,15 +17,15 @@ export interface AnalysisInput {
   readonly title: string;
   readonly summary?: string;
   /** Values reported by the algorithm, keyed by node id. */
-  readonly nodeValues: Readonly<Record<string, AttributeValue>>;
+  readonly nodeValues: Readonly<Record<number, AttributeValue>>;
   /** Node ids of the document the algorithm ran on, in document order. */
-  readonly ranOnNodeIds: readonly string[];
+  readonly ranOnNodeIds: readonly number[];
   /** Node ids of the current document (deleted nodes are flagged, new nodes get "no value"). */
-  readonly currentNodeIds: readonly string[];
+  readonly currentNodeIds: readonly number[];
   /** True when the document changed since the run (`isStale` in app/session/algorithmSession). */
   readonly stale: boolean;
   /** Optional display labels (displayId) for rows. */
-  readonly labelOf?: ReadonlyMap<string, string>;
+  readonly labelOf?: ReadonlyMap<number, string>;
 }
 
 export type AnalysisValueKind = 'numeric' | 'boolean' | 'categorical' | 'empty';
@@ -38,7 +38,7 @@ export interface AnalysisLegendEntry {
 }
 
 export interface AnalysisRowView {
-  readonly nodeId: string;
+  readonly nodeId: number;
   readonly label: string;
   readonly valueLabel: string;
   readonly color: string;
@@ -55,17 +55,17 @@ export interface AnalysisPresentation {
   readonly staleMessage: string | null;
   readonly valueKind: AnalysisValueKind;
   /** Colour per CURRENT node id (nodes without a value get MISSING_COLOR). */
-  readonly colorOf: ReadonlyMap<string, string>;
+  readonly colorOf: ReadonlyMap<number, string>;
   /** Short value text per CURRENT node id ("3", "yes", "no value"). */
-  readonly valueLabelOf: ReadonlyMap<string, string>;
+  readonly valueLabelOf: ReadonlyMap<number, string>;
   readonly legend: readonly AnalysisLegendEntry[];
   readonly scale: { readonly min: number; readonly max: number } | null;
   /** Rows for a table, in the order of the analysed document. */
   readonly rows: readonly AnalysisRowView[];
   /** Ids in `nodeValues` that were not in the analysed document (ignored). */
-  readonly unknownIds: readonly string[];
+  readonly unknownIds: readonly number[];
   /** Analysed node ids that no longer exist. */
-  readonly deletedIds: readonly string[];
+  readonly deletedIds: readonly number[];
   /** Overlay opacity hint: lower when stale so it reads as "old". */
   readonly overlayOpacity: number;
 }
@@ -92,12 +92,13 @@ function formatNumber(n: number): string {
 export function presentAnalysis(input: AnalysisInput): AnalysisPresentation {
   const ranOn = new Set(input.ranOnNodeIds);
   const current = new Set(input.currentNodeIds);
-  const valueOf = (id: string): AttributeValue | undefined =>
+  const valueOf = (id: number): AttributeValue | undefined =>
     ranOn.has(id) && Object.hasOwn(input.nodeValues, id) ? input.nodeValues[id] : undefined;
 
   const unknownIds = Object.keys(input.nodeValues)
+    .map(Number)
     .filter((id) => !ranOn.has(id))
-    .sort();
+    .sort((a, b) => a - b);
   const deletedIds = input.ranOnNodeIds.filter((id) => !current.has(id) && Object.hasOwn(input.nodeValues, id));
 
   // Colour scheme from the analysed values (finite numbers, booleans, or anything else).
@@ -152,8 +153,8 @@ export function presentAnalysis(input: AnalysisInput): AnalysisPresentation {
   }).length;
   if (missingCount > 0) legend.push({ label: `${NO_VALUE_LABEL} (unreachable, null or not reported)`, color: MISSING_COLOR, count: missingCount, missing: true });
 
-  const colorOf = new Map<string, string>();
-  const valueLabelOf = new Map<string, string>();
+  const colorOf = new Map<number, string>();
+  const valueLabelOf = new Map<number, string>();
   for (const id of input.currentNodeIds) {
     const v = valueOf(id);
     colorOf.set(id, colorFor(v));
@@ -164,7 +165,7 @@ export function presentAnalysis(input: AnalysisInput): AnalysisPresentation {
     const v = valueOf(id);
     return {
       nodeId: id,
-      label: input.labelOf?.get(id) ?? id,
+      label: input.labelOf?.get(id) ?? String(id),
       valueLabel: valueLabel(v),
       color: colorFor(v),
       missing: valueLabel(v) === NO_VALUE_LABEL,
@@ -207,7 +208,7 @@ export interface AnalysisNodeStyle {
  * the analysis colour only ever changes the fill. Unknown node ids get a neutral "no value" style.
  */
 export function analysisNodeStyle(
-  nodeId: string,
+  nodeId: number,
   presentation: AnalysisPresentation | null,
   selection: Selection,
 ): AnalysisNodeStyle {

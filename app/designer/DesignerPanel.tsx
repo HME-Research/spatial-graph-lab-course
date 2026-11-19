@@ -64,7 +64,7 @@ export interface DesignerPanelProps {
   /** Unused since the Defaults section was removed (2026-11-17); kept so callers stay valid. */
   readonly selection?: Selection;
   /** Unused since the Defaults section was removed (2026-11-17); connector styles are in Properties. */
-  readonly onShowRelationship?: (edgeId: string) => void;
+  readonly onShowRelationship?: (edgeId: number) => void;
   /** The project's imported façades (3DM). Absent: the imported-façade controls are not shown. */
   readonly facades?: DesignerFacades;
 }

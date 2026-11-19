@@ -16,7 +16,7 @@ import {
  * spatial status themselves.
  */
 export interface RelationshipPresentation {
-  readonly edgeId: string;
+  readonly edgeId: number;
   readonly kind: RelationshipKind;
   readonly status: ResolutionStatus;
   readonly kindLabel: string;
@@ -85,7 +85,7 @@ export function presentRelationship(resolution: EdgeResolution): RelationshipPre
  * Presentation for an edge id. Unknown ids (stale selection, edge removed since the resolution was
  * computed) return null instead of throwing.
  */
-export function presentEdgeById(spatial: SpatialResolution, edgeId: string): RelationshipPresentation | null {
+export function presentEdgeById(spatial: SpatialResolution, edgeId: number): RelationshipPresentation | null {
   const r = spatial.byEdge.get(edgeId);
   return r ? presentRelationship(r) : null;
 }
@@ -94,14 +94,14 @@ export interface RelationshipSummary {
   readonly total: number;
   readonly counts: Readonly<Record<ResolutionStatus, number>>;
   /** Unresolved edge ids in document order (for a "show problems" list). */
-  readonly unresolvedIds: readonly string[];
+  readonly unresolvedIds: readonly number[];
   /** One short sentence, e.g. "5 relationships: 3 direct, 1 via route, 1 unresolved." */
   readonly sentence: string;
 }
 
 export function summarizeRelationships(spatial: SpatialResolution): RelationshipSummary {
   const counts: Record<ResolutionStatus, number> = { direct: 0, routed: 0, unresolved: 0 };
-  const unresolvedIds: string[] = [];
+  const unresolvedIds: number[] = [];
   for (const r of spatial.edges) {
     counts[r.status]++;
     if (r.status === 'unresolved') unresolvedIds.push(r.edgeId);

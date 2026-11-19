@@ -21,11 +21,11 @@ function parsed<T>(r: ParseResult<T>): T {
   if (!r.ok) throw new Error(r.message);
   return r.value;
 }
-const node = (id: string): RoomNode => labDoc().nodes.find((n) => n.id === id)!;
+const node = (id: number): RoomNode => labDoc().nodes.find((n) => n.id === id)!;
 
 describe('typed attribute fields', () => {
   it('one field per declared attribute, with status, default hint and description', () => {
-    const fields = typedFields(gallerySpecs, node('g1').attributes);
+    const fields = typedFields(gallerySpecs, node(1).attributes);
     expect(fields.map((f) => [f.key, f.stored, f.status, f.defaultValue])).toEqual([
       ['daylight', 'high', 'ok', undefined],
       ['public', true, 'ok', true],
@@ -34,7 +34,7 @@ describe('typed attribute fields', () => {
   });
 
   it('keeps an invalid stored value visible and flagged, and shows a missing one as missing (no default written)', () => {
-    const g2 = node('g2');
+    const g2 = node(2);
     const fields = typedFields(gallerySpecs, g2.attributes);
     expect(fields.map((f) => [f.key, f.stored, f.status])).toEqual([
       ['daylight', 'bright', 'invalid'],
@@ -58,27 +58,27 @@ describe('typed attribute fields', () => {
 describe('typed attribute edits', () => {
   it('setting a declared value keeps every other attribute, including invalid and legacy ones, in order', () => {
     const doc = labDoc();
-    const g2 = doc.nodes.find((n) => n.id === 'g2')!;
+    const g2 = doc.nodes.find((n) => n.id === 2)!;
     const command = parsed(setTypedAttributeCommand(g2, gallerySpecs, 'public', false));
-    expect(command).toEqual({ type: 'set-node-attributes', nodeId: 'g2', attributes: { daylight: 'bright', legacy: 'kept', public: false } });
+    expect(command).toEqual({ type: 'set-node-attributes', nodeId: 2, attributes: { daylight: 'bright', legacy: 'kept', public: false } });
     const next = expectOk(applyDesignCommand(doc, command));
-    expect(next.nodes.find((n) => n.id === 'g2')!.attributes).toEqual({ daylight: 'bright', legacy: 'kept', public: false });
+    expect(next.nodes.find((n) => n.id === 2)!.attributes).toEqual({ daylight: 'bright', legacy: 'kept', public: false });
   });
 
   it('changing daylight updates the graph data and resolves the conformance warning', async () => {
     const project = await labToolkit();
     const doc = labDoc();
-    expect(checkConformance(doc, project).map((d) => d.id)).toContain('invalid-attribute-value|node:g2|daylight');
-    const g2 = doc.nodes.find((n) => n.id === 'g2')!;
+    expect(checkConformance(doc, project).map((d) => d.id)).toContain('invalid-attribute-value|node:2|daylight');
+    const g2 = doc.nodes.find((n) => n.id === 2)!;
     const next = expectOk(applyDesignCommand(doc, parsed(setTypedAttributeCommand(g2, gallerySpecs, 'daylight', 'low'))));
-    expect(next.nodes.find((n) => n.id === 'g2')!.attributes).toEqual({ daylight: 'low', legacy: 'kept' });
+    expect(next.nodes.find((n) => n.id === 2)!.attributes).toEqual({ daylight: 'low', legacy: 'kept' });
     expect(serializeDesignV2(next)).toContain('"daylight": "low"');
-    expect(checkConformance(next, project).map((d) => d.id)).not.toContain('invalid-attribute-value|node:g2|daylight');
+    expect(checkConformance(next, project).map((d) => d.id)).not.toContain('invalid-attribute-value|node:2|daylight');
   });
 
   it('rejects values the declaration does not accept (the runtime’s own rule)', () => {
-    const s1 = node('s1');
-    const g1 = node('g1');
+    const s1 = node(3);
+    const g1 = node(1);
     const message = (r: ReturnType<typeof setTypedAttributeCommand>) => (r.ok ? 'ok' : r.message);
     expect(message(setTypedAttributeCommand(g1, gallerySpecs, 'daylight', 'bright'))).toBe('"daylight" must be one of "high", "medium", "low"');
     expect(message(setTypedAttributeCommand(s1, studioSpecs, 'occupancy', -1))).toBe('"occupancy" must be a number ≥ 0');
@@ -88,23 +88,23 @@ describe('typed attribute edits', () => {
   });
 
   it('clearing removes only that declared attribute (the default applies on read; nothing else changes)', () => {
-    const g1 = node('g1');
+    const g1 = node(1);
     expect(parsed(setTypedAttributeCommand(g1, gallerySpecs, 'public', undefined))).toEqual({
       type: 'set-node-attributes',
-      nodeId: 'g1',
+      nodeId: 1,
       attributes: { daylight: 'high' },
     });
   });
 
   it('the free-form editor changes undeclared attributes only and keeps declared values as stored', () => {
-    const g2 = node('g2');
+    const g2 = node(2);
     const command = parsed(
       setUndeclaredAttributesCommand(g2, gallerySpecs, [
         { key: 'legacy', kind: 'text', value: 'changed' },
         { key: 'extra', kind: 'number', value: '2' },
       ]),
     );
-    expect(command).toEqual({ type: 'set-node-attributes', nodeId: 'g2', attributes: { daylight: 'bright', legacy: 'changed', extra: 2 } });
+    expect(command).toEqual({ type: 'set-node-attributes', nodeId: 2, attributes: { daylight: 'bright', legacy: 'changed', extra: 2 } });
     const removed = parsed(setUndeclaredAttributesCommand(g2, gallerySpecs, []));
     expect(removed).toMatchObject({ attributes: { daylight: 'bright' } });
     const clash = setUndeclaredAttributesCommand(g2, gallerySpecs, [{ key: 'daylight', kind: 'text', value: 'low' }]);

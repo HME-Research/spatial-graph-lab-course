@@ -14,6 +14,7 @@ import {
   type RelationshipResolver,
 } from './index';
 
+/** v2Raw: rooms a = 1, b = 2; edge ab = 1 (access). */
 const doc = (): DesignDocumentV2 => expectOk(validateDocumentV2(v2Raw()));
 
 describe('resolveRelationships (direct, different-level, straight routing)', () => {
@@ -22,14 +23,14 @@ describe('resolveRelationships (direct, different-level, straight routing)', () 
     const r = resolveRelationships(example);
     expect(r.edges.map((e) => e.status)).toEqual(example.edges.map(() => 'direct'));
     const contact = Object.fromEntries(r.edges.map((e) => [e.edgeId, e.status === 'direct' ? e.contact : null]));
-    expect(contact['entry-to-studio']).toBe('horizontal');
-    expect(contact['entry-up']).toBe('vertical');
+    expect(contact[1]).toBe('horizontal'); // entry-to-studio
+    expect(contact[4]).toBe('vertical'); // entry-up
   });
 
   it('keeps a non-touching relationship valid and routes it with a straight connector', () => {
     // (Gate 0 asserted the `routing-unavailable` stub here; 02 replaced it with real routing.)
     const r = resolveRelationships(doc());
-    const ab = r.byEdge.get('ab')!;
+    const ab = r.byEdge.get(1)!;
     expect(ab.status).toBe('routed');
     expect(ab.status === 'routed' && ab.route.cells).toEqual([
       [2, 0, 0],
@@ -42,7 +43,7 @@ describe('resolveRelationships (direct, different-level, straight routing)', () 
   it('reports separated rooms on different storeys as different-level', () => {
     const raw = v2Raw();
     raw.nodes[1]!.grid = [5, 0, 2];
-    const ab = resolveRelationships(expectOk(validateDocumentV2(raw))).byEdge.get('ab')!;
+    const ab = resolveRelationships(expectOk(validateDocumentV2(raw))).byEdge.get(1)!;
     expect(ab.status === 'unresolved' && ab.reason).toBe('different-level');
   });
 
@@ -89,8 +90,8 @@ const fakeRouter: RelationshipResolver = (d) => {
 describe('occupancy', () => {
   it('holds room cells and route reservations in one map', () => {
     const occ = fakeRouter(doc()).occupancy;
-    expect(occ.at([1, 2, 0])).toEqual({ kind: 'room', nodeId: 'a' });
-    expect(occ.at([3, 0, 0])).toEqual({ kind: 'route', edgeId: 'ab' });
+    expect(occ.at([1, 2, 0])).toEqual({ kind: 'room', nodeId: 1 });
+    expect(occ.at([3, 0, 0])).toEqual({ kind: 'route', edgeId: 1 });
     expect(occ.at([3, 5, 0])).toBeUndefined();
     expect(occ.cells.size).toBe(6 + 1 + 3);
   });
@@ -98,26 +99,26 @@ describe('occupancy', () => {
 
 describe('spatial edits (proposal → commit)', () => {
   it('rejects a room–room overlap and names the room', () => {
-    const p = proposeSpatialEdit(doc(), { nodeId: 'b', grid: [1, 1, 0] });
+    const p = proposeSpatialEdit(doc(), { nodeId: 2, grid: [1, 1, 0] });
     expect(p.status).toBe('rejected');
-    expect(p.status === 'rejected' && p.collidingRooms).toEqual(['a']);
+    expect(p.status === 'rejected' && p.collidingRooms).toEqual([1]);
     expectIssue(commitSpatialEdit(p), 'room-overlap');
   });
 
   it('resizes anchored at the minimum corner', () => {
-    const p = proposeSpatialEdit(doc(), { nodeId: 'b', size: [2, 2, 1] });
+    const p = proposeSpatialEdit(doc(), { nodeId: 2, size: [2, 2, 1] });
     const next = expectOk(commitSpatialEdit(p));
     expect(next.nodes[1]).toMatchObject({ grid: [5, 0, 0], size: [2, 2, 1] });
   });
 
   it('asks for confirmation before taking connector cells; Cancel leaves the document unchanged', () => {
     const d = doc();
-    const p = proposeSpatialEdit(d, { nodeId: 'b', grid: [3, 3, 0], size: [1, 1, 1] }, { resolve: fakeRouter });
+    const p = proposeSpatialEdit(d, { nodeId: 2, grid: [3, 3, 0], size: [1, 1, 1] }, { resolve: fakeRouter });
     expect(p.status).toBe('ok'); // (3,3) is not on the route
-    const q = proposeSpatialEdit(d, { nodeId: 'b', grid: [3, 0, 0] }, { resolve: fakeRouter });
+    const q = proposeSpatialEdit(d, { nodeId: 2, grid: [3, 0, 0] }, { resolve: fakeRouter });
     expect(q.status).toBe('needs-confirmation');
-    expect(q.status === 'needs-confirmation' && q.displacedRoutes).toEqual(['ab']);
-    expect(q.status === 'needs-confirmation' && q.impacted).toEqual([{ edgeId: 'ab', before: 'routed', after: 'unresolved' }]);
+    expect(q.status === 'needs-confirmation' && q.displacedRoutes).toEqual([1]);
+    expect(q.status === 'needs-confirmation' && q.impacted).toEqual([{ edgeId: 1, before: 'routed', after: 'unresolved' }]);
     expectIssue(commitSpatialEdit(q), 'route-displacement');
     const moved = expectOk(commitSpatialEdit(q, { confirmRouteDisplacement: true }));
     expect(moved.nodes[1]!.grid).toEqual([3, 0, 0]);
@@ -128,16 +129,18 @@ describe('spatial edits (proposal → commit)', () => {
 
 describe('applyDesignCommand (frozen v2 command shapes)', () => {
   it('adds a non-adjacent relationship, defaulting to access', () => {
-    const d = expectOk(applyDesignCommand(doc(), { type: 'remove-edge', edgeId: 'ab' }));
-    const next = expectOk(applyDesignCommand(d, { type: 'add-edge', edge: { id: 'e1', source: 'b', target: 'a' } }));
-    expect(next.edges).toEqual([{ id: 'e1', source: 'b', target: 'a', kind: 'access', attributes: {} }]);
+    const d = expectOk(applyDesignCommand(doc(), { type: 'remove-edge', edgeId: 1 }));
+    const next = expectOk(applyDesignCommand(d, { type: 'add-edge', edge: { source: 2, target: 1 } }));
+    // The new edge takes the counter (2): the removed edge's id 1 is never reused.
+    expect(next.edges).toEqual([{ id: 2, source: 2, target: 1, kind: 'access', attributes: {} }]);
+    expect(next.nextEdgeId).toBe(3);
   });
 
   it('changes kind and connector style; null restores the default', () => {
-    let d = expectOk(applyDesignCommand(doc(), { type: 'change-edge-kind', edgeId: 'ab', kind: 'open' }));
-    d = expectOk(applyDesignCommand(d, { type: 'set-connector-style', edgeId: 'ab', style: 'covered' }));
+    let d = expectOk(applyDesignCommand(doc(), { type: 'change-edge-kind', edgeId: 1, kind: 'open' }));
+    d = expectOk(applyDesignCommand(d, { type: 'set-connector-style', edgeId: 1, style: 'covered' }));
     expect(d.edges[0]).toMatchObject({ kind: 'open', connectorStyle: 'covered' });
-    d = expectOk(applyDesignCommand(d, { type: 'set-connector-style', edgeId: 'ab', style: null }));
+    d = expectOk(applyDesignCommand(d, { type: 'set-connector-style', edgeId: 1, style: null }));
     expect('connectorStyle' in d.edges[0]!).toBe(false);
   });
 
@@ -156,36 +159,41 @@ describe('applyDesignCommand (frozen v2 command shapes)', () => {
     );
   });
 
-  it('adds a room with the next display id and default size; removal drops its edges and position', () => {
-    const d = expectOk(applyDesignCommand(doc(), { type: 'add-node', node: { id: 'c', grid: [0, 5, 0], typeId: 'storage' } }));
-    expect(d.nodes[2]).toMatchObject({ id: 'c', displayId: '03', size: [1, 1, 1] });
-    const r = expectOk(applyDesignCommand(d, { type: 'remove-node', nodeId: 'a' }));
-    expect(r.edges).toEqual([]);
-    expect(Object.keys(r.diagram.positions)).toEqual(['b']);
-    expect(r.nodes.map((n) => n.displayId)).toEqual(['02', '03']); // never renumbered
+  it('adds a room with the next id and default size; removal drops its edges and position; ids are never reused', () => {
+    const d = expectOk(applyDesignCommand(doc(), { type: 'add-node', node: { grid: [0, 5, 0], typeId: 'storage' } }));
+    expect(d.nodes[2]).toMatchObject({ id: 3, size: [1, 1, 1] });
+    expect(d.nextNodeId).toBe(4);
+    const r = expectOk(applyDesignCommand(d, { type: 'remove-node', nodeId: 3 }));
+    expect(r.nextNodeId).toBe(4); // the counter does not go back
+    const again = expectOk(applyDesignCommand(r, { type: 'add-node', node: { grid: [0, 5, 0], typeId: 'storage' } }));
+    expect(again.nodes.map((n) => n.id)).toEqual([1, 2, 4]);
+    const s = expectOk(applyDesignCommand(again, { type: 'remove-node', nodeId: 1 }));
+    expect(s.edges).toEqual([]);
+    expect(Object.keys(s.diagram.positions)).toEqual(['2']);
+    expect(s.nodes.map((n) => n.id)).toEqual([2, 4]); // never renumbered
   });
 
   it('routes geometry through the spatial edit rules', () => {
-    expectIssue(applyDesignCommand(doc(), { type: 'set-node-geometry', nodeId: 'b', grid: [1, 0, 0] }), 'room-overlap');
+    expectIssue(applyDesignCommand(doc(), { type: 'set-node-geometry', nodeId: 2, grid: [1, 0, 0] }), 'room-overlap');
     expectIssue(
-      applyDesignCommand(doc(), { type: 'set-node-geometry', nodeId: 'b', grid: [3, 0, 0] }, { resolve: fakeRouter }),
+      applyDesignCommand(doc(), { type: 'set-node-geometry', nodeId: 2, grid: [3, 0, 0] }, { resolve: fakeRouter }),
       'route-displacement',
     );
     const ok = applyDesignCommand(
       doc(),
-      { type: 'set-node-geometry', nodeId: 'b', grid: [3, 0, 0], confirmRouteDisplacement: true },
+      { type: 'set-node-geometry', nodeId: 2, grid: [3, 0, 0], confirmRouteDisplacement: true },
       { resolve: fakeRouter },
     );
     expect(expectOk(ok).nodes[1]!.grid).toEqual([3, 0, 0]);
   });
 
-  it('sets and clears a display id; rejects duplicates; never mutates the input', () => {
+  it('refuses unknown ids by number; never mutates the input', () => {
     const d = doc();
     const before = serializeDesignV2(d);
-    expectIssue(applyDesignCommand(d, { type: 'set-display-id', nodeId: 'b', displayId: '01' }), 'duplicate-display-id');
-    const cleared = expectOk(applyDesignCommand(d, { type: 'set-display-id', nodeId: 'b', displayId: null }));
-    expect('displayId' in cleared.nodes[1]!).toBe(false);
-    expectIssue(applyDesignCommand(d, { type: 'remove-edge', edgeId: 'zz' }), 'not-found');
+    const missing = expectIssue(applyDesignCommand(d, { type: 'remove-edge', edgeId: 99 }), 'not-found');
+    expect(missing.message).toBe('edge 99 does not exist');
+    expect(expectIssue(applyDesignCommand(d, { type: 'remove-node', nodeId: 7 }), 'not-found').message).toBe('node 7 does not exist');
+    expectOk(applyDesignCommand(d, { type: 'add-node', node: { grid: [0, 5, 0], typeId: 'storage' } }));
     expect(serializeDesignV2(d)).toBe(before);
   });
 });

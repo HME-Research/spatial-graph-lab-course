@@ -19,10 +19,11 @@ function doc(settings: unknown = undefined): DesignDocumentV2 {
     validateDocumentV2({
       schemaVersion: 2,
       metadata: { name: 'modes' },
+      // a = 1, b = 2, c = 3 (one per storey)
       nodes: [
-        { id: 'a', grid: [0, 0, 0], typeId: 'studio' },
-        { id: 'b', grid: [0, 0, 1], typeId: 'studio' },
-        { id: 'c', grid: [0, 0, 2], typeId: 'studio' },
+        { id: 1, grid: [0, 0, 0], typeId: 'studio' },
+        { id: 2, grid: [0, 0, 1], typeId: 'studio' },
+        { id: 3, grid: [0, 0, 2], typeId: 'studio' },
       ],
       edges: [],
       settings,
@@ -88,23 +89,23 @@ describe('set-style-by with starting bands', () => {
 describe('set-style-mode: value cards or bands, both remembered', () => {
   it('switching to bands creates them; back to values keeps them for later', () => {
     let d = run(doc(), { type: 'set-style-by', by: 'level' }, { type: 'set-look', by: 'level', group: { kind: 'value', value: 2 }, patch: { roof: 'pergola' } });
-    expect(nodeLooks(d, base).get('c')!.look.roof).toBe('pergola');
+    expect(nodeLooks(d, base).get(3)!.look.roof).toBe('pergola');
 
     d = run(d, { type: 'set-style-mode', by: 'level', mode: 'bands', dividers: [1] });
     expect(d.settings.styles.level).toEqual({ groups: [{ value: 2, look: { roof: 'pergola' } }], dividers: [1], bands: [{}, {}] });
-    expect(nodeLooks(d, base).get('c')!.group).toEqual({ kind: 'band', index: 1 });
-    expect(nodeLooks(d, base).get('c')!.look.roof).toBe('flat'); // the value card is inactive
+    expect(nodeLooks(d, base).get(3)!.group).toEqual({ kind: 'band', index: 1 });
+    expect(nodeLooks(d, base).get(3)!.look.roof).toBe('flat'); // the value card is inactive
 
     d = run(d, { type: 'set-look', by: 'level', group: { kind: 'band', index: 0 }, patch: { walls: 'open' } });
     d = run(d, { type: 'set-style-mode', by: 'level', mode: 'values' });
     expect(d.settings.styles.level!.mode).toBe('values');
-    expect(nodeLooks(d, base).get('c')!.look.roof).toBe('pergola');
-    expect(nodeLooks(d, base).get('a')!.group).toEqual({ kind: 'default' });
+    expect(nodeLooks(d, base).get(3)!.look.roof).toBe('pergola');
+    expect(nodeLooks(d, base).get(1)!.group).toEqual({ kind: 'default' });
 
     // Back to bands: the stored bands (and their looks) come back; no mode is stored for bands.
     d = run(d, { type: 'set-style-mode', by: 'level', mode: 'bands', dividers: [7] });
     expect(d.settings.styles.level).toEqual({ groups: [{ value: 2, look: { roof: 'pergola' } }], dividers: [1], bands: [{ walls: 'open' }, {}] });
-    expect(nodeLooks(d, base).get('a')!.look.walls).toBe('open');
+    expect(nodeLooks(d, base).get(1)!.look.walls).toBe('open');
   });
 
   it('values mode ignores the bands when matching; moving dividers keeps the mode', () => {

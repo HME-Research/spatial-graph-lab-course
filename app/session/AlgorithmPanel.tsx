@@ -285,7 +285,7 @@ function RunResult({
   const [confirming, setConfirming] = useState(false);
   const stale = isStale(run, version, attributesRevision);
   const doc = version?.doc ?? null;
-  const nodeButton = (id: string, enabled = true) =>
+  const nodeButton = (id: number, enabled = true) =>
     enabled ? (
       <button type="button" className="sgl-link" onClick={() => onSelect(selectNode(id))}>
         {id}

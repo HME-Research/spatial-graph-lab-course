@@ -60,7 +60,7 @@ export function projectFacadeProvider(project: ActiveToolkit | null): FacadeProv
 /** Context for `doc`. Pass the project's `facade` provider to keep it stable across document edits. */
 export function buildProjectViewContext(
   project: ActiveToolkit | null,
-  doc: TypedNodes & { readonly edges?: readonly { readonly id: string; readonly attributes: { readonly [key: string]: string | number | boolean | null } }[] },
+  doc: TypedNodes & { readonly edges?: readonly { readonly id: number; readonly attributes: { readonly [key: string]: string | number | boolean | null } }[] },
   facade: FacadeProvider = projectFacadeProvider(project),
   attributes: ProjectAttributeSchema = project?.attributeBaseline.schema ?? EMPTY_ATTRIBUTE_SCHEMA,
 ): ProjectViewContext {

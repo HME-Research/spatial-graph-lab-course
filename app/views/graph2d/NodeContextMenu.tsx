@@ -10,17 +10,17 @@ import { RELATIONSHIP_KIND_LABELS } from './edgePresentation';
  */
 
 export type MenuTarget =
-  | { readonly kind: 'node'; readonly id: string }
-  | { readonly kind: 'edge'; readonly id: string }
+  | { readonly kind: 'node'; readonly id: number }
+  | { readonly kind: 'edge'; readonly id: number }
   | { readonly kind: 'pane' };
 
 export type MenuAction =
-  | { readonly type: 'inspect'; readonly nodeId: string }
-  | { readonly type: 'connect'; readonly nodeId: string }
-  | { readonly type: 'add-node'; readonly nearNodeId?: string }
-  | { readonly type: 'remove-node'; readonly nodeId: string }
-  | { readonly type: 'remove-edge'; readonly edgeId: string }
-  | { readonly type: 'set-relationship-kind'; readonly edgeId: string; readonly kind: RelationshipKind }
+  | { readonly type: 'inspect'; readonly nodeId: number }
+  | { readonly type: 'connect'; readonly nodeId: number }
+  | { readonly type: 'add-node'; readonly nearNodeId?: number }
+  | { readonly type: 'remove-node'; readonly nodeId: number }
+  | { readonly type: 'remove-edge'; readonly edgeId: number }
+  | { readonly type: 'set-relationship-kind'; readonly edgeId: number; readonly kind: RelationshipKind }
   /** Open the "Remove invalid connections" review (or explain that there is nothing to remove). */
   | { readonly type: 'remove-invalid' };
 

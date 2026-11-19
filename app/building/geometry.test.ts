@@ -21,8 +21,9 @@ import { resolveBuildingFaces, toResolvedFace } from './multicellFaces';
 
 const resolveFaces = (d: DesignDocumentV2) => resolveBuildingFaces(d, resolveRelationships(d)).map(toResolvedFace);
 
-type N = [id: string, grid: [number, number, number], typeId?: string];
-type E = [id: string, source: string, target: string, kind: RelationshipKind];
+/** Rooms a = 1, b = 2, c = 3; the one edge of each test is 1. Face ids start with the owner room's id. */
+type N = [id: number, grid: [number, number, number], typeId?: string];
+type E = [id: number, source: number, target: number, kind: RelationshipKind];
 
 function doc(nodes: N[], edges: E[] = []): DesignDocumentV2 {
   return expectOk(
@@ -59,7 +60,7 @@ describe('façade examples', () => {
 
   it('exterior walls get glazing whose area matches the owner type window fraction', () => {
     for (const typeId of ['gallery', 'studio', 'storage']) {
-      const els = ofFace(build(doc([['a', [0, 0, 0], typeId]])), 'a:+y');
+      const els = ofFace(build(doc([[1, [0, 0, 0], typeId]])), '1:+y');
       const glass = els.filter((e) => e.part === 'glazing');
       expect(glass).toHaveLength(1);
       // +y wall: normal along Three Z.
@@ -70,8 +71,8 @@ describe('façade examples', () => {
   });
 
   it('a closed façade (windowFraction 0) is one solid wall; a custom provider is honoured', () => {
-    const els = buildArchitecture(resolveFaces(doc([['a', [0, 0, 0]]])), { facade: () => ({ windowFraction: 0 }) });
-    expect(parts(ofFace(els, 'a:+x'))).toEqual(['wall']);
+    const els = buildArchitecture(resolveFaces(doc([[1, [0, 0, 0]]])), { facade: () => ({ windowFraction: 0 }) });
+    expect(parts(ofFace(els, '1:+x'))).toEqual(['wall']);
   });
 });
 
@@ -84,18 +85,18 @@ describe('buildArchitecture', () => {
   });
 
   it('a solid internal wall is a single full panel on the shared face', () => {
-    const [wall, ...rest] = ofFace(build(doc([['a', [0, 0, 0]], ['b', [1, 0, 0]]])), 'a:+x');
+    const [wall, ...rest] = ofFace(build(doc([[1, [0, 0, 0]], [2, [1, 0, 0]]])), '1:+x');
     expect(rest).toEqual([]);
-    expect(wall).toMatchObject({ part: 'wall', condition: 'solid', target: selectNode('a') });
+    expect(wall).toMatchObject({ part: 'wall', condition: 'solid', target: selectNode(1) });
     expect(wall!.position).toEqual([1.5, 1.5, 0]);
     expect(wall!.size).toEqual([DEFAULT_WALL_THICKNESS, H, W + DEFAULT_WALL_THICKNESS]);
   });
 
   it('a door wall leaves a floor-level opening and selects its edge', () => {
-    const els = ofFace(build(doc([['a', [0, 0, 0]], ['b', [0, 1, 0]]], [['ab', 'a', 'b', 'access']])), 'a:+y');
+    const els = ofFace(build(doc([[1, [0, 0, 0]], [2, [0, 1, 0]]], [[1, 1, 2, 'access']])), '1:+y');
     expect(els.length).toBe(3); // two jambs and a lintel
-    expect(els.every((e) => e.part === 'wall' && e.edgeId === 'ab')).toBe(true);
-    expect(els.every((e) => e.target.kind === 'edge' && e.target.id === 'ab')).toBe(true);
+    expect(els.every((e) => e.part === 'wall' && e.edgeId === 1)).toBe(true);
+    expect(els.every((e) => e.target.kind === 'edge' && e.target.id === 1)).toBe(true);
     const solidArea = els.reduce((s, e) => s + areaAcross(e, 2), 0);
     expect(W * H - solidArea).toBeCloseTo(openingArea('door', 'wall'), 6);
     // Opening reaches the floor: nothing occupies the lowest strip at the face centre.
@@ -104,25 +105,25 @@ describe('buildArchitecture', () => {
   });
 
   it('an open edge emits no wall, only a pickable threshold marker', () => {
-    const els = ofFace(build(doc([['a', [0, 0, 0]], ['b', [1, 0, 0]]], [['ab', 'a', 'b', 'open']])), 'a:+x');
+    const els = ofFace(build(doc([[1, [0, 0, 0]], [2, [1, 0, 0]]], [[1, 1, 2, 'open']])), '1:+x');
     expect(parts(els)).toEqual(['threshold']);
-    expect(els[0]!.target).toEqual(selectEdge('ab'));
+    expect(els[0]!.target).toEqual(selectEdge(1));
     expect(els[0]!.size[1]).toBeLessThan(0.05);
   });
 
   it('exterior top faces are roofs; bottom faces and solid storey separations are slabs', () => {
-    const els = build(doc([['a', [0, 0, 0]], ['c', [0, 0, 1]]]));
-    expect(parts(ofFace(els, 'a:-z'))).toEqual(['slab']);
-    expect(parts(ofFace(els, 'a:+z'))).toEqual(['slab']);
-    expect(parts(ofFace(els, 'c:+z'))).toEqual(['roof']);
-    const slab = ofFace(els, 'a:+z')[0]!;
+    const els = build(doc([[1, [0, 0, 0]], [3, [0, 0, 1]]]));
+    expect(parts(ofFace(els, '1:-z'))).toEqual(['slab']);
+    expect(parts(ofFace(els, '1:+z'))).toEqual(['slab']);
+    expect(parts(ofFace(els, '3:+z'))).toEqual(['roof']);
+    const slab = ofFace(els, '1:+z')[0]!;
     expect(slab.position).toEqual([0, 3, 0]);
     expect(slab.size).toEqual([W, DEFAULT_SLAB_THICKNESS, W]);
   });
 
   it('atrium and vertical-access both open the slab but are geometrically distinct', () => {
-    const atrium = ofFace(build(doc([['a', [0, 0, 0]], ['c', [0, 0, 1]]], [['ac', 'a', 'c', 'open']])), 'a:+z');
-    const access = ofFace(build(doc([['a', [0, 0, 0]], ['c', [0, 0, 1]]], [['ac', 'a', 'c', 'access']])), 'a:+z');
+    const atrium = ofFace(build(doc([[1, [0, 0, 0]], [3, [0, 0, 1]]], [[1, 1, 3, 'open']])), '1:+z');
+    const access = ofFace(build(doc([[1, [0, 0, 0]], [3, [0, 0, 1]]], [[1, 1, 3, 'access']])), '1:+z');
 
     const slabArea = (els: ArchitecturalElement[]) => els.filter((e) => e.part === 'slab').reduce((s, e) => s + areaAcross(e, 1), 0);
     expect(W * W - slabArea(atrium)).toBeCloseTo(openingArea('atrium', 'slab'), 6);
@@ -136,10 +137,10 @@ describe('buildArchitecture', () => {
   });
 
   it('vertical-access geometry does not depend on which storey authors the slab', () => {
-    const low = build(doc([['a', [0, 0, 0]], ['b', [0, 0, 1]]], [['e', 'a', 'b', 'access']]));
-    const high = build(doc([['b', [0, 0, 0]], ['a', [0, 0, 1]]], [['e', 'a', 'b', 'access']]));
+    const low = build(doc([[1, [0, 0, 0]], [2, [0, 0, 1]]], [[1, 1, 2, 'access']]));
+    const high = build(doc([[2, [0, 0, 0]], [1, [0, 0, 1]]], [[1, 1, 2, 'access']]));
     const geo = (els: ArchitecturalElement[], faceId: string) => ofFace(els, faceId).map((e) => [e.part, e.position, e.size]);
-    expect(geo(high, 'a:-z')).toEqual(geo(low, 'a:+z'));
+    expect(geo(high, '1:-z')).toEqual(geo(low, '1:+z'));
   });
 
   it('element IDs are unique and output is deterministic for the example design', () => {
@@ -151,7 +152,7 @@ describe('buildArchitecture', () => {
   });
 
   it('multi-storey and disconnected structures produce bounds covering every cell', () => {
-    const b = elementBounds(build(doc([['a', [0, 0, 0]], ['b', [5, -2, 2]]])))!;
+    const b = elementBounds(build(doc([[1, [0, 0, 0]], [2, [5, -2, 2]]])))!;
     expect(b.min[1]).toBeCloseTo(-DEFAULT_SLAB_THICKNESS / 2);
     expect(b.max[1]).toBeCloseTo(3 * H + DEFAULT_SLAB_THICKNESS / 2);
     expect(b.max[0]).toBeGreaterThan(5 * W);
@@ -161,20 +162,20 @@ describe('buildArchitecture', () => {
 });
 
 describe('selection', () => {
-  const els = build(doc([['a', [0, 0, 0]], ['b', [1, 0, 0]], ['c', [0, 1, 0]]], [['ab', 'a', 'b', 'access']]));
+  const els = build(doc([[1, [0, 0, 0]], [2, [1, 0, 0]], [3, [0, 1, 0]]], [[1, 1, 2, 'access']]));
 
   it('faces with an edge target the edge; other faces target their owner node', () => {
-    for (const e of els) expect(e.target).toEqual(e.edgeId ? selectEdge(e.edgeId) : selectNode(e.ownerNodeId));
+    for (const e of els) expect(e.target).toEqual(e.edgeId !== null ? selectEdge(e.edgeId) : selectNode(e.ownerNodeId));
   });
 
   it('highlights edge faces for an edge, and every face bounding a node (either side) for a node', () => {
     const lit = (sel: Parameters<typeof isElementHighlighted>[1]) =>
       [...new Set(els.filter((e) => isElementHighlighted(e, sel)).map((e) => e.faceId))];
     expect(lit(NO_SELECTION)).toEqual([]);
-    expect(lit(selectEdge('ab'))).toEqual(['a:+x']);
+    expect(lit(selectEdge(1))).toEqual(['1:+x']);
     // b authors 5 faces; the shared door face is authored by a.
-    expect(lit(selectNode('b')).sort()).toEqual(['a:+x', 'b:+x', 'b:+y', 'b:+z', 'b:-y', 'b:-z'].sort());
-    expect(lit(selectNode('c'))).toContain('a:+y');
+    expect(lit(selectNode(2)).sort()).toEqual(['1:+x', '2:+x', '2:+y', '2:+z', '2:-y', '2:-z'].sort());
+    expect(lit(selectNode(3))).toContain('1:+y');
   });
 });
 

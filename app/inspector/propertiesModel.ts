@@ -131,14 +131,14 @@ export function parseTypeId(text: string): ParseResult<string> {
 
 // ── Move / resize plan (schema v2) ──────────────────────────────────────────────────────────
 
-/** Readable label of a v2 room: its display id, else its id. */
-export function roomLabelIn(doc: DesignDocumentV2): (nodeId: string) => string {
+/** Readable label of a room: its id. */
+export function roomLabelIn(doc: DesignDocumentV2): (nodeId: number) => string {
   const byId = new Map(doc.nodes.map((n) => [n.id, nodeLabel(n)]));
-  return (id) => byId.get(id) ?? id;
+  return (id) => byId.get(id) ?? String(id);
 }
 
-/** "01 ↔ 03" for a v2 relationship, else its id. */
-export function relationshipLabelIn(doc: DesignDocumentV2): (edgeId: string) => string {
+/** "3 → 7" for a relationship, else its id. */
+export function relationshipLabelIn(doc: DesignDocumentV2): (edgeId: number) => string {
   return (id) => relationshipLabel(doc, id);
 }
 
@@ -153,7 +153,7 @@ export type GeometryPlan =
   | { readonly kind: 'confirm'; readonly relationships: readonly string[] }
   | { readonly kind: 'reject'; readonly issues: readonly GraphIssue[] };
 
-export function planGeometryEdit(proposal: SpatialEditProposal, doc: DesignDocumentV2, subjectNodeId: string): GeometryPlan {
+export function planGeometryEdit(proposal: SpatialEditProposal, doc: DesignDocumentV2, subjectNodeId: number): GeometryPlan {
   switch (proposal.status) {
     case 'ok':
       return { kind: 'commit' };

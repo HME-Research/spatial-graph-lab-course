@@ -158,16 +158,16 @@ export const isStale = (
   (attributesRevision !== undefined && run.attributesRevision !== undefined && run.attributesRevision !== attributesRevision);
 
 export interface AnalysisRow {
-  readonly nodeId: string;
+  readonly nodeId: number;
   readonly value: AttributeValue;
   /** False when the node has since been deleted from the current document. */
   readonly exists: boolean;
 }
 
 /** Node values in the document's node order (values for unknown ids are not possible: the runtime rejects them). */
-type HasNodes = { readonly nodes: readonly { readonly id: string }[] };
+type HasNodes = { readonly nodes: readonly { readonly id: number }[] };
 
-export function analysisRows(nodeValues: Readonly<Record<string, AttributeValue>>, ranOn: HasNodes, current: HasNodes | null): AnalysisRow[] {
+export function analysisRows(nodeValues: Readonly<Record<number, AttributeValue>>, ranOn: HasNodes, current: HasNodes | null): AnalysisRow[] {
   const present = new Set(current?.nodes.map((n) => n.id) ?? []);
   return ranOn.nodes
     .filter((n) => Object.prototype.hasOwnProperty.call(nodeValues, n.id))
@@ -175,73 +175,72 @@ export function analysisRows(nodeValues: Readonly<Record<string, AttributeValue>
 }
 
 export interface PreviewSummary {
-  readonly addedNodes: readonly { readonly id: string; readonly typeId: string; readonly grid: GridCoord }[];
-  readonly addedEdges: readonly { readonly id: string; readonly source: string; readonly target: string; readonly kind: string }[];
+  /** New rooms with the ids the app gave them. */
+  readonly addedNodes: readonly { readonly id: number; readonly typeId: string; readonly grid: GridCoord }[];
+  readonly addedEdges: readonly { readonly id: number; readonly source: number; readonly target: number; readonly kind: string }[];
   readonly attributeChanges: readonly {
-    readonly nodeId: string;
+    readonly nodeId: number;
     readonly key: string;
     /** undefined: absent before. */
     readonly from: AttributeValue | undefined;
     readonly to: AttributeValue;
   }[];
-  /** Edge attribute values the transformation sets (schema v2 only). */
+  /** Edge attribute values the transformation changes. */
   readonly edgeAttributeChanges: readonly {
-    readonly edgeId: string;
+    readonly edgeId: number;
     readonly key: string;
     readonly from: AttributeValue | undefined;
     readonly to: AttributeValue;
   }[];
-  /** Every node added, connected or changed (sorted). */
-  readonly affectedNodeIds: readonly string[];
+  /** Every node added, connected or changed (ascending). */
+  readonly affectedNodeIds: readonly number[];
 }
 
-/** What a validated preview changes, read from its operations and its before/after documents. */
-export function describePreview(
-  preview: Pick<TransformationPreviewV2, 'operations'> & {
-    readonly before: {
-      readonly nodes: readonly { readonly id: string; readonly attributes: Attributes }[];
-      readonly edges?: readonly { readonly id: string; readonly source: string; readonly target: string; readonly attributes: Attributes }[];
-    };
-  },
-): PreviewSummary {
-  const before = new Map(preview.before.nodes.map((n) => [n.id, n] as const));
-  const beforeEdges = new Map((preview.before.edges ?? []).map((e) => [e.id, e] as const));
-  const edgeChanges = new Map<string, PreviewSummary['edgeAttributeChanges'][number]>();
+type SummaryNode = { readonly id: number; readonly typeId: string; readonly grid: GridCoord; readonly attributes: Attributes };
+type SummaryEdge = { readonly id: number; readonly source: number; readonly target: number; readonly kind: string; readonly attributes: Attributes };
+
+/**
+ * What a validated preview changes, read from its before / after documents (P4: new nodes and edges
+ * are those whose id the app gave during the run, so the summary names the ids they really got).
+ */
+export function describePreview(preview: {
+  readonly before: { readonly nodes: readonly SummaryNode[]; readonly edges: readonly SummaryEdge[] };
+  readonly after: { readonly nodes: readonly SummaryNode[]; readonly edges: readonly SummaryEdge[] };
+}): PreviewSummary {
+  const beforeNodes = new Map(preview.before.nodes.map((n) => [n.id, n] as const));
+  const beforeEdges = new Map(preview.before.edges.map((e) => [e.id, e] as const));
+  const affected = new Set<number>();
+  const changed = (from: Attributes, to: Attributes) =>
+    Object.keys(to).filter((key) => !Object.prototype.hasOwnProperty.call(from, key) || from[key] !== to[key]);
   const addedNodes: PreviewSummary['addedNodes'][number][] = [];
-  const addedEdges: PreviewSummary['addedEdges'][number][] = [];
-  const changes = new Map<string, PreviewSummary['attributeChanges'][number]>();
-  const affected = new Set<string>();
-  for (const op of preview.operations) {
-    if (op.op === 'add-node') {
-      addedNodes.push({ id: op.id, typeId: op.typeId, grid: [op.grid[0], op.grid[1], op.grid[2]] });
-      affected.add(op.id);
-    } else if (op.op === 'add-edge') {
-      addedEdges.push({ id: op.id, source: op.source, target: op.target, kind: op.kind });
-      affected.add(op.source).add(op.target);
-    } else if (op.op === 'set-edge-attribute') {
-      const edge = beforeEdges.get(op.edgeId);
-      if (!edge) continue; // attribute of an edge added by this transformation
-      affected.add(edge.source).add(edge.target);
-      const stored = edge.attributes;
-      const from = Object.prototype.hasOwnProperty.call(stored, op.key) ? stored[op.key] : undefined;
-      edgeChanges.set(`${op.edgeId}\u0000${op.key}`, { edgeId: op.edgeId, key: op.key, from, to: op.value });
-    } else {
-      affected.add(op.nodeId);
-      if (!before.has(op.nodeId)) continue; // attribute of a node added by this transformation
-      const key = `${op.nodeId}\u0000${op.key}`;
-      const stored = before.get(op.nodeId)!.attributes;
-      const from = Object.prototype.hasOwnProperty.call(stored, op.key) ? stored[op.key] : undefined;
-      changes.set(key, { nodeId: op.nodeId, key: op.key, from, to: op.value });
+  const attributeChanges: PreviewSummary['attributeChanges'][number][] = [];
+  for (const n of preview.after.nodes) {
+    const old = beforeNodes.get(n.id);
+    if (!old) {
+      addedNodes.push({ id: n.id, typeId: n.typeId, grid: [n.grid[0], n.grid[1], n.grid[2]] });
+      affected.add(n.id);
+      continue;
+    }
+    for (const key of changed(old.attributes, n.attributes)) {
+      attributeChanges.push({ nodeId: n.id, key, from: Object.prototype.hasOwnProperty.call(old.attributes, key) ? old.attributes[key] : undefined, to: n.attributes[key]! });
+      affected.add(n.id);
     }
   }
-  return {
-    addedNodes,
-    addedEdges,
-    // Only real changes (an operation may write the value already stored).
-    attributeChanges: [...changes.values()].filter((c) => c.from !== c.to),
-    edgeAttributeChanges: [...edgeChanges.values()].filter((c) => c.from !== c.to),
-    affectedNodeIds: [...affected].sort(),
-  };
+  const addedEdges: PreviewSummary['addedEdges'][number][] = [];
+  const edgeAttributeChanges: PreviewSummary['edgeAttributeChanges'][number][] = [];
+  for (const e of preview.after.edges) {
+    const old = beforeEdges.get(e.id);
+    if (!old) {
+      addedEdges.push({ id: e.id, source: e.source, target: e.target, kind: e.kind });
+      affected.add(e.source).add(e.target);
+      continue;
+    }
+    for (const key of changed(old.attributes, e.attributes)) {
+      edgeAttributeChanges.push({ edgeId: e.id, key, from: Object.prototype.hasOwnProperty.call(old.attributes, key) ? old.attributes[key] : undefined, to: e.attributes[key]! });
+      affected.add(e.source).add(e.target);
+    }
+  }
+  return { addedNodes, addedEdges, attributeChanges, edgeAttributeChanges, affectedNodeIds: [...affected].sort((a, b) => a - b) };
 }
 
 export type ApplyOutcome<D extends object = DesignDocumentV2> =

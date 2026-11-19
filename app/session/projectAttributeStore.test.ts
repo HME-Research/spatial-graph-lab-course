@@ -133,8 +133,8 @@ describe('project attribute session', () => {
   it('a field added while design A is open is saved and seen by design B after a reload', async () => {
     const storage = memoryStorage();
     const project = await projectNamed('lab', 'Lab');
-    const designA = doc('A', [{ id: 'a1', grid: [0, 0, 0], typeId: 'gallery' }]);
-    const designB = doc('B', [{ id: 'b1', grid: [0, 0, 0], typeId: 'studio', attributes: { capacity: 9 } }]);
+    const designA = doc('A', [{ id: 1, grid: [0, 0, 0], typeId: 'gallery' }]);
+    const designB = doc('B', [{ id: 1, grid: [0, 0, 0], typeId: 'studio', attributes: { capacity: 9 } }]);
 
     const edited = addCapacity(loadAttributeSession(storage, project));
     expect(effectiveNodeValues(currentSchema(edited), designA.nodes[0]!)['capacity']).toBe(4);
@@ -159,9 +159,9 @@ describe('project attribute session', () => {
 
   it('schema undo/redo is its own history; design history and data are untouched', async () => {
     const project = await projectNamed('lab', 'Lab');
-    const design = doc('A', [{ id: 'a1', grid: [0, 0, 0], typeId: 'gallery' }]);
+    const design = doc('A', [{ id: 1, grid: [0, 0, 0], typeId: 'gallery' }]);
     let designSession = openDocument(design, 'a.json', null);
-    const moved = applyDesignCommandToSession(designSession, { type: 'set-node-geometry', nodeId: 'a1', grid: [2, 0, 0] });
+    const moved = applyDesignCommandToSession(designSession, { type: 'set-node-geometry', nodeId: 1, grid: [2, 0, 0] });
     if (!moved.ok) throw new Error('move failed');
     designSession = moved.session;
 
