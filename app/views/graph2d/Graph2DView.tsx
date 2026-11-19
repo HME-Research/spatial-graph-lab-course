@@ -45,7 +45,7 @@ import { RemoveInvalidDialog } from './RemoveInvalidDialog';
 import { menuItems, NodeContextMenu, type MenuAction, type MenuTarget } from './NodeContextMenu';
 import { displayKeys } from '@app/extensions';
 import { useAnalysisOverlay } from '../analysisOverlay';
-import { analysisNodeStyle } from '../presentation/analysis';
+import { analysisNodeStyle, isAnalysisEdge } from '../presentation/analysis';
 import { attributeKeysOf, NodeDisplayControl, nodeLines, sanitizeDisplay, type DisplaySettings } from './NodeDisplay';
 import { NodePopover, popoverRows } from './NodePopover';
 import { RelationEdge, type RelationFlowEdge } from './RelationEdge';
@@ -205,9 +205,9 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
 
   const lines = useMemo(() => new Map(model.nodes.map((n) => [n.id, nodeLines(n, display)])), [model, display]);
 
-  const nodes = useMemo<RoomFlowNode[]>(
-    () =>
-      model.nodes.map((node) => {
+  const nodes = useMemo<RoomFlowNode[]>(() => {
+    const analysisFill = (id: number) => (analysis ? analysisNodeStyle(id, analysis, NO_SELECTION).fill : null);
+    return model.nodes.map((node) => {
         const o = overlay[node.id];
         const p = positions.get(node.id) ?? [0, 0];
         const l = lines.get(node.id) ?? nodeLines(node, display);
@@ -230,20 +230,20 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
             brokenType: broken,
             connectSource: connectFrom === node.id,
             unresolved,
-            ...(analysis && {
+            ...(analysisFill(node.id) !== null && {
               analysis: {
-                fill: analysisNodeStyle(node.id, analysis, NO_SELECTION).fill ?? '#cccccc',
-                value: analysis.valueLabelOf.get(node.id) ?? '–',
-                stale: analysis.stale,
+                fill: analysisFill(node.id)!,
+                // A highlight-only result (P4) colours the node without a value label.
+                ...(analysis!.hasValues && { value: analysis!.valueLabelOf.get(node.id) ?? '–' }),
+                stale: analysis!.stale,
               },
             }),
           },
           selected: selection.kind === 'node' && selection.id === node.id,
           ...(o?.measured ? { measured: o.measured } : {}),
         };
-      }),
-    [model, positions, overlay, selection, emphasised, typeStatus, lines, display, unresolvedCount, connectFrom, analysis],
-  );
+      });
+  }, [model, positions, overlay, selection, emphasised, typeStatus, lines, display, unresolvedCount, connectFrom, analysis]);
 
   const invalidRows = useMemo(() => invalidConnectionRows(model), [model]);
   const reviewing = reviewInvalid && invalidRows.length > 0;
@@ -268,10 +268,14 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
         source: String(edge.source),
         target: String(edge.target),
         type: 'relation',
-        data: { presentation: presentEdge(model, edge), ...(removePreview?.has(edge.id) && { removePreview: true }) },
+        data: {
+          presentation: presentEdge(model, edge),
+          ...(removePreview?.has(edge.id) && { removePreview: true }),
+          ...(isAnalysisEdge(analysis, edge.id) && { analysed: true }),
+        },
         selected: selection.kind === 'edge' && selection.id === edge.id,
       })),
-    [model, selection, removePreview],
+    [model, selection, removePreview, analysis],
   );
 
   // Only measurements and drag positions are kept locally; selection/removal changes are ignored

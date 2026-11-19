@@ -255,12 +255,23 @@ export const AttributesIcon = () => (
   </svg>
 );
 
-/** Small graph being transformed: algorithms. */
-export const AlgorithmsIcon = () => (
+/** Small graph under a magnifier: analyse (reads the graph). */
+export const AnalyseIcon = () => (
+  <svg {...ICON_PROPS}>
+    <circle cx="4" cy="5" r="1.8" />
+    <circle cx="4" cy="14" r="1.8" />
+    <path d="M5.6 5.8l3.2 2.4M5.6 13.2l3.2-2.4" />
+    <circle cx="12" cy="9.5" r="3.6" />
+    <path d="M14.6 12.2l3.4 3.6" />
+  </svg>
+);
+
+/** Small graph growing a new node: transform (changes the design). */
+export const TransformIcon = () => (
   <svg {...ICON_PROPS}>
     <circle cx="4.5" cy="5" r="2" />
     <circle cx="4.5" cy="15" r="2" />
-    <circle cx="15.5" cy="10" r="2" />
+    <circle cx="15.5" cy="10" r="2" strokeDasharray="2 1.6" />
     <path d="M6.3 6l7.4 3.2M6.3 14l7.4-3.2" />
   </svg>
 );

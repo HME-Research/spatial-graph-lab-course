@@ -43,19 +43,20 @@ export const VIEW_OPTIONS: readonly { readonly mode: ViewMode; readonly label: s
 );
 
 /**
- * The LEFT navigation rail (Gate F): seven ordered destinations, top to bottom, each with an icon
+ * The LEFT navigation rail (Gate F; P4: Algorithms became Analyse and Transform): eight ordered destinations, top to bottom, each with an icon
  * and an always-visible label. This supersedes the phase-04 "exactly four destinations" decision.
  * The internal id `designer` is kept; students read "Building Designer". The right-hand panel
  * holds Properties only (`PROPERTIES_LABEL`). Ordering and icons: `app/workspace/destinations.ts`.
  */
-export const SIDEBAR_SECTIONS = ['project', 'attributes', 'designer', 'algorithms', 'scenarios', 'camera', 'display'] as const;
+export const SIDEBAR_SECTIONS = ['project', 'attributes', 'designer', 'analyse', 'transform', 'scenarios', 'camera', 'display'] as const;
 export type SidebarSection = (typeof SIDEBAR_SECTIONS)[number];
 
 export const SIDEBAR_LABELS: Readonly<Record<SidebarSection, string>> = {
   project: 'Project',
   attributes: 'Attributes',
   designer: 'Building Designer',
-  algorithms: 'Algorithms',
+  analyse: 'Analyse',
+  transform: 'Transform',
   scenarios: 'Scenarios',
   camera: 'Camera',
   display: 'Display',
@@ -65,7 +66,8 @@ export const SIDEBAR_DESCRIPTIONS: Readonly<Record<SidebarSection, string>> = {
   project: 'Project information, files and checks',
   attributes: 'Attributes of every node and edge in this project',
   designer: 'Appearance per function in this scenario',
-  algorithms: 'Run the project’s analyses and transformations on this scenario',
+  analyse: 'Read the graph and show a result; never changes the design',
+  transform: 'Propose a change to the design: preview, then Apply (one undo step)',
   scenarios: 'Alternatives within this project',
   camera: 'Saved camera views of the 3D viewports',
   display: 'How each view looks: labels, legend, colours and lighting',

@@ -448,6 +448,13 @@ export function setCalculatedFields(project: OpenProject, ids: readonly string[]
   return changed(project, { meta: { ...project.meta, settings: { ...project.meta.settings, calculatedFields: [...ids] } } });
 }
 
+/** The built-in analyses listed in Analyse (`settings.analyses`, P4). Not undoable; autosaved. */
+export function setShownAnalyses(project: OpenProject, ids: readonly string[]): OpenProject {
+  const current = project.meta.settings.analyses;
+  if (current && current.length === ids.length && current.every((id, i) => id === ids[i])) return project;
+  return changed(project, { meta: { ...project.meta, settings: { ...project.meta.settings, analyses: [...ids] } } });
+}
+
 /** The project functions (`settings.functions`): node types added in the browser. Not undoable; autosaved. */
 export function setProjectFunctions(project: OpenProject, functions: readonly ProjectFunction[], hidden: readonly string[] = project.meta.settings.hiddenFunctions ?? []): OpenProject {
   const current = project.meta.settings.functions ?? [];

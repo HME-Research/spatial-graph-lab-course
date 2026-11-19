@@ -43,6 +43,7 @@ import {
   separateIdentity,
   setAttributeRecord,
   setCalculatedFields,
+  setShownAnalyses,
   setDisplayDefaults,
   setProjectFunctions,
   setProjectDescription,
@@ -193,6 +194,8 @@ export interface ProjectController {
   setDisplayDefaults(display: DisplayDefaults): void;
   /** Project `settings.calculatedFields` (canonical metric ids). Not undoable; autosaved. */
   setCalculatedFields(ids: readonly string[]): void;
+  /** Project `settings.analyses` (the built-ins listed in Analyse, P4). Not undoable; autosaved. */
+  setShownAnalyses(ids: readonly string[]): void;
   /** Project `settings.functions` (node types added in the browser). Not undoable; autosaved. */
   setFunctions(functions: readonly ProjectFunction[], hiddenFunctions: readonly string[]): void;
   setAttributeRecord(record: unknown | null): void;
@@ -674,6 +677,9 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
     setCalculatedFields(ids) {
       mutate((p) => setCalculatedFields(p, ids));
+    },
+    setShownAnalyses(ids) {
+      mutate((p) => setShownAnalyses(p, ids));
     },
     setFunctions(functions, hiddenFunctions) {
       mutate((p) => setProjectFunctions(p, functions, hiddenFunctions));

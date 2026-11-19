@@ -1,6 +1,7 @@
 import { EdgeLabelRenderer, useInternalNode, type Edge, type EdgeProps, type InternalNode } from '@xyflow/react';
 import { memo } from 'react';
 import { SELECTION_COLOR } from '@core/viewer/appearance';
+import { ANALYSIS_HIGHLIGHT } from '../presentation/vocabulary';
 import { circleSegment, type Circle } from './diagram';
 import type { EdgePresentation } from './edgePresentation';
 import { BASE_NODE_DIAMETER } from './NodeDisplay';
@@ -9,6 +10,8 @@ export type RelationEdgeData = {
   readonly presentation: EdgePresentation;
   /** "Remove invalid connections" preview: this relationship is checked for removal. */
   readonly removePreview?: boolean;
+  /** Highlighted by the shown analysis (P4: a path, a bridge, a node's edges…). */
+  readonly analysed?: boolean;
 };
 export type RelationFlowEdge = Edge<RelationEdgeData, 'relation'>;
 
@@ -47,6 +50,9 @@ export const RelationEdge = memo(function RelationEdge({ id, source, target, dat
           strokeLinecap="round"
           data-remove-preview={id}
         />
+      )}
+      {data.analysed && (
+        <path className="sgl-edge-analysed" d={path} fill="none" stroke={ANALYSIS_HIGHLIGHT} strokeOpacity={0.55} strokeWidth={p.strokeWidth * 3 + 6} strokeLinecap="round" data-analysed={id} />
       )}
       {selected && (
         // The halo scales with the kind's own weight, so a selected Open (heavier) still reads heavier

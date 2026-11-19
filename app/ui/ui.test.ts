@@ -25,13 +25,14 @@ describe('beginner vocabulary', () => {
 
   // Gate F deliberately supersedes the phase-04 "exactly four destinations" decision with seven
   // ordered destinations (00-DECISIONS-AND-UX: UI hierarchy); the id `designer` is kept.
-  it('names exactly seven ordered left destinations (Gate F)', () => {
-    expect(SIDEBAR_SECTIONS).toEqual(['project', 'attributes', 'designer', 'algorithms', 'scenarios', 'camera', 'display']);
+  it('names exactly eight ordered left destinations (Gate F; P4 Analyse and Transform)', () => {
+    expect(SIDEBAR_SECTIONS).toEqual(['project', 'attributes', 'designer', 'analyse', 'transform', 'scenarios', 'camera', 'display']);
     expect(SIDEBAR_SECTIONS.map((s) => SIDEBAR_LABELS[s])).toEqual([
       'Project',
       'Attributes',
       'Building Designer',
-      'Algorithms',
+      'Analyse',
+      'Transform',
       'Scenarios',
       'Camera',
       'Display',
@@ -135,7 +136,7 @@ describe('shell components (static markup)', () => {
     content: createElement('p', null, `content of ${id}`),
   }));
   const nav = (collapsed: boolean, side: 'left' | 'right' = 'left') =>
-    renderToStaticMarkup(createElement(SidebarNav, { tabs, active: 'algorithms', onActive: () => {}, collapsed, onCollapsedChange: () => {}, label: 'project tools', side }));
+    renderToStaticMarkup(createElement(SidebarNav, { tabs, active: 'analyse', onActive: () => {}, collapsed, onCollapsedChange: () => {}, label: 'project tools', side }));
 
   it('renders a vertical tab list with every panel mounted', () => {
     const html = nav(false);
@@ -144,8 +145,8 @@ describe('shell components (static markup)', () => {
     // Every panel is in the DOM (drafts and algorithm results survive switching); only one is visible.
     for (const id of SIDEBAR_SECTIONS) expect(html).toContain(`content of ${id}`);
     expect(html.match(/role="tabpanel"[^>]*hidden=""/g)).toHaveLength(SIDEBAR_SECTIONS.length - 1);
-    expect(html).toMatch(/id="sidebar-tab-algorithms"[^>]*aria-selected="true"/);
-    expect(html).toMatch(/id="sidebar-tab-algorithms"[^>]*tabindex="0"/);
+    expect(html).toMatch(/id="sidebar-tab-analyse"[^>]*aria-selected="true"/);
+    expect(html).toMatch(/id="sidebar-tab-analyse"[^>]*tabindex="0"/);
     expect(html).toMatch(/id="sidebar-tab-project"[^>]*tabindex="-1"/);
     // Left rail: the strip comes first (outer edge), then the content.
     expect(html.indexOf('sgl-sidenav-strip')).toBeLessThan(html.indexOf('sgl-sidenav-panels'));

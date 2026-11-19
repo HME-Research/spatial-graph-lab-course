@@ -20,7 +20,7 @@ export type RoomNodeData = {
   /** Number of this node's relationships that cannot be built yet (v2 only). */
   readonly unresolved?: number;
   /** Analysis shown on the model (audit M4): fill colour and value label; never part of the document. */
-  readonly analysis?: { readonly fill: string; readonly value: string; readonly stale: boolean };
+  readonly analysis?: { readonly fill: string; readonly value?: string; readonly stale: boolean };
 };
 
 export type RoomFlowNode = Node<RoomNodeData, 'room'>;
@@ -78,7 +78,7 @@ export const RoomNode = memo(function RoomNode({ id, data, selected }: NodeProps
           {unresolved}
         </span>
       )}
-      {analysis && (
+      {analysis?.value !== undefined && (
         <span className={analysis.stale ? 'sgl-analysis-value stale' : 'sgl-analysis-value'} aria-label={`Analysis value ${analysis.value}`}>
           {analysis.value}
         </span>

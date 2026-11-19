@@ -31,6 +31,11 @@ export const ERROR_TONE = { background: '#fdecec', border: '#d27373', text: '#7a
 export const WARNING_TONE = { background: '#fff6dc', border: '#d9b44a', text: '#5c4500', icon: '⚠' } as const;
 /** Selection colour, re-exported so presentation code never invents its own. */
 export const SELECTION = SELECTION_COLOR;
+/**
+ * Analysis highlight (P4, Analyse tab): nodes and edges a result points at (a path, bridges, the
+ * edges of a node…). A teal, distinct from the selection pink and the storey/unresolved colours.
+ */
+export const ANALYSIS_HIGHLIGHT = '#0e9f8f';
 
 /** Line appearance shared by 2D (SVG, pixels) and 3D (metres) renderers. */
 export interface LineToken {

@@ -8,7 +8,6 @@ export { Feedback, IssueFeedback, type FeedbackTone } from './Feedback';
 export * from './labels';
 export { LoadFailureNotice } from './LoadFailureNotice';
 export * from './messages';
-export * from './algorithmGroups';
 export * from './concepts';
 export { FOCUSABLE_SELECTOR, nextTabIndex, trappedFocusIndex } from './navigation';
 export {
@@ -24,7 +23,7 @@ export {
 export { HorizontalTabs, tabKeyTarget, type TabItem } from './Tabs';
 export { RouteConfirm } from './RouteConfirm';
 export {
-  AlgorithmsIcon,
+  AnalyseIcon,
   AttributesIcon,
   CameraIcon,
   ChevronIcon,
@@ -34,6 +33,7 @@ export {
   PropertiesIcon,
   ScenariosIcon,
   SidebarNav,
+  TransformIcon,
   type SidebarNavProps,
   type SidebarNavTab,
 } from './SidebarNav';

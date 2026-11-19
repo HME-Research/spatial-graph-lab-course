@@ -24,8 +24,10 @@ import { createCameraBus } from '@core/viewer/three/camera';
 import { AttributesPanel } from './attributes/AttributesPanel';
 import { DesignerPanel, FacadeLibrarySection, type DesignerFacades } from './designer';
 import { SaveStatus } from './scenarios/SaveStatus';
-import { AlgorithmPanel } from './session/AlgorithmPanel';
-import { applyPreviewV2, isStale, type AlgorithmRunV2, type ApplyOutcome } from './session/algorithmSession';
+import { AnalysePanel, type ShownAnalysis } from './analysis/AnalysePanel';
+import { sanitizeShownAnalyses } from './analysis/analyseModel';
+import { TransformPanel } from './session/TransformPanel';
+import { applyPreviewV2, isStale, type ApplyOutcome } from './session/algorithmSession';
 import { currentDocument, type DocumentVersion } from './session/documentSession';
 import { canRedo, canUndo, createHistory, redoLabel, undoLabel } from './session/history';
 import { ProjectPanel, projectStatus } from './session/ProjectPanel';
@@ -174,8 +176,8 @@ export function App() {
   /** Activation of the open project's toolkit; null while activating or without project. */
   const [session, setSession] = useState<ToolkitSession | null>(null);
   const [rawSelection, setSelection] = useState<Selection>(NO_SELECTION);
-  /** The analysis run whose values are shown on the model (never part of the document). */
-  const [shownAnalysis, setShownAnalysis] = useState<AlgorithmRunV2 | null>(null);
+  /** The Analyse result shown in the panel and on the model (never part of the document). */
+  const [shownAnalysis, setShownAnalysis] = useState<ShownAnalysis | null>(null);
   /**
    * The active project's attribute schema in use (docs/PROJECT-ATTRIBUTES.md): project-scoped,
    * persisted in browser storage on every change, with its own undo history. null without project.
@@ -208,6 +210,9 @@ export function App() {
   /** The project's calculated values (`settings.calculatedFields`), validated at runtime; absent = defaults. */
   const storedCalculatedFields = openProject?.meta.settings.calculatedFields;
   const calculatedFields = useMemo(() => sanitizeEnabledMetrics(storedCalculatedFields).enabled, [storedCalculatedFields]);
+  /** The built-ins listed in Analyse (`settings.analyses`, P4), validated at runtime; absent = defaults. */
+  const storedAnalyses = openProject?.meta.settings.analyses;
+  const shownBuiltIns = useMemo(() => sanitizeShownAnalyses(storedAnalyses), [storedAnalyses]);
   /** The project's imported façades (`assets`): drawn by the Building, managed in the Designer. */
   const storedAssets = openProject?.meta.assets;
   const facadeLibrary = useMemo(() => (storedAssets ? facadeLibraryOf(facadeAssetsOf(storedAssets)) : EMPTY_FACADE_LIBRARY), [storedAssets]);
@@ -513,12 +518,12 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
   /** Analysis overlay: rebuilt on every document change so a stale result is visibly marked. */
   const analysis = useMemo<AnalysisPresentation | null>(() => {
     if (!shownAnalysis || !doc || !version) return null;
-    const outcome = shownAnalysis.outcome.ok && shownAnalysis.outcome.value.kind === 'analysis' ? shownAnalysis.outcome.value.result : null;
-    if (!outcome) return null;
+    const { answer } = shownAnalysis;
     return presentAnalysis({
-      title: shownAnalysis.label,
-      ...(outcome.summary !== undefined && { summary: outcome.summary }),
-      nodeValues: outcome.nodeValues,
+      title: shownAnalysis.title,
+      ...(answer.nodeValues !== undefined && { nodeValues: answer.nodeValues }),
+      highlightNodes: answer.highlightNodes,
+      highlightEdges: answer.highlightEdges,
       ranOnNodeIds: shownAnalysis.doc.nodes.map((n) => n.id),
       currentNodeIds: doc.nodes.map((n) => n.id),
       stale: isStale(shownAnalysis, version, attributes?.revision),
@@ -731,15 +736,27 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                       ) : (
                         <p className="meta">Open a project to change its appearance.</p>
                       ),
-                      algorithms: (
-                        <AlgorithmPanel
+                      analyse: (
+                        <AnalysePanel
+                          key={`${project?.id ?? '-'}:${generation}`}
+                          project={project}
+                          version={version}
+                          selection={selection}
+                          shown={shownAnalysis}
+                          onShow={setShownAnalysis}
+                          shownBuiltIns={shownBuiltIns}
+                          {...(openProject && { onShownBuiltIns: (ids: readonly string[]) => controller.setShownAnalyses(ids) })}
+                          {...(attributesVersion && { attributes: attributesVersion })}
+                          {...(port && { resolution: port })}
+                        />
+                      ),
+                      transform: (
+                        <TransformPanel
                           key={`${project?.id ?? '-'}:${generation}`}
                           project={project}
                           version={version}
                           onApply={onApplyPreview}
                           onSelect={select}
-                          shownAnalysis={shownAnalysis}
-                          onShowAnalysis={setShownAnalysis}
                           {...(attributesVersion && { attributes: attributesVersion })}
                           {...(port && { resolution: port })}
                         />

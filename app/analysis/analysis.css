@@ -1,0 +1,187 @@
+/* Analyse and Transform tabs (Programme P4). */
+
+/*
+ * Source tag (Built-in · Toolkit: <name> · Yours): small, rounded, bordered.
+ * TODO(P4 merge): unify with the shared tag class from worktree C (attribute sections).
+ */
+.sgl-source-tag {
+  display: inline-block;
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  line-height: 18px;
+  color: var(--muted);
+  background: var(--panel);
+  white-space: nowrap;
+}
+
+.sgl-info-button {
+  border: none;
+  background: none;
+  padding: 0 4px;
+  min-height: 0;
+  color: var(--muted);
+  font-size: var(--text-md);
+  line-height: 1;
+  cursor: pointer;
+}
+.sgl-info-button:hover,
+.sgl-info-button:focus-visible {
+  color: var(--accent);
+}
+
+.sgl-tab-intro {
+  margin: 0 0 var(--space-2);
+}
+
+.sgl-analyse {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sgl-analyse-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+.sgl-analyse-filter-label {
+  color: var(--muted);
+}
+.sgl-analyse-filter button {
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+}
+.sgl-analyse-filter button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
+.sgl-analyse-add {
+  min-height: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: var(--text-md);
+  line-height: 1;
+}
+
+.sgl-analyse-catalogue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  font-size: var(--text-sm);
+}
+.sgl-analyse-catalogue button {
+  align-self: flex-start;
+}
+
+.sgl-analyse-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.sgl-analyse-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.sgl-analyse-run {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  border-color: var(--line);
+  background: var(--panel);
+}
+.sgl-analyse-run.active {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.sgl-analyse-hint {
+  margin: 0 0 var(--space-1);
+}
+.sgl-analyse-small {
+  margin: 2px 0 0;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+ul.sgl-analyse-small {
+  padding-left: 16px;
+}
+
+/* A pending query: what to pick next. */
+.sgl-analyse-pick {
+  margin: var(--space-1) 0;
+  padding: var(--space-2);
+  border: 1px dashed #0e9f8f;
+  border-radius: var(--radius);
+  background: #eef8f6;
+}
+.sgl-analyse-pick-text {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+.sgl-analyse-number {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+}
+.sgl-analyse-number input {
+  width: 72px;
+}
+
+/* The answer: big, then a short label, then at most one small line. */
+.sgl-analysis-result {
+  margin: var(--space-1) 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid #0e9f8f;
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+.sgl-analysis-result.stale {
+  border-left-color: var(--warning-line);
+  opacity: 0.85;
+}
+.sgl-analysis-result.failed {
+  border-left-color: var(--error-line);
+  background: var(--error-bg);
+}
+.sgl-analysis-answer {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  word-break: break-word;
+}
+.sgl-analysis-label {
+  font-size: var(--text-sm);
+  color: var(--fg);
+}
+.sgl-analysis-detail {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+.sgl-analysis-stale {
+  color: var(--warning-fg);
+}
+.sgl-analysis-result .sgl-buttons {
+  margin-top: var(--space-2);
+}

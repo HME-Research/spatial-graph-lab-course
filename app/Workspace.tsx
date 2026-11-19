@@ -105,10 +105,11 @@ export function Workspace({
   const layoutHost = mounted.find((index) => infos[index]?.visible) ?? 0;
 
   const content = (id: SidebarSection): ReactNode =>
-    id === 'algorithms' ? (
+    // A result with node values (e.g. Connected parts) also gets its colour legend in Analyse.
+    id === 'analyse' ? (
       <>
-        {analysis && <AnalysisLegend presentation={analysis} {...(onClearAnalysis && { onClear: onClearAnalysis })} />}
-        {sections.algorithms}
+        {analysis?.hasValues && <AnalysisLegend presentation={analysis} {...(onClearAnalysis && { onClear: onClearAnalysis })} />}
+        {sections.analyse}
       </>
     ) : (
       sections[id]

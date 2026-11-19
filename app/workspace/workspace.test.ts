@@ -39,9 +39,9 @@ import {
 } from './viewports';
 
 describe('destination registry', () => {
-  it('lists seven destinations in the decided order, each with label, description and icon', () => {
-    expect(DESTINATIONS.map((d) => d.label)).toEqual(['Project', 'Attributes', 'Building Designer', 'Algorithms', 'Scenarios', 'Camera', 'Display']);
-    expect(DESTINATIONS.map((d) => d.id)).toEqual(['project', 'attributes', 'designer', 'algorithms', 'scenarios', 'camera', 'display']);
+  it('lists eight destinations in the decided order, each with label, description and icon', () => {
+    expect(DESTINATIONS.map((d) => d.label)).toEqual(['Project', 'Attributes', 'Building Designer', 'Analyse', 'Transform', 'Scenarios', 'Camera', 'Display']);
+    expect(DESTINATIONS.map((d) => d.id)).toEqual(['project', 'attributes', 'designer', 'analyse', 'transform', 'scenarios', 'camera', 'display']);
     for (const d of DESTINATIONS) {
       expect(d.description, d.id).toMatch(/\S/);
       expect(renderToStaticMarkup(createElement(d.icon)), d.id).toMatch(/^<svg/);

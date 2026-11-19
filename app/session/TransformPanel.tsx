@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import type { DesignDocumentV2 } from '@app/document';
 import type { ActiveToolkit, AttributeSpec, ExtensionDiagnostic, TransformationPreviewV2 } from '@app/extensions';
-import { ALGORITHM_GROUP_LABELS, EFFECT_LABELS, groupAlgorithms, presentAlgorithm } from '@app/ui';
-import { HelpTip } from '@app/ui/help';
+import { ALGORITHM_TAB_LABELS, sourceTag, type AlgorithmSource } from '@app/ui/analysisSections';
+import { ExplainerWindow } from '@app/ui/guide';
+import { ANALYSE_VS_TRANSFORM } from '@app/analysis/explainers';
+import '@app/analysis/analysis.css';
 import { selectNode, type SelectionHandler } from '@core/viewer/selection';
 import {
-  analysisRows,
   describePreview,
   formatValue,
   isStale,
@@ -14,22 +15,25 @@ import {
   runEntryV2,
   type AlgorithmRunV2,
   type ApplyOutcome,
-  type ParameterDrafts, type AttributesVersion, type HostResolution, relationshipLabel } from './algorithmSession';
+  type ParameterDrafts,
+  type AttributesVersion,
+  type HostResolution,
+  relationshipLabel,
+} from './algorithmSession';
 import type { DocumentVersion } from './documentSession';
 
 /**
- * Compact algorithm controls: list, parameters, run, and the result. Analyses only display
- * values. Transformations produce a validated preview that changes the design only on an explicit
- * Apply (refused if the design changed since the run); Discard drops it. Nothing runs
- * automatically.
+ * The Transform tab (Programme P4; formerly the transformation part of the Algorithms panel):
+ * a Built-in section (hidden while empty; there are no built-in transformations yet), then
+ * "Toolkit: <name>" with the toolkit's spatial algorithms. Choose one, set its parameters, Run:
+ * a validated PREVIEW that changes the design only on an explicit Apply (one undo step; refused if
+ * the design changed since the run); Discard drops it. Nothing runs automatically.
  */
-export function AlgorithmPanel({
+export function TransformPanel({
   project,
   version,
   onApply,
   onSelect,
-  shownAnalysis = null,
-  onShowAnalysis,
   attributes,
   resolution,
 }: {
@@ -42,16 +46,13 @@ export function AlgorithmPanel({
    */
   readonly onApply: (preview: TransformationPreviewV2, ranAt: number, label: string, confirmed: boolean, attributesRevision?: number) => ApplyOutcome<DesignDocumentV2>;
   readonly onSelect: SelectionHandler;
-  /** The analysis run currently shown on the model (owned by the shell), if any. */
-  readonly shownAnalysis?: AlgorithmRunV2 | null;
-  /** Show an analysis run's values on the model, or clear the overlay (null). */
-  readonly onShowAnalysis?: (run: AlgorithmRunV2 | null) => void;
   /** The project attribute schema in use; a result is stale once it changes. */
   readonly attributes?: AttributesVersion;
   /** The design port's preference-aware resolution of the current document (`ctx.metrics` equals what the views show). */
   readonly resolution?: HostResolution;
 }) {
-  const algorithms = listAlgorithms(project);
+  // Only transformations (spatial algorithms, and broken definitions that may be one) belong here.
+  const algorithms = listAlgorithms(project).filter((a) => a.scope !== 'graph');
   // Selected by file: ids may collide (duplicate definitions are listed separately, both disabled).
   const [selectedFile, setSelectedFile] = useState<string | null>(() => algorithms.find((a) => a.enabled)?.file ?? algorithms[0]?.file ?? null);
   const [drafts, setDrafts] = useState<Readonly<Record<string, ParameterDrafts>>>({});
@@ -62,18 +63,29 @@ export function AlgorithmPanel({
   const selected = selectedIndex >= 0 ? algorithms[selectedIndex]! : null;
   const entryDrafts = (selected && drafts[selected.id]) ?? {};
   const problems = selected?.enabled ? parameterProblems(selected, entryDrafts) : [];
-  // "Clear" on the result card (shell) clears the shown analysis; its value list goes with it, so
-  // one result never appears twice (phase 08, O03).
-  const [shownBefore, setShownBefore] = useState<AlgorithmRunV2 | null>(shownAnalysis);
-  if (shownBefore !== shownAnalysis) {
-    setShownBefore(shownAnalysis);
-    if (shownAnalysis === null && run !== null && shownBefore === run) setRun(null);
-  }
+  const [explainerOpen, setExplainerOpen] = useState(false);
+  const toolkitName = project?.definition.name ?? null;
+  const source: AlgorithmSource | null = toolkitName !== null ? { kind: 'toolkit', toolkitName } : null;
 
-  if (!project) {
+  const intro = (
+    <p className="sgl-help sgl-tab-intro">
+      {ALGORITHM_TAB_LABELS.transform.summary}{' '}
+      <button type="button" className="sgl-info-button" aria-label="About Analyse vs Transform" title="Analyse vs Transform" onClick={() => setExplainerOpen(true)}>
+        ⓘ
+      </button>
+      <ExplainerWindow explainer={ANALYSE_VS_TRANSFORM} open={explainerOpen} onClose={() => setExplainerOpen(false)} />
+    </p>
+  );
+
+  if (!project || algorithms.length === 0) {
     return (
-      <div className="algorithms sgl-inspector">
-        <p className="meta">No toolkit. Algorithms come from the project’s toolkit (<code>toolkits/&lt;id&gt;/algorithms/</code>).</p>
+      <div className="algorithms transform-panel sgl-inspector">
+        {intro}
+        <p className="meta">
+          {project && project.id !== '' && toolkitName
+            ? <>Toolkit “{toolkitName}” has no transformations. Add one in <code>toolkits/{project.id}/algorithms/</code> with <code>defineSpatialAlgorithm</code>.</>
+            : <>No transformations yet. They come from the project’s toolkit (<code>toolkits/&lt;id&gt;/algorithms/</code>).</>}
+        </p>
       </div>
     );
   }
@@ -82,11 +94,7 @@ export function AlgorithmPanel({
     e.preventDefault();
     if (!selected || !selected.enabled || !version) return;
     setNotice(null);
-    const next = runEntryV2(version, project, selected, entryDrafts, attributes, resolution);
-    setRun(next);
-    // An analysis is shown on the model straight away (temporary colours; "Hide" / Clear remove them).
-    if (next.outcome.ok && next.outcome.value.kind === 'analysis') onShowAnalysis?.(next);
-    else if (shownAnalysis === run) onShowAnalysis?.(null);
+    setRun(runEntryV2(version, project, selected, entryDrafts, attributes, resolution));
   };
 
   const apply = (preview: TransformationPreviewV2, confirmed: boolean) => {
@@ -99,56 +107,44 @@ export function AlgorithmPanel({
   };
 
   return (
-    <div className="algorithms sgl-inspector">
-      {algorithms.length === 0 ? (
-        <p className="meta">
-          Toolkit “{project.id}” has no algorithms. Add one in <code>toolkits/{project.id}/algorithms/</code>.
-        </p>
-      ) : (
-        <div className="algorithm-list" aria-label="Algorithms" role="region">
-          {groupAlgorithms(algorithms).map(({ group, items }) => (
-            <section key={group} aria-labelledby={`algorithm-group-${group}`} className="sgl-algo-group" data-group={group}>
-              <div className="sgl-algo-group-head">
-                <h3 id={`algorithm-group-${group}`}>{ALGORITHM_GROUP_LABELS[group].label}</h3>
-                <p>{ALGORITHM_GROUP_LABELS[group].description}</p>
-              </div>
-              <ul className="sgl-algo-items">
-                {items.map(({ entry: a, index: i, presentation }) => (
-                  <li key={a.file}>
-                    <button
-                      type="button"
-                      aria-pressed={i === selectedIndex}
-                      className={i === selectedIndex ? 'algorithm-item selected' : 'algorithm-item'}
-                      title={EFFECT_LABELS[presentation.effect].description}
-                      onClick={() => {
-                        setSelectedFile(a.file);
-                        setRun(null);
-                        setNotice(null);
-                      }}
-                    >
-                      <span className="algorithm-text">
-                        <span className="algorithm-label">{a.label}</span>
-                        <span className="algorithm-meta">
-                          <span className="algorithm-term">{presentation.term}</span>
-                          <span className={`algorithm-tag effect-${presentation.effect}`}>
-                            {EFFECT_LABELS[presentation.effect].tag}
-                            <span className="sgl-visually-hidden">{EFFECT_LABELS[presentation.effect].spoken}</span>
-                          </span>
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+    <div className="algorithms transform-panel sgl-inspector">
+      {intro}
+      {/* Built-in transformations: none yet, so the section is hidden (P4: hidden while empty). */}
+      <section aria-labelledby="transform-toolkit" className="sgl-algo-group" data-transform-section="toolkit">
+        <div className="sgl-algo-group-head">
+          <h3 id="transform-toolkit">{source ? sourceTag(source) : 'Toolkit'}</h3>
         </div>
-      )}
+        <ul className="sgl-algo-items" aria-label="Transformations">
+          {algorithms.map((a, i) => (
+            <li key={a.file}>
+              <button
+                type="button"
+                aria-pressed={i === selectedIndex}
+                className={i === selectedIndex ? 'algorithm-item selected' : 'algorithm-item'}
+                title={a.enabled ? 'Shows a preview; the design changes only when you Apply it (one undo step).' : 'Its definition is invalid, so it cannot run.'}
+                onClick={() => {
+                  setSelectedFile(a.file);
+                  setRun(null);
+                  setNotice(null);
+                }}
+              >
+                <span className="algorithm-text">
+                  <span className="algorithm-label">{a.label}</span>
+                  <span className="algorithm-meta">
+                    {source && <span className="sgl-source-tag">{sourceTag(source)}</span>}
+                    {!a.enabled && <span className="algorithm-tag effect-unavailable">Disabled</span>}
+                  </span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {selected && (
         <form className="sgl-section" onSubmit={execute}>
           <p className="sgl-help">
-            {EFFECT_LABELS[presentAlgorithm(selected).effect].description}{' '}
+            Shows a preview; the design changes only when you Apply it (one undo step).{' '}
             <span className="algorithm-source" title={selected.file}>
               <code>{selected.id}</code>
             </span>
@@ -178,7 +174,6 @@ export function AlgorithmPanel({
             <button type="submit" className="sgl-primary" disabled={!selected.enabled || problems.length > 0 || !version}>
               Run
             </button>
-            {selected.scope === 'spatial' && selected.enabled && <span className="sgl-help">Shows a preview; nothing changes until you apply it.</span>}
           </div>
         </form>
       )}
@@ -190,13 +185,8 @@ export function AlgorithmPanel({
           version={version}
           {...(attributes && { attributesRevision: attributes.revision })}
           onApply={apply}
-          onDiscard={() => {
-            if (shownAnalysis === run) onShowAnalysis?.(null);
-            setRun(null);
-          }}
+          onDiscard={() => setRun(null)}
           onSelect={onSelect}
-          shown={shownAnalysis === run}
-          {...(onShowAnalysis && { onShow: (show: boolean) => onShowAnalysis(show ? run : null) })}
         />
       )}
     </div>
@@ -269,8 +259,6 @@ function RunResult({
   onApply,
   onDiscard,
   onSelect,
-  shown,
-  onShow,
   attributesRevision,
 }: {
   readonly attributesRevision?: number;
@@ -279,8 +267,6 @@ function RunResult({
   readonly onApply: (preview: TransformationPreviewV2, confirmed: boolean) => void;
   readonly onDiscard: () => void;
   readonly onSelect: SelectionHandler;
-  readonly shown: boolean;
-  readonly onShow?: (show: boolean) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const stale = isStale(run, version, attributesRevision);
@@ -308,52 +294,7 @@ function RunResult({
   }
 
   const outcome = run.outcome.value;
-  if (outcome.kind === 'analysis') {
-    const rows = analysisRows(outcome.result.nodeValues, run.doc, doc);
-    return (
-      <section className="sgl-section algorithm-result" aria-label={`Values of ${run.label}`}>
-        <div className="algorithm-result-header">
-          <h4>Values per room</h4> <HelpTip topicId="analysis-results" />
-        </div>
-        {!shown && outcome.result.summary && <p>{outcome.result.summary}</p>}
-        {stale && (
-          <div className="sgl-warning">
-            ⚠ The design has changed since this ran; run it again for current values. <HelpTip topicId="stale-results" />
-          </div>
-        )}
-        {onShow && !shown && (
-          <div className="sgl-buttons">
-            <button type="button" onClick={() => onShow(true)}>
-              Show on the model
-            </button>
-          </div>
-        )}
-        <table className="algorithm-table">
-          <thead>
-            <tr>
-              <th>Node</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.nodeId}>
-                <td>{nodeButton(r.nodeId, r.exists)}</td>
-                <td>{formatValue(r.value)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="sgl-help">Analyses never change the design. “Clear” above removes the colours and these values.</p>
-        {!shown && (
-          <button type="button" onClick={onDiscard}>
-            Clear results
-          </button>
-        )}
-      </section>
-    );
-  }
-
+  if (outcome.kind !== 'transformation') return null;
   const { preview } = outcome;
   const summary = describePreview(preview);
   const empty = preview.operations.length === 0;

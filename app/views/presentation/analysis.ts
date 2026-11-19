@@ -1,10 +1,14 @@
 import type { AttributeValue } from '@app/document';
 import { isNodeSelected, type Selection } from '@core/viewer/selection';
 import { CATEGORY_PALETTE, MISSING_COLOR, numericColor } from '../three/colorBy';
-import { SELECTION, WARNING_TONE } from './vocabulary';
+import { ANALYSIS_HIGHLIGHT, SELECTION, WARNING_TONE } from './vocabulary';
 
 /**
  * Read-only view model for showing an analysis result on nodes (pure; Stage 07).
+ *
+ * P4: an analysis may also (or only) HIGHLIGHT nodes and edges (Analyse tab: degree, paths,
+ * bridges…). Without `nodeValues` it is highlight-only: highlighted nodes get `ANALYSIS_HIGHLIGHT`
+ * and every other node keeps its normal colour.
  *
  * Analysis colours are a temporary overlay, separate from the document (nothing is written to node
  * attributes) and from the selection (the pink selection ring always wins). The host keeps at most
@@ -16,8 +20,11 @@ export interface AnalysisInput {
   /** Algorithm label, e.g. "Access depth". */
   readonly title: string;
   readonly summary?: string;
-  /** Values reported by the algorithm, keyed by node id. */
-  readonly nodeValues: Readonly<Record<number, AttributeValue>>;
+  /** Values reported by the algorithm, keyed by node id. Absent: a highlight-only result. */
+  readonly nodeValues?: Readonly<Record<number, AttributeValue>>;
+  /** Nodes / edges the result points at (P4), highlighted in every view. */
+  readonly highlightNodes?: readonly number[];
+  readonly highlightEdges?: readonly number[];
   /** Node ids of the document the algorithm ran on, in document order. */
   readonly ranOnNodeIds: readonly number[];
   /** Node ids of the current document (deleted nodes are flagged, new nodes get "no value"). */
@@ -68,6 +75,11 @@ export interface AnalysisPresentation {
   readonly deletedIds: readonly number[];
   /** Overlay opacity hint: lower when stale so it reads as "old". */
   readonly overlayOpacity: number;
+  /** False for a highlight-only result (no `nodeValues`): nodes keep their colour unless highlighted. */
+  readonly hasValues: boolean;
+  /** Highlighted node and edge ids (P4). */
+  readonly highlightNodes: ReadonlySet<number>;
+  readonly highlightEdges: ReadonlySet<number>;
 }
 
 export const NO_VALUE_LABEL = 'no value';
@@ -90,16 +102,39 @@ function formatNumber(n: number): string {
 
 /** Builds the presentation. Never mutates its input; same input → equal output. */
 export function presentAnalysis(input: AnalysisInput): AnalysisPresentation {
+  const highlightNodes = new Set(input.highlightNodes ?? []);
+  const highlightEdges = new Set(input.highlightEdges ?? []);
+  if (input.nodeValues === undefined) {
+    return {
+      title: input.title,
+      summary: input.summary ?? null,
+      stale: input.stale,
+      staleMessage: input.stale ? STALE_MESSAGE : null,
+      valueKind: 'empty',
+      colorOf: new Map(),
+      valueLabelOf: new Map(),
+      legend: [],
+      scale: null,
+      rows: [],
+      unknownIds: [],
+      deletedIds: [],
+      overlayOpacity: input.stale ? 0.45 : 0.9,
+      hasValues: false,
+      highlightNodes,
+      highlightEdges,
+    };
+  }
+  const nodeValues = input.nodeValues;
   const ranOn = new Set(input.ranOnNodeIds);
   const current = new Set(input.currentNodeIds);
   const valueOf = (id: number): AttributeValue | undefined =>
-    ranOn.has(id) && Object.hasOwn(input.nodeValues, id) ? input.nodeValues[id] : undefined;
+    ranOn.has(id) && Object.hasOwn(nodeValues, id) ? nodeValues[id] : undefined;
 
-  const unknownIds = Object.keys(input.nodeValues)
+  const unknownIds = Object.keys(nodeValues)
     .map(Number)
     .filter((id) => !ranOn.has(id))
     .sort((a, b) => a - b);
-  const deletedIds = input.ranOnNodeIds.filter((id) => !current.has(id) && Object.hasOwn(input.nodeValues, id));
+  const deletedIds = input.ranOnNodeIds.filter((id) => !current.has(id) && Object.hasOwn(nodeValues, id));
 
   // Colour scheme from the analysed values (finite numbers, booleans, or anything else).
   const present = input.ranOnNodeIds.map(valueOf).filter((v): v is Exclude<AttributeValue, null> => v !== undefined && v !== null && !(typeof v === 'number' && !Number.isFinite(v)));
@@ -187,8 +222,15 @@ export function presentAnalysis(input: AnalysisInput): AnalysisPresentation {
     unknownIds,
     deletedIds,
     overlayOpacity: input.stale ? 0.45 : 0.9,
+    hasValues: true,
+    highlightNodes,
+    highlightEdges,
   };
 }
+
+/** Whether a node / edge is highlighted by the shown analysis (P4). */
+export const isAnalysisNode = (presentation: AnalysisPresentation | null, nodeId: number): boolean => presentation?.highlightNodes.has(nodeId) ?? false;
+export const isAnalysisEdge = (presentation: AnalysisPresentation | null, edgeId: number): boolean => presentation?.highlightEdges.has(edgeId) ?? false;
 
 /** How a renderer should draw one node while an analysis is shown. */
 export interface AnalysisNodeStyle {
@@ -214,6 +256,10 @@ export function analysisNodeStyle(
 ): AnalysisNodeStyle {
   const ring = isNodeSelected(selection, nodeId) ? SELECTION : null;
   if (!presentation) return { fill: null, fillOpacity: 1, ring, valueLabel: null, staleBadge: null };
+  if (!presentation.hasValues) {
+    const lit = presentation.highlightNodes.has(nodeId);
+    return { fill: lit ? ANALYSIS_HIGHLIGHT : null, fillOpacity: lit ? presentation.overlayOpacity : 1, ring, valueLabel: null, staleBadge: lit && presentation.stale ? WARNING_TONE.border : null };
+  }
   return {
     fill: presentation.colorOf.get(nodeId) ?? MISSING_COLOR,
     fillOpacity: presentation.overlayOpacity,

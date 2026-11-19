@@ -16,7 +16,7 @@ import { ControlBar, InfoPanel, NAVIGATION_HINT } from '@core/viewer/three/ViewC
 import { ColorBySelect, Legend, LevelSelect } from '../three/SpatialControls';
 import { nodeLabel } from '@app/document';
 import { useAnalysisOverlay } from '../analysisOverlay';
-import { analysisNodeStyle } from '../presentation/analysis';
+import { analysisNodeStyle, isAnalysisEdge } from '../presentation/analysis';
 import { lineOf, RelationshipTube, tooltipOf, useSceneSource, ViewRelationshipLegend } from '../three/v2Scene';
 
 /**
@@ -110,6 +110,7 @@ export function Graph3DView({ selection, onSelect, design, project }: ViewProps)
             line={line}
             geometry={geo.unitCylinder}
             selected={s.emphasis.edges.has(e.id)}
+            analysed={isAnalysisEdge(analysis, e.id)}
             hovered={s.hovered?.kind === 'edge' && s.hovered.id === e.id}
             ghost={ghost}
             handlers={ghost ? undefined : pickHandlers('edge', e.id, onSelect, s.setHovered)}

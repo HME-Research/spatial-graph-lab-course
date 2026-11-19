@@ -34,6 +34,7 @@ import { centreLinePath, crossedRectPath, doorSwingPath, grow, windowPath } from
 import { effectiveLevel, fitViewport, panBy, staleWallHover, viewBoxOf, wheelFactor, wheelPixels, zoomAt, type PlanViewport, type ScreenSize } from './planViewport';
 import './plan.css';
 import { useRoomHighlight } from '../roomHighlight';
+import { useAnalysisOverlay } from '../analysisOverlay';
 import { useStyleValues } from '../styleValues';
 import type { ProjectAttributeSchema } from '@app/extensions';
 
@@ -220,6 +221,8 @@ function PlanCanvas({
   const emphasis = useMemo(() => selectionEmphasis(selection, doc.edges), [selection, doc.edges]);
   // Rooms lit up by the Designer's highlight button (never part of the selection).
   const lit = useRoomHighlight()?.nodeIds;
+  // Nodes and edges highlighted by the shown analysis (P4).
+  const analysis = useAnalysisOverlay();
   const unresolvedHere = useMemo(() => {
     if (!plan) return 0;
     const here = new Set(plan.rooms.map((r) => r.nodeId));
@@ -258,6 +261,7 @@ function PlanCanvas({
         px={viewport.scale}
         emphasis={emphasis}
         lit={lit}
+        analysed={analysis ? { nodes: analysis.highlightNodes, edges: analysis.highlightEdges } : undefined}
         activate={activate}
         wallTargets={onWallTarget ? plan.wallTargets : []}
         hoveredWall={hoveredWall}
@@ -359,6 +363,7 @@ export function PlanDrawing({
   onWallHover,
   onWallClick,
   lit,
+  analysed,
 }: {
   readonly plan: PlanModel;
   /** Metres per screen pixel (labels and hit areas keep a constant on-screen size). */
@@ -372,8 +377,11 @@ export function PlanDrawing({
   readonly onWallClick?: (t: PlanWallTarget) => void;
   /** Rooms lit up by the Designer's highlight button. */
   readonly lit?: ReadonlySet<number> | undefined;
+  /** Nodes and edges highlighted by the shown analysis (P4). */
+  readonly analysed?: { readonly nodes: ReadonlySet<number>; readonly edges: ReadonlySet<number> } | undefined;
 }) {
-  const edgeClass = (base: string, edgeId: number | null) => (edgeId !== null && emphasis.edges.has(edgeId) ? `${base} selected` : base);
+  const edgeClass = (base: string, edgeId: number | null) =>
+    edgeId !== null && emphasis.edges.has(edgeId) ? `${base} selected` : edgeId !== null && analysed?.edges.has(edgeId) ? `${base} analysed` : base;
   const hit = 4 * px; // 4 px of extra hit area around thin elements
   const labelSize = 12 * px;
   return (
@@ -395,7 +403,8 @@ export function PlanDrawing({
         {plan.rooms.map((room) => {
           const cls =
             (emphasis.primaryNodes.has(room.nodeId) ? ' selected' : emphasis.secondaryNodes.has(room.nodeId) ? ' related' : '') +
-            (lit?.has(room.nodeId) ? ' highlighted' : '');
+            (lit?.has(room.nodeId) ? ' highlighted' : '') +
+            (analysed?.nodes.has(room.nodeId) ? ' analysed' : '');
           return (
             <rect
               key={room.nodeId}

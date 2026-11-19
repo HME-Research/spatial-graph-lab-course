@@ -17,6 +17,8 @@ import { FacadeModules } from './FacadeModules';
 import { brokenTypeIds, projectFacadeProvider } from '../project';
 import { useRemembered } from '../panelMemory';
 import { useRoomHighlight } from '../roomHighlight';
+import { useAnalysisOverlay } from '../analysisOverlay';
+import { isAnalysisEdge, isAnalysisNode } from '../presentation/analysis';
 import { useStyleValues } from '../styleValues';
 import { useViewportCamera } from '../viewportCamera';
 import { buildEdgeItems, framingFor } from '../three/sceneModel';
@@ -148,6 +150,7 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
     [connectors, showRoofs],
   );
   const editing = useRoomEditing(design, selection);
+  const analysis = useAnalysisOverlay();
   const tube = useUnitCylinder();
   const unresolved = useMemo(
     () =>
@@ -277,6 +280,7 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
             line={line}
             geometry={tube}
             selected={selection.kind === 'edge' && selection.id === e.id}
+            analysed={isAnalysisEdge(analysis, e.id)}
             hovered={hoveredEdge === e.id}
             ghost={false}
             handlers={pickHandlers('edge', e.id, pick, (update) => {
@@ -318,6 +322,8 @@ function Scene({
   const display = useViewDisplay();
   // Rooms lit up by the Designer's highlight button (never part of the selection).
   const lit = useRoomHighlight()?.nodeIds;
+  // Nodes and edges highlighted by the shown analysis (P4).
+  const analysis = useAnalysisOverlay();
   // One shared unit box, scaled per element: no per-element geometry allocation.
   const unitBox = useMemo(() => new BoxGeometry(1, 1, 1), []);
   useEffect(() => () => unitBox.dispose(), [unitBox]);
@@ -332,7 +338,12 @@ function Scene({
           color={elementColor(e, display)}
           kind={e.part === 'glazing' ? 'glass' : e.part === 'threshold' ? 'hidden' : 'solid'}
           geometry={unitBox}
-          highlighted={isElementHighlighted(e, selection) || (lit?.has(e.ownerNodeId) ?? false)}
+          highlighted={
+            isElementHighlighted(e, selection) ||
+            (lit?.has(e.ownerNodeId) ?? false) ||
+            isAnalysisNode(analysis, e.ownerNodeId) ||
+            (e.edgeId !== null && isAnalysisEdge(analysis, e.edgeId))
+          }
           pick={pick}
           setHovered={setHovered}
           {...(eligibleWalls.has(e.faceId) && {
@@ -352,7 +363,7 @@ function Scene({
           color={connectorColor(c)}
           kind="solid"
           geometry={unitBox}
-          highlighted={isConnectorHighlighted(c, selection)}
+          highlighted={isConnectorHighlighted(c, selection) || isAnalysisEdge(analysis, c.edgeId)}
           pick={pick}
           setHovered={setHovered}
         />

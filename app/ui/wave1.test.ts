@@ -1,7 +1,6 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { groupAlgorithms, KNOWN_ALGORITHMS, presentAlgorithm, type AlgorithmPresentationInput } from './algorithmGroups';
 import { historyShortcut } from '@app/session/shortcuts';
 import { CONCEPT_IDS, CONCEPTS, conceptOf, ConceptContent, handleDialogKeyDown, InfoButton, type DialogFocusScope } from './concepts';
 import { PROPERTIES_DESCRIPTION, PROPERTIES_LABEL } from './labels';
@@ -154,37 +153,6 @@ describe('Properties panel without a redundant tab', () => {
     expect(html).toContain('<span class="sgl-sidenav-label">Properties</span>');
     expect(html).toMatch(/class="sgl-sidenav-panels" hidden=""/);
     expect(html).toContain('<p>props</p>');
-  });
-});
-
-describe('Algorithms grouping (Explore / Analyse / Generate)', () => {
-  const entry = (id: string, scope: AlgorithmPresentationInput['scope'], enabled = true): AlgorithmPresentationInput => ({ id, scope, enabled });
-
-  it('a transformation is always Generate and modifying, whatever the table says', () => {
-    expect(presentAlgorithm(entry('access-depth', 'spatial'))).toMatchObject({ group: 'generate', effect: 'modifies', term: 'Spatial transformation' });
-    expect(presentAlgorithm(entry('anything', 'spatial'))).toMatchObject({ group: 'generate', effect: 'modifies' });
-  });
-
-  it('a graph analysis is read-only: Explore when listed so, otherwise Analyse', () => {
-    expect(presentAlgorithm(entry('access-depth', 'graph'))).toEqual({ group: 'explore', effect: 'read-only', term: KNOWN_ALGORITHMS['access-depth']!.term });
-    expect(presentAlgorithm(entry('count-connections', 'graph'))).toMatchObject({ group: 'analyse', term: 'Node degree' });
-    expect(presentAlgorithm(entry('student-thing', 'graph'))).toEqual({ group: 'analyse', effect: 'read-only', term: 'Graph analysis' });
-    // A table entry meant for a transformation never gives a graph analysis a "Generate" place.
-    expect(presentAlgorithm(entry('connect-neighbours', 'graph'))).toMatchObject({ group: 'analyse', term: 'Graph analysis' });
-  });
-
-  it('disabled or unknown definitions are marked unavailable; inherited keys are ignored', () => {
-    expect(presentAlgorithm(entry('access-depth', 'graph', false)).effect).toBe('unavailable');
-    expect(presentAlgorithm(entry('x', 'unknown')).effect).toBe('unavailable');
-    expect(presentAlgorithm(entry('toString', 'graph')).term).toBe('Graph analysis');
-  });
-
-  it('groups in Explore → Analyse → Generate order, omits empty groups and keeps list indices', () => {
-    const list = [entry('connect-neighbours', 'spatial'), entry('count-connections', 'graph'), entry('access-depth', 'graph')];
-    const groups = groupAlgorithms(list);
-    expect(groups.map((g) => g.group)).toEqual(['explore', 'analyse', 'generate']);
-    expect(groups.map((g) => g.items.map((i) => i.index))).toEqual([[2], [1], [0]]);
-    expect(groupAlgorithms([entry('a', 'graph')]).map((g) => g.group)).toEqual(['analyse']);
   });
 });
 

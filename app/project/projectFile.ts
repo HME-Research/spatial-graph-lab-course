@@ -117,6 +117,12 @@ export interface ProjectSettings {
    * removing is undone by restoring the id. Absent = none; written only when set.
    */
   readonly hiddenFunctions?: readonly string[];
+  /**
+   * The built-in analyses listed in Analyse (optional, P4): ids of `BUILT_IN_ANALYSES`, chosen with
+   * each section's "+". Absent = the defaults (`shownAtStart`). The app reads them with
+   * `sanitizeShownAnalyses` (unknown ids ignored). Written only when set.
+   */
+  readonly analyses?: readonly string[];
 }
 
 /** A project function: a node type defined in the project file (`settings.functions`). */
@@ -216,6 +222,7 @@ const projectShape = z.strictObject({
       .array(z.string().regex(FUNCTION_ID_PATTERN, { error: 'a function id must be lowercase letters, digits or "-", starting with a letter' }))
       .max(MAX_PROJECT_FUNCTIONS)
       .optional(),
+    analyses: z.array(z.string().min(1).max(64), { error: 'analyses must be a list of analysis ids' }).max(64).optional(),
   }),
   assets: z.union(
     [
@@ -411,11 +418,13 @@ const canonicalSettings = (settings: {
   readonly calculatedFields?: readonly string[] | undefined;
   readonly functions?: readonly ProjectFunction[] | undefined;
   readonly hiddenFunctions?: readonly string[] | undefined;
+  readonly analyses?: readonly string[] | undefined;
 }): ProjectSettings => ({
   display: canonicalDefaults(settings.display),
   ...(settings.calculatedFields !== undefined && { calculatedFields: [...settings.calculatedFields] }),
   ...(settings.functions !== undefined && { functions: settings.functions.map((f) => ({ id: f.id, label: f.label })) }),
   ...(settings.hiddenFunctions !== undefined && { hiddenFunctions: [...settings.hiddenFunctions] }),
+  ...(settings.analyses !== undefined && { analyses: [...settings.analyses] }),
 });
 
 export function serializeProjectFile(file: ProjectFileV2): string {

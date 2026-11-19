@@ -18,7 +18,7 @@ import { framingFor, includeBoxes } from '../three/sceneModel';
 import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
 import { useAnalysisOverlay } from '../analysisOverlay';
 import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
-import { analysisNodeStyle } from '../presentation/analysis';
+import { analysisNodeStyle, isAnalysisEdge } from '../presentation/analysis';
 import {
   ConnectorCells,
   connectorCells,
@@ -181,6 +181,7 @@ export function VoxelView({ selection, onSelect, design, project }: ViewProps) {
             line={line}
             geometry={tube}
             selected={s.emphasis.edges.has(e.id)}
+            analysed={isAnalysisEdge(analysis, e.id)}
             hovered={hoveredEdge === e.id}
             ghost={false}
             handlers={pickHandlers('edge', e.id, onSelect, s.setHovered)}

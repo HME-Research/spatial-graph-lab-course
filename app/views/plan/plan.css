@@ -242,3 +242,30 @@ rect.sgl-plan-slab.access-marker.selected {
   stroke: var(--sgl-plan-selection);
   stroke-opacity: 0.6;
 }
+
+/* Highlighted by the shown analysis (P4, Analyse tab): teal, distinct from the selection pink. */
+.sgl-plan {
+  --sgl-plan-analysis: #0e9f8f;
+}
+.sgl-plan-room.analysed {
+  fill: var(--sgl-plan-analysis);
+  fill-opacity: 0.35;
+}
+.sgl-plan-route.analysed {
+  fill: var(--sgl-plan-analysis);
+  fill-opacity: 0.3;
+  stroke: var(--sgl-plan-analysis);
+}
+.sgl-plan-opening.analysed path,
+.sgl-plan-slab.analysed rect,
+.sgl-plan-slab.analysed path {
+  stroke: var(--sgl-plan-analysis);
+  stroke-width: 3px;
+}
+.sgl-plan-opening.analysed .sgl-plan-hit {
+  fill: var(--sgl-plan-analysis);
+  fill-opacity: 0.35;
+}
+rect.sgl-plan-slab.access-marker.analysed {
+  fill: var(--sgl-plan-analysis);
+}

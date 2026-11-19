@@ -10,7 +10,7 @@ import type { ViewMode } from '../contracts';
 import { RelationshipLegend } from '../presentation/LegendViews';
 import { CONNECTOR_CELL_COLOR, relationshipLegend } from '../presentation/legend';
 import { connectorStylesInUse, presentEdgeById, summarizeRelationships } from '../presentation/relationships';
-import type { LineToken } from '../presentation/vocabulary';
+import { ANALYSIS_HIGHLIGHT, type LineToken } from '../presentation/vocabulary';
 import { dashIntervals } from './edgeStyle';
 import type { EdgeItem } from './sceneModel';
 import './v2Scene.css';
@@ -50,6 +50,7 @@ export function RelationshipTube({
   ghost,
   handlers,
   pickInset = 0,
+  analysed = false,
 }: {
   readonly item: EdgeItem;
   readonly line: LineToken;
@@ -60,6 +61,8 @@ export function RelationshipTube({
   readonly handlers: ReturnType<typeof pickHandlers> | undefined;
   /** Length removed from the pick volume at each end (e.g. node spheres), so nodes win picking. */
   readonly pickInset?: number;
+  /** Highlighted by the shown analysis (P4); the selection colour still wins. */
+  readonly analysed?: boolean;
 }) {
   const [dx, dy, dz] = item.direction;
   const quaternion = useMemo(() => new Quaternion().setFromUnitVectors(new Vector3(0, 1, 0), new Vector3(dx, dy, dz)), [dx, dy, dz]);
@@ -68,13 +71,13 @@ export function RelationshipTube({
     () => (dash ? dashIntervals(item.length, true, dash[0], dash[1]) : dashIntervals(item.length, false)),
     [item.length, dash],
   );
-  const radius = line.radius3d * (selected ? 1.9 : hovered ? 1.4 : 1);
+  const radius = line.radius3d * (selected ? 1.9 : analysed ? 1.7 : hovered ? 1.4 : 1);
   const pickLength = Math.max(0.1, item.length - pickInset * 2);
   return (
     <group position={[...item.mid]} quaternion={quaternion}>
       {segments.map(([from, to]) => (
         <mesh key={from} geometry={geometry} position={[0, (from + to) / 2 - item.length / 2, 0]} scale={[radius, to - from, radius]}>
-          <meshLambertMaterial color={selected ? SELECTION_COLOR : line.color} transparent opacity={ghost ? 0.1 : 1} depthWrite={!ghost} />
+          <meshLambertMaterial color={selected ? SELECTION_COLOR : analysed ? ANALYSIS_HIGHLIGHT : line.color} transparent opacity={ghost ? 0.1 : 1} depthWrite={!ghost} />
         </mesh>
       ))}
       {handlers && (
