@@ -1,0 +1,300 @@
+/* Data view (P4, D): the design as JSON text and as tables. Scoped with `sgl-dataview`.
+   Section colours match the attribute sections (app/attributes/sections.ts); the selection uses
+   the shared selection colour (core/viewer/appearance SELECTION_COLOR), strong for the selected
+   item and soft for the two nodes of a selected edge. */
+.sgl-dataview {
+  --sgl-dataview-identity: #8b8b83;
+  --sgl-dataview-required: #2c5d8f;
+  --sgl-dataview-geometry: #3d7a4a;
+  --sgl-dataview-custom: #b06f1e;
+  --sgl-dataview-calculated: #a9a690;
+  --sgl-dataview-selection: #ff2d95;
+  --sgl-dataview-primary-bg: rgba(255, 45, 149, 0.13);
+  --sgl-dataview-secondary-bg: rgba(255, 45, 149, 0.05);
+  --sgl-dataview-mono: ui-monospace, 'Cascadia Mono', Consolas, 'SF Mono', Menlo, monospace;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  font-size: var(--text-sm);
+}
+
+.sgl-dataview-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 40px;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.sgl-dataview-toolbar .segmented button {
+  min-height: var(--hit-compact);
+  font-size: var(--text-sm);
+}
+
+.sgl-dataview-readonly {
+  margin-left: auto;
+  flex: none;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+/* Colour key of the JSON gutter marks. */
+.sgl-dataview-key {
+  display: flex;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.sgl-dataview-key li::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 0.9em;
+  margin-right: 5px;
+  vertical-align: -0.1em;
+  border-radius: 1px;
+  background: var(--sgl-dataview-section, transparent);
+}
+
+.sgl-dataview [data-section='identity'] { --sgl-dataview-section: var(--sgl-dataview-identity); }
+.sgl-dataview [data-section='required'] { --sgl-dataview-section: var(--sgl-dataview-required); }
+.sgl-dataview [data-section='geometry'] { --sgl-dataview-section: var(--sgl-dataview-geometry); }
+.sgl-dataview [data-section='custom'] { --sgl-dataview-section: var(--sgl-dataview-custom); }
+.sgl-dataview [data-section='calculated'] { --sgl-dataview-section: var(--sgl-dataview-calculated); }
+
+/* The only scrolling box (both axes): the page itself never scrolls. */
+.sgl-dataview-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.sgl-dataview-scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* ── JSON ── */
+
+.sgl-dataview-code {
+  width: max-content;
+  min-width: 100%;
+  padding: var(--space-1) 0;
+  font-family: var(--sgl-dataview-mono);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--fg);
+}
+
+.sgl-dataview-line {
+  display: grid;
+  grid-template-columns: 3px calc(var(--sgl-dataview-ln, 3ch) + 12px) auto;
+  white-space: pre;
+}
+
+.sgl-dataview-mark {
+  background: var(--sgl-dataview-section, transparent);
+}
+
+.sgl-dataview-ln {
+  padding-right: 8px;
+  text-align: right;
+  color: #a3a39b;
+  user-select: none;
+}
+
+.sgl-dataview-text {
+  padding-right: var(--space-4);
+}
+
+.sgl-dataview-key-name {
+  color: #7a3e6b;
+}
+
+.sgl-dataview-record {
+  cursor: pointer;
+}
+
+.sgl-dataview-record:hover {
+  background: var(--surface-hover);
+}
+
+.sgl-dataview-record[data-emphasis='primary'] {
+  background: var(--sgl-dataview-primary-bg);
+  box-shadow: inset 3px 0 0 var(--sgl-dataview-selection);
+}
+
+.sgl-dataview-record[data-emphasis='secondary'] {
+  background: var(--sgl-dataview-secondary-bg);
+  box-shadow: inset 3px 0 0 rgba(255, 45, 149, 0.45);
+}
+
+/* ── Tables ── */
+
+.sgl-dataview-tables {
+  padding: 0 0 var(--space-3);
+}
+
+.sgl-dataview-table-wrap {
+  width: max-content;
+  min-width: 100%;
+}
+
+.sgl-dataview-table-title {
+  position: sticky;
+  left: 0;
+  width: fit-content;
+  margin: 0;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  font-size: var(--text-md);
+}
+
+.sgl-dataview-count {
+  margin-left: 4px;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: var(--text-xs);
+}
+
+.sgl-dataview-empty {
+  position: sticky;
+  left: 0;
+  margin: 0;
+  padding: 0 var(--space-3);
+}
+
+.sgl-dataview-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sgl-dataview-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.sgl-dataview-table th,
+.sgl-dataview-table td {
+  padding: 4px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.sgl-dataview-table .num {
+  text-align: right;
+}
+
+.sgl-dataview-groups th {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  border-top: 3px solid var(--sgl-dataview-section, var(--line));
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* A fine divider where a new section starts. */
+.sgl-dataview-groups th + th,
+.sgl-dataview-table .sec-start {
+  border-left: 1px solid var(--line);
+}
+
+.sgl-dataview-columns th {
+  border-bottom: 1px solid var(--line-strong);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.sgl-dataview-table [data-section='calculated'] {
+  background: var(--calc-bg);
+  color: var(--calc-fg);
+}
+
+.sgl-dataview-lock {
+  margin-left: 4px;
+  vertical-align: -1px;
+  color: var(--muted);
+}
+
+/* The ID column stays visible while scrolling sideways. */
+.sgl-dataview-table [data-column='id'] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  font-weight: 600;
+}
+
+.sgl-dataview-groups th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.sgl-dataview-table tbody tr {
+  cursor: pointer;
+}
+
+.sgl-dataview-table tbody tr:hover > * {
+  background: var(--surface-hover);
+}
+
+.sgl-dataview-table tbody tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sgl-dataview-table tbody tr[data-emphasis='primary'] > * {
+  background: #ffe3f0;
+}
+
+.sgl-dataview-table tbody tr[data-emphasis='primary'] > :first-child {
+  box-shadow: inset 3px 0 0 var(--sgl-dataview-selection);
+}
+
+.sgl-dataview-table tbody tr[data-emphasis='secondary'] > * {
+  background: #fff4f9;
+}
+
+.sgl-dataview-table tbody tr[data-emphasis='secondary'] > :first-child {
+  box-shadow: inset 3px 0 0 rgba(255, 45, 149, 0.45);
+}
+
+/* Inherited custom values: faded, with a small hint of where they come from. */
+.sgl-dataview-table td[data-origin='type-default'],
+.sgl-dataview-table td[data-origin='default'],
+.sgl-dataview-table td[data-origin='none'] {
+  color: #9a9a92;
+}
+
+.sgl-dataview-table td[data-origin='invalid'] {
+  color: var(--warning-fg);
+}
+
+.sgl-dataview-hint {
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 10px;
+  color: var(--muted);
+}

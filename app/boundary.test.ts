@@ -23,7 +23,9 @@ import { describe, expect, it } from 'vitest';
  *   record reader), `assets/` (embedded façade validation), `display/contracts` (only that pure
  *   file of the shell-level `display/`), core/graph, core/spatial and the pure camera contract
  *   `core/viewer/three/camera`.
- * - `views/` (application visualisations): may import document, building, extensions and any core module.
+ * - `views/` (application visualisations): may import document, building, extensions and any core module,
+ *   and the pure shared attribute-section definition `attributes/sections` (P4: the Data view's
+ *   column groups; the rest of the shell-level `attributes/` stays out of reach).
  * - shell (`App`, `Workspace`, `main`, `inspector/`): composes everything.
  *
  * Lower layers never import higher ones. No relative import leaves app/; the built-in example
@@ -97,6 +99,7 @@ function violation(file: string, specifier: string): string | null {
   }
   if (pure && target.endsWith('.css')) return `pure ${from} layer imports CSS`;
   if (from === 'project' && target === './display/contracts') return null;
+  if (from === 'views' && target === './attributes/sections') return null;
   const to = layerOf(target);
   return RANK[to] > RANK[from] ? `${from} imports higher layer ${to} (${specifier})` : null;
 }
@@ -149,6 +152,9 @@ describe('application layering', () => {
     expect(violation('./metrics/x.ts', '@core/viewer/coordinates')).toBeNull();
     expect(violation('./views/x.ts', '@app/metrics/registry')).toBeNull();
     expect(violation('./views/x.ts', '@app/inspector/Inspector')).not.toBeNull();
+    expect(violation('./views/data/x.tsx', '@app/attributes/sections')).toBeNull();
+    expect(violation('./views/data/x.tsx', '@app/attributes/AttributesPanel')).not.toBeNull();
+    expect(violation('./metrics/x.ts', '@app/attributes/sections')).not.toBeNull();
     expect(violation('./views/graph2d/x.ts', '../../App')).not.toBeNull();
     expect(violation('./views/x.ts', '../../toolkits/a/b.ts')).not.toBeNull();
     expect(violation('./views/x.ts', '@student-api')).not.toBeNull();

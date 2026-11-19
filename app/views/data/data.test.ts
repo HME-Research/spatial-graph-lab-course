@@ -1,0 +1,217 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
+import houseJson from '@app/document/examples/house.json';
+import { ATTRIBUTE_SECTION_IDS } from '@app/attributes/sections';
+import { readDesign, serializeDesignV2, type DesignDocumentV2 } from '@app/document';
+import { EMPTY_ATTRIBUTE_SCHEMA, type ProjectAttributeSchema } from '@app/extensions';
+import { createMetricEvaluator, DEFAULT_ENABLED_METRICS, enabledMetrics } from '@app/metrics';
+import { resolveRelationships, type DesignPort } from '@app/spatial';
+import { NO_SELECTION, selectEdge, selectNode, type Selection } from '@core/viewer/selection';
+import { VIEW_MODES } from '../contracts';
+import { createPanelMemory, PanelMemoryContext } from '../panelMemory';
+import { VIEW_COMPONENTS } from '../registry';
+import { columnGroups, edgeTable, jsonBlocks, jsonLines, nodeTable } from './dataModel';
+import { DataView } from './DataView';
+import dataViewSource from './DataView.tsx?raw';
+import dataModelSource from './dataModel.ts?raw';
+
+function house(): DesignDocumentV2 {
+  const read = readDesign(houseJson);
+  if (!read.ok) throw new Error('example house does not load');
+  return read.value.doc;
+}
+
+/** The house with one stored custom value (room 4) and one explicit "no value" (room 6). */
+function houseWithAttributes(): DesignDocumentV2 {
+  const doc = house();
+  return {
+    ...doc,
+    nodes: doc.nodes.map((n) => (n.id === 4 ? { ...n, attributes: { targetArea: 12 } } : n.id === 6 ? { ...n, attributes: { targetArea: null } } : n)),
+    edges: doc.edges.map((e) => (e.id === 2 ? { ...e, attributes: { note: 'wide door' } } : e)),
+  };
+}
+
+const SCHEMA: ProjectAttributeSchema = {
+  nodes: [{ id: 'f1', key: 'targetArea', label: 'Target area', kind: 'number', default: 6 }],
+  edges: [{ id: 'f2', key: 'note', label: 'Note', kind: 'text' }],
+  nodeTypeDefaults: { kitchen: { f1: 16 }, living: { f1: 20 } },
+};
+
+function port(doc: DesignDocumentV2, onCommand = vi.fn()): DesignPort {
+  return {
+    doc,
+    spatial: resolveRelationships(doc),
+    onCommand,
+    proposeEdit: () => {
+      throw new Error('the Data view never proposes edits');
+    },
+  } as unknown as DesignPort;
+}
+
+const inputs = (doc: DesignDocumentV2, schema = SCHEMA) => ({
+  ctx: { doc, spatial: resolveRelationships(doc) },
+  schema,
+  enabled: DEFAULT_ENABLED_METRICS,
+  evaluator: createMetricEvaluator(),
+});
+
+describe('data view mode', () => {
+  it('is registered as the last view mode, "Data", with a plain (non-lazy) component', () => {
+    expect(VIEW_MODES[VIEW_MODES.length - 1]).toBe('data');
+    expect(VIEW_COMPONENTS.data).toBe(DataView);
+  });
+});
+
+describe('JSON lines', () => {
+  it('are exactly the exported text (stored values only)', () => {
+    const doc = houseWithAttributes();
+    const lines = jsonLines(doc);
+    expect(lines.map((l) => l.text).join('\n') + '\n').toBe(serializeDesignV2(doc));
+    expect(lines.map((l) => l.number)).toEqual(lines.map((_, i) => i + 1));
+    // Inherited defaults are not stored, so they never appear.
+    expect(lines.some((l) => l.text.includes('16'))).toBe(false);
+  });
+
+  it('assign every node and edge record its own lines, braces included, in document order', () => {
+    const doc = house();
+    const lines = jsonLines(doc);
+    for (const [collection, items] of [
+      ['nodes', doc.nodes],
+      ['edges', doc.edges],
+    ] as const) {
+      for (const item of items) {
+        const own = lines.filter((l) => l.record?.collection === collection && l.record.id === item.id);
+        expect(own[0]!.text).toBe('    {');
+        expect(own[own.length - 1]!.text.trim()).toMatch(/^},?$/);
+        expect(own.some((l) => l.text === `      "id": ${item.id},`)).toBe(true);
+        // Contiguous.
+        expect(own[own.length - 1]!.number - own[0]!.number + 1).toBe(own.length);
+      }
+    }
+    expect(lines.filter((l) => l.text.includes('"positions"')).every((l) => l.record === null)).toBe(true);
+  });
+
+  it('tag lines with their attribute section', () => {
+    const lines = jsonLines(houseWithAttributes());
+    const node4 = lines.filter((l) => l.record?.collection === 'nodes' && l.record.id === 4);
+    const sectionOf = (prefix: string) => node4.find((l) => l.text.trimStart().startsWith(prefix))?.section;
+    expect(sectionOf('"id"')).toBe('identity');
+    expect(sectionOf('"grid"')).toBe('geometry');
+    expect(sectionOf('"size"')).toBe('geometry');
+    expect(sectionOf('"typeId"')).toBe('required');
+    expect(sectionOf('"attributes"')).toBe('custom');
+    expect(sectionOf('"targetArea"')).toBe('custom');
+    // Array members carry the section of their key.
+    expect(node4.filter((l) => /^ {8}\d/.test(l.text)).every((l) => l.section === 'geometry')).toBe(true);
+    const edge1 = lines.filter((l) => l.record?.collection === 'edges' && l.record.id === 1);
+    expect(edge1.filter((l) => /"(source|target)"/.test(l.text)).every((l) => l.section === 'identity')).toBe(true);
+    expect(edge1.find((l) => l.text.includes('"kind"'))?.section).toBe('required');
+    expect(lines.filter((l) => l.record === null).every((l) => l.section === null)).toBe(true);
+  });
+
+  it('group into one block per record', () => {
+    const doc = house();
+    const blocks = jsonBlocks(jsonLines(doc));
+    expect(blocks.filter((b) => b.record?.collection === 'nodes').map((b) => b.record!.id)).toEqual(doc.nodes.map((n) => n.id));
+    expect(blocks.filter((b) => b.record?.collection === 'edges').map((b) => b.record!.id)).toEqual(doc.edges.map((e) => e.id));
+    expect(new Set(blocks.map((b) => b.key)).size).toBe(blocks.length);
+  });
+});
+
+describe('tables', () => {
+  it('group node columns by section, in sections.ts order, calculated last', () => {
+    const t = nodeTable(inputs(house()));
+    expect(t.columns.slice(0, 8).map((c) => c.label)).toEqual(['ID', 'Function', 'Position X', 'Position Y', 'Level', 'Size X', 'Size Y', 'Floors']);
+    const order = columnGroups(t.columns).map((g) => g.section);
+    expect(order).toEqual(ATTRIBUTE_SECTION_IDS.filter((s) => order.includes(s)));
+    expect(order).toEqual(['identity', 'required', 'geometry', 'custom', 'calculated']);
+    const calculated = t.columns.filter((c) => c.section === 'calculated').map((c) => c.id);
+    expect(calculated).toEqual(enabledMetrics(DEFAULT_ENABLED_METRICS, 'nodes').map((m) => `calc:${m.id}`));
+  });
+
+  it('show geometry from grid and size, and custom values through the resolver', () => {
+    const t = nodeTable(inputs(houseWithAttributes()));
+    const row = (id: number) => t.rows.find((r) => r.id === id)!.cells;
+    expect([row(6)['position-x']!.text, row(6)['position-y']!.text, row(6).level!.text]).toEqual(['2', '0', '1']);
+    expect([row(6)['size-x']!.text, row(6)['size-y']!.text, row(6).floors!.text]).toEqual(['2', '2', '1']);
+    expect(row(4)['custom:f1']).toMatchObject({ text: '12', origin: 'stored' }); // own value beats the kitchen default
+    expect(row(6)['custom:f1']).toMatchObject({ text: 'no value', origin: 'stored' }); // explicit null
+    expect(row(3)['custom:f1']).toMatchObject({ text: '20', origin: 'type-default' }); // living default
+    expect(row(1)['custom:f1']).toMatchObject({ text: '6', origin: 'default' });
+    const kitchen = house().nodes.find((n) => n.typeId === 'kitchen')!.id;
+    expect(nodeTable(inputs(house())).rows.find((r) => r.id === kitchen)!.cells['custom:f1']).toMatchObject({ text: '16', origin: 'type-default' });
+    for (const r of t.rows) for (const c of t.columns.filter((x) => x.section === 'calculated')) expect(r.cells[c.id]!.origin).toBe('calculated');
+  });
+
+  it('show edges with "id · Function" endpoints and the relationship label', () => {
+    const t = edgeTable(inputs(houseWithAttributes()));
+    expect(t.columns.slice(0, 4).map((c) => c.label)).toEqual(['ID', 'Source', 'Target', 'Relationship']);
+    const e3 = t.rows.find((r) => r.id === 3)!.cells;
+    expect([e3.source!.text, e3.target!.text, e3.relationship!.text]).toEqual(['3 · living', '4 · kitchen', 'Open']);
+    expect(t.rows.find((r) => r.id === 2)!.cells['custom:f2']).toMatchObject({ text: 'wide door', origin: 'stored' });
+    expect(t.rows.find((r) => r.id === 1)!.cells['custom:f2']).toMatchObject({ text: '—', origin: 'none' });
+  });
+
+  it('have no custom group without a project schema', () => {
+    expect(columnGroups(nodeTable(inputs(house(), EMPTY_ATTRIBUTE_SCHEMA)).columns).map((g) => g.section)).not.toContain('custom');
+  });
+});
+
+describe('DataView', () => {
+  const render = (selection: Selection, format: 'json' | 'table', onCommand = vi.fn(), onSelect = vi.fn()) => {
+    const memory = createPanelMemory();
+    memory.set('format:data', format);
+    const html = renderToStaticMarkup(
+      createElement(
+        PanelMemoryContext.Provider,
+        { value: memory },
+        createElement(DataView, { design: port(houseWithAttributes(), onCommand), selection, onSelect, project: { project: null, conformance: [], facade: () => ({ windowFraction: 0 }), attributes: SCHEMA } }),
+      ),
+    );
+    return { html, onCommand, onSelect };
+  };
+
+  it('remembers the format per panel and offers a labelled JSON | Table toggle', () => {
+    const json = render(NO_SELECTION, 'json').html;
+    expect(json).toContain('data-data-format="json"');
+    expect(json).toContain('aria-label="Show the design as"');
+    expect(json).toContain('aria-label="Design as JSON, as saved"');
+    expect(render(NO_SELECTION, 'table').html).toContain('data-data-format="table"');
+  });
+
+  it('highlights a selected node record (JSON) and row (table)', () => {
+    expect(render(selectNode(4), 'json').html).toMatch(/data-record="nodes:4" data-emphasis="primary"/);
+    const table = render(selectNode(4), 'table').html;
+    expect(table).toMatch(/data-row="nodes:4" data-id="4" data-emphasis="primary"/);
+    expect(table.match(/data-emphasis=/g)).toHaveLength(1);
+  });
+
+  it('highlights a selected edge strongly and its two nodes softly', () => {
+    const json = render(selectEdge(3), 'json').html;
+    expect(json).toMatch(/data-record="edges:3" data-emphasis="primary"/);
+    expect(json).toMatch(/data-record="nodes:3" data-emphasis="secondary"/);
+    expect(json).toMatch(/data-record="nodes:4" data-emphasis="secondary"/);
+    const table = render(selectEdge(3), 'table').html;
+    expect(table).toMatch(/data-row="edges:3" data-id="3" data-emphasis="primary"/);
+    expect(table).toMatch(/data-row="nodes:3" data-id="3" data-emphasis="secondary"/);
+    expect(table).toMatch(/data-row="nodes:4" data-id="4" data-emphasis="secondary"/);
+  });
+
+  it('renders section group headers, a locked Calculated group and faded inherited values', () => {
+    const table = render(NO_SELECTION, 'table').html;
+    for (const title of ['Identity', 'Required', 'Geometry', 'Custom', 'Calculated']) expect(table).toContain(`>${title}`);
+    expect(table).toContain('sgl-dataview-lock');
+    expect(table).toContain('data-origin="default"');
+    expect(table).toContain('from type');
+    expect(table).toContain('aria-label="Nodes: one row per node"');
+    expect(table).toContain('aria-label="Edges: one row per edge"');
+  });
+
+  it('never issues a command', () => {
+    const onCommand = vi.fn();
+    for (const sel of [NO_SELECTION, selectNode(2), selectEdge(5)]) for (const f of ['json', 'table'] as const) render(sel, f, onCommand);
+    expect(onCommand).not.toHaveBeenCalled();
+    for (const source of [dataViewSource, dataModelSource]) expect(source).not.toMatch(/onCommand|onScenarioCommand|proposeEdit/);
+  });
+});

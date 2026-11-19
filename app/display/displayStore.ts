@@ -40,6 +40,7 @@ export const PANEL_FIELDS: Readonly<Record<DisplayViewMode, readonly DisplayFiel
   voxels: ['labels', 'legend', 'colourPreset', 'lighting'],
   architecture: ['labels', 'legend', 'roofs', 'colourPreset', 'lighting'],
   plan: [],
+  data: [],
 });
 
 /** Sets one field of the per-view override of `mode`; returns new overrides (input unchanged). */
