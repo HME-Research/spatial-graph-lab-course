@@ -1,4 +1,4 @@
-﻿/** Pure parts of the FloatingWindow: geometry clamping, size limits, remembered-state parsing. */
+/** Pure parts of the FloatingWindow: geometry clamping, size limits, remembered-state parsing. */
 
 export interface Size {
   readonly width: number;
