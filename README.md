@@ -34,7 +34,7 @@ Opening a design file validates it first. If it is invalid, the errors are liste
 - `core/`: reusable graph, spatial and viewer infrastructure (owner-maintained).
 - `app/`: the application: design document, building rules and geometry, views, state, inspector and UI (owner-maintained).
 - `student-api/`: the stable Student API that toolkit code imports as `@student-api` (owner-maintained).
-- `toolkits/<toolkit-id>/`: student toolkits (`toolkit.ts`, `types/`, `designs/`, `algorithms/`). `toolkits/example-gallery/` is the reference toolkit; see `docs/STUDENT-API.md`.
+- `toolkits/<toolkit-id>/`: student toolkits (`toolkit.ts`, `types/`, `designs/`, `algorithms/`). The reference toolkit will be `toolkits/house/`; see `docs/STUDENT-API.md`.
 - `docs/`: architecture, decisions and workflow documents.
 - `.claude/`: shared AI project instructions, skills and settings.
 
