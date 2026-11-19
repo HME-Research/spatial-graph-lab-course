@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 import { ANALYSE_SECTION_IDS, BUILT_IN_ANALYSES } from '@app/ui/analysisSections';
+import { GUIDE_DIAGRAM_IDS } from '@app/ui/guide/diagrams';
 import {
   analysisItems,
   applyPick,
@@ -52,10 +53,11 @@ describe('built-in analyses', () => {
     for (const s of ANALYSE_SECTION_IDS) expect(sectionExplainer(s), s).toBeDefined();
     expect(SECTION_EXPLAINERS).toHaveLength(4);
     expect(ANALYSE_VS_TRANSFORM.id).toBe('analysis-vs-transformation');
-    // The owner's edits: no "for the Student API", diagrams left for item H.
+    // The owner's edits: no "for the Student API"; item H: every explainer has a Guide diagram and a link.
     for (const e of [...SECTION_EXPLAINERS, ...ANALYSIS_EXPLAINERS, ANALYSE_VS_TRANSFORM]) {
       expect(JSON.stringify(e)).not.toContain('for the Student API');
-      expect(e.diagram).toBeUndefined();
+      expect(GUIDE_DIAGRAM_IDS, e.id).toContain(e.diagram);
+      expect(e.learnMore?.url, e.id).toMatch(/^https:\/\//);
     }
   });
 
@@ -126,7 +128,7 @@ describe('built-in analyses', () => {
 
 describe('Analyse panel model', () => {
   it('lists the built-ins shown at start, then the toolkit analyses in their derived sections', () => {
-    expect(DEFAULT_SHOWN_ANALYSES).toEqual(['degree', 'neighbours', 'shared-neighbours', 'summary', 'most-connected-node', 'connected-parts', 'shortest-path']);
+    expect(DEFAULT_SHOWN_ANALYSES).toEqual(['degree', 'neighbours', 'detour-if-removed', 'summary', 'most-connected-node', 'connected-parts', 'shortest-path']);
     const items = analysisItems(DEFAULT_SHOWN_ANALYSES, {
       name: 'House',
       analyses: [
@@ -136,7 +138,7 @@ describe('Analyse panel model', () => {
     });
     const by = itemsBySection(items, 'all');
     expect(by.node.map((i) => i.key)).toEqual(['built-in:degree', 'built-in:neighbours', 'toolkit:depth']);
-    expect(by.edge.map((i) => i.id)).toEqual(['shared-neighbours']);
+    expect(by.edge.map((i) => i.id)).toEqual(['detour-if-removed']);
     expect(by.network.map((i) => i.id)).toEqual(['summary', 'most-connected-node', 'connected-parts']);
     expect(by.queries.map((i) => i.id)).toEqual(['shortest-path', 'pair']);
     expect(itemsBySection(items, 'toolkit').node.map((i) => i.id)).toEqual(['depth']);
@@ -147,8 +149,8 @@ describe('Analyse panel model', () => {
 
   it('the "+" catalogue adds and removes built-ins; stored choices are sanitised', () => {
     expect(catalogueFor('edge', DEFAULT_SHOWN_ANALYSES)).toEqual([
-      { id: 'shared-neighbours', name: 'Shared neighbours', shown: true },
-      { id: 'detour-if-removed', name: 'Detour if removed', shown: false },
+      { id: 'shared-neighbours', name: 'Shared neighbours', shown: false },
+      { id: 'detour-if-removed', name: 'Detour if removed', shown: true },
       { id: 'touching-edges', name: 'Touching edges', shown: false },
     ]);
     const added = setAnalysisShown(DEFAULT_SHOWN_ANALYSES, 'bridges', true);

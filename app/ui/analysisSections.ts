@@ -121,8 +121,8 @@ const NONE: AnalysisInputs = [];
 export const BUILT_IN_ANALYSES: readonly BuiltInAnalysis[] = [
   { id: 'degree', name: 'Degree', inputs: NODE, shownAtStart: true },
   { id: 'neighbours', name: 'Neighbours', inputs: NODE, shownAtStart: true },
-  { id: 'shared-neighbours', name: 'Shared neighbours', inputs: EDGE, shownAtStart: true },
-  { id: 'detour-if-removed', name: 'Detour if removed', inputs: EDGE, shownAtStart: false },
+  { id: 'shared-neighbours', name: 'Shared neighbours', inputs: EDGE, shownAtStart: false },
+  { id: 'detour-if-removed', name: 'Detour if removed', inputs: EDGE, shownAtStart: true },
   { id: 'touching-edges', name: 'Touching edges', inputs: EDGE, shownAtStart: false },
   { id: 'summary', name: 'Summary', inputs: NONE, shownAtStart: true },
   { id: 'most-connected-node', name: 'Most connected node', inputs: NONE, shownAtStart: true },

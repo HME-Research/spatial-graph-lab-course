@@ -1,0 +1,537 @@
+{
+  "howto-add-attribute": {
+    "src": "/guide/howto-add-attribute.webp",
+    "width": 1025,
+    "height": 576,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.078,
+        "y": 0.195
+      },
+      {
+        "n": 2,
+        "x": 0.173,
+        "y": 0.777
+      },
+      {
+        "n": 3,
+        "x": 0.5,
+        "y": 0.487
+      },
+      {
+        "n": 4,
+        "x": 0.843,
+        "y": 0.786
+      }
+    ]
+  },
+  "howto-add-room": {
+    "src": "/guide/howto-add-room.webp",
+    "width": 1025,
+    "height": 576,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.16,
+        "y": 0.165
+      },
+      {
+        "n": 2,
+        "x": 0.886,
+        "y": 0.366
+      },
+      {
+        "n": 3,
+        "x": 0.848,
+        "y": 0.468
+      }
+    ]
+  },
+  "howto-connect": {
+    "src": "/guide/howto-connect.webp",
+    "width": 1025,
+    "height": 576,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.136,
+        "y": 0.63
+      },
+      {
+        "n": 2,
+        "x": 0.254,
+        "y": 0.165
+      },
+      {
+        "n": 3,
+        "x": 0.136,
+        "y": 0.43
+      },
+      {
+        "n": 4,
+        "x": 0.844,
+        "y": 0.456
+      }
+    ]
+  },
+  "howto-query": {
+    "src": "/guide/howto-query.webp",
+    "width": 1025,
+    "height": 576,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.144,
+        "y": 0.838
+      },
+      {
+        "n": 2,
+        "x": 0.165,
+        "y": 0.899
+      },
+      {
+        "n": 3,
+        "x": 0.295,
+        "y": 0.608
+      },
+      {
+        "n": 4,
+        "x": 0.295,
+        "y": 0.467
+      },
+      {
+        "n": 5,
+        "x": 0.175,
+        "y": 0.975
+      }
+    ]
+  },
+  "howto-read-data-view": {
+    "src": "/guide/howto-read-data-view.webp",
+    "width": 1025,
+    "height": 576,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.543,
+        "y": 0.1
+      },
+      {
+        "n": 2,
+        "x": 0.609,
+        "y": 0.153
+      },
+      {
+        "n": 3,
+        "x": 0.625,
+        "y": 0.384
+      },
+      {
+        "n": 4,
+        "x": 0.587,
+        "y": 0.249
+      }
+    ]
+  },
+  "howto-run-analysis": {
+    "src": "/guide/howto-run-analysis.webp",
+    "width": 1025,
+    "height": 576,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.382,
+        "y": 0.608
+      },
+      {
+        "n": 2,
+        "x": 0.073,
+        "y": 0.344
+      },
+      {
+        "n": 3,
+        "x": 0.151,
+        "y": 0.531
+      },
+      {
+        "n": 4,
+        "x": 0.172,
+        "y": 0.623
+      },
+      {
+        "n": 5,
+        "x": 0.207,
+        "y": 0.669
+      }
+    ]
+  },
+  "howto-save": {
+    "src": "/guide/howto-save.webp",
+    "width": 1025,
+    "height": 576,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.072,
+        "y": 0.127
+      },
+      {
+        "n": 2,
+        "x": 0.231,
+        "y": 0.202
+      },
+      {
+        "n": 3,
+        "x": 0.199,
+        "y": 0.26
+      },
+      {
+        "n": 4,
+        "x": 0.197,
+        "y": 0.432
+      }
+    ]
+  },
+  "howto-select-inspect": {
+    "src": "/guide/howto-select-inspect.webp",
+    "width": 1025,
+    "height": 576,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.261,
+        "y": 0.63
+      },
+      {
+        "n": 2,
+        "x": 0.596,
+        "y": 0.558
+      },
+      {
+        "n": 3,
+        "x": 0.875,
+        "y": 0.113
+      }
+    ]
+  },
+  "howto-start": {
+    "src": "/guide/howto-start.webp",
+    "width": 1025,
+    "height": 576,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.656,
+        "y": 0.4
+      },
+      {
+        "n": 2,
+        "x": 0.352,
+        "y": 0.4
+      },
+      {
+        "n": 3,
+        "x": 0.502,
+        "y": 0.392
+      },
+      {
+        "n": 4,
+        "x": 0.38,
+        "y": 0.621
+      }
+    ]
+  },
+  "howto-transform-undo": {
+    "src": "/guide/howto-transform-undo.webp",
+    "width": 1025,
+    "height": 863,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.079,
+        "y": 0.275
+      },
+      {
+        "n": 2,
+        "x": 0.193,
+        "y": 0.19
+      },
+      {
+        "n": 3,
+        "x": 0.12,
+        "y": 0.476
+      },
+      {
+        "n": 4,
+        "x": 0.24,
+        "y": 0.601
+      },
+      {
+        "n": 5,
+        "x": 0.129,
+        "y": 0.855
+      },
+      {
+        "n": 6,
+        "x": 0.898,
+        "y": 0.025
+      }
+    ]
+  },
+  "howto-upload-analysis": {
+    "src": "/guide/howto-upload-analysis.webp",
+    "width": 226,
+    "height": 702,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.759,
+        "y": 0.091
+      },
+      {
+        "n": 2,
+        "x": 0.816,
+        "y": 0.092
+      },
+      {
+        "n": 3,
+        "x": 0.362,
+        "y": 0.775
+      }
+    ]
+  },
+  "panel-analyse": {
+    "src": "/guide/panel-analyse.webp",
+    "width": 226,
+    "height": 702,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.759,
+        "y": 0.091
+      },
+      {
+        "n": 2,
+        "x": 0.266,
+        "y": 0.346
+      },
+      {
+        "n": 3,
+        "x": 0.362,
+        "y": 0.435
+      },
+      {
+        "n": 4,
+        "x": 0.347,
+        "y": 0.657
+      },
+      {
+        "n": 5,
+        "x": 0.456,
+        "y": 0.861
+      },
+      {
+        "n": 6,
+        "x": 0.425,
+        "y": 0.958
+      }
+    ]
+  },
+  "panel-attributes": {
+    "src": "/guide/panel-attributes.webp",
+    "width": 226,
+    "height": 702,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.323,
+        "y": 0.09
+      },
+      {
+        "n": 2,
+        "x": 0.309,
+        "y": 0.157
+      },
+      {
+        "n": 3,
+        "x": 0.597,
+        "y": 0.769
+      }
+    ]
+  },
+  "panel-camera": {
+    "src": "/guide/panel-camera.webp",
+    "width": 226,
+    "height": 702,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.588,
+        "y": 0.08
+      },
+      {
+        "n": 2,
+        "x": 0.644,
+        "y": 0.197
+      },
+      {
+        "n": 3,
+        "x": 0.56,
+        "y": 0.311
+      }
+    ]
+  },
+  "panel-designer": {
+    "src": "/guide/panel-designer.webp",
+    "width": 226,
+    "height": 702,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.518,
+        "y": 0.251
+      },
+      {
+        "n": 2,
+        "x": 0.538,
+        "y": 0.428
+      },
+      {
+        "n": 3,
+        "x": 0.66,
+        "y": 0.599
+      },
+      {
+        "n": 4,
+        "x": 0.975,
+        "y": 0.794
+      }
+    ]
+  },
+  "panel-display": {
+    "src": "/guide/panel-display.webp",
+    "width": 226,
+    "height": 702,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.473,
+        "y": 0.134
+      },
+      {
+        "n": 2,
+        "x": 0.335,
+        "y": 0.489
+      },
+      {
+        "n": 3,
+        "x": 0.373,
+        "y": 0.643
+      }
+    ]
+  },
+  "panel-project": {
+    "src": "/guide/panel-project.webp",
+    "width": 226,
+    "height": 702,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.951,
+        "y": 0.14
+      },
+      {
+        "n": 2,
+        "x": 0.754,
+        "y": 0.203
+      },
+      {
+        "n": 3,
+        "x": 0.741,
+        "y": 0.392
+      }
+    ]
+  },
+  "panel-properties": {
+    "src": "/guide/panel-properties.webp",
+    "width": 294,
+    "height": 702,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.372,
+        "y": 0.096
+      },
+      {
+        "n": 2,
+        "x": 0.48,
+        "y": 0.251
+      },
+      {
+        "n": 3,
+        "x": 0.28,
+        "y": 0.398
+      },
+      {
+        "n": 4,
+        "x": 0.235,
+        "y": 0.779
+      }
+    ]
+  },
+  "panel-scenarios": {
+    "src": "/guide/panel-scenarios.webp",
+    "width": 226,
+    "height": 702,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.446,
+        "y": 0.179
+      },
+      {
+        "n": 2,
+        "x": 0.349,
+        "y": 0.29
+      },
+      {
+        "n": 3,
+        "x": 0.6,
+        "y": 0.412
+      }
+    ]
+  },
+  "panel-transform": {
+    "src": "/guide/panel-transform.webp",
+    "width": 226,
+    "height": 1084,
+    "markers": [
+      {
+        "n": 1,
+        "x": 0.722,
+        "y": 0.149
+      },
+      {
+        "n": 2,
+        "x": 0.315,
+        "y": 0.315
+      },
+      {
+        "n": 3,
+        "x": 0.28,
+        "y": 0.452
+      },
+      {
+        "n": 4,
+        "x": 0.975,
+        "y": 0.584
+      },
+      {
+        "n": 5,
+        "x": 0.33,
+        "y": 0.854
+      }
+    ]
+  }
+}

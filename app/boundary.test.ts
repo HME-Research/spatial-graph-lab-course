@@ -163,7 +163,7 @@ describe('application layering', () => {
     expect(violation('./metrics/x.ts', '@app/attributes/sections')).not.toBeNull();
     expect(violation('./views/graph2d/x.ts', '../../App')).not.toBeNull();
     expect(violation('./views/x.ts', '../../toolkits/a/b.ts')).not.toBeNull();
-    expect(violation('./ui/guide/content.ts', '../../../docs/ALGORITHM-PROMPT.md?raw')).toBeNull();
+    expect(violation('./ui/guide/content.ts', '../../../docs/ai-kit/YOUR-PROMPT.md?raw')).toBeNull();
     expect(violation('./ui/guide/content.ts', '../../../docs/templates/graph-analysis-template.ts?raw')).toBeNull();
     expect(violation('./ui/guide/content.ts', '../../../docs/templates/graph-analysis-template')).not.toBeNull();
     expect(violation('./extensions/x.test.ts', '../../docs/templates/graph-analysis-template')).toBeNull();
