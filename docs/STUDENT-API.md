@@ -161,6 +161,20 @@ export default defineGraphAlgorithm({
 
 Graph algorithms can't change anything. Creating nodes in an arbitrary graph isn't possible, because the only document is the spatial one, where every node needs a grid cell.
 
+An analysis may also have a `description` (optional, one or two plain sentences, at most 300 characters): its ⓘ in Analyse shows it.
+
+### Uploading an analysis (no toolkit needed)
+
+The same file also works without a toolkit: in **Analyse**, open any section's **+** and choose **Upload your own (.ts)…**. The analysis appears in the section its `inputs` give, tagged **Yours**, and runs, picks and highlights exactly like a built-in. ↻ replaces it with a new version of the file (it keeps its place); ✕ removes it from the project. Start from the template or the AI prompt in **Guide › Toolkits & JSON › Downloads** (`docs/templates/graph-analysis-template.ts`, `docs/ALGORITHM-PROMPT.md`).
+
+Rules and limits for uploads:
+- One `.ts` (or `.js`) file, at most 100 KB, at most 20 uploads per project. Types are removed when it is loaded; nothing is type-checked, the app checks everything at runtime.
+- It may import only `@student-api`, and from it only `defineGraphAlgorithm` and the graph helpers (`neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite`). Any other import is refused with its name; helper functions go in the same file.
+- Only graph analyses: `defineSpatialAlgorithm` is refused ("Uploaded algorithms can only analyse the graph; transforms must live in a toolkit folder.").
+- It runs in a separate background worker that receives only node ids, edges and the picked inputs (never the design, the page or your storage). A run that takes longer than 3 seconds is stopped: "Stopped after 3 s — does it loop forever?".
+- The definition and every result are checked exactly as for a toolkit analysis. Syntax errors and exceptions are shown with the line number.
+- The project file keeps the file's **source text** (`settings.uploadedAnalyses`), so it travels with Save, Export and Open. If a stored upload no longer loads, it is listed disabled with the reason; the project still opens.
+
 ### Spatial transformations
 
 A spatial algorithm gets the design's own records and a few helpers:
@@ -287,7 +301,7 @@ Transformations (`defineSpatialAlgorithm`) may declare `parameters` using the sa
 
 - TypeScript checks your code when you run `npm run typecheck`, but the app **also checks everything at runtime**, because the development server runs code without type checking.
 - Your toolkit may import only `@student-api` and files in your own toolkit folder. Tests enforce this.
-- This is not a security sandbox: an infinite loop in an algorithm freezes the browser tab.
+- Toolkit code is not sandboxed: an infinite loop in a toolkit algorithm freezes the browser tab. Uploaded analyses run in a worker and are stopped after 3 seconds (isolation, not a security guarantee: upload only code you trust).
 - Use deterministic rules. If you need randomness, derive it from a parameter (a seed) so results can be reproduced.
 
 ## 7. Reference
@@ -298,6 +312,6 @@ Exports of `@student-api`:
 - **Grid helpers:** `FACE_DIRECTIONS`, `neighbourCell`, `roomCells` (every cell of a room's box)
 - **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `ConnectorStyle`, `SpatialOperation`, `ItemRef`, `AnalysisInput`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
 
-**Added in P4:** `set-node-geometry` (move or resize a room in a transformation).
+**Added in P4:** `set-node-geometry` (move or resize a room in a transformation); optional `description` of a graph analysis; uploaded analyses (see "Uploading an analysis").
 
 **Changes in P4 (19 November 2026).** Schema v1 is gone: the old kinds (`door`, `atrium`, `vertical-access`), `canConnect` and `uniqueId` no longer exist. Ids are whole numbers, `displayId` is removed (the id is the label), and operations use `ref`s instead of chosen ids.
