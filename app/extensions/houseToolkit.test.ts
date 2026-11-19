@@ -155,6 +155,18 @@ describe('Grow to target area on the house design', () => {
 });
 
 describe('Grow to target area: houses', () => {
+  it('labels and explains its houses parameter for Transform', () => {
+    const grow = house.algorithms.find((a) => a.id === GROW)!;
+    expect(grow.status.ok).toBe(true);
+    const parameters = grow.definition.scope === 'spatial' ? (grow.definition.parameters ?? {}) : {};
+    expect(parameters.houses).toEqual({
+      kind: 'number',
+      min: 1,
+      label: 'Houses',
+      description: 'How many houses to make. Empty: as many as you drew. More than you drew: House 1 is copied until there are this many.',
+    });
+  });
+
   /** Grid cells of the rooms `ids`, as "x,y,z". */
   const cellsOf = (doc: DesignDocumentV2, ids: readonly number[]) =>
     doc.nodes

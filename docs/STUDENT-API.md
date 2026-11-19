@@ -323,6 +323,14 @@ Graph algorithms see only ids and endpoints, so they have no `ctx.metrics`.
 
 Transformations (`defineSpatialAlgorithm`) may declare `parameters` using the same kinds as custom attributes. For example, `parameters: { count: { kind: 'number', default: 1 } }` is read as `ctx.params.count`. Values are checked before `run` is called. Analyses take no parameters: a number they need is a `{ kind: 'number' }` input.
 
+Each parameter may also have a `label` (at most 100 characters) and a `description` (at most 500), both optional. Transform shows the label instead of the key, and the description under the field; without a label it shows the key. They change only what Transform shows, not the value (`ParameterSpec` in `@student-api`):
+
+```ts
+parameters: {
+  count: { kind: 'number', min: 1, default: 1, label: 'Copies', description: 'How many copies to make.' },
+},
+```
+
 ## 6. Checks and limits
 
 - TypeScript checks your code when you run `npm run typecheck`, but the app **also checks everything at runtime**, because the development server runs code without type checking.

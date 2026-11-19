@@ -6,7 +6,7 @@
  * helpers. It performs no validation: the application validates every definition and result at
  * runtime. Imports only core/graph and core/spatial (student-api/boundary.test.ts).
  */
-export type { AttributeSpec, AttributeSpecs, AttributeValue, AttributesOf, ValueOf } from './attributes';
+export type { AttributeSpec, AttributeSpecs, AttributeValue, AttributesOf, ParameterSpec, ParameterSpecs, ValueOf } from './attributes';
 export {
   defineToolkit,
   type ToolkitAttributes,

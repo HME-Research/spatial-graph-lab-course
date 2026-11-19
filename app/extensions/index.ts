@@ -21,4 +21,4 @@ export { TOOLKIT_GLOBS } from './toolkitGlobs';
 export * from './uploadedAnalyses';
 export { formatUploadSize, MAX_UPLOAD_BYTES, MAX_UPLOADED_ANALYSES, MAX_UPLOAD_FILE_NAME, sourceProblems, uploadLanguage } from './uploadSource';
 /** Student API types the application shell needs (only app/extensions may import `@student-api`). */
-export type { AnalysisResult, AttributeSpec, AttributeSpecs, ToolkitAttributeSpec, SpatialOperation } from '@student-api';
+export type { AnalysisResult, AttributeSpec, AttributeSpecs, ParameterSpec, ToolkitAttributeSpec, SpatialOperation } from '@student-api';

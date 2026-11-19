@@ -13,7 +13,7 @@ The reference toolkit of Spatial Graph Lab. Don't edit this folder: copy it to m
   | `priority` | growth order, a whole number: 1 grows first | Living 1 · Kitchen 2 · Bedroom 3 · Bath 4 · Entrance 5 · Circulation 6 |
 
   To change one room, select it and set the value in **Properties**. The other rooms keep their Function's default.
-- **One transform**, *Grow to target area* (`algorithms/grow-to-target-area.ts`), with one optional parameter, `houses`.
+- **One transform**, *Grow to target area* (`algorithms/grow-to-target-area.ts`), with one optional parameter, `houses`. Transform shows it as **Houses** with a one-line description: both come from the parameter's `label` and `description`.
 - **One design**, `designs/house.json`: the two-storey example house, every room one cell to start with. It opens when you start a project with this toolkit.
 
 ## How "Grow to target area" works
@@ -36,7 +36,7 @@ On the example house every room starts as one cell: entrance, living room and ki
 
 Rooms that are joined by relationships, directly or through other rooms, form one **house**. A room with no relationships is a house on its own. Houses are numbered 1, 2, 3 … starting with the house that has the lowest room id, and when there is more than one house, each line of the preview names its house, for example `House 2 · Kitchen 11: 9 → 18 m² (target 18) ✓`. Houses never grow into each other: a room can't take a cell that touches another house, and the preview says `too close to House 2` when that stops it.
 
-The parameter **`houses`** sets how many houses you want. Leave it empty to grow just the houses you drew. If you ask for more, the transform first adds copies of House 1 (every room and every relationship) in a row along +x, with enough space between them for every room to grow, and then grows all houses. Rooms in a copy are named after the room they copy, for example `House 2 · Living (copy of 2)`; after **Apply** they get their own ids. Running it again with the same number adds nothing, because it counts the houses that are already there. A smaller number never removes a house: everything still grows, and the preview says so.
+The parameter **Houses** (`houses`) sets how many houses you want. Leave it empty to grow just the houses you drew. If you ask for more, the transform first adds copies of House 1 (every room and every relationship) in a row along +x, with enough space between them for every room to grow, and then grows all houses. Rooms in a copy are named after the room they copy, for example `House 2 · Living (copy of 2)`; after **Apply** they get their own ids. Running it again with the same number adds nothing, because it counts the houses that are already there. A smaller number never removes a house: everything still grows, and the preview says so.
 
 ## Make your own toolkit
 

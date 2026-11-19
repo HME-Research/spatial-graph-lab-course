@@ -1,5 +1,5 @@
 import type { EdgeRecord, Graph, NodeRecord } from './graph';
-import type { AttributeSpecs, AttributeValue, AttributesOf } from './attributes';
+import type { AttributeSpecs, AttributeValue, AttributesOf, ParameterSpecs } from './attributes';
 import type { CorridorLook, GridCoord, RelationshipKind, RoomSize, SpatialEdge, SpatialNode } from './spatial';
 import type { FunctionDefinition } from './functions';
 
@@ -13,11 +13,14 @@ import type { FunctionDefinition } from './functions';
  * - Spatial algorithms (the Transform tab) transform the spatial design document through operations.
  */
 
-interface AlgorithmDefinitionBase<P extends AttributeSpecs> {
+interface AlgorithmDefinitionBase<P extends ParameterSpecs> {
   /** Unique within the project: lowercase letters, digits and "-", starting with a letter. */
   readonly id: string;
   readonly label: string;
-  /** Typed parameters; values are validated and defaults applied before `run`. */
+  /**
+   * Typed parameters; values are validated and defaults applied before `run`. Each may have a
+   * `label` and a `description`, shown in Transform (the key is shown when there is no label).
+   */
   readonly parameters?: P;
 }
 
@@ -84,7 +87,7 @@ export interface GraphAlgorithm extends GraphAlgorithmDefinition {
 
 // ── Spatial transformation ──────────────────────────────────────────────────────────────────
 
-export interface SpatialAlgorithmContext<P extends AttributeSpecs = AttributeSpecs> {
+export interface SpatialAlgorithmContext<P extends ParameterSpecs = ParameterSpecs> {
   /** A fresh copy of the document's nodes and edges for this run. */
   readonly design: Graph<SpatialNode, SpatialEdge>;
   readonly params: AttributesOf<P>;
@@ -236,11 +239,11 @@ export interface TransformationResult {
   readonly operations: readonly SpatialOperation[];
 }
 
-export interface SpatialAlgorithmDefinition<P extends AttributeSpecs = AttributeSpecs> extends AlgorithmDefinitionBase<P> {
+export interface SpatialAlgorithmDefinition<P extends ParameterSpecs = ParameterSpecs> extends AlgorithmDefinitionBase<P> {
   run(ctx: SpatialAlgorithmContext<P>): TransformationResult;
 }
 
-export interface SpatialAlgorithm<P extends AttributeSpecs = AttributeSpecs> extends SpatialAlgorithmDefinition<P> {
+export interface SpatialAlgorithm<P extends ParameterSpecs = ParameterSpecs> extends SpatialAlgorithmDefinition<P> {
   readonly scope: 'spatial';
 }
 
@@ -248,6 +251,6 @@ export interface SpatialAlgorithm<P extends AttributeSpecs = AttributeSpecs> ext
 
 export const defineGraphAlgorithm = (algorithm: GraphAlgorithmDefinition): GraphAlgorithm => ({ ...algorithm, scope: 'graph' });
 
-export const defineSpatialAlgorithm = <const P extends AttributeSpecs = Record<never, never>>(
+export const defineSpatialAlgorithm = <const P extends ParameterSpecs = Record<never, never>>(
   algorithm: SpatialAlgorithmDefinition<P>,
 ): SpatialAlgorithm<P> => ({ ...algorithm, scope: 'spatial' });

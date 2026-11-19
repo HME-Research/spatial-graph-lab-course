@@ -79,6 +79,14 @@ export const toolkitAttributeSpecSchema = z
   )
   .superRefine((spec, ctx) => refineSpec(spec, ctx));
 
+/**
+ * A transformation parameter (`defineSpatialAlgorithm({ parameters })`, Student API `ParameterSpec`):
+ * an attribute spec plus an optional label and description, shown in Transform. Same shape as a
+ * toolkit field spec.
+ */
+export const parameterSpecSchema = toolkitAttributeSpecSchema;
+export const parameterSpecsSchema = z.record(z.string().min(1, { error: 'parameter names must not be empty' }), parameterSpecSchema);
+
 const label = z.string({ error: 'label must be text' }).min(1, { error: 'label must not be empty' }).max(100);
 
 const attributeNameSchema = z.string().min(1, { error: 'attribute names must not be empty' });
@@ -157,7 +165,7 @@ export const algorithmDefinitionSchema = z.discriminatedUnion(
       id: algorithmIdSchema,
       label,
       scope: z.literal('spatial'),
-      parameters: attributeSpecsSchema.optional(),
+      parameters: parameterSpecsSchema.optional(),
       inputs: z.never({ error: 'inputs are for graph analyses (defineGraphAlgorithm); a transformation uses parameters' }).optional(),
       run,
     }),

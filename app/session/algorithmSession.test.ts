@@ -1,3 +1,5 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { applyDesignCommand, resolveRelationships } from '@app/spatial';
 import { readDesignJson, validateDocumentV2, serializeDesignV2, type DesignDocumentV2 } from '@app/document';
@@ -15,12 +17,14 @@ import {
   draftsToParameters,
   isStale,
   listAlgorithms,
+  parameterLabel,
   parameterProblems,
   runEntryV2,
   type AlgorithmEntry,
   type AlgorithmRun,
 } from './algorithmSession';
 import type { DocumentVersion } from './documentSession';
+import { ParameterField } from './TransformPanel';
 
 // Definitions are plain objects: only app/extensions may import @student-api.
 const numberAlgorithm = {
@@ -102,6 +106,44 @@ describe('algorithm parameters', () => {
     // Invalid parameters stop the run before the algorithm is called.
     const run = runEntryV2(at(labDoc()), project, grow, { count: '0' });
     expect(!run.outcome.ok && run.outcome.issues.map((d) => d.code)).toEqual(['invalid-parameter']);
+  });
+});
+
+describe('parameter labels and descriptions', () => {
+  it('are optional, validated at runtime, shown by Transform (falling back to the key) and never change the values', async () => {
+    const labelled = {
+      ...numberAlgorithm,
+      id: 'labelled',
+      parameters: { count: { kind: 'number', min: 1, label: 'How many', description: 'Number of copies.' }, note: { kind: 'text' } },
+    };
+    const project = await labToolkit({ 'toolkits/lab/algorithms/labelled.ts': { default: labelled } });
+    const e = entry(project, 'labelled');
+    expect(e.enabled).toBe(true);
+    const [count, note] = e.parameters;
+    expect(parameterLabel(...count!)).toEqual({ label: 'How many', description: 'Number of copies.', isKey: false });
+    expect(parameterLabel(...note!)).toEqual({ label: 'note', description: null, isKey: true });
+    expect(parameterLabel('k', { kind: 'number', label: '  ', description: ' ' })).toEqual({ label: 'k', description: null, isKey: true });
+    expect(draftsToParameters(e, { count: '2' })).toEqual({ count: 2 });
+    expect(parameterProblems(e, { count: '2' })).toEqual([]);
+
+    const html = renderToStaticMarkup(createElement(ParameterField, { name: 'count', spec: count![1], draft: '', onChange: () => undefined }));
+    expect(html).toContain('How many');
+    expect(html).toContain('Number of copies.');
+    expect(html).toContain('aria-describedby');
+    expect(html).not.toContain('<code>count</code>');
+    expect(renderToStaticMarkup(createElement(ParameterField, { name: 'note', spec: note![1], draft: '', onChange: () => undefined }))).toContain('<code>note</code>');
+
+    // Wrong shapes disable the algorithm with a readable reason (strict: no unknown keys either).
+    const bad = await labToolkit({
+      'toolkits/lab/algorithms/a.ts': { default: { ...labelled, id: 'empty-label', parameters: { n: { kind: 'number', label: '' } } } },
+      'toolkits/lab/algorithms/b.ts': { default: { ...labelled, id: 'number-description', parameters: { n: { kind: 'number', description: 3 } } } },
+      'toolkits/lab/algorithms/c.ts': { default: { ...labelled, id: 'unknown-key', parameters: { n: { kind: 'number', help: 'x' } } } },
+    });
+    const list = listAlgorithms(bad);
+    expect(list.map((a) => a.enabled)).toEqual([false, false, false]);
+    expect(list[0]!.problems.join(' ')).toContain('label must not be empty');
+    expect(list[1]!.problems.join(' ')).toContain('description must be text');
+    expect(list[2]!.problems.join(' ')).toContain('help');
   });
 });
 

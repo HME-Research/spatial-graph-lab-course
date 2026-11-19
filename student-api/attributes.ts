@@ -16,6 +16,15 @@ export type AttributeSpec =
 
 export type AttributeSpecs = { readonly [key: string]: AttributeSpec };
 
+/**
+ * One transformation parameter (`defineSpatialAlgorithm({ parameters })`): an attribute spec plus an
+ * optional `label` (shown in Transform instead of the key) and `description` (help text shown under
+ * it). Without a label, Transform shows the key.
+ */
+export type ParameterSpec = AttributeSpec & { readonly label?: string; readonly description?: string };
+
+export type ParameterSpecs = { readonly [key: string]: ParameterSpec };
+
 /** The TypeScript type an attribute spec describes (compile time only). */
 export type ValueOf<S extends AttributeSpec> = S extends { readonly kind: 'number' }
   ? number
