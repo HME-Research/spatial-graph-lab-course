@@ -25,12 +25,12 @@ function house(): DesignDocumentV2 {
   return read.value.doc;
 }
 
-/** The house with one stored custom value (room 4) and one explicit "no value" (room 6). */
+/** The house with one stored custom value (room 3) and one explicit "no value" (room 4). */
 function houseWithAttributes(): DesignDocumentV2 {
   const doc = house();
   return {
     ...doc,
-    nodes: doc.nodes.map((n) => (n.id === 4 ? { ...n, attributes: { targetArea: 12 } } : n.id === 6 ? { ...n, attributes: { targetArea: null } } : n)),
+    nodes: doc.nodes.map((n) => (n.id === 3 ? { ...n, attributes: { targetArea: 12 } } : n.id === 4 ? { ...n, attributes: { targetArea: null } } : n)),
     edges: doc.edges.map((e) => (e.id === 2 ? { ...e, attributes: { note: 'wide door' } } : e)),
   };
 }
@@ -104,8 +104,8 @@ describe('JSON lines', () => {
 
   it('tag lines with their attribute section', () => {
     const lines = jsonLines(houseWithAttributes());
-    const node4 = lines.filter((l) => l.record?.collection === 'nodes' && l.record.id === 4);
-    const sectionOf = (prefix: string) => node4.find((l) => l.text.trimStart().startsWith(prefix))?.section;
+    const node3 = lines.filter((l) => l.record?.collection === 'nodes' && l.record.id === 3);
+    const sectionOf = (prefix: string) => node3.find((l) => l.text.trimStart().startsWith(prefix))?.section;
     expect(sectionOf('"id"')).toBe('identity');
     expect(sectionOf('"grid"')).toBe('geometry');
     expect(sectionOf('"size"')).toBe('geometry');
@@ -113,7 +113,7 @@ describe('JSON lines', () => {
     expect(sectionOf('"attributes"')).toBe('custom');
     expect(sectionOf('"targetArea"')).toBe('custom');
     // Array members carry the section of their key.
-    expect(node4.filter((l) => /^ {8}\d/.test(l.text)).every((l) => l.section === 'geometry')).toBe(true);
+    expect(node3.filter((l) => /^ {8}\d/.test(l.text)).every((l) => l.section === 'geometry')).toBe(true);
     const edge1 = lines.filter((l) => l.record?.collection === 'edges' && l.record.id === 1);
     expect(edge1.filter((l) => /"(source|target)"/.test(l.text)).every((l) => l.section === 'identity')).toBe(true);
     expect(edge1.find((l) => l.text.includes('"kind"'))?.section).toBe('required');
@@ -143,11 +143,11 @@ describe('tables', () => {
   it('show geometry from grid and size, and custom values through the resolver', () => {
     const t = nodeTable(inputs(houseWithAttributes()));
     const row = (id: number) => t.rows.find((r) => r.id === id)!.cells;
-    expect([row(6)['position-x']!.text, row(6)['position-y']!.text, row(6).level!.text]).toEqual(['2', '0', '1']);
-    expect([row(6)['size-x']!.text, row(6)['size-y']!.text, row(6).floors!.text]).toEqual(['2', '2', '1']);
-    expect(row(4)['custom:f1']).toMatchObject({ text: '12', origin: 'stored' }); // own value beats the kitchen default
-    expect(row(6)['custom:f1']).toMatchObject({ text: 'no value', origin: 'stored' }); // explicit null
-    expect(row(3)['custom:f1']).toMatchObject({ text: '20', origin: 'type-default' }); // living default
+    expect([row(4)['position-x']!.text, row(4)['position-y']!.text, row(4).level!.text]).toEqual(['1', '1', '1']);
+    expect([row(4)['size-x']!.text, row(4)['size-y']!.text, row(4).floors!.text]).toEqual(['1', '1', '1']);
+    expect(row(3)['custom:f1']).toMatchObject({ text: '12', origin: 'stored' }); // own value beats the kitchen default
+    expect(row(4)['custom:f1']).toMatchObject({ text: 'no value', origin: 'stored' }); // explicit null
+    expect(row(2)['custom:f1']).toMatchObject({ text: '20', origin: 'type-default' }); // living default
     expect(row(1)['custom:f1']).toMatchObject({ text: '6', origin: 'default' });
     const kitchen = house().nodes.find((n) => n.typeId === 'kitchen')!.id;
     expect(nodeTable(inputs(house())).rows.find((r) => r.id === kitchen)!.cells['custom:f1']).toMatchObject({ text: '16', origin: 'type-default' });
@@ -157,8 +157,8 @@ describe('tables', () => {
   it('show edges with "id · Function" endpoints and the relationship label', () => {
     const t = edgeTable(inputs(houseWithAttributes()));
     expect(t.columns.slice(0, 4).map((c) => c.label)).toEqual(['ID', 'Source', 'Target', 'Relationship']);
-    const e3 = t.rows.find((r) => r.id === 3)!.cells;
-    expect([e3.source!.text, e3.target!.text, e3.relationship!.text]).toEqual(['3 · living', '4 · kitchen', 'Open']);
+    const e2 = t.rows.find((r) => r.id === 2)!.cells;
+    expect([e2.source!.text, e2.target!.text, e2.relationship!.text]).toEqual(['2 · living', '3 · kitchen', 'Open']);
     expect(t.rows.find((r) => r.id === 2)!.cells['custom:f2']).toMatchObject({ text: 'wide door', origin: 'stored' });
     expect(t.rows.find((r) => r.id === 1)!.cells['custom:f2']).toMatchObject({ text: '—', origin: 'none' });
   });
@@ -201,14 +201,14 @@ describe('DataView', () => {
   });
 
   it('highlights a selected edge strongly and its two nodes softly', () => {
-    const json = render(selectEdge(3), 'json').html;
-    expect(json).toMatch(/data-record="edges:3" data-emphasis="primary"/);
+    const json = render(selectEdge(2), 'json').html;
+    expect(json).toMatch(/data-record="edges:2" data-emphasis="primary"/);
     expect(json).toMatch(/data-record="nodes:3" data-emphasis="secondary"/);
-    expect(json).toMatch(/data-record="nodes:4" data-emphasis="secondary"/);
-    const table = render(selectEdge(3), 'table').html;
-    expect(table).toMatch(/data-row="edges:3" data-id="3" data-emphasis="primary"/);
+    expect(json).toMatch(/data-record="nodes:2" data-emphasis="secondary"/);
+    const table = render(selectEdge(2), 'table').html;
+    expect(table).toMatch(/data-row="edges:2" data-id="2" data-emphasis="primary"/);
     expect(table).toMatch(/data-row="nodes:3" data-id="3" data-emphasis="secondary"/);
-    expect(table).toMatch(/data-row="nodes:4" data-id="4" data-emphasis="secondary"/);
+    expect(table).toMatch(/data-row="nodes:2" data-id="2" data-emphasis="secondary"/);
   });
 
   it('renders section group headers, a locked Calculated group and faded inherited values', () => {

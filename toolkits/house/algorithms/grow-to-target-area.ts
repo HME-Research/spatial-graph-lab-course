@@ -1,4 +1,4 @@
-import { defineSpatialAlgorithm, type SpatialOperation } from '@student-api';
+import { defineSpatialAlgorithm, type AttributeValue, type SpatialOperation } from '@student-api';
 import bath from '../types/bath';
 import bedroom from '../types/bedroom';
 import circulation from '../types/circulation';
@@ -9,13 +9,24 @@ import living from '../types/living';
 /**
  * Grow to target area.
  *
- * Every room is a box of whole cells. Rooms grow one at a time, in priority order (1 first; equal
- * priorities in id order). A room grows by adding ONE row or column of cells on one side, and
- * repeats until its floor area reaches its target area, or until no side can grow ("blocked").
+ * HOUSES. Rooms joined by relationships (of any kind, directly or through other rooms) form one
+ * house; a room without relationships is a house of its own. Houses are numbered 1, 2, … in the
+ * order of their lowest room id. With the parameter `houses` set to more than the houses drawn,
+ * the transform first adds copies of House 1 (every room and every relationship) in a row along
+ * +x, after every drawn room. The gap between two houses is twice the largest number of cells any
+ * room still needs, plus one, so no two houses can grow into each other. Running it again with the
+ * same number adds nothing: it counts the houses already there. A smaller number removes nothing.
+ *
+ * GROWTH. Every room is a box of whole cells. Rooms grow one at a time, in priority order (1 first;
+ * equal priorities in id order; copies after the drawn rooms). A room grows by adding ONE row or
+ * column of cells on one side, and repeats until its floor area reaches its target area, or until
+ * no side can grow ("blocked").
  *
  * A side can grow only if:
  * - every new cell is free (no other room, no corridor generated between two related rooms);
  * - above the lowest storey, every new cell has a room below it to stand on (no overhangs);
+ * - no new cell is, or shares a face with (also above or below), a room of another house: houses
+ *   never touch;
  * - the room keeps touching every room it has a relationship with;
  * - the room stays within the app's largest room size.
  * Among the sides that can grow, it prefers a side that faces outside (nothing beyond the new
@@ -32,6 +43,16 @@ const MAX_COORDINATE = 1000;
 const SIDES = ['+x', '-x', '+y', '-y'] as const;
 type Side = (typeof SIDES)[number];
 
+/** The six cells that share a face with a cell. */
+const NEIGHBOURS = [
+  [1, 0, 0],
+  [-1, 0, 0],
+  [0, 1, 0],
+  [0, -1, 0],
+  [0, 0, 1],
+  [0, 0, -1],
+] as const;
+
 /** A room's box: minimum corner (x, y, z) and size in cells (sx, sy, sz). */
 interface Box {
   x: number;
@@ -42,15 +63,43 @@ interface Box {
   sz: number;
 }
 
+/** A room taking part in the run: a drawn room (`id`) or a copy this run adds (`ref`). */
+interface Room {
+  /** The drawn room's id, or undefined for a copy. */
+  readonly id: number | undefined;
+  /** The copy's local name in operations, or undefined for a drawn room. */
+  readonly ref: string | undefined;
+  /** The drawn room it is, or copies: its attributes are read from there. */
+  readonly source: number;
+  readonly typeId: string;
+  readonly house: number;
+  /** Id order: drawn rooms by id, then copies in the order they are added (their ids follow). */
+  readonly order: number;
+}
+
 /** Why one side cannot grow. */
-type Reason = { readonly kind: 'room'; readonly roomId: number } | { readonly kind: 'no-floor' } | { readonly kind: 'corridor' } | { readonly kind: 'limit' };
+type Reason =
+  | { readonly kind: 'room'; readonly room: number }
+  | { readonly kind: 'house'; readonly house: number }
+  | { readonly kind: 'no-floor' }
+  | { readonly kind: 'corridor' }
+  | { readonly kind: 'limit' };
 
 const LABELS: Record<string, string> = Object.fromEntries(
   [entrance, circulation, living, kitchen, bedroom, bath].map((type) => [type.id, type.label]),
 );
+const label = (typeId: string) => LABELS[typeId] ?? typeId.charAt(0).toUpperCase() + typeId.slice(1);
 
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
 const formatArea = (m2: number) => (Number.isInteger(m2) ? String(m2) : m2.toFixed(1));
+const boxOf = (r: { readonly grid: readonly number[]; readonly size: readonly number[] }): Box => ({
+  x: r.grid[0]!,
+  y: r.grid[1]!,
+  z: r.grid[2]!,
+  sx: r.size[0]!,
+  sy: r.size[1]!,
+  sz: r.size[2]!,
+});
 
 /** Ranges [lo, hi) overlap with a positive length. */
 const overlaps = (aLo: number, aHi: number, bLo: number, bHi: number) => Math.min(aHi, bHi) > Math.max(aLo, bLo);
@@ -98,49 +147,157 @@ function stripCells(b: Box, side: Side, steps: number): [number, number, number]
   return cells;
 }
 
+/** Groups of rooms joined by relationships (directly or through other rooms), ordered by lowest id. */
+function connectedGroups(ids: readonly number[], links: readonly { readonly source: number; readonly target: number }[]): number[][] {
+  const parent = new Map(ids.map((id) => [id, id]));
+  const root = (id: number): number => {
+    let r = id;
+    while (parent.get(r) !== r) r = parent.get(r)!;
+    return r;
+  };
+  for (const { source, target } of links) {
+    if (!parent.has(source) || !parent.has(target)) continue;
+    const a = root(source);
+    const b = root(target);
+    if (a !== b) parent.set(Math.max(a, b), Math.min(a, b));
+  }
+  const groups = new Map<number, number[]>();
+  for (const id of [...ids].sort((a, b) => a - b)) {
+    const r = root(id);
+    if (!groups.has(r)) groups.set(r, []);
+    groups.get(r)!.push(id);
+  }
+  return [...groups.values()].sort((a, b) => a[0]! - b[0]!);
+}
+
 export default defineSpatialAlgorithm({
   id: 'grow-to-target-area',
   label: 'Grow to target area',
+  parameters: {
+    // How many houses there should be, a whole number. Empty: as many as are drawn.
+    houses: { kind: 'number', min: 1 },
+  },
   run(ctx) {
-    const rooms = ctx.design.nodes;
-    if (rooms.length === 0) return { kind: 'transformation', summary: 'There are no rooms to grow.', operations: [] };
+    const drawn = ctx.design.nodes;
+    if (drawn.length === 0) return { kind: 'transformation', summary: 'There are no rooms to grow.', operations: [] };
+    const wantedHouses = ctx.params.houses;
+    if (wantedHouses !== undefined && !Number.isInteger(wantedHouses)) {
+      return { kind: 'transformation', summary: `Houses must be a whole number, like 1, 2 or 3 (not ${wantedHouses}).`, operations: [] };
+    }
 
     // Floor area of one cell, from the app's own "area" value (so the cell size is never guessed).
-    const first = rooms[0]!;
+    const first = drawn[0]!;
     const cellArea = (ctx.metrics.value('area', first.id) as number) / (first.size[0] * first.size[1]);
 
-    const boxes = new Map<number, Box>(
-      rooms.map((r) => [r.id, { x: r.grid[0], y: r.grid[1], z: r.grid[2], sx: r.size[0], sy: r.size[1], sz: r.size[2] }]),
+    // Read the two House attributes of every drawn room (copies use their original's values).
+    const goals = new Map(
+      drawn.map((r) => {
+        const values = ctx.nodeAttributes(r.id);
+        const target = typeof values.targetArea === 'number' && values.targetArea > 0 ? values.targetArea : undefined;
+        const priority = typeof values.priority === 'number' ? values.priority : Number.POSITIVE_INFINITY;
+        return [r.id, { target, priority }] as const;
+      }),
     );
-    const area = (b: Box) => b.sx * b.sy * cellArea;
-    const lowestStorey = Math.min(...rooms.map((r) => r.grid[2]));
-    const name = (id: number) => {
-      const typeId = rooms.find((r) => r.id === id)!.typeId;
-      return `${LABELS[typeId] ?? typeId.charAt(0).toUpperCase() + typeId.slice(1)} ${id}`;
+    /** Cells a drawn room still needs to reach its target (at most the largest room size). */
+    const missingCells = (id: number, b: Box) => {
+      const target = goals.get(id)!.target;
+      return target === undefined ? 0 : Math.min(MAX_CELLS, Math.max(0, Math.ceil(target / cellArea - 1e-9) - b.sx * b.sy));
     };
+
+    // Houses: groups of related rooms, numbered by their lowest room id.
+    const groups = connectedGroups(
+      drawn.map((r) => r.id),
+      ctx.design.edges,
+    );
+    const houseOf = new Map(groups.flatMap((ids, h) => ids.map((id) => [id, h + 1] as const)));
+
+    // Every room of the run, by index: the drawn rooms first, then the copies.
+    const rooms: Room[] = drawn.map((r) => ({ id: r.id, ref: undefined, source: r.id, typeId: r.typeId, house: houseOf.get(r.id)!, order: r.id }));
+    const boxes = new Map<number, Box>(drawn.map((r, i) => [i, boxOf(r)]));
+    const indexOf = new Map(drawn.map((r, i) => [r.id, i]));
+    const links: [number, number][] = ctx.design.edges.map((e) => [indexOf.get(e.source)!, indexOf.get(e.target)!]);
+
+    // Copies of House 1, in a row along +x after every drawn room, far enough apart that no two
+    // houses can grow into each other: gap = 2 × (most cells any room still needs) + 1.
+    const added: SpatialOperation[] = [];
+    const notes: string[] = [];
+    const copies = wantedHouses !== undefined && wantedHouses > groups.length ? wantedHouses - groups.length : 0;
+    if (wantedHouses !== undefined && wantedHouses < groups.length) {
+      notes.push(`Houses is ${wantedHouses}, but ${groups.length} houses are drawn: none was removed, and all of them grew.`);
+    }
+    if (copies > 0) {
+      const model = drawn.filter((r) => houseOf.get(r.id) === 1).sort((a, b) => a.id - b.id);
+      const reach = Math.max(...drawn.map((r) => missingCells(r.id, boxOf(r))));
+      const gap = 2 * reach + 1;
+      const modelMinX = Math.min(...model.map((r) => r.grid[0]));
+      const modelWidth = Math.max(...model.map((r) => r.grid[0] + r.size[0])) - modelMinX;
+      const startX = Math.max(...drawn.map((r) => r.grid[0] + r.size[0])) + gap;
+      const lastX = startX + (copies - 1) * (modelWidth + gap) + modelWidth - 1 + reach;
+      if (lastX > MAX_COORDINATE) {
+        return {
+          kind: 'transformation',
+          summary: `There is not enough space for ${wantedHouses} houses in a row: the grid ends at x = ${MAX_COORDINATE}. Try fewer houses.`,
+          operations: [],
+        };
+      }
+      const fields = new Set(ctx.attributeFields.nodes.map((f) => f.key));
+      const maxId = Math.max(...drawn.map((r) => r.id));
+      for (let c = 0; c < copies; c++) {
+        const house = groups.length + 1 + c;
+        const dx = startX + c * (modelWidth + gap) - modelMinX;
+        const copyOf = new Map<number, number>();
+        for (const r of model) {
+          const ref = `house-${house}-room-${r.id}`;
+          const attributes: Record<string, AttributeValue> = {};
+          for (const [k, v] of Object.entries(r.attributes)) if (fields.has(k)) attributes[k] = v;
+          const grid = [r.grid[0] + dx, r.grid[1], r.grid[2]] as const;
+          added.push({ op: 'add-node', ref, grid, size: r.size, typeId: r.typeId, attributes });
+          copyOf.set(r.id, rooms.length);
+          boxes.set(rooms.length, boxOf({ grid, size: r.size }));
+          rooms.push({ id: undefined, ref, source: r.id, typeId: r.typeId, house, order: maxId + 1 + rooms.length });
+        }
+        for (const e of ctx.design.edges) {
+          const a = copyOf.get(e.source);
+          const b = copyOf.get(e.target);
+          if (a === undefined || b === undefined) continue;
+          added.push({ op: 'add-edge', source: rooms[a]!.ref!, target: rooms[b]!.ref!, kind: e.kind });
+          links.push([a, b]);
+        }
+      }
+      notes.push(`Added ${copies} ${copies === 1 ? 'copy' : 'copies'} of House 1, to make ${wantedHouses} houses.`);
+    }
+    const houseCount = groups.length + copies;
+
+    const area = (b: Box) => b.sx * b.sy * cellArea;
+    const lowestStorey = Math.min(...[...boxes.values()].map((b) => b.z));
+    const plainName = (i: number) => {
+      const r = rooms[i]!;
+      return r.id !== undefined ? `${label(r.typeId)} ${r.id}` : `${label(r.typeId)} (copy of ${r.source})`;
+    };
+    const name = (i: number) => (houseCount > 1 ? `House ${rooms[i]!.house} · ${plainName(i)}` : plainName(i));
 
     /** The room whose box contains the cell, if any (boxes as they are now, during the growth). */
     const roomAt = (x: number, y: number, z: number): number | undefined => {
-      for (const [id, b] of boxes) {
-        if (x >= b.x && x < b.x + b.sx && y >= b.y && y < b.y + b.sy && z >= b.z && z < b.z + b.sz) return id;
+      for (const [i, b] of boxes) {
+        if (x >= b.x && x < b.x + b.sx && y >= b.y && y < b.y + b.sy && z >= b.z && z < b.z + b.sz) return i;
       }
       return undefined;
     };
 
     // Rooms each room has a relationship with.
-    const related = new Map<number, number[]>(rooms.map((r) => [r.id, []]));
-    for (const e of ctx.design.edges) {
-      related.get(e.source)?.push(e.target);
-      related.get(e.target)?.push(e.source);
+    const related = new Map<number, number[]>(rooms.map((_, i) => [i, []]));
+    for (const [a, b] of links) {
+      related.get(a)!.push(b);
+      related.get(b)!.push(a);
     }
 
     // Cells kept free for corridors: between two related rooms on the same storey that do not
     // touch but are lined up, the app generates a straight corridor. Rooms must not grow into it.
     const corridor = new Set<string>();
-    for (const e of ctx.design.edges) {
-      const a = boxes.get(e.source);
-      const b = boxes.get(e.target);
-      if (!a || !b || touching(a, b)) continue;
+    for (const [i, j] of links) {
+      const a = boxes.get(i)!;
+      const b = boxes.get(j)!;
+      if (touching(a, b)) continue;
       const zLo = Math.max(a.z, b.z);
       const zHi = Math.min(a.z + a.sz, b.z + b.sz);
       if (zHi <= zLo) continue;
@@ -156,88 +313,96 @@ export default defineSpatialAlgorithm({
       }
     }
 
-    /** Why `side` of room `id` cannot grow, or null if it can. */
-    const problem = (id: number, side: Side): Reason | null => {
-      const b = boxes.get(id)!;
+    /** Why `side` of room `i` cannot grow, or null if it can. */
+    const problem = (i: number, side: Side): Reason | null => {
+      const b = boxes.get(i)!;
       const next = grown(b, side);
       if (next.sx > MAX_CELLS || next.sy > MAX_CELLS) return { kind: 'limit' };
       for (const [x, y, z] of stripCells(b, side, 1)) {
         if (Math.abs(x) > MAX_COORDINATE || Math.abs(y) > MAX_COORDINATE) return { kind: 'limit' };
         const other = roomAt(x, y, z);
-        if (other !== undefined) return { kind: 'room', roomId: other };
+        if (other !== undefined) return { kind: 'room', room: other };
         if (corridor.has(key(x, y, z))) return { kind: 'corridor' };
         if (z === b.z && z > lowestStorey && roomAt(x, y, z - 1) === undefined) return { kind: 'no-floor' };
+        for (const [dx, dy, dz] of NEIGHBOURS) {
+          const near = roomAt(x + dx, y + dy, z + dz);
+          if (near !== undefined && rooms[near]!.house !== rooms[i]!.house) return { kind: 'house', house: rooms[near]!.house };
+        }
       }
-      for (const otherId of related.get(id) ?? []) {
-        const other = boxes.get(otherId);
-        if (other && touching(b, other) && !touching(next, other)) return { kind: 'room', roomId: otherId };
+      for (const j of related.get(i)!) {
+        const other = boxes.get(j)!;
+        if (touching(b, other) && !touching(next, other)) return { kind: 'room', room: j };
       }
       return null;
     };
 
     /** Nothing beyond the new row: the new wall faces outside. */
-    const facesOutside = (id: number, side: Side) => stripCells(boxes.get(id)!, side, 2).every(([x, y, z]) => roomAt(x, y, z) === undefined);
+    const facesOutside = (i: number, side: Side) => stripCells(boxes.get(i)!, side, 2).every(([x, y, z]) => roomAt(x, y, z) === undefined);
 
     /** Plain-language reason a room is blocked, from the reason of each side. */
     const blockedBy = (reasons: readonly Reason[]): string => {
-      const roomIds = [...new Set(reasons.flatMap((r) => (r.kind === 'room' ? [r.roomId] : [])))];
+      const blockers = [...new Set(reasons.flatMap((r) => (r.kind === 'room' ? [r.room] : [])))];
+      const houses = [...new Set(reasons.flatMap((r) => (r.kind === 'house' ? [r.house] : [])))].sort((a, b) => a - b);
       const parts: string[] = [];
-      if (roomIds.length === 1) parts.push(`blocked by ${name(roomIds[0]!)}`);
-      if (roomIds.length > 1) parts.push('no free space');
+      if (blockers.length === 1) parts.push(`blocked by ${plainName(blockers[0]!)}`);
+      if (blockers.length > 1) parts.push('no free space');
+      if (houses.length > 0) parts.push(`too close to ${houses.map((h) => `House ${h}`).join(' and ')}`);
       if (reasons.some((r) => r.kind === 'no-floor')) parts.push('no room below to build on');
       if (reasons.some((r) => r.kind === 'corridor')) parts.push('a corridor is in the way');
       if (reasons.some((r) => r.kind === 'limit')) parts.push('largest room size reached');
       return parts.join('; ');
     };
 
-    // Read the two House attributes; rooms grow in priority order, equal priorities by id.
-    const wanted = rooms.map((r) => {
-      const values = ctx.nodeAttributes(r.id);
-      const target = typeof values.targetArea === 'number' && values.targetArea > 0 ? values.targetArea : undefined;
-      const priority = typeof values.priority === 'number' ? values.priority : Number.POSITIVE_INFINITY;
-      return { id: r.id, target, priority };
-    });
-    wanted.sort((a, b) => a.priority - b.priority || a.id - b.id);
+    // Rooms grow in priority order, equal priorities by id (copies after the drawn rooms).
+    const turns = rooms.map((r, i) => ({ i, ...goals.get(r.source)!, order: r.order }));
+    turns.sort((a, b) => a.priority - b.priority || a.order - b.order);
 
-    const operations: SpatialOperation[] = [];
-    const lines: string[] = [];
+    const lines: { readonly house: number; readonly text: string }[] = [];
+    const resized: SpatialOperation[] = [];
     let grew = 0;
     let blocked = 0;
-    for (const { id, target } of wanted) {
+    for (const { i, target } of turns) {
+      const house = rooms[i]!.house;
       if (target === undefined) {
-        lines.push(`${name(id)}: no target area, left as it is`);
+        lines.push({ house, text: `${name(i)}: no target area, left as it is` });
         continue;
       }
-      const start = area(boxes.get(id)!);
+      const start = area(boxes.get(i)!);
       let stuck: string | undefined;
-      while (area(boxes.get(id)!) < target) {
-        const options = SIDES.map((side, order) => ({ side, order, reason: problem(id, side) }));
+      while (area(boxes.get(i)!) < target) {
+        const options = SIDES.map((side, order) => ({ side, order, reason: problem(i, side) }));
         const free = options.filter((o) => o.reason === null);
         if (free.length === 0) {
           stuck = blockedBy(options.map((o) => o.reason!));
           break;
         }
         const ranked = free
-          .map((o) => ({ ...o, outside: facesOutside(id, o.side), miss: Math.abs(area(grown(boxes.get(id)!, o.side)) - target) }))
+          .map((o) => ({ ...o, outside: facesOutside(i, o.side), miss: Math.abs(area(grown(boxes.get(i)!, o.side)) - target) }))
           .sort((a, b) => Number(b.outside) - Number(a.outside) || a.miss - b.miss || a.order - b.order);
-        boxes.set(id, grown(boxes.get(id)!, ranked[0]!.side));
+        boxes.set(i, grown(boxes.get(i)!, ranked[0]!.side));
       }
-      const end = area(boxes.get(id)!);
+      const end = area(boxes.get(i)!);
       const from = end > start ? `${formatArea(start)} → ` : '';
       if (stuck === undefined) {
-        lines.push(`${name(id)}: ${from}${formatArea(end)} m² (target ${formatArea(target)}) ✓`);
+        lines.push({ house, text: `${name(i)}: ${from}${formatArea(end)} m² (target ${formatArea(target)}) ✓` });
       } else {
-        lines.push(`${name(id)}: ${from}${formatArea(end)} of ${formatArea(target)} m² — ${stuck}`);
+        lines.push({ house, text: `${name(i)}: ${from}${formatArea(end)} of ${formatArea(target)} m² — ${stuck}` });
         blocked++;
       }
       if (end > start) {
-        const b = boxes.get(id)!;
-        operations.push({ op: 'set-node-geometry', nodeId: id, grid: [b.x, b.y, b.z], size: [b.sx, b.sy, b.sz] });
+        const b = boxes.get(i)!;
+        resized.push({ op: 'set-node-geometry', nodeId: rooms[i]!.id ?? rooms[i]!.ref!, grid: [b.x, b.y, b.z], size: [b.sx, b.sy, b.sz] });
         grew++;
       }
     }
 
+    // One line per room, house by house (in growth order within each house).
+    const roomLines = lines.map((l, n) => ({ ...l, n })).sort((a, b) => a.house - b.house || a.n - b.n);
     const headline = `${grew} room${grew === 1 ? '' : 's'} grown, ${blocked} blocked.`;
-    return { kind: 'transformation', summary: [headline, ...lines].join('\n'), operations };
+    return {
+      kind: 'transformation',
+      summary: [headline, ...notes, ...roomLines.map((l) => l.text)].join('\n'),
+      operations: [...added, ...resized],
+    };
   },
 });

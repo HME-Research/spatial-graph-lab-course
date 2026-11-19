@@ -6,7 +6,7 @@ export default defineNodeType({
   label: 'Kitchen',
   facade: { windowFraction: 0.4 },
   attributes: {
-    targetArea: { kind: 'number', min: 1, default: 27 },
+    targetArea: { kind: 'number', min: 1, default: 18 },
     priority: { kind: 'number', min: 1, default: 2 },
   },
 });
