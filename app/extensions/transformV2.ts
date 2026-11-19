@@ -18,8 +18,8 @@ import {
 } from '@app/document';
 import { resolveRelationships } from '@app/spatial';
 import type { ItemRef, SpatialOperation } from '@student-api';
-import type { ActiveToolkit, RegisteredNodeType } from './activate';
-import { checkConformance, findNodeType, findRegressions } from './conformance';
+import type { ActiveToolkit, RegisteredFunction } from './activate';
+import { checkConformance, findFunction, findRegressions } from './conformance';
 import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionIssueCode, type ExtensionResult } from './diagnostics';
 import { describeField, checkFieldValue, fieldForKey, EMPTY_ATTRIBUTE_SCHEMA, type AttributeCollection, type AttributeField, type ProjectAttributeSchema } from './projectAttributes';
 import { writeFieldValue } from './resolveAttributes';
@@ -107,8 +107,8 @@ export function opError(index: number, code: ExtensionIssueCode, message: string
 }
 
 /** The node's type, if it is registered and valid; otherwise a diagnostic explaining why not. */
-export function writableType(project: ActiveToolkit, functionId: string, index: number, what: string): RegisteredNodeType | ExtensionDiagnostic {
-  const type = findNodeType(project, functionId);
+export function writableType(project: ActiveToolkit, functionId: string, index: number, what: string): RegisteredFunction | ExtensionDiagnostic {
+  const type = findFunction(project, functionId);
   if (!type) return opError(index, 'type-not-registered', `${what}: type "${functionId}" is not a node type of project "${project.id}"`);
   if (!type.status.ok) return opError(index, 'broken-node-type', `${what}: type "${functionId}" (${type.file}) is invalid and cannot be used`);
   return type;
@@ -204,8 +204,8 @@ function addEdge(draft: DraftV2, op: Extract<SpatialOperation, { op: 'add-edge' 
   return null;
 }
 
-function setNodeAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'set-node-attribute' }>, i: number): Check {
-  const what = `set-node-attribute ${describeRef(op.nodeId)}.${op.key}`;
+function setNodeCustomAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'set-node-custom-attribute' }>, i: number): Check {
+  const what = `set-node-custom-attribute ${describeRef(op.nodeId)}.${op.key}`;
   const id = resolveRef(op.nodeId, draft.byId, draft.nodeRefs);
   const node = id === undefined ? undefined : draft.byId.get(id);
   if (!node) return opError(i, 'missing-node', `${what}: node ${describeRef(op.nodeId)} does not exist`);
@@ -215,8 +215,8 @@ function setNodeAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<Sp
   return null;
 }
 
-function setEdgeAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'set-edge-attribute' }>, i: number): Check {
-  const what = `set-edge-attribute ${describeRef(op.edgeId)}.${op.key}`;
+function setEdgeCustomAttribute(draft: DraftV2, project: ActiveToolkit, op: Extract<SpatialOperation, { op: 'set-edge-custom-attribute' }>, i: number): Check {
+  const what = `set-edge-custom-attribute ${describeRef(op.edgeId)}.${op.key}`;
   const id = resolveRef(op.edgeId, draft.edgeById, draft.edgeRefs);
   const edge = id === undefined ? undefined : draft.edgeById.get(id);
   if (!edge) return opError(i, 'missing-edge', `${what}: edge ${describeRef(op.edgeId)} does not exist`);
@@ -293,10 +293,10 @@ export function applyTransformationV2(
         ? addNode(draft, project, op, i)
         : op.op === 'add-edge'
           ? addEdge(draft, op, i)
-          : op.op === 'set-node-attribute'
-            ? setNodeAttribute(draft, project, op, i)
-            : op.op === 'set-edge-attribute'
-              ? setEdgeAttribute(draft, project, op, i)
+          : op.op === 'set-node-custom-attribute'
+            ? setNodeCustomAttribute(draft, project, op, i)
+            : op.op === 'set-edge-custom-attribute'
+              ? setEdgeCustomAttribute(draft, project, op, i)
               : setNodeGeometry(draft, op, i);
     if (problem) return fail([problem]);
   }

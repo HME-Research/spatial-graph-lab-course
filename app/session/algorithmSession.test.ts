@@ -235,7 +235,7 @@ describe('spatial transformation preview', () => {
           run: () => ({
             kind: 'transformation',
             operations: [
-              { op: 'set-node-attribute', nodeId: 1, key: 'daylight', value: 'low' },
+              { op: 'set-node-custom-attribute', nodeId: 1, key: 'daylight', value: 'low' },
               { op: 'add-edge', source: 1, target: 4, relationship: 'stair' },
             ],
           }),

@@ -11,7 +11,7 @@ import {
   BROKEN_TYPE_FACADE,
   brokenTypeIds,
   buildProjectViewContext,
-  nodeTypeStatus,
+  functionStatus,
   projectFacadeProvider,
   typeDisplayName,
 } from './project';
@@ -46,7 +46,7 @@ describe('project appearance in the views', () => {
   it('a broken type definition is visible: closed façade, broken status with its problems', async () => {
     const lab = await labToolkit({ 'toolkits/lab/functions/kiosk.ts': { default: { id: 'kiosk', label: 'Kiosk', facade: { windowFraction: 2 } } } });
     expect(projectFacadeProvider(lab)('kiosk')).toBe(BROKEN_TYPE_FACADE);
-    const status = nodeTypeStatus(lab, 'kiosk');
+    const status = functionStatus(lab, 'kiosk');
     expect(status.kind).toBe('broken');
     expect(status.kind === 'broken' && status.problems.join(' ')).toContain('windowFraction must be between 0 and 1');
     expect(typeDisplayName(status, 'kiosk')).toBe('Kiosk (kiosk) — invalid definition');
@@ -56,10 +56,10 @@ describe('project appearance in the views', () => {
 
   it('type status distinguishes registered, undefined and no project', async () => {
     const lab = await labToolkit();
-    expect(nodeTypeStatus(lab, 'gallery')).toEqual({ kind: 'registered', label: 'Gallery', file: 'toolkits/lab/functions/gallery.ts' });
-    expect(typeDisplayName(nodeTypeStatus(lab, 'gallery'), 'gallery')).toBe('Gallery (gallery)');
-    expect(nodeTypeStatus(lab, 'kiosk')).toEqual({ kind: 'undefined-type' });
-    expect(nodeTypeStatus(null, 'gallery')).toEqual({ kind: 'no-project' });
+    expect(functionStatus(lab, 'gallery')).toEqual({ kind: 'registered', label: 'Gallery', file: 'toolkits/lab/functions/gallery.ts' });
+    expect(typeDisplayName(functionStatus(lab, 'gallery'), 'gallery')).toBe('Gallery (gallery)');
+    expect(functionStatus(lab, 'kiosk')).toEqual({ kind: 'undefined-type' });
+    expect(functionStatus(null, 'gallery')).toEqual({ kind: 'no-project' });
     expect(brokenTypeIds(lab, labDoc())).toEqual([]);
     expect(buildProjectViewContext(null, labDoc()).conformance).toEqual([]);
   });

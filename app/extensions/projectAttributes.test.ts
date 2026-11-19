@@ -82,7 +82,7 @@ describe('baseline from toolkit files', () => {
     ]);
     expect(schema.nodes.find((f) => f.key === 'occupancy')?.min).toBe(0);
     expect(schema.nodes.every((f) => f.default === undefined)).toBe(true);
-    expect(schema.nodeTypeDefaults).toEqual({ gallery: { public: true }, storage: { public: false }, studio: { public: false } });
+    expect(schema.functionDefaults).toEqual({ gallery: { public: true }, storage: { public: false }, studio: { public: false } });
     expect(schema.edges).toEqual([]);
   });
 
@@ -264,7 +264,7 @@ describe('schema edits', () => {
     const schema = ok(edit(base(), { type: 'set-type-default', function: 'g', fieldId: 'capacity', value: 3 }));
     const deleted = ok(edit(schema, { type: 'delete-field', collection: 'nodes', fieldId: 'capacity' }));
     expect(deleted.nodes).toEqual([]);
-    expect(deleted.nodeTypeDefaults).toEqual({});
+    expect(deleted.functionDefaults).toEqual({});
     expect(attributesOutsideSchema(deleted, 'nodes', { capacity: 8 })).toEqual({ capacity: 8 });
   });
 
@@ -361,11 +361,11 @@ describe('records (persistence and import/export format)', () => {
     expect(codeOf(JSON.stringify({ ...good, formatVersion: 2 }))).toBe('attribute-schema-version');
     expect(codeOf(JSON.stringify({ ...good, projectId: 'other' }))).toBe('attribute-schema-project-mismatch');
     expect(codeOf(JSON.stringify({ ...good, projectId: 'other' }), true)).toBe('ok');
-    const dup = { nodes: [{ id: 'a', key: 'a', label: 'A', kind: 'text' }, { id: 'b', key: 'A', label: 'B', kind: 'text' }], edges: [], nodeTypeDefaults: {} };
+    const dup = { nodes: [{ id: 'a', key: 'a', label: 'A', kind: 'text' }, { id: 'b', key: 'A', label: 'B', kind: 'text' }], edges: [], functionDefaults: {} };
     expect(codeOf(JSON.stringify({ ...good, schema: dup }))).toBe('invalid-attribute-schema');
-    const reserved = { nodes: [{ id: 'a', key: 'displayId', label: 'A', kind: 'text' }], edges: [], nodeTypeDefaults: {} };
+    const reserved = { nodes: [{ id: 'a', key: 'displayId', label: 'A', kind: 'text' }], edges: [], functionDefaults: {} };
     expect(codeOf(JSON.stringify({ ...good, schema: reserved }))).toBe('invalid-attribute-schema');
-    const dangling = { nodes: [], edges: [], nodeTypeDefaults: { gallery: { nope: 1 } } };
+    const dangling = { nodes: [], edges: [], functionDefaults: { gallery: { nope: 1 } } };
     expect(codeOf(JSON.stringify({ ...good, schema: dangling }))).toBe('invalid-attribute-schema');
   });
 
@@ -375,7 +375,7 @@ describe('records (persistence and import/export format)', () => {
     const once = mergeBaseline(custom, baseline);
     expect(once.schema.nodes.map((f) => f.key)).toEqual(['public', 'daylight', 'occupancy']);
     expect(once.schema.nodes[0]!.label).toBe('Open to visitors');
-    expect(once.schema.nodeTypeDefaults['gallery']).toEqual({ public: true });
+    expect(once.schema.functionDefaults['gallery']).toEqual({ public: true });
     const twice = mergeBaseline(once.schema, baseline);
     expect(twice.added).toEqual([]);
     expect(schemaSignature(twice.schema)).toBe(schemaSignature(once.schema));
@@ -394,6 +394,6 @@ describe('legacy and round-trip compatibility', () => {
     // v2 export → import keeps every attribute (no schema information is written to designs).
     const again = readDesignJson(serializeDesignV2(doc));
     expect(again.ok && again.value.doc.nodes.map((n) => n.custom)).toEqual(doc.nodes.map((n) => n.custom));
-    expect(serializeDesignV2(doc)).not.toMatch(/nodeTypeDefaults|formerKeys/);
+    expect(serializeDesignV2(doc)).not.toMatch(/functionDefaults|formerKeys/);
   });
 });

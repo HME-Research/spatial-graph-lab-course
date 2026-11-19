@@ -102,7 +102,7 @@ export const toolkitDefinitionSchema = z.strictObject({
     .optional(),
 });
 
-export const nodeTypeDefinitionSchema = z.strictObject({
+export const functionDefinitionSchema = z.strictObject({
   id: functionIdSchema,
   label,
   facade: z

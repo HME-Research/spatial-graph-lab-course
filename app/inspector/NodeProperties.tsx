@@ -6,8 +6,8 @@ import { CustomAttributes, ManageAttributesLink } from '@app/attributes/CustomAt
 import { ManageFunctionsContext, OpenAttributesContext } from '@app/attributes/navigation';
 import { NODE_BUILT_IN_ATTRIBUTES } from '@app/attributes/sections';
 import { MAX_ROOM_SIZE, nodeLabel, type RoomNode } from '@app/document';
-import { attributesOutsideSchema, findNodeType } from '@app/extensions';
-import { nodeTypeStatus } from '@app/views/project';
+import { attributesOutsideSchema, findFunction } from '@app/extensions';
+import { functionStatus } from '@app/views/project';
 import { CollapsibleSection, describeResolution, IssueFeedback, labelOfChoice, RELATIONSHIP_KIND_CHOICES, RouteConfirm, UNDO_HINT } from '@app/ui';
 import { typeColor } from '@core/viewer/appearance';
 import { selectEdge, selectNode } from '@core/viewer/selection';
@@ -62,9 +62,9 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
   if (!node) return null;
 
   const menu = typeMenu(active, typesInDesign, node.function);
-  const typeStatus = nodeTypeStatus(active, node.function);
+  const typeStatus = functionStatus(active, node.function);
   const checks = (project?.conformance ?? []).filter((d) => d.subject.kind === 'node' && d.subject.id === node.id);
-  const specs = typeStatus.kind === 'registered' ? (findNodeType(active!, node.function)?.definition.custom ?? {}) : null;
+  const specs = typeStatus.kind === 'registered' ? (findFunction(active!, node.function)?.definition.custom ?? {}) : null;
   const context = messageContextFor(props, node.id);
   const label = v2Node ? nodeLabel(v2Node) : node.id;
 

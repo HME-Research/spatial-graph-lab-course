@@ -3,7 +3,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import houseJson from '@app/document/examples/house.json';
 import { ATTRIBUTE_SECTION_IDS } from '@app/attributes/sections';
-import { readDesign, serializeDesignV2, type DesignDocumentV2 } from '@app/document';
+import { readDesign, serializeDesignV2, validateDocumentV2, type DesignDocumentV2 } from '@app/document';
+import { expectOk } from '@app/document/test-fixtures';
 import { EMPTY_ATTRIBUTE_SCHEMA, type ProjectAttributeSchema } from '@app/extensions';
 import { createMetricEvaluator, DEFAULT_ENABLED_METRICS, enabledMetrics } from '@app/metrics';
 import { resolveRelationships, type DesignPort } from '@app/spatial';
@@ -38,7 +39,7 @@ function houseWithAttributes(): DesignDocumentV2 {
 const SCHEMA: ProjectAttributeSchema = {
   nodes: [{ id: 'f1', key: 'targetArea', label: 'Target area', kind: 'number', default: 6 }],
   edges: [{ id: 'f2', key: 'note', label: 'Note', kind: 'text' }],
-  nodeTypeDefaults: { kitchen: { f1: 16 }, living: { f1: 20 } },
+  functionDefaults: { kitchen: { f1: 16 }, living: { f1: 20 } },
 };
 
 function port(doc: DesignDocumentV2, onCommand = vi.fn()): DesignPort {
@@ -62,8 +63,8 @@ const inputs = (doc: DesignDocumentV2, schema = SCHEMA) => ({
 /** The active toolkit as far as the Data view needs it: its name and the attributes its files declare. */
 const TOOLKIT = {
   definition: { name: 'House' },
-  attributeBaseline: { schema: { nodes: [{ id: 't1', key: 'targetArea', label: 'Target area', kind: 'number' }], edges: [], nodeTypeDefaults: {} } },
-  nodeTypes: [],
+  attributeBaseline: { schema: { nodes: [{ id: 't1', key: 'targetArea', label: 'Target area', kind: 'number' }], edges: [], functionDefaults: {} } },
+  functions: [],
 };
 
 describe('data view mode', () => {
@@ -183,10 +184,47 @@ describe('tables', () => {
     for (const r of t.rows) for (const c of t.columns.filter((x) => x.section === 'calculated')) expect(r.cells[c.id]!.origin).toBe('calculated');
   });
 
+  it('show an edge’s Corridor as two Geometry cells, walls | roof: own values plain, the Corridors card marked default, unused ones marked not built', () => {
+    // Edge 1 joins rooms 5 cells apart (a corridor is generated); edge 2 joins touching rooms and stores its own roof.
+    const doc = expectOk(
+      validateDocumentV2({
+        schemaVersion: 2,
+        metadata: { name: 'corridor' },
+        nodes: [
+          { id: 1, position: [0, 0, 0], size: [2, 3, 1], function: 'gallery', custom: {} },
+          { id: 2, position: [5, 0, 0], size: [1, 1, 1], function: 'studio', custom: {} },
+          { id: 4, position: [0, 3, 0], size: [1, 1, 1], function: 'studio', custom: {} },
+        ],
+        edges: [
+          { id: 1, source: 1, target: 2, relationship: 'access', custom: {} },
+          { id: 2, source: 1, target: 4, relationship: 'access', corridor: { roof: 'none' }, custom: {} },
+        ],
+        diagram: { positions: {} },
+        settings: { styleBy: 'function', styles: {}, corridors: { walls: 'enclosed' } },
+      }),
+    );
+    const { ctx } = inputs(doc, EMPTY_ATTRIBUTE_SCHEMA);
+    expect(ctx.spatial.byEdge.get(1)?.status).toBe('routed');
+    expect(ctx.spatial.byEdge.get(2)?.status).toBe('direct');
+    const t = edgeTable(inputs(doc, EMPTY_ATTRIBUTE_SCHEMA));
+    const cells = (id: number) => t.rows.find((r) => r.id === id)!.cells;
+    expect(cells(1)['corridor.walls']).toMatchObject({ text: 'Enclosed', origin: 'default', hint: 'default' });
+    expect(cells(1)['corridor.roof']).toMatchObject({ text: 'Flat', origin: 'default', hint: 'default' });
+    expect(cells(2)['corridor.walls']).toMatchObject({ text: 'Enclosed', origin: 'default', hint: 'default · not built' });
+    expect(cells(2)['corridor.roof']).toMatchObject({ text: 'None (open top)', origin: 'stored', hint: 'not built' });
+    expect(cells(2)['corridor.roof']!.title).toContain('No corridor is generated for this relationship now');
+    // The JSON line of `corridor` belongs to Geometry.
+    expect(jsonLines(doc).find((l) => l.record?.collection === 'edges' && l.text.includes('"corridor"'))?.section).toBe('geometry');
+  });
+
   it('show edges with "id · Function" endpoints and the relationship label', () => {
     const t = edgeTable(inputs(houseWithAttributes()));
-    expect(t.columns.slice(0, 5).map((c) => c.label)).toEqual(['ID', 'Source', 'Target', 'Relationship', 'Corridor']);
-    expect(t.rows.find((r) => r.id === 1)!.cells.corridor).toMatchObject({ text: '—', origin: 'none' });
+    expect(t.columns.slice(0, 6).map((c) => c.label)).toEqual(['ID', 'Source', 'Target', 'Relationship', 'walls', 'roof']);
+    expect(t.columns.slice(4, 6).map((c) => [c.id, c.section, c.attribute?.label, c.editable])).toEqual([
+      ['corridor.walls', 'geometry', 'Corridor', true],
+      ['corridor.roof', 'geometry', 'Corridor', true],
+    ]);
+    expect(attributeHeadings(t.columns).map((h) => [h.label, h.span])).toContainEqual(['Corridor', 2]);
     const e2 = t.rows.find((r) => r.id === 2)!.cells;
     expect([e2.source!.text, e2.target!.text, e2.relationship!.text]).toEqual(['2 · living', '3 · kitchen', 'Open']);
     expect(t.rows.find((r) => r.id === 2)!.cells['custom:f2']).toMatchObject({ text: 'wide door', origin: 'stored' });
@@ -278,11 +316,11 @@ describe('DataView', () => {
     const table = render(NO_SELECTION, 'table', vi.fn(), vi.fn(), () => null).html;
     expect(table).toContain('Click a cell to edit');
     const cells = (column: string) => [...table.matchAll(new RegExp(`<t[dh][^>]*data-column="${column}"[^>]*>`, 'g'))].map((m) => m[0]).filter((c) => !c.includes('scope="col"'));
-    for (const column of ['function', 'position.x', 'position.y', 'position.z', 'size.x', 'size.y', 'size.z', 'custom:f1', 'relationship', 'custom:f2']) {
+    for (const column of ['function', 'position.x', 'position.y', 'position.z', 'size.x', 'size.y', 'size.z', 'custom:f1', 'relationship', 'corridor.walls', 'corridor.roof', 'custom:f2']) {
       expect(cells(column).length, column).toBeGreaterThan(0);
       for (const c of cells(column)) expect(c, column).toMatch(/data-editable="true"[^>]*tabindex="-1"/);
     }
-    for (const column of ['id', 'source', 'target', 'corridor', `calc:${enabledMetrics(DEFAULT_ENABLED_METRICS, 'nodes')[0]!.id}`]) {
+    for (const column of ['id', 'source', 'target', `calc:${enabledMetrics(DEFAULT_ENABLED_METRICS, 'nodes')[0]!.id}`]) {
       expect(cells(column).length, column).toBeGreaterThan(0);
       for (const c of cells(column)) expect(c, column).not.toMatch(/data-editable|tabindex/);
     }

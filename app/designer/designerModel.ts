@@ -38,10 +38,10 @@ import {
   type WindowLayout,
   type WallStyle,
 } from '@app/document';
-import { EMPTY_ATTRIBUTE_SCHEMA, findNodeType, type ActiveToolkit, type ProjectAttributeSchema } from '@app/extensions';
+import { EMPTY_ATTRIBUTE_SCHEMA, findFunction, type ActiveToolkit, type ProjectAttributeSchema } from '@app/extensions';
 import { METRIC_CATALOGUE, type EnabledMetricIds } from '@app/metrics';
 import type { DesignCommand, LookPatch, SpatialResolution } from '@app/spatial';
-import { nodeTypeStatus, typeDisplayName, type NodeTypeStatus } from '@app/views/project';
+import { functionStatus, typeDisplayName, type FunctionStatus } from '@app/views/project';
 import type { Selection } from '@core/viewer/selection';
 
 /**
@@ -68,7 +68,7 @@ export interface DesignerTypeRow {
   readonly function: string;
   /** Menu/label text, e.g. "Gallery (gallery)". */
   readonly name: string;
-  readonly status: NodeTypeStatus;
+  readonly status: FunctionStatus;
   /** Rooms of this type in the current design. */
   readonly nodeCount: number;
   /** The design stores a card for a type that is neither in the project nor in the design. */
@@ -110,10 +110,10 @@ const inheritedFor = (doc: Pick<DesignDocumentV2, 'settings'>, t: CardTarget, wi
   effectiveLook(t.group.kind === 'default' ? {} : styleSetupOf(doc.settings, t.by), DEFAULT_GROUP, { windowFraction });
 const lookCommand = (t: CardTarget, patch: LookPatch): DesignCommand => ({ type: 'set-look', by: t.by, group: t.group, patch });
 
-function projectDefaultSource(project: ActiveToolkit | null, status: NodeTypeStatus, functionId: string): ProjectDefaultSource {
+function projectDefaultSource(project: ActiveToolkit | null, status: FunctionStatus, functionId: string): ProjectDefaultSource {
   if (status.kind === 'broken') return 'broken';
   if (status.kind === 'registered' && project) {
-    return findNodeType(project, functionId)?.definition.facade ? 'type-definition' : 'fallback';
+    return findFunction(project, functionId)?.definition.facade ? 'type-definition' : 'fallback';
   }
   return 'fallback';
 }
@@ -151,15 +151,15 @@ export function designerTypeRows(
       ordered.push(id);
     }
   };
-  for (const type of project?.nodeTypes ?? []) add(type.id);
+  for (const type of project?.functions ?? []) add(type.id);
   [...counts.keys()].sort().forEach(add);
   (functionSetup(doc).groups ?? []).map((g) => String(g.value)).sort().forEach(add);
 
   return ordered.map((functionId) => {
-    const status = nodeTypeStatus(project, functionId);
+    const status = functionStatus(project, functionId);
     const projectWindowFraction = facade(functionId).windowFraction;
     const nodeCount = counts.get(functionId) ?? 0;
-    const inProject = project?.nodeTypes.some((t) => t.id === functionId) ?? false;
+    const inProject = project?.functions.some((t) => t.id === functionId) ?? false;
     const base = {
       function: functionId,
       name: typeDisplayName(status, functionId),

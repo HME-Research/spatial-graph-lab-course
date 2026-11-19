@@ -1,5 +1,13 @@
-import { customAttributeSource, customAttributeTag, GEOMETRY_AXES, NODE_BUILT_IN_ATTRIBUTES, type AttributeSectionId } from '@app/attributes/sections';
-import { serializeDesignV2, type AttributeValue, type CorridorLook, type DesignDocumentV2 } from '@app/document';
+import {
+  corridorChoiceLabel,
+  CORRIDOR_PARTS,
+  customAttributeSource,
+  customAttributeTag,
+  GEOMETRY_AXES,
+  NODE_BUILT_IN_ATTRIBUTES,
+  type AttributeSectionId,
+} from '@app/attributes/sections';
+import { designCorridorLook, serializeDesignV2, type AttributeValue, type DesignDocumentV2, type RelationshipEdge } from '@app/document';
 import {
   resolveEdgeAttributes,
   resolveNodeAttributes,
@@ -49,9 +57,9 @@ export interface JsonBlock {
 }
 
 /**
- * Stored key of a node/edge record → its section. `corridor` (its own walls / roof) belongs to the
- * relationship (Required). Lines inside a multi-line value (`custom`, `corridor`) keep the section
- * of their key.
+ * Stored key of a node/edge record → its section. `corridor` (an edge's own walls / roof) is a
+ * built-in Geometry attribute. Lines inside a multi-line value (`custom`, `corridor`) keep the
+ * section of their key.
  */
 const RECORD_KEY_SECTION: Readonly<Record<string, StoredSectionId>> = {
   id: 'identity',
@@ -59,7 +67,7 @@ const RECORD_KEY_SECTION: Readonly<Record<string, StoredSectionId>> = {
   target: 'identity',
   function: 'required',
   relationship: 'required',
-  corridor: 'required',
+  corridor: 'geometry',
   position: 'geometry',
   size: 'geometry',
   custom: 'custom',
@@ -142,24 +150,29 @@ export interface DataCell {
   /** Tooltip with the exact stored value or where the value comes from. */
   readonly title?: string;
   readonly origin: CellOrigin;
+  /** A short note after the value, instead of the origin's usual one ("default", "from type"). */
+  readonly hint?: string;
 }
 
 export interface DataColumn {
   /**
    * Stable id: built-in attribute id, `<attribute>.<x|y|z>` for one value of Position / Size,
-   * `custom:<fieldId>` or `calc:<metricId>`.
+   * `corridor.<walls|roof>` for one value of an edge's Corridor, `custom:<fieldId>` or `calc:<metricId>`.
    */
   readonly id: string;
-  /** The column heading; for one value of Position / Size its axis label (`x`, `y`, `z (Level)`). */
+  /** The column heading; for one value of Position / Size / Corridor its label (`x`, `z (Level)`, `walls`). */
   readonly label: string;
-  /** Position / Size: the attribute this value column belongs to (one heading spans its three columns). */
-  readonly attribute?: { readonly id: string; readonly label: string };
+  /**
+   * Position / Size / Corridor: the attribute this value column belongs to (one heading spans its
+   * value columns); `title` is the heading's tooltip.
+   */
+  readonly attribute?: { readonly id: string; readonly label: string; readonly title: string };
   readonly section: AttributeSectionId;
   readonly title?: string;
   readonly numeric?: boolean;
   /**
-   * Whether the cells of this column can be edited (P4, G): Function / Relationship, Geometry and
-   * Custom. Identity and Calculated are locked.
+   * Whether the cells of this column can be edited (P4, G): Function / Relationship, Geometry
+   * (Position, Size, Corridor) and Custom. Identity and Calculated are locked.
    */
   readonly editable: boolean;
   /** Custom columns: where the attribute comes from, `Toolkit: <name>` or `Yours` (`customAttributeTag`). */
@@ -179,8 +192,9 @@ export interface DataTable {
 }
 
 /**
- * Attribute headings of a table: one per column, except that the three value columns of Position
- * (and of Size) share one heading spanning them. `split`: the heading has value columns under it.
+ * Attribute headings of a table: one per column, except that the value columns of Position, Size
+ * (three each) and Corridor (two) share one heading spanning them. `split`: the heading has value
+ * columns under it.
  */
 export function attributeHeadings(columns: readonly DataColumn[]): { readonly id: string; readonly label: string; readonly span: number; readonly split: boolean; readonly first: DataColumn }[] {
   const out: { id: string; label: string; span: number; split: boolean; first: DataColumn }[] = [];
@@ -280,7 +294,7 @@ export function nodeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInp
     ...GEOMETRY_AXES.map((g) => ({
       id: g.id,
       label: g.label,
-      attribute: { id: g.part, label: geometryHeading(g.part) },
+      attribute: { id: g.part, label: geometryHeading(g.part), title: `Stored as "${g.part}": three values, x | y | z.` },
       section: 'geometry' as const,
       title: `${g.name}: stored as "${g.part}"[${g.axis}], in cells.`,
       numeric: true,
@@ -299,15 +313,36 @@ export function nodeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInp
   return { collection: 'nodes', columns, rows };
 }
 
-/** What a relationship stores as its own corridor look (`walls … · roof …`), or "—" when it stores none. */
-function corridorCell(c: CorridorLook | undefined): DataCell {
-  const parts = [c?.walls !== undefined ? `walls ${c.walls}` : null, c?.roof !== undefined ? `roof ${c.roof}` : null].filter((p) => p !== null);
-  return parts.length > 0 ? stored(parts.join(' · ')) : { text: '—', origin: 'none', title: 'Not stored: the design’s Corridors card applies.' };
+/**
+ * The corridor walls / roof cells of a relationship, like Properties: its own value plain; without
+ * one, the design's Corridors card value marked "default". When no corridor is generated now (the
+ * rooms touch, or it is unresolved) the value still shows and stays editable, marked "not built":
+ * it is used only when a corridor is generated.
+ */
+function corridorCells(edge: RelationshipEdge, ctx: MetricContext): Record<string, DataCell> {
+  const card = designCorridorLook(ctx.doc.settings);
+  const built = ctx.spatial.byEdge.get(edge.id)?.status === 'routed';
+  const unused = built ? '' : '\nNo corridor is generated for this relationship now; the value is used only if one is.';
+  const out: Record<string, DataCell> = {};
+  for (const p of CORRIDOR_PARTS) {
+    const own = edge.corridor?.[p.part];
+    out[p.id] =
+      own !== undefined
+        ? { text: corridorChoiceLabel(p, own), origin: 'stored', title: `Stored on this relationship as "corridor".${p.part}: "${own}".${unused}`, ...(!built && { hint: 'not built' }) }
+        : {
+            text: corridorChoiceLabel(p, card[p.part]),
+            origin: 'default',
+            title: `Not stored: the design’s Corridors card applies (Building Designer → Looks).${unused}`,
+            hint: built ? 'default' : 'default · not built',
+          };
+  }
+  return out;
 }
 
 /**
  * One row per edge, columns in the order of the saved JSON keys: id · source · target ·
- * relationship · corridor · custom attributes; then the calculated values (never saved), locked.
+ * relationship · corridor (walls | roof) · custom attributes; then the calculated values (never
+ * saved), locked.
  */
 export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInputs): DataTable {
   const columns: DataColumn[] = [
@@ -315,13 +350,18 @@ export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInp
     { id: 'source', label: 'Source', section: 'identity', title: 'Stored as "source": the id of the first node.', editable: false },
     { id: 'target', label: 'Target', section: 'identity', title: 'Stored as "target": the id of the second node.', editable: false },
     { id: 'relationship', label: 'Relationship', section: 'required', title: 'Stored as "relationship".', editable: true },
-    {
-      id: 'corridor',
-      label: 'Corridor',
-      section: 'required',
-      title: 'Stored as "corridor": this relationship’s own corridor walls / roof, used only when a corridor is generated. Change it in Properties.',
-      editable: false,
-    },
+    ...CORRIDOR_PARTS.map((p) => ({
+      id: p.id,
+      label: p.label,
+      attribute: {
+        id: 'corridor',
+        label: 'Corridor',
+        title: 'Stored as "corridor": this relationship’s own corridor look, two values, walls | roof. Used only when a corridor is generated; not stored, the design’s Corridors card applies.',
+      },
+      section: 'geometry' as const,
+      title: `${p.name}: stored as "corridor".${p.part}; empty uses the Corridors card.`,
+      editable: true,
+    })),
     ...schema.edges.map(customColumn('edges', toolkit)),
     ...calculatedColumns('edges', enabled, evaluator),
   ];
@@ -334,7 +374,7 @@ export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInp
       source: endpoint(e.source),
       target: endpoint(e.target),
       relationship: stored(KIND_PRESENTATION[e.relationship].label, `Stored as "${e.relationship}".`),
-      corridor: corridorCell(e.corridor),
+      ...corridorCells(e, ctx),
     };
     for (const r of resolveEdgeAttributes(schema, e)) cells[`custom:${r.field.id}`] = customCell(r);
     Object.assign(cells, calculatedCells(ctx, 'edges', enabled, evaluator, e.id));

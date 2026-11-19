@@ -90,7 +90,7 @@ describe('Welcome flow', () => {
     const design = p.scenarios[0]!.session.history.present.design;
     expect(design.nodes).toEqual([]);
     expect(design.edges).toEqual([]);
-    const record = p.meta.attributes as { projectId: string; baseline: string; schema: { nodes: { key: string; label: string }[]; edges: unknown[]; nodeTypeDefaults: Record<string, Record<string, unknown>> } };
+    const record = p.meta.attributes as { projectId: string; baseline: string; schema: { nodes: { key: string; label: string }[]; edges: unknown[]; functionDefaults: Record<string, Record<string, unknown>> } };
     expect(record.projectId).toBe('house');
     expect(record.baseline).toBe(attributeBaseline.signature);
     expect(record.schema.nodes.map((f) => [f.key, f.label])).toEqual([
@@ -99,7 +99,7 @@ describe('Welcome flow', () => {
     ]);
     expect(record.schema.edges).toEqual([]);
     // Each Function's defaults come along (e.g. Living: 36 m², priority 1).
-    expect(Object.values(record.schema.nodeTypeDefaults.living ?? {}).sort()).toEqual([1, 36]);
+    expect(Object.values(record.schema.functionDefaults.living ?? {}).sort()).toEqual([1, 36]);
     expect(p.meta.settings.calculatedFields).toEqual([]);
   });
 

@@ -76,11 +76,11 @@ describe('toolkit activation', () => {
     });
     expect(toolkit.id).toBe('lab');
     expect(toolkit.definition).toEqual({ name: 'Lab' });
-    expect(toolkit.nodeTypes.map((t) => [t.id, t.status.ok])).toEqual([
+    expect(toolkit.functions.map((t) => [t.id, t.status.ok])).toEqual([
       ['gallery', true],
       ['studio', true],
     ]);
-    expect(toolkit.nodeTypes[0]!.definition).toBe(galleryType); // the student's own object
+    expect(toolkit.functions[0]!.definition).toBe(galleryType); // the student's own object
     expect(toolkit.algorithms.map((a) => [a.id, a.definition.scope, a.status.ok])).toEqual([['a', 'graph', true]]);
     expect(toolkit.diagnostics).toEqual([]);
   });
@@ -98,14 +98,14 @@ describe('toolkit activation', () => {
   it('disables invalid node types but keeps them registered as broken (no silent fallback)', async () => {
     const broken = { id: 'gallery', label: 'Gallery', facade: { windowFraction: 1.5 }, colour: '#fff' };
     const toolkit = await labToolkit({ 'toolkits/lab/functions/gallery.ts': { default: broken } });
-    const gallery = toolkit.nodeTypes.find((t) => t.id === 'gallery')!;
+    const gallery = toolkit.functions.find((t) => t.id === 'gallery')!;
     expect(gallery.status.ok).toBe(false);
     const d = toolkit.diagnostics.find((x) => x.code === 'invalid-node-type')!;
     expect(d.severity).toBe('error');
     expect(d.message).toContain('windowFraction must be between 0 and 1');
     expect(d.message).toContain('colour'); // unknown field reported, not ignored
     expect(d.message).toContain('disabled');
-    expect(toolkit.nodeTypes.find((t) => t.id === 'studio')!.status.ok).toBe(true);
+    expect(toolkit.functions.find((t) => t.id === 'studio')!.status.ok).toBe(true);
   });
 
   it.each([
@@ -117,7 +117,7 @@ describe('toolkit activation', () => {
     ['unsupported option', { n: { kind: 'number', required: true } }],
   ])('rejects attribute definitions with %s', async (_name, attributes) => {
     const toolkit = await labToolkit({ 'toolkits/lab/functions/gallery.ts': { default: { id: 'gallery', label: 'G', custom: attributes } } });
-    expect(toolkit.nodeTypes.find((t) => t.id === 'gallery')!.status.ok).toBe(false);
+    expect(toolkit.functions.find((t) => t.id === 'gallery')!.status.ok).toBe(false);
   });
 
   it('reports a type file whose id cannot be read, and files that fail to load', async () => {
@@ -125,7 +125,7 @@ describe('toolkit activation', () => {
       'toolkits/lab/functions/x.ts': { default: { label: 'no id' } },
       'toolkits/lab/functions/y.ts': LOAD_FAILS,
     });
-    expect(toolkit.nodeTypes.map((t) => t.id)).toEqual(['gallery', 'studio']);
+    expect(toolkit.functions.map((t) => t.id)).toEqual(['gallery', 'studio']);
     expect(toolkit.diagnostics.map((d) => d.code).sort()).toEqual(['invalid-node-type', 'module-load-failed']);
   });
 
@@ -136,7 +136,7 @@ describe('toolkit activation', () => {
       'toolkits/lab/algorithms/a.ts': { default: defineGraphAlgorithm({ id: 'dup', label: 'A', inputs: [], run: analysis }) },
       'toolkits/lab/algorithms/b.ts': { default: defineGraphAlgorithm({ id: 'dup', label: 'B', inputs: [], run: analysis }) },
     });
-    const studios = toolkit.nodeTypes.filter((t) => t.id === 'studio');
+    const studios = toolkit.functions.filter((t) => t.id === 'studio');
     expect(studios.map((t) => t.status.ok)).toEqual([false, false]);
     const dupType = toolkit.diagnostics.filter((d) => d.code === 'duplicate-node-type');
     expect(dupType).toHaveLength(2);
@@ -229,9 +229,9 @@ describe('startup design and fallback', () => {
 describe('a project without a toolkit (P4)', () => {
   it('has an empty registry owned by the project, so project functions are listed like any other', () => {
     const bare = projectOnlyToolkit('project-abc123');
-    expect(bare).toMatchObject({ id: 'project-abc123', nodeTypes: [], algorithms: [], designs: [], diagnostics: [] });
+    expect(bare).toMatchObject({ id: 'project-abc123', functions: [], algorithms: [], designs: [], diagnostics: [] });
     expect(bare.attributeBaseline.schema.nodes).toEqual([]);
     const withFunctions = withProjectFunctions(bare, [{ id: 'kitchen', label: 'Kitchen' }]);
-    expect(withFunctions.nodeTypes.map((t) => [t.id, t.definition.label, t.status.ok])).toEqual([['kitchen', 'Kitchen', true]]);
+    expect(withFunctions.functions.map((t) => [t.id, t.definition.label, t.status.ok])).toEqual([['kitchen', 'Kitchen', true]]);
   });
 });

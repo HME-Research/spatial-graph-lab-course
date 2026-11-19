@@ -173,7 +173,7 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
     }
     case 'set-node-type':
       return `Change the type of ${room(command.nodeId)}`;
-    case 'set-node-attributes':
+    case 'set-node-custom':
       return `Edit the attributes of ${room(command.nodeId)}`;
     case 'set-diagram-position':
       return `Move ${room(command.nodeId)} in the diagram`;
@@ -187,7 +187,7 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
     }
     case 'change-edge-kind':
       return `Change connection ${connection(command.edgeId)} to ${command.relationship === 'open' ? 'Open' : 'Access'}`;
-    case 'set-edge-attributes':
+    case 'set-edge-custom':
       return `Edit the attributes of connection ${connection(command.edgeId)}`;
     case 'set-edge-corridor':
       return corridorPatchLabel(command.patch, `connection ${connection(command.edgeId)}`);

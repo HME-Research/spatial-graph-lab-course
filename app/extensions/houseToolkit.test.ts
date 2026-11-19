@@ -66,7 +66,7 @@ const direct = (doc: DesignDocumentV2) =>
 describe('toolkits/house', () => {
   it('has the six Functions of the reference house and exactly two attributes, targetArea and priority', () => {
     expect(house.definition.name).toBe('House');
-    expect(house.nodeTypes.map((t) => t.definition.id).sort()).toEqual(['bath', 'bedroom', 'circulation', 'entrance', 'kitchen', 'living']);
+    expect(house.functions.map((t) => t.definition.id).sort()).toEqual(['bath', 'bedroom', 'circulation', 'entrance', 'kitchen', 'living']);
     expect(house.attributeBaseline.schema.nodes.map((f) => f.key).sort()).toEqual(['priority', 'targetArea']);
     expect(house.attributeBaseline.schema.edges).toEqual([]);
     expect(house.diagnostics.filter((d) => d.severity !== 'info')).toEqual([]);

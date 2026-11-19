@@ -4,7 +4,7 @@ import type { DesignCommand } from '@app/spatial';
 
 /**
  * Commands that change ONE custom value of one node or edge (docs/PROJECT-ATTRIBUTES.md). Each is
- * one `set-node-attributes` / `set-edge-attributes` command, so one edit = one undo step.
+ * one `set-node-custom` / `set-edge-custom` command, so one edit = one undo step.
  *
  * - `value` = a valid value: an explicit instance value (override);
  * - `value` = null: explicit "no value" (overrides any default);
@@ -25,11 +25,11 @@ function check(field: AttributeField, value: AttributeValue | undefined): string
 export function setNodeFieldCommand(node: { readonly id: number; readonly custom: Stored }, field: AttributeField, value: AttributeValue | undefined): FieldCommandResult {
   const problem = check(field, value);
   if (problem) return { ok: false, message: problem };
-  return { ok: true, command: { type: 'set-node-attributes', nodeId: node.id, custom: writeFieldValue(field, node.custom, value) } };
+  return { ok: true, command: { type: 'set-node-custom', nodeId: node.id, custom: writeFieldValue(field, node.custom, value) } };
 }
 
 export function setEdgeFieldCommand(edge: { readonly id: number; readonly custom: Stored }, field: AttributeField, value: AttributeValue | undefined): FieldCommandResult {
   const problem = check(field, value);
   if (problem) return { ok: false, message: problem };
-  return { ok: true, command: { type: 'set-edge-attributes', edgeId: edge.id, custom: writeFieldValue(field, edge.custom, value) } };
+  return { ok: true, command: { type: 'set-edge-custom', edgeId: edge.id, custom: writeFieldValue(field, edge.custom, value) } };
 }

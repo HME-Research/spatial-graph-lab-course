@@ -459,7 +459,7 @@ export function EditAttributeDialog({
   const id = useId();
   const [draft, setDraft] = useState<Draft>(() => draftOf(field));
   const ownTypeDefaults = useMemo(
-    () => new Map(Object.entries(schema.nodeTypeDefaults).flatMap(([t, d]) => (Object.prototype.hasOwnProperty.call(d, field.id) ? [[t, String(d[field.id])] as const] : []))),
+    () => new Map(Object.entries(schema.functionDefaults).flatMap(([t, d]) => (Object.prototype.hasOwnProperty.call(d, field.id) ? [[t, String(d[field.id])] as const] : []))),
     [schema, field.id],
   );
   const [typeDefaults, setTypeDefaults] = useState<ReadonlyMap<string, string>>(ownTypeDefaults);

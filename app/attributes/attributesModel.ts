@@ -75,9 +75,9 @@ export const inheritedText = (r: EffectiveAttribute, functionId?: string): strin
       : 'no default';
 
 /** Node types offered for type defaults: the project's valid types plus types used in the open design. */
-export function typeChoices(project: Pick<ActiveToolkit, 'nodeTypes'> | null, usedTypeIds: readonly string[]): { readonly id: string; readonly label: string }[] {
+export function typeChoices(project: Pick<ActiveToolkit, 'functions'> | null, usedTypeIds: readonly string[]): { readonly id: string; readonly label: string }[] {
   const out = new Map<string, string>();
-  for (const t of project?.nodeTypes ?? []) if (t.status.ok) out.set(t.id, t.definition.label);
+  for (const t of project?.functions ?? []) if (t.status.ok) out.set(t.id, t.definition.label);
   for (const id of usedTypeIds) if (!out.has(id)) out.set(id, id);
   return [...out.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([id, label]) => ({ id, label }));
 }

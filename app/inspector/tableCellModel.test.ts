@@ -27,13 +27,53 @@ const SCHEMA: ProjectAttributeSchema = {
     { id: 'f3', key: 'daylight', label: 'Daylight', kind: 'boolean' },
   ],
   edges: [{ id: 'e1', key: 'note', label: 'Note', kind: 'text' }],
-  nodeTypeDefaults: { kitchen: { f1: 16 }, living: { f1: 20 } },
+  functionDefaults: { kitchen: { f1: 16 }, living: { f1: 20 } },
 };
 
 const PROJECT = { project: null, conformance: [], facade: () => ({ windowFraction: 0 }), attributes: SCHEMA } as unknown as ProjectViewContext;
 
 const draft = (text: string) => ({ kind: 'draft', text }) as const;
 const choice = (value: string) => ({ kind: 'choice', value }) as const;
+
+describe('table cell editors: an edge’s Corridor (Geometry, walls | roof)', () => {
+  const doc = (): DesignDocumentV2 => {
+    const d = house();
+    return { ...d, edges: d.edges.map((e) => (e.id === 2 ? { ...e, corridor: { roof: 'none' as const } } : e)), settings: { ...d.settings, corridors: { walls: 'enclosed' as const } } };
+  };
+
+  it('offers the Properties choices: "Design default (<Corridors card value>)", then the values', () => {
+    expect(cellEditorSpec(doc(), PROJECT, 'edges', 2, 'corridor.walls')).toEqual({
+      kind: 'choice',
+      current: '',
+      options: [
+        { value: '', label: 'Design default (Enclosed)' },
+        { value: 'enclosed', label: 'Enclosed' },
+        { value: 'open', label: 'Open' },
+      ],
+    });
+    expect(cellEditorSpec(doc(), PROJECT, 'edges', 2, 'corridor.roof')).toMatchObject({
+      current: 'none',
+      options: [{ value: '', label: 'Design default (Flat)' }, { value: 'flat' }, { value: 'pergola' }, { value: 'none' }],
+    });
+  });
+
+  it('sends one set-edge-corridor per edit; Design default clears the own value; same value or unknown value sends nothing', () => {
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.walls', choice('open'))).toEqual({
+      kind: 'command',
+      command: { type: 'set-edge-corridor', edgeId: 2, patch: { walls: 'open' } },
+    });
+    const cleared = cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.roof', choice(''));
+    expect(cleared).toEqual({ kind: 'command', command: { type: 'set-edge-corridor', edgeId: 2, patch: { roof: null } } });
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.roof', { kind: 'reset' })).toEqual(cleared);
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.roof', choice('none'))).toEqual({ kind: 'unchanged' });
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.walls', { kind: 'reset' })).toEqual({ kind: 'unchanged' });
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.walls', choice('glass')).kind).toBe('invalid');
+    // Applied: the relationship stores only what is left.
+    if (cleared.kind !== 'command') throw new Error('expected a command');
+    const next = applyDesignCommand(doc(), cleared.command);
+    expect(next.ok && next.value.edges.find((e) => e.id === 2)).not.toHaveProperty('corridor');
+  });
+});
 
 describe('table cell editors', () => {
   it('are offered for Function, Relationship, Geometry and Custom, never for Identity or Calculated', () => {
@@ -42,6 +82,8 @@ describe('table cell editors', () => {
       expect(cellEditorSpec(doc, PROJECT, 'nodes', 3, id), id).not.toBeNull();
     expect(cellEditorSpec(doc, PROJECT, 'edges', 2, 'relationship')).not.toBeNull();
     expect(cellEditorSpec(doc, PROJECT, 'edges', 2, 'custom:e1')).not.toBeNull();
+    expect(cellEditorSpec(doc, PROJECT, 'edges', 2, 'corridor.walls')).not.toBeNull();
+    expect(cellEditorSpec(doc, PROJECT, 'nodes', 3, 'corridor.walls')).toBeNull();
     for (const id of ['id', 'calc:area', 'source', 'target', 'corridor']) {
       expect(cellEditorSpec(doc, PROJECT, 'nodes', 3, id)).toBeNull();
       expect(cellEditorSpec(doc, PROJECT, 'edges', 2, id)).toBeNull();
@@ -102,7 +144,7 @@ describe('committing a table cell', () => {
     const doc = house();
     const living = doc.nodes.find((n) => n.id === 2)!; // living: inherits 20
     const set = cellCommit(doc, PROJECT, 'nodes', living.id, 'custom:f1', draft('24'));
-    expect(set).toEqual({ kind: 'command', command: { type: 'set-node-attributes', nodeId: living.id, custom: { ...living.custom, targetArea: 24 } } });
+    expect(set).toEqual({ kind: 'command', command: { type: 'set-node-custom', nodeId: living.id, custom: { ...living.custom, targetArea: 24 } } });
     // The command is valid: applying it gives the room its own value.
     const applied = applyDesignCommand(doc, (set as { command: Parameters<typeof applyDesignCommand>[1] }).command);
     expect(applied.ok).toBe(true);
@@ -117,7 +159,7 @@ describe('committing a table cell', () => {
 
   it('Custom: "Use default" (reset or an emptied field) removes only the own value', () => {
     const doc = house();
-    const reset = { command: { type: 'set-node-attributes', nodeId: 3, custom: { keep: 'me' } } };
+    const reset = { command: { type: 'set-node-custom', nodeId: 3, custom: { keep: 'me' } } };
     expect(cellCommit(doc, PROJECT, 'nodes', 3, 'custom:f1', { kind: 'reset' })).toMatchObject(reset);
     expect(cellCommit(doc, PROJECT, 'nodes', 3, 'custom:f1', draft(''))).toMatchObject(reset);
     expect(cellCommit(doc, PROJECT, 'nodes', 1, 'custom:f1', { kind: 'reset' }).kind).toBe('unchanged');
@@ -129,6 +171,6 @@ describe('committing a table cell', () => {
     expect(cellCommit(doc, PROJECT, 'nodes', 3, 'custom:f3', choice(EXPLICIT_NONE))).toMatchObject({ command: { custom: { daylight: null } } });
     expect(cellCommit(doc, PROJECT, 'nodes', 3, 'custom:f3', choice(INHERIT)).kind).toBe('unchanged');
     expect(cellCommit(doc, PROJECT, 'nodes', 3, 'custom:f2', choice(encodeChoice('medium'))).kind).toBe('invalid');
-    expect(cellCommit(doc, PROJECT, 'edges', 2, 'custom:e1', draft('narrow'))).toEqual({ kind: 'command', command: { type: 'set-edge-attributes', edgeId: 2, custom: { note: 'narrow' } } });
+    expect(cellCommit(doc, PROJECT, 'edges', 2, 'custom:e1', draft('narrow'))).toEqual({ kind: 'command', command: { type: 'set-edge-custom', edgeId: 2, custom: { note: 'narrow' } } });
   });
 });

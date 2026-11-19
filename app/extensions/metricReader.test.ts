@@ -41,7 +41,7 @@ const daylightFromFacade = defineSpatialAlgorithm({
       if (room.function !== 'gallery') continue;
       const metres = ctx.metrics.value('exposed-facade-length', room.id) as number;
       const daylight = metres >= 24 ? 'high' : metres >= 12 ? 'medium' : 'low';
-      operations.push({ op: 'set-node-attribute', nodeId: room.id, key: 'daylight', value: daylight });
+      operations.push({ op: 'set-node-custom-attribute', nodeId: room.id, key: 'daylight', value: daylight });
     }
     return { kind: 'transformation', summary: `${operations.length} galleries rated`, operations };
   },

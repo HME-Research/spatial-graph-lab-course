@@ -22,7 +22,7 @@ Status: implemented. Contract and persistence (phase 01); one resolver used by t
 | `default` | Schema default (never `null`). |
 | `formerKeys` | Keys the field had before renames, newest first. |
 
-`nodeTypeDefaults[function][fieldId]` holds per-Function defaults for node fields (the record key name `nodeTypeDefaults` is unchanged).
+`functionDefaults[function][fieldId]` holds per-Function defaults for node fields.
 
 **Reserved keys** (case-insensitive) are system properties and JavaScript internals: `id`, `displayId`, `function`, `type`, `position`, `size`, `diagram`, `custom`, `source`, `target`, `relationship`, `corridor`, `__proto__`, `constructor`, `prototype`, `toString`, `valueOf`, `hasOwnProperty`. System properties are always shown in Properties; they are never schema fields, so they cannot be deleted or redefined.
 

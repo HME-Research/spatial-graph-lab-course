@@ -51,10 +51,10 @@ describe('attribute rows', () => {
     expect(attributeKindOf(null)).toBe('none');
   });
 
-  it('produces a record the app accepts via set-node-attributes', () => {
+  it('produces a record the app accepts via set-node-custom', () => {
     const parsed = rowsToAttributes(attributesToRows(attributes));
     if (!parsed.ok) throw new Error(parsed.message);
-    const next = expectOk(applyDesignCommand(threeRooms(), { type: 'set-node-attributes', nodeId: 1, custom: parsed.value }));
+    const next = expectOk(applyDesignCommand(threeRooms(), { type: 'set-node-custom', nodeId: 1, custom: parsed.value }));
     expect(next.nodes.find((n) => n.id === 1)!.custom).toEqual(attributes);
   });
 });

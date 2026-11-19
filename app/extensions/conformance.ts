@@ -1,7 +1,7 @@
 import { exampleFacadeProvider, type FacadeSpec } from '@app/building';
 import type { AttributeValue, DesignDocumentV2 } from '@app/document';
 import { typeColor } from '@core/viewer/appearance';
-import type { ActiveToolkit, RegisteredNodeType } from './activate';
+import type { ActiveToolkit, RegisteredFunction } from './activate';
 import { diagnostic, isBlocking, type ExtensionDiagnostic } from './diagnostics';
 import { describeField, type ProjectAttributeSchema } from './projectAttributes';
 import { attributesOutsideSchema, resolveEdgeAttributes, resolveNodeAttributes, type EffectiveAttribute } from './resolveAttributes';
@@ -29,8 +29,8 @@ import { attributesOutsideSchema, resolveEdgeAttributes, resolveNodeAttributes, 
  */
 
 /** The registered definition of `function` (if several collide, all are broken; the first is returned). */
-export const findNodeType = (project: ActiveToolkit, functionId: string): RegisteredNodeType | undefined =>
-  project.nodeTypes.find((t) => t.id === functionId);
+export const findFunction = (project: ActiveToolkit, functionId: string): RegisteredFunction | undefined =>
+  project.functions.find((t) => t.id === functionId);
 
 type CheckedDocument = Pick<DesignDocumentV2, 'nodes'> & {
   readonly edges?: readonly { readonly id: number; readonly custom: { readonly [key: string]: AttributeValue } }[];
@@ -104,11 +104,11 @@ function attributeChecks(
 export function checkConformance(doc: CheckedDocument, project: ActiveToolkit | null, schema?: ProjectAttributeSchema): ExtensionDiagnostic[] {
   if (!project) return [];
   const fields = schema ?? project.attributeBaseline.schema;
-  const projectDefinesTypes = project.nodeTypes.length > 0;
+  const projectDefinesTypes = project.functions.length > 0;
   const out: ExtensionDiagnostic[] = [];
   for (const node of doc.nodes) {
     const subject = { kind: 'node', id: node.id } as const;
-    const type = findNodeType(project, node.function);
+    const type = findFunction(project, node.function);
     if (!type) {
       if (projectDefinesTypes) {
         out.push(
@@ -155,7 +155,7 @@ export type TypeAppearance =
  */
 export function typeAppearance(project: ActiveToolkit | null, functionId: string): TypeAppearance {
   const color = typeColor(functionId);
-  const type = project ? findNodeType(project, functionId) : undefined;
+  const type = project ? findFunction(project, functionId) : undefined;
   if (type && !type.status.ok) return { status: 'broken', color, diagnosticIds: type.status.diagnosticIds };
   const declared = type?.definition.facade;
   return { status: 'ok', color, facade: declared ? { windowFraction: declared.windowFraction } : exampleFacadeProvider(functionId) };

@@ -121,13 +121,13 @@ describe('unified attribute list', () => {
     expect(sectionedRows(attributeRows('nodes', EMPTY_ATTRIBUTE_SCHEMA, [])).map((g) => g.section)).toEqual(['identity', 'required', 'geometry']);
   });
 
-  it('Edge: Identity (ID, Source, Target), then Relationship, nothing invented, no Geometry, then edge attributes', () => {
+  it('Edge: Identity (ID, Source, Target), then Relationship, Geometry (Corridor: walls | roof), then edge attributes', () => {
     // Area (the only default) is a room value: by default an edge shows no calculated values.
     expect(attributeRows('edges', schema, DEFAULT_ENABLED_METRICS).some((r) => r.kind === 'calculated')).toBe(false);
     const rows = attributeRows('edges', schema, [...DEFAULT_ENABLED_METRICS, 'resolution-status']);
     expect(rows.slice(0, 4).map((r) => `${r.kind}:${r.name}`)).toEqual(['identity:ID', 'identity:Source', 'identity:Target', 'required:Relationship']);
     expect(rows.filter((r) => r.kind === 'required')).toHaveLength(1);
-    expect(rows.some((r) => r.kind === 'geometry')).toBe(false);
+    expect(rows.filter((r) => r.kind === 'geometry').map((r) => `${r.id}:${r.name}`)).toEqual(['corridor:Corridor']);
     expect(rows.filter((r) => r.kind !== 'custom' && r.kind !== 'calculated').map((r) => r.id)).toEqual(EDGE_BUILT_IN_ATTRIBUTES.map((a) => a.id));
     expect(rows.map((r) => r.name)).toContain('Weight');
     expect(rows.find((r) => r.kind === 'calculated')).toMatchObject({ id: 'resolution-status' });
@@ -274,11 +274,11 @@ describe('Attributes panel', () => {
     expect(html).toContain('aria-label="No attribute change to undo"');
   });
 
-  it('edges: Identity (ID, Source, Target) and Relationship; no Geometry section', async () => {
+  it('edges: Identity (ID, Source, Target), Relationship and Geometry (Corridor)', async () => {
     const html = await render({ collection: 'edges', calculatedFields: [] });
     const sections = [...html.matchAll(/data-attribute-section="([^"]+)"/g)].map((m) => m[1]);
-    expect(sections).toEqual(['identity', 'required']);
-    for (const text of ['>ID<', '>Source<', '>Target<', '>Relationship<']) expect(html, text).toContain(text);
+    expect(sections).toEqual(['identity', 'required', 'geometry']);
+    for (const text of ['>ID<', '>Source<', '>Target<', '>Relationship<', '>Corridor<']) expect(html, text).toContain(text);
   });
 
   it('toolkit attributes are tagged and cannot be deleted; yours are tagged and can; calculated rows are only removed from the list', async () => {
@@ -408,13 +408,13 @@ describe('functions (node types) added or removed in the project', () => {
   it('merges project functions into the active project as valid types; toolkit definitions win; removed toolkit functions are left out', async () => {
     const project = await labToolkit();
     const merged = withProjectFunctions(project, [{ id: 'kiosk', label: 'Kiosk' }, { id: 'gallery', label: 'Not this' }], ['studio']);
-    const ids = merged.nodeTypes.map((t) => t.id);
+    const ids = merged.functions.map((t) => t.id);
     expect(ids).toContain('kiosk');
     expect(ids).not.toContain('studio');
-    expect(merged.nodeTypes.filter((t) => t.id === 'gallery')).toHaveLength(1);
-    expect(merged.nodeTypes.find((t) => t.id === 'gallery')!.definition.label).not.toBe('Not this');
-    expect(merged.nodeTypes.find((t) => t.id === 'kiosk')).toMatchObject({ file: PROJECT_FUNCTIONS_FILE, status: { ok: true } });
-    expect(project.nodeTypes.map((t) => t.id)).toContain('studio'); // input unchanged
+    expect(merged.functions.filter((t) => t.id === 'gallery')).toHaveLength(1);
+    expect(merged.functions.find((t) => t.id === 'gallery')!.definition.label).not.toBe('Not this');
+    expect(merged.functions.find((t) => t.id === 'kiosk')).toMatchObject({ file: PROJECT_FUNCTIONS_FILE, status: { ok: true } });
+    expect(project.functions.map((t) => t.id)).toContain('studio'); // input unchanged
     expect(withProjectFunctions(project, undefined, [])).toBe(project);
   });
 

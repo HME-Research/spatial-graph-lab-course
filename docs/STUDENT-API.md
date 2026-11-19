@@ -225,8 +225,8 @@ It returns a list of **operations**. You never choose ids: the app gives every n
 |---|---|
 | `{ op: 'add-node', ref?, position, size?, function, custom? }` | An integer minimum corner `position`, an optional `size` of positive integers (default `[1, 1, 1]`), a box that overlaps no other room, a valid function of your toolkit, and only custom node attributes of the project with valid values. Gets the next node id |
 | `{ op: 'add-edge', ref?, source, target, relationship, corridor? }` | `source` / `target` are `ItemRef`s of existing, different rooms not related yet. `relationship` is `access` or `open`; `corridor` (optional) is its own corridor look `{ walls?, roof? }`. The rooms **don't need to touch**. Gets the next edge id |
-| `{ op: 'set-node-attribute', nodeId, key, value }` | Sets one custom attribute. `nodeId` is an `ItemRef`; `key` must be a custom node attribute of the project (any room may have any of them, whatever its function); the value must be valid, or `null` |
-| `{ op: 'set-edge-attribute', edgeId, key, value }` | Sets one custom attribute. `edgeId` is an `ItemRef`; `key` must be a custom edge attribute of the project; the value must be valid, or `null` |
+| `{ op: 'set-node-custom-attribute', nodeId, key, value }` | Sets one custom attribute. `nodeId` is an `ItemRef`; `key` must be a custom node attribute of the project (any room may have any of them, whatever its function); the value must be valid, or `null`. Built-in values (function, position, size) are not custom attributes: move or resize a room with `set-node-geometry` |
+| `{ op: 'set-edge-custom-attribute', edgeId, key, value }` | Sets one custom attribute. `edgeId` is an `ItemRef`; `key` must be a custom edge attribute of the project; the value must be valid, or `null`. The relationship and corridor are built-in, not custom |
 | `{ op: 'set-node-geometry', nodeId, position?, size? }` | Moves and/or resizes a room (`nodeId` is an `ItemRef`); give `position`, `size` or both, the rest stays. The size stays anchored at the minimum corner, so growing towards −x or −y means a smaller `position` and a larger `size`. Whole numbers, sizes at least 1 and within the size limit; the new box must not overlap another room or take the cells of a generated connector |
 
 The preview (and the applied design) shows the ids the app gave; `preview.assigned` maps your `ref`s to them.
@@ -308,7 +308,7 @@ export default defineSpatialAlgorithm({
     for (const room of ctx.design.nodes.filter((n) => n.function === gallery.id)) {
       const metres = ctx.metrics.value('exposed-facade-length', room.id) as number;
       const daylight = metres >= 24 ? 'high' : metres >= 12 ? 'medium' : 'low';
-      operations.push({ op: 'set-node-attribute', nodeId: room.id, key: 'daylight', value: daylight });
+      operations.push({ op: 'set-node-custom-attribute', nodeId: room.id, key: 'daylight', value: daylight });
     }
     return { kind: 'transformation', summary: `${operations.length} galleries rated`, operations };
   },
@@ -356,7 +356,9 @@ Exports of `@student-api`:
 |---|---|
 | node `typeId`, `grid`, `attributes` | `function`, `position`, `custom` (key order: `id`, `function`, `position`, `size`, `custom`) |
 | edge `kind`, `attributes` | `relationship`, `custom` (key order: `id`, `source`, `target`, `relationship`, `corridor`, `custom`) |
-| `defineNodeType`, `NodeTypeDefinition`, folder `types/` | `defineFunction`, `FunctionDefinition`, folder `functions/` |
-| `attributes` in `defineNodeType` / `defineToolkit` | `custom` |
+| the node-type definer and its definition type, folder `types/` | `defineFunction`, `FunctionDefinition`, folder `functions/` |
+| `attributes` in the node-type definer / `defineToolkit` | `custom` |
 | `ctx.attributesOf(node, type)`, `ctx.nodeAttributes(id)`, `ctx.edgeAttributes(id)`, `ctx.attributeFields`, `AttributeFieldInfo` | `ctx.customOf(node, fn)`, `ctx.nodeCustom(id)`, `ctx.edgeCustom(id)`, `ctx.customFields`, `CustomFieldInfo` |
 | operations `add-node { grid, typeId, attributes }`, `add-edge { kind }`, `set-node-geometry { grid }` | `add-node { position, function, custom }`, `add-edge { relationship, corridor? }`, `set-node-geometry { position }` |
+
+**Naming follow-ups (19 November 2026).** The operations that set ONE custom attribute are now `set-node-custom-attribute` and `set-edge-custom-attribute` (the names without `custom-` are no longer accepted). In the project-attributes record (browser-stored and in exported project files), per-Function defaults are under `functionDefaults`.

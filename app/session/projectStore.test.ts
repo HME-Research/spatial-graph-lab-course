@@ -273,7 +273,7 @@ describe('all-scenario JSON round trip', () => {
     const r = applyActiveCommand(p, { type: 'set-face-preference', edgeId: 1, preference: pref });
     if (!r.ok) throw new Error('pref');
     p = r.project;
-    const record = JSON.parse(serializeAttributeRecord(makeAttributeRecord('gallery', { nodes: [], edges: [], nodeTypeDefaults: {} }, 'x')));
+    const record = JSON.parse(serializeAttributeRecord(makeAttributeRecord('gallery', { nodes: [], edges: [], functionDefaults: {} }, 'x')));
     p = setAttributeRecord(p, record);
 
     const file = projectFileOf(p, '2026-11-16T11:00:00.000Z');

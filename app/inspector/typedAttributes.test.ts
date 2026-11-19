@@ -60,7 +60,7 @@ describe('typed attribute edits', () => {
     const doc = labDoc();
     const g2 = doc.nodes.find((n) => n.id === 2)!;
     const command = parsed(setTypedAttributeCommand(g2, gallerySpecs, 'public', false));
-    expect(command).toEqual({ type: 'set-node-attributes', nodeId: 2, custom: { daylight: 'bright', legacy: 'kept', public: false } });
+    expect(command).toEqual({ type: 'set-node-custom', nodeId: 2, custom: { daylight: 'bright', legacy: 'kept', public: false } });
     const next = expectOk(applyDesignCommand(doc, command));
     expect(next.nodes.find((n) => n.id === 2)!.custom).toEqual({ daylight: 'bright', legacy: 'kept', public: false });
   });
@@ -90,7 +90,7 @@ describe('typed attribute edits', () => {
   it('clearing removes only that declared attribute (the default applies on read; nothing else changes)', () => {
     const g1 = node(1);
     expect(parsed(setTypedAttributeCommand(g1, gallerySpecs, 'public', undefined))).toEqual({
-      type: 'set-node-attributes',
+      type: 'set-node-custom',
       nodeId: 1,
       custom: { daylight: 'high' },
     });
@@ -104,7 +104,7 @@ describe('typed attribute edits', () => {
         { key: 'extra', kind: 'number', value: '2' },
       ]),
     );
-    expect(command).toEqual({ type: 'set-node-attributes', nodeId: 2, custom: { daylight: 'bright', legacy: 'changed', extra: 2 } });
+    expect(command).toEqual({ type: 'set-node-custom', nodeId: 2, custom: { daylight: 'bright', legacy: 'changed', extra: 2 } });
     const removed = parsed(setUndeclaredAttributesCommand(g2, gallerySpecs, []));
     expect(removed).toMatchObject({ custom: { daylight: 'bright' } });
     const clash = setUndeclaredAttributesCommand(g2, gallerySpecs, [{ key: 'daylight', kind: 'text', value: 'low' }]);

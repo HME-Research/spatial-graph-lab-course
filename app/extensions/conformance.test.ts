@@ -60,7 +60,7 @@ describe('conformance', () => {
 
   it('does not warn about unknown types when the project defines no types, or without a project', async () => {
     const project = await labToolkit({ 'toolkits/lab/functions/gallery.ts': undefined, 'toolkits/lab/functions/studio.ts': undefined });
-    expect(project.nodeTypes).toEqual([]);
+    expect(project.functions).toEqual([]);
     // Phase 02: values outside the (here empty) project schema are reported as information only.
     const ds = checkConformance(labDoc(), project);
     expect(ds.filter((d) => d.severity !== 'info')).toEqual([]);

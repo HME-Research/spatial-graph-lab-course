@@ -114,7 +114,7 @@ export const daylightFromExposure = defineSpatialAlgorithm({
       const exposed = HORIZONTAL.filter((d) => ctx.nodeAt(neighbourCell(node.position, d)) === undefined).length;
       const daylight = exposed >= 3 ? 'high' : exposed === 2 ? 'medium' : 'low';
       if (ctx.customOf(node, gallery).daylight !== daylight) {
-        operations.push({ op: 'set-node-attribute', nodeId: node.id, key: 'daylight', value: daylight });
+        operations.push({ op: 'set-node-custom-attribute', nodeId: node.id, key: 'daylight', value: daylight });
       }
     }
     return { kind: 'transformation', summary: `${operations.length} gallery daylight value(s) updated.`, operations };

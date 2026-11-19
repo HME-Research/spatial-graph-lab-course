@@ -121,7 +121,7 @@ export function AttributesPanel({
   const schema = currentSchema(session);
   const sourceOf = sourceResolver(collection, project);
   const rows = attributeRows(collection, schema, calculatedFields, undefined, sourceOf);
-  const functionChoices = functions ?? project.nodeTypes.filter((t) => t.status.ok).map((t) => ({ id: t.id, label: t.definition.label }));
+  const functionChoices = functions ?? project.functions.filter((t) => t.status.ok).map((t) => ({ id: t.id, label: t.definition.label }));
   /** Why a custom attribute cannot be deleted (it comes from the toolkit), or null. */
   const deleteBlockedOf = (fieldId: string): string | null => {
     const field = schema[collection].find((f) => f.id === fieldId);
@@ -346,7 +346,7 @@ export function AttributesPanel({
           collection={collection}
           field={fieldOf(dialog.fieldId)!}
           samples={samples}
-          hasTypeDefaults={collection === 'nodes' && Object.values(schema.nodeTypeDefaults).some((d) => Object.prototype.hasOwnProperty.call(d, dialog.fieldId))}
+          hasTypeDefaults={collection === 'nodes' && Object.values(schema.functionDefaults).some((d) => Object.prototype.hasOwnProperty.call(d, dialog.fieldId))}
           references={referencesOf(dialog.fieldId)}
           apply={apply}
           onClose={() => setDialog(null)}

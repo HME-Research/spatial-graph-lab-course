@@ -89,7 +89,7 @@ describe('every supported edit is one undoable step', () => {
     ['delete edge', [{ type: 'remove-edge', edgeId: 6 }]],
     ['change edge', [{ type: 'change-edge-kind', edgeId: 6, relationship: 'open' }]],
     ['node type', [{ type: 'set-node-type', nodeId: 4, function: 'studio' }]],
-    ['attributes', [{ type: 'set-node-attributes', nodeId: 4, custom: { daylight: 'low', public: false } }]],
+    ['attributes', [{ type: 'set-node-custom', nodeId: 4, custom: { daylight: 'low', public: false } }]],
     ['grid move', [{ type: 'remove-edge', edgeId: 3 }, { type: 'set-node-geometry', nodeId: 4, position: [2, 1, 0] }]],
     ['diagram drag', [{ type: 'set-diagram-position', nodeId: 4, position: [10, 20] }]],
   ];
@@ -191,7 +191,7 @@ describe('failed and no-op commands are not recorded', () => {
 
   it('a command that produces identical content returns the same session (no step, no redo loss)', () => {
     const s = undoDocument(edit(open(), { type: 'set-node-type', nodeId: 4, function: 'studio' }));
-    const same = applyDesignCommandToSession(s, { type: 'set-node-attributes', nodeId: 4, custom: { public: false, daylight: null } });
+    const same = applyDesignCommandToSession(s, { type: 'set-node-custom', nodeId: 4, custom: { public: false, daylight: null } });
     expect(same.ok && same.session).toBe(s);
     expect(same.ok && same.changed).toBe(false);
     expect(canRedo(s.history)).toBe(true);
@@ -247,8 +247,8 @@ describe('clean-state tracking', () => {
   });
 
   it('is defined by content, not identity or history length: editing back to equal content is clean', () => {
-    let s = edit(open(), { type: 'set-node-attributes', nodeId: 4, custom: { daylight: 'low', public: false } });
-    s = edit(s, { type: 'set-node-attributes', nodeId: 4, custom: { public: false, daylight: null } });
+    let s = edit(open(), { type: 'set-node-custom', nodeId: 4, custom: { daylight: 'low', public: false } });
+    s = edit(s, { type: 'set-node-custom', nodeId: 4, custom: { public: false, daylight: null } });
     expect(s.history.past).toHaveLength(2);
     expect(doc(s)).not.toBe(builtIn);
     expect(isModified(s)).toBe(false);
@@ -290,7 +290,7 @@ describe('transformations and previews', () => {
     for (const command of [
       { type: 'add-node', node: { position: [2, 0, 0], function: 'gallery', custom: {} } },
       { type: 'add-edge', edge: { source: 2, target: 7 /* the new node */, relationship: 'access' } },
-      { type: 'set-node-attributes', nodeId: 4, custom: { daylight: 'low', public: false } },
+      { type: 'set-node-custom', nodeId: 4, custom: { daylight: 'low', public: false } },
     ] satisfies DesignCommand[]) {
       many = expectOk(applyDesignCommand(many, command));
     }
