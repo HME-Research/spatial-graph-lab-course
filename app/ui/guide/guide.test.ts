@@ -47,7 +47,7 @@ describe('About', () => {
 });
 
 describe('Guide', () => {
-  it('has content for every tab (placeholder) and a labelled button', () => {
+  it('has content for every tab and a labelled button', () => {
     expect(tabsWithoutContent()).toEqual([]);
     expect(GUIDE_CONTENT.map((c) => c.tab)).toEqual([...GUIDE_TAB_IDS]);
     expect(renderToStaticMarkup(createElement(GuideButton))).toContain('Guide');

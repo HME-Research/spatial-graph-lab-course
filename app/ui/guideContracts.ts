@@ -53,14 +53,24 @@ export interface Explainer {
   };
 }
 
-/** A text file offered by the Guide (P4 item I: the analysis template and the AI prompt). */
-export interface GuideDownload {
-  readonly label: string;
-  /** Name the browser saves it under. */
-  readonly fileName: string;
-  /** The file text, loaded on click (a lazy `?raw` import, so the main bundle does not carry it). */
-  readonly load: () => Promise<string>;
-}
+/**
+ * A file offered by the Guide: a text file loaded on click (the analysis template), or a file the
+ * app serves from `public/` (the AI kit zip), offered as a plain download link.
+ */
+export type GuideDownload =
+  | {
+      readonly label: string;
+      /** Name the browser saves it under. */
+      readonly fileName: string;
+      /** The file text, loaded on click (a lazy `?raw` import, so the main bundle does not carry it). */
+      readonly load: () => Promise<string>;
+    }
+  | {
+      readonly label: string;
+      readonly fileName: string;
+      /** A URL served by the app, e.g. `/downloads/spatial-graph-lab-ai-kit.zip`. */
+      readonly href: string;
+    };
 
 /** Props of the shared movable / resizable / minimisable window. */
 export interface FloatingWindowProps {

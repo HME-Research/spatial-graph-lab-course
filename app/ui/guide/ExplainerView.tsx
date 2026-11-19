@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { Explainer, GuideDownload } from '../guideContracts';
 import { FloatingWindow } from '../floating';
+import { renderGuideDiagram } from './diagrams';
 import './guide.css';
 
 /** DOM id of a Guide section (an Explainer block) so a GuideLink can scroll to it. */
@@ -8,12 +9,13 @@ export const sectionDomId = (id: string) => `guide-section-${id}`;
 
 /**
  * One explainer block: title, then the one-sentence summary (strongest), the example, an optional
- * diagram slot and an optional "Learn more" link (new tab). `renderDiagram` maps `explainer.diagram`
- * (a diagram id) to a component; without it the slot is left empty.
+ * diagram, an optional screenshot of the app with numbered markers, downloads and an optional
+ * "Learn more" link (new tab). `renderDiagram` maps `explainer.diagram` (a diagram id) to a
+ * component; it defaults to the Guide diagrams (`diagrams.tsx`).
  */
 export function ExplainerView({
   explainer,
-  renderDiagram,
+  renderDiagram = renderGuideDiagram,
   headingLevel = 3,
 }: {
   readonly explainer: Explainer;
@@ -33,6 +35,7 @@ export function ExplainerView({
           {renderDiagram?.(explainer.diagram)}
         </div>
       )}
+      {explainer.screenshot && <Screenshot shot={explainer.screenshot} />}
       {explainer.downloads && explainer.downloads.length > 0 && (
         <ul className="sgl-explainer-downloads" aria-label="Downloads">
           {explainer.downloads.map((d) => (
@@ -53,13 +56,42 @@ export function ExplainerView({
   );
 }
 
-/** Save a text file: loaded on click, handed to the browser as a download (nothing is uploaded). */
+/**
+ * A screenshot of the real app (captured by scripts/guide-shots.mjs) with the numbered markers drawn
+ * over it, at fractions of the image size, so they stay in place at any width. The markers repeat
+ * the numbers of the entry's steps; the alt text names what each number points at.
+ */
+function Screenshot({ shot }: { readonly shot: NonNullable<Explainer['screenshot']> }) {
+  return (
+    <figure className="sgl-explainer-shot">
+      <div className="sgl-explainer-shot-frame">
+        <img src={shot.src} alt={shot.alt} loading="lazy" decoding="async" />
+        {shot.markers.map((m) => (
+          <span key={m.n} className="sgl-guide-marker" aria-hidden="true" data-marker={m.n} style={{ left: `${(m.x * 100).toFixed(2)}%`, top: `${(m.y * 100).toFixed(2)}%` }}>
+            {m.n}
+          </span>
+        ))}
+      </div>
+      <figcaption>In the app (numbers match the steps above)</figcaption>
+    </figure>
+  );
+}
+
+/** Save a file: a served file is a plain download link; a text file is loaded on click and handed to the browser (nothing is uploaded). */
 function DownloadButton({ download }: { readonly download: GuideDownload }) {
   const [problem, setProblem] = useState<string | null>(null);
+  if ('href' in download) {
+    return (
+      <a className="sgl-explainer-download" href={download.href} download={download.fileName} data-download={download.fileName}>
+        ⤓ {download.label}
+      </a>
+    );
+  }
+  const load = download.load;
   const save = async () => {
     setProblem(null);
     try {
-      const text = await download.load();
+      const text = await load();
       const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
       const a = document.createElement('a');
       a.href = url;
