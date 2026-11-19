@@ -46,6 +46,10 @@ describe('floating window geometry', () => {
     expect(s.y + s.height).toBeLessThanOrEqual(vp.height);
     expect(s.minimised).toBe(false);
   });
+  it('default state is centred in the viewport', () => {
+    const s = defaultState({ width: 420, height: 480 }, min, { width: 1200, height: 800 });
+    expect(s).toMatchObject({ x: 390, y: 160, width: 420, height: 480 });
+  });
   it('arrow keys nudge, Shift nudges further, other keys do nothing', () => {
     expect(nudgeFor('ArrowLeft', false)).toEqual({ x: -NUDGE, y: 0 });
     expect(nudgeFor('ArrowDown', true)).toEqual({ x: 0, y: NUDGE * 5 });

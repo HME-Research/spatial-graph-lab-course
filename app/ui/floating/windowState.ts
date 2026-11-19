@@ -48,10 +48,13 @@ export function fitState(state: WindowState, min: Size, viewport: Size): WindowS
   return { ...pos, ...size, minimised: state.minimised };
 }
 
-/** Default state: near the top right of the viewport. */
+/** Default state: centred in the viewport. */
 export function defaultState(size: Size, min: Size, viewport: Size): WindowState {
   const s = clampSize(size, min, viewport);
-  return fitState({ x: viewport.width - s.width - 24, y: 64, ...s, minimised: false }, min, viewport);
+  // Owner 2026-11-19: a window opens in the middle of the page (until the student moves it).
+  const x = Math.round((viewport.width - s.width) / 2);
+  const y = Math.round((viewport.height - s.height) / 2);
+  return fitState({ x, y, ...s, minimised: false }, min, viewport);
 }
 
 export function storageKey(id: string): string {
