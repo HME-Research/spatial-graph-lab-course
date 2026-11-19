@@ -143,11 +143,23 @@ window.__wf = {
   nodes() { return [...document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node')].map((n) => n.getAttribute('data-id')); },
   edges() { return [...document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__edge')].length; },
   props() { return document.querySelector('#sidebar-panel-properties')?.innerText ?? ''; },
-  field(prefix, axis) { return document.querySelector('input[aria-label="' + prefix + ' ' + axis + '"]') ?? document.querySelector('input[aria-label^="' + prefix + ' ' + axis + ' "]'); },
-  triple(prefix) { return ['x','y','z'].map((a) => Number(this.field(prefix, a)?.value)); },
-  setTriple(prefix, values) {
-    ['x','y','z'].forEach((a, i) => this.setValue(this.field(prefix, a), values[i]));
-    this.enter(this.field(prefix, 'z'));
+  // Geometry rows of Properties (P4): Position X, Position Y, Level / Size X, Size Y, Floors, each its own field.
+  GEO: { position: ['position-x', 'position-y', 'level'], size: ['size-x', 'size-y', 'floors'] },
+  geo(id) { return (document.querySelector('#sidebar-panel-properties') ?? document).querySelector('.sgl-field[data-attribute="' + id + '"] input'); },
+  field(part, axis) { return this.geo(this.GEO[part][['x', 'y', 'z'].indexOf(axis)]); },
+  triple(part) { return this.GEO[part].map((id) => Number(this.geo(id)?.value)); },
+  // One edit per changed axis: each row is its own command and undo step (a 3-axis change is up to
+  // three steps, applied x, y, z in order). Returns the number of edits sent.
+  setTriple(part, values) {
+    let sent = 0;
+    this.GEO[part].forEach((id, i) => {
+      const el = this.geo(id);
+      if (!el || Number(el.value) === values[i]) return;
+      this.setValue(el, values[i]);
+      this.enter(el);
+      sent += 1;
+    });
+    return sent;
   },
   panel2(mode) { const s = document.querySelectorAll('.panel-header select')[1]; this.setValue(s, mode); return s.value; },
   voxelInfo() { return document.querySelector('.view-panel[data-panel="1"] .viewer3d-info')?.innerText ?? ''; },
@@ -165,7 +177,7 @@ async function selectNodeInGraph(id) {
   // Since phase 06 a click only selects (the summary opens on double-click); close one if open.
   await evaluate(`document.querySelector('.view-panel[data-panel="0"] .sgl-popover button[aria-label="Close details"]')?.click(); true`);
   await evaluate(`__wf.tab('properties'); true`);
-  await waitFor(`__wf.field('Position (lowest corner)', 'x') !== null`, `Properties of ${id}`);
+  await waitFor(`__wf.field('position', 'x') !== null`, `Properties of ${id}`);
 }
 let downloads = 0;
 async function download() {
@@ -219,7 +231,7 @@ for (let i = 1; i <= 3; i++) {
     await waitFor(`!document.querySelector('.project-bar[aria-busy="true"]')`, 'the toolkit to activate', 20000);
     // The header names the project only (no internal or toolkit ids); the toolkit is listed in Project → Advanced.
     const bar = await evaluate(`document.querySelector('.sgl-identity-project')?.textContent ?? ''`);
-    expect(bar === 'Two-storey example', `project identity: ${bar.slice(0, 120)}`);
+    expect(/^Example/.test(bar), `project identity: ${bar.slice(0, 120)}`);
     await evaluate(`__wf.tab('project'); true`);
     const toolkit = await waitFor(`(() => { const dt = [...document.querySelectorAll('.sgl-project dt')].find((d) => d.textContent === 'Toolkit'); const t = dt?.nextElementSibling?.textContent ?? ''; return t && t !== 'loading…' ? t : null; })()`, 'the toolkit');
     expect(toolkit.length > 0, `toolkit: ${toolkit}`);
@@ -240,16 +252,24 @@ await step('workflow/add-node', async () => {
   newId = (await evaluate('__wf.nodes()')).find((id) => !before.includes(id));
   const label = await evaluate('__wf.undoTitle()');
   undoLabels.push(label);
-  expect(/Add room 07/.test(label), `undo label ${label}`);
+  expect(/Add room \d+/.test(label), `undo label ${label}`);
   return `added ${newId}; ${label}`;
 });
 
 await step('workflow/move-via-properties', async () => {
   await selectNodeInGraph(newId);
-  await evaluate(`__wf.setTriple('Position (lowest corner)', [5, 0, 0]); true`);
-  await waitFor(`/Move room .* to \\[5, 0, 0\\]/.test(__wf.undoTitle())`, 'the move to be recorded');
-  undoLabels.push(await evaluate('__wf.undoTitle()'));
-  return `${newId} at ${JSON.stringify(await evaluate(`__wf.triple('Position (lowest corner)')`))}; ${undoLabels.at(-1)}`;
+  // Position X / Position Y / Level are separate fields: one edit and one undo step per changed axis.
+  const target = [5, 0, 0];
+  const next = await evaluate(`__wf.triple('position')`);
+  for (let i = 0; i < 3; i++) {
+    if (next[i] === target[i]) continue;
+    next[i] = target[i];
+    const label = `Move room ${newId} to [${next.join(', ')}]`;
+    await evaluate(`__wf.setTriple('position', ${JSON.stringify(next)}); true`);
+    await waitFor(`__wf.undoTitle().includes(${JSON.stringify(label)})`, label);
+    undoLabels.push(await evaluate('__wf.undoTitle()'));
+  }
+  return `${newId} at ${JSON.stringify(await evaluate(`__wf.triple('position')`))}; ${undoLabels.at(-1)}`;
 });
 
 await step('workflow/connect-generates-enclosed-corridor', async () => {
@@ -290,7 +310,7 @@ await step('workflow/change-connector-style', async () => {
 
 await step('workflow/resize-via-properties', async () => {
   await selectNodeInGraph(newId);
-  await evaluate(`__wf.setTriple('Size (cells)', [2, 1, 1]); true`);
+  await evaluate(`__wf.setTriple('size', [2, 1, 1]); true`);
   await waitFor(`/Resize room .* to 2×1×1/.test(__wf.undoTitle())`, 'the resize to be recorded');
   undoLabels.push(await evaluate('__wf.undoTitle()'));
   return undoLabels.at(-1);
@@ -301,14 +321,14 @@ await step('workflow/move-in-properties-voxels', async () => {
   // The Move/Resize step panel was removed (2026-11-17); the keyboard alternative to the gizmo is
   // the room's Position in Properties (one change = one command).
   expect(!(await evaluate(`!!document.querySelector('[aria-label$="plus one cell"]')`)), 'the Move/Resize step buttons are back');
-  const before = await evaluate(`__wf.triple('Position (lowest corner)')`);
-  await evaluate(`__wf.setTriple('Position (lowest corner)', [${before[0]}, ${before[1] + 1}, ${before[2]}]); true`);
-  await waitFor(`__wf.triple('Position (lowest corner)')[1] === ${before[1] + 1}`, 'the gizmo move');
+  const before = await evaluate(`__wf.triple('position')`);
+  await evaluate(`__wf.setTriple('position', [${before[0]}, ${before[1] + 1}, ${before[2]}]); true`);
+  await waitFor(`__wf.triple('position')[1] === ${before[1] + 1}`, 'the gizmo move');
   const label = await evaluate('__wf.undoTitle()');
   expect(/Move room/.test(label), label);
   // Undo it: exactly one step returns the room.
   await evaluate(`document.querySelector('.history-actions button').click(); true`);
-  await waitFor(`__wf.triple('Position (lowest corner)')[1] === ${before[1]}`, 'undo of the gizmo move');
+  await waitFor(`__wf.triple('position')[1] === ${before[1]}`, 'undo of the gizmo move');
   return `+y moved ${JSON.stringify(before)} → y+1 in one step; undo restored`;
 });
 
@@ -316,7 +336,7 @@ await step('workflow/orbit-keeps-selection', async () => {
   const rect = await evaluate(`(() => { const c = document.querySelector('.view-panel[data-panel="1"] canvas'); const b = c.getBoundingClientRect(); return { x: b.x + 30, y: b.y + b.height - 60 }; })()`);
   await dragAt(rect.x, rect.y, 80, -20);
   const text = await evaluate('__wf.props()');
-  expect(new RegExp(`Room`).test(text) && (await evaluate(`__wf.field('Position (lowest corner)', 'x') !== null`)), 'selection lost after orbit');
+  expect(new RegExp(`Room`).test(text) && (await evaluate(`__wf.field('position', 'x') !== null`)), 'selection lost after orbit');
   return 'orbit drag on empty canvas kept the selected room';
 });
 
@@ -375,7 +395,7 @@ await step('workflow/undo-redo-every-step', async () => {
     await delay(120);
   }
   expect(!(await evaluate('__wf.canUndo()')), 'undo still possible after undoing every step (an operation took more than one entry)');
-  expect((await evaluate('__wf.nodes()')).length === 6, 'baseline should have 6 rooms');
+  expect((await evaluate('__wf.nodes()')).length === 7, 'baseline should have the 7 rooms of the example');
   for (let i = 0; i < undoLabels.length; i++) {
     await evaluate(`document.querySelectorAll('.history-actions button')[1].click(); true`);
     await delay(120);
@@ -417,27 +437,29 @@ await step('workflow/reimport-roundtrip', async () => {
 
 // ── 2. failure cases ─────────────────────────────────────────────────────────────────────────
 await step('fail/room-collision-rejected', async () => {
-  await selectNodeInGraph(newId);
+  // Room 1 (the entrance at [0, 0, 0]) is never moved by the steps above: Position X = 1 (one
+  // Geometry edit) puts it into room 2.
+  await selectNodeInGraph('1');
   const before = await evaluate('__wf.undoTitle()');
-  const pos = await evaluate(`__wf.triple('Position (lowest corner)')`);
-  await evaluate(`__wf.setTriple('Position (lowest corner)', [1, 1, 0]); true`);
+  const pos = await evaluate(`__wf.triple('position')`);
+  await evaluate(`__wf.setTriple('position', [1, ${pos[1]}, ${pos[2]}]); true`);
   const msg = await waitFor(`(/overlaps/i.test(__wf.props()) && __wf.props().match(/[^\\n]*overlaps[^\\n]*/i)[0])`, 'an overlap message');
   expect((await evaluate('__wf.undoTitle()')) === before, 'a history entry was recorded for a rejected move');
   await delay(200);
-  const after = await evaluate(`__wf.triple('Position (lowest corner)')`);
+  const after = await evaluate(`__wf.triple('position')`);
   return `"${msg}"; no history entry; stored position ${JSON.stringify(pos)} (field shows ${JSON.stringify(after)})`;
 });
 
 await step('fail/corridor-displacement-cancel-and-confirm', async () => {
   await selectNodeInGraph('gallery-upper');
   const before = await evaluate('__wf.undoTitle()');
-  await evaluate(`__wf.setTriple('Position (lowest corner)', [3, 0, 0]); true`);
+  await evaluate(`__wf.setTriple('position', [3, 0, 0]); true`);
   await waitFor(`__wf.button('Move anyway and recalculate') !== null`, 'the corridor confirmation');
   await screenshot(`20-displacement-confirm-${vw}x${vh}`);
   expect((await evaluate(`__wf.click('Cancel', document.querySelector('#sidebar-panel-properties'))`)) === 'clicked', 'Cancel');
   await delay(200);
   expect((await evaluate('__wf.undoTitle()')) === before, 'Cancel changed the document');
-  await evaluate(`__wf.setTriple('Position (lowest corner)', [3, 0, 0]); true`);
+  await evaluate(`__wf.setTriple('position', [3, 0, 0]); true`);
   await waitFor(`__wf.button('Move anyway and recalculate') !== null`, 'the corridor confirmation again');
   expect((await evaluate(`__wf.click('Move anyway and recalculate')`)) === 'clicked', 'confirm');
   await waitFor(`/Move room .* to \\[3, 0, 0\\]/.test(__wf.undoTitle())`, 'the confirmed move');
@@ -537,20 +559,21 @@ await step('views/coordinated-selection', async () => {
   await evaluate(`[...document.querySelectorAll('.sgl-welcome button')].find((b) => b.textContent.trim().startsWith('Try example'))?.click(); true`);
   await waitFor(`document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__node').length > 0`, 'the design', 20000);
   await helpers();
-  await waitFor(`__wf.nodes().length === 6`, 'the example');
-  await selectNodeInGraph('store');
+  await waitFor(`__wf.nodes().length === 7`, 'the example');
+  await selectNodeInGraph('6');
   const out = [];
   for (const mode of ['graph3d', 'voxels', 'architecture']) {
     await evaluate(`__wf.panel2('${mode}'); true`);
     await delay(500);
-    const still = await evaluate(`__wf.field('Position (lowest corner)', 'x') !== null && /storage/.test(__wf.props())`);
+    const still = await evaluate(`__wf.field('position', 'x') !== null && /Room\\s+6/.test(__wf.props())`);
     expect(still, `selection lost when panel 2 shows ${mode}`);
     await screenshot(`40-selected-${mode}-${vw}x${vh}`);
     out.push(mode);
   }
   // An edit in Properties is reflected in the other views (Voxels hover info counts / Graph 2D label).
-  await evaluate(`__wf.setTriple('Position (lowest corner)', [3, 1, 0]); true`);
-  await waitFor(`/Move room .* to \\[3, 1, 0\\]/.test(__wf.undoTitle())`, 'the move');
+  // One Geometry edit: room 6 (the bedroom at [2, 0, 1]) moves along x to free cells.
+  await evaluate(`__wf.setTriple('position', [4, 0, 1]); true`);
+  await waitFor(`__wf.undoTitle().includes('Move room 6 to [4, 0, 1]')`, 'the move');
   await evaluate(`__wf.panel2('voxels'); true`);
   const info = await waitFor(`__wf.voxelInfo()`, 'voxel info');
   return `selection kept across ${out.join(', ')}; Voxels: ${info.split('\n').pop()}`;

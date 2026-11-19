@@ -141,11 +141,23 @@ window.__w = {
   undoTitle() { return this.undoButton()?.getAttribute('aria-label') ?? ''; },
   edgeIds() { return [...document.querySelectorAll('.view-panel[data-panel="0"] .react-flow__edge')].map((e) => e.getAttribute('data-id')).filter(Boolean).sort(); },
   props() { return document.querySelector('#sidebar-panel-properties')?.innerText ?? ''; },
-  field(prefix, axis) { return document.querySelector('input[aria-label="' + prefix + ' ' + axis + '"]') ?? document.querySelector('input[aria-label^="' + prefix + ' ' + axis + ' "]'); },
-  triple(prefix) { return ['x','y','z'].map((a) => Number(this.field(prefix, a)?.value)); },
-  setTriple(prefix, values) {
-    ['x','y','z'].forEach((a, i) => this.setValue(this.field(prefix, a), values[i]));
-    this.enter(this.field(prefix, 'z'));
+  // Geometry rows of Properties (P4): Position X, Position Y, Level / Size X, Size Y, Floors, each its own field.
+  GEO: { position: ['position-x', 'position-y', 'level'], size: ['size-x', 'size-y', 'floors'] },
+  geo(id) { return (document.querySelector('#sidebar-panel-properties') ?? document).querySelector('.sgl-field[data-attribute="' + id + '"] input'); },
+  field(part, axis) { return this.geo(this.GEO[part][['x', 'y', 'z'].indexOf(axis)]); },
+  triple(part) { return this.GEO[part].map((id) => Number(this.geo(id)?.value)); },
+  // One edit per changed axis: each row is its own command and undo step (a 3-axis change is up to
+  // three steps, applied x, y, z in order). Returns the number of edits sent.
+  setTriple(part, values) {
+    let sent = 0;
+    this.GEO[part].forEach((id, i) => {
+      const el = this.geo(id);
+      if (!el || Number(el.value) === values[i]) return;
+      this.setValue(el, values[i]);
+      this.enter(el);
+      sent += 1;
+    });
+    return sent;
   },
   panelMode(panel, mode) { const s = document.querySelector('select[aria-label="View shown in panel ' + panel + '"]'); if (!s) return null; if (mode && s.value !== mode) this.setValue(s, mode); return s.value; },
   legendCount(panel, id) {
@@ -172,12 +184,12 @@ const NODE = (id) => `.view-panel[data-panel="0"] .react-flow__node[data-id="${i
 async function selectNode(id) {
   await clickElement(`document.querySelector(${JSON.stringify(NODE(id))})`, `node ${id} in Graph 2D`);
   await evaluate(`document.querySelector('.view-panel[data-panel="0"] .sgl-popover button[aria-label="Close details"]')?.click(); true`);
-  await waitFor(`__w.field('Position (lowest corner)', 'x') !== null && new RegExp(${JSON.stringify(id)}).test(__w.props())`, `Properties of ${id}`);
+  await waitFor(`__w.field('position', 'x') !== null && new RegExp(${JSON.stringify(id)}).test(__w.props())`, `Properties of ${id}`);
 }
 async function moveRoom(id, grid) {
   await selectNode(id);
-  await evaluate(`__w.setTriple('Position (lowest corner)', ${JSON.stringify(grid)}); true`);
-  await waitFor(`__w.triple('Position (lowest corner)').join(',') === ${JSON.stringify(grid.join(','))} && /Move room/.test(__w.undoTitle())`, `${id} at ${grid}`);
+  await evaluate(`__w.setTriple('position', ${JSON.stringify(grid)}); true`);
+  await waitFor(`__w.triple('position').join(',') === ${JSON.stringify(grid.join(','))} && /Move room/.test(__w.undoTitle())`, `${id} at ${grid}`);
 }
 async function undo() {
   await clickElement(`__w.undoButton()`, 'the Undo button');
@@ -470,7 +482,7 @@ async function selectionPixels(panel) {
 const edgeSelected = (id) => evaluate(`!!document.querySelector('.view-panel[data-panel="0"] .react-flow__edge.selected[data-id="${id}"]')`);
 const edgeDashed = (id) =>
   evaluate(`(() => { const p = document.querySelector('.view-panel[data-panel="0"] .react-flow__edge[data-id="${id}"] path.react-flow__edge-path'); return p ? (p.style.strokeDasharray || '') : null; })()`);
-const roomSelected = (id) => `__w.field('Position (lowest corner)', 'x') !== null && /${id}/.test(__w.props())`;
+const roomSelected = (id) => `__w.field('position', 'x') !== null && /${id}/.test(__w.props())`;
 async function redo() {
   await clickElement(`document.querySelectorAll('.history-actions button')[1]`, 'the Redo button');
 }
