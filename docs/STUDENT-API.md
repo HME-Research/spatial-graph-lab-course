@@ -1,13 +1,13 @@
 # Student API (schema-v2 data, numeric ids)
 
-How to write your own node types, designs and algorithms for Spatial Graph Lab. Your code lives in **one toolkit folder** and imports **only** `@student-api`.
+How to write your own functions, designs and algorithms for Spatial Graph Lab. Your code lives in **one toolkit folder** and imports **only** `@student-api`.
 
-> Status (Stage 3B): the app activates your toolkit, opens its default design, uses its node types in the inspector and its façades in the Architecture view, and runs its algorithms from the **Algorithms** panel. See [Workflow](#workflow) for the step-by-step version.
+> Status (Stage 3B): the app activates your toolkit, opens its default design, uses its functions in the inspector and its façades in the Architecture view, and runs its algorithms from the **Algorithms** panel. See [Workflow](#workflow) for the step-by-step version.
 
 ## Workflow
 
 1. **Create a toolkit.** Make a folder `toolkits/my-toolkit/` (lowercase letters, digits, `-` and `_`, starting with a letter) with a `toolkit.ts` (see [Your toolkit folder](#1-your-toolkit-folder)). Once the reference toolkit `toolkits/house/` exists, you can copy it instead; don't edit it itself.
-2. **Define a node type.** Edit or add a file in `types/` (see [Node types](#2-node-types)). The `id` is the `typeId` your designs use.
+2. **Define a function.** Edit or add a file in `functions/` (see [Functions](#2-functions)). The `id` is the `function` your designs use.
 3. **Write an algorithm.** Add a file in `algorithms/`: `defineGraphAlgorithm` for an analysis that only reads the graph, or `defineSpatialAlgorithm` for a transformation that returns operations (see [Algorithms](#4-algorithms)).
 4. **Check it.** `npm run check:toolkit -- -t my-toolkit` loads your toolkit exactly as the app does and fails with a readable message if a definition or design is invalid, or if an algorithm fails on your default design. `npm run typecheck` checks your TypeScript.
 5. **Run the app.** `npm run dev`, then open the printed URL with `?toolkit=my-toolkit` (for example `http://localhost:5173/?toolkit=my-toolkit`), or choose your toolkit when you create a new project. The header shows a problem count; the **Project** section of the left rail lists every problem in your toolkit files and keeps it visible until you fix it (the page reloads when you save a file).
@@ -15,7 +15,7 @@ How to write your own node types, designs and algorithms for Spatial Graph Lab. 
    - An *analysis* appears in the Analyse section its inputs decide (tagged `Toolkit: <name>`): **Node** and **Edge** analyses run on the selected node or edge; a **Queries** analysis asks you to pick each input in any view (Esc cancels). The answer is shown big, with its nodes and edges highlighted in every view. **Clear** removes it. It never changes the design.
    - A *transformation* (Transform) shows a **preview**: the rooms, connections and attribute values it would add or change. Nothing changes until you press **Apply**. **Discard** throws the preview away. If you edit the design after running, the preview can no longer be applied: run it again.
    - Disabled algorithms (invalid definitions) are marked **disabled**; select one to see why.
-7. **Edit attributes.** Select a room or relationship: **Properties** (right) lists every project field with its value and where it comes from (set here, the type's default, the field default). Add, rename or delete fields in the **Attributes** section (Nodes / Edges); values that are not project fields are listed separately and kept as they are.
+7. **Edit attributes.** Select a room or relationship: **Properties** (right) lists every project field with its value and where it comes from (set here, the function's default, the field default). Add, rename or delete fields in the **Attributes** section (Nodes / Edges); values that are not project fields are listed separately and kept as they are.
 8. **Export.** **Export JSON** downloads the current design. To make it a toolkit design, save it as `toolkits/my-toolkit/designs/<name>.json`; set `defaultDesign: '<name>'` to open it at startup. The header marks a design *modified* until it is exported, and the app asks before discarding unexported changes.
 
 ## 1. Your toolkit folder
@@ -24,7 +24,7 @@ How to write your own node types, designs and algorithms for Spatial Graph Lab. 
 toolkits/
   my-toolkit/             ← folder name = toolkit id (lowercase letters, digits, "-", "_"; starts with a letter)
     toolkit.ts            ← required
-    types/                ← optional: one node type per file
+    functions/            ← optional: one function (room programme) per file
     designs/              ← optional: design JSON files (schema v2)
     algorithms/           ← optional: one algorithm per file
 ```
@@ -45,28 +45,28 @@ import { defineToolkit } from '@student-api';
 export default defineToolkit({
   name: 'My toolkit',
   defaultDesign: 'my-design', // optional: designs/my-design.json is loaded at startup
-  attributes: {               // optional: custom fields for every node and edge (see below)
+  custom: {                   // optional: custom attributes of every node and edge (see below)
     nodes: { capacity: { kind: 'number', min: 0, label: 'Capacity (people)' } },
     edges: { weight: { kind: 'number', default: 1 } },
   },
 });
 ```
 
-**Project-wide attributes.** Every node in every design of a project made with your toolkit has the same custom node fields, and every edge has the same custom edge fields. The fields come from `attributes` here plus every attribute your node types declare; a type's `default` becomes that type's default. You can also add, rename and delete fields in the app; the app saves them in the browser and can export them as a file. It never changes your TypeScript. Full contract: `docs/PROJECT-ATTRIBUTES.md`.
+**Project-wide attributes.** Every node in every design of a project made with your toolkit has the same custom node fields, and every edge has the same custom edge fields. The fields come from `custom` here plus every custom attribute your functions declare; a function's `default` becomes that function's default. You can also add, rename and delete fields in the app; the app saves them in the browser and can export them as a file. It never changes your TypeScript. Full contract: `docs/PROJECT-ATTRIBUTES.md`.
 
 If `defaultDesign` is left out, the built-in example is loaded. If it's set but the file is missing or invalid, nothing is loaded and an error is shown.
 
-## 2. Node types
+## 2. Functions
 
 ```ts
-// toolkits/my-toolkit/types/gallery.ts
-import { defineNodeType } from '@student-api';
+// toolkits/my-toolkit/functions/gallery.ts
+import { defineFunction } from '@student-api';
 
-export default defineNodeType({
-  id: 'gallery',                     // the typeId used in designs
+export default defineFunction({
+  id: 'gallery',                     // the node's "function" in designs
   label: 'Gallery',
   facade: { windowFraction: 0.7 },   // optional; 0 = closed wall, 1 = fully glazed
-  attributes: {
+  custom: {                          // optional: custom attributes of rooms with this function
     daylight: { kind: 'enum', values: ['high', 'medium', 'low'] },
     public: { kind: 'boolean', default: true },
     occupancy: { kind: 'number', min: 0 },
@@ -77,23 +77,49 @@ export default defineNodeType({
 
 Attribute kinds are `number` (with optional `min` and `max`), `text`, `boolean` and `enum` (`values`). Each attribute may have a `default`. Stored values are always JSON primitives.
 
-If you leave out `facade`, the type keeps the app's existing façade. Every type uses the existing colour for its id; custom colours aren't supported yet.
+If you leave out `facade`, the function keeps the app's existing façade. Every function uses the existing colour for its id; custom colours aren't supported yet.
 
-### How the app treats your attributes
+### How the app treats your custom attributes
 
 | Situation in a design | What happens |
 |---|---|
 | Declared attribute missing, or `null` | Fine. Algorithms read the default, or nothing. The design file is **not** changed. |
 | Declared attribute with a wrong value (e.g. `daylight: "bright"`) | Warning. The value is kept. Algorithms read the default, or nothing. |
-| Attribute your type doesn't declare | Information only. The value is kept exactly as it is. |
-| Node whose `typeId` your toolkit doesn't define | Warning. It keeps the app's fallback colour and façade. |
-| Your type definition is invalid, or two files use the same `id` | **Error.** That type is disabled. Its nodes are flagged, and algorithms can't use it. |
+| Attribute your function doesn't declare | Information only. The value is kept exactly as it is. |
+| Node whose `function` your toolkit doesn't define | Warning. It keeps the app's fallback colour and façade. |
+| Your function definition is invalid, or two files use the same `id` | **Error.** That function is disabled. Its nodes are flagged, and algorithms can't use it. |
 
 Loading a design is never blocked by these checks.
 
 ## 3. Designs
 
 Designs are schema-v2 JSON files (`docs/CONTRACTS-V2.md` §1; the built-in example is `app/document/examples/house.json`). Rooms and relationships have whole-number ids (`"id": 3`, `"source": 3, "target": 7`); `nextNodeId` / `nextEdgeId` say which ids new items get (you may leave them out; the app fills them in). Each file's name (without `.json`) is its design id. An invalid design is listed with its errors and can't be loaded.
+
+Everything on a node or edge is an **attribute**: the built-in ones sit at the top level, your custom ones are grouped under `custom`. The same names are used in the JSON, the Data view, Properties and this API. A node and an edge, as saved:
+
+```json
+{
+  "id": 3,
+  "function": "kitchen",
+  "position": [1, 0, 0],
+  "size": [1, 1, 1],
+  "custom": {
+    "targetArea": 18
+  }
+}
+```
+
+```json
+{
+  "id": 2,
+  "source": 2,
+  "target": 3,
+  "relationship": "open",
+  "custom": {}
+}
+```
+
+`position` is the room's minimum corner cell `[x, y, z]` (z is the Level), `size` its extent in cells `[x, y, z]` (z is the number of Floors). An edge may also have `"corridor": { "walls": …, "roof": … }` after `relationship`. The app keeps this key order and writes every array of numbers on one line.
 
 ## 4. Algorithms
 
@@ -159,7 +185,7 @@ export default defineGraphAlgorithm({
 });
 ```
 
-Graph algorithms can't change anything. Creating nodes in an arbitrary graph isn't possible, because the only document is the spatial one, where every node needs a grid cell.
+Graph algorithms can't change anything. Creating nodes in an arbitrary graph isn't possible, because the only document is the spatial one, where every node needs a `position`.
 
 An analysis may also have a `description` (optional, one or two plain sentences, at most 300 characters): its ⓘ in Analyse shows it.
 
@@ -181,15 +207,15 @@ A spatial algorithm gets the design's own records and a few helpers:
 
 | `ctx.…` | Meaning |
 |---|---|
-| `design.nodes` | `{ id, typeId, grid: [x, y, z], size: [sx, sy, sz], attributes }`. `id` is a whole number (also the room's label). A room is a box of whole cells: `grid` is its minimum corner, `size` its extent (`[1, 1, 1]` for one cell); z is the storey |
-| `design.edges` | `{ id, source, target, kind, corridor?, attributes }`; ids are numbers; kind is `access` or `open`; `corridor` (read only) is the relationship's own corridor look `{ walls?: 'enclosed' \| 'open', roof?: 'flat' \| 'pergola' \| 'none' }` (omitted fields use the design's Corridors card) |
+| `design.nodes` | `{ id, function, position: [x, y, z], size: [sx, sy, sz], custom }`. `id` is a whole number (also the room's label). A room is a box of whole cells: `position` is its minimum corner, `size` its extent (`[1, 1, 1]` for one cell); z is the storey |
+| `design.edges` | `{ id, source, target, relationship, corridor?, custom }`; ids are numbers; `relationship` is `access` or `open`; `corridor` (read only) is the relationship's own corridor look `{ walls?: 'enclosed' \| 'open', roof?: 'flat' \| 'pergola' \| 'none' }` (omitted fields use the design's Corridors card) |
 | `nodeAt(cell)` | id of the room whose box contains that cell, or `undefined` if the cell is free |
 | `touches(a, b)` | whether rooms `a` and `b` share a wall or floor, so a relationship between them is built directly |
 | `canRelate(a, b)` | whether a relationship between rooms `a` and `b` may be created: both exist, are different and aren't related yet. **They don't need to touch** |
-| `nodeAttributes(nodeId)` | the room's value for **every project node field**: the stored value, else its type's default, else the field default (the same values the app shows). `null` = explicitly "no value"; fields without any value are absent |
-| `edgeAttributes(edgeId)` | the same for a relationship's project edge fields (Access and Open have the same fields) |
-| `attributeFields` | `{ nodes, edges }`: the project's fields (`key`, `label`, `kind`, `values`, `min`, `max`, `default`) |
-| `attributesOf(node, type)` | typed values of the attributes `type` declares (read through the project fields); `type` is imported from your `types/` folder |
+| `nodeCustom(nodeId)` | the room's value for **every custom node attribute** of the project: the stored value, else its function's default, else the field default (the same values the app shows). `null` = explicitly "no value"; fields without any value are absent |
+| `edgeCustom(edgeId)` | the same for a relationship's custom edge attributes (Access and Open have the same fields) |
+| `customFields` | `{ nodes, edges }`: the project's custom attributes (`key`, `label`, `kind`, `values`, `min`, `max`, `default`) |
+| `customOf(node, fn)` | typed values of the custom attributes the function `fn` declares (read through the project fields); `fn` is imported from your `functions/` folder |
 | `metrics.list()` / `metrics.value(metricId, id)` | the app's **calculated values** (area, volume, façade length, …), read-only; see [Calculated values](#calculated-values) |
 | `params` | your parameters, already checked, with defaults applied |
 
@@ -197,11 +223,11 @@ It returns a list of **operations**. You never choose ids: the app gives every n
 
 | Operation | Rules |
 |---|---|
-| `{ op: 'add-node', ref?, grid, size?, typeId, attributes? }` | An integer minimum corner, an optional `size` of positive integers (default `[1, 1, 1]`), a box that overlaps no other room, a valid type of your toolkit, and only project node fields with valid values. Gets the next node id |
-| `{ op: 'add-edge', ref?, source, target, kind }` | `source` / `target` are `ItemRef`s of existing, different rooms not related yet. `kind` is `access` or `open`. The rooms **don't need to touch**. Gets the next edge id |
-| `{ op: 'set-node-attribute', nodeId, key, value }` | `nodeId` is an `ItemRef`; `key` must be a project node field (any room may have any node field, whatever its type); the value must be valid, or `null` |
-| `{ op: 'set-edge-attribute', edgeId, key, value }` | `edgeId` is an `ItemRef`; `key` must be a project edge field; the value must be valid, or `null` |
-| `{ op: 'set-node-geometry', nodeId, grid?, size? }` | Moves and/or resizes a room (`nodeId` is an `ItemRef`); give `grid`, `size` or both, the rest stays. The size stays anchored at the minimum corner, so growing towards −x or −y means a smaller `grid` and a larger `size`. Whole numbers, sizes at least 1 and within the size limit; the new box must not overlap another room or take the cells of a generated connector |
+| `{ op: 'add-node', ref?, position, size?, function, custom? }` | An integer minimum corner `position`, an optional `size` of positive integers (default `[1, 1, 1]`), a box that overlaps no other room, a valid function of your toolkit, and only custom node attributes of the project with valid values. Gets the next node id |
+| `{ op: 'add-edge', ref?, source, target, relationship, corridor? }` | `source` / `target` are `ItemRef`s of existing, different rooms not related yet. `relationship` is `access` or `open`; `corridor` (optional) is its own corridor look `{ walls?, roof? }`. The rooms **don't need to touch**. Gets the next edge id |
+| `{ op: 'set-node-attribute', nodeId, key, value }` | Sets one custom attribute. `nodeId` is an `ItemRef`; `key` must be a custom node attribute of the project (any room may have any of them, whatever its function); the value must be valid, or `null` |
+| `{ op: 'set-edge-attribute', edgeId, key, value }` | Sets one custom attribute. `edgeId` is an `ItemRef`; `key` must be a custom edge attribute of the project; the value must be valid, or `null` |
+| `{ op: 'set-node-geometry', nodeId, position?, size? }` | Moves and/or resizes a room (`nodeId` is an `ItemRef`); give `position`, `size` or both, the rest stays. The size stays anchored at the minimum corner, so growing towards −x or −y means a smaller `position` and a larger `size`. Whole numbers, sizes at least 1 and within the size limit; the new box must not overlap another room or take the cells of a generated connector |
 
 The preview (and the applied design) shows the ids the app gave; `preview.assigned` maps your `ref`s to them.
 
@@ -214,27 +240,27 @@ If a new room would take the cells of a generated connector, the app asks before
 
 The operations are applied **in order** and **all together**: a later operation may use a node added by an earlier one. If any operation, or the final design, is invalid, nothing changes and the error names the operation.
 
-A transformation is also rejected if it would create a new warning or error, for example an invalid attribute value. Existing problems in the design don't stop it.
+A transformation is also rejected if it would create a new warning or error, for example an invalid custom attribute value. Existing problems in the design don't stop it.
 
 Example: add a gallery in a free cell next to an existing gallery, and connect it with a door.
 
 ```ts
 import { defineSpatialAlgorithm, FACE_DIRECTIONS, neighbourCell } from '@student-api';
-import gallery from '../types/gallery';
+import gallery from '../functions/gallery';
 
 export default defineSpatialAlgorithm({
   id: 'extend-gallery',
   label: 'Extend a gallery',
   run(ctx) {
-    for (const room of ctx.design.nodes.filter((n) => n.typeId === gallery.id)) {
+    for (const room of ctx.design.nodes.filter((n) => n.function === gallery.id)) {
       for (const direction of FACE_DIRECTIONS.filter((d) => d !== '+z' && d !== '-z')) {
-        const cell = neighbourCell(room.grid, direction);
+        const cell = neighbourCell(room.position, direction);
         if (ctx.nodeAt(cell) !== undefined) continue;          // occupied
         return {
           kind: 'transformation',
           operations: [
-            { op: 'add-node', ref: 'new-gallery', grid: cell, typeId: gallery.id, attributes: { daylight: 'medium' } },
-            { op: 'add-edge', source: room.id, target: 'new-gallery', kind: 'access' },
+            { op: 'add-node', ref: 'new-gallery', position: cell, function: gallery.id, custom: { daylight: 'medium' } },
+            { op: 'add-edge', source: room.id, target: 'new-gallery', relationship: 'access' },
           ],
         };
       }
@@ -266,20 +292,20 @@ When you create several items in one run, give each a different `ref`.
 | `resolution-status` | relationships | `"direct"`, `"routed"` or `"unresolved"` |
 | `route-length` | relationships | m: generated connector cells × 3 m; `0` when the rooms touch; `null` when unresolved |
 
-`Function` (the room's `typeId`) and `Level` (`grid[2]`) are not calculated values: read them from `ctx.design.nodes`.
+`Function` (the room's `function`) and `Level` (`position[2]`) are not calculated values: read them from `ctx.design.nodes`.
 
 Example: rate each gallery's daylight from its exposed façade.
 
 ```ts
 import { defineSpatialAlgorithm, type SpatialOperation } from '@student-api';
-import gallery from '../types/gallery';
+import gallery from '../functions/gallery';
 
 export default defineSpatialAlgorithm({
   id: 'daylight-from-facade',
   label: 'Daylight from façade length',
   run(ctx) {
     const operations: SpatialOperation[] = [];
-    for (const room of ctx.design.nodes.filter((n) => n.typeId === gallery.id)) {
+    for (const room of ctx.design.nodes.filter((n) => n.function === gallery.id)) {
       const metres = ctx.metrics.value('exposed-facade-length', room.id) as number;
       const daylight = metres >= 24 ? 'high' : metres >= 12 ? 'medium' : 'low';
       operations.push({ op: 'set-node-attribute', nodeId: room.id, key: 'daylight', value: daylight });
@@ -295,7 +321,7 @@ Graph algorithms see only ids and endpoints, so they have no `ctx.metrics`.
 
 ## 5. Parameters
 
-Transformations (`defineSpatialAlgorithm`) may declare `parameters` using the same kinds as attributes. For example, `parameters: { count: { kind: 'number', default: 1 } }` is read as `ctx.params.count`. Values are checked before `run` is called. Analyses take no parameters: a number they need is a `{ kind: 'number' }` input.
+Transformations (`defineSpatialAlgorithm`) may declare `parameters` using the same kinds as custom attributes. For example, `parameters: { count: { kind: 'number', default: 1 } }` is read as `ctx.params.count`. Values are checked before `run` is called. Analyses take no parameters: a number they need is a `{ kind: 'number' }` input.
 
 ## 6. Checks and limits
 
@@ -307,11 +333,22 @@ Transformations (`defineSpatialAlgorithm`) may declare `parameters` using the sa
 ## 7. Reference
 
 Exports of `@student-api`:
-- **Definitions:** `defineToolkit`, `defineNodeType`, `defineGraphAlgorithm`, `defineSpatialAlgorithm`
+- **Definitions:** `defineToolkit`, `defineFunction`, `defineGraphAlgorithm`, `defineSpatialAlgorithm`
 - **Graph helpers:** `neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite` (ids are numbers)
 - **Grid helpers:** `FACE_DIRECTIONS`, `neighbourCell`, `roomCells` (every cell of a room's box)
-- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `NodeTypeDefinition`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `CorridorLook`, `CorridorWalls`, `CorridorRoof`, `SpatialOperation`, `ItemRef`, `AnalysisInput`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
+- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `FunctionDefinition`, `FacadeParameters`, `CustomFieldInfo`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `CorridorLook`, `CorridorWalls`, `CorridorRoof`, `SpatialOperation`, `ItemRef`, `AnalysisInput`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
 
 **Added in P4:** `set-node-geometry` (move or resize a room in a transformation); optional `description` of a graph analysis; uploaded analyses (see "Uploading an analysis").
 
 **Changes in P4 (19 November 2026).** Schema v1 is gone: the old kinds (`door`, `atrium`, `vertical-access`), `canConnect` and `uniqueId` no longer exist. Ids are whole numbers, `displayId` is removed (the id is the label), and operations use `ref`s instead of chosen ids.
+
+**Changes on 19 November 2026 (one vocabulary).** The JSON, the Data view, Properties, this API and your toolkit folder use the same names. Old names are no longer accepted:
+
+| Before | Now |
+|---|---|
+| node `typeId`, `grid`, `attributes` | `function`, `position`, `custom` (key order: `id`, `function`, `position`, `size`, `custom`) |
+| edge `kind`, `attributes` | `relationship`, `custom` (key order: `id`, `source`, `target`, `relationship`, `corridor`, `custom`) |
+| `defineNodeType`, `NodeTypeDefinition`, folder `types/` | `defineFunction`, `FunctionDefinition`, folder `functions/` |
+| `attributes` in `defineNodeType` / `defineToolkit` | `custom` |
+| `ctx.attributesOf(node, type)`, `ctx.nodeAttributes(id)`, `ctx.edgeAttributes(id)`, `ctx.attributeFields`, `AttributeFieldInfo` | `ctx.customOf(node, fn)`, `ctx.nodeCustom(id)`, `ctx.edgeCustom(id)`, `ctx.customFields`, `CustomFieldInfo` |
+| operations `add-node { grid, typeId, attributes }`, `add-edge { kind }`, `set-node-geometry { grid }` | `add-node { position, function, custom }`, `add-edge { relationship, corridor? }`, `set-node-geometry { position }` |

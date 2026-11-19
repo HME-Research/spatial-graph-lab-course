@@ -6,8 +6,8 @@ Status: implemented. Contract and persistence (phase 01); one resolver used by t
 
 ## Ownership
 - The **project** owns the attribute schema: one list of custom **node fields** and a separate list of custom **edge fields**. Every node of every design in the project has the same node fields; every edge has the same edge fields. Access and Open edges have the same fields.
-- A **design** owns instance values only. They are stored sparsely in the existing schema-v2 `attributes` maps, keyed by the field's key. Designs never contain schema definitions, so the v2 design format is unchanged and every design — open, inactive, or exported earlier — shows the current field list when it is opened.
-- **Node types** may give a node field a type-specific default. Type defaults never add or remove fields. Edges have schema defaults only, because there is no stable edge type model.
+- A **design** owns instance values only. They are stored sparsely in each node's / edge's `custom` map (schema v2), keyed by the field's key. Designs never contain schema definitions, so the v2 design format is unchanged and every design — open, inactive, or exported earlier — shows the current field list when it is opened.
+- **Functions** may give a node field a Function-specific default. These defaults never add or remove fields. Edges have schema defaults only, because there is no stable edge type model.
 - The Designer's per-design type appearance (window fraction, roof) is unrelated and unchanged.
 
 ## Field definition
@@ -22,14 +22,14 @@ Status: implemented. Contract and persistence (phase 01); one resolver used by t
 | `default` | Schema default (never `null`). |
 | `formerKeys` | Keys the field had before renames, newest first. |
 
-`nodeTypeDefaults[typeId][fieldId]` holds type defaults for node fields.
+`nodeTypeDefaults[function][fieldId]` holds per-Function defaults for node fields (the record key name `nodeTypeDefaults` is unchanged).
 
-**Reserved keys** (case-insensitive) are system properties and JavaScript internals: `id`, `displayId`, `typeId`, `type`, `grid`, `size`, `position`, `diagram`, `attributes`, `source`, `target`, `kind`, `corridor`, `__proto__`, `constructor`, `prototype`, `toString`, `valueOf`, `hasOwnProperty`. System properties are always shown in Properties; they are never schema fields, so they cannot be deleted or redefined.
+**Reserved keys** (case-insensitive) are system properties and JavaScript internals: `id`, `displayId`, `function`, `type`, `position`, `size`, `diagram`, `custom`, `source`, `target`, `relationship`, `corridor`, `__proto__`, `constructor`, `prototype`, `toString`, `valueOf`, `hasOwnProperty`. System properties are always shown in Properties; they are never schema fields, so they cannot be deleted or redefined.
 
 ## Effective value
 `app/extensions/resolveAttributes.ts` is the only resolver. Properties, Graph 2D, conformance, the Student API and transformations all use it. For one field of one instance:
 1. A valid stored value. An explicit `null` is an explicit "no value" override, and the effective value is `null`.
-2. Otherwise, for nodes, the node type's default.
+2. Otherwise, for nodes, the default of the node's Function.
 3. Otherwise the schema default.
 4. Otherwise no value (`undefined`).
 
@@ -37,8 +37,8 @@ An invalid stored value is kept and flagged; resolution then continues with step
 
 ## Baseline from the toolkit files (immutable)
 `ActiveToolkit.attributeBaseline` (`app/extensions/attributeBaseline.ts`) is built at activation from two sources:
-- `defineToolkit({ attributes: { nodes, edges } })`: optional, with `label` and `description` per field.
-- For nodes, the union of the attributes declared by the valid node types. A type's `default` becomes that type's default.
+- `defineToolkit({ custom: { nodes, edges } })`: optional, with `label` and `description` per field.
+- For nodes, the union of the `custom` attributes declared by the valid functions (`defineFunction`, `functions/`). A function's `default` becomes that function's default.
 
 If two declarations conflict (same key, different kind or limits), the app reports a warning and the first one in file order wins. An unusable key (reserved or malformed) is reported and is not a field; values stored under it are kept as "not in the schema".
 

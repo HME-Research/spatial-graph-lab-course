@@ -10,7 +10,7 @@ Developed by Heba Eiz.
 One sparse 3D architectural graph is shown at the same time as an abstract 2D diagram, a 3D spatial graph, semitransparent voxels and generated architecture.
 
 - The 2D diagram shows the **whole** building and uses its own diagram coordinates. Dragging a node there never moves the room in 3D.
-- Rooms sit in unique integer grid cells (default 3×3×3 m each); only occupied cells are stored.
+- Rooms sit in unique integer cells (`position`, default 3×3×3 m each); only occupied cells are stored.
 - Relationships are explicit and typed. Only face-adjacent cells can form architectural doors or openings, and adjacent cells are never connected automatically.
 - Node and edge types resolve the architectural faces. Toolkits supply room types, designs and algorithms.
 - Single or split view, shared selection, independent cameras, graph editing, and JSON save/load with validation. Everything runs in the browser; there is no backend.
@@ -34,7 +34,7 @@ Opening a design file validates it first. If it is invalid, the errors are liste
 - `core/`: reusable graph, spatial and viewer infrastructure (owner-maintained).
 - `app/`: the application: design document, building rules and geometry, views, state, inspector and UI (owner-maintained).
 - `student-api/`: the stable Student API that toolkit code imports as `@student-api` (owner-maintained).
-- `toolkits/<toolkit-id>/`: student toolkits (`toolkit.ts`, `types/`, `designs/`, `algorithms/`). The reference toolkit will be `toolkits/house/`; see `docs/STUDENT-API.md`.
+- `toolkits/<toolkit-id>/`: student toolkits (`toolkit.ts`, `functions/`, `designs/`, `algorithms/`). The reference toolkit will be `toolkits/house/`; see `docs/STUDENT-API.md`.
 - `docs/`: architecture, decisions and workflow documents.
 - `.claude/`: shared AI project instructions, skills and settings.
 

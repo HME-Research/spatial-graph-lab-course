@@ -34,7 +34,7 @@ export default defineGraphAlgorithm({
 
 **What `run` sees** — only ids and endpoints:
 - `graph.nodes`: `{ id }[]`; `graph.edges`: `{ id, source, target }[]` (ids are whole numbers; edges have no direction).
-- No room types, names, sizes, positions or attributes. Do not invent them.
+- No functions, names, positions, sizes or custom attributes. Do not invent them.
 - Helpers you may import from `'@student-api'`: `neighbours(graph, id)`, `incidentEdges(graph, id)`, `edgesBetween(graph, a, b)`, `getNode(graph, id)`, `getEdge(graph, id)`, `opposite(edge, id)`.
 
 **What `run` returns**: `{ kind: 'analysis', … }` with at least one of:

@@ -112,7 +112,7 @@ Suggested placements, to be wired by their owners:
 
 | Topic | Where | Owner |
 |---|---|---|
-| `graph-vs-grid` | Properties, grid position field; Graph 2D hint | 05 / 01 |
+| `graph-vs-grid` | Properties, Position field; Graph 2D hint | 05 / 01 |
 | `access-open`, `relationship-status`, `unresolved` | edge popover, edge Properties, legends | 01 / 05 |
 | `room-size`, `display-id` | Properties, size and label fields | 05 |
 | `gizmo-snap` | 3D move/resize toolbar | 04 |

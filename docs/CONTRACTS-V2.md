@@ -14,8 +14,8 @@ Shared interfaces for the seven parallel MVP branches (`01-graph-ui` … `07-tea
   "metadata": { "name": "…", "description": "…" },
   "nextNodeId": 3,
   "nextEdgeId": 2,
-  "nodes": [{ "id": 1, "grid": [0,0,0], "size": [2,3,1], "typeId": "gallery", "attributes": {} }],
-  "edges": [{ "id": 1, "source": 1, "target": 2, "kind": "access", "corridor": { "walls": "enclosed" }, "attributes": {} }],
+  "nodes": [{ "id": 1, "function": "gallery", "position": [0, 0, 0], "size": [2, 3, 1], "custom": {} }],
+  "edges": [{ "id": 1, "source": 1, "target": 2, "relationship": "access", "corridor": { "walls": "enclosed" }, "custom": {} }],
   "diagram": { "positions": { "1": [0, 0] } },
   "settings": { "styleBy": "function", "styles": { "function": { "default": { "windowFraction": 0.3 }, "groups": [{ "value": "gallery", "look": { "roof": "pergola" } }] } } }
 }
@@ -26,12 +26,14 @@ Shared interfaces for the seven parallel MVP branches (`01-graph-ui` … `07-tea
 | `id`, `source`, `target` | Plain whole numbers ≥ 0 (P4). The id is the permanent identity AND the label shown on rooms, in lists and messages (`nodeLabel(node)` = `String(id)`; `relationshipLabel` = `"3 → 7"`). Never derived from coordinates or order. There is no display id. |
 | `nextNodeId` / `nextEdgeId` | The id the next new node / edge gets. `add-node` / `add-edge` (commands and algorithm operations) use the counter and advance it, so an id is **never reused after a delete** (older scenarios, undo history and notes keep pointing at the right item). Optional in a file: filled on read as largest id + 1 (1 when empty); always written, after `metadata`. Every id must be below its counter. |
 | In memory | Ids are numbers end to end (selection, resolution, building, metrics, views, Student API). Text forms exist only where JSON or a library needs a key: `diagram.positions` and scenario `facePreferences` are objects keyed by the id as text (`"3"`), analysis `nodeValues` likewise, and React Flow ids are `String(id)` (converted in `Graph2DView`). Building style providers get the room id as text (style key). |
-| `grid` | **Minimum corner** cell `[x,y,z]`, z up. Independent of `diagram.positions`. |
-| `size` | `[sx,sy,sz]` integers 1…`MAX_ROOM_SIZE` (32); default `[1,1,1]` (filled on read, always written). Room = every cell `grid + [0..sx-1, 0..sy-1, 0..sz-1]`. |
-| `kind` | `RelationshipKind = 'access' \| 'open'`; `DEFAULT_RELATIONSHIP_KIND = 'access'`. **No adjacency requirement.** |
+| `function` | The room's Function id (lowercase letters, digits, `-`). |
+| `position` | **Minimum corner** cell `[x,y,z]`, z up (z = Level). Independent of `diagram.positions`. |
+| `size` | `[sx,sy,sz]` integers 1…`MAX_ROOM_SIZE` (32); default `[1,1,1]` (filled on read, always written). Room = every cell `position + [0..sx-1, 0..sy-1, 0..sz-1]`. |
+| `custom` | The node's / edge's custom attributes (JSON primitives), keyed by field key; `{}` when none. |
+| `relationship` | `RelationshipKind = 'access' \| 'open'`; `DEFAULT_RELATIONSHIP_KIND = 'access'`. **No adjacency requirement.** |
 | `corridor` | Optional `CorridorLook` = `{ walls?: 'enclosed' \| 'open', roof?: 'flat' \| 'pergola' \| 'none' }` (strict; written only when a field is set, key order `walls`, `roof`): this relationship's own corridor look (Properties). Read with `corridorLookOf(edge, doc.settings)`, per field: own value → `settings.corridors` → built-in (`walls: 'open'`, `roof: 'flat'`). Used only when the edge is routed. Replaced `connectorStyle` on 2026-11-19 (no migration: not yet distributed). |
 | `settings.corridors` | Optional `CorridorLook` (2026-11-19, "Corridors as a look card"): the Corridors card in Building Designer → Looks, the walls and roof of every generated corridor; written only when a field is set. `designCorridorLook(settings)` resolves it against the built-in default (`DEFAULT_CORRIDOR_LOOK` = open + flat). Geometry: `enclosed` = a side wall on each side; `open` = open sides with posts only where there is a roof; roof `flat` slab, `pergola` slats (like a room pergola), `none` (open + none = floor only). |
-| `settings.styleBy` / `settings.styles` | **Style rooms by** (owner 2026-11-18; replaced `typeAppearance`, old files are not read). `styleBy` = `'function'` (default) | `'level'` | `'attribute:<field id>'` | `'metric:<metric id>'`: the ONE attribute that decides each room's look. `styles[styleBy]` = that attribute's setup, remembered per attribute: `{ default?: Look, groups?: [{ value: string | number | boolean, look: Look }], dividers?: number[], bands?: Look[], mode?: 'values' | 'bands' }`. A number can keep both value cards and bands; `mode` says which is active (absent = bands when `dividers` are stored, else value cards; S3, 2026-11-19). Each room falls in exactly one card: with bands active, the band holding its number (band i = `[dividers[i-1], dividers[i])`, ends open); otherwise the value card it equals (text trimmed, case-insensitive); else **Default** (also without a value). Validation: card values unique, dividers strictly ascending, `bands.length = dividers.length + 1`, `mode: 'bands'` needs dividers. Resolved per room on read by `nodeLooks(doc, base, values?)`: each look field card → Default → `base(typeId)` (toolkit window coverage) → built-in. Function and Level are read from the document; custom and measured values are passed by the caller. Cards for values no room has are tolerated (no validation error). |
+| `settings.styleBy` / `settings.styles` | **Style rooms by** (owner 2026-11-18; replaced `typeAppearance`, old files are not read). `styleBy` = `'function'` (default) | `'level'` | `'attribute:<field id>'` | `'metric:<metric id>'`: the ONE attribute that decides each room's look. `styles[styleBy]` = that attribute's setup, remembered per attribute: `{ default?: Look, groups?: [{ value: string | number | boolean, look: Look }], dividers?: number[], bands?: Look[], mode?: 'values' | 'bands' }`. A number can keep both value cards and bands; `mode` says which is active (absent = bands when `dividers` are stored, else value cards; S3, 2026-11-19). Each room falls in exactly one card: with bands active, the band holding its number (band i = `[dividers[i-1], dividers[i])`, ends open); otherwise the value card it equals (text trimmed, case-insensitive); else **Default** (also without a value). Validation: card values unique, dividers strictly ascending, `bands.length = dividers.length + 1`, `mode: 'bands'` needs dividers. Resolved per room on read by `nodeLooks(doc, base, values?)`: each look field card → Default → `base(function)` (toolkit window coverage) → built-in. Function and Level are read from the document; custom and measured values are passed by the caller. Cards for values no room has are tolerated (no validation error). |
 | `Look` | `{ windowFraction?: [0,1], windowLayout?: 'repeat' | 'stretch', walls?: 'enclosed' | 'open', roof?: 'flat' | 'pergola' | 'none', facade?: FacadeModule }`; absent = inherit. `stretch` = one window per façade (room side over all its bays and storeys, inset by an even frame, same glazed share); `walls: 'open'` leaves out the room's exterior walls and windows (shared walls stay); `pergola` = open slats. `facade` = optional imported module, or `'none'` on a card (no module even when Default has one; 2026-11-18) — module = `{ assetId, placement: 'repeat' | 'stretch', flip?: true, door?: { assetId, flip?: true }, open?: { assetId, flip?: true } }` (`flip` turns it round; `door` / `open` replace the façade bays where an open-air connector meets the room). Rooms with `walls: 'open'` never get a module. `assetId` names a PROJECT asset (CONTRACTS-V3 §2); an unknown id draws nothing (the Designer warns). |
 
 Types: `DesignDocumentV2`, `RoomNode`, `RelationshipEdge`, `RoomSize`, `Look`, `StyleBy`, `StyleSetup`, `StyleGroup`, `DesignSettings`, `RelationshipKind`, `CorridorLook`, `EffectiveCorridorLook`, `WallStyle`, `RoofStyle`.
@@ -62,9 +64,9 @@ A relationship between rooms that do not touch is **valid**. Spatial feasibility
 
 ```ts
 type EdgeResolution =
-  | { edgeId; kind; status: 'direct'; contact: 'horizontal' | 'vertical'; faces: SharedFace[] } // faces seen from SOURCE
-  | { edgeId; kind; status: 'routed'; route: ConnectorRoute }
-  | { edgeId; kind; status: 'unresolved'; reason: UnresolvedReason; message: string };
+  | { edgeId; relationship; status: 'direct'; contact: 'horizontal' | 'vertical'; faces: SharedFace[] } // faces seen from SOURCE
+  | { edgeId; relationship; status: 'routed'; route: ConnectorRoute }
+  | { edgeId; relationship; status: 'unresolved'; reason: UnresolvedReason; message: string };
 interface ConnectorRoute { edgeId; axis: 'x'|'y'; level; cells: GridCoord[]; from: RoomFace; to: RoomFace; look: EffectiveCorridorLook /* { walls, roof }, both resolved */ }
 type UnresolvedReason = 'different-level' | 'not-aligned' | 'blocked-by-room' | 'blocked-by-route'
                       | 'endpoint-clearance' | 'routing-unavailable' /* Gate 0 stub only */;
@@ -89,12 +91,12 @@ The gate's `{ status, reason?, routeCells?, connectorStyle? }` is this union: `r
 
 ## 5. Spatial edits — `app/spatial/edit.ts`
 
-- **`proposeSpatialEdit(doc, { nodeId, grid?, size? }, { resolve? })`** returns one of:
+- **`proposeSpatialEdit(doc, { nodeId, position?, size? }, { resolve? })`** returns one of:
   - `rejected`: issues, plus `collidingRooms` for a room overlap. A room overlap is **always** refused.
   - `ok`: `next`, plus `impacted` edges `{ edgeId, before, after }`.
   - `needs-confirmation`: `next`, `displacedRoutes`, `impacted`. The room would take connector cells.
   - **Policy (programme phase 07, A11).** Taking cells of ANOTHER room's relationship connector always needs confirmation. Taking cells of the moved room's OWN connector (moving or growing along its own corridor) needs confirmation only if one of its own relationships would become unresolved; otherwise it is `ok` and the corridor is recalculated. `add-node` follows the same rule: a new room has no relationships, so taking any connector cells needs `confirmRouteDisplacement` (it is refused without it, never silent). A room overlap is always refused.
-- **Resize** is anchored at the **minimum corner**: `size` alone never changes `grid`. Whole cells only; callers snap world drags to integers. Use `spatialToThree` / `DEFAULT_CELL_SIZE` (3 m) for world scale.
+- **Resize** is anchored at the **minimum corner**: `size` alone never changes `position`. Whole cells only; callers snap world drags to integers. Use `spatialToThree` / `DEFAULT_CELL_SIZE` (3 m) for world scale.
 - **`commitSpatialEdit(proposal, { confirmRouteDisplacement })`** returns `Result<DesignDocumentV2>`. `needs-confirmation` fails with `route-displacement` unless confirmed.
 - **UI flow:** **Cancel** sends nothing. **Move anyway and recalculate** sends `set-node-geometry` with `confirmRouteDisplacement: true`. Relationships are kept, routes are recalculated, and edges may become unresolved. No silent reroute.
 
@@ -104,15 +106,15 @@ The gate's `{ status, reason?, routeCells?, connectorStyle? }` is this union: `r
 
 ```ts
 type DesignCommand =
-  | { type: 'add-node'; node: { grid; size?; typeId; attributes? }; diagramPosition? } // id ← doc.nextNodeId (counter advances)
+  | { type: 'add-node'; node: { function; position; size?; custom? }; diagramPosition? } // id ← doc.nextNodeId (counter advances)
   | { type: 'remove-node'; nodeId }                         // also removes incident edges + diagram position
-  | { type: 'set-node-geometry'; nodeId; grid?; size?; confirmRouteDisplacement? }
-  | { type: 'set-node-type'; nodeId; typeId }
-  | { type: 'set-node-attributes'; nodeId; attributes }
+  | { type: 'set-node-geometry'; nodeId; position?; size?; confirmRouteDisplacement? }
+  | { type: 'set-node-type'; nodeId; function }
+  | { type: 'set-node-attributes'; nodeId; custom }
   | { type: 'set-diagram-position'; nodeId; position }      // never moves the room
-  | { type: 'add-edge'; edge: { source; target; kind?; corridor?; attributes? } } // id ← doc.nextEdgeId; kind ← 'access'
+  | { type: 'add-edge'; edge: { source; target; relationship?; corridor?; custom? } } // id ← doc.nextEdgeId; relationship ← 'access'
   | { type: 'remove-edge'; edgeId }
-  | { type: 'change-edge-kind'; edgeId; kind: 'access' | 'open' }
+  | { type: 'change-edge-kind'; edgeId; relationship: 'access' | 'open' }
   | { type: 'set-edge-corridor'; edgeId; patch: { walls?: WallStyle | null; roof?: RoofStyle | null } } // null → the Corridors card; empty → `corridor` removed
   | { type: 'set-corridors'; patch: { walls?: WallStyle | null; roof?: RoofStyle | null } } // the Corridors card; null clears a field; empty → `corridors` removed
   | { type: 'set-style-by'; by: StyleBy; dividers?: number[] } // every setup stays remembered; dividers = starting bands, stored only when `by` has none
@@ -120,7 +122,7 @@ type DesignCommand =
   | { type: 'set-look'; by; group: {kind:'default'} | {kind:'value', value} | {kind:'band', index}; patch: LookPatch } // null → inherit; a value card is created when missing and kept when empty; Default is removed when empty
   | { type: 'remove-style-group'; by; value }               // its rooms use Default again
   | { type: 'set-band-dividers'; by; dividers: number[] | null } // moved: bands keep looks; added: copies the split band; removed: keeps the lower band; null drops bands (and the mode)
-  | { type: 'set-edge-attributes'; edgeId; attributes };   // additive (project attributes, docs/PROJECT-ATTRIBUTES.md)
+  | { type: 'set-edge-attributes'; edgeId; custom };   // additive (project attributes, docs/PROJECT-ATTRIBUTES.md)
 ```
 
 One successful command that changes content = **one** history step (existing Stage 4B history; integration wires it). A gizmo drag or a Properties field sends exactly one command, on release, Enter or blur.
@@ -156,4 +158,4 @@ interface DesignPort {
 
 Layering (`app/boundary.test.ts`): `document` → `spatial` → `building` → `extensions` → `views` → shell. `app/spatial` is pure and imports only `@app/document*`, `@core/graph` and `@core/spatial`.
 
-**Student API (P4).** Ids are numbers. `SpatialEdgeKind`, `canConnect`, the legacy `add-edge` kinds and `uniqueId` are removed. Operations never choose ids: `add-node` / `add-edge` take an optional local `ref`; `add-edge`, `set-node-attribute` and `set-edge-attribute` take an `ItemRef` (an existing id, or the `ref` of an earlier operation of the same run). The app assigns ids in operation order from the counters and reports them in `TransformationPreviewV2.assigned`. Additive: `{ op: 'set-node-geometry', nodeId: ItemRef, grid?, size? }` moves and/or resizes a room (minimum-corner anchored, like the `set-node-geometry` command); it is refused when the box is invalid, beyond the limits, overlaps another room, or takes cells of a connector generated for the document the run started from (a transformation cannot ask for confirmation); the preview lists moved/resized rooms. See docs/STUDENT-API.md.
+**Student API (P4).** Ids are numbers. `SpatialEdgeKind`, `canConnect`, the legacy `add-edge` kinds and `uniqueId` are removed. Operations never choose ids: `add-node` / `add-edge` take an optional local `ref`; `add-edge`, `set-node-attribute` and `set-edge-attribute` take an `ItemRef` (an existing id, or the `ref` of an earlier operation of the same run). The app assigns ids in operation order from the counters and reports them in `TransformationPreviewV2.assigned`. Additive: `{ op: 'set-node-geometry', nodeId: ItemRef, position?, size? }` moves and/or resizes a room (minimum-corner anchored, like the `set-node-geometry` command); it is refused when the box is invalid, beyond the limits, overlaps another room, or takes cells of a connector generated for the document the run started from (a transformation cannot ask for confirmation); the preview lists moved/resized rooms. See docs/STUDENT-API.md.

@@ -62,8 +62,8 @@ Panel memory (`app/views/panelMemory.ts`): a view instance is unmounted when its
 type GraphCommand =
   | { type: 'add-node'; node: NewNode; diagramPosition?: DiagramPosition }
   | { type: 'remove-node'; nodeId: string }
-  | { type: 'move-node'; nodeId: string; grid: GridCoord }          // physical relocation (inspector)
-  | { type: 'set-node-type'; nodeId: string; typeId: string }
+  | { type: 'move-node'; nodeId: string; position: GridCoord }          // physical relocation (inspector)
+  | { type: 'set-node-type'; nodeId: string; function: string }
   | { type: 'set-node-attributes'; nodeId: string; attributes: Attributes } // replaces the record
   | { type: 'set-diagram-position'; nodeId: string; position: DiagramPosition }
   | { type: 'add-edge'; edge: NewEdge }
@@ -109,7 +109,7 @@ spatialToThree(grid: readonly [number, number, number], cell = DEFAULT_CELL_SIZE
 
 ## 6. Appearance — `core/viewer/appearance.ts`
 
-`typeColor(typeId)` gives the deterministic fallback colour per node type, used identically in 2D and 3D. Stage 3 toolkit node types keep this colour (custom colours are deferred); `typeAppearance` in `app/extensions` adds toolkit façades, which reach the views through `ViewProps.project.facade` (`projectFacadeProvider` in `app/views/project.ts`). `SELECTION_COLOR` is the shared highlight colour.
+`typeColor(functionId)` gives the deterministic fallback colour per Function, used identically in 2D and 3D. Stage 3 toolkit node types keep this colour (custom colours are deferred); `typeAppearance` in `app/extensions` adds toolkit façades, which reach the views through `ViewProps.project.facade` (`projectFacadeProvider` in `app/views/project.ts`). `SELECTION_COLOR` is the shared highlight colour.
 
 ## A. Graph 2D editing — implement `Graph2DView` and `Inspector`
 
@@ -126,8 +126,8 @@ spatialToThree(grid: readonly [number, number, number], cell = DEFAULT_CELL_SIZE
 - `app/views/graph3d/Graph3DView.tsx` exports `Graph3DView(props: ViewProps)`. `app/views/voxels/VoxelView.tsx` exports `VoxelView(props: ViewProps)`.
 - Each view renders its **own** R3F `<Canvas>` (the shared `core/viewer/three/SceneCanvas`) with its own camera and orbit controls, so two 3D panels have independent cameras. Do not lift camera state into the app (the panel memory above only restores a pose when a view is remounted).
 - Camera framing: a view passes a `Framing` (world bounds + minimum radius); `SceneCanvas` fits it with `fitCameraToBounds` for the canvas's **aspect ratio**, respecting both the vertical and the horizontal field of view. While the camera is still in that automatically fitted state a resize refits it; once the user orbits, pans or zooms it is never moved again except by the view's **Fit view** button (a new `fitRequest`). The canvas element exposes the state as `data-camera="fitted" | "user"`.
-- Positions come only from `spatialToThree(node.grid)`. Graph 3D: a node marker at each cell centre, and edge lines between the endpoints' centres (edges are relationships, not stairs or corridors). Voxels: semi-transparent boxes of size `[horizontal, vertical, horizontal]`.
-- Voxel colour-by is view-local UI: `typeId` (default, `typeColor`) or a chosen attribute key, with a legend and a visible fallback for missing values.
+- Positions come only from `spatialToThree(node.position)`. Graph 3D: a node marker at each cell centre, and edge lines between the endpoints' centres (edges are relationships, not stairs or corridors). Voxels: semi-transparent boxes of size `[horizontal, vertical, horizontal]`.
+- Voxel colour-by is view-local UI: `function` (default, `typeColor`) or a chosen attribute key, with a legend and a visible fallback for missing values.
 - Picking reports node IDs (and edge IDs in Graph 3D) via `onSelect`, following §4.
 - Dependencies: `three`, `@react-three/fiber`, `@types/three`. Any controls helper (for example `@react-three/drei`) needs owner approval.
 
@@ -144,12 +144,12 @@ interface ResolvedFace {
 }
 type FaceResolver = (doc: DesignDocument) => readonly ResolvedFace[];
 interface FacadeSpec { windowFraction: number }      // provisional until Phase 6
-type FacadeProvider = (typeId: string) => FacadeSpec;
+type FacadeProvider = (functionId: string) => FacadeSpec;
 ```
 
 - Implement `export const resolveFaces: FaceResolver` (suggested file `app/building/resolve.ts`). It is pure, with no React or Three.js, and works in grid space.
 - Rules: no neighbour → `exterior`. Occupied neighbour without an edge → `solid`. With an edge → the edge's kind. Each shared face is emitted **once**, owned by the node whose ID sorts first (`a < b`). Output is sorted by `ownerNodeId`, then `FACE_DIRECTIONS` order, and does not depend on array order (acceptance C, D, E, J).
-- Geometry: a separate pure step from `ResolvedFace[]` to plain box descriptors in world space built with `spatialToThree`. A face centre is `cell + offset/2` in grid space. Use simple boxes and slab segments (no CSG). Exterior walls use `FacadeProvider(ownerTypeId)`. The view is open-top initially. Atrium and vertical-access faces are openings or symbolic markers, never staircases.
+- Geometry: a separate pure step from `ResolvedFace[]` to plain box descriptors in world space built with `spatialToThree`. A face centre is `cell + offset/2` in grid space. Use simple boxes and slab segments (no CSG). Exterior walls use `FacadeProvider(ownerFunction)`. The view is open-top initially. Atrium and vertical-access faces are openings or symbolic markers, never staircases.
 - `app/views/architecture/ArchitectureView.tsx` exports `ArchitectureView(props: ViewProps)`: its own `SceneCanvas` and camera, as in B (with its own lighting, tone mapping and on-demand rendering). Picking: faces with an `edgeId` select that edge; other faces select `ownerNodeId`.
 - Dependencies: same as B. C should deliver the resolver and geometry with tests first (no dependencies needed). If the view is built before B merges, use **exactly** B's versions so the lockfile can be regenerated cleanly at merge.
 
