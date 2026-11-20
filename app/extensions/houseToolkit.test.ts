@@ -64,9 +64,25 @@ const direct = (doc: DesignDocumentV2) =>
   [...resolveRelationships(doc).byEdge.entries()].filter(([, r]) => r.status === 'direct').map(([id]) => id).sort();
 
 describe('toolkits/house', () => {
-  it('has the six Functions of the reference house and exactly two attributes, targetArea and priority', () => {
+  it('has the twelve Functions of the reference house, each with its own colour, and exactly two attributes, targetArea and priority', () => {
     expect(house.definition.name).toBe('House');
-    expect(house.functions.map((t) => t.definition.id).sort()).toEqual(['bath', 'bedroom', 'circulation', 'entrance', 'kitchen', 'living']);
+    expect(house.functions.map((t) => t.definition.id).sort()).toEqual([
+      'bath',
+      'bedroom',
+      'circulation',
+      'dining',
+      'entrance',
+      'garden',
+      'kitchen',
+      'living',
+      'stair',
+      'study',
+      'terrace',
+      'utility',
+    ]);
+    const colours = house.functions.map((t) => t.definition.colour);
+    expect(colours.every((c) => typeof c === 'string')).toBe(true);
+    expect(new Set(colours).size).toBe(colours.length);
     expect(house.attributeBaseline.schema.nodes.map((f) => f.key).sort()).toEqual(['priority', 'targetArea']);
     expect(house.attributeBaseline.schema.edges).toEqual([]);
     expect(house.diagnostics.filter((d) => d.severity !== 'info')).toEqual([]);
@@ -151,6 +167,49 @@ describe('Grow to target area on the house design', () => {
       'Bedroom 2: 9 of 18 m² — blocked by Circulation 3; no room below to build on',
     ]);
     expect(preview.operations).toEqual([]);
+  });
+});
+
+describe('the garden house design', () => {
+  const gardenHouse = (): DesignDocumentV2 => {
+    const design = house.designs.find((d) => d.id === 'garden-house')!;
+    if (!design.result.ok) throw new Error('designs/garden-house.json is invalid');
+    return design.result.value;
+  };
+
+  it('is valid, uses only House Functions, and every relationship is direct (its rooms touch)', () => {
+    const doc = gardenHouse();
+    expect(doc.metadata.name).toBe('Garden House — developed example');
+    expect(doc.nodes).toHaveLength(14);
+    expect(doc.edges).toHaveLength(14);
+    const ids = new Set(house.functions.map((t) => t.definition.id));
+    expect(doc.nodes.filter((n) => !ids.has(n.function))).toEqual([]);
+    expect(direct(doc)).toEqual(doc.edges.map((e) => e.id).sort());
+  });
+
+  it('Grow to target area runs on it without errors and keeps every relationship direct', () => {
+    const preview = grow(gardenHouse());
+    // Every room is drawn at its target already, so nothing grows and nothing is blocked.
+    expect(preview.summary!.split('\n')).toEqual([
+      '0 rooms grown, 0 blocked.',
+      'Living 3: 36 m² (target 36) ✓',
+      'Circulation / stair 2: 9 m² (target 9) ✓',
+      'Kitchen 5: 18 m² (target 18) ✓',
+      'Circulation / stair 8: 18 m² (target 18) ✓',
+      'Bedroom 9: 18 m² (target 18) ✓',
+      'Bedroom 10: 18 m² (target 18) ✓',
+      'Dining 4: 18 m² (target 18) ✓',
+      'Bath 6: 9 m² (target 9) ✓',
+      'Bath 11: 9 m² (target 9) ✓',
+      'Entrance 1: 9 m² (target 9) ✓',
+      'Garden 7: 36 m² (target 36) ✓',
+      'Study 12: 9 m² (target 9) ✓',
+      'Roof terrace 13: 9 m² (target 9) ✓',
+      'Utility 14: 9 m² (target 9) ✓',
+    ]);
+    expect(preview.operations).toEqual([]);
+    expect(validateDocumentV2(preview.after).ok).toBe(true);
+    expect(direct(preview.after)).toEqual(direct(preview.before));
   });
 });
 

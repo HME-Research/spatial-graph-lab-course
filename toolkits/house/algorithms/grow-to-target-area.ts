@@ -2,9 +2,15 @@ import { defineSpatialAlgorithm, type AttributeValue, type SpatialOperation } fr
 import bath from '../functions/bath';
 import bedroom from '../functions/bedroom';
 import circulation from '../functions/circulation';
+import dining from '../functions/dining';
 import entrance from '../functions/entrance';
+import garden from '../functions/garden';
 import kitchen from '../functions/kitchen';
 import living from '../functions/living';
+import stair from '../functions/stair';
+import study from '../functions/study';
+import terrace from '../functions/terrace';
+import utility from '../functions/utility';
 
 /**
  * Grow to target area.
@@ -86,7 +92,7 @@ type Reason =
   | { readonly kind: 'limit' };
 
 const LABELS: Record<string, string> = Object.fromEntries(
-  [entrance, circulation, living, kitchen, bedroom, bath].map((type) => [type.id, type.label]),
+  [entrance, circulation, living, kitchen, bedroom, bath, garden, stair, dining, study, utility, terrace].map((type) => [type.id, type.label]),
 );
 const label = (functionId: string) => LABELS[functionId] ?? functionId.charAt(0).toUpperCase() + functionId.slice(1);
 

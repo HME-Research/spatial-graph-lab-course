@@ -5,6 +5,7 @@ import type { ImportFacadeResult } from '@app/assets/importFacade';
 import { discoverToolkits } from './discover';
 import { fakeGlobs, LAB_FILES } from './test-fixtures';
 import { designAssetIds, listToolkitExamples, loadToolkitAssets, type ToolkitAssetIo } from './toolkitExamples';
+import { TOOLKIT_GLOBS } from './toolkitGlobs';
 
 const ID_A = 'facade-00000000000000aa';
 const ID_B = 'facade-00000000000000bb';
@@ -51,6 +52,15 @@ describe('toolkit examples (Open example…)', () => {
   it('falls back to the toolkit id when toolkit.ts is invalid', async () => {
     const examples = await listToolkitExamples(fakeGlobs({ 'toolkits/odd/toolkit.ts': { default: { name: '' } }, 'toolkits/odd/designs/one.json': design('One') }));
     expect(examples.map((e) => e.toolkitName)).toEqual(['odd']);
+  });
+
+  it('lists the three House designs of the repository, all openable', async () => {
+    const house = (await listToolkitExamples(TOOLKIT_GLOBS)).filter((e) => e.toolkitId === 'house');
+    expect(house.map((e) => [e.designId, e.name, e.toolkitName, e.problem])).toEqual([
+      ['garden-house', 'Garden House — developed example', 'House', null],
+      ['house', 'House', 'House', null],
+      ['showcase', 'House showcase', 'House', null],
+    ]);
   });
 });
 

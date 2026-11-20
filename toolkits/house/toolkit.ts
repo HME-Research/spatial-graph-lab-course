@@ -1,7 +1,7 @@
 import { defineToolkit } from '@student-api';
 
 /**
- * The House toolkit: six room Functions (see `functions/`), two custom room attributes and one transform
+ * The House toolkit: twelve room Functions (see `functions/`), two custom room attributes and one transform
  * ("Grow to target area", see `algorithms/`). Every attribute here is read by that transform.
  *
  * Each Function in `functions/` gives its own default for both attributes; set a value on a room to

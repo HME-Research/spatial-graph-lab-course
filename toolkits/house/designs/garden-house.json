@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "Garden House — developed example",
+    "description": "Conceptual two-storey garden house on a 3 m modular grid. Public ground floor, independent upper-floor bedrooms, central stair/landing, a sheltered entrance, landscaped garden, and a small roof terrace above the kitchen. An architectural teaching model, not a detailed buildable plan."
+  },
+  "nextNodeId": 15,
+  "nextEdgeId": 15,
+  "nodes": [
+    {
+      "id": 1,
+      "function": "entrance",
+      "position": [1, -1, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "function": "stair",
+      "position": [1, 0, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "function": "living",
+      "position": [2, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "function": "dining",
+      "position": [2, 2, 0],
+      "size": [2, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "function": "kitchen",
+      "position": [1, 1, 0],
+      "size": [1, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "function": "bath",
+      "position": [0, 0, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "function": "garden",
+      "position": [2, 3, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "function": "stair",
+      "position": [1, 0, 1],
+      "size": [1, 2, 1],
+      "custom": {
+        "targetArea": 18
+      }
+    },
+    {
+      "id": 9,
+      "function": "bedroom",
+      "position": [2, 0, 1],
+      "size": [2, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "function": "bedroom",
+      "position": [2, 1, 1],
+      "size": [2, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 11,
+      "function": "bath",
+      "position": [0, 0, 1],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 12,
+      "function": "study",
+      "position": [0, 1, 1],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 13,
+      "function": "terrace",
+      "position": [1, 2, 1],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 14,
+      "function": "utility",
+      "position": [0, 1, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source": 1,
+      "target": 2,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "source": 2,
+      "target": 3,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "source": 2,
+      "target": 5,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "source": 2,
+      "target": 6,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "source": 3,
+      "target": 4,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "source": 4,
+      "target": 5,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "source": 4,
+      "target": 7,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "source": 5,
+      "target": 14,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "source": 2,
+      "target": 8,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "source": 8,
+      "target": 9,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 11,
+      "source": 8,
+      "target": 10,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 12,
+      "source": 8,
+      "target": 11,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 13,
+      "source": 8,
+      "target": 12,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 14,
+      "source": 8,
+      "target": 13,
+      "relationship": "access",
+      "custom": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "1": [0, -330],
+      "2": [0, -170],
+      "3": [175, -115],
+      "4": [280, 85],
+      "5": [30, 85],
+      "6": [-190, -170],
+      "7": [360, 265],
+      "8": [-15, -35],
+      "9": [-190, 75],
+      "10": [-125, 225],
+      "11": [-290, -35],
+      "12": [-260, -170],
+      "13": [70, 225],
+      "14": [-200, 310]
+    }
+  },
+  "settings": {
+    "styleBy": "function",
+    "styles": {
+      "function": {
+        "groups": [
+          {
+            "value": "entrance",
+            "look": {
+              "walls": "open",
+              "roof": "pergola"
+            }
+          },
+          {
+            "value": "living",
+            "look": {
+              "facade": {
+                "assetId": "facade-ea64a8beca91ce66",
+                "placement": "repeat"
+              }
+            }
+          },
+          {
+            "value": "dining",
+            "look": {
+              "facade": {
+                "assetId": "facade-ea64a8beca91ce66",
+                "placement": "repeat"
+              }
+            }
+          },
+          {
+            "value": "bedroom",
+            "look": {
+              "windowFraction": 0.28,
+              "windowLayout": "stretch"
+            }
+          },
+          {
+            "value": "bath",
+            "look": {
+              "windowFraction": 0.1
+            }
+          },
+          {
+            "value": "kitchen",
+            "look": {
+              "windowFraction": 0.3,
+              "windowLayout": "stretch"
+            }
+          },
+          {
+            "value": "study",
+            "look": {
+              "windowFraction": 0.4
+            }
+          },
+          {
+            "value": "utility",
+            "look": {
+              "windowFraction": 0.1
+            }
+          },
+          {
+            "value": "garden",
+            "look": {
+              "walls": "open",
+              "roof": "none"
+            }
+          },
+          {
+            "value": "terrace",
+            "look": {
+              "walls": "open",
+              "roof": "none"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
