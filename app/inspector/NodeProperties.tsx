@@ -9,7 +9,7 @@ import { MAX_ROOM_SIZE, nodeLabel, type RoomNode } from '@app/document';
 import { attributesOutsideSchema, findFunction } from '@app/extensions';
 import { functionStatus } from '@app/views/project';
 import { CollapsibleSection, describeResolution, IssueFeedback, labelOfChoice, RELATIONSHIP_KIND_CHOICES, RouteConfirm, UNDO_HINT } from '@app/ui';
-import { typeColor } from '@core/viewer/appearance';
+import { useFunctionColour } from '@app/views/functionColour';
 import { selectEdge, selectNode } from '@core/viewer/selection';
 import { CalculatedRows, FieldRow } from './CalculatedValues';
 import { AttributesForm, NodeChecks, StoredData, TypedAttributesForm, TypeStatusNote } from './AttributeEditors';
@@ -40,6 +40,7 @@ const toCoord = (t: Triple): [number, number, number] => [t[0], t[1], t[2]];
  */
 export function NodeProperties(props: PanelProps & { readonly nodeId: number }) {
   const { design, project, nodeId } = props;
+  const functionColour = useFunctionColour();
   const { issues, showIssues, clearIssues, runShared, runV2 } = useCommands(props);
   const [pending, setPending] = useState<PendingConfirmation | null>(null);
   /** Bumped to reset the geometry drafts after Cancel. */
@@ -147,7 +148,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
   return (
     <div className="sgl-panel">
       <div className="sgl-title">
-        <span className="sgl-swatch" style={{ background: typeColor(node.function) }} aria-hidden="true" />
+        <span className="sgl-swatch" style={{ background: functionColour(node.function) }} aria-hidden="true" />
         Room <span className="sgl-room-label">{label}</span>
       </div>
 

@@ -98,7 +98,7 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'section-required',
         title: 'Required by the app',
         summary: 'What the app needs on every element: a Function for each node and a Relationship (Access or Open) for each edge.',
-        example: 'The Living room’s Function is Living, which sets its colour and façade. Entrance–Living is Access (a door, or a floor opening between storeys); Living–Kitchen is Open (no wall). The toolkit supplies the list of Functions; add your own with Edit functions.',
+        example: 'The Living room’s Function is Living, which sets its colour and façade. Entrance–Living is Access (a door, or a floor opening between storeys); Living–Kitchen is Open (no wall). The toolkit supplies the list of Functions; add your own, or change a Function’s colour in every view, with Edit functions.',
         diagram: 'section-required',
         learnMore: LINKS.neo4jConcepts,
       },

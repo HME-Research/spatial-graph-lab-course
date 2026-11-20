@@ -9,7 +9,7 @@ import { designUsesFacadeModules, facadeAssetIdsOf, layoutFacadeModules, type Fa
 import { CORRIDOR_WIDTH_STEP, FACADE_VARIANTS, formatCorridorWidth, MAX_CORRIDOR_WIDTH, ROOF_STYLES, WALL_STYLES, WINDOW_LAYOUTS, type FacadeModule, type FacadeVariant, type FacadeVariantKind } from '@app/document';
 import type { DesignPort } from '@app/spatial';
 import type { ProjectViewContext } from '@app/views/project';
-import { typeColor } from '@core/viewer/appearance';
+import { useFunctionColour } from '@app/views/functionColour';
 import type { Selection } from '@core/viewer/selection';
 import {
   addCardEdit,
@@ -697,6 +697,7 @@ function VariantField({
  */
 function CardRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, onRemove, highlighted, onHighlight, facade }: CardRowProps) {
   // Collapsed by default; the user's open/closed choice per card sticks (this browser).
+  const functionColour = useFunctionColour();
   const rememberBase = row.function !== null ? `designer-function:${row.function}` : `designer-card:${row.target.by}:${row.key}`;
   const [open, toggleOpen] = useRememberedOpen(rememberBase, false);
   const isDefault = row.target.group.kind === 'default';
@@ -769,7 +770,7 @@ function CardRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
           </svg>
           <span
             className={`sgl-designer-swatch${row.function === null ? ' sgl-designer-swatch--default' : ''}`}
-            style={row.function !== null ? { background: typeColor(row.function) } : undefined}
+            style={row.function !== null ? { background: functionColour(row.function) } : undefined}
             aria-hidden="true"
           />
           <span className="sgl-designer-type-text">

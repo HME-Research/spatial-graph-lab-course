@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import type { ProjectFunction } from '@app/project';
 import { Dialog } from '@app/ui/Dialog';
 import { functionNameProblem, functionRows, generateFunctionId, type FunctionRow } from './attributeList';
@@ -11,6 +11,10 @@ import { functionNameProblem, functionRows, generateFunctionId, type FunctionRow
  * - Project functions are stored in the project file (`settings.functions`): their name can be
  *   changed at any time; their identifier never changes, so nodes keep their function.
  * - A function used by a node in any scenario cannot be removed (nothing is ever reassigned).
+ * - Every function has a colour (2026-11-20), used by every view, legend and swatch. The swatch
+ *   opens the browser's colour picker; the chosen colour is the project's own
+ *   (`settings.functionColours`). "Reset to default" returns to the toolkit function's colour, else
+ *   the automatic one.
  * Changes are saved with the project immediately; they are not part of Undo.
  */
 export function FunctionsDialog({
@@ -20,6 +24,10 @@ export function FunctionsDialog({
   usedTypeIds,
   onChange,
   onClose,
+  colourOf,
+  defaultColourOf,
+  ownColours,
+  onColour,
 }: {
   /** The toolkit's valid types, in its order (hidden ones included). */
   readonly toolkitTypes: readonly { readonly id: string; readonly label: string }[];
@@ -30,6 +38,14 @@ export function FunctionsDialog({
   readonly usedTypeIds: readonly string[];
   readonly onChange: (functions: readonly ProjectFunction[], hidden: readonly string[]) => void;
   readonly onClose: () => void;
+  /** The colour each function shows (own → toolkit → automatic). */
+  readonly colourOf: (functionId: string) => string;
+  /** The colour without the project's own (toolkit → automatic): what "Reset to default" gives. */
+  readonly defaultColourOf: (functionId: string) => string;
+  /** The project's own colours (`settings.functionColours`). */
+  readonly ownColours: Readonly<Record<string, string>>;
+  /** Set a function's own colour (`#rrggbb`), or `null` to go back to its default. */
+  readonly onColour: (functionId: string, colour: string | null) => void;
 }) {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +88,7 @@ export function FunctionsDialog({
   return (
     <Dialog
       title="Functions"
-      lead="Every node has one function. Add the functions your project needs; remove the ones it does not."
+      lead="Every node has one function. Add the functions your project needs; remove the ones it does not. Click a colour to change it in every view."
       onClose={onClose}
       dialogId="functions"
       closeOnBackdrop
@@ -108,6 +124,14 @@ export function FunctionsDialog({
         {shown.length === 0 && <li className="sgl-dialog-hint">No functions yet. Add one above.</li>}
         {shown.map((row) => (
           <li key={row.id} className="sgl-function-row" data-function={row.id}>
+            <FunctionColourInput
+              label={row.label}
+              colour={colourOf(row.id)}
+              defaultColour={defaultColourOf(row.id)}
+              own={Object.hasOwn(ownColours, row.id)}
+              fromToolkit={row.fromToolkit}
+              onColour={(colour) => onColour(row.id, colour)}
+            />
             {renaming?.id === row.id ? (
               <input
                 type="text"
@@ -168,6 +192,61 @@ export function FunctionsDialog({
         </div>
       )}
     </Dialog>
+  );
+}
+
+/** The colour swatch of one function (opens the colour picker) and its "Reset to default". */
+function FunctionColourInput({
+  label,
+  colour,
+  defaultColour,
+  own,
+  fromToolkit,
+  onColour,
+}: {
+  readonly label: string;
+  readonly colour: string;
+  readonly defaultColour: string;
+  readonly own: boolean;
+  readonly fromToolkit: boolean;
+  readonly onColour: (colour: string | null) => void;
+}) {
+  const source = own ? 'Your colour' : fromToolkit ? 'Toolkit colour' : 'Automatic colour';
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <span className="sgl-function-colour">
+      <input
+        ref={input}
+        type="color"
+        className="sgl-function-colour-input"
+        value={colour}
+        aria-label={`Colour of ${label}`}
+        title={`${source} ${colour}. Click to change.`}
+        onChange={(e) => onColour(e.currentTarget.value === defaultColour && !own ? null : e.currentTarget.value)}
+      />
+      <button
+        type="button"
+        className="sgl-icon-action sgl-function-colour-reset"
+        disabled={!own}
+        onClick={() => {
+          onColour(null);
+          // The button is about to be disabled: keep the focus in the row (Esc still closes the dialog).
+          input.current?.focus();
+        }}
+        aria-label={`Reset the colour of ${label} to default`}
+        title={own ? `Reset to default (${fromToolkit ? 'the toolkit colour' : 'automatic'} ${defaultColour})` : 'Reset to default (already the default)'}
+      >
+        <ResetIcon />
+      </button>
+    </span>
+  );
+}
+
+function ResetIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M3.5 8a4.5 4.5 0 1 0 1.4-3.3M3.5 2.8v2.4h2.4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

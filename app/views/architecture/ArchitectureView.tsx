@@ -26,6 +26,8 @@ import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
 import { lineOf, RelationshipTube, useUnitCylinder, ViewRelationshipLegend } from '../three/v2Scene';
 import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
 import { presetColour, useRoofsDisplay, useViewDisplay, type SceneDisplay } from '../three/viewDisplay';
+import { useFunctionColour } from '../functionColour';
+import type { FunctionColour } from '@app/extensions';
 import { StoreyLabels } from '../three/StoreyLabels';
 import { eligibleWallFaces, faceIndex, wallActionOf, wallClickSelection, wallPanelModel } from '../three/wallInteraction/wallPanelModel';
 import { WallActionPanel } from '../three/wallInteraction/WallActionPanel';
@@ -66,13 +68,13 @@ const COLORS = {
   connectorPost: '#7d7466',
 } as const;
 
-function elementColor(e: ArchitecturalElement, display: SceneDisplay | null): string {
+function elementColor(e: ArchitecturalElement, display: SceneDisplay | null, colourOf: FunctionColour): string {
   switch (e.part) {
     case 'wall':
       // Strips beside a narrower corridor's end follow their own rule (2026-11-20): façade or internal.
       if (e.strip === 'internal') return COLORS.internalWall;
       // Exterior walls, an open-air corridor's end wall and the façade strips.
-      if (e.condition === 'exterior' || e.outside || e.strip === 'facade') return presetColour(typeColor(e.ownerFunction), display);
+      if (e.condition === 'exterior' || e.outside || e.strip === 'facade') return presetColour(colourOf(e.ownerFunction), display);
       return e.condition === 'door' ? COLORS.doorWall : COLORS.internalWall;
     case 'glazing':
       return COLORS.glazing;
@@ -323,6 +325,7 @@ function Scene({
   readonly onWallClick: (faceId: string) => void;
 }) {
   const display = useViewDisplay();
+  const functionColour = useFunctionColour();
   // Rooms lit up by the Designer's highlight button (never part of the selection).
   const lit = useRoomHighlight()?.nodeIds;
   // Nodes and edges highlighted by the shown analysis (P4).
@@ -338,7 +341,7 @@ function Scene({
           position={e.position}
           size={e.size}
           target={e.target}
-          color={elementColor(e, display)}
+          color={elementColor(e, display, functionColour)}
           kind={e.part === 'glazing' ? 'glass' : e.part === 'threshold' ? 'hidden' : 'solid'}
           geometry={unitBox}
           highlighted={
@@ -459,7 +462,7 @@ function groundGridFor(bounds: Bounds): GroundGrid {
 }
 
 const LEGEND: readonly (readonly [label: string, color: string])[] = [
-  ['Exterior wall (type colour)', typeColor('gallery')],
+  ['Exterior wall (function colour)', typeColor('gallery')],
   ['Glazing (Designer: window coverage)', COLORS.glazing],
   ['Internal solid wall', COLORS.internalWall],
   ['Door wall', COLORS.doorWall],

@@ -9,7 +9,7 @@ type ColorEdge = Pick<RelationshipEdge, 'id' | 'source' | 'target'>;
 
 /**
  * View-local colour-by logic for the 3D views (pure).
- *  - `type`: node function (functionId) using the shared `typeColor`, identical to Graph 2D.
+ *  - `type`: node function, in the function colours (`colourOf`, the shared resolver), identical to Graph 2D.
  *  - `group`: access group = connected component over explicit edges.
  *  - `attribute`: a node attribute key; numeric keys get a sequential scale, others are categorical.
  *  - `metric`: a calculated node value (`@app/metrics`): numbers get the sequential scale, booleans
@@ -131,31 +131,33 @@ export function resolveColoring(
   edges: readonly ColorEdge[],
   mode: ColorMode,
   metrics?: MetricColorSource,
+  /** The function colours (`useFunctionColour`); default: the automatic colours. */
+  colourOf: (functionId: string) => string = typeColor,
 ): Coloring {
   switch (mode.kind) {
     case 'type':
-      return byType(nodes);
+      return byType(nodes, colourOf);
     case 'group':
       return byGroup(nodes, edges);
     case 'attribute':
       return byAttribute(nodes, mode.key);
     case 'metric': {
       const metric = metrics?.metrics.find((m) => m.id === mode.metricId);
-      return metrics && metric ? byMetric(nodes, metric, metrics.values(metric.id)) : byType(nodes);
+      return metrics && metric ? byMetric(nodes, metric, metrics.values(metric.id)) : byType(nodes, colourOf);
     }
   }
 }
 
-function byType(nodes: readonly ColorNode[]): Coloring {
+function byType(nodes: readonly ColorNode[], colourOf: (functionId: string) => string): Coloring {
   const counts = countBy(nodes, (n) => n.function);
   const types = [...counts.keys()].sort();
-  const colours = new Set(types.map(typeColor));
+  const colours = new Set(types.map((t) => colourOf(t)));
   return {
     title: 'Node type',
-    colorOf: new Map(nodes.map((n) => [n.id, typeColor(n.function)] as const)),
+    colorOf: new Map(nodes.map((n) => [n.id, colourOf(n.function)] as const)),
     missing: new Set(),
-    legend: types.map((t) => ({ label: t, color: typeColor(t), count: counts.get(t)! })),
-    ...(colours.size < types.length && { note: 'Some types share a fallback colour.' }),
+    legend: types.map((t) => ({ label: t, color: colourOf(t), count: counts.get(t)! })),
+    ...(colours.size < types.length && { note: 'Some functions share a colour (change one in Functions).' }),
   };
 }
 

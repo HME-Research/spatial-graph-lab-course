@@ -339,6 +339,39 @@ button.sgl-attr-add {
   color: var(--muted, #62625c);
   white-space: nowrap;
 }
+/* The function's colour: a swatch that opens the colour picker, and its Reset to default. */
+.sgl-function-colour {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+.sgl-function-colour-input {
+  inline-size: 26px;
+  block-size: 22px;
+  padding: 0;
+  border: 1px solid var(--line, #e1e1dc);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+.sgl-function-colour-input::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+.sgl-function-colour-input::-webkit-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+.sgl-function-colour-input::-moz-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+.sgl-function-colour-input:focus-visible {
+  outline: 2px solid var(--accent, #2563eb);
+  outline-offset: 1px;
+}
+.sgl-function-colour-reset:disabled {
+  visibility: hidden;
+}
 .sgl-function-actions {
   display: flex;
   min-width: 64px;

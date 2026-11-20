@@ -13,6 +13,7 @@ import {
   type ColorMode,
 } from './colorBy';
 import { useEnabledMetrics } from './enabledMetrics';
+import { useFunctionColour } from '../functionColour';
 import { isNeutral, neutralColoring, useViewDisplay } from './viewDisplay';
 import { accessGroups, buildEdgeItems, buildNodeItems, cellBounds, framingFor, groundGrid, storeyLevels } from './sceneModel';
 
@@ -31,6 +32,7 @@ export function useSpatialScene(
   enabledMetricIdsArg?: EnabledMetricIds,
 ) {
   const projectMetricIds = useEnabledMetrics();
+  const functionColour = useFunctionColour();
   const enabledMetricIds = enabledMetricIdsArg ?? projectMetricIds;
   const { nodes, edges } = doc;
   // Colour-by reads EFFECTIVE values of the project's node fields (the shared resolver), so a type
@@ -65,9 +67,9 @@ export function useSpatialScene(
   // calculated-value and access-group colourings are explicit choices in the view and stay as chosen.
   const neutral = isNeutral(useViewDisplay()) && colorMode.kind === 'type';
   const coloring = useMemo(() => {
-    const resolved = resolveColoring(valued, edges, colorMode, metricSource);
+    const resolved = resolveColoring(valued, edges, colorMode, metricSource, functionColour);
     return neutral ? neutralColoring(resolved) : resolved;
-  }, [valued, edges, colorMode, metricSource, neutral]);
+  }, [valued, edges, colorMode, metricSource, neutral, functionColour]);
 
   const [maxLevel, setMaxLevel] = useState<number | null>(null);
   const isLevelHidden = useCallback((level: number) => maxLevel !== null && level > maxLevel, [maxLevel]);
