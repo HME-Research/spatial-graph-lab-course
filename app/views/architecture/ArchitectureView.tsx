@@ -69,7 +69,10 @@ const COLORS = {
 function elementColor(e: ArchitecturalElement, display: SceneDisplay | null): string {
   switch (e.part) {
     case 'wall':
-      if (e.condition === 'exterior' || e.outside) return presetColour(typeColor(e.ownerFunction), display);
+      // Strips beside a narrower corridor's end follow their own rule (2026-11-20): façade or internal.
+      if (e.strip === 'internal') return COLORS.internalWall;
+      // Exterior walls, an open-air corridor's end wall and the façade strips.
+      if (e.condition === 'exterior' || e.outside || e.strip === 'facade') return presetColour(typeColor(e.ownerFunction), display);
       return e.condition === 'door' ? COLORS.doorWall : COLORS.internalWall;
     case 'glazing':
       return COLORS.glazing;
