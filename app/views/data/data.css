@@ -404,3 +404,23 @@
   font-weight: 500;
   color: var(--muted);
 }
+
+/* Resizable columns (2026-11-20): a handle on each heading's right edge. */
+.sgl-dataview-columns th:not([data-column='id']) {
+  position: relative;
+}
+.sgl-dataview-col-resize {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 1;
+}
+.sgl-dataview-col-resize:hover,
+.sgl-dataview-col-resize:focus-visible {
+  background: var(--accent-line, rgba(44, 93, 143, 0.35));
+  outline: none;
+}

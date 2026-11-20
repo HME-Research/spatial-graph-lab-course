@@ -11,7 +11,8 @@ import { ViewportCameraContext, type ViewportCamera } from '@app/views/viewportC
 import { ViewportDisplay } from '@app/display/DisplayProvider';
 import { ChevronIcon, PROPERTIES_DESCRIPTION, PROPERTIES_LABEL, PropertiesIcon, SidebarNav, VIEW_CAPTIONS, ViewModeSelect, type SidebarSection } from '@app/ui';
 import { DESTINATIONS } from '@app/workspace/destinations';
-import { clampLeftWidth, keyboardResize, LEFT_WIDTH_MAX, LEFT_WIDTH_MIN } from '@app/workspace/panes';
+import { browserPaneStorage, clampLeftWidth, keyboardResize, LEFT_WIDTH_MAX, LEFT_WIDTH_MIN } from '@app/workspace/panes';
+import { keyboardSplit, readViewportSplit, splitFromPointer, splitStyle, writeViewportSplit, type ViewportSplit } from '@app/workspace/viewportSplit';
 import { WorkspaceServicesContext } from '@app/workspace/services';
 import {
   canMaximise,
@@ -119,6 +120,13 @@ export function Workspace({
 
   const className = ['workspace', leftCollapsed ? 'left-collapsed' : 'left-open', rightCollapsed ? 'right-collapsed' : 'right-open'].join(' ');
   const panelsClass = ['panels', `layout-${viewports.layout}`, viewports.maximised !== null ? 'maximised' : ''].filter(Boolean).join(' ');
+  // Movable divisions between the viewports (owner 2026-11-20), remembered in the browser.
+  const [split, setSplit] = useState<ViewportSplit>(() => readViewportSplit(browserPaneStorage()));
+  const changeSplit = (next: ViewportSplit, done: boolean) => {
+    setSplit(next);
+    if (done) writeViewportSplit(browserPaneStorage(), next);
+  };
+  const showDividers = viewports.layout !== 1 && viewports.maximised === null;
 
   return (
     <AnalysisOverlayContext.Provider value={analysis}>
@@ -156,7 +164,9 @@ export function Workspace({
           <EditPanelOwnerContext.Provider value={editOwner}>
           {/* P4 G: the Data view's table edits through the same models and commands as Properties. */}
           <DataCellEditorContext.Provider value={TableCellEditor}>
-            <div className={panelsClass}>
+            <div className={panelsClass} style={splitStyle(split) as CSSProperties}>
+              {showDividers && <ViewportDivider axis="x" split={split} onSplit={changeSplit} />}
+              {showDividers && viewports.layout === 4 && <ViewportDivider axis="y" split={split} onSplit={changeSplit} />}
               {mounted.map((index) => {
                 const info = infos[index]!;
                 return (
@@ -257,6 +267,69 @@ function LeftResizeHandle({ width, onWidth }: { readonly width: number; readonly
       onPointerMove={onPointerMove}
       onPointerUp={end}
       onPointerCancel={end}
+      onKeyDown={onKeyDown}
+    />
+  );
+}
+
+/**
+ * A divider between the viewports (owner 2026-11-20): vertical (`x`, between the columns) or
+ * horizontal (`y`, between the rows of layout 4). Drag it, use the arrow keys (Home: half), or
+ * double-click it to share the space equally again.
+ */
+function ViewportDivider({ axis, split, onSplit }: { readonly axis: 'x' | 'y'; readonly split: ViewportSplit; readonly onSplit: (split: ViewportSplit, done: boolean) => void }) {
+  const last = useRef<ViewportSplit | null>(null);
+  const fraction = axis === 'x' ? split.x : split.y;
+  const set = (value: number, done: boolean) => {
+    const next = axis === 'x' ? { ...split, x: value } : { ...split, y: value };
+    last.current = next;
+    onSplit(next, done);
+  };
+  const fromPointer = (event: PointerEvent<HTMLDivElement>) => {
+    const box = event.currentTarget.parentElement?.getBoundingClientRect();
+    if (!box) return null;
+    const gap = Number.parseFloat(getComputedStyle(event.currentTarget.parentElement!).columnGap) || 8;
+    return axis === 'x' ? splitFromPointer(event.clientX, box.left, box.width, gap) : splitFromPointer(event.clientY, box.top, box.height, gap);
+  };
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    last.current = split;
+  };
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!last.current) return;
+    const value = fromPointer(event);
+    if (value !== null) set(value, false);
+  };
+  const end = () => {
+    if (!last.current) return;
+    onSplit(last.current, true);
+    last.current = null;
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const next = keyboardSplit(fraction, event.key, axis);
+    if (next === null) return;
+    event.preventDefault();
+    set(next, true);
+  };
+  return (
+    <div
+      className={`viewport-divider viewport-divider-${axis}`}
+      role="separator"
+      aria-orientation={axis === 'x' ? 'vertical' : 'horizontal'}
+      aria-label={axis === 'x' ? 'Resize the viewport columns' : 'Resize the viewport rows'}
+      aria-valuenow={Math.round(fraction * 100)}
+      aria-valuemin={15}
+      aria-valuemax={85}
+      title="Drag (or use the arrow keys) to resize the viewports; double-click to share the space equally"
+      tabIndex={0}
+      data-viewport-divider={axis}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={end}
+      onPointerCancel={end}
+      onDoubleClick={() => set(0.5, true)}
       onKeyDown={onKeyDown}
     />
   );

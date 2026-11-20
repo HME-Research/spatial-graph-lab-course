@@ -295,6 +295,7 @@ main {
 }
 
 .panels {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -303,14 +304,45 @@ main {
   min-height: 0;
 }
 
-/* Viewport layouts (Gate F): 1, 2 side by side, or 2 × 2; a maximised viewport fills the area. */
+/* Viewport layouts (Gate F): 1, 2 side by side, or 2 × 2; a maximised viewport fills the area.
+   The column / row sizes come from the movable dividers (--split-*, 2026-11-20), equal by default. */
 .panels.layout-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, var(--split-col-a, 1fr)) minmax(0, var(--split-col-b, 1fr));
 }
 
 .panels.layout-4 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, var(--split-col-a, 1fr)) minmax(0, var(--split-col-b, 1fr));
+  grid-template-rows: minmax(0, var(--split-row-a, 1fr)) minmax(0, var(--split-row-b, 1fr));
+}
+
+/* The dividers sit in the gap between the viewports. */
+.viewport-divider {
+  position: absolute;
+  z-index: 4;
+  touch-action: none;
+  border-radius: 3px;
+}
+
+.viewport-divider-x {
+  top: 0;
+  bottom: 0;
+  left: calc((100% - var(--gap)) * var(--split-x, 0.5));
+  width: var(--gap);
+  cursor: col-resize;
+}
+
+.viewport-divider-y {
+  left: 0;
+  right: 0;
+  top: calc((100% - var(--gap)) * var(--split-y, 0.5));
+  height: var(--gap);
+  cursor: row-resize;
+}
+
+.viewport-divider:hover,
+.viewport-divider:focus-visible {
+  background: var(--accent-line);
+  outline: none;
 }
 
 .panels.maximised {
@@ -526,6 +558,10 @@ main {
   .panels.layout-4 {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
+  }
+
+  .viewport-divider {
+    display: none;
   }
 
   .view-panel {

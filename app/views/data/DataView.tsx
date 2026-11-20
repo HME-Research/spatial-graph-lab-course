@@ -4,12 +4,14 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   type ComponentType,
   type KeyboardEvent,
   type MouseEvent,
+  type PointerEvent,
   type ReactNode,
 } from 'react';
 import { ATTRIBUTE_SECTIONS, type AttributeSectionId } from '@app/attributes/sections';
@@ -20,6 +22,7 @@ import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
 import { useEnabledMetrics } from '../three/enabledMetrics';
 import { DataCellEditorContext, type CellEditorProps, type CellMove } from './cellEditing';
+import { clampColumnWidth, columnWidthCss, keyboardColumnWidth, withColumnWidth, type ColumnWidths } from './columnWidths';
 import { attributeHeadings, columnGroups, edgeTable, nodeTable, type DataCell, type DataColumn, type DataRow, type DataTable, type StoredSectionId } from './dataModel';
 import { edgeEmphasis, nodeEmphasis, revealIn, revealSideways, selectionOf, type RowEmphasis } from './dataSelection';
 import { JsonPane } from './JsonPane';
@@ -284,6 +287,22 @@ function DataTableView({
   const startEdit = (rowId: number, columnId: string, initialText?: string) =>
     onStartEdit({ collection, rowId, columnId, ...(initialText !== undefined && { initialText }) });
 
+  // Resizable columns (owner 2026-11-20): widths per viewport and table, applied by one scoped <style>
+  // so the (memoised) rows never re-render while a column is dragged.
+  const rememberedWidths = useRemembered<ColumnWidths>(`data-column-widths:${collection}`);
+  const [widths, setWidths] = useState<ColumnWidths>(() => rememberedWidths?.load() ?? {});
+  const widthScope = useId();
+  const setColumnWidth = useCallback(
+    (columnId: string, width: number | null) =>
+      setWidths((prev) => {
+        const next = withColumnWidth(prev, columnId, width);
+        rememberedWidths?.save(next);
+        return next;
+      }),
+    [rememberedWidths],
+  );
+  const widthCss = columnWidthCss(widthScope, widths);
+
   const onKeyDown = (event: KeyboardEvent<HTMLTableSectionElement>) => {
     const target = event.target as HTMLElement;
     // The editor handles its own keys.
@@ -366,7 +385,9 @@ function DataTableView({
       {rows.length === 0 ? (
         <p className="meta sgl-dataview-empty">{collection === 'nodes' ? 'No nodes yet.' : 'No edges yet.'}</p>
       ) : (
-        <table className="sgl-dataview-table" aria-label={`${title}: one row per ${collection === 'nodes' ? 'node' : 'edge'}`} data-table={collection}>
+        <>
+        {widthCss !== '' && <style>{widthCss}</style>}
+        <table className="sgl-dataview-table" aria-label={`${title}: one row per ${collection === 'nodes' ? 'node' : 'edge'}`} data-table={collection} data-width-scope={widthScope}>
           <thead>
             <tr className="sgl-dataview-groups">
               {groups.map((g) => (
@@ -383,7 +404,7 @@ function DataTableView({
                     {h.label}
                   </th>
                 ) : (
-                  <ColumnHeading key={h.id} column={h.first} starts={starts} rowSpan={hasValueRow ? 2 : 1} />
+                  <ColumnHeading key={h.id} column={h.first} starts={starts} rowSpan={hasValueRow ? 2 : 1} width={widths[h.first.id]} onWidth={setColumnWidth} />
                 ),
               )}
             </tr>
@@ -392,7 +413,7 @@ function DataTableView({
                 {columns
                   .filter((c) => c.attribute !== undefined)
                   .map((c) => (
-                    <ColumnHeading key={c.id} column={c} starts={starts} rowSpan={1} />
+                    <ColumnHeading key={c.id} column={c} starts={starts} rowSpan={1} width={widths[c.id]} onWidth={setColumnWidth} />
                   ))}
               </tr>
             )}
@@ -413,13 +434,30 @@ function DataTableView({
             ))}
           </tbody>
         </table>
+        </>
       )}
     </section>
   );
 }
 
-/** One column heading: its label, a lock when it cannot be edited, and a custom attribute's source tag. */
-function ColumnHeading({ column: c, starts, rowSpan }: { readonly column: DataColumn; readonly starts: ReadonlySet<string>; readonly rowSpan: number }) {
+/**
+ * One column heading: its label, a lock when it cannot be edited, a custom attribute's source tag and a
+ * resize handle on its right edge (drag, or the arrow keys; double-click returns it to its natural width).
+ */
+function ColumnHeading({
+  column: c,
+  starts,
+  rowSpan,
+  width,
+  onWidth,
+}: {
+  readonly column: DataColumn;
+  readonly starts: ReadonlySet<string>;
+  readonly rowSpan: number;
+  /** The width the student set, or undefined for the natural width. */
+  readonly width: number | undefined;
+  readonly onWidth: (columnId: string, width: number | null) => void;
+}) {
   return (
     <th scope="col" rowSpan={rowSpan > 1 ? rowSpan : undefined} data-section={c.section} data-column={c.id} title={c.title} className={cellClass(c, starts)}>
       {c.label}
@@ -430,7 +468,63 @@ function ColumnHeading({ column: c, starts, rowSpan }: { readonly column: DataCo
           {c.tag}
         </span>
       )}
+      <ColumnResizeHandle columnId={c.id} label={c.label} width={width} onWidth={onWidth} />
     </th>
+  );
+}
+
+/** The resize handle on a heading's right edge. */
+function ColumnResizeHandle({
+  columnId,
+  label,
+  width,
+  onWidth,
+}: {
+  readonly columnId: string;
+  readonly label: string;
+  readonly width: number | undefined;
+  readonly onWidth: (columnId: string, width: number | null) => void;
+}) {
+  const drag = useRef<{ readonly startX: number; readonly startWidth: number } | null>(null);
+  const headingWidth = (el: HTMLElement) => el.parentElement?.getBoundingClientRect().width ?? width ?? 100;
+  const onPointerDown = (event: PointerEvent<HTMLSpanElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = { startX: event.clientX, startWidth: headingWidth(event.currentTarget) };
+  };
+  const onPointerMove = (event: PointerEvent<HTMLSpanElement>) => {
+    const d = drag.current;
+    if (d) onWidth(columnId, clampColumnWidth(d.startWidth + event.clientX - d.startX));
+  };
+  const end = () => {
+    drag.current = null;
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
+    const next = keyboardColumnWidth(width ?? headingWidth(event.currentTarget), event.key);
+    if (next === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onWidth(columnId, next);
+  };
+  return (
+    <span
+      className="sgl-dataview-col-resize"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={`Resize the ${label} column`}
+      {...(width !== undefined && { 'aria-valuenow': width })}
+      title="Drag (or use the arrow keys) to resize; double-click for the natural width"
+      tabIndex={0}
+      data-resize-column={columnId}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={end}
+      onPointerCancel={end}
+      onDoubleClick={() => onWidth(columnId, null)}
+      onKeyDown={onKeyDown}
+    />
   );
 }
 
