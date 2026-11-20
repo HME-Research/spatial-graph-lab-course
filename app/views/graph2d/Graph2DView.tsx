@@ -6,6 +6,8 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  useStore,
+  useUpdateNodeInternals,
   useViewport,
   type Connection,
   type EdgeTypes,
@@ -24,6 +26,7 @@ import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
 import { functionStatus, typeDisplayName } from '../project';
 import { resolveDiagramPositions } from './diagram';
+import { nodesMissingHandles } from './handleRepair';
 import {
   addNodeRequest,
   changeRelationshipKindCommand,
@@ -90,6 +93,13 @@ export function Graph2DView(props: ViewProps) {
 function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const flow = useReactFlow();
+  // Nodes that are drawn (sized) but whose handles React Flow lost and will not re-measure by
+  // itself: measure them again, or their edges are never drawn (see handleRepair.ts).
+  const missingHandles = useStore((s) => nodesMissingHandles(s.nodeLookup.values()));
+  const updateNodeInternals = useUpdateNodeInternals();
+  useEffect(() => {
+    if (missingHandles) updateNodeInternals(missingHandles.split(','));
+  }, [missingHandles, updateNodeInternals]);
   const [overlay, setOverlay] = useState<Readonly<Record<string, NodeOverlay>>>({});
   const [issues, setIssues] = useState<readonly GraphIssue[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
