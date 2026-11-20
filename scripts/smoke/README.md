@@ -32,7 +32,7 @@ Unit tests for the harness helpers (`lib.mjs`, `cdp.mjs` and the pure helpers of
 
 | Id | What is measured |
 |---|---|
-| `load/app`, `load/welcome`, `load/project` | The app renders and the Welcome overlay is shown at startup (Create project, Open project, Try example, Recent projects; no view panels, so no project was reopened automatically). The check then clicks **Try example**, the project finishes activating and the design shows nodes in Graph 2D. |
+| `load/app`, `load/welcome`, `load/project` | The app renders and the Welcome overlay is shown at startup (Create project, Open project, Open example…, Recent projects; no view panels, so no project was reopened automatically). The check then clicks **Open example…** → **House – graph only**, the project finishes activating and the design shows nodes in Graph 2D. |
 | `viewports/1280x720`, `1366x768`, `1920x1080` | No page scroll (document scroll size ≤ viewport). Toolbar, workspace, panel and sidebar rectangles are recorded, with a screenshot each. |
 | `select/node-without-resize` | Clicks a node. Sidebar and panel rectangles must not change by more than 1 px; any change is listed. |
 | `views/<mode>` | Each view mode in panel 2. The main canvas or diagram must fill the panel, with no page scroll. Screenshot each. |
@@ -74,7 +74,7 @@ Use `--only viewports,select,...` to run selected groups. The groups are `viewpo
 
 ## Scenario scripts: `workflow.mjs`, `walls.mjs`, `gate-i1.mjs`
 
-Three longer end-to-end scripts drive the real app with real pointer input. They use the built-in example house (Welcome → **Try example**: rooms 1 Entrance [0,1,0], 2 Living [1,1,0], 3 Kitchen [1,0,0], 4 Bedroom [1,1,1] and 5 Bath [0,1,1]; relationships 1–2 Access, 2–3 Open, 2–4 Access and 4–5 Access; no toolkit). Where a toolkit is needed, they use the house toolkit (`toolkits/house/`). They follow the same safety rules as `smoke.mjs`: they never start or stop Node/Vite, never write into the repository, and only close the private browser they launched. All three share the helper module `app.mjs` (next section).
+Three longer end-to-end scripts drive the real app with real pointer input. They use the built-in example house (Welcome → **Open example…** → **House – graph only**: rooms 1 Entrance [0,1,0], 2 Living [1,1,0], 3 Kitchen [1,0,0], 4 Bedroom [1,1,1] and 5 Bath [0,1,1]; relationships 1–2 Access, 2–3 Open, 2–4 Access and 4–5 Access; no toolkit). Where a toolkit is needed, they use the house toolkit (`toolkits/house/`). They follow the same safety rules as `smoke.mjs`: they never start or stop Node/Vite, never write into the repository, and only close the private browser they launched. All three share the helper module `app.mjs` (next section).
 
 ```powershell
 # the app must already run, e.g. npm run dev -- --port 5390 --strictPort
@@ -91,7 +91,7 @@ Run the scripts **one at a time** against a dev server. With several headless br
 
 | Step | What is checked |
 |---|---|
-| `load/fresh-1`, `load/fresh-2` | Reload → Welcome → Try example: the header names the example, 5 rooms and 4 relationships, fresh history, no console errors. |
+| `load/fresh-1`, `load/fresh-2` | Reload → Welcome → Open example… → House – graph only: the header names the example, 5 rooms and 4 relationships, fresh history, no console errors. |
 | `workflow/add-room` | **+ Add node** adds room 6 ("Add room 6"). |
 | `workflow/move-in-properties` | Properties → Position moves it to [5,1,0]: one command and one undo step per changed axis. |
 | `workflow/connect-generates-corridor` | Properties → Relationships → **Connect** to room 2: the relationship is "Connected via route", its Corridor walls follow "Design default (…)", and Voxels counts 3 connector cells. |
@@ -113,7 +113,7 @@ Run the scripts **one at a time** against a dev server. With several headless br
 
 ### `walls.mjs`: shared wall ↔ graph and Remove invalid connections
 
-Setup (`open-example`): Try example, then add room 6 at [0,0,0], beside the Kitchen and in front of the Entrance. The Kitchen | room 6 wall (face `3:-x`, owner room 3) is then a free shared wall. The Building hides its roofs.
+Setup (`open-example`): Open example… → House – graph only, then add room 6 at [0,0,0], beside the Kitchen and in front of the Entrance. The Kitchen | room 6 wall (face `3:-x`, owner room 3) is then a free shared wall. The Building hides its roofs.
 
 | Step | What is checked |
 |---|---|
@@ -133,8 +133,8 @@ Each step belongs to an item, and an item passes only when all its steps pass. T
 
 | Item · step | What is checked |
 |---|---|
-| 1 · `welcome-create-empty` | Welcome at startup with no project reopened, and it offers Create / Open / Try example. **Create project** with the House toolkit gives an empty graph, and the header shows House. |
-| 1 · `example-named-and-saved` | Try example, rename it in Project (unique name), then **Save locally**: the header says "Saved locally". |
+| 1 · `welcome-create-empty` | Welcome at startup with no project reopened, and it offers Create / Open / Open example…. **Create project** with the House toolkit gives an empty graph, and the header shows House. |
+| 1 · `example-named-and-saved` | Open example… → House – graph only, rename it in Project (unique name), then **Save locally**: the header says "Saved locally". |
 | 1 · `two-scenarios-different-geometry` | **+ New scenario** → Create scenario (a copy). Move the Kitchen in scenario 2 and the Entrance in scenario 1: no edit leaks into the other scenario, and each has its own undo history. |
 | 1 · `shared-custom-attribute` | Attributes → **+ Add attribute** → Custom attribute "capacity" (Number). It is listed in both scenarios and in Properties, and it is not a design undo step. |
 | 5 · `save-view-and-switch` | Camera: target Viewport 2 (Building), orbit, Save view "Gate view". The other scenario lists 0 saved views, the target is kept across switches, and Recall restores the exact pose. |
@@ -159,7 +159,7 @@ Each step belongs to an item, and an item passes only when all its steps pass. T
 
 ## Reopen loop: `reopen.mjs`
 
-The headless reproduction of two intermittent bugs fixed on 2026-11-20. Each iteration uses a **new** private browser profile: load, reload at once, and Welcome must list the saved projects (no "Looking for saved projects…" hang, storage available). **Create project** with the House toolkit must finish. Then **Try example** must draw its 4 edges in Graph 2D, it is saved locally, and after a reload the copy restored from Recent must draw its 4 edges again. One JSON line per iteration, then the counts. It writes `reopen.json` to `--out`. Exit code `1` when anything hung or a graph lacked edges.
+The headless reproduction of two intermittent bugs fixed on 2026-11-20. Each iteration uses a **new** private browser profile: load, reload at once, and Welcome must list the saved projects (no "Looking for saved projects…" hang, storage available). **Create project** with the House toolkit must finish. Then **Open example… → House – graph only** must draw its 4 edges in Graph 2D, it is saved locally, and after a reload the copy restored from Recent must draw its 4 edges again. One JSON line per iteration, then the counts. It writes `reopen.json` to `--out`. Exit code `1` when anything hung or a graph lacked edges.
 
 ```powershell
 node scripts/smoke/reopen.mjs --url http://localhost:5390/ --iterations 20
@@ -173,11 +173,11 @@ node scripts/smoke/reopen.mjs --url http://localhost:5390/ --iterations 20
 `scripts/smoke/app.mjs` holds the browser-driving code shared by the three scripts. Any tool that drives the app can use it, for example a guide-screenshot script. It uses only Node built-ins and `cdp.mjs`. A small page-side helper, `window.__sgl`, is installed into every document (it survives reloads).
 
 ```js
-import { openSession, tryExample, openRail, setViewMode, selectNode, setLayout } from './smoke/app.mjs';
+import { openSession, openBuiltInExample, openRail, setViewMode, selectNode, setLayout } from './smoke/app.mjs';
 
 const s = await openSession({ url: 'http://localhost:5390/', viewport: { width: 1366, height: 768 } });
 try {
-  await tryExample(s);                       // Welcome → Try example, 5 rooms + 4 edges in Graph 2D
+  await openBuiltInExample(s);                       // Welcome → Open example… → House – graph only, 5 rooms + 4 edges in Graph 2D
   await setLayout(s, 2);
   await setViewMode(s, 1, 'building');       // panel index 1 (data-panel="1"), alias of 'architecture'
   await selectNode(s, 2);
@@ -217,7 +217,7 @@ try {
 | Helper | What it does |
 |---|---|
 | `gotoWelcome(s, url?)` | Reload and wait for Welcome to be ready, including its list of saved projects. The list is always answered (the former "Looking for saved projects…" hang was fixed on 2026-11-20); when it says that saved projects cannot be listed (browser storage unavailable), a `NOTE` records it. |
-| `tryExample(s)` | Welcome → **Try example** (it reloads first when Welcome is not shown). Waits for 5 rooms and 4 edges in Graph 2D. |
+| `openBuiltInExample(s)` | Welcome → **Open example…** → **House – graph only** (it reloads first when Welcome is not shown). Waits for 5 rooms and 4 edges in Graph 2D. |
 | `openWithToolkit(s, toolkitId = 'house', designFile?)` | Loads `?toolkit=<id>`, then Welcome → Open project with `toolkits/<id>/designs/<id>.json`. A design file becomes a new project that uses that toolkit. Waits for its rooms and edges. Use it for the house example **with** the house toolkit (the Transform, the custom attributes targetArea and priority). |
 | `createProject(s, { toolkit? })` | Welcome → **Create project**, with the toolkit chosen in the Welcome picker (or `?toolkit=`). Today this gives an empty graph. |
 | `waitForProject(s, nodes?)` | Waits until Welcome has closed, Graph 2D shows `nodes` rooms (or any number) and the project has finished activating. |

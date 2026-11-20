@@ -59,9 +59,12 @@
 }
 .sgl-welcome-actions {
   display: grid;
-  /* Four actions (2026-11-20, Open example…): two by two in the Welcome card, one column when narrow. */
+  /* Three actions (owner 2026-11-20): Create project across the top, Open project and Open example… side by side; one column when narrow. */
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
+}
+.sgl-welcome-action.is-primary {
+  grid-column: 1 / -1;
 }
 .sgl-welcome-action {
   position: relative;

@@ -24,7 +24,7 @@ import {
   selectEdge,
   selectNode,
   setViewMode,
-  tryExample,
+  openBuiltInExample,
 } from './smoke/app.mjs';
 
 const USAGE = `Guide screenshots: node scripts/guide-shots.mjs --url http://localhost:5180/ [--only id,id] [--viewport 1366x768]
@@ -161,7 +161,6 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
     await gotoWelcome(s);
     await shot('howto-start', {
       markers: [
-        { text: 'Try example', within: '.sgl-welcome', at: 'corner' },
         { text: 'Create project', within: '.sgl-welcome', at: 'corner' },
         { text: 'Open project', within: '.sgl-welcome', at: 'corner' },
         { text: 'Open example…', within: '.sgl-welcome', at: 'corner' },
@@ -186,7 +185,7 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
   });
 
   await step('howto-select-inspect', async () => {
-    await tryExample(s);
+    await openBuiltInExample(s);
     await selectNode(s, 2);
     await shot('howto-select-inspect', {
       markers: [{ node: 2 }, { sel: '.view-panel[data-panel="1"] canvas' }, { text: 'Properties', within: '#sidebar-panel-properties' }],
@@ -207,7 +206,7 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
   });
 
   await step('howto-connect', async () => {
-    await tryExample(s);
+    await openBuiltInExample(s);
     await selectNode(s, 1);
     await clickText('Add connection');
     await clickNode(5);
@@ -219,7 +218,7 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
   });
 
   await step('howto-query', async () => {
-    await tryExample(s);
+    await openBuiltInExample(s);
     await openRail(s, 'Analyse');
     await clickText('Queries', '#sidebar-panel-analyse');
     await clickText('Shortest path', '#sidebar-panel-analyse');
@@ -238,7 +237,7 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
   });
 
   await step('howto-read-data-view', async () => {
-    await tryExample(s);
+    await openBuiltInExample(s);
     await setViewMode(s, 1, 'data');
     await clickText('Table', '.view-panel[data-panel="1"]');
     await selectNode(s, 2);
@@ -253,7 +252,7 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
   });
 
   await step('howto-save', async () => {
-    await tryExample(s);
+    await openBuiltInExample(s);
     await openRail(s, 'Project');
     await shot('howto-save', {
       markers: [rail('Project'), { text: 'Save locally', within: '#sidebar-panel-project' }, { text: 'Export project', within: '#sidebar-panel-project' }, { text: 'Open project', within: '#sidebar-panel-project' }],

@@ -22,7 +22,7 @@
 //
 //   node scripts/smoke/walls.mjs --url http://localhost:5306/ [--viewport 1280x720] [--out DIR]
 
-import { createRunner, delay, expect, openRail, redo, runScript, selectNode, setLayout, setViewMode, tryExample, undo } from './app.mjs';
+import { createRunner, delay, expect, openRail, redo, runScript, selectNode, setLayout, setViewMode, openBuiltInExample, undo } from './app.mjs';
 
 const USAGE = `Spatial Graph Lab wall ↔ graph check (built-in example house + one added room).
 
@@ -181,7 +181,7 @@ await runScript({ name: 'walls', usage: USAGE, url: 'http://localhost:5306/', vi
 
   const st = {};
   await step('open-example', async () => {
-    await tryExample(s);
+    await openBuiltInExample(s);
     // Room 6: added (the app picks a free cell), then moved to [0, 0, 0] (y first: x = 0 at y = 1 would overlap the Entrance).
     const before = await s.evaluate('__sgl.nodes()');
     await s.click('+ Add node', { within: '.view-panel[data-panel="0"]' });

@@ -222,12 +222,14 @@ async function showSidebarTab(id) {
   await delay(100);
 }
 
-/** On the Welcome screen (always shown at startup, workstream B): open the example as a new project. */
+/** On the Welcome screen (always shown at startup, workstream B): open the example as a new project (Open example… → House – graph only). */
 async function leaveWelcome() {
   if (!(await evaluate(`!!document.querySelector('.sgl-welcome')`))) return false;
-  const clicked = await clickButton('Try example', `document.querySelector('.sgl-welcome')`);
-  if (clicked !== 'clicked') throw new Error(`Welcome "Try example" button ${clicked}`);
-  await waitFor(`!document.querySelector('.sgl-welcome') && document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length > 0`, 'the example project after Try example');
+  const clicked = await clickButton('Open example…', `document.querySelector('.sgl-welcome')`);
+  if (clicked !== 'clicked') throw new Error(`Welcome "Open example…" button ${clicked}`);
+  await waitFor(`!!document.querySelector('[data-example="built-in"]')`, 'the Open example list');
+  await evaluate(`document.querySelector('[data-example="built-in"]').click()`);
+  await waitFor(`!document.querySelector('.sgl-welcome') && document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length > 0`, 'the example project after Open example…');
   return true;
 }
 
@@ -238,7 +240,7 @@ async function ensureDesign() {
   await evaluate(`(() => { const s = document.querySelector('select[aria-label="View mode, panel 1"], select[aria-label="View shown in panel 1"]'); if (!s || s.value === 'graph2d') return;
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'graph2d'); s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
   if ((await nodeCount()) > 0) return;
-  // No design-level "Load example" any more: start again from Welcome → Try example.
+  // No design-level "Load example" any more: start again from Welcome → Open example… → House – graph only.
   await page.send('Page.reload');
   await waitFor(`!!document.querySelector('.sgl-welcome')`, 'the Welcome screen after a reload');
   await leaveWelcome();
@@ -257,11 +259,11 @@ await check('load/app', async () => {
 await check('load/welcome', async () => {
   const shown = await waitFor(`(() => { const w = document.querySelector('.sgl-welcome'); return w ? { text: w.innerText.slice(0, 600), panels: document.querySelectorAll('.view-panel').length } : null; })()`, 'the Welcome screen');
   const file = await screenshot('welcome-1366x768');
-  const problems = ['Welcome to Spatial Graph Lab', 'Create project', 'Open project', 'Try example', 'Recent projects'].filter((t) => !shown.text.toLowerCase().includes(t.toLowerCase()));
+  const problems = ['Welcome to Spatial Graph Lab', 'Create project', 'Open project', 'Open example…', 'Recent projects'].filter((t) => !shown.text.toLowerCase().includes(t.toLowerCase()));
   if (shown.panels > 0) problems.push(`${shown.panels} view panel(s) mounted behind Welcome`);
   return problems.length
     ? fail(`Welcome incomplete: ${problems.join('; ')}`, { screenshot: file })
-    : pass('Welcome overlay shown at startup (Create, Open, Try example, Recent); no project auto-opened', { screenshot: file });
+    : pass('Welcome overlay shown at startup (Create, Open, Open example…, Recent); no project auto-opened', { screenshot: file });
 });
 
 await check('load/project', async () => {

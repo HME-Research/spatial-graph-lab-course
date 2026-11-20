@@ -29,7 +29,7 @@ import {
   selectEdge,
   selectNode,
   setViewMode,
-  tryExample,
+  openBuiltInExample,
   undo,
 } from './app.mjs';
 
@@ -52,7 +52,7 @@ await runScript({ name: 'workflow', usage: USAGE, url: 'http://localhost:5181/',
     await step(`load/fresh-${i}`, async () => {
       const errorsBefore = s.consoleErrors.length;
       await s.goto();
-      await tryExample(s);
+      await openBuiltInExample(s);
       const bar = await s.evaluate(`document.querySelector('.sgl-identity-project')?.textContent ?? ''`);
       expect(/^Example/.test(bar), `project identity: ${bar.slice(0, 120)}`);
       const nodes = await s.evaluate('__sgl.nodes()');
@@ -329,7 +329,7 @@ await runScript({ name: 'workflow', usage: USAGE, url: 'http://localhost:5181/',
 
   // ── 3. one selection across five views ──────────────────────────────────────────────────────
   await step('views/selection-across-views', async () => {
-    await tryExample(s);
+    await openBuiltInExample(s);
     await selectNode(s, '4');
     const out = [];
     for (const mode of ['graph3d', 'voxels', 'architecture', 'plan', 'data']) {

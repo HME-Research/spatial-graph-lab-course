@@ -20,7 +20,7 @@ export const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Repository root (read-only use: design files to import). */
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-/** The built-in example (Welcome → Try example): 5 rooms, 4 relationships, no toolkit. */
+/** The built-in example (Welcome → Open example… → House – graph only): 5 rooms, 4 relationships, no toolkit. */
 export const EXAMPLE_DESIGN_FILE = join(REPO_ROOT, 'app', 'document', 'examples', 'house.json');
 /** The house toolkit's design (the same house), opened with `?toolkit=house`. */
 export const HOUSE_DESIGN_FILE = join(REPO_ROOT, 'toolkits', 'house', 'designs', 'house.json');
@@ -471,10 +471,16 @@ export async function waitForProject(s, nodes = null, timeout = 20_000) {
   await s.waitFor(`!__sgl.busy()`, timeout, 'the project to finish activating');
 }
 
-/** Welcome → Try example (reloads first when no Welcome is shown); waits for the 5 rooms in Graph 2D. */
-export async function tryExample(s) {
+/** Welcome → Open example… → the built-in House row (the dialog lives outside Welcome). */
+export async function pickBuiltInExample(s) {
+  await s.click('Open example…', { within: WELCOME });
+  await s.click('[data-example="built-in"]');
+}
+
+/** Welcome → Open example… → "House – graph only" (reloads first when no Welcome is shown); waits for the 5 rooms in Graph 2D. */
+export async function openBuiltInExample(s) {
   if (!(await s.evaluate(`!!document.querySelector('${WELCOME}')`))) await gotoWelcome(s);
-  await s.click('Try example', { within: WELCOME });
+  await pickBuiltInExample(s);
   await waitForProject(s, 5);
   // A first-visit notice may cover the views: dismiss it when present.
   await dismissNotices(s);

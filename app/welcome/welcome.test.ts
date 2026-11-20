@@ -12,7 +12,7 @@ import { ProjectControllerContext } from '@app/session/projectStoreContext';
 import exampleJson from '../document/examples/house.json';
 import { exportProject, NewProjectDialog, ProjectFiles } from './ProjectFiles';
 import { Welcome, type WelcomeProps } from './Welcome';
-import { createProject, openProjectText, openToolkitExample, tryExample, type WelcomeHost } from './welcomeFlow';
+import { createProject, openProjectText, openToolkitExample, openBuiltInExample, type WelcomeHost } from './welcomeFlow';
 import { exampleOptions, newProjectStart, projectFileName, recentRows } from './welcomeModel';
 import { designAssetIds, loadToolkitAssets } from '@app/extensions/toolkitExamples';
 import { importFacade3dm } from '@app/assets/importFacade';
@@ -46,7 +46,6 @@ const props = (over: Partial<WelcomeProps> = {}): WelcomeProps => ({
   recent: { status: 'ready', items: [] },
   onCreate: noop,
   onOpenFile: noop,
-  onTryExample: noop,
   onRestore: noop,
   onDiscardUnreadable: noop,
   ...over,
@@ -117,11 +116,11 @@ describe('Welcome flow', () => {
     expect(h.controller.getState().project).toBeNull();
   });
 
-  it('Try Example opens a new project each time; only the last session is kept unless saved locally', async () => {
+  it('The built-in example opens a new project each time; only the last session is kept unless saved locally', async () => {
     const h = host();
-    const a = await tryExample(h, example(), 'example.json');
+    const a = await openBuiltInExample(h, example(), 'example.json');
     await h.controller.flush();
-    const b = await tryExample(h, example(), 'example.json');
+    const b = await openBuiltInExample(h, example(), 'example.json');
     await h.controller.flush();
     if (!a.ok || !b.ok) throw new Error('not opened');
     expect(a.projectId).not.toBe(b.projectId);
@@ -131,7 +130,7 @@ describe('Welcome flow', () => {
     expect(recent.status === 'ok' && recent.unsaved).toEqual([b.projectId]);
     expect((await h.controller.saveLocally()).ok).toBe(true);
     expect(h.controller.getState().kept).toBe(true);
-    const c = await tryExample(h, example(), 'example.json');
+    const c = await openBuiltInExample(h, example(), 'example.json');
     await h.controller.flush();
     if (!c.ok) throw new Error('not opened');
     recent = await h.controller.listRecent();
@@ -166,7 +165,7 @@ describe('Welcome flow', () => {
     expect(marks.kept.size).toBe(0);
     expect(marks.initialised()).toBe(true);
     // It runs once: a project saved locally afterwards stays.
-    await tryExample(h, example(), 'example.json');
+    await openBuiltInExample(h, example(), 'example.json');
     expect((await h.controller.saveLocally()).ok).toBe(true);
     await h.controller.flush();
     const after = await h.controller.listRecent();
@@ -197,7 +196,7 @@ describe('Welcome flow', () => {
 
   it('Save as new project keeps the copy saved', async () => {
     const h = host();
-    await tryExample(h, example(), 'example.json');
+    await openBuiltInExample(h, example(), 'example.json');
     const r = await h.controller.saveAs('Copy');
     expect(r.ok).toBe(true);
     expect(h.controller.getState().kept).toBe(true);
@@ -214,9 +213,9 @@ describe('Welcome flow', () => {
     expect(p.meta.toolkit).toEqual({ id: 'gallery' });
   });
 
-  it('Try Example opens the graph-only example without a toolkit; its Functions become project functions', async () => {
+  it('The built-in example opens the graph-only example without a toolkit; its Functions become project functions', async () => {
     const h = host();
-    expect((await tryExample(h, example(), 'example.json')).ok).toBe(true);
+    expect((await openBuiltInExample(h, example(), 'example.json')).ok).toBe(true);
     const p = h.controller.getState().project!;
     expect(p.meta.name).toBe('Example – graph only (no toolkit)');
     expect(p.meta.toolkit).toBeNull();
@@ -246,7 +245,7 @@ describe('Welcome flow', () => {
 
   it('export → import round trip keeps every scenario (as a separate copy in the same browser)', async () => {
     const h = host();
-    await tryExample(h, twoRooms(), 'two.json');
+    await openBuiltInExample(h, twoRooms(), 'two.json');
     h.controller.createScenario({ from: 'current', name: 'Option B' });
     h.controller.command({ type: 'set-node-geometry', nodeId: 2, position: [2, 1, 0] });
     let text = '';
@@ -338,7 +337,7 @@ describe('Open example… (owner decision 2026-11-20)', () => {
     expect(ids).toEqual(['facade-ea64a8beca91ce66']);
     const assets = p.meta.assets.policy === 'none' ? [] : p.meta.assets.items;
     expect(assets.map((a) => [a.id, a.name])).toEqual([['facade-ea64a8beca91ce66', 'facade-ex1']]);
-    // Default calculated attributes, as for Try example.
+    // Default calculated attributes, as for the built-in example.
     expect(p.meta.settings.calculatedFields).toBeUndefined();
     // The exported project reads back as a valid project file, façade included.
     const exported = h.controller.exportFile();
@@ -370,10 +369,10 @@ describe('leaving a project that could not be saved', () => {
     await createProject(h, 'First', 'gallery');
     await h.controller.flush();
     const first = h.controller.getState().project!;
-    const r = await tryExample(h, example(), 'example.json');
+    const r = await openBuiltInExample(h, example(), 'example.json');
     expect(r.ok === false && r.needsConfirmation).toBe(true);
     expect(h.controller.getState().project).toBe(first);
-    const again = await tryExample(h, example(), 'example.json', { discard: true });
+    const again = await openBuiltInExample(h, example(), 'example.json', { discard: true });
     expect(again.ok).toBe(true);
   });
 });
@@ -393,17 +392,17 @@ describe('Welcome screen', () => {
     expect(html).not.toContain('is-guide-open');
   });
 
-  it('offers Create project, Open project, Try example and Recent projects', () => {
+  it('offers Create project, Open project, Open example… and Recent projects', () => {
     const html = renderToStaticMarkup(createElement(Welcome, props()));
     expect(html).toContain('Welcome to Spatial Graph Lab');
     expect(html).toContain('Create project');
     expect(html).toContain('Open project');
     expect(html).toContain('type="file"');
-    expect(html).toContain('Try example');
     expect(html).toContain('Recent projects');
     expect(html).toContain('No saved projects yet.');
     expect(html).toContain('Projects are saved in this browser');
-    for (const old of ['design file', 'Open file', 'Try Example']) expect(html).not.toContain(old);
+    for (const old of ['design file', 'Open file']) expect(html).not.toContain(old);
+    expect(html).not.toMatch(/try example/i); // removed 2026-11-20: Open example… is the way to the examples
     // Open example… only when the shell supplies the examples (it always does).
     expect(html).not.toContain('Open example');
     const withExamples = renderToStaticMarkup(createElement(Welcome, props({ loadExamples: async () => [], onOpenExample: noop })));

@@ -317,8 +317,8 @@ const TEXT: readonly GuideTabContent[] = [
       {
         id: 'howto-start',
         title: 'Start: the example, a new project or a file',
-        summary: 'The Welcome screen opens the example house, creates an empty project, or opens a file.',
-        example: '1. Try example opens the house (no toolkit). 2. Create project starts an empty graph; with a toolkit chosen beside it (e.g. House) its custom attributes are ready. 3. Open project reads a project or design file. 4. Open example… lists the example house and every toolkit design. 5. Recent projects are listed below.',
+        summary: 'The Welcome screen creates an empty project, opens a file, or opens an example.',
+        example: '1. Create project starts an empty graph; with a toolkit chosen beside it (e.g. House) its custom attributes are ready. 2. Open project reads a project or design file. 3. Open example… lists House – graph only (no toolkit) and every toolkit design. 4. Recent projects are listed below.',
         diagram: 'howto-start',
         learnMore: LINKS.jsonOrg,
       },

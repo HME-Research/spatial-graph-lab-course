@@ -59,7 +59,7 @@ import { EmptyShell, Welcome } from './welcome/Welcome';
 import { FunctionsDialog } from './attributes/FunctionsDialog';
 import { ManageFunctionsContext } from './attributes/navigation';
 import { SIDEBAR_LABELS, SIDEBAR_SECTIONS } from '@app/ui/labels';
-import { createProject, openProjectText, openToolkitExample, tryExample, type FlowOutcome, type WelcomeHost } from './welcome/welcomeFlow';
+import { createProject, openProjectText, openToolkitExample, openBuiltInExample, type FlowOutcome, type WelcomeHost } from './welcome/welcomeFlow';
 import { DEFAULT_PROJECT_NAME, exampleOptions, recentStateOf, toolkitLabel, type ExampleChoice, type RecentState } from './welcome/welcomeModel';
 import { Workspace } from './Workspace';
 import { DESTINATION_PANELS } from '@app/workspace/panelSlots';
@@ -455,11 +455,11 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
       const text = await file.text();
       return openProjectText(host, text, file.name, options);
     });
-  const startExample = () => void runFlow('Opening the example…', (options) => tryExample(host, builtInExample().doc, EXAMPLE_LABEL, options));
-  /** Open example… (owner 2026-11-20): always a NEW project; the built-in one takes Try example's path. */
+  const openBuiltIn = () => void runFlow('Opening the example…', (options) => openBuiltInExample(host, builtInExample().doc, EXAMPLE_LABEL, options));
+  /** Open example… (owner 2026-11-20): always a NEW project; the built-in House is one of its rows. */
   const openExample = (choice: ExampleChoice) =>
     choice.kind === 'built-in'
-      ? startExample()
+      ? openBuiltIn()
       : void runFlow('Opening the example…', (options) => openToolkitExample(host, choice.toolkitId, choice.designId, options));
   /**
    * Create project (Welcome) and New project (Project panel): a clean project straight away, named
@@ -694,7 +694,6 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
               defaultToolkitId={toolkits.defaultId}
               onCreate={startNewProject}
               onOpenFile={openFile}
-              onTryExample={startExample}
               loadExamples={loadExamples}
               onOpenExample={openExample}
               onRestore={(id) =>

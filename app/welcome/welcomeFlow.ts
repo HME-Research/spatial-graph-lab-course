@@ -113,7 +113,7 @@ function toolkitAttributes(file: ProjectFileV2, attributeSignature: string | und
  * The project of a toolkit example (owner decision 2026-11-20): the design as its one scenario
  * (rooms, relationships and Building Designer settings kept), the toolkit's custom attributes
  * seeded as by Create project, the imported façades it uses as project assets, and the default
- * calculated attributes (like Try example). Re-read, so it is validated like any opened file.
+ * calculated attributes (like the built-in example). Re-read, so it is validated like any opened file.
  */
 export function exampleProjectFile(
   file: ProjectFileV2,
@@ -152,10 +152,10 @@ export const functionsOfDesign = (doc: DesignDocumentV2): { readonly id: string;
   [...new Set(doc.nodes.map((n) => n.function))].map((id) => ({ id, label: functionLabel(id) }));
 
 /**
- * Try Example: the built-in graph-only example as a NEW project (each time; Recent restores earlier
+ * Open example… → House – graph only: the built-in graph-only example as a NEW project (each time; Recent restores earlier
  * ones). It never uses a toolkit (P4): its Functions become project functions.
  */
-export async function tryExample(host: WelcomeHost, example: DesignDocumentV2, exampleSource: string, options: LeaveOptions = {}): Promise<FlowOutcome> {
+export async function openBuiltInExample(host: WelcomeHost, example: DesignDocumentV2, exampleSource: string, options: LeaveOptions = {}): Promise<FlowOutcome> {
   const file = newProjectFromDesign(example, { name: EXAMPLE_PROJECT_NAME, toolkit: null });
   if (!file.ok) return failed(exampleSource, `The example could not be opened: ${formatProjectIssues(file.issues)}`, file.issues);
   const withFunctions: ProjectFileV2 = { ...file.value, settings: { ...file.value.settings, functions: functionsOfDesign(example) } };
