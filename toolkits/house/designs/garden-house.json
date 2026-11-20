@@ -155,7 +155,7 @@
       "id": 7,
       "source": 4,
       "target": 7,
-      "relationship": "open",
+      "relationship": "access",
       "custom": {}
     },
     {
@@ -292,14 +292,14 @@
             "value": "garden",
             "look": {
               "walls": "open",
-              "roof": "none"
+              "roof": "pergola"
             }
           },
           {
             "value": "terrace",
             "look": {
               "walls": "open",
-              "roof": "none"
+              "roof": "pergola"
             }
           }
         ]

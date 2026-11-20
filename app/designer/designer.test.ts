@@ -220,20 +220,26 @@ describe('window layout per function', () => {
     expect(setWallsEdit(doc, 'kiosk', 'half').kind).toBe('invalid');
     const open = apply(doc, setWallsEdit(doc, 'kiosk', 'open'));
     expect(functionLooks(open.settings)).toEqual({ kiosk: { walls: 'open' } });
-    const text = serializeDesignV2(apply(open, setRoofEdit(open, 'kiosk', 'pergola')));
-    expect(functionLooks(expectOk(readDesignJson(text)).doc.settings)).toEqual({ kiosk: { walls: 'open', roof: 'pergola' } });
+    // Open walls already show a Pergola while the roof is unset (2026-11-20): choosing it stores nothing.
+    expect(setRoofEdit(open, 'kiosk', 'pergola').kind).toBe('unchanged');
+    const text = serializeDesignV2(apply(open, setRoofEdit(open, 'kiosk', 'flat')));
+    expect(functionLooks(expectOk(readDesignJson(text)).doc.settings)).toEqual({ kiosk: { walls: 'open', roof: 'flat' } });
     expect(functionLooks(apply(open, resetTypeEdit(open, 'kiosk', 'walls')).settings)).toEqual({});
 
     const parts = (typeAppearance: Record<string, unknown>, owner: number) =>
       buildBuildingV2(labDocV2(typeAppearance), { facade: exampleFacadeProvider }).elements.filter((e) => e.ownerNodeId === owner);
     const P = 0.15 + 1e-9;
     // Open + flat roof: no glazing; the only exterior wall parts are slim posts; the roof stays.
-    const pavilion = parts({ kiosk: { walls: 'open' } }, 4);
+    const pavilion = parts({ kiosk: { walls: 'open', roof: 'flat' } }, 4);
     expect(pavilion.some((e) => e.part === 'glazing')).toBe(false);
     const posts = pavilion.filter((e) => e.part === 'wall' && e.condition === 'exterior');
     expect(posts.length).toBe(8); // two per side, four sides
     expect(posts.every((e) => [e.size[0], e.size[2]].filter((d) => d <= P).length === 2)).toBe(true);
     expect(pavilion.filter((e) => e.part === 'roof')).toHaveLength(1);
+    // Open walls with no roof set: a pergola (owner 2026-11-20), so the same posts and six slats.
+    const unset = parts({ kiosk: { walls: 'open' } }, 4);
+    expect(unset.filter((e) => e.part === 'roof')).toHaveLength(6);
+    expect(unset.filter((e) => e.part === 'wall' && e.condition === 'exterior')).toHaveLength(8);
     // Open + no roof: a floor only.
     const terrace = parts({ kiosk: { walls: 'open', roof: 'none' } }, 4);
     expect(terrace.map((e) => e.part).sort()).toEqual(['slab']);

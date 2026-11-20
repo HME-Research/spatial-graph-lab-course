@@ -3,6 +3,7 @@ import { type DesignDocumentV2, validateDocumentV2 } from '@app/document';
 import { expectOk } from '@app/document/test-fixtures';
 import builtInHouse from '@app/document/examples/house.json';
 import { resolveRelationships } from '@app/spatial';
+import { buildBuildingV2 } from '@app/building';
 import type { SpatialAlgorithm, SpatialAlgorithmContext } from '@student-api';
 import { activateToolkit, type ActiveToolkit } from './activate';
 import { buildSpatialContextV2 } from './context';
@@ -210,6 +211,21 @@ describe('the garden house design', () => {
     expect(preview.operations).toEqual([]);
     expect(validateDocumentV2(preview.after).ok).toBe(true);
     expect(direct(preview.after)).toEqual(direct(preview.before));
+  });
+
+  it('open rooms have pergolas; the landing and Dining have façade doors toward the terrace and the garden (2026-11-20)', () => {
+    const doc = gardenHouse();
+    const model = buildBuildingV2(doc);
+    for (const id of [1, 7, 13]) expect(model.looks.get(id)!.look).toMatchObject({ walls: 'open', roof: 'pergola' });
+    // Dining 4 is closed toward the garden: Access, a door in its façade (no longer an Open side).
+    expect(doc.edges.find((e) => e.id === 7)).toMatchObject({ source: 4, target: 7, relationship: 'access' });
+    const face = (id: string) => model.faces.find((f) => f.id === id);
+    expect(face('4:1.0.0:+y')).toMatchObject({ ownerNodeId: 4, neighbourNodeId: 7, condition: 'exterior' });
+    expect(face('4:0.0.0:+y')).toMatchObject({ ownerNodeId: 4, neighbourNodeId: 7, condition: 'door', edgeId: 7, outside: true });
+    expect(model.looks.get(4)!.look).toMatchObject({ walls: 'enclosed', facade: { assetId: 'facade-ea64a8beca91ce66' } });
+    // Stair / landing 8 toward Roof terrace 13: a door in the landing's façade.
+    expect(face('8:0.1.0:+y')).toMatchObject({ ownerNodeId: 8, neighbourNodeId: 13, condition: 'door', edgeId: 14, outside: true });
+    expect(model.faces.some((f) => f.ownerNodeId === 13 && f.neighbourNodeId === 8)).toBe(false);
   });
 });
 

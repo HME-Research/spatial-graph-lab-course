@@ -231,7 +231,7 @@
             "value": "circulation",
             "look": {
               "walls": "open",
-              "roof": "none"
+              "roof": "pergola"
             }
           }
         ]

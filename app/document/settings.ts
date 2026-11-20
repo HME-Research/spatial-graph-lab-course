@@ -121,11 +121,13 @@ export function effectiveLook(setup: StyleSetup, ref: StyleGroupRef, base: Proje
   const walls = pick('walls');
   const roof = pick('roof');
   const facade = pick('facade');
+  const wallStyle = walls.value ?? DEFAULT_WALL_STYLE;
   return {
     windowFraction: wf.value ?? base.windowFraction,
     windowLayout: layout.value ?? DEFAULT_WINDOW_LAYOUT,
-    walls: walls.value ?? DEFAULT_WALL_STYLE,
-    roof: roof.value ?? DEFAULT_ROOF_STYLE,
+    walls: wallStyle,
+    // Open walls with no roof set: a pergola (owner 2026-11-20); otherwise the built-in flat roof.
+    roof: roof.value ?? (wallStyle === 'open' ? 'pergola' : DEFAULT_ROOF_STYLE),
     facade: facade.value === undefined || facade.value === 'none' ? null : facade.value,
     source: { windowFraction: wf.source, windowLayout: layout.source, walls: walls.source, roof: roof.source, facade: facade.source },
   };
