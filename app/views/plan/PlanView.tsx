@@ -37,6 +37,10 @@ import { useRoomHighlight } from '../roomHighlight';
 import { useAnalysisOverlay } from '../analysisOverlay';
 import { useStyleValues } from '../styleValues';
 import type { ProjectAttributeSchema } from '@app/extensions';
+import { useRoomEditing, type RoomEditing } from '../three/editing/useRoomEditing';
+import type { RoomGeometry } from '../three/editing/roomGeometry';
+import { PlanEditPanel } from './PlanEditPanel';
+import { PLAN_RESIZE_HANDLES, geometryRect, handleCursor, handleMode, handlePoint, handleTitle, planDraft, type PlanHandle } from './planRoomEdit';
 
 /**
  * Plan view (workstream C): the architectural floor plan of ONE storey, drawn as SVG from
@@ -51,6 +55,10 @@ import type { ProjectAttributeSchema } from '@app/extensions';
  * - Unresolved relationships build no face condition, so they never appear as openings.
  * - Wall targets (eligible shared walls) are reported through `onWallTarget` only — a data hook
  *   for the wall-editing workstream; this view adds no relationship UI of its own.
+ * - "Edit rooms" (off by default, remembered by the panel): the selected room on this storey gets
+ *   a move surface and eight resize handles. Drags snap to whole cells and run through the same
+ *   room-edit session as the 3D gizmo (same validity, one `set-node-geometry` command on release);
+ *   the storey and height never change here.
  */
 
 /** Hover/click on an eligible shared wall, with the shared `wallAction` verdict. */
@@ -69,6 +77,8 @@ interface RememberedPlan {
   readonly level?: number;
   /** Null = keep fitting the building to the panel. */
   readonly viewport?: PlanViewport | null;
+  /** "Edit rooms" toggle (move/resize handles); off when absent. */
+  readonly editRooms?: boolean;
 }
 
 const NO_PROJECT_FACADE = projectFacadeProvider(null);
@@ -149,9 +159,10 @@ function PlanCanvas({
 
   const [manual, setManual] = useState<PlanViewport | null>(() => memory?.load()?.viewport ?? null);
   const viewport = manual ?? fitViewport(allBounds, size);
+  const [editRooms, setEditRooms] = useState<boolean>(() => memory?.load()?.editRooms === true);
   useEffect(() => {
-    memory?.save({ ...(wantedLevel !== undefined ? { level: wantedLevel } : {}), viewport: manual });
-  }, [memory, wantedLevel, manual]);
+    memory?.save({ ...(wantedLevel !== undefined ? { level: wantedLevel } : {}), viewport: manual, ...(editRooms ? { editRooms } : {}) });
+  }, [memory, wantedLevel, manual, editRooms]);
 
   // Latest values for the native wheel listener (React's onWheel is passive and cannot preventDefault).
   const live = useRef({ viewport, size });
@@ -250,6 +261,76 @@ function PlanCanvas({
     onWallTarget?.({ type, target, action: wallAction(target.faceId, wallModel, doc, spatial) });
   };
 
+  // Room editing (move/resize handles), only for the selected room when it is on this storey.
+  const editing = useRoomEditing(design, selection);
+  const editable = editRooms && plan !== null && editing.nodeId !== null && plan.rooms.some((r) => r.nodeId === editing.nodeId);
+  const gesture = useRef<{ id: number; handle: PlanHandle; x: number; y: number; start: RoomGeometry; moved: boolean } | null>(null);
+  const handleEvents = (handle: PlanHandle) => ({
+    onPointerDown: (e: ReactPointerEvent<SVGElement>) => {
+      // Never start a pan under a handle; a second pointer (pinch, another drag) is ignored.
+      e.stopPropagation();
+      if (e.button !== 0 || gesture.current || drag.current?.moved) return;
+      const node = doc.nodes.find((n) => n.id === editing.nodeId);
+      if (!node) return;
+      gesture.current = { id: e.pointerId, handle, x: e.clientX, y: e.clientY, start: { position: node.position, size: node.size }, moved: false };
+      suppressClick.current = false;
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    },
+    onPointerMove: (e: ReactPointerEvent<SVGElement>) => {
+      const g = gesture.current;
+      if (!g || g.id !== e.pointerId) return;
+      const dx = e.clientX - g.x;
+      const dy = e.clientY - g.y;
+      if (!g.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      if (!g.moved) {
+        g.moved = true;
+        editing.gizmo.onDragStart('x', handleMode(g.handle), 1);
+      }
+      const scale = live.current.viewport.scale;
+      editing.setDraft(planDraft(g.start, g.handle, dx * scale, dy * scale));
+    },
+    onPointerUp: (e: ReactPointerEvent<SVGElement>) => {
+      const g = gesture.current;
+      if (!g || g.id !== e.pointerId) return;
+      gesture.current = null;
+      if (g.moved) {
+        suppressClick.current = true;
+        editing.gizmo.onDragEnd('x');
+      }
+    },
+    onPointerCancel: (e: ReactPointerEvent<SVGElement>) => cancelGesture(e.pointerId),
+    onLostPointerCapture: (e: ReactPointerEvent<SVGElement>) => cancelGesture(e.pointerId),
+    onClick: (e: { stopPropagation(): void }) => e.stopPropagation(),
+  });
+  const cancelGesture = (pointerId: number) => {
+    const g = gesture.current;
+    if (!g || g.id !== pointerId) return;
+    gesture.current = null;
+    if (g.moved) editing.gizmo.onDragCancel();
+  };
+  // Escape cancels a drag: nothing is sent (the pointer's release then does nothing).
+  const dragging = editing.state.phase === 'dragging';
+  const cancelEditing = editing.cancel;
+  useEffect(() => {
+    if (!dragging) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      gesture.current = null;
+      cancelEditing();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [dragging, cancelEditing]);
+  const toggleEditRooms = () => {
+    if (editRooms) {
+      gesture.current = null;
+      editing.cancel();
+    }
+    setEditRooms(!editRooms);
+  };
+
   const fit = () => setManual(null);
   const zoomBy = (factor: number) => setManual(zoomAt(viewport, size, factor));
 
@@ -278,6 +359,7 @@ function PlanCanvas({
         onWallClick={(t) => {
           if (!suppressClick.current) wallEvent('click', t);
         }}
+        {...(editable ? planEditLayers(editing, viewport.scale, handleEvents) : {})}
       />
     );
   }
@@ -335,6 +417,24 @@ function PlanCanvas({
         </button>
       </div>
 
+      <div className="sgl-plan-edit-toggle">
+        <button
+          type="button"
+          aria-pressed={editRooms}
+          onClick={toggleEditRooms}
+          data-plan-edit-toggle=""
+          title={
+            editRooms
+              ? 'Hide the move and resize handles'
+              : 'Show handles to move and resize the selected room on this storey, by whole cells. Its storey and height stay the same in the Plan.'
+          }
+        >
+          Edit rooms
+        </button>
+      </div>
+
+      {editRooms && <PlanEditPanel editing={editing} editable={editable} />}
+
       <p className="sgl-plan-note">
         Cut at {DEFAULT_CUT_HEIGHT.toFixed(1)} m · dashed = above
         {unresolvedHere > 0 && ` · ${unresolvedHere} unresolved relationship${unresolvedHere === 1 ? '' : 's'} not drawn`}
@@ -351,6 +451,57 @@ function PlanCanvas({
 
 const rectProps = (r: PlanRect) => ({ x: r.x0, y: r.y0, width: r.x1 - r.x0, height: r.y1 - r.y0 });
 
+/** On-screen size (px) of a resize handle. */
+const HANDLE_PX = 10;
+
+/**
+ * The editing layers for the selected room: a move surface (drawn just above the rooms, so walls,
+ * doors and slab marks above it stay clickable) and, on top of everything, the snapped preview
+ * outline (tone = the session's validity) with the eight resize handles.
+ */
+function planEditLayers<E extends object>(
+  editing: RoomEditing,
+  px: number,
+  events: (handle: PlanHandle) => E,
+): { editSurface: ReactNode; editOverlay: ReactNode } {
+  const geometry = editing.geometry;
+  if (!geometry) return { editSurface: null, editOverlay: null };
+  const rect = geometryRect(geometry);
+  const busy = editing.state.phase !== 'idle';
+  const half = (HANDLE_PX / 2) * px;
+  return {
+    editSurface: (
+      <rect className="sgl-plan-edit-move" data-plan-handle="move" style={{ cursor: handleCursor('move') }} {...rectProps(rect)} {...events('move')}>
+        <title>{handleTitle('move')}</title>
+      </rect>
+    ),
+    editOverlay: (
+      <g className={`sgl-plan-edit${busy ? ' busy' : ''}`} data-plan-edit-room={editing.nodeId ?? undefined} data-tone={editing.tone}>
+        <rect className={`sgl-plan-edit-outline tone-${editing.tone}`} {...rectProps(rect)} vectorEffect="non-scaling-stroke" />
+        {PLAN_RESIZE_HANDLES.map((h) => {
+          const [x, y] = handlePoint(rect, h);
+          return (
+            <rect
+              key={h}
+              className="sgl-plan-edit-handle"
+              data-plan-handle={h}
+              x={x - half}
+              y={y - half}
+              width={2 * half}
+              height={2 * half}
+              style={{ cursor: handleCursor(h) }}
+              vectorEffect="non-scaling-stroke"
+              {...events(h)}
+            >
+              <title>{handleTitle(h)}</title>
+            </rect>
+          );
+        })}
+      </g>
+    ),
+  };
+}
+
 /** The SVG content of one storey. Exported for static-markup tests. */
 export function PlanDrawing({
   plan,
@@ -364,6 +515,8 @@ export function PlanDrawing({
   onWallClick,
   lit,
   analysed,
+  editSurface = null,
+  editOverlay = null,
 }: {
   readonly plan: PlanModel;
   /** Metres per screen pixel (labels and hit areas keep a constant on-screen size). */
@@ -379,6 +532,10 @@ export function PlanDrawing({
   readonly lit?: ReadonlySet<number> | undefined;
   /** Nodes and edges highlighted by the shown analysis (P4). */
   readonly analysed?: { readonly nodes: ReadonlySet<number>; readonly edges: ReadonlySet<number> } | undefined;
+  /** "Edit rooms": the selected room's move surface, drawn just above the rooms. */
+  readonly editSurface?: ReactNode;
+  /** "Edit rooms": the preview outline and resize handles, drawn on top. */
+  readonly editOverlay?: ReactNode;
 }) {
   const edgeClass = (base: string, edgeId: number | null) =>
     edgeId !== null && emphasis.edges.has(edgeId) ? `${base} selected` : edgeId !== null && analysed?.edges.has(edgeId) ? `${base} analysed` : base;
@@ -422,6 +579,8 @@ export function PlanDrawing({
           );
         })}
       </g>
+
+      {editSurface}
 
       <g className="sgl-plan-slabs">
         {plan.slabs.map((s) => {
@@ -505,6 +664,8 @@ export function PlanDrawing({
           );
         })}
       </g>
+
+      {editOverlay}
     </>
   );
 }
