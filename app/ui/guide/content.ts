@@ -167,7 +167,7 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'view-plan',
         title: 'Plan',
         summary: 'A floor plan of one storey, drawn from the same walls and openings as the Building view.',
-        example: 'Level 0: a door between the Entrance and the Living room (Access) and no wall between the Living room and the Kitchen (Open). Choose Level 1 to see the Bedroom and the Bath; dashed lines show what is above.',
+        example: 'Level 0: a door between the Entrance and the Living room (Access) and no wall between the Living room and the Kitchen (Open). Choose Level 1 to see the Bedroom and the Bath; dashed lines show what is above. Turn on Edit rooms and drag a selected room, or its edges and corners, to move or resize it by whole cells.',
         diagram: 'view-plan',
         learnMore: LINKS.floorPlan,
       },
