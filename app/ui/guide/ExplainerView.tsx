@@ -122,6 +122,16 @@ function DownloadButton({ download }: { readonly download: GuideDownload }) {
   );
 }
 
+/** Opening size of an explainer's pop-up when it sets no `windowSize`. */
+export const DEFAULT_EXPLAINER_WINDOW_SIZE = { width: 360, height: 300 } as const;
+
+/**
+ * Id of an explainer's window (its place and size are remembered by it): `explainer-<id>`, plus
+ * `@<w>x<h>` when it sets its own size, so a new opening size is not hidden by an older remembered one.
+ */
+export const explainerWindowId = (explainer: Pick<Explainer, 'id' | 'windowSize'>): string =>
+  explainer.windowSize ? `explainer-${explainer.id}@${explainer.windowSize.width}x${explainer.windowSize.height}` : `explainer-${explainer.id}`;
+
 /** A FloatingWindow showing one Explainer (for the analysis items' info buttons). */
 export function ExplainerWindow({
   explainer,
@@ -134,8 +144,9 @@ export function ExplainerWindow({
   readonly onClose: () => void;
   readonly renderDiagram?: ((diagramId: string) => ReactNode) | undefined;
 }) {
+  const size = explainer.windowSize ?? DEFAULT_EXPLAINER_WINDOW_SIZE;
   return (
-    <FloatingWindow id={`explainer-${explainer.id}`} title={explainer.title} open={open} onClose={onClose} initialSize={{ width: 360, height: 300 }}>
+    <FloatingWindow id={explainerWindowId(explainer)} title={explainer.title} open={open} onClose={onClose} initialSize={size}>
       <div className="sgl-guide-pad">
         <ExplainerView explainer={explainer} renderDiagram={renderDiagram} headingLevel={2} />
       </div>
