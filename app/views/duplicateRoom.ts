@@ -3,7 +3,7 @@ import { duplicateRoomRequest, type DesignPort } from '@app/spatial';
 import { suggestDiagramPosition } from './graph2d/diagram';
 
 /**
- * "Duplicate" for one room, shared by the Graph 2D menu / Ctrl+D and Properties: ONE `add-node`
+ * "Duplicate" for one room, shared by the Graph 2D menu, Ctrl+D (app-wide, App) and Properties: ONE `add-node`
  * command through the design port (one Undo step, "Duplicate room 3 as room 6"). The copy is placed
  * by `duplicateRoomRequest` (closest free place) and drawn in the diagram beside the original.
  * Nothing changes when there is no place or the command is refused.

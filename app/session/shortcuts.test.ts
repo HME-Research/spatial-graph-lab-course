@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { historyButtonTitle, historyShortcut, isApplePlatform, isEditableTarget, type ShortcutKey } from './shortcuts';
+import { historyButtonTitle, historyShortcut, isApplePlatform, isDuplicateShortcut, isEditableTarget, type ShortcutKey } from './shortcuts';
 
 const key = (k: string, mods: Partial<ShortcutKey> = {}): ShortcutKey => ({
   key: k,
@@ -56,5 +56,24 @@ describe('undo/redo shortcuts', () => {
     expect(historyButtonTitle('undo', false, null, false)).toBe('Undo: nothing to undo');
     expect(isApplePlatform('MacIntel')).toBe(true);
     expect(isApplePlatform('Win32')).toBe(false);
+  });
+});
+
+describe('Ctrl+D duplicate shortcut (app-wide)', () => {
+  const none = { querySelector: () => null };
+  const scope = (inside: string | null, tagName = 'DIV') => ({ tagName, closest: (s: string) => (inside && s.includes(inside) ? {} : null) });
+  it('Ctrl/Cmd+D anywhere outside text fields, selects, dialogs and menus', () => {
+    expect(isDuplicateShortcut(key('d', { ctrlKey: true }), scope(null), none)).toBe(true);
+    expect(isDuplicateShortcut(key('D', { metaKey: true }), body, none)).toBe(true);
+    expect(isDuplicateShortcut(key('d', { ctrlKey: true }), { tagName: 'INPUT', type: 'text' }, none)).toBe(false);
+    expect(isDuplicateShortcut(key('d', { ctrlKey: true }), scope(null, 'SELECT'), none)).toBe(false);
+    expect(isDuplicateShortcut(key('d', { ctrlKey: true }), scope('[role="dialog"]'), none)).toBe(false);
+    expect(isDuplicateShortcut(key('d', { ctrlKey: true }), scope('[role="menu"]'), none)).toBe(false);
+  });
+  it('not while a modal dialog is open, nor with Shift/Alt or without Ctrl/Cmd', () => {
+    expect(isDuplicateShortcut(key('d', { ctrlKey: true }), body, { querySelector: () => ({}) })).toBe(false);
+    expect(isDuplicateShortcut(key('d', { ctrlKey: true, shiftKey: true }), body, none)).toBe(false);
+    expect(isDuplicateShortcut(key('d', { ctrlKey: true, altKey: true }), body, none)).toBe(false);
+    expect(isDuplicateShortcut(key('d'), body, none)).toBe(false);
   });
 });

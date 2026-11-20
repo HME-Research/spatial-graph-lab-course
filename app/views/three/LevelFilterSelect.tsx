@@ -3,11 +3,11 @@ import { useRemembered } from '../panelMemory';
 import { ALL_LEVELS, effectiveLevelFilter, levelFilterFromValue, levelFilterOptions, levelFilterToValue, type LevelFilter } from './levelFilter';
 
 /**
- * The level filter of the Voxel or Building view: `[filter, setFilter]`. Remembered by the hosting
+ * The level filter of the Graph 3D, Voxel or Building view: `[filter, setFilter]`. Remembered by the hosting
  * panel (like the camera and the Plan's level), never written to the design. When the chosen storey
  * no longer exists (a room moved or deleted) the view shows All levels and the choice is reset.
  */
-export function useLevelFilter(view: 'voxels' | 'architecture', levels: readonly number[]): readonly [LevelFilter, (filter: LevelFilter) => void] {
+export function useLevelFilter(view: 'graph3d' | 'voxels' | 'architecture', levels: readonly number[]): readonly [LevelFilter, (filter: LevelFilter) => void] {
   const memory = useRemembered<LevelFilter>(`levels:${view}`);
   const [wanted, setWanted] = useState<LevelFilter>(() => memory?.load() ?? ALL_LEVELS);
   const filter = effectiveLevelFilter(wanted, levels);
@@ -33,7 +33,7 @@ export function LevelFilterSelect({
   const options = levelFilterOptions(levels);
   if (options.length === 0) return null;
   return (
-    <label title="Show levels: all, one level only, or a level with the levels above it taken off" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+    <label title="Show levels: all, one level only, or a level with the levels above it taken off. A room on several levels is shown whole." style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
       <LevelsIcon />
       <select aria-label="Show levels" value={levelFilterToValue(filter)} onChange={(e) => onChange(levelFilterFromValue(e.currentTarget.value))}>
         {options.map((o) => (

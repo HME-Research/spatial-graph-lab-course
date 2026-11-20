@@ -64,3 +64,32 @@ export function historyButtonTitle(action: HistoryShortcut, available: boolean, 
   if (!available) return `${verb}: nothing to ${action}`;
   return `${verb}${label ? `: ${label}` : ''} (${shortcutText(action, apple)})`;
 }
+
+/** Selector of the places whose keys are their own: dialogs and menus (the app's shortcuts wait). */
+const OWN_KEYS = '[role="dialog"], dialog, [role="menu"], [role="listbox"], .sgl-menu, .sgl-popover';
+
+/** The fields of a DOM target / document the duplicate shortcut reads. */
+export interface ShortcutScope {
+  readonly closest?: (selector: string) => unknown;
+}
+export interface ShortcutDocument {
+  readonly querySelector: (selector: string) => unknown;
+}
+
+/**
+ * Ctrl+D / ⌘D duplicates the selected room wherever it is pressed (owner 2026-11-20; it was Graph
+ * 2D only), except in text fields and selects, inside a dialog or menu, or while a modal dialog is
+ * open (the browser then keeps Ctrl+D). Whether a room is selected is the caller's check.
+ */
+export function isDuplicateShortcut(
+  event: ShortcutKey,
+  target: (ShortcutTarget & ShortcutScope) | null | undefined,
+  doc?: ShortcutDocument,
+): boolean {
+  if (event.defaultPrevented || event.isComposing || event.altKey || event.shiftKey) return false;
+  if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'd') return false;
+  if (isEditableTarget(target) || target?.tagName?.toUpperCase() === 'SELECT') return false;
+  if (typeof target?.closest === 'function' && target.closest(OWN_KEYS)) return false;
+  if (doc && doc.querySelector('[aria-modal="true"], dialog[open]')) return false;
+  return true;
+}

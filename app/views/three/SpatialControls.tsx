@@ -48,35 +48,6 @@ export function ColorBySelect({
   );
 }
 
-/** `null` = all levels; otherwise levels above `maxLevel` are shown as faint ghosts and not pickable. */
-export function LevelSelect({
-  levels,
-  maxLevel,
-  onChange,
-}: {
-  readonly levels: readonly number[];
-  readonly maxLevel: number | null;
-  readonly onChange: (maxLevel: number | null) => void;
-}) {
-  if (levels.length < 2) return null;
-  return (
-    <label>
-      Levels{' '}
-      <select
-        value={maxLevel === null ? 'all' : String(maxLevel)}
-        onChange={(e) => onChange(e.currentTarget.value === 'all' ? null : Number(e.currentTarget.value))}
-      >
-        <option value="all">All</option>
-        {levels.slice(0, -1).map((l) => (
-          <option key={l} value={String(l)}>
-            Up to L{l}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 /**
  * Colour legend of a 3D view. With `open`/`onOpenChange` it is a disclosure (title always visible)
  * so a narrow panel can keep it closed until wanted (programme phase 05, audit V05); open, it is

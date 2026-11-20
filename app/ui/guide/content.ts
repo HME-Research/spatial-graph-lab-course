@@ -183,7 +183,7 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'view-graph3d',
         title: 'Graph 3D',
         summary: 'The same graph placed in 3D: each node sits where its room is, so you see the edges between storeys.',
-        example: 'In a one-storey design every node sits on level 0. Put room C on level 1 above B and the edge B–C stands upright between the two levels. Select here; move rooms with the arrows or in Properties.',
+        example: 'In a one-storey design every node sits on level 0. Put room C on level 1 above B and the edge B–C stands upright between the two levels. Select here; move rooms in Voxels, Building, Plan or Properties. The levels icon shows one level only, or a level with the ones above taken off.',
         diagrams: [
           { diagram: 'g3d-one', caption: 'One storey: all on level 0' },
           { diagram: 'g3d-two', caption: 'Two storeys: a vertical edge' },
@@ -194,7 +194,7 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'view-voxels',
         title: 'Voxels',
         summary: 'Rooms as see-through cubes, one cube per grid cell, coloured by an attribute you choose.',
-        example: 'Colour by Function to see the programme: one colour per Function. Colour by a number, such as Target area, to compare rooms: light for small values, dark for large. The levels icon shows one level only, or a level with the ones above taken off.',
+        example: 'Colour by Function to see the programme: one colour per Function. Colour by a number, such as Target area, to compare rooms: light for small values, dark for large. The levels icon shows one level only, or a level with the ones above taken off; a room on several levels is shown whole. With a room selected, the arrow keys move it one cell, PageUp/PageDown one storey, Shift+arrow resizes.',
         diagrams: [
           { diagram: 'vox-function', caption: 'By Function: one colour each' },
           { diagram: 'vox-number', caption: 'By a number: light to dark' },
@@ -216,7 +216,7 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'view-plan',
         title: 'Plan',
         summary: 'A floor plan of one storey, drawn from the same walls and openings as the Building view.',
-        example: 'Level 0 of a small design: a door between A and B (Access), no wall between B and C (Open), and a dashed outline where room D stands on the level above. Choose Level 1 to see D. Turn on Edit rooms and drag a selected room, or its edges and corners, to move or resize it by whole cells.',
+        example: 'Level 0 of a small design: a door between A and B (Access), no wall between B and C (Open), and a dashed outline where room D stands on the level above. Choose Level 1 to see D. Turn on Edit rooms and drag a selected room, or its edges and corners, to move or resize it by whole cells, or use the arrow keys (Shift+arrow grows, Shift+Alt+arrow shrinks).',
         diagrams: [
           { diagram: 'plan-l0', caption: 'Level 0: dashed = what is above' },
           { diagram: 'plan-l1', caption: 'Level 1: the room upstairs' },
@@ -427,7 +427,7 @@ const TEXT: readonly GuideTabContent[] = [
       {
         id: 'howto-add-room',
         title: 'Add a room',
-        summary: 'In Graph 2D press + Add node; the new room takes a free cell. Then set its Function, Position and Size. To copy a room, right-click it › Duplicate (or Ctrl+D): same Function, Size and values, in the closest free place, without relationships.',
+        summary: 'In Graph 2D press + Add node; the new room takes a free cell. Then set its Function, Position and Size. To copy a room, right-click it › Duplicate (or Ctrl+D wherever a room is selected): same Function, Size and values, in the closest free place, without relationships.',
         example: '1. + Add node: a new room appears with the next free id. 2. In Properties choose its Function, e.g. Circulation. 3. Set Position and Size (cells of 3 × 3 m); a place that overlaps another room is refused with a reason.',
         diagram: 'howto-add-room',
         learnMore: LINKS.voxels,

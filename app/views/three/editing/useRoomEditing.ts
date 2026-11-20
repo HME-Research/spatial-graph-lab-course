@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { DEFAULT_CELL_SIZE, type CellSize } from '@core/viewer/coordinates';
 import type { Selection } from '@core/viewer/selection';
 import { snapHint, type GizmoAxis, type GizmoMode, type GizmoSide, type GizmoTone } from '@core/viewer/three/gizmoMath';
@@ -22,6 +22,7 @@ import {
   type RoomEditState,
 } from './roomEditSession';
 import { roomWorldBox, type RoomGeometry } from './roomGeometry';
+import { roomKeyStep, type RoomKey, type ScreenFrame } from './roomKeys';
 
 /**
  * Snapped 3D room editing for one view (Voxels or Building). Shared by the in-canvas gizmo
@@ -37,7 +38,7 @@ export interface RoomEditing {
   readonly nodeId: number | null;
   /** Display label of the selected room ("01"). */
   readonly label: string;
-  /** Move or resize for `nudge` (no UI uses it since the step panel was removed, 2026-11-17; the gizmo offers both at once). */
+  /** Default mode of `nudge` (the gizmo and the keys choose their own). */
   readonly mode: GizmoMode;
   readonly setMode: (mode: GizmoMode) => void;
   readonly state: RoomEditState;
@@ -63,8 +64,16 @@ export interface RoomEditing {
   readonly confirm: () => void;
   /** Cancel a drag or a pending confirmation. */
   readonly cancel: () => void;
-  /** One whole-cell step on an axis in the current mode (button / keyboard alternative). */
-  readonly nudge: (axis: GizmoAxis, steps: number) => void;
+  /** One whole-cell step on an axis (default: the current mode, the maximum face). */
+  readonly nudge: (axis: GizmoAxis, steps: number, mode?: GizmoMode, side?: GizmoSide) => void;
+  /**
+   * Arrow keys / PageUp / PageDown (`roomKeys.ts`): one nudge for a room key, in the given screen
+   * frame; true when the key was used (the caller then prevents its default). Nothing while a
+   * gesture or confirmation is open, or no room is editable.
+   */
+  readonly handleKey: (event: RoomKey, frame: ScreenFrame, storeys: boolean) => boolean;
+  /** Where the 3D camera looks: set by `RoomEditGizmo` inside the canvas, read by the key handler. */
+  readonly cameraFrame: MutableRefObject<(() => ScreenFrame) | null>;
   /**
    * During a drag started with `gizmo.onDragStart`: preview a snapped draft derived elsewhere (the
    * Plan's 2D handles change x and y at once). Release with `gizmo.onDragEnd` as for the gizmo.
@@ -138,13 +147,24 @@ export function useRoomEditing(
   }, [apply]);
   const cancel = useCallback(() => apply(cancelEdit(live.current.state)), [apply]);
   const nudge = useCallback(
-    (axis: GizmoAxis, steps: number) => {
+    (axis: GizmoAxis, steps: number, mode?: GizmoMode, side: GizmoSide = 1) => {
       const { design: d, nodeId: id, mode: m, state: s } = live.current;
       if (!d || id === null || s.phase !== 'idle') return;
-      apply(nudgeRoom(d, id, m, axis, steps));
+      apply(nudgeRoom(d, id, mode ?? m, axis, steps, side));
     },
     [apply],
   );
+  const handleKey = useCallback(
+    (event: RoomKey, frame: ScreenFrame, storeys: boolean) => {
+      const step = roomKeyStep(event, frame, storeys);
+      const { design: d, nodeId: id, state: s } = live.current;
+      if (!step || !d || id === null || s.phase !== 'idle') return false;
+      apply(nudgeRoom(d, id, step.mode, step.axis, step.steps, step.side));
+      return true;
+    },
+    [apply],
+  );
+  const cameraFrame = useRef<(() => ScreenFrame) | null>(null);
   const setDraft = useCallback(
     (draft: RoomGeometry) => {
       const { design: d, state: s } = live.current;
@@ -189,6 +209,8 @@ export function useRoomEditing(
     confirm,
     cancel,
     nudge,
+    handleKey,
+    cameraFrame,
     setDraft,
   };
 }

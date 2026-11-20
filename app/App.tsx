@@ -25,7 +25,7 @@ import { proposeSpatialEdit, resolveWithPreferences, type DesignCommand, type De
 import type { CommandOutcome } from '@app/views/contracts';
 import { conciseIssues, presentAnalysis, type AnalysisPresentation } from '@app/views/presentation';
 import { buildProjectViewContext, projectFacadeProvider } from '@app/views/project';
-import { NO_SELECTION, reconcileSelection, selectEdge, type Selection } from '@core/viewer/selection';
+import { NO_SELECTION, reconcileSelection, selectEdge, selectNode, type Selection } from '@core/viewer/selection';
 import { createCameraBus } from '@core/viewer/three/camera';
 import { AttributesPanel } from './attributes/AttributesPanel';
 import { DesignerPanel, FacadeLibrarySection, type DesignerFacades } from './designer';
@@ -54,7 +54,9 @@ import { activeSession, activeSlot } from './session/projectStore';
 import { createProjectController, showsWelcome, type LeaveOptions } from './session/projectStoreController';
 import { createProjectCameraStore, createProjectDisplayStore } from './session/projectViewSettings';
 import { ProjectControllerContext, useProjectControllerState } from './session/projectStoreContext';
-import { historyButtonTitle, historyShortcut, isApplePlatform, type HistoryShortcut } from './session/shortcuts';
+import { historyButtonTitle, historyShortcut, isApplePlatform, isDuplicateShortcut, type HistoryShortcut, type ShortcutScope } from './session/shortcuts';
+import { duplicateRoom } from '@app/views/duplicateRoom';
+import { Feedback, IssueFeedback } from '@app/ui';
 import './session/session.css';
 import { ProjectFiles } from './welcome/ProjectFiles';
 import { EmptyShell, Welcome } from './welcome/Welcome';
@@ -566,6 +568,33 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [navigate]);
 
+  // Ctrl/Cmd+D duplicates the selected room wherever focus is (owner 2026-11-20), except in text
+  // fields, selects, dialogs and menus; without a selected room the browser keeps Ctrl+D. ONE
+  // `add-node` command (one Undo step); the copy is selected and the outcome shown for a moment.
+  const [duplicateNote, setDuplicateNote] = useState<{ readonly ok: true; readonly text: string } | { readonly ok: false; readonly issues: readonly GraphIssue[] } | null>(null);
+  const duplicateLive = useRef({ port, selection });
+  duplicateLive.current = { port, selection };
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const { port: design, selection: sel } = duplicateLive.current;
+      if (!design || sel.kind !== 'node') return;
+      if (!isDuplicateShortcut(event, event.target as (Partial<HTMLElement> & ShortcutScope) | null, document)) return;
+      event.preventDefault();
+      const outcome = duplicateRoom(design, sel.id);
+      if (outcome.ok) {
+        select(selectNode(outcome.nodeId));
+        setDuplicateNote({ ok: true, text: outcome.message });
+      } else setDuplicateNote({ ok: false, issues: outcome.issues });
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [select]);
+  useEffect(() => {
+    if (!duplicateNote?.ok) return;
+    const timer = setTimeout(() => setDuplicateNote(null), 5000);
+    return () => clearTimeout(timer);
+  }, [duplicateNote]);
+
   /** Analysis overlay: rebuilt on every document change so a stale result is visibly marked. */
   const analysis = useMemo<AnalysisPresentation | null>(() => {
     if (!shownAnalysis || !doc || !version) return null;
@@ -680,6 +709,15 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
         </header>
 
         <main>
+          {duplicateNote && (
+            <div className="sgl-shortcut-note">
+              {duplicateNote.ok ? (
+                <Feedback tone="info" messages={[]} title={duplicateNote.text} onDismiss={() => setDuplicateNote(null)} />
+              ) : (
+                <IssueFeedback issues={duplicateNote.issues} onDismiss={() => setDuplicateNote(null)} />
+              )}
+            </div>
+          )}
           {cstate.notice && (
             <section className="issues sgl-notice" role="status">
               <p>{cstate.notice}</p>

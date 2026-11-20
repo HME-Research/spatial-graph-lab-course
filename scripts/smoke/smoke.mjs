@@ -189,6 +189,25 @@ const nodeCenter = (index = 0) =>
   evaluate(`(() => { const n = document.querySelectorAll(${JSON.stringify(NODE_SEL)})[${index}]; if (!n) return null;
     const b = n.getBoundingClientRect(); return { id: n.getAttribute('data-id'), x: b.x + b.width / 2, y: b.y + b.height / 2, transform: n.style.transform }; })()`);
 const nodeCount = () => evaluate(`document.querySelectorAll(${JSON.stringify(NODE_SEL)}).length`);
+/**
+ * Centre of node `index` once Graph 2D has stopped moving it: the same position on three reads in a
+ * row, 100 ms apart (null when there is no such node). Graph 2D fits the diagram again whenever its
+ * panel changes size (e.g. when a left-rail pane opens), so a centre read right after such a change
+ * can be stale by the time it is clicked.
+ */
+async function stableNodeCenter(index = 0, timeout = 3_000) {
+  const end = Date.now() + timeout;
+  let last = await nodeCenter(index);
+  let same = 0;
+  while (last && same < 2 && Date.now() < end) {
+    await delay(100);
+    const next = await nodeCenter(index);
+    if (!next) return null;
+    same = Math.abs(next.x - last.x) < 0.5 && Math.abs(next.y - last.y) < 0.5 ? same + 1 : 0;
+    last = next;
+  }
+  return last;
+}
 
 async function setFile(selector, path) {
   const { root } = await page.send('DOM.getDocument', { depth: -1 });
@@ -335,12 +354,12 @@ if (wants('views')) {
           if (b.querySelector(${JSON.stringify(`[data-placeholder="${mode}"]`)})) return { kind: 'placeholder' };
           const area = (e) => { const r = e.getBoundingClientRect(); return r.width * r.height; };
           const c = [...b.querySelectorAll('canvas')].sort((x, y) => area(y) - area(x))[0]; const f = b.querySelector('.react-flow');
-          // An SVG view (Plan) marks its drawing surface with data-view-surface="<mode>".
-          const s = b.querySelector(${JSON.stringify(`svg[data-view-surface="${mode}"]`)});
+          // A view without a canvas marks its surface with data-view-surface="<mode>": an SVG (Plan) or an HTML element (Data: JSON text / tables).
+          const s = b.querySelector(${JSON.stringify(`[data-view-surface="${mode}"]`)});
           const el = c ?? f ?? s; if (!el) return null; const r = el.getBoundingClientRect(), br = b.getBoundingClientRect();
           // The main canvas must fill most of the panel (not the 300×150 default of an unsized canvas).
-          return r.width >= br.width * 0.8 && r.height >= br.height * 0.6 ? { kind: c ? 'canvas' : f ? 'react-flow' : 'svg', width: Math.round(r.width), height: Math.round(r.height) } : null; })()`,
-        `${mode} content (canvas or diagram) in panel 2`,
+          return r.width >= br.width * 0.8 && r.height >= br.height * 0.6 ? { kind: c ? 'canvas' : f ? 'react-flow' : s.tagName.toLowerCase() === 'svg' ? 'svg' : 'surface', width: Math.round(r.width), height: Math.round(r.height) } : null; })()`,
+        `${mode} content (canvas, diagram or view surface) in panel 2`,
       );
       await delay(600);
       const m = await evaluate(OVERFLOW_JS);
@@ -393,12 +412,20 @@ if (wants('analysis')) {
     // P4: the built-in Degree (Analyse › Node) runs on the selected node.
     const opened = await evaluate(`(() => { const t = document.querySelector('#sidebar-tab-analyse'); if (!t) return false; t.click(); return true; })()`);
     if (!opened) return fail('Analyse tab (#sidebar-tab-analyse) not found');
-    const node = await nodeCenter(0);
+    await waitFor(`(() => { const p = document.querySelector('#sidebar-panel-analyse'); return !!p && !p.hidden && p.getBoundingClientRect().width > 0; })()`, 'the Analyse panel');
+    // Opening the left pane narrows Graph 2D, which then fits the diagram again: click node 0 only
+    // once it has stopped moving, or the click lands on the empty pane (which clears the selection).
+    const node = await stableNodeCenter(0);
     if (!node) return skip('no node to select');
     await clickAt(node.x, node.y);
-    await delay(200);
-    const ran = await evaluate(`(() => { const b = document.querySelector('[data-analysis="built-in:degree"] .sgl-analyse-run'); if (!b || b.disabled) return false; b.click(); return true; })()`);
-    if (!ran) return fail('Degree could not be run on the selected node');
+    try {
+      await waitFor(`(() => { const b = document.querySelector('[data-analysis="built-in:degree"] .sgl-analyse-run'); return !!b && !b.disabled; })()`, `Degree to be enabled after selecting node "${node.id}"`, 5_000);
+    } catch {
+      const state = await evaluate(`({ selected: [...document.querySelectorAll('.react-flow__node.selected')].map((n) => n.dataset.id), hints: [...document.querySelectorAll('.sgl-analyse-hint')].map((h) => h.textContent) })`);
+      const file = await screenshot('analysis-select-1366x768');
+      return fail(`Degree could not be run after clicking node "${node.id}" (selected nodes: [${state.selected}]; hints: ${state.hints.join(' | ')})`, { node, ...state, screenshot: file });
+    }
+    await evaluate(`document.querySelector('[data-analysis="built-in:degree"] .sgl-analyse-run').click()`);
     const result = await waitFor(`document.querySelector('.sgl-analysis-result .sgl-analysis-answer')?.textContent ?? null`, 'the Degree answer');
     const file = await screenshot('analysis-result-1366x768');
     return /^\d+$/.test(result) ? pass(`Degree = ${result}`, { screenshot: file }) : fail(`unexpected answer "${result}"`, { screenshot: file });
@@ -416,8 +443,26 @@ if (wants('analysis')) {
 
   await check('analysis/overlay', async () => {
     if (!opts.features.has('analysis-overlay')) return skip(`needs --feature analysis-overlay (${FEATURES['analysis-overlay']}); not wired before integration`);
-    const n = await evaluate(`document.querySelectorAll('.sgl-pres-analysis').length`);
-    return n > 0 ? pass(`${n} analysis legend(s) visible`) : fail('no .sgl-pres-analysis legend after running an analysis');
+    // P4: only a result with node values gets the colour legend (Degree has none; Connected parts
+    // has none on a connected graph). "Routes through it" (Analyse › Edge) always colours the nodes
+    // by the end they are nearer to: select the first edge in Graph 2D (real click), then run it.
+    const edge = await evaluate(`(() => { const e = document.querySelector('.view-panel[data-panel="0"] .react-flow__edge'); const p = e?.querySelector('path.react-flow__edge-interaction') ?? e?.querySelector('path'); if (!p) return null;
+      const pt = p.getPointAtLength(p.getTotalLength() / 2); const m = p.getScreenCTM(); return { id: e.getAttribute('data-id'), x: m.a * pt.x + m.c * pt.y + m.e, y: m.b * pt.x + m.d * pt.y + m.f }; })()`);
+    if (!edge) return fail('no Graph 2D edge to select');
+    await clickAt(edge.x, edge.y);
+    const run = '[data-analysis="built-in:routes-through"] .sgl-analyse-run';
+    try {
+      await waitFor(`(() => { const b = document.querySelector(${JSON.stringify(run)}); return !!b && !b.disabled; })()`, `"Routes through it" to be enabled after selecting edge "${edge.id}"`, 5_000);
+    } catch (e) {
+      return fail(`${e instanceof Error ? e.message : e}`, { edge, screenshot: await screenshot('analysis-overlay-1366x768') });
+    }
+    await evaluate(`document.querySelector(${JSON.stringify(run)}).click()`);
+    try {
+      const n = await waitFor(`document.querySelectorAll('.sgl-pres-analysis').length || null`, 'the analysis colour legend (.sgl-pres-analysis)', 5_000);
+      return pass(`${n} analysis legend(s) visible after "Routes through it" on edge ${edge.id}`);
+    } catch {
+      return fail('no .sgl-pres-analysis legend after running "Routes through it"', { screenshot: await screenshot('analysis-overlay-1366x768') });
+    }
   });
   await evaluate(`(document.querySelector('#sidebar-tab-inspector') ?? document.querySelector('#sidebar-tab-properties'))?.click()`);
 }

@@ -218,6 +218,16 @@ describe('room collisions are refused', () => {
     expect(host.sent).toHaveLength(1);
     expect(nudge(host.port, 99, 'move', 'x', 1)).toEqual({ state: IDLE, feedback: null });
   });
+
+  it('an arrow-key resize moves the chosen face (side), one command per press', () => {
+    const host = fakeHost();
+    const start = host.port.doc.nodes.find((n) => n.id === 2)!;
+    nudge(host.port, 2, 'resize', 'z', 1, -1); // Shift+Alt on the minimum face: shrink is clamped
+    expect(host.sent).toHaveLength(0);
+    nudge(host.port, 2, 'resize', 'z', 1, 1);
+    expect(host.sent).toHaveLength(1);
+    expect(host.sent[0]).toMatchObject({ type: 'set-node-geometry', position: start.position, size: [start.size[0], start.size[1], start.size[2] + 1] });
+  });
 });
 
 describe('corridor reservations need confirmation', () => {

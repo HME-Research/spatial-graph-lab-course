@@ -67,6 +67,10 @@ export function VoxelView({ doc, selection, onSelect, design }: ViewProps) {
 
 The Plan's "Edit rooms" toggle reuses `useRoomEditing` and this session without the 3D gizmo: it starts a gesture with `gizmo.onDragStart`, previews each snapped x/y draft with `setDraft` (`updateDraft` in the session, the same `proposeEdit` rules as `updateDrag`) and releases with `gizmo.onDragEnd` / `onDragCancel`. Its pure 2D handle maths is `app/views/plan/planRoomEdit.ts`.
 
+### Arrow keys (2026-11-20)
+
+`roomKeys.ts` (pure) maps a key to one `nudge` (arrows move a cell, Shift+arrow grows towards the arrow, Shift+Alt+arrow shrinks from that side, PageUp/PageDown move a storey in 3D only; never Ctrl/Cmd or a lone Alt). `useRoomEditing().handleKey(event, frame, storeys)` sends it through the session (one validated command per press). The 3D views wrap their `SceneCanvas` in `RoomKeyScope` (a focusable box; a press on the scene focuses it) and read the camera's frame through `editing.cameraFrame`, which `RoomEditGizmo` sets from inside the canvas (up = the grid axis nearest to where the camera looks). The Plan handles the keys on its root with `PLAN_FRAME` (+y up) while Edit rooms is on.
+
 ### Known behaviour
 
 - Pressing a handle also fires the OrbitControls `start` event. The camera is then marked `data-camera="user"`, so it is not automatically refitted after a gizmo drag. A manual **Fit view** still works.
