@@ -16,6 +16,7 @@ export * from './definitions';
 export * from './diagnostics';
 export * from './discover';
 export * from './run';
+export * from './toolkitExamples';
 export { applyTransformationV2, type TransformationPreviewV2 } from './transformV2';
 export { TOOLKIT_GLOBS } from './toolkitGlobs';
 export * from './uploadedAnalyses';

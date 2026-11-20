@@ -5,7 +5,7 @@ import { validateDocumentV2, type DesignDocumentV2 } from '@app/document';
 import { defineFunction, defineToolkit } from '@student-api';
 import { activate, type ActiveToolkit } from './activate';
 import type { ExtensionDiagnostic, ExtensionIssueCode, ExtensionResult } from './diagnostics';
-import type { ModuleLoader, ToolkitGlobs, TextLoader } from './discover';
+import type { ModuleLoader, ToolkitGlobs, TextLoader, UrlLoader } from './discover';
 
 /** Marks a module that fails to load (e.g. a syntax error in the student's file). */
 export const LOAD_FAILS = Symbol('load fails');
@@ -19,6 +19,7 @@ export function fakeGlobs(files: Readonly<Record<string, unknown>>): ToolkitGlob
   const functions: Record<string, ModuleLoader> = {};
   const algorithms: Record<string, ModuleLoader> = {};
   const designs: Record<string, TextLoader> = {};
+  const assets: Record<string, UrlLoader> = {};
   for (const [path, value] of Object.entries(files)) {
     const load = async (): Promise<never> => {
       if (value === LOAD_FAILS) throw new SyntaxError(`Unexpected token in ${path}`);
@@ -26,11 +27,12 @@ export function fakeGlobs(files: Readonly<Record<string, unknown>>): ToolkitGlob
     };
     const key = `/${path}`;
     if (path.endsWith('.json')) designs[key] = load;
+    else if (path.endsWith('.3dm')) assets[key] = load;
     else if (path.endsWith('/toolkit.ts')) toolkit[key] = load;
     else if (path.includes('/functions/')) functions[key] = load;
     else if (path.includes('/algorithms/')) algorithms[key] = load;
   }
-  return { toolkit, functions, algorithms, designs };
+  return { toolkit, functions, algorithms, designs, assets };
 }
 
 export const galleryType = defineFunction({

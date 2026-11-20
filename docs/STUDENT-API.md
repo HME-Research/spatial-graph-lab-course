@@ -9,7 +9,7 @@ How to write your own functions, designs and algorithms for Spatial Graph Lab. Y
 1. **Create a toolkit.** Make a folder `toolkits/my-toolkit/` (lowercase letters, digits, `-` and `_`, starting with a letter) with a `toolkit.ts` (see [Your toolkit folder](#1-your-toolkit-folder)). Once the reference toolkit `toolkits/house/` exists, you can copy it instead; don't edit it itself.
 2. **Define a function.** Edit or add a file in `functions/` (see [Functions](#2-functions)). The `id` is the `function` your designs use.
 3. **Write an algorithm.** Add a file in `algorithms/`: `defineGraphAlgorithm` for an analysis that only reads the graph, or `defineSpatialAlgorithm` for a transformation that returns operations (see [Algorithms](#4-algorithms)).
-4. **Check it.** `npm run check:toolkit -- -t my-toolkit` loads your toolkit exactly as the app does and fails with a readable message if a definition or design is invalid, or if an algorithm fails on your default design. `npm run typecheck` checks your TypeScript.
+4. **Check it.** `npm run check:toolkit -- -t my-toolkit` loads your toolkit exactly as the app does and fails with a readable message if a definition or design is invalid, if a design uses a façade file that is not in `assets/`, or if an algorithm fails on your default design. `npm run typecheck` checks your TypeScript.
 5. **Run the app.** `npm run dev`, then open the printed URL with `?toolkit=my-toolkit` (for example `http://localhost:5173/?toolkit=my-toolkit`), or choose your toolkit when you create a new project. The header shows a problem count; the **Project** section of the left rail lists every problem in your toolkit files and keeps it visible until you fix it (the page reloads when you save a file).
 6. **Run an algorithm.** Analyses are in **Analyse**, transformations in **Transform** (left rail).
    - An *analysis* appears in the Analyse section its inputs decide (tagged `Toolkit: <name>`): **Node** and **Edge** analyses run on the selected node or edge; a **Queries** analysis asks you to pick each input in any view (Esc cancels). The answer is shown big, with its nodes and edges highlighted in every view. **Clear** removes it. It never changes the design.
@@ -25,8 +25,9 @@ toolkits/
   my-toolkit/             ← folder name = toolkit id (lowercase letters, digits, "-", "_"; starts with a letter)
     toolkit.ts            ← required
     functions/            ← optional: one function (room programme) per file
-    designs/              ← optional: design JSON files (schema v2)
+    designs/              ← optional: design JSON files (schema v2); each is listed in Open example…
     algorithms/           ← optional: one algorithm per file
+    assets/               ← optional: façade files (.3dm) your designs use (see Designs)
 ```
 
 Start with the `toolkit.ts` below, or, once it exists, copy the reference toolkit `toolkits/house/` to a new folder. Don't edit the reference toolkit itself: tests check that it keeps working.
@@ -120,6 +121,18 @@ Everything on a node or edge is an **attribute**: the built-in ones sit at the t
 ```
 
 `position` is the room's minimum corner cell `[x, y, z]` (z is the Level), `size` its extent in cells `[x, y, z]` (z is the number of Floors). An edge may also have `"corridor": { "walls": …, "roof": …, "width": … }` after `relationship`. The app keeps this key order and writes every array of numbers on one line.
+
+**Open example…** (Welcome and Project) lists every design of every toolkit, with the design's `metadata.name` and `metadata.description` and a `Toolkit: <name>` tag. Choosing one opens it as a **new project** with your toolkit and its custom attributes (as Create project does), the design's rooms and relationships, and its Building Designer settings (looks by function, the Corridors card). So give each design a short `description`.
+
+### Façade files in a design (`assets/`)
+
+A design's looks can use an imported façade module (Building Designer → a function card → Façade → **Import**). In the design JSON the module is named by its **asset id**, `"facade": { "assetId": "facade-ea64a8beca91ce66", "placement": "repeat" }`: the id the app's own import gives the file (`facade-` + 16 hex digits of the imported mesh's SHA-256, so the same file always gets the same id). The design does not contain the geometry. To ship the file with your toolkit:
+
+1. Import the `.3dm` in the Designer of a project with your toolkit and use it on a function card. The design's JSON (Data view → JSON, or the scenario's `design` in an exported project file) now names its asset id.
+2. Copy the `.3dm` to `toolkits/my-toolkit/assets/` (any file name, extension `.3dm`, at most 20 MB, drawn in Rhino's Front view with a unit).
+3. Save the design in `designs/` and run `npm run check:toolkit -- -t my-toolkit`: it imports every file in `assets/` exactly as the app does and fails if a design uses an asset id that no file gives (the message lists the id each file gives).
+
+When the design is opened with Open example…, the app fetches the files in `assets/` (only then: they are never part of the app's code) and imports them through the normal façade import into the new project, which then carries them like any imported façade. Materials come from the file's own layer and object colours; change them in the project with **Materials…**.
 
 ## 4. Algorithms
 

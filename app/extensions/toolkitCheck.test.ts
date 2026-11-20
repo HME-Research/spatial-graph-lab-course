@@ -6,12 +6,25 @@ import { checkConformance } from './conformance';
 import { discoverToolkits } from './discover';
 import { TOOLKIT_GLOBS } from './toolkitGlobs';
 import { runAlgorithmV2 } from './run';
+import { designAssetIds, loadToolkitAssets, type ToolkitAssetIo } from './toolkitExamples';
+import { importFacade3dm } from '../assets/importFacade';
+import { loadRhino3dm, RHINO3DM_VERSION } from '../assets/rhino/loader';
+
+// Node only (vitest runs in Node): read toolkit asset files without a @types/node dependency.
+const fs = (globalThis as unknown as { process: { getBuiltinModule(id: string): { readFileSync(url: URL): Uint8Array } } }).process.getBuiltinModule('node:fs');
+
+/** Asset files are read from the repository and imported exactly as the app imports them (Outside −Y). */
+const nodeAssetIo: ToolkitAssetIo = {
+  fetchBytes: async (file) => new Uint8Array(fs.readFileSync(new URL(`../../${file}`, import.meta.url))),
+  importFile: async (bytes, fileName) => importFacade3dm(bytes, { fileName, outward: '-y', rhino: await loadRhino3dm(), reader: `rhino3dm@${RHINO3DM_VERSION}` }),
+};
 
 /**
  * Toolkit check: every toolkit under toolkits/ is loaded exactly as the app loads it. Run it
  * for all toolkits with `npm run check:toolkit`, or for one with
  * `npm run check:toolkit -- -t my-toolkit`. It fails on anything the app would show as an error:
- * invalid toolkit/type/algorithm definitions, invalid designs, and algorithms that fail when run
+ * invalid toolkit/type/algorithm definitions, invalid designs, façade assets a design uses that no
+ * file in `assets/` provides (imported as the app imports them), and algorithms that fail when run
  * with their default parameters on the toolkit's default design (or the built-in example).
  * Design warnings (e.g. an invalid attribute value) are printed but do not fail the check,
  * because the app never refuses to load a design for them.
@@ -50,6 +63,19 @@ describe.each(toolkits.map((p) => [p.id, p] as const))('toolkit "%s"', (_id, sou
       expect(problems.filter((d) => d.severity === 'error').map((d) => d.message)).toEqual([]);
     }
   });
+
+  it('every façade asset its designs use is provided by a file in its assets/ folder', async () => {
+    const toolkit = await active();
+    for (const design of toolkit.designs) {
+      if (!design.result.ok) continue; // reported by the first check
+      const needed = designAssetIds(design.result.value);
+      if (needed.length === 0) continue;
+      // The file path stands in for its URL: `nodeAssetIo` reads it from the repository.
+      const files = source.assets.map((f) => ({ ...f, load: async () => f.file }));
+      const result = await loadToolkitAssets(source.id, files, needed, nodeAssetIo);
+      expect(result.ok ? [] : [`${design.file}: ${result.message}`]).toEqual([]);
+    }
+  }, 60_000);
 
   it('every enabled algorithm runs on the default design with default parameters', async () => {
     const toolkit = await active();

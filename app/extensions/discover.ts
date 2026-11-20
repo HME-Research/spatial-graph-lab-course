@@ -19,18 +19,25 @@ export const toolkitIdSchema = z.string().regex(TOOLKIT_ID_PATTERN, {
 
 export type ModuleLoader = () => Promise<unknown>;
 export type TextLoader = () => Promise<string>;
+/** Resolves to the URL a toolkit asset file is served at (Vite `?url`); the file is fetched only when needed. */
+export type UrlLoader = () => Promise<string>;
 
 export interface ToolkitGlobs {
   readonly toolkit: Readonly<Record<string, ModuleLoader>>;
   readonly functions: Readonly<Record<string, ModuleLoader>>;
   readonly algorithms: Readonly<Record<string, ModuleLoader>>;
   readonly designs: Readonly<Record<string, TextLoader>>;
+  /**
+   * Façade files a toolkit ships (`toolkits/<id>/assets/*.3dm`, 2026-11-20). Optional: tests and
+   * toolkits without assets leave it out.
+   */
+  readonly assets?: Readonly<Record<string, UrlLoader>>;
 }
 
 export interface SourceFile<L> {
   /** Repository-relative path, e.g. "toolkits/house/functions/kitchen.ts". */
   readonly file: string;
-  /** File name without extension: the design id for designs. */
+  /** File name without extension: the design id for designs (assets: the file name with its extension). */
   readonly stem: string;
   readonly load: L;
 }
@@ -42,11 +49,13 @@ export interface ToolkitSource {
   readonly functions: readonly SourceFile<ModuleLoader>[];
   readonly algorithms: readonly SourceFile<ModuleLoader>[];
   readonly designs: readonly SourceFile<TextLoader>[];
+  /** Façade files in `assets/` (`.3dm`), fetched only when a design that uses one is opened. */
+  readonly assets: readonly SourceFile<UrlLoader>[];
 }
 
-const PATH = /^\/?toolkits\/([^/]+)\/(?:(toolkit)\.ts|(functions|algorithms)\/([^/]+)\.ts|(designs)\/([^/]+)\.json)$/;
+const PATH = /^\/?toolkits\/([^/]+)\/(?:(toolkit)\.ts|(functions|algorithms)\/([^/]+)\.ts|(designs)\/([^/]+)\.json|(assets)\/([^/]+\.3dm))$/;
 
-type Section = 'toolkit' | 'functions' | 'algorithms' | 'designs';
+type Section = 'toolkit' | 'functions' | 'algorithms' | 'designs' | 'assets';
 
 interface Parsed {
   readonly toolkitId: string;
@@ -62,6 +71,7 @@ function parsePath(path: string): Parsed | null {
   const file = path.replace(/^\//, '');
   if (m[2]) return { toolkitId: m[1]!, section: 'toolkit', file, stem: 'toolkit' };
   if (m[3]) return { toolkitId: m[1]!, section: m[3] as Section, file, stem: m[4]! };
+  if (m[7]) return { toolkitId: m[1]!, section: 'assets', file, stem: m[8]! };
   return { toolkitId: m[1]!, section: 'designs', file, stem: m[6]! };
 }
 
@@ -76,11 +86,12 @@ export function discoverToolkits(globs: ToolkitGlobs): {
     functions: SourceFile<ModuleLoader>[];
     algorithms: SourceFile<ModuleLoader>[];
     designs: SourceFile<TextLoader>[];
+    assets: SourceFile<UrlLoader>[];
   }
   const drafts = new Map<string, Draft>();
   const draftFor = (id: string): Draft => {
     let d = drafts.get(id);
-    if (!d) drafts.set(id, (d = { functions: [], algorithms: [], designs: [] }));
+    if (!d) drafts.set(id, (d = { functions: [], algorithms: [], designs: [], assets: [] }));
     return d;
   };
 
@@ -89,6 +100,7 @@ export function discoverToolkits(globs: ToolkitGlobs): {
     ['functions', globs.functions],
     ['algorithms', globs.algorithms],
     ['designs', globs.designs],
+    ['assets', globs.assets ?? {}],
   ];
   for (const [section, record] of sections) {
     for (const [path, load] of Object.entries(record)) {
@@ -98,6 +110,7 @@ export function discoverToolkits(globs: ToolkitGlobs): {
       const source = { file: parsed.file, stem: parsed.stem, load };
       if (section === 'toolkit') draft.toolkit = source as SourceFile<ModuleLoader>;
       else if (section === 'designs') draft.designs.push(source as SourceFile<TextLoader>);
+      else if (section === 'assets') draft.assets.push(source as SourceFile<UrlLoader>);
       else draft[section].push(source as SourceFile<ModuleLoader>);
     }
   }
@@ -125,6 +138,7 @@ export function discoverToolkits(globs: ToolkitGlobs): {
       functions: d.functions.sort(byFile),
       algorithms: d.algorithms.sort(byFile),
       designs: d.designs.sort(byFile),
+      assets: d.assets.sort(byFile),
     });
   }
   return { toolkits, diagnostics };
