@@ -1,5 +1,5 @@
 import type { ThreeEvent } from '@react-three/fiber';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { BoxGeometry } from 'three';
 import {
   buildBuildingV2,
@@ -21,7 +21,9 @@ import { useAnalysisOverlay } from '../analysisOverlay';
 import { isAnalysisEdge, isAnalysisNode } from '../presentation/analysis';
 import { useStyleValues } from '../styleValues';
 import { useViewportCamera } from '../viewportCamera';
-import { buildEdgeItems, framingFor } from '../three/sceneModel';
+import { buildEdgeItems, framingFor, storeyLevels } from '../three/sceneModel';
+import { LevelFilterSelect, useLevelFilter } from '../three/LevelFilterSelect';
+import { clipToLevels, hiddenSelectionNote, isCellShown, isFaceShown, levelFilterLabel, levelRange, type LevelFilter } from '../three/levelFilter';
 import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
 import { lineOf, RelationshipTube, useUnitCylinder, ViewRelationshipLegend } from '../three/v2Scene';
 import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
@@ -130,9 +132,9 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
     [v2, v2Doc, library],
   );
   const broken = useMemo(() => brokenTypeIds(project?.project ?? null, v2Doc), [project, v2Doc]);
-  const bounds = useMemo(() => elementBounds([...elements, ...connectors]), [elements, connectors]);
-  const framing = useMemo(() => framingFor(bounds), [bounds]);
-  const grid = useMemo(() => groundGridFor(bounds), [bounds]);
+  const allBounds = useMemo(() => elementBounds([...elements, ...connectors]), [elements, connectors]);
+  // The ground grid stays where the whole building stands, whatever the level filter shows.
+  const grid = useMemo(() => groundGridFor(allBounds), [allBounds]);
   const camera = useRemembered<CameraState>('camera:architecture');
   const viewportCamera = useViewportCamera();
   // Roof visibility is the Display setting (per scenario and view mode; default shown) when the app provides
@@ -141,24 +143,63 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
   const [fitRequest, setFitRequest] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [hoveredEdge, setHoveredEdge] = useState<number | null>(null);
+
+  // Level filter (view state, remembered per panel; owner 2026-11-20). Walls by their cell's storey,
+  // floors and inner slabs of the shown storeys, the lid on the top shown storey (its roofs and the
+  // slab under the next storey) only while Roofs is on; corridors by their route cells' storey;
+  // façade modules with their walls; rooms (labels, relationship lines) clipped to the shown storeys.
+  const levels = useMemo(() => storeyLevels(v2Doc.nodes), [v2Doc.nodes]);
+  const [levelFilter, setLevelFilter] = useLevelFilter('architecture', levels);
+  const range = useMemo(() => levelRange(levelFilter), [levelFilter]);
+  const shownNodes = useMemo(() => clipToLevels(v2Doc.nodes, range), [v2Doc.nodes, range]);
+  const shownIds = useMemo(() => new Set(shownNodes.map((n) => n.id)), [shownNodes]);
+  const faces = useMemo(() => faceIndex(v2.faces), [v2]);
+  const faceShown = useCallback(
+    (faceId: string) => {
+      const f = faces.get(faceId);
+      return !f || isFaceShown(f, range, showRoofs);
+    },
+    [faces, range, showRoofs],
+  );
+
   // A façade module replaces its wall (owner 2026-11-17): the wall and Designer windows of every face
   // a module covers are not drawn. The Building model itself (and the Plan) is unchanged.
   const covered = useMemo(() => new Set(modules.instances.flatMap((i) => i.faceIds)), [modules]);
+  const shownModules = useMemo(
+    () => (range === null ? modules.instances : modules.instances.filter((i) => i.faceIds.some(faceShown))),
+    [modules, range, faceShown],
+  );
   const visible = useMemo(
-    () => elements.filter((e) => (showRoofs || e.part !== 'roof') && !(covered.has(e.faceId) && (e.part === 'wall' || e.part === 'glazing'))),
-    [elements, showRoofs, covered],
+    () =>
+      elements.filter(
+        (e) =>
+          (showRoofs || e.part !== 'roof') &&
+          !(covered.has(e.faceId) && (e.part === 'wall' || e.part === 'glazing')) &&
+          (range === null || faceShown(e.faceId)),
+      ),
+    [elements, showRoofs, covered, range, faceShown],
   );
   const visibleConnectors = useMemo(
-    () => (showRoofs ? connectors : connectors.filter((c) => c.part !== 'connector-roof')),
-    [connectors, showRoofs],
+    () => connectors.filter((c) => (showRoofs || c.part !== 'connector-roof') && isCellShown(c.cell, range)),
+    [connectors, showRoofs, range],
   );
-  const editing = useRoomEditing(design, selection);
+  // "Fit view" frames what is shown under the level filter (the whole building otherwise, as before).
+  const bounds = useMemo(
+    () => (range === null ? allBounds : (elementBounds([...visible, ...visibleConnectors]) ?? allBounds)),
+    [range, allBounds, visible, visibleConnectors],
+  );
+  const framing = useMemo(() => framingFor(bounds), [bounds]);
+  // A hidden selected room keeps its selection (and Properties) but gets no gizmo: it is not drawn.
+  const hiddenNote = hiddenSelectionNote(selection, shownIds, levelFilter);
+  const editing = useRoomEditing(design, hiddenNote ? NO_SELECTION : selection);
   const analysis = useAnalysisOverlay();
   const tube = useUnitCylinder();
   const unresolved = useMemo(
     () =>
-      buildEdgeItems(v2Doc.nodes, v2Doc.edges).filter((e) => v2Spatial.byEdge.get(e.id)?.status === 'unresolved'),
-    [v2Doc, v2Spatial],
+      buildEdgeItems(v2Doc.nodes, v2Doc.edges).filter(
+        (e) => v2Spatial.byEdge.get(e.id)?.status === 'unresolved' && shownIds.has(e.source) && shownIds.has(e.target),
+      ),
+    [v2Doc, v2Spatial, shownIds],
   );
   const roofsHiddenByDesigner = useMemo(
     () => (v2 ? [...v2.looks.values()].some((l) => l.look.roof === 'none') : false),
@@ -167,7 +208,6 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
 
   // Shared-wall interaction (wave 2, D): hover highlights an eligible shared wall, a click opens the
   // wall panel. Which wall is open is view-local state (not a Selection kind). Schema v2 only.
-  const faces = useMemo(() => (v2 ? faceIndex(v2.faces) : null), [v2]);
   const eligible = useMemo(
     () => (v2 && v2Doc && v2Spatial ? eligibleWallFaces(v2.faces, v2Doc, v2Spatial) : NO_FACES),
     [v2, v2Doc, v2Spatial],
@@ -202,6 +242,12 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
     onSelectRef.current(wallClickSelection(faceId, f, action));
   }, []);
   const hoverWall = useCallback((faceId: string | null) => setHoveredWall(faceId), []);
+  // Items hidden by a new level filter unmount without a pointer-out: drop their hover.
+  useEffect(() => {
+    setHovered(false);
+    setHoveredEdge(null);
+    setHoveredWall(null);
+  }, [range]);
 
   return (
     <SceneCanvas
@@ -239,6 +285,9 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
             design={design}
             facadeModules={modules.instances.length > 0}
             missingFacades={modules.missingAssets}
+            levelControl={<LevelFilterSelect levels={levels} filter={levelFilter} onChange={setLevelFilter} />}
+            levelFilter={levelFilter}
+            hiddenSelection={hiddenNote}
           />
           <RoomEditPanel editing={editing} />
         </>
@@ -256,11 +305,11 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
         onWallHover={hoverWall}
         onWallClick={clickWall}
       />
-      {modules.instances.length > 0 && (
-        <FacadeModules instances={modules.instances} assets={library.byId} selection={selection} pick={pick} setHovered={setHovered} />
+      {shownModules.length > 0 && (
+        <FacadeModules instances={shownModules} assets={library.byId} selection={selection} pick={pick} setHovered={setHovered} />
       )}
-      <StoreyLabels nodes={v2Doc.nodes} bounds={bounds} />
-      {design && faces && activeWall !== null && faces.get(activeWall) && (
+      <StoreyLabels nodes={shownNodes} bounds={bounds} />
+      {design && activeWall !== null && faces.get(activeWall) && faceShown(activeWall) && (
         // Pinned beside the clicked wall (follows it when the camera moves), not docked over the view.
         <WallPanelAnchor face={faces.get(activeWall)!}>
           <WallActionPanel
@@ -488,7 +537,15 @@ function Overlay({
   design,
   facadeModules,
   missingFacades,
+  levelControl,
+  levelFilter,
+  hiddenSelection,
 }: {
+  /** The level filter control (Voxel and Building views). */
+  readonly levelControl: ReactNode;
+  readonly levelFilter: LevelFilter;
+  /** Set when the selected room is on a hidden level. */
+  readonly hiddenSelection: string | null;
   /** Imported façade modules are drawn (legend entry). */
   readonly facadeModules: boolean;
   /** Imported façade ids the design uses that the project does not have. */
@@ -518,12 +575,24 @@ function Overlay({
         <label title={v2 ? 'View cutaway only: the Designer decides which room types have roofs' : 'Show roofs'}>
           <input type="checkbox" checked={showRoofs} onChange={(e) => onToggleRoofs(e.currentTarget.checked)} /> Roofs
         </label>
-        <button type="button" onClick={onFit} title="Frame the whole model again (also after you orbit or zoom)">
+        {levelControl}
+        <button type="button" onClick={onFit} title="Frame the shown model again (also after you orbit or zoom)">
           Fit view
         </button>
       </ControlBar>
-      {(brokenTypes.length > 0 || missingFacades.length > 0 || (v2 && roofsHiddenByDesigner && showRoofs)) && (
+      {(brokenTypes.length > 0 || missingFacades.length > 0 || (v2 && roofsHiddenByDesigner && showRoofs) || levelFilter.kind !== 'all') && (
         <InfoPanel>
+          {levelFilter.kind !== 'all' && (
+            <div className="viewer3d-count">
+              {levelFilterLabel(levelFilter)}
+              {showRoofs ? ' · turn Roofs off to look in from above' : ''}
+            </div>
+          )}
+          {hiddenSelection && (
+            <div role="status" className="viewer3d-count">
+              {hiddenSelection}
+            </div>
+          )}
           {missingFacades.length > 0 && (
             <div role="status" className="viewer3d-notice">
               <strong>Imported façade missing:</strong> this scenario uses {missingFacades.length === 1 ? 'a façade' : `${missingFacades.length} façades`} that the
