@@ -4,11 +4,12 @@ import { describe, expect, it } from 'vitest';
 import { isNewReveal } from '@app/ui/Section';
 import { ANALYSE_SECTION_IDS } from '@app/ui/analysisSections';
 import { NO_SELECTION } from '@core/viewer/selection';
-import { ExplainerView } from '@app/ui/guide';
+import { DEFAULT_EXPLAINER_WINDOW_SIZE, ExplainerView, ExplainerWindow, explainerWindowId } from '@app/ui/guide';
+import { DEFAULT_MIN_SIZE, defaultState } from '@app/ui/floating/windowState';
 import type { GuideDownload } from '@app/ui/guideContracts';
 import { AI_KIT_FILE_NAME, AI_KIT_PATH, aiKitUrl, TEMPLATE_FILE_NAME, UPLOAD_BUTTON_LABEL, UPLOAD_INFO, UPLOAD_NOTE, uploadLandingSection } from './analyseModel';
 import { AnalyseCatalogue, AnalysePanel, type AnalysePanelProps } from './AnalysePanel';
-import { UPLOAD_EXPLAINER_ID, uploadExplainer } from './uploadExplainer';
+import { UPLOAD_EXPLAINER_ID, UPLOAD_EXPLAINER_WINDOW_SIZE, uploadExplainer } from './uploadExplainer';
 
 /**
  * "Upload your own (.ts)" is ONE button at the very top of the Analyse tab (owner, 19 November
@@ -77,6 +78,24 @@ describe('Upload your own analysis: one button at the top of Analyse', () => {
     expect(aiKitUrl('/lab')).toBe('/lab/downloads/spatial-graph-lab-ai-kit.zip');
     expect(aiKitUrl('./')).toBe('./downloads/spatial-graph-lab-ai-kit.zip');
     expect(fs.existsSync(new URL(`../../public/${AI_KIT_PATH}`, import.meta.url))).toBe(true);
+  });
+
+  it('its window opens larger than the default explainer, centred, under an id that a remembered older size cannot hide', () => {
+    const explainer = uploadExplainer('/');
+    expect(explainer.windowSize).toEqual(UPLOAD_EXPLAINER_WINDOW_SIZE);
+    expect(UPLOAD_EXPLAINER_WINDOW_SIZE.width).toBeGreaterThan(DEFAULT_EXPLAINER_WINDOW_SIZE.width);
+    expect(UPLOAD_EXPLAINER_WINDOW_SIZE.height).toBeGreaterThan(DEFAULT_EXPLAINER_WINDOW_SIZE.height);
+    // Fits a 1366 × 768 screen, centred (the window's default state).
+    const state = defaultState(UPLOAD_EXPLAINER_WINDOW_SIZE, DEFAULT_MIN_SIZE, { width: 1366, height: 768 });
+    expect(state).toMatchObject({ ...UPLOAD_EXPLAINER_WINDOW_SIZE, x: (1366 - 440) / 2, y: (768 - 360) / 2 });
+    // The remembered place is keyed by the size: the old 360 × 300 entry ("explainer-upload-your-own") is not read.
+    const id = explainerWindowId(explainer);
+    expect(id).toBe('explainer-upload-your-own@440x360');
+    const html = renderToStaticMarkup(createElement(ExplainerWindow, { explainer, open: true, onClose: noop }));
+    expect(html).toContain(`data-floating="${id}"`);
+    expect(html).toMatch(/width:440px;height:360px/);
+    // Other explainers keep their id and the default size.
+    expect(explainerWindowId({ id: 'degree' })).toBe('explainer-degree');
   });
 
   it('the template download loads the real template text on click', async () => {

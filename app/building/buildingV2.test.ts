@@ -24,6 +24,7 @@ import type { GridCoord } from '@core/spatial';
 import { buildBuildingV2 } from './buildingV2';
 import { buildConnector, isConnectorHighlighted, type ConnectorElement } from './connectorGeometry';
 import { EXAMPLE_FACADES } from './facade';
+import { layoutFace, OPENING_PROPORTIONS } from './faceLayout';
 import { buildArchitecture, elementBounds, type ArchitecturalElement } from './geometry';
 import { representativeFaceIndex, resolveBuildingFaces, toResolvedFace, unitFaceKey } from './multicellFaces';
 
@@ -83,10 +84,11 @@ const OPEN_FLAT: CorridorLook = { walls: 'open', roof: 'flat', width: W };
 const OPEN_NONE: CorridorLook = { walls: 'open', roof: 'none', width: W };
 
 /** Two rooms 3 cells apart on x, joined by `ab` (with its own corridor look, if given), with the straight route between them. */
-function corridorFixture(corridor?: CorridorLook, kind: RelationshipKind = 'access', extra: N[] = []) {
+function corridorFixture(corridor?: CorridorLook, kind: RelationshipKind = 'access', extra: N[] = [], looks: Record<string, unknown> = {}) {
   const doc = v2(
     [{ id: 1, position: [0, 0, 0] }, { id: 2, position: [4, 0, 0], function: 'studio' }, ...extra],
     [{ id: 1, source: 1, target: 2, relationship: kind, ...(corridor ? { corridor } : {}) }],
+    looks,
   );
   const spatial = withRoute(doc, {
     edgeId: 1,
@@ -492,6 +494,77 @@ describe('corridor width: built at its width, centred, in whole cells', () => {
     const full = corridorFixture({ walls: 'open', roof: 'flat', width: W }, 'open').model;
     expect(facesOf(full.elements, '1:+x').map((e) => e.part)).toEqual(['threshold']);
     expect(full.connectors.filter((c) => c.part === 'connector-floor').every((c) => c.size[2] === W)).toBe(true);
+  });
+
+  describe('the strips beside a narrower corridor’s end follow the room and the corridor (2026-11-20)', () => {
+    const outer = (W + 0.15) / 2; // a ±x wall runs one wall thickness further
+    const walls = (m: ReturnType<typeof buildBuildingV2>) => facesOf(m.elements, '1:+x').filter((e) => e.part === 'wall');
+    const beside = (e: ArchitecturalElement) => Math.abs(e.position[2]) - e.size[2] / 2 >= 0.75 - 1e-9;
+
+    it.each<[string, CorridorLook, RelationshipKind, 'facade' | 'internal']>([
+      ['enclosed corridor, access', { walls: 'enclosed', width: 1.5 }, 'access', 'internal'],
+      ['enclosed corridor, open', { walls: 'enclosed', width: 1.5 }, 'open', 'internal'],
+      ['open corridor, access', { walls: 'open', width: 1.5 }, 'access', 'facade'],
+      ['open corridor (no roof), open', { walls: 'open', roof: 'none', width: 1.5 }, 'open', 'facade'],
+    ])('enclosed room, %s: two full-height strips from the corridor edge to the bay edge (%s), no window', (_name, corridor, kind, look) => {
+      const { model } = corridorFixture(corridor, kind, [], { gallery: { windowFraction: 0.7 } });
+      const strips = walls(model).filter((e) => e.strip !== undefined);
+      expect(strips).toHaveLength(2);
+      for (const s of strips) {
+        expect(s.strip).toBe(look);
+        expect(Math.abs(s.size[1] - H)).toBeLessThan(1e-9);
+        expect(Math.abs(s.position[2]) - s.size[2] / 2).toBeCloseTo(0.75, 9);
+        expect(Math.abs(s.position[2]) + s.size[2] / 2).toBeCloseTo(outer, 9);
+      }
+      // Everything else on the face lies within the corridor: the door frame, never a strip.
+      expect(walls(model).filter((e) => e.strip === undefined).every((e) => !beside(e))).toBe(true);
+      expect(facesOf(model.elements, '1:+x').filter((e) => e.part === 'glazing' && beside(e))).toEqual([]);
+    });
+
+    it('an enclosed corridor keeps the door wall inside its span (door colour)', () => {
+      const { model } = corridorFixture({ walls: 'enclosed', width: 1.5 });
+      const face = model.faces.find((f) => f.id === '1:+x')!;
+      expect(face).toMatchObject({ condition: 'door', corridorWidth: 1.5 });
+      expect(face.outside).toBeUndefined();
+      const inside = walls(model).filter((e) => e.strip === undefined);
+      expect(inside.length).toBe(3); // two jambs (1 m door in a 1.5 m corridor) and the lintel
+      expect(inside.every((e) => e.condition === 'door' && e.outside === undefined)).toBe(true);
+    });
+
+    it.each<[string, CorridorLook, RelationshipKind]>([
+      ['enclosed corridor, access', { walls: 'enclosed', width: 1.5 }, 'access'],
+      ['open corridor, access', { walls: 'open', width: 1.5 }, 'access'],
+      ['enclosed corridor, open', { walls: 'enclosed', width: 1.5 }, 'open'],
+    ])('an open-sided room (%s): no wall strips and no door, the end is open; only its roof posts stay', (_name, corridor, kind) => {
+      const roofed = corridorFixture(corridor, kind, [], { gallery: { walls: 'open', roof: 'flat' } }).model;
+      const parts = facesOf(roofed.elements, '1:+x');
+      expect(parts.filter((e) => e.part === 'glazing')).toEqual([]);
+      // The end is an opening as wide as the corridor (its threshold keeps the relationship pickable).
+      expect(parts.find((e) => e.part === 'threshold')!.size[2]).toBeCloseTo(1.5 * 0.9, 9);
+      const solids = parts.filter((e) => e.part === 'wall');
+      expect(solids).toHaveLength(2);
+      for (const p of solids) {
+        expect(p.strip).toBe('facade');
+        expect(p.size[2]).toBeCloseTo(OPENING_PROPORTIONS.postWidth, 9);
+        expect(Math.abs(p.position[2]) + p.size[2] / 2).toBeCloseTo(W / 2, 9);
+      }
+      const bare = corridorFixture(corridor, kind, [], { gallery: { walls: 'open', roof: 'none' } }).model;
+      expect(facesOf(bare.elements, '1:+x').map((e) => e.part)).toEqual(['threshold']);
+    });
+
+    it('an open-sided room at a full-width corridor end is unchanged (door as before)', () => {
+      const full = corridorFixture({ walls: 'enclosed', width: W }, 'access', [], { gallery: { walls: 'open', roof: 'flat' } }).model;
+      expect(facesOf(full.elements, '1:+x').some((e) => e.part === 'wall')).toBe(true);
+      expect(full.elements.some((e) => e.strip !== undefined)).toBe(false);
+    });
+
+    it('a full-width corridor has no strips: its end face is laid out exactly as with no corridor width', () => {
+      const full = corridorFixture({ walls: 'enclosed', width: W }).model;
+      expect(full.elements.some((e) => e.strip !== undefined)).toBe(false);
+      const face = full.faces.find((f) => f.id === '1:+x')!;
+      const { corridorWidth: _w, ...plain } = toResolvedFace(face);
+      expect(layoutFace(toResolvedFace(face))).toEqual({ ...layoutFace(plain), face: toResolvedFace(face), faceId: face.id });
+    });
   });
 
   it('the width is clamped to the cell when the cell is narrower', () => {

@@ -4,6 +4,9 @@ import { AI_KIT_FILE_NAME, aiKitUrl, TEMPLATE_FILE_NAME, UPLOAD_INFO } from './a
 /** Id of the ⓘ of "Upload your own (.ts)" (its window's place and size are remembered by it). */
 export const UPLOAD_EXPLAINER_ID = 'upload-your-own';
 
+/** Its window's opening size: larger than the default explainer (360 × 300) so the downloads are in view. */
+export const UPLOAD_EXPLAINER_WINDOW_SIZE = { width: 440, height: 360 } as const;
+
 /**
  * The ⓘ of "Upload your own (.ts)" (owner 2026-11-19): the same movable, resizable pop-up as the
  * other ⓘ explainers. What an analysis can read, then how to start: the AI kit (a zip served from
@@ -16,6 +19,8 @@ export function uploadExplainer(baseUrl: string): Explainer {
     title: 'Upload your own analysis',
     summary: UPLOAD_INFO,
     example: 'Ask an AI assistant for “the rooms two steps from a room”, then upload the .ts file it writes.',
+    // Opens tall enough that both downloads show without scrolling (2026-11-20; fits 1366 × 768).
+    windowSize: UPLOAD_EXPLAINER_WINDOW_SIZE,
     downloads: [
       { label: 'AI kit (.zip)', fileName: AI_KIT_FILE_NAME, href: aiKitUrl(baseUrl), note: 'attach it to an AI assistant and describe your idea.' },
       {

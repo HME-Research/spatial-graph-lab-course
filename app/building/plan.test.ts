@@ -333,6 +333,78 @@ describe('buildPlan — cut height', () => {
   });
 });
 
+describe('buildPlan — corridors at their width (2026-11-20)', () => {
+  // Rooms 1 at x = 0 and 2 at x = 4 (route along x); 3 at y = 0 and 4 at y = 4 on x = 7 (route along y).
+  const corridors = (own?: CorridorLook) =>
+    v2(
+      [
+        { id: 1, position: [0, 0, 0] },
+        { id: 2, position: [4, 0, 0] },
+        { id: 3, position: [7, 0, 0] },
+        { id: 4, position: [7, 4, 0] },
+      ],
+      [
+        { id: 1, source: 1, target: 2, ...(own ? { corridor: own } : {}) },
+        { id: 2, source: 3, target: 4 },
+      ],
+    );
+  const withCard = (card: CorridorLook, own?: CorridorLook): DesignDocumentV2 => {
+    const d = corridors(own);
+    return { ...d, settings: { ...d.settings, corridors: card } };
+  };
+  const across = (r: PlanRect, axis: 'x' | 'y') => (axis === 'x' ? r.y1 - r.y0 : r.x1 - r.x0);
+  const along = (r: PlanRect, axis: 'x' | 'y') => (axis === 'x' ? r.x1 - r.x0 : r.y1 - r.y0);
+  const axisOf = (spatial: ReturnType<typeof resolveRelationships>, edgeId: number) => {
+    const r = spatial.byEdge.get(edgeId)!;
+    if (r.status !== 'routed') throw new Error(`edge ${edgeId} is not routed`);
+    return r.route.axis;
+  };
+
+  it('built-in 1.5 m: each route cell keeps its reserved cell and draws the corridor 1.5 m wide, centred, full length', () => {
+    const { plans, spatial } = setup(corridors());
+    const cells = plans.get(0)!.routeCells;
+    expect(cells.length).toBe(6);
+    expect(new Set(cells.map((c) => axisOf(spatial, c.edgeId)))).toEqual(new Set(['x', 'y']));
+    for (const c of cells) {
+      const axis = axisOf(spatial, c.edgeId);
+      expect(c.rect.x1 - c.rect.x0).toBeCloseTo(W, 9);
+      expect(c.rect.y1 - c.rect.y0).toBeCloseTo(W, 9);
+      expect(across(c.corridor, axis)).toBeCloseTo(1.5, 9);
+      expect(along(c.corridor, axis)).toBeCloseTo(W, 9);
+      expect((c.corridor.x0 + c.corridor.x1) / 2).toBeCloseTo((c.rect.x0 + c.rect.x1) / 2, 9);
+      expect((c.corridor.y0 + c.corridor.y1) / 2).toBeCloseTo((c.rect.y0 + c.rect.y1) / 2, 9);
+    }
+  });
+
+  it('same resolution as the Building: relationship → Corridors card → built-in', () => {
+    const doc = withCard({ width: 2.4 }, { width: 0.9 });
+    const { plans } = setup(doc);
+    const widthOf = (edgeId: number, axis: 'x' | 'y') =>
+      plans.get(0)!.routeCells.filter((c) => c.edgeId === edgeId).map((c) => +across(c.corridor, axis).toFixed(9));
+    expect(widthOf(1, 'x')).toEqual([0.9, 0.9, 0.9]);
+    expect(widthOf(2, 'y')).toEqual([2.4, 2.4, 2.4]);
+    const building = buildBuildingV2(doc);
+    expect(building.relationships.map((r) => [r.edgeId, r.corridor?.width])).toEqual([
+      [1, 0.9],
+      [2, 2.4],
+    ]);
+  });
+
+  it('a full-cell corridor fills its cell; the reserved cells and bounds never change with the width', () => {
+    const full = setup(withCard({ width: W })).plans.get(0)!;
+    for (const c of full.routeCells) expect(c.corridor).toEqual(c.rect);
+    const narrow = setup(withCard({ width: 0.5 })).plans.get(0)!;
+    expect(narrow.routeCells.map((c) => c.rect)).toEqual(full.routeCells.map((c) => c.rect));
+    expect(narrow.bounds).toEqual(full.bounds);
+  });
+
+  it('the façade strips beside a narrower corridor end are plan walls of the room face', () => {
+    const plan = setup(corridors()).plans.get(0)!;
+    // Two strips beside the 1.5 m corridor and the two door jambs within it (the cut is below the lintel).
+    expect(plan.walls.filter((w) => w.faceId === '1:+x')).toHaveLength(4);
+  });
+});
+
 describe('buildPlan — purity', () => {
   it('is deterministic and does not modify its input', () => {
     const { source } = setup(example);

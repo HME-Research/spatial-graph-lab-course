@@ -4,6 +4,7 @@
  */
 export * from './commands';
 export * from './contracts';
+export * from './duplicate';
 export * from './edit';
 export * from './occupancy';
 export * from './port';

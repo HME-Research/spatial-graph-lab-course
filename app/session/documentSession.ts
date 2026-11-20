@@ -158,6 +158,8 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
   switch (command.type) {
     case 'add-node':
       // The command gives the new room the document's next node id.
+      if (command.duplicateOf !== undefined && 'nextNodeId' in doc)
+        return `Duplicate ${room(command.duplicateOf)} as room ${(doc as Pick<DesignDocumentV2, 'nextNodeId'>).nextNodeId}`;
       return `Add room ${'nextNodeId' in doc ? (doc as Pick<DesignDocumentV2, 'nextNodeId'>).nextNodeId : ''}`.trimEnd();
     case 'remove-node':
       return `Delete ${room(command.nodeId)}`;

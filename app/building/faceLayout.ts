@@ -57,6 +57,17 @@ export interface FaceLayout<F extends ResolvedFace = ResolvedFace> {
   readonly frame: FaceFrame;
   /** Solid panel parts (wall / slab / roof), in emission order. Empty for an `open` wall. */
   readonly solids: readonly FaceRect[];
+  /**
+   * Indices into `solids` of the wall strips beside a corridor narrower than the cell, at the
+   * corridor's end (2026-11-20), when they are the owner's EXTERIOR façade wall (styled by its
+   * look): an enclosed room at an open-sided corridor, or an open-sided room's posts. Absent when none.
+   */
+  readonly facadeStrips?: readonly number[];
+  /**
+   * Indices into `solids` of those strips when they are INTERNAL walls: an enclosed room at an
+   * enclosed corridor (owner override 2026-11-20). Absent when none.
+   */
+  readonly internalStrips?: readonly number[];
   /** Openings, in emission order. */
   readonly openings: readonly FaceOpening[];
 }
@@ -364,8 +375,45 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
   const frame = frameFor(face.direction, faceCentre(face.cell, face.direction, cell), cell, wallT);
   const panel = fullFaceRect(frame);
   const solids: FaceRect[] = [];
+  const facadeStrips: number[] = [];
+  const internalStrips: number[] = [];
   const openings: FaceOpening[] = [];
   const opening = (kind: FaceOpeningKind, rect: FaceRect, edgeId: number | null = face.edgeId) => openings.push({ kind, rect, edgeId });
+  /**
+   * At the end of a corridor narrower than the cell (2026-11-20, owner): the end follows the ROOM's
+   * own exterior-wall look, not the corridor's. Returns the corridor's span of the face and whether
+   * the room is open-sided, after pushing what stands beside the span; null for any other face
+   * (a full-width corridor too: unchanged).
+   * - Enclosed room, open-sided corridor: the strips beside the span are outdoors, so they are its
+   *   exterior façade wall (`facadeStrips`; no window: a strip is narrower than any window bay).
+   * - Enclosed room, enclosed corridor (owner override): the strips are internal walls (`internalStrips`).
+   * - Open-sided room: no wall strips and no door; the end is open like the room's other exterior
+   *   sides, keeping only their bay-edge posts where the room has a roof to carry.
+   */
+  const corridorEnd = (): { span: FaceRect; openRoom: boolean } | null => {
+    const w = face.corridorWidth;
+    if (w === undefined || w >= cell.horizontal - EPS) return null;
+    const span = { u0: -w / 2, u1: w / 2, v0: panel.v0, v1: panel.v1 };
+    const key = styleKeyOf(face, options);
+    const openRoom = options.walls?.(key) === 'open';
+    const posts = openRoom && (options.roof?.(key) ?? 'flat') !== 'none';
+    const half = cell.horizontal / 2;
+    const p = OPENING_PROPORTIONS.postWidth;
+    for (const strip of rectsAroundHole(panel, span)) {
+      let part: FaceRect | null = strip;
+      if (openRoom) {
+        // Only the post at this strip's bay edge, clipped to the strip.
+        const edge = strip.u1 <= 0 ? { u0: -half, u1: -half + p } : { u0: half - p, u1: half };
+        const u0 = Math.max(strip.u0, edge.u0);
+        const u1 = Math.min(strip.u1, edge.u1);
+        part = posts && u1 - u0 > EPS ? { ...strip, u0, u1 } : null;
+      }
+      if (!part) continue;
+      // Enclosed room AND enclosed corridor (owner override 2026-11-20): the strips are internal walls.
+      (openRoom || face.outside ? facadeStrips : internalStrips).push(solids.push(part) - 1);
+    }
+    return { span, openRoom };
+  };
 
   if (face.orientation === 'wall') {
     switch (face.condition) {
@@ -396,21 +444,25 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
         break;
       }
       case 'door': {
-        // At the end of a corridor, the door is no wider than the corridor (2026-11-19).
+        // At the end of a corridor, the door is no wider than the corridor (2026-11-19). Beside a
+        // corridor narrower than the cell the end follows the room's look (2026-11-20): enclosed =
+        // façade strips, and only the door's frame within the corridor's span is the door wall;
+        // open-sided = no door, an opening as wide as the corridor (see `corridorEnd`).
+        const end = corridorEnd();
+        if (end?.openRoom) {
+          opening('open', end.span);
+          break;
+        }
         const hole = narrowTo(doorRect(cell), face.corridorWidth);
-        solids.push(...rectsAroundHole(panel, hole));
+        solids.push(...rectsAroundHole(end?.span ?? panel, hole));
         opening('door', hole);
         break;
       }
       case 'open': {
         // No partition at all, except at the end of a corridor narrower than the cell: a
-        // full-height opening as wide as the corridor, centred, with the wall beside it.
-        const w = face.corridorWidth;
-        if (w !== undefined && w < cell.horizontal - EPS) {
-          const hole = { u0: -w / 2, u1: w / 2, v0: panel.v0, v1: panel.v1 };
-          solids.push(...rectsAroundHole(panel, hole));
-          opening('open', hole);
-        } else opening('open', panel);
+        // full-height opening as wide as the corridor, centred, with the room's façade strips
+        // (enclosed room) or nothing but its posts (open-sided room) beside it.
+        opening('open', corridorEnd()?.span ?? panel);
         break;
       }
       default:
@@ -450,7 +502,15 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
         solids.push(panel);
     }
   }
-  return { faceId: face.id, face, frame, solids, openings };
+  return {
+    faceId: face.id,
+    face,
+    frame,
+    solids,
+    openings,
+    ...(facadeStrips.length > 0 ? { facadeStrips } : {}),
+    ...(internalStrips.length > 0 ? { internalStrips } : {}),
+  };
 }
 
 /** Layout of every face, in input order. Pure and deterministic. */

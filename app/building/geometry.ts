@@ -49,6 +49,12 @@ export interface ArchitecturalElement {
   readonly condition: FaceCondition;
   /** Copied from the face: an open-air connector's end wall (façade colour, glass door). */
   readonly outside?: true;
+  /**
+   * A wall strip beside a corridor narrower than the cell, at the corridor's end (2026-11-20):
+   * `facade` = the owner's exterior façade wall (its look's colour; `FaceLayout.facadeStrips`),
+   * `internal` = an internal wall (enclosed room at an enclosed corridor; `FaceLayout.internalStrips`).
+   */
+  readonly strip?: 'facade' | 'internal';
   readonly orientation: FaceOrientation;
   readonly ownerNodeId: number;
   readonly ownerFunction: string;
@@ -107,13 +113,14 @@ export function buildArchitecture(faces: readonly ResolvedFace[], options: Archi
     const centre = frame.origin;
     const target = faceSelectionTarget(face);
     let index = 0;
-    const emit = (part: ElementPart, geometry: { position: WorldPoint; size: WorldPoint }) => {
+    const emit = (part: ElementPart, geometry: { position: WorldPoint; size: WorldPoint }, strip?: 'facade' | 'internal') => {
       out.push({
         id: `${face.id}:${part}:${index++}`,
         faceId: face.id,
         part,
         condition: face.condition,
         ...(face.outside ? { outside: true as const } : {}),
+        ...(strip ? { strip } : {}),
         orientation: face.orientation,
         ownerNodeId: face.ownerNodeId,
         ownerFunction: face.ownerFunction,
@@ -126,7 +133,9 @@ export function buildArchitecture(faces: readonly ResolvedFace[], options: Archi
     };
 
     if (face.orientation === 'wall') {
-      for (const r of layout.solids) emit('wall', faceRectBox(frame, r, wallT));
+      layout.solids.forEach((r, i) =>
+        emit('wall', faceRectBox(frame, r, wallT), layout.facadeStrips?.includes(i) ? 'facade' : layout.internalStrips?.includes(i) ? 'internal' : undefined),
+      );
       for (const opening of layout.openings) {
         if (opening.kind === 'window') emit('glazing', faceRectBox(frame, opening.rect, wallT * 0.3));
         else if (opening.kind === 'open') {

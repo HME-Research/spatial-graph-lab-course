@@ -48,6 +48,7 @@ import { RemoveInvalidDialog } from './RemoveInvalidDialog';
 import { menuItems, NodeContextMenu, type MenuAction, type MenuTarget } from './NodeContextMenu';
 import { displayKeys } from '@app/extensions';
 import { useAnalysisOverlay } from '../analysisOverlay';
+import { duplicateRoom } from '../duplicateRoom';
 import { analysisNodeStyle, isAnalysisEdge } from '../presentation/analysis';
 import { attributeKeysOf, NodeDisplayControl, nodeLines, sanitizeDisplay, type DisplaySettings } from './NodeDisplay';
 import { NodePopover, popoverRows } from './NodePopover';
@@ -357,6 +358,15 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
     if (run(command)) onSelect(selectNode(nodeId));
   };
 
+  /** Duplicate (menu, Ctrl+D): one command; the copy is selected, or the reason is shown. */
+  const duplicate = (nodeId: number) => {
+    const outcome = duplicateRoom(design, nodeId);
+    setIssues(outcome.ok ? [] : outcome.issues);
+    if (!outcome.ok) return;
+    onSelect(selectNode(outcome.nodeId));
+    setNotice({ kind: 'message', text: outcome.message });
+  };
+
   const removeSelected = () => {
     if (selection.kind === 'node') run(removeNodeCommand(model, selection.id));
     else if (selection.kind === 'edge') run(removeEdgeCommand(model, selection.id));
@@ -405,6 +415,8 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
         return startConnect(action.nodeId);
       case 'add-node':
         return addNode(action.nearNodeId, action.nearNodeId === undefined ? menu?.flow : undefined);
+      case 'duplicate-node':
+        return duplicate(action.nodeId);
       case 'remove-node':
         return void run(removeNodeCommand(model, action.nodeId));
       case 'remove-edge':
@@ -453,6 +465,12 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
     if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
       removeSelected();
+    } else if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'd') {
+      // Only with a selected room; otherwise the browser keeps Ctrl+D.
+      const nodeId = focusedNode ?? (selection.kind === 'node' ? selection.id : null);
+      if (nodeId === null) return;
+      event.preventDefault();
+      duplicate(nodeId);
     } else if (event.key === 'Escape') {
       if (connectFrom !== null) setConnectFrom(null);
       else onSelect(NO_SELECTION);
