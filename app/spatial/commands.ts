@@ -94,8 +94,18 @@ export function patchCorridor(current: CorridorLook | undefined, patch: Corridor
 }
 
 export type DesignCommand =
-  /** A new room taking connector cells needs `confirmRouteDisplacement`, like a move (phase 07, A11). */
-  | { readonly type: 'add-node'; readonly node: NewRoom; readonly diagramPosition?: DiagramPosition; readonly confirmRouteDisplacement?: boolean }
+  /**
+   * A new room taking connector cells needs `confirmRouteDisplacement`, like a move (phase 07, A11).
+   * `duplicateOf` (2026-11-20, additive): the room this one copies; it only names the Undo step
+   * ("Duplicate room 3 as room 6") and changes nothing else (`duplicateRoomRequest`).
+   */
+  | {
+      readonly type: 'add-node';
+      readonly node: NewRoom;
+      readonly diagramPosition?: DiagramPosition;
+      readonly confirmRouteDisplacement?: boolean;
+      readonly duplicateOf?: number;
+    }
   | { readonly type: 'remove-node'; readonly nodeId: number }
   /** Move and/or resize (min-corner anchored). Taking connector cells needs `confirmRouteDisplacement`. */
   | {
