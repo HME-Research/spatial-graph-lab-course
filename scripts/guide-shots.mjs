@@ -351,6 +351,8 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
     });
   });
   await step('panel-analyse', async () => {
+    // The Edge section lists four analyses at the start (2026-11-20): a taller window keeps Network and Queries in view.
+    await tall(960);
     await openRail(s, 'Analyse');
     await shot('panel-analyse', {
       clip: P('analyse'),
@@ -363,6 +365,7 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
         { text: 'Queries', within: P('analyse') },
       ],
     });
+    await tall(null);
   });
   await step('panel-transform', async () => {
     await tall(1150);
