@@ -14,9 +14,21 @@ The reference toolkit of Spatial Graph Lab. Don't edit this folder: copy it to m
 
   To change one room, select it and set the value in **Properties**. The other rooms keep their Function's default.
 - **One transform**, *Grow to target area* (`algorithms/grow-to-target-area.ts`), with one optional parameter, `houses`. Transform shows it as **Houses** with a one-line description: both come from the parameter's `label` and `description`.
-- **One design**, `designs/house.json`: the two-storey example house, every room one cell to start with. It is the toolkit's `defaultDesign`: `npm run check:toolkit` runs the transform on it, and a new project takes its Building settings.
+- **Two designs** (both in **Open example…**, tagged `Toolkit: House`):
+  - `designs/house.json`, **House**: the two-storey example house, every room one cell to start with, ready for *Grow to target area*. It is the toolkit's `defaultDesign`: `npm run check:toolkit` runs the transform on it, and a new project takes its Building settings.
+  - `designs/showcase.json`, **House showcase**: a finished two-storey house that shows what the app can do (see *The showcase* below).
+- **One façade file**, `assets/facade-ex1.3dm` (12.5 MB; a 3 × 3 m bay with arched openings), used by the showcase's bedrooms.
 
-**Create project with this toolkit** gives you an **empty graph** that already has the two custom attributes (Target area and Priority, tagged `Toolkit: House`, with each Function's defaults), so you can draw your own house and grow it. To work on the example house itself, choose **Open file…** and pick `toolkits/house/designs/house.json`, with the app opened as `?toolkit=house` so the file opens with this toolkit.
+**Create project with this toolkit** gives you an **empty graph** that already has the two custom attributes (Target area and Priority, tagged `Toolkit: House`, with each Function's defaults), so you can draw your own house and grow it. To work on one of the designs, choose **Open example…** (Welcome or Project) and pick it: it opens as a new project with this toolkit, its attributes, its Building Designer settings and the façade it uses.
+
+## The showcase
+
+`designs/showcase.json` has eleven rooms on two storeys (one cell is 3 × 3 m and one storey 3 m high):
+
+- **Ground floor:** Living 2 (2 × 2 cells, 36 m²) open to Kitchen 3 (18 m²), a Bath 4 beside the living room, a Bedroom 9 and Bath 10 in a guest wing to the south, a garden deck (Circulation 11, 36 m²) to the east and an entrance porch (Entrance 1) to the north.
+- **Upper floor:** Bedroom 5 above the living room (reached from it by a vertical Access relationship), Bath 6, a roof terrace (Circulation 7) and Bedroom 8 above the kitchen.
+- **Looks by Function:** Living 70 % glass as one stretched window per wall run, Kitchen 40 % repeated windows, Bath 15 %, every Bedroom the imported façade `facade-ex1` (Repeat), Entrance open walls with a pergola roof, Circulation open walls and no roof (terrace and deck). The other roofs are flat.
+- **Corridors:** three relationships join rooms that do not touch, so the app builds corridors (dashed in the graph). The Corridors card says open walls, flat roof, 1.8 m wide; each corridor overrides part of it in its own relationship: the porch path 1 → 2 has a pergola roof and is 1.2 m wide, the link 2 → 9 to the guest wing is enclosed and 2.1 m wide, and the boardwalk 3 → 11 to the deck has no roof and is 2.4 m wide.
 
 ## How "Grow to target area" works
 
@@ -44,7 +56,7 @@ The parameter **Houses** (`houses`) sets how many houses you want. Leave it empt
 
 1. Copy the whole folder `toolkits/house/` to `toolkits/my-toolkit/`. The folder name is your toolkit id: lowercase letters, digits, `-` and `_`, starting with a letter.
 2. In `toolkit.ts`, change `name`.
-3. Change, add or remove Functions in `functions/` (one file each, `defineFunction`), attributes, algorithms in `algorithms/`, and designs in `designs/`.
+3. Change, add or remove Functions in `functions/` (one file each, `defineFunction`), attributes, algorithms in `algorithms/`, designs in `designs/` and façade files in `assets/` (a design names a façade by its asset id; `check:toolkit` checks that a file in `assets/` gives it, see `docs/STUDENT-API.md` → Designs).
 4. Run `npm run check:toolkit -- -t my-toolkit` and `npm run typecheck`, then open the app with `?toolkit=my-toolkit`, or choose your toolkit when you create a project.
 
 Your toolkit may import only `@student-api` and its own files. See `docs/STUDENT-API.md` for everything the API offers.

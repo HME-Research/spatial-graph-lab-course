@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "House showcase",
+    "description": "A finished two-storey house that shows what the app can do: rooms at real sizes (one cell is 3 × 3 m), windows and roofs styled by Function, the imported façade assets/facade-ex1.3dm on every bedroom, a pergola entrance porch, a roof terrace and a garden deck, and three generated corridors: a pergola path from the porch, an enclosed link to the guest wing and an open boardwalk to the deck."
+  },
+  "nextNodeId": 12,
+  "nextEdgeId": 11,
+  "nodes": [
+    {
+      "id": 1,
+      "function": "entrance",
+      "position": [0, 4, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "function": "living",
+      "position": [0, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "function": "kitchen",
+      "position": [2, 0, 0],
+      "size": [1, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "function": "bath",
+      "position": [1, 2, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "function": "bedroom",
+      "position": [0, 0, 1],
+      "size": [2, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "function": "bath",
+      "position": [0, 1, 1],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "function": "circulation",
+      "position": [1, 1, 1],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "function": "bedroom",
+      "position": [2, 0, 1],
+      "size": [1, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "function": "bedroom",
+      "position": [0, -3, 0],
+      "size": [2, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "function": "bath",
+      "position": [2, -3, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 11,
+      "function": "circulation",
+      "position": [4, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source": 1,
+      "target": 2,
+      "relationship": "access",
+      "corridor": {
+        "roof": "pergola",
+        "width": 1.2
+      },
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "source": 2,
+      "target": 3,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "source": 2,
+      "target": 4,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "source": 2,
+      "target": 5,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "source": 5,
+      "target": 6,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "source": 5,
+      "target": 7,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "source": 7,
+      "target": 8,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "source": 2,
+      "target": 9,
+      "relationship": "access",
+      "corridor": {
+        "walls": "enclosed",
+        "width": 2.1
+      },
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "source": 9,
+      "target": 10,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "source": 3,
+      "target": 11,
+      "relationship": "open",
+      "corridor": {
+        "roof": "none",
+        "width": 2.4
+      },
+      "custom": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "1": [40, 240],
+      "2": [200, 240],
+      "3": [360, 240],
+      "4": [120, 400],
+      "5": [200, 60],
+      "6": [40, 60],
+      "7": [360, 60],
+      "8": [520, 60],
+      "9": [280, 400],
+      "10": [440, 400],
+      "11": [520, 240]
+    }
+  },
+  "settings": {
+    "styleBy": "function",
+    "styles": {
+      "function": {
+        "groups": [
+          {
+            "value": "living",
+            "look": {
+              "windowFraction": 0.7,
+              "windowLayout": "stretch",
+              "roof": "flat"
+            }
+          },
+          {
+            "value": "kitchen",
+            "look": {
+              "windowFraction": 0.4,
+              "windowLayout": "repeat"
+            }
+          },
+          {
+            "value": "bedroom",
+            "look": {
+              "facade": {
+                "assetId": "facade-ea64a8beca91ce66",
+                "placement": "repeat"
+              }
+            }
+          },
+          {
+            "value": "bath",
+            "look": {
+              "windowFraction": 0.15,
+              "windowLayout": "repeat"
+            }
+          },
+          {
+            "value": "entrance",
+            "look": {
+              "walls": "open",
+              "roof": "pergola"
+            }
+          },
+          {
+            "value": "circulation",
+            "look": {
+              "walls": "open",
+              "roof": "none"
+            }
+          }
+        ]
+      }
+    },
+    "corridors": {
+      "walls": "open",
+      "roof": "flat",
+      "width": 1.8
+    }
+  }
+}
