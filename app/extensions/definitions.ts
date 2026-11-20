@@ -146,35 +146,54 @@ export const analysisInputSchema = z
 
 const run = z.custom<(...args: never[]) => unknown>((v) => typeof v === 'function', { error: 'run must be a function' });
 
+/** The fields every analysis has (graph or design): id, label, optional description and the required inputs. */
+const analysisShape = {
+  id: algorithmIdSchema,
+  label,
+  description: z
+    .string({ error: 'description must be text' })
+    .trim()
+    .min(1, { error: 'description must not be empty' })
+    .max(MAX_ANALYSIS_DESCRIPTION, { error: `description must be at most ${MAX_ANALYSIS_DESCRIPTION} characters` })
+    .optional(),
+  inputs: z
+    .array(analysisInputSchema, { error: 'inputs must be a list such as [{ kind: "node", label: "Node" }] (use [] for the whole graph)' })
+    .max(MAX_ANALYSIS_INPUTS, { error: `an analysis has at most ${MAX_ANALYSIS_INPUTS} inputs` }),
+  parameters: z.never({ error: 'analyses take no parameters: ask for a number with an input { kind: "number", label: "…" }' }).optional(),
+  run,
+};
+
+/** At most this many names in each list of a design analysis's `uses`. */
+export const MAX_USES = 50;
+
+const usesList = (what: string, item: z.ZodType<string>) =>
+  z.array(item, { error: `uses.${what} must be a list of names` }).max(MAX_USES, { error: `uses.${what} lists at most ${MAX_USES} names` }).optional();
+
+/** A design analysis's `uses` (Student API `AnalysisUses`): what it needs from the project. */
+export const analysisUsesSchema = z.strictObject(
+  {
+    functions: usesList('functions', functionIdSchema),
+    nodeFields: usesList('nodeFields', z.string().min(1, { error: 'a field key must not be empty' }).max(100)),
+    edgeFields: usesList('edgeFields', z.string().min(1, { error: 'a field key must not be empty' }).max(100)),
+  },
+  { error: 'uses must be an object such as { functions: ["bedroom"], nodeFields: ["targetArea"] }' },
+);
+
 export const algorithmDefinitionSchema = z.discriminatedUnion(
   'scope',
   [
-    z.strictObject({
-      id: algorithmIdSchema,
-      label,
-      description: z
-        .string({ error: 'description must be text' })
-        .trim()
-        .min(1, { error: 'description must not be empty' })
-        .max(MAX_ANALYSIS_DESCRIPTION, { error: `description must be at most ${MAX_ANALYSIS_DESCRIPTION} characters` })
-        .optional(),
-      scope: z.literal('graph'),
-      inputs: z
-        .array(analysisInputSchema, { error: 'inputs must be a list such as [{ kind: "node", label: "Node" }] (use [] for the whole graph)' })
-        .max(MAX_ANALYSIS_INPUTS, { error: `an analysis has at most ${MAX_ANALYSIS_INPUTS} inputs` }),
-      parameters: z.never({ error: 'graph analyses take no parameters: ask for a number with an input { kind: "number", label: "…" }' }).optional(),
-      run,
-    }),
+    z.strictObject({ ...analysisShape, scope: z.literal('graph') }),
+    z.strictObject({ ...analysisShape, scope: z.literal('design'), uses: analysisUsesSchema.optional() }),
     z.strictObject({
       id: algorithmIdSchema,
       label,
       scope: z.literal('spatial'),
       parameters: parameterSpecsSchema.optional(),
-      inputs: z.never({ error: 'inputs are for graph analyses (defineGraphAlgorithm); a transformation uses parameters' }).optional(),
+      inputs: z.never({ error: 'inputs are for analyses (defineGraphAlgorithm, defineDesignAnalysis); a transformation uses parameters' }).optional(),
       run,
     }),
   ],
-  { error: 'missing scope: create the algorithm with defineGraphAlgorithm or defineSpatialAlgorithm' },
+  { error: 'missing scope: create the algorithm with defineGraphAlgorithm, defineDesignAnalysis or defineSpatialAlgorithm' },
 );
 
 /** Zod issues as readable one-line messages (path first). */

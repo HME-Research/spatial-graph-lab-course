@@ -71,7 +71,8 @@ describe('Upload your own analysis: one button at the top of Analyse', () => {
     expect(html).toContain(
       `<a class="sgl-explainer-download" href="${aiKitUrl(import.meta.env.BASE_URL)}" download="${AI_KIT_FILE_NAME}" data-download="${AI_KIT_FILE_NAME}">⤓ AI kit (.zip)</a>`,
     );
-    expect(html).toContain('— attach it to an AI assistant and describe your idea.');
+    expect(html).toContain('— attach it to an AI assistant, then write your prompt (below).');
+    expect(html).toContain('How to write your prompt');
     expect(html).toMatch(/<button type="button" class="sgl-explainer-download" data-download="graph-analysis-template.ts">⤓ Template \(.ts\)<\/button>/);
     expect(html).toContain('— change it yourself, then upload it here.');
     expect(aiKitUrl('/')).toBe('/downloads/spatial-graph-lab-ai-kit.zip');

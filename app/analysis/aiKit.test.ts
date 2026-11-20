@@ -2,14 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { UploadRunner } from '@app/extensions';
 import { buildGraphContext } from '@app/extensions/context';
 import { validateAnalysisResult } from '@app/extensions/run';
-import { handleUploadRequest, SHIM_NAMES } from '@app/extensions/uploadSandbox';
+import { GRAPH_SHIM_NAMES, handleUploadRequest } from '@app/extensions/uploadSandbox';
 import house from '../document/examples/house.json';
 import exactlyK from '../../docs/ai-kit/examples/exactly-k-steps.ts?raw';
 import shortestRoute from '../../docs/ai-kit/examples/shortest-route.ts?raw';
 import prompt from '../../docs/ai-kit/PROMPT.md?raw';
 import readme from '../../docs/ai-kit/README.md?raw';
 import apiDeclarations from '../../docs/ai-kit/student-api.d.ts?raw';
-import yourPrompt from '../../docs/ai-kit/YOUR-PROMPT.md?raw';
 import template from '../../docs/templates/graph-analysis-template.ts?raw';
 import { prepareCached } from './uploads';
 
@@ -22,7 +21,6 @@ import { prepareCached } from './uploads';
 const KIT: Readonly<Record<string, string>> = {
   'PROMPT.md': prompt,
   'README.md': readme,
-  'YOUR-PROMPT.md': yourPrompt,
   'examples/exactly-k-steps.ts': exactlyK,
   'examples/shortest-route.ts': shortestRoute,
   'student-api.d.ts': apiDeclarations,
@@ -73,9 +71,9 @@ describe('AI kit', () => {
     expect(Object.fromEntries(zip)).toEqual(expected);
   });
 
-  it('declares exactly the functions an uploaded analysis can import', () => {
+  it('declares exactly the functions an uploaded graph analysis can import', () => {
     const declared = [...apiDeclarations.matchAll(/export function (\w+)/g)].map((m) => m[1]).sort();
-    expect(declared).toEqual([...SHIM_NAMES].sort());
+    expect(declared).toEqual([...GRAPH_SHIM_NAMES].sort());
   });
 
   it('keeps its k-steps example identical to the template the Guide offers', () => {

@@ -1,6 +1,6 @@
 import type { ZodType } from 'zod';
 import { type DesignDocumentV2, readDesignJson, type Result } from '@app/document';
-import type { GraphAlgorithm, FunctionDefinition, ToolkitDefinition, SpatialAlgorithm } from '@student-api';
+import type { DesignAnalysis, GraphAlgorithm, FunctionDefinition, ToolkitDefinition, SpatialAlgorithm } from '@student-api';
 import {
   algorithmDefinitionSchema,
   functionDefinitionSchema,
@@ -40,7 +40,7 @@ export interface RegisteredFunction {
 export interface RegisteredAlgorithm {
   readonly id: string;
   readonly file: string;
-  readonly definition: GraphAlgorithm | SpatialAlgorithm;
+  readonly definition: GraphAlgorithm | DesignAnalysis | SpatialAlgorithm;
   readonly status: DefinitionStatus;
 }
 
@@ -178,7 +178,7 @@ export async function activateToolkit(source: ToolkitSource): Promise<Activation
     { invalid: 'invalid-node-type', duplicate: 'duplicate-node-type' },
     'node type',
   );
-  const algorithms = await loadDefinitions<GraphAlgorithm | SpatialAlgorithm>(
+  const algorithms = await loadDefinitions<GraphAlgorithm | DesignAnalysis | SpatialAlgorithm>(
     source.algorithms,
     algorithmDefinitionSchema,
     { invalid: 'invalid-algorithm', duplicate: 'duplicate-algorithm' },

@@ -482,7 +482,7 @@ describe('graph analysis inputs and results (P4)', () => {
     const params = await labToolkit({
       [ALG]: { default: { id: 't', label: 'T', scope: 'graph', inputs: [], parameters: { k: { kind: 'number' } }, run: () => ({ kind: 'analysis', value: 1 }) } },
     });
-    expect(params.diagnostics.map((d) => d.message).join()).toContain('graph analyses take no parameters');
+    expect(params.diagnostics.map((d) => d.message).join()).toContain('analyses take no parameters');
     const badInput = await labToolkit({
       [ALG]: { default: { id: 't', label: 'T', scope: 'graph', inputs: [{ kind: 'room', label: 'R' }], run: () => ({ kind: 'analysis', value: 1 }) } },
     });

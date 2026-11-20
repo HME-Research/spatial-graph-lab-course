@@ -10,6 +10,8 @@ import type { FunctionDefinition } from './functions';
  *
  * - Graph algorithms are generic analyses (the Analyse tab): they see ids and endpoints only and
  *   declare the inputs the student picks (P4).
+ * - Design analyses (the Analyse tab too) also read the rooms themselves (Function, position, size,
+ *   relationship kinds, calculated values and the custom fields they list in `uses`).
  * - Spatial algorithms (the Transform tab) transform the spatial design document through operations.
  */
 
@@ -83,6 +85,75 @@ export interface GraphAlgorithmDefinition {
 
 export interface GraphAlgorithm extends GraphAlgorithmDefinition {
   readonly scope: 'graph';
+}
+
+// ── Design analysis ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * What a design analysis needs from the PROJECT beyond what every project has (owner 2026-11-20).
+ * Leave it out (or empty) when the analysis uses only what every project has: Functions as labels,
+ * positions, sizes, relationship kinds and calculated values — it then works in any project. List
+ * every Function id the code names (e.g. `'bedroom'`) and every custom field it reads; the app
+ * checks them against the open project and lists the analysis as disabled, with the reason, when
+ * one is missing. Only the fields listed here are given to the analysis.
+ */
+export interface AnalysisUses {
+  /** Function ids the code names, e.g. `['bedroom', 'entrance']`. */
+  readonly functions?: readonly string[];
+  /** Custom room fields it reads (their keys), e.g. `['targetArea']`. */
+  readonly nodeFields?: readonly string[];
+  /** Custom relationship fields it reads (their keys). */
+  readonly edgeFields?: readonly string[];
+}
+
+/** One Function of the open project, as a design analysis sees it. */
+export interface FunctionInfo {
+  readonly id: string;
+  readonly label: string;
+}
+
+export interface DesignAnalysisContext {
+  /**
+   * A fresh copy of the rooms and relationships for this run. Every room has `function`,
+   * `position`, `size`; every relationship `relationship` (`access` | `open`). `custom` holds ONLY
+   * the fields listed in `uses` (with the function and field defaults applied), under the keys
+   * listed there.
+   */
+  readonly design: Graph<SpatialNode, SpatialEdge>;
+  /** The picked inputs, in the order of `inputs` (as for a graph analysis). */
+  readonly inputs: readonly number[];
+  /** The open project's Functions (id and label), toolkit and project functions alike. */
+  readonly functions: readonly FunctionInfo[];
+  /** The custom fields listed in `uses` (key, label, kind, limits). */
+  readonly customFields: { readonly nodes: readonly CustomFieldInfo[]; readonly edges: readonly CustomFieldInfo[] };
+  /** Id of the room whose footprint contains `cell`, or undefined if no room occupies it. */
+  nodeAt(cell: GridCoord): number | undefined;
+  /** Whether two rooms share at least one face (wall or floor/ceiling). False for unknown ids or the same room. */
+  touches(aNodeId: number, bNodeId: number): boolean;
+  /** The app's calculated values (read-only), e.g. `ctx.metrics.value('area', room.id)`. */
+  readonly metrics: MetricReader;
+}
+
+/**
+ * A design analysis: like a graph analysis (same `inputs`, same result, never changes the design),
+ * but it also reads each room's Function, position, size, relationship kinds, calculated values
+ * and the custom fields it lists in `uses`.
+ */
+export interface DesignAnalysisDefinition {
+  /** Unique within the project: lowercase letters, digits and "-", starting with a letter. */
+  readonly id: string;
+  readonly label: string;
+  /** Optional: one or two plain sentences on what it tells you (shown by its ⓘ in Analyse). */
+  readonly description?: string;
+  /** REQUIRED: the exact, ordered inputs the student picks (`[]` = the whole design). */
+  readonly inputs: readonly AnalysisInput[];
+  /** What it needs from the project (Function ids, custom fields); omit for an analysis that works in any project. */
+  readonly uses?: AnalysisUses;
+  run(ctx: DesignAnalysisContext): AnalysisResult;
+}
+
+export interface DesignAnalysis extends DesignAnalysisDefinition {
+  readonly scope: 'design';
 }
 
 // ── Spatial transformation ──────────────────────────────────────────────────────────────────
@@ -250,6 +321,8 @@ export interface SpatialAlgorithm<P extends ParameterSpecs = ParameterSpecs> ext
 // ── Registration helpers (the default export of each `algorithms/<file>.ts`) ────────────────
 
 export const defineGraphAlgorithm = (algorithm: GraphAlgorithmDefinition): GraphAlgorithm => ({ ...algorithm, scope: 'graph' });
+
+export const defineDesignAnalysis = (analysis: DesignAnalysisDefinition): DesignAnalysis => ({ ...analysis, scope: 'design' });
 
 export const defineSpatialAlgorithm = <const P extends ParameterSpecs = Record<never, never>>(
   algorithm: SpatialAlgorithmDefinition<P>,

@@ -1,4 +1,5 @@
 import type { Selection } from '@core/viewer/selection';
+import type { AnalysisUses } from '@app/extensions';
 import {
   ANALYSE_SECTION_IDS,
   BUILT_IN_ANALYSES,
@@ -32,6 +33,34 @@ export interface AnalysisItem {
   /** False for a toolkit analysis or an upload whose definition is invalid (listed with its problems), or an upload still loading. */
   readonly enabled: boolean;
   readonly problems: readonly string[];
+  /** Set for a design analysis (it reads the rooms themselves): what it needs from the project. */
+  readonly design?: DesignNeeds;
+}
+
+/**
+ * What a design analysis needs beyond what every project has (owner 2026-11-20): plain phrases
+ * such as `Function “bedroom”` or `room field “targetArea”`. Empty: it works in any project.
+ */
+export interface DesignNeeds {
+  readonly needs: readonly string[];
+}
+
+/** A design analysis's `uses` as plain phrases (for its tag and ⓘ). */
+export function designNeeds(uses: AnalysisUses | undefined): DesignNeeds {
+  return {
+    needs: [
+      ...(uses?.functions ?? []).map((id) => `Function “${id}”`),
+      ...(uses?.nodeFields ?? []).map((key) => `room field “${key}”`),
+      ...(uses?.edgeFields ?? []).map((key) => `relationship field “${key}”`),
+    ],
+  };
+}
+
+/** The tag of a design analysis: "Any project" or "This project", with what it reads as its title. */
+export function designTag(design: DesignNeeds): { readonly text: string; readonly title: string } {
+  return design.needs.length === 0
+    ? { text: 'Any project', title: 'Reads the rooms (Function, size, position, calculated values). Works in any project.' }
+    : { text: 'This project', title: `Reads the rooms and uses ${design.needs.join(', ')}. Works only in projects that have them.` };
 }
 
 export const builtInKey = (id: string) => `built-in:${id}`;
@@ -72,6 +101,7 @@ export interface ToolkitAnalysisEntry {
   readonly inputs: AnalysisInputs;
   readonly enabled: boolean;
   readonly problems: readonly string[];
+  readonly design?: DesignNeeds;
 }
 
 /**
@@ -84,6 +114,7 @@ export interface UploadedAnalysisEntry {
   readonly inputs: AnalysisInputs;
   readonly enabled: boolean;
   readonly problems: readonly string[];
+  readonly design?: DesignNeeds;
 }
 
 /**
@@ -115,6 +146,7 @@ export function analysisItems(
     source: { kind: 'toolkit', toolkitName: toolkit!.name },
     enabled: a.enabled,
     problems: a.problems,
+    ...(a.design && { design: a.design }),
   }));
   const yours: AnalysisItem[] = uploads.map((u) => ({
     key: yoursKey(u.uploadId),
@@ -125,6 +157,7 @@ export function analysisItems(
     source: { kind: 'yours' },
     enabled: u.enabled,
     problems: u.problems,
+    ...(u.design && { design: u.design }),
   }));
   return [...builtIns, ...fromToolkit, ...yours];
 }

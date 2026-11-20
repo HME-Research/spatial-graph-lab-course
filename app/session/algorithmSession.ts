@@ -7,6 +7,7 @@ import {
   type TransformationPreviewV2,
   validateParameters,
   type ActiveToolkit,
+  type AnalysisUses,
   type ExtensionDiagnostic,
   type ParameterSpec,
   type ExtensionResult,
@@ -26,7 +27,7 @@ export interface AlgorithmEntry {
   readonly id: string;
   /** The student's label, or the id when the definition is too broken to have one. */
   readonly label: string;
-  readonly scope: 'graph' | 'spatial' | 'unknown';
+  readonly scope: 'graph' | 'design' | 'spatial' | 'unknown';
   readonly file: string;
   readonly enabled: boolean;
   /** Why it is disabled (diagnostic messages); empty when enabled. */
@@ -37,10 +38,12 @@ export interface AlgorithmEntry {
    */
   readonly parameters: readonly (readonly [string, ParameterSpec])[];
   /**
-   * Declared inputs of a graph analysis (P4). For a disabled analysis, the inputs as far as they can
+   * Declared inputs of an analysis (graph or design, P4). For a disabled analysis, the inputs as far as they can
    * be read (else none), so it can still be listed in a section with its problems.
    */
   readonly inputs: readonly AnalysisInput[];
+  /** What an enabled design analysis needs from the project (`uses`); absent for other algorithms. */
+  readonly uses?: AnalysisUses;
 }
 
 const INPUT_KINDS: readonly unknown[] = ['node', 'edge', 'number'];
@@ -64,12 +67,18 @@ export function listAlgorithms(project: ActiveToolkit | null): AlgorithmEntry[] 
     return {
       id: a.id,
       label: typeof raw.label === 'string' && raw.label !== '' ? raw.label : a.id,
-      scope: raw.scope === 'graph' || raw.scope === 'spatial' ? raw.scope : 'unknown',
+      scope: raw.scope === 'graph' || raw.scope === 'design' || raw.scope === 'spatial' ? raw.scope : 'unknown',
       file: a.file,
       enabled,
       problems: project.diagnostics.filter((d) => ids.has(d.id)).map((d) => d.message),
       parameters: enabled && a.definition.scope === 'spatial' ? Object.entries(a.definition.parameters ?? {}) : [],
-      inputs: enabled && a.definition.scope === 'graph' ? a.definition.inputs : raw.scope === 'graph' ? readInputs(raw.inputs) : [],
+      inputs:
+        enabled && (a.definition.scope === 'graph' || a.definition.scope === 'design')
+          ? a.definition.inputs
+          : raw.scope === 'graph' || raw.scope === 'design'
+            ? readInputs(raw.inputs)
+            : [],
+      ...(enabled && a.definition.scope === 'design' && a.definition.uses !== undefined && { uses: a.definition.uses }),
     };
   });
 }

@@ -50,6 +50,7 @@ export type ExtensionIssueCode =
   | 'unknown-node-reference'
   | 'unknown-edge-reference'
   | 'unknown-metric'
+  | 'missing-requirement'
   // transformation operations
   | 'invalid-id'
   | 'duplicate-node-id'

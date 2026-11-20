@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { type AttributeValue, attributeValueSchema, corridorLookSchema, type DesignDocumentV2 } from '@app/document';
 import type { SpatialResolution } from '@app/spatial';
-import type { AnalysisInput, AnalysisResult, AttributeSpecs, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
+import type { AnalysisInput, AnalysisResult, AttributeSpecs, MetricReader, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
 import type { ActiveToolkit } from './activate';
 import { checkValue, describeSpec, specFor } from './attributes';
-import { buildGraphContext, buildSpatialContextV2, ExtensionRunError, type GraphSource } from './context';
+import { buildDesignAnalysisData, buildGraphContext, buildSpatialContextV2, ExtensionRunError, functionInfos, missingUses, type GraphSource } from './context';
+import { designAnalysisContext, type ContextFailure } from './designAnalysisContext';
+import { createMetricReader } from './metricReader';
 import { EMPTY_ATTRIBUTE_SCHEMA, type ProjectAttributeSchema } from './projectAttributes';
 import { zodMessages } from './definitions';
 import { diagnostic, fail, ok, type ExtensionDiagnostic, type ExtensionResult } from './diagnostics';
@@ -184,7 +186,7 @@ function invalidResult(algorithmId: string, messages: readonly string[]): Extens
 }
 
 /** How one document schema plugs into the shared run pipeline. */
-interface RunAdapter<D extends GraphSource, Preview> {
+interface RunAdapter<D extends DesignDocumentV2, Preview> {
   spatialContext<P extends AttributeSpecs>(
     doc: D,
     project: ActiveToolkit,
@@ -194,6 +196,8 @@ interface RunAdapter<D extends GraphSource, Preview> {
     spatial: SpatialResolution | undefined,
   ): SpatialAlgorithmContext<P>;
   apply(doc: D, project: ActiveToolkit, operations: readonly SpatialOperation[], summary: string | undefined, schema: ProjectAttributeSchema): ExtensionResult<Preview>;
+  /** `ctx.metrics` of a design analysis. */
+  metrics(doc: D, spatial: SpatialResolution | undefined, fail: ContextFailure): MetricReader;
 }
 
 export interface RunOptions {
@@ -208,7 +212,7 @@ export interface RunOptions {
   readonly inputs?: readonly unknown[];
 }
 
-function runWith<D extends GraphSource, Preview>(
+function runWith<D extends DesignDocumentV2, Preview>(
   adapter: RunAdapter<D, Preview>,
   doc: D,
   project: ActiveToolkit,
@@ -247,6 +251,27 @@ function runWith<D extends GraphSource, Preview>(
     return result.ok ? ok({ kind: 'analysis', result: result.value }) : result;
   }
 
+  if (algorithm.scope === 'design') {
+    if (params !== undefined && (typeof params !== 'object' || params === null || Object.keys(params).length > 0)) {
+      return fail([diagnostic('invalid-parameter', 'error', subject, 'design analyses take no parameters (they declare inputs)')]);
+    }
+    const inputs = checkAnalysisInputs(algorithm.inputs, options.inputs, doc, algorithmId);
+    if (!inputs.ok) return inputs;
+    const functions = functionInfos(project);
+    const missing = missingUses(algorithm.uses, functions, schema);
+    if (missing.length > 0) return fail(missing.map((m, n) => diagnostic('missing-requirement', 'error', subject, m, { detail: String(n) })));
+    let raw: unknown;
+    try {
+      const data = buildDesignAnalysisData(doc, functions, schema, algorithm.uses);
+      const metrics = adapter.metrics(doc, options.spatial, (code, message) => new ExtensionRunError(diagnostic(code, 'error', subject, message)));
+      raw = algorithm.run(designAnalysisContext(data, inputs.value, metrics));
+    } catch (error) {
+      return failed(error);
+    }
+    const result = validateAnalysisResult(raw, doc, algorithmId);
+    return result.ok ? ok({ kind: 'analysis', result: result.value }) : result;
+  }
+
   const parameters = validateParameters(algorithm.parameters ?? {}, params, algorithmId);
   if (!parameters.ok) return parameters;
   let raw: unknown;
@@ -269,6 +294,7 @@ function runWith<D extends GraphSource, Preview>(
 const V2_ADAPTER: RunAdapter<DesignDocumentV2, TransformationPreviewV2> = {
   spatialContext: (doc, project, id, params, schema, spatial) => buildSpatialContextV2(doc, project, id, params, schema, spatial),
   apply: (doc, project, operations, summary, schema) => applyTransformationV2(doc, project, operations, summary, schema),
+  metrics: (doc, spatial, fail) => createMetricReader(doc, spatial, fail),
 };
 
 export type RunOutcomeV2 =

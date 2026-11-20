@@ -10,6 +10,7 @@ describe('Student API frozen surface', () => {
   it('exports exactly the frozen runtime names', () => {
     expect(Object.keys(api).sort()).toEqual([
       'FACE_DIRECTIONS',
+      'defineDesignAnalysis',
       'defineFunction',
       'defineGraphAlgorithm',
       'defineSpatialAlgorithm',

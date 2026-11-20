@@ -1,23 +1,41 @@
-import { defineGraphAlgorithm, edgesBetween, getEdge, getNode, incidentEdges, neighbours, opposite, type GraphAlgorithmContext } from '@student-api';
+import {
+  defineDesignAnalysis,
+  defineGraphAlgorithm,
+  edgesBetween,
+  FACE_DIRECTIONS,
+  getEdge,
+  getNode,
+  incidentEdges,
+  neighbourCell,
+  neighbours,
+  opposite,
+  roomCells,
+  type GraphAlgorithmContext,
+} from '@student-api';
+import { designAnalysisContext, tableMetricReader, type DesignAnalysisData, type MetricTable } from './designAnalysisContext';
 
 /**
  * Uploaded analyses, step 2 (Programme P4, item I): evaluating the compiled code. This module runs
  * INSIDE the upload Web Worker (`uploadWorker.ts`); tests call `handleUploadRequest` directly.
  *
  * - The code is evaluated as a CommonJS-style module whose only `require` is `@student-api`, served
- *   by a SHIM that offers exactly what a graph analysis needs: `defineGraphAlgorithm` and the graph
- *   helpers. `defineSpatialAlgorithm`, `defineToolkit` and `defineFunction` throw a readable
- *   refusal; any other name throws "not available" (types were already erased by Sucrase).
- * - The worker receives only ids and endpoints (the same `Graph` a toolkit analysis gets) and the
- *   picked inputs; replies are plain data. The main thread validates every reply again
+ *   by a SHIM that offers exactly what an analysis needs: `defineGraphAlgorithm`,
+ *   `defineDesignAnalysis`, the graph helpers and the grid helpers (`roomCells`, `neighbourCell`,
+ *   `FACE_DIRECTIONS`). `defineSpatialAlgorithm`, `defineToolkit` and `defineFunction` throw a
+ *   readable refusal; any other name throws "not available" (types were already erased by Sucrase).
+ * - A graph analysis receives only ids and endpoints (the same `Graph` a toolkit analysis gets) and
+ *   the picked inputs. A design analysis (owner 2026-11-20) receives `DesignAnalysisData` (rooms
+ *   with only the custom fields it lists in `uses`) and every calculated value as a table, both
+ *   built by the main thread; never the document itself. Replies are plain data. The main thread validates every reply again
  *   (`algorithmDefinitionSchema`, `checkAnalysisInputs`, `validateAnalysisResult`).
  *
  * Isolation, not a security sandbox: the worker has no document, DOM, storage or app state, and it
  * is terminated after a timeout, but students should still upload only their own code.
  */
 
-export const SPATIAL_REFUSAL = 'Uploaded algorithms can only analyse the graph; transforms must live in a toolkit folder.';
-const DEFINITION_HINT = 'An uploaded file must end with `export default defineGraphAlgorithm({ id, label, inputs, run })`.';
+export const SPATIAL_REFUSAL = 'Uploaded files can only analyse (defineGraphAlgorithm or defineDesignAnalysis); transforms must live in a toolkit folder.';
+const DEFINITION_HINT =
+  'An uploaded file must end with `export default defineGraphAlgorithm({ id, label, inputs, run })` or `export default defineDesignAnalysis({ id, label, inputs, run })`.';
 
 /** Thrown for a rule of uploaded analyses (shown as is, without "Error:"). */
 class UploadRefusal extends Error {}
@@ -35,20 +53,27 @@ const SHIM_API: Readonly<Record<string, unknown>> = Object.freeze({
   getNode,
   getEdge,
   opposite,
+  defineDesignAnalysis,
+  roomCells,
+  neighbourCell,
+  FACE_DIRECTIONS,
   defineSpatialAlgorithm: refuse(SPATIAL_REFUSAL),
-  defineToolkit: refuse('Uploaded files can only define one graph analysis (defineGraphAlgorithm); a toolkit lives in a toolkit folder.'),
-  defineFunction: refuse('Uploaded files can only define one graph analysis (defineGraphAlgorithm); functions live in a toolkit folder.'),
+  defineToolkit: refuse('Uploaded files can only define one analysis (defineGraphAlgorithm or defineDesignAnalysis); a toolkit lives in a toolkit folder.'),
+  defineFunction: refuse('Uploaded files can only define one analysis (defineGraphAlgorithm or defineDesignAnalysis); functions live in a toolkit folder.'),
 });
 
-/** Names an analysis can use, for the "not available" message. */
-export const SHIM_NAMES: readonly string[] = ['defineGraphAlgorithm', 'neighbours', 'incidentEdges', 'edgesBetween', 'getNode', 'getEdge', 'opposite'];
+/** Names a graph analysis can use (what the graph-only AI kit declares). */
+export const GRAPH_SHIM_NAMES: readonly string[] = ['defineGraphAlgorithm', 'neighbours', 'incidentEdges', 'edgesBetween', 'getNode', 'getEdge', 'opposite'];
+
+/** Names an uploaded analysis can use, for the "not available" message. */
+export const SHIM_NAMES: readonly string[] = [...GRAPH_SHIM_NAMES, 'defineDesignAnalysis', 'roomCells', 'neighbourCell', 'FACE_DIRECTIONS'];
 
 const shim: object = new Proxy(SHIM_API, {
   get(target, name) {
     if (name === '__esModule') return true;
     if (typeof name === 'symbol' || name === 'then') return undefined;
     if (Object.prototype.hasOwnProperty.call(target, name)) return target[name];
-    throw new UploadRefusal(`"${name}" from @student-api is not available in an uploaded analysis (it sees only node ids and edges). Available: ${SHIM_NAMES.join(', ')}.`);
+    throw new UploadRefusal(`"${name}" from @student-api is not available in an uploaded analysis. Available: ${SHIM_NAMES.join(', ')}.`);
   },
 });
 
@@ -62,10 +87,12 @@ export type UploadRequest =
       /** Ids, endpoints and the graph policy only (`buildGraphContext`). */
       readonly graph: GraphAlgorithmContext['graph'];
       readonly inputs: readonly number[];
+      /** For a design analysis: what it may see (`buildDesignAnalysisData`) and every calculated value. */
+      readonly design?: { readonly data: DesignAnalysisData; readonly metrics: MetricTable };
     };
 
 export type UploadReply =
-  /** The definition's plain data (everything but `run` and `scope`), to be validated by the caller. */
+  /** The definition's plain data (everything but `run`; `scope` is "graph" or "design"), to be validated by the caller. */
   | { readonly ok: true; readonly op: 'load'; readonly definition: Readonly<Record<string, unknown>> }
   /** The raw result of `run`, to be validated by the caller. */
   | { readonly ok: true; readonly op: 'run'; readonly result: unknown }
@@ -120,14 +147,16 @@ function evaluate(code: string): unknown {
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** The default export as a graph analysis definition, or a readable refusal. */
-function definitionOf(value: unknown): { readonly ok: true; readonly run: (ctx: GraphAlgorithmContext) => unknown; readonly data: Record<string, unknown> } | { readonly ok: false; readonly message: string } {
+/** The default export as an analysis definition (graph or design), or a readable refusal. */
+function definitionOf(
+  value: unknown,
+): { readonly ok: true; readonly scope: 'graph' | 'design'; readonly run: (ctx: unknown) => unknown; readonly data: Record<string, unknown> } | { readonly ok: false; readonly message: string } {
   if (!isObject(value)) return { ok: false, message: `There is no analysis in this file. ${DEFINITION_HINT}` };
   if (value.scope === 'spatial') return { ok: false, message: SPATIAL_REFUSAL };
-  if (value.scope !== 'graph') return { ok: false, message: `The default export is not a graph analysis. ${DEFINITION_HINT}` };
-  const { run, scope: _scope, ...data } = value;
-  if (typeof run !== 'function') return { ok: false, message: 'run must be a function: run({ graph, inputs }) { … return { kind: "analysis", … }; }' };
-  return { ok: true, run: run as (ctx: GraphAlgorithmContext) => unknown, data };
+  if (value.scope !== 'graph' && value.scope !== 'design') return { ok: false, message: `The default export is not an analysis. ${DEFINITION_HINT}` };
+  const { run, ...data } = value;
+  if (typeof run !== 'function') return { ok: false, message: 'run must be a function: run(ctx) { … return { kind: "analysis", … }; }' };
+  return { ok: true, scope: value.scope, run: run as (ctx: unknown) => unknown, data };
 }
 
 /** A copy that can cross to the main thread, or a readable problem. */
@@ -163,8 +192,14 @@ export function handleUploadRequest(request: UploadRequest): UploadReply {
   }
   let raw: unknown;
   try {
-    const graph = { policy: { ...request.graph.policy }, nodes: request.graph.nodes.map((n) => ({ id: n.id })), edges: request.graph.edges.map((e) => ({ id: e.id, source: e.source, target: e.target })) };
-    raw = definition.run(freezeDeep({ graph, inputs: [...request.inputs] }));
+    if (definition.scope === 'design') {
+      if (!request.design) return { ok: false, message: 'This design analysis was started without the design.' };
+      const metrics = tableMetricReader(request.design.metrics, (_code, message) => new UploadRefusal(message));
+      raw = definition.run(designAnalysisContext(request.design.data, request.inputs, metrics));
+    } else {
+      const graph = { policy: { ...request.graph.policy }, nodes: request.graph.nodes.map((n) => ({ id: n.id })), edges: request.graph.edges.map((e) => ({ id: e.id, source: e.source, target: e.target })) };
+      raw = definition.run(freezeDeep({ graph, inputs: [...request.inputs] }));
+    }
   } catch (error) {
     return { ok: false, message: describeError(error, 'run failed') };
   }

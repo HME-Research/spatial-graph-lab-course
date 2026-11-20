@@ -1,4 +1,5 @@
 import { GUIDE_TAB_IDS, type Explainer, type GuideTabId } from '../guideContracts';
+import { AI_PROMPT_GUIDE } from './aiPrompt';
 import { LINKS } from './links';
 import { withScreenshot } from './screenshots';
 
@@ -380,20 +381,21 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'ask-ai-for-analysis',
         title: 'Write your own analysis (with an AI assistant)',
         summary: 'Describe a graph measure in words; an AI assistant writes it as a .ts file using the Student API; upload it in Analyse.',
-        example: 'Download the AI kit, give the whole folder to an AI assistant and fill in YOUR-PROMPT.md, e.g. “For each room, how many steps is it from room 1?”. Or start from the template and change it yourself. Either way the file may import only @student-api, sees only node ids and edges, and lists its inputs (which decide its section).',
+        example: 'Download the AI kit, attach the zip to an AI assistant and write your prompt as shown below: your idea, what you will pick and how the answer should show, e.g. “For each room, how many steps is it from the room I pick?”. Or start from the template and change it yourself. Either way the file may import only @student-api, sees only node ids and edges, and lists its inputs (which decide its section).',
         diagrams: [
           { diagram: 'route-ai', caption: 'With the AI kit: describe it' },
           { diagram: 'route-template', caption: 'From the template: write it yourself' },
         ],
         learnMore: LINKS.typescript,
         downloads: [
-          { label: 'AI kit (.zip)', fileName: 'spatial-graph-lab-ai-kit.zip', href: AI_KIT_URL },
+          { label: 'AI kit (.zip)', fileName: 'spatial-graph-lab-ai-kit.zip', href: AI_KIT_URL, note: 'attach it to an AI assistant, then write your prompt (below).' },
           {
             label: 'Template analysis (.ts)',
             fileName: 'graph-analysis-template.ts',
             load: () => import('../../../docs/templates/graph-analysis-template.ts?raw').then((m) => m.default),
           },
         ],
+        promptGuide: AI_PROMPT_GUIDE,
       },
     ],
   },
@@ -412,7 +414,7 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'howto-open-example',
         title: 'Open an example',
         summary: 'Open example… opens a built-in or toolkit example as a new project, ready to explore; the project you had open is not changed.',
-        example: '1. Open example… on Welcome or in Project. 2. Pick one: House – graph only (No toolkit), or a design tagged Toolkit: House, e.g. Garden House or House showcase. 3. It opens with its toolkit and custom attributes, its looks by Function, its corridors and any imported façade. 4. Set a view to Building to see it.',
+        example: '1. Open example… on Welcome or in Project. 2. Pick one: House – graph only (No toolkit), or a design tagged Toolkit: House, e.g. House or Garden House. 3. It opens with its toolkit and custom attributes, its looks by Function, its corridors and any imported façade. 4. Set a view to Building to see it.',
         diagram: 'howto-open-example',
         learnMore: LINKS.envelope,
       },

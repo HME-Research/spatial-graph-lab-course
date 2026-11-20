@@ -14,23 +14,14 @@ The reference toolkit of Spatial Graph Lab. Don't edit this folder: copy it to m
 
   To change one room, select it and set the value in **Properties**. The other rooms keep their Function's default.
 - **One transform**, *Grow to target area* (`algorithms/grow-to-target-area.ts`), with one optional parameter, `houses`. Transform shows it as **Houses** with a one-line description: both come from the parameter's `label` and `description`.
-- **Three designs** (all in **Open example…**, tagged `Toolkit: House`):
-  - `designs/house.json`, **House**: the two-storey example house, every room one cell to start with, ready for *Grow to target area*. It is the toolkit's `defaultDesign`: `npm run check:toolkit` runs the transform on it, and a new project takes its Building settings.
-  - `designs/showcase.json`, **House showcase**: a finished two-storey house that shows what the app can do (see *The showcase* below).
+- **One design analysis**, *Below target area* (`algorithms/below-target-area.ts`, `defineDesignAnalysis`), in Analyse › Network: it lights up the rooms whose floor area is still below their `targetArea`, colours every room by the m² it is missing and counts them. Its `uses` names `targetArea`, so it is tagged **This project** and works only where that field exists. Run it before and after *Grow to target area*.
+- **Two designs** (both in **Open example…**, tagged `Toolkit: House`):
+  - `designs/simple-house.json`, **House**: the two-storey example house, every room one cell to start with, ready for *Grow to target area*. It is the toolkit's `defaultDesign`: `npm run check:toolkit` runs the transform on it, and a new project takes its Building settings.
   - `designs/garden-house.json`, **Garden House — developed example**: a developed two-storey garden house with a central stair (see *The garden house* below).
 - **Twelve Function colours**, declared in each `functions/*.ts` (`colour`): Entrance violet `#8e6bb8`, Living amber `#e8a33d`, Kitchen terracotta `#d4623b`, Bedroom blue `#4f7cc0`, Bath aqua `#3fa9b5`, Circulation stone grey `#9b9a8f`, Garden green `#4f8f3a`, Stair / landing slate `#56606e`, Dining raspberry `#c2477d`, Study brown `#8b5e3c`, Utility olive `#8a8d2e`, Roof terrace mint `#7cc9a6`. A project can change them in the Functions dialog.
-- **One façade file**, `assets/facade-ex1.3dm` (12.5 MB; a 3 × 3 m bay with arched openings), used by the showcase's bedrooms and by the garden house's Living and Dining.
+- **One façade file**, `assets/facade-ex1.3dm` (12.5 MB; a 3 × 3 m bay with arched openings), used by the garden house's Living and Dining.
 
 **Create project with this toolkit** gives you an **empty graph** that already has the two custom attributes (Target area and Priority, tagged `Toolkit: House`, with each Function's defaults), so you can draw your own house and grow it. To work on one of the designs, choose **Open example…** (Welcome or Project) and pick it: it opens as a new project with this toolkit, its attributes, its Building Designer settings and the façade it uses.
-
-## The showcase
-
-`designs/showcase.json` has eleven rooms on two storeys (one cell is 3 × 3 m and one storey 3 m high):
-
-- **Ground floor:** Living 2 (2 × 2 cells, 36 m²) open to Kitchen 3 (18 m²), a Bath 4 beside the living room, a Bedroom 9 and Bath 10 in a guest wing to the south, a garden deck (Circulation 11, 36 m²) to the east and an entrance porch (Entrance 1) to the north.
-- **Upper floor:** Bedroom 5 above the living room (reached from it by a vertical Access relationship), Bath 6, a roof terrace (Circulation 7) and Bedroom 8 above the kitchen.
-- **Looks by Function:** Living 70 % glass as one stretched window per wall run, Kitchen 40 % repeated windows, Bath 15 %, every Bedroom the imported façade `facade-ex1` (Repeat), Entrance open walls with a pergola roof, Circulation open walls and no roof (terrace and deck). The other roofs are flat.
-- **Corridors:** three relationships join rooms that do not touch, so the app builds corridors (dashed in the graph). The Corridors card says open walls, flat roof, 1.8 m wide; each corridor overrides part of it in its own relationship: the porch path 1 → 2 has a pergola roof and is 1.2 m wide, the link 2 → 9 to the guest wing is enclosed and 2.1 m wide, and the boardwalk 3 → 11 to the deck has no roof and is 2.4 m wide.
 
 ## The garden house
 

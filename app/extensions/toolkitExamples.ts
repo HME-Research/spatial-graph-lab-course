@@ -25,7 +25,7 @@ export interface ToolkitExample {
   readonly toolkitName: string;
   /** The design id: its file name without `.json`. */
   readonly designId: string;
-  /** Repository-relative path, e.g. `toolkits/house/designs/showcase.json`. */
+  /** Repository-relative path, e.g. `toolkits/house/designs/garden-house.json`. */
   readonly file: string;
   /** `metadata.name` (the file name when the design is invalid). */
   readonly name: string;

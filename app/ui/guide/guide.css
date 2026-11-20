@@ -88,3 +88,41 @@
 .sgl-explainer-download {
   align-self: flex-start;
 }
+.sgl-explainer-prompt {
+  margin: 0 0 var(--space-2, 8px);
+  padding-top: var(--space-2, 8px);
+  border-top: 1px solid var(--line, #e1e1dc);
+}
+.sgl-explainer-prompt-title {
+  margin: 0 0 var(--space-1, 4px);
+  font-size: var(--text-md, 14px);
+  font-weight: 600;
+}
+.sgl-explainer-prompt-parts,
+.sgl-explainer-prompt-tips {
+  margin: 0 0 var(--space-2, 8px);
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sgl-explainer-prompt-tips {
+  padding-left: 1.2em;
+  list-style: disc;
+  color: var(--muted, #62625c);
+}
+.sgl-explainer-prompt-text {
+  margin: 0 0 var(--space-1, 4px);
+  padding: var(--space-2, 8px);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  font-size: var(--text-sm, 13px);
+  background: var(--surface-muted, #f7f7f5);
+  border: 1px solid var(--line, #e1e1dc);
+  border-radius: 4px;
+}
+.sgl-explainer-prompt-copy {
+  margin: 0 0 var(--space-2, 8px);
+}

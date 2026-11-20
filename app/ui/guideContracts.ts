@@ -48,6 +48,11 @@ export interface Explainer {
   /** Files the student can save (e.g. a template); each is loaded only when clicked. */
   readonly downloads?: readonly GuideDownload[];
   /**
+   * How to write a prompt for an AI assistant (additive 2026-11-20): its parts, then a starting
+   * text with a Copy button. Shown after the downloads.
+   */
+  readonly promptGuide?: GuidePromptGuide;
+  /**
    * Opening size of its pop-up window (`ExplainerWindow`, additive 2026-11-20); default 520 × 480,
    * centred. The window is remembered per size, so a new size takes effect over an older remembered one.
    */
@@ -63,6 +68,16 @@ export interface Explainer {
     /** Marker centres as fractions (0–1) of the image width/height. */
     readonly markers: readonly { readonly n: number; readonly x: number; readonly y: number }[];
   };
+}
+
+/** A prompt the student writes themselves: its parts in order, a text to copy and short tips. */
+export interface GuidePromptGuide {
+  readonly title: string;
+  /** The parts of the prompt, in order: a short label and what to write there. */
+  readonly parts: readonly { readonly label: string; readonly text: string }[];
+  /** A starting text with blanks (`___`), copied by its Copy button. */
+  readonly text: string;
+  readonly tips?: readonly string[];
 }
 
 /** One case of an explainer's contrasting pair: a diagram id and the one-line caption under it. */

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import type { DesignDocumentV2 } from '@app/document';
-import { runUploadedAnalysis, type ActiveToolkit, type StoredUpload } from '@app/extensions';
+import { EMPTY_ATTRIBUTE_SCHEMA, functionInfos, missingUses, runUploadedAnalysis, type ActiveToolkit, type AnalysisUses, type StoredUpload } from '@app/extensions';
 import { isStale, listAlgorithms, runEntryV2, type AttributesVersion, type HostResolution } from '@app/session/algorithmSession';
 import type { DocumentVersion } from '@app/session/documentSession';
 import { CollapsibleSection } from '@app/ui';
@@ -15,6 +15,8 @@ import {
   applyPick,
   catalogueFor,
   currentPrompt,
+  designNeeds,
+  designTag,
   hasNumberInput,
   itemsBySection,
   pickedInputs,
@@ -131,11 +133,25 @@ export function AnalysePanel({
 
   const loaded = useUploadedAnalyses(uploads);
   const toolkitName = project && project.algorithms.length > 0 ? project.definition.name : null;
-  const entries = useMemo(() => listAlgorithms(project).filter((a) => a.scope === 'graph'), [project]);
+  const entries = useMemo(() => listAlgorithms(project).filter((a) => a.scope === 'graph' || a.scope === 'design'), [project]);
+  // Design analyses (owner 2026-11-20): what they `use` is checked against the open project.
+  const functions = useMemo(() => functionInfos(project), [project]);
+  const schema = attributes?.schema ?? EMPTY_ATTRIBUTE_SCHEMA;
+  const missing = (uses: AnalysisUses | undefined) => missingUses(uses, functions, schema);
   const items = analysisItems(
     shownBuiltIns,
-    toolkitName !== null ? { name: toolkitName, analyses: entries.map((e) => ({ id: e.id, label: e.label, inputs: e.inputs, enabled: e.enabled, problems: e.problems })) } : null,
-    uploadEntries(loaded),
+    toolkitName !== null
+      ? {
+          name: toolkitName,
+          analyses: entries.map((e) => {
+            const base = { id: e.id, label: e.label, inputs: e.inputs, enabled: e.enabled, problems: e.problems };
+            if (e.scope !== 'design') return base;
+            const lacking = e.enabled ? missing(e.uses) : [];
+            return { ...base, enabled: e.enabled && lacking.length === 0, problems: [...e.problems, ...lacking], design: designNeeds(e.uses) };
+          }),
+        }
+      : null,
+    uploadEntries(loaded, missing),
   );
   const bySection = itemsBySection(items, filter);
   const loadedUpload = (item: AnalysisItem) => (item.source.kind === 'yours' ? loaded.find((u) => u.stored.id === item.id) : undefined);
@@ -165,7 +181,9 @@ export function AnalysePanel({
     const attributesRevision = attributes?.revision;
     setRunning(item.key);
     setFailure(null);
-    const result = await runUploadedAnalysis(upload.status, upload.stored.fileName, at.doc, inputs);
+    const spatial = resolution && resolution.doc === at.doc ? resolution.spatial : undefined;
+    const design = { doc: at.doc, functions, schema, ...(spatial && { spatial }) };
+    const result = await runUploadedAnalysis(upload.status, upload.stored.fileName, at.doc, inputs, undefined, design);
     if (!mounted.current) return;
     setRunning((current) => (current === item.key ? null : current));
     finish(item, result.ok ? { ok: true, answer: analysisResultAnswer(item.name, result.result) } : { ok: false, messages: result.messages }, at, attributesRevision);
@@ -397,6 +415,7 @@ export function AnalysePanel({
                           {item.name}
                         </button>
                         <SourceTag text={sourceTag(item.source)} {...(upload && { title: `Uploaded from ${upload.stored.fileName}` })} />
+                        {item.design && <SourceTag {...designTag(item.design)} />}
                         {info && <InfoButton label={item.name} onClick={() => setExplainer(info)} />}
                         {upload && onUploads && (
                           <>

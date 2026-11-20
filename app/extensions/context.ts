@@ -8,10 +8,14 @@ import {
   type RoomNode,
   SPATIAL_GRAPH_POLICY,
 } from '@app/document';
+import { defaultMetricEvaluator, type MetricEvaluator, type MetricValue } from '@app/metrics';
 import type {
+  AnalysisUses,
   AttributeSpecs,
   AttributesOf,
+  CustomFieldInfo,
   EdgeRecord,
+  FunctionInfo,
   GraphAlgorithmContext,
   GridCoord,
   NodeRecord,
@@ -19,9 +23,10 @@ import type {
   SpatialAlgorithmContext,
   SpatialNode,
 } from '@student-api';
-import type { SpatialResolution } from '@app/spatial';
+import { resolveRelationships, type SpatialResolution } from '@app/spatial';
 import type { ActiveToolkit } from './activate';
 import { checkValue, effectiveAttributes } from './attributes';
+import type { DesignAnalysisData, MetricTable } from './designAnalysisContext';
 import { diagnostic, type ExtensionDiagnostic } from './diagnostics';
 import { createMetricReader } from './metricReader';
 import { EMPTY_ATTRIBUTE_SCHEMA, fieldForKey, type AttributeField, type ProjectAttributeSchema } from './projectAttributes';
@@ -62,6 +67,114 @@ export function buildGraphContext(doc: GraphSource, inputs: readonly number[]): 
   return freezeDeep({ graph: { policy: { ...SPATIAL_GRAPH_POLICY }, nodes, edges }, inputs: [...inputs] });
 }
 
+/** A project field as algorithms see it (`CustomFieldInfo`), optionally under the key the algorithm asked for. */
+const fieldInfo = (f: AttributeField, key: string = f.key): CustomFieldInfo => ({
+  key,
+  label: f.label,
+  kind: f.kind,
+  ...(f.values !== undefined && { values: [...f.values] }),
+  ...(f.min !== undefined && { min: f.min }),
+  ...(f.max !== undefined && { max: f.max }),
+  ...(f.default !== undefined && { default: f.default }),
+  ...(f.description !== undefined && { description: f.description }),
+});
+
+/** The project's valid Functions (toolkit and project functions), as a design analysis sees them. */
+export const functionInfos = (project: Pick<ActiveToolkit, 'functions'> | null): FunctionInfo[] =>
+  (project?.functions ?? []).filter((f) => f.status.ok).map((f) => ({ id: f.id, label: f.definition.label }));
+
+const quoteList = (words: readonly string[]) => {
+  const q = words.map((w) => `“${w}”`);
+  return q.length <= 1 ? (q[0] ?? '') : `${q.slice(0, -1).join(', ')} and ${q.at(-1)!}`;
+};
+
+/**
+ * What a design analysis's `uses` names that the open project does not have, as one plain sentence
+ * per kind (empty: it can run here). Field keys match current or former keys (renames keep working).
+ */
+export function missingUses(uses: AnalysisUses | undefined, functions: readonly FunctionInfo[], schema: ProjectAttributeSchema): string[] {
+  if (!uses) return [];
+  const have = new Set(functions.map((f) => f.id));
+  const lacking = (uses.functions ?? []).filter((id) => !have.has(id));
+  const nodes = (uses.nodeFields ?? []).filter((k) => !fieldForKey(schema, 'nodes', k));
+  const edges = (uses.edgeFields ?? []).filter((k) => !fieldForKey(schema, 'edges', k));
+  const out: string[] = [];
+  if (lacking.length > 0) out.push(`Needs the Function${lacking.length > 1 ? 's' : ''} ${quoteList(lacking)}, which this project does not have.`);
+  if (nodes.length > 0) out.push(`Needs the room field${nodes.length > 1 ? 's' : ''} ${quoteList(nodes)}, which this project does not have.`);
+  if (edges.length > 0) out.push(`Needs the relationship field${edges.length > 1 ? 's' : ''} ${quoteList(edges)}, which this project does not have.`);
+  return out;
+}
+
+/**
+ * The plain data of a design analysis run (`designAnalysisContext`): copies of the rooms and
+ * relationships whose `custom` holds ONLY the fields listed in `uses` (effective values: stored,
+ * else function default, else field default; under the key the analysis asked for), the project's
+ * Functions, the listed fields' descriptions and every pair of rooms that share a face. Call
+ * `missingUses` first: a listed field the project lacks is simply absent here.
+ */
+export function buildDesignAnalysisData(
+  doc: Pick<DesignDocumentV2, 'nodes' | 'edges'>,
+  functions: readonly FunctionInfo[],
+  schema: ProjectAttributeSchema,
+  uses: AnalysisUses | undefined,
+): DesignAnalysisData {
+  const pick = (collection: 'nodes' | 'edges', keys: readonly string[] | undefined) =>
+    (keys ?? []).flatMap((key) => {
+      const field = fieldForKey(schema, collection, key);
+      return field ? [{ key, field }] : [];
+    });
+  const nodeFields = pick('nodes', uses?.nodeFields);
+  const edgeFields = pick('edges', uses?.edgeFields);
+  const only = (values: { readonly [key: string]: AttributeValue }, fields: readonly { key: string; field: AttributeField }[]) => {
+    const out: Record<string, AttributeValue> = {};
+    for (const { key, field } of fields) if (values[field.key] !== undefined) out[key] = values[field.key]!;
+    return out;
+  };
+  const nodes = doc.nodes.map((n) => ({ ...structuredClone(n), custom: only(effectiveNodeValues(schema, n), nodeFields) }));
+  const edges = doc.edges.map((e) => ({ ...structuredClone(e), custom: only(effectiveEdgeValues(schema, e), edgeFields) }));
+  // Rooms that share a face: a footprint cell next to a cell of another room.
+  const occupant = new Map<string, number>();
+  for (const n of doc.nodes) for (const cell of footprintCells(n)) occupant.set(gridKey(cell), n.id);
+  const touching = new Map<string, readonly [number, number]>();
+  for (const n of doc.nodes) {
+    for (const [x, y, z] of footprintCells(n)) {
+      for (const [dx, dy, dz] of FACE_STEPS) {
+        const other = occupant.get(gridKey([x + dx, y + dy, z + dz]));
+        if (other === undefined || other === n.id) continue;
+        const pair = n.id < other ? ([n.id, other] as const) : ([other, n.id] as const);
+        touching.set(`${pair[0]}:${pair[1]}`, pair);
+      }
+    }
+  }
+  return {
+    design: { policy: { ...SPATIAL_GRAPH_POLICY }, nodes, edges },
+    functions: functions.map((f) => ({ id: f.id, label: f.label })),
+    customFields: { nodes: nodeFields.map(({ key, field }) => fieldInfo(field, key)), edges: edgeFields.map(({ key, field }) => fieldInfo(field, key)) },
+    touching: [...touching.values()].sort((a, b) => a[0] - b[0] || a[1] - b[1]),
+  };
+}
+
+const FACE_STEPS = [
+  [1, 0, 0],
+  [-1, 0, 0],
+  [0, 1, 0],
+  [0, -1, 0],
+  [0, 0, 1],
+  [0, 0, -1],
+] as const;
+
+/**
+ * Every calculated value of every node and edge (for an uploaded design analysis: the worker cannot
+ * call the app's evaluator). The resolution is the host's when given (as in `createMetricReader`).
+ */
+export function buildMetricTable(doc: DesignDocumentV2, spatial: SpatialResolution | undefined, evaluator: MetricEvaluator = defaultMetricEvaluator): MetricTable {
+  const reader = createMetricReader(doc, spatial, (_code, message) => new Error(message), evaluator);
+  const ctx = { doc, spatial: spatial ?? resolveRelationships(doc) };
+  const values: Record<string, (readonly [number, MetricValue | null])[]> = {};
+  for (const m of reader.list()) values[m.id] = [...evaluator.values(ctx, m.id)].map(([id, v]) => [id, v] as const);
+  return { list: reader.list(), values };
+}
+
 const isGrid = (g: unknown): g is GridCoord =>
   Array.isArray(g) && g.length === 3 && g.every((c) => typeof c === 'number' && Number.isInteger(c));
 
@@ -92,17 +205,7 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
   const runError = (code: 'type-not-registered' | 'broken-node-type' | 'type-mismatch' | 'unknown-node-reference' | 'unknown-metric', message: string) =>
     new ExtensionRunError(diagnostic(code, 'error', subject, message));
   // The same resolver as the app's views and Properties (docs/PROJECT-ATTRIBUTES.md).
-  const fieldInfo = (f: AttributeField) => ({
-    key: f.key,
-    label: f.label,
-    kind: f.kind,
-    ...(f.values !== undefined && { values: [...f.values] }),
-    ...(f.min !== undefined && { min: f.min }),
-    ...(f.max !== undefined && { max: f.max }),
-    ...(f.default !== undefined && { default: f.default }),
-    ...(f.description !== undefined && { description: f.description }),
-  });
-  const customFields = freezeDeep({ nodes: schema.nodes.map(fieldInfo), edges: schema.edges.map(fieldInfo) });
+  const customFields = freezeDeep({ nodes: schema.nodes.map((f) => fieldInfo(f)), edges: schema.edges.map((f) => fieldInfo(f)) });
 
   return Object.freeze({
     design,

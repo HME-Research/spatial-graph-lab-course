@@ -42,11 +42,17 @@ export {
   type SpatialNode,
 } from './spatial';
 export {
+  defineDesignAnalysis,
   defineGraphAlgorithm,
   defineSpatialAlgorithm,
   type AnalysisInput,
   type AnalysisResult,
+  type AnalysisUses,
   type CustomFieldInfo,
+  type DesignAnalysis,
+  type DesignAnalysisContext,
+  type DesignAnalysisDefinition,
+  type FunctionInfo,
   type GraphAlgorithm,
   type GraphAlgorithmContext,
   type ItemRef,

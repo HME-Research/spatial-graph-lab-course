@@ -6,12 +6,13 @@ import {
   MAX_UPLOAD_FILE_NAME,
   prepareUpload,
   uploadLanguage,
+  type AnalysisUses,
   type StoredUpload,
   type UploadedDefinition,
   type UploadRunner,
   type UploadStatus,
 } from '@app/extensions';
-import type { UploadedAnalysisEntry } from './analyseModel';
+import { designNeeds, type UploadedAnalysisEntry } from './analyseModel';
 
 /**
  * The student's uploaded analyses in the Analyse tab (P4 item I): preparing (compile + load in a
@@ -124,11 +125,18 @@ export async function addUpload(
   return { ok: true, uploads, definition: status.definition };
 }
 
-/** The panel's view of the uploads: a loading or failed upload is listed disabled (in Network) with its reason. */
-export function uploadEntries(loaded: readonly LoadedUpload[]): UploadedAnalysisEntry[] {
+/**
+ * The panel's view of the uploads: a loading or failed upload is listed disabled (in Network) with
+ * its reason. A design analysis is also disabled, in its own section, when the open project lacks
+ * something its `uses` names (`missing`, e.g. `missingUses` against the project).
+ */
+export function uploadEntries(loaded: readonly LoadedUpload[], missing: (uses: AnalysisUses | undefined) => readonly string[] = () => []): UploadedAnalysisEntry[] {
   return loaded.map(({ stored, status }) => {
     if (status === 'loading') return { uploadId: stored.id, label: stored.fileName, inputs: [], enabled: false, problems: ['Loading…'] };
     if (!status.ok) return { uploadId: stored.id, label: stored.fileName, inputs: [], enabled: false, problems: status.problems };
-    return { uploadId: stored.id, label: status.definition.label, inputs: status.definition.inputs, enabled: true, problems: [] };
+    const { definition } = status;
+    if (definition.scope !== 'design') return { uploadId: stored.id, label: definition.label, inputs: definition.inputs, enabled: true, problems: [] };
+    const problems = missing(definition.uses);
+    return { uploadId: stored.id, label: definition.label, inputs: definition.inputs, enabled: problems.length === 0, problems, design: designNeeds(definition.uses) };
   });
 }

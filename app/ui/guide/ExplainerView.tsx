@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import type { Explainer, GuideDownload } from '../guideContracts';
+import type { Explainer, GuideDownload, GuidePromptGuide } from '../guideContracts';
 import { FloatingWindow, sizedWindowId } from '../floating';
 import { renderGuideDiagram } from './diagrams';
 import './guide.css';
@@ -10,8 +10,8 @@ export const sectionDomId = (id: string) => `guide-section-${id}`;
 /**
  * One explainer block: title, then the one-sentence summary (strongest), the example, an optional
  * pair of contrasting diagrams (side by side, each with its caption), an optional single
- * diagram, an optional screenshot of the app with numbered markers, downloads and an optional
- * "Learn more" link (new tab). `renderDiagram` maps `explainer.diagram` (a diagram id) to a
+ * diagram, an optional screenshot of the app with numbered markers, downloads, an optional
+ * "How to write your prompt" section and an optional "Learn more" link (new tab). `renderDiagram` maps `explainer.diagram` (a diagram id) to a
  * component; it defaults to the Guide diagrams (`diagrams.tsx`).
  */
 export function ExplainerView({
@@ -56,6 +56,7 @@ export function ExplainerView({
           ))}
         </ul>
       )}
+      {explainer.promptGuide && <PromptGuide guide={explainer.promptGuide} />}
       {explainer.learnMore && (
         <p className="sgl-explainer-more">
           <a href={explainer.learnMore.url} target="_blank" rel="noopener noreferrer">
@@ -85,6 +86,49 @@ function Screenshot({ shot }: { readonly shot: NonNullable<Explainer['screenshot
       </div>
       <figcaption>In the app (numbers match the steps above)</figcaption>
     </figure>
+  );
+}
+
+/**
+ * How to write a prompt: its parts in order, a starting text the student copies (Copy button; the
+ * text is also selectable by hand when the clipboard is not available) and short tips.
+ */
+function PromptGuide({ guide }: { readonly guide: GuidePromptGuide }) {
+  const [copied, setCopied] = useState<'yes' | 'no' | null>(null);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(guide.text);
+      setCopied('yes');
+    } catch {
+      setCopied('no');
+    }
+  };
+  return (
+    <section className="sgl-explainer-prompt" data-prompt-guide="">
+      <h4 className="sgl-explainer-prompt-title">{guide.title}</h4>
+      <ol className="sgl-explainer-prompt-parts">
+        {guide.parts.map((p) => (
+          <li key={p.label}>
+            <strong>{p.label}</strong> — {p.text}
+          </li>
+        ))}
+      </ol>
+      <pre className="sgl-explainer-prompt-text">{guide.text}</pre>
+      <p className="sgl-explainer-prompt-copy">
+        <button type="button" className="sgl-explainer-download" data-copy-prompt="" onClick={() => void copy()}>
+          Copy prompt
+        </button>
+        {copied === 'yes' && <span className="sgl-explainer-download-note"> Copied. Paste it into the AI chat and fill in the blanks (___).</span>}
+        {copied === 'no' && <span className="sgl-explainer-download-note"> Could not copy: select the text above and copy it.</span>}
+      </p>
+      {guide.tips && guide.tips.length > 0 && (
+        <ul className="sgl-explainer-prompt-tips">
+          {guide.tips.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

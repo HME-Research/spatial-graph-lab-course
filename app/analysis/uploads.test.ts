@@ -19,7 +19,7 @@ describe('uploaded analyses in the Analyse panel', () => {
   it('are listed last, tagged Yours, in the section their inputs give; failed or loading ones disabled in Network', () => {
     const stored = (id: string): StoredUpload => ({ id, fileName: `${id}.ts`, source: '', addedAt: NOW.toISOString() });
     const loaded: LoadedUpload[] = [
-      { stored: stored('u1'), status: { ok: true, code: '', definition: { id: 'pair', label: 'Pair', inputs: [{ kind: 'node', label: 'A' }, { kind: 'node', label: 'B' }] } } },
+      { stored: stored('u1'), status: { ok: true, code: '', definition: { scope: 'graph', id: 'pair', label: 'Pair', inputs: [{ kind: 'node', label: 'A' }, { kind: 'node', label: 'B' }] } } },
       { stored: stored('u2'), status: { ok: false, problems: ['Syntax error on line 2, column 5: Unexpected token'] } },
       { stored: stored('u3'), status: 'loading' },
     ];
@@ -48,7 +48,7 @@ describe('adding, replacing and refusing uploads', () => {
     expect(first.definition.label).toBe('Label aa');
 
     const loaded: LoadedUpload[] = [
-      { stored: first.uploads[0]!, status: { ok: true, code: '', definition: { id: 'aa', label: 'Label aa', inputs: [] } } },
+      { stored: first.uploads[0]!, status: { ok: true, code: '', definition: { scope: 'graph', id: 'aa', label: 'Label aa', inputs: [] } } },
       { stored: { id: 'other', fileName: 'b.ts', source: 'x', addedAt: NOW.toISOString() }, status: { ok: false, problems: ['x'] } },
     ];
     const replaced = await addUpload(file('a2.ts', source('aa', "[{ kind: 'node', label: 'N' }]")), loaded, first.uploads[0]!.id, { now: NOW, runner: inProcess });

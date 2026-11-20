@@ -1,5 +1,9 @@
-import type { AnalysisInput, AnalysisResult } from '@student-api';
-import { buildGraphContext, type GraphSource } from './context';
+import type { DesignDocumentV2 } from '@app/document';
+import type { SpatialResolution } from '@app/spatial';
+import type { AnalysisInput, AnalysisResult, AnalysisUses, FunctionInfo } from '@student-api';
+import { buildDesignAnalysisData, buildGraphContext, buildMetricTable, missingUses, type GraphSource } from './context';
+import type { DesignAnalysisData, MetricTable } from './designAnalysisContext';
+import type { ProjectAttributeSchema } from './projectAttributes';
 import { algorithmDefinitionSchema, zodMessages } from './definitions';
 import { checkAnalysisInputs, validateAnalysisResult } from './run';
 import type { UploadReply, UploadRequest } from './uploadSandbox';
@@ -34,10 +38,22 @@ export interface StoredUpload {
 
 /** The validated definition of an uploaded analysis (plain data; `run` stays in the worker). */
 export interface UploadedDefinition {
+  /** `graph`: ids and endpoints only; `design`: also the rooms themselves (owner 2026-11-20). */
+  readonly scope: 'graph' | 'design';
   readonly id: string;
   readonly label: string;
   readonly description?: string;
   readonly inputs: readonly AnalysisInput[];
+  /** What a design analysis needs from the project (absent: works in any project). */
+  readonly uses?: AnalysisUses;
+}
+
+/** What a design analysis runs on besides the document: the project's Functions and fields, and the host's resolution. */
+export interface DesignRunSource {
+  readonly doc: DesignDocumentV2;
+  readonly functions: readonly FunctionInfo[];
+  readonly schema: ProjectAttributeSchema;
+  readonly spatial?: SpatialResolution;
 }
 
 export type UploadStatus =
@@ -118,32 +134,58 @@ export async function prepareUpload(source: string, fileName: string, runner: Up
   if (!reply.ok) return { ok: false, problems: [reply.message] };
   if (reply.op !== 'load') return { ok: false, problems: ['The analysis sent an unexpected reply.'] };
   // `run` and `scope` were checked in the worker; validate everything else exactly as for a toolkit.
-  const parsed = algorithmDefinitionSchema.safeParse({ ...reply.definition, scope: 'graph', run: () => undefined });
+  const scope = reply.definition.scope === 'design' ? 'design' : 'graph';
+  const parsed = algorithmDefinitionSchema.safeParse({ ...reply.definition, scope, run: () => undefined });
   if (!parsed.success) return { ok: false, problems: zodMessages(parsed.error.issues) };
-  if (parsed.data.scope !== 'graph') return { ok: false, problems: ['Only graph analyses can be uploaded.'] };
+  if (parsed.data.scope === 'spatial') return { ok: false, problems: ['Only analyses can be uploaded.'] };
   const { id, label, description, inputs } = parsed.data;
+  const raw = parsed.data.scope === 'design' ? parsed.data.uses : undefined;
+  const uses: AnalysisUses | undefined = raw && {
+    ...(raw.functions !== undefined && { functions: raw.functions }),
+    ...(raw.nodeFields !== undefined && { nodeFields: raw.nodeFields }),
+    ...(raw.edgeFields !== undefined && { edgeFields: raw.edgeFields }),
+  };
   return {
     ok: true,
     code: compiled.code,
-    definition: { id, label, ...(description !== undefined && { description }), inputs: inputs as readonly AnalysisInput[] },
+    definition: {
+      scope: parsed.data.scope,
+      id,
+      label,
+      ...(description !== undefined && { description }),
+      inputs: inputs as readonly AnalysisInput[],
+      ...(uses !== undefined && { uses }),
+    },
   };
 }
 
 export type UploadRunOutcome = { readonly ok: true; readonly result: AnalysisResult } | { readonly ok: false; readonly messages: readonly string[] };
 
-/** Run a prepared upload on `doc` with the picked inputs; every input and the result are validated. */
+/**
+ * Run a prepared upload on `doc` with the picked inputs; every input and the result are validated.
+ * A design analysis also needs `design` (the project's Functions and fields): its `uses` is checked
+ * first, then the worker receives `buildDesignAnalysisData` and every calculated value.
+ */
 export async function runUploadedAnalysis(
   prepared: Extract<UploadStatus, { ok: true }>,
   fileName: string,
   doc: GraphSource,
   inputs: readonly unknown[],
   runner: UploadRunner = defaultUploadRunner,
+  design?: DesignRunSource,
 ): Promise<UploadRunOutcome> {
   const { definition, code } = prepared;
   const checked = checkAnalysisInputs(definition.inputs, inputs, doc, definition.id);
   if (!checked.ok) return { ok: false, messages: checked.issues.map((d) => d.message) };
   const context = buildGraphContext(doc, checked.value);
-  const reply = await runner({ op: 'run', code, fileName, graph: context.graph, inputs: context.inputs });
+  let designData: { readonly data: DesignAnalysisData; readonly metrics: MetricTable } | undefined;
+  if (definition.scope === 'design') {
+    if (!design) return { ok: false, messages: ['This design analysis needs an open design.'] };
+    const missing = missingUses(definition.uses, design.functions, design.schema);
+    if (missing.length > 0) return { ok: false, messages: missing };
+    designData = { data: buildDesignAnalysisData(design.doc, design.functions, design.schema, definition.uses), metrics: buildMetricTable(design.doc, design.spatial) };
+  }
+  const reply = await runner({ op: 'run', code, fileName, graph: context.graph, inputs: context.inputs, ...(designData && { design: designData }) });
   if (!reply.ok) return { ok: false, messages: [reply.message] };
   if (reply.op !== 'run') return { ok: false, messages: ['The analysis sent an unexpected reply.'] };
   const result = validateAnalysisResult(reply.result, doc, definition.id);

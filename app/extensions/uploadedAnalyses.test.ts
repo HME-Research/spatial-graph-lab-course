@@ -69,6 +69,7 @@ describe('the template works both as a toolkit analysis and as an upload', () =>
     // Upload path: the same text, types stripped, loaded and run in the (in-process) worker.
     const status = await prepared(templateSource, 'graph-analysis-template.ts');
     expect(status.definition).toEqual({
+      scope: 'graph',
       id: 'exactly-k-steps',
       label: 'Exactly k steps away',
       description: template.description,
@@ -118,7 +119,7 @@ describe('uploaded definitions', () => {
   it('refuses spatial algorithms with the agreed message', async () => {
     const spatial = "import { defineSpatialAlgorithm } from '@student-api';\nexport default defineSpatialAlgorithm({ id: 'grow', label: 'Grow', run: () => ({ kind: 'transformation', operations: [] }) });\n";
     expect(await problemsOf(spatial)).toEqual([SPATIAL_REFUSAL]);
-    expect(SPATIAL_REFUSAL).toBe('Uploaded algorithms can only analyse the graph; transforms must live in a toolkit folder.');
+    expect(SPATIAL_REFUSAL).toBe('Uploaded files can only analyse (defineGraphAlgorithm or defineDesignAnalysis); transforms must live in a toolkit folder.');
   });
 
   it('validates the definition exactly like a toolkit analysis (strict fields, id, required inputs)', async () => {
@@ -129,7 +130,7 @@ describe('uploaded definitions', () => {
     const typo = analysis("    return { kind: 'analysis', value: 1 };", "\n  colour: 'red',");
     expect((await problemsOf(typo)).join(' ')).toContain('colour');
     const params = analysis("    return { kind: 'analysis', value: 1 };", '\n  parameters: {},');
-    expect((await problemsOf(params)).join(' ')).toContain('graph analyses take no parameters');
+    expect((await problemsOf(params)).join(' ')).toContain('analyses take no parameters');
   });
 
   it('keeps an optional description for the ⓘ', async () => {
@@ -137,14 +138,14 @@ describe('uploaded definitions', () => {
     expect(status.definition.description).toBe('Counts things.');
   });
 
-  it('needs a default export made with defineGraphAlgorithm', async () => {
+  it('needs a default export made with defineGraphAlgorithm or defineDesignAnalysis', async () => {
     expect((await problemsOf("export const x = 1;\n"))[0]).toContain('export default defineGraphAlgorithm');
-    expect((await problemsOf("export default { id: 'x', label: 'X', inputs: [], run() {} };\n"))[0]).toContain('not a graph analysis');
+    expect((await problemsOf("export default { id: 'x', label: 'X', inputs: [], run() {} };\n"))[0]).toContain('not an analysis');
   });
 
   it('offers only what an analysis needs from @student-api', async () => {
-    const grid = "import { defineGraphAlgorithm, roomCells } from '@student-api';\nroomCells;\nexport default defineGraphAlgorithm({ id: 'x', label: 'X', inputs: [], run: () => ({ kind: 'analysis', value: 1 }) });\n";
-    expect((await problemsOf(grid))[0]).toMatch(/^"roomCells" from @student-api is not available in an uploaded analysis/);
+    const grid = "import { defineGraphAlgorithm, nodeAt } from '@student-api';\nnodeAt;\nexport default defineGraphAlgorithm({ id: 'x', label: 'X', inputs: [], run: () => ({ kind: 'analysis', value: 1 }) });\n";
+    expect((await problemsOf(grid))[0]).toMatch(/^"nodeAt" from @student-api is not available in an uploaded analysis/);
   });
 
   it('reports an exception while loading with its line', async () => {

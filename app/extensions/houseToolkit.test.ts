@@ -31,8 +31,8 @@ beforeAll(async () => {
 });
 
 const houseDesign = (): DesignDocumentV2 => {
-  const design = house.designs.find((d) => d.id === 'house')!;
-  if (!design.result.ok) throw new Error('designs/house.json is invalid');
+  const design = house.designs.find((d) => d.id === 'simple-house')!;
+  if (!design.result.ok) throw new Error('designs/simple-house.json is invalid');
   return design.result.value;
 };
 
@@ -534,5 +534,27 @@ describe('every House attribute is used', () => {
     algorithm.run(watched);
     const declared = [...house.attributeBaseline.schema.nodes, ...house.attributeBaseline.schema.edges].map((f) => f.key);
     expect(declared.filter((k) => !read.has(k))).toEqual([]);
+  });
+});
+
+describe('Below target area (a design analysis of the House toolkit)', () => {
+  it('lists the rooms below their target before growing, and none after', () => {
+    const entry = house.algorithms.find((a) => a.id === 'below-target-area');
+    expect(entry?.status.ok).toBe(true);
+    expect(entry?.definition).toMatchObject({ scope: 'design', inputs: [], uses: { nodeFields: ['targetArea'] } });
+    const before = expectExtOk(runAlgorithmV2(houseDesign(), house, 'below-target-area'));
+    if (before.kind !== 'analysis') throw new Error('expected an analysis');
+    // Every room starts as one 9 m² cell: Living (36), Kitchen (18) and Bedroom (18) are below target.
+    expect(before.result).toMatchObject({ value: 3, text: '3 rooms are below their target area.' });
+    expect(before.result.nodeValues).toMatchObject({ 1: 0 });
+    const after = expectExtOk(runAlgorithmV2(grow(houseDesign()).after, house, 'below-target-area'));
+    if (after.kind !== 'analysis') throw new Error('expected an analysis');
+    expect(after.result).toMatchObject({ value: 0, text: 'Every room reaches its target area.', highlightNodes: [] });
+  });
+
+  it('is refused, with the reason, in a project without the targetArea field', () => {
+    const noFields = { nodes: [], edges: [], functionDefaults: {} };
+    const refused = runAlgorithmV2(houseDesign(), house, 'below-target-area', undefined, { attributes: noFields });
+    expect(refused.ok === false && refused.issues.map((d) => d.message)).toEqual(['Needs the room field “targetArea”, which this project does not have.']);
   });
 });

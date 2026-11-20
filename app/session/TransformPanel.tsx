@@ -54,7 +54,7 @@ export function TransformPanel({
   readonly resolution?: HostResolution;
 }) {
   // Only transformations (spatial algorithms, and broken definitions that may be one) belong here.
-  const algorithms = listAlgorithms(project).filter((a) => a.scope !== 'graph');
+  const algorithms = listAlgorithms(project).filter((a) => a.scope !== 'graph' && a.scope !== 'design');
   // Selected by file: ids may collide (duplicate definitions are listed separately, both disabled).
   const [selectedFile, setSelectedFile] = useState<string | null>(() => algorithms.find((a) => a.enabled)?.file ?? algorithms[0]?.file ?? null);
   const [drafts, setDrafts] = useState<Readonly<Record<string, ParameterDrafts>>>({});

@@ -8,7 +8,7 @@ How to write your own functions, designs and algorithms for Spatial Graph Lab. Y
 
 1. **Create a toolkit.** Make a folder `toolkits/my-toolkit/` (lowercase letters, digits, `-` and `_`, starting with a letter) with a `toolkit.ts` (see [Your toolkit folder](#1-your-toolkit-folder)). Once the reference toolkit `toolkits/house/` exists, you can copy it instead; don't edit it itself.
 2. **Define a function.** Edit or add a file in `functions/` (see [Functions](#2-functions)). The `id` is the `function` your designs use.
-3. **Write an algorithm.** Add a file in `algorithms/`: `defineGraphAlgorithm` for an analysis that only reads the graph, or `defineSpatialAlgorithm` for a transformation that returns operations (see [Algorithms](#4-algorithms)).
+3. **Write an algorithm.** Add a file in `algorithms/`: `defineGraphAlgorithm` for an analysis that only reads the graph, `defineDesignAnalysis` for an analysis that also reads the rooms themselves, or `defineSpatialAlgorithm` for a transformation that returns operations (see [Algorithms](#4-algorithms)).
 4. **Check it.** `npm run check:toolkit -- -t my-toolkit` loads your toolkit exactly as the app does and fails with a readable message if a definition or design is invalid, if a design uses a façade file that is not in `assets/`, or if an algorithm fails on your default design. `npm run typecheck` checks your TypeScript.
 5. **Run the app.** `npm run dev`, then open the printed URL with `?toolkit=my-toolkit` (for example `http://localhost:5173/?toolkit=my-toolkit`), or choose your toolkit when you create a new project. The header shows a problem count; the **Project** section of the left rail lists every problem in your toolkit files and keeps it visible until you fix it (the page reloads when you save a file).
 6. **Run an algorithm.** Analyses are in **Analyse**, transformations in **Transform** (left rail).
@@ -203,15 +203,37 @@ Graph algorithms can't change anything. Creating nodes in an arbitrary graph isn
 
 An analysis may also have a `description` (optional, one or two plain sentences, at most 300 characters): its ⓘ in Analyse shows it.
 
+### Design analysis
+
+A design analysis (`defineDesignAnalysis`, also shown in **Analyse**) works like a graph analysis (same `inputs`, same sections, same result, never changes the design) but it also reads **the rooms themselves**:
+
+| `ctx.…` | Meaning |
+|---|---|
+| `design.nodes` | every room: `id`, `function`, `position`, `size`, and `custom` with **only** the fields listed in `uses` (function and field defaults applied) |
+| `design.edges` | every relationship: `id`, `source`, `target`, `relationship` (`access` / `open`), `corridor`, `custom` (only the listed fields) |
+| `inputs` | the picked values, as for a graph analysis |
+| `functions` | the project's Functions (`id`, `label`) |
+| `customFields` | the listed fields (`key`, `label`, `kind`, limits) |
+| `nodeAt(cell)`, `touches(a, b)` | the room at a cell; whether two rooms share a face |
+| `metrics` | the app's calculated values, e.g. `ctx.metrics.value('area', room.id)` |
+
+**`uses` (optional): what it needs from the project.** Everything above except the custom fields exists in every project. Using only that (Functions as labels, positions, sizes, relationship kinds, calculated values), leave `uses` out: the analysis works in **any project** and Analyse tags it **Any project**. When the code names a Function id (`'bedroom'`) or reads a custom field, list it:
+
+```ts
+uses: { functions: ['bedroom'], nodeFields: ['targetArea'], edgeFields: [] },
+```
+
+Analyse then tags it **This project**. Where the open project lacks one of them, it is listed disabled with the reason, e.g. "Needs the room field “targetArea”, which this project does not have." A field that is not listed is simply not in `custom`. The House toolkit's *Below target area* (`toolkits/house/algorithms/below-target-area.ts`) is a complete example.
+
 ### Uploading an analysis (no toolkit needed)
 
 The same file also works without a toolkit: in **Analyse**, choose **Upload your own (.ts)** at the top of the tab. The analysis appears in the section its `inputs` give (that section opens), tagged **Yours**, and runs, picks and highlights exactly like a built-in. ↻ replaces it with a new version of the file (it keeps its place); ✕ removes it from the project. Start from the template (`docs/templates/graph-analysis-template.ts`) or give the AI kit (`docs/ai-kit/`, downloadable as `/downloads/spatial-graph-lab-ai-kit.zip`) to an AI assistant; both are offered by the ⓘ beside the upload button and in **Guide › Toolkits & JSON**.
 
 Rules and limits for uploads:
 - One `.ts` (or `.js`) file, at most 100 KB, at most 20 uploads per project. Types are removed when it is loaded; nothing is type-checked, the app checks everything at runtime.
-- It may import only `@student-api`, and from it only `defineGraphAlgorithm` and the graph helpers (`neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite`). Any other import is refused with its name; helper functions go in the same file.
-- Only graph analyses: `defineSpatialAlgorithm` is refused ("Uploaded algorithms can only analyse the graph; transforms must live in a toolkit folder.").
-- It runs in a separate background worker that receives only node ids, edges and the picked inputs (never the design, the page or your storage). A run that takes longer than 3 seconds is stopped: "Stopped after 3 s — does it loop forever?".
+- It may import only `@student-api`, and from it only `defineGraphAlgorithm`, `defineDesignAnalysis`, the graph helpers (`neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite`) and the grid helpers (`roomCells`, `neighbourCell`, `FACE_DIRECTIONS`). Any other import is refused with its name; helper functions go in the same file.
+- Only analyses: `defineSpatialAlgorithm` is refused ("Uploaded files can only analyse (defineGraphAlgorithm or defineDesignAnalysis); transforms must live in a toolkit folder.").
+- It runs in a separate background worker. A graph analysis receives only node ids, edges and the picked inputs; a design analysis also receives the rooms (with only the custom fields it lists in `uses`) and the calculated values, prepared by the app. Never the page or your storage. A run that takes longer than 3 seconds is stopped: "Stopped after 3 s — does it loop forever?".
 - The definition and every result are checked exactly as for a toolkit analysis. Syntax errors and exceptions are shown with the line number.
 - The project file keeps the file's **source text** (`settings.uploadedAnalyses`), so it travels with Save, Export and Open. If a stored upload no longer loads, it is listed disabled with the reason; the project still opens.
 
@@ -355,12 +377,12 @@ parameters: {
 ## 7. Reference
 
 Exports of `@student-api`:
-- **Definitions:** `defineToolkit`, `defineFunction`, `defineGraphAlgorithm`, `defineSpatialAlgorithm`
+- **Definitions:** `defineToolkit`, `defineFunction`, `defineGraphAlgorithm`, `defineDesignAnalysis`, `defineSpatialAlgorithm`
 - **Graph helpers:** `neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite` (ids are numbers)
 - **Grid helpers:** `FACE_DIRECTIONS`, `neighbourCell`, `roomCells` (every cell of a room's box)
-- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `FunctionDefinition`, `FacadeParameters`, `CustomFieldInfo`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `CorridorLook`, `CorridorWalls`, `CorridorRoof`, `SpatialOperation`, `ItemRef`, `AnalysisInput`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
+- **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `FunctionDefinition`, `FacadeParameters`, `CustomFieldInfo`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `CorridorLook`, `CorridorWalls`, `CorridorRoof`, `SpatialOperation`, `ItemRef`, `AnalysisInput`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `DesignAnalysisContext`, `DesignAnalysisDefinition`, `AnalysisUses`, `FunctionInfo`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
 
-**Added in P4:** `set-node-geometry` (move or resize a room in a transformation); optional `description` of a graph analysis; uploaded analyses (see "Uploading an analysis").
+**Added in P4:** `set-node-geometry` (move or resize a room in a transformation); optional `description` of a graph analysis; uploaded analyses (see "Uploading an analysis"). **Added 20 November 2026:** design analyses (`defineDesignAnalysis`, see "Design analysis"), also as uploads.
 
 **Changes in P4 (19 November 2026).** Schema v1 is gone: the old kinds (`door`, `atrium`, `vertical-access`), `canConnect` and `uniqueId` no longer exist. Ids are whole numbers, `displayId` is removed (the id is the label), and operations use `ref`s instead of chosen ids.
 

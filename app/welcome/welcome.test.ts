@@ -82,12 +82,12 @@ describe('Welcome flow', () => {
     const activation = await activateToolkit(source);
     if (activation.status !== 'active') throw new Error('toolkits/house did not activate');
     const { attributeBaseline, designs } = activation.toolkit;
-    const houseDesign = designs.find((d) => d.id === 'house')!.result;
-    if (!houseDesign.ok) throw new Error('designs/house.json is invalid');
+    const houseDesign = designs.find((d) => d.id === 'simple-house')!.result;
+    if (!houseDesign.ok) throw new Error('designs/simple-house.json is invalid');
     const h: WelcomeHost = {
       ...host(),
       // As the shell does: the toolkit's default design (for its Building settings) and its attributes.
-      startingDesign: async () => ({ ok: true, doc: houseDesign.value, source: 'toolkits/house/designs/house.json', attributeSignature: attributeBaseline.signature, attributeSchema: attributeBaseline.schema }),
+      startingDesign: async () => ({ ok: true, doc: houseDesign.value, source: 'toolkits/house/designs/simple-house.json', attributeSignature: attributeBaseline.signature, attributeSchema: attributeBaseline.schema }),
     };
     expect(houseDesign.value.nodes.length).toBeGreaterThan(0);
     expect((await createProject(h, 'My house', 'house')).ok).toBe(true);
@@ -280,12 +280,12 @@ describe('Open example… (owner decision 2026-11-20)', () => {
     if (activation.status !== 'active') throw new Error('toolkits/house did not activate');
     const { attributeBaseline, designs } = activation.toolkit;
     const base = host();
-    const house = designs.find((d) => d.id === 'house')!.result;
-    if (!house.ok) throw new Error('designs/house.json is invalid');
+    const house = designs.find((d) => d.id === 'simple-house')!.result;
+    if (!house.ok) throw new Error('designs/simple-house.json is invalid');
     return {
       ...base,
       // As the shell does for Create project with House.
-      startingDesign: async () => ({ ok: true, doc: house.value, source: 'toolkits/house/designs/house.json', attributeSignature: attributeBaseline.signature, attributeSchema: attributeBaseline.schema }),
+      startingDesign: async () => ({ ok: true, doc: house.value, source: 'toolkits/house/designs/simple-house.json', attributeSignature: attributeBaseline.signature, attributeSchema: attributeBaseline.schema }),
       exampleDesign: async (_toolkitId, designId) => {
         const design = designs.find((d) => d.id === designId);
         if (!design?.result.ok) return { ok: false, source: designId, message: 'no such design' };
@@ -302,27 +302,27 @@ describe('Open example… (owner decision 2026-11-20)', () => {
 
   it('lists the built-in House first, then every toolkit design with its own name, description and toolkit tag', () => {
     const options = exampleOptions({ name: 'House – graph only', description: ' Five rooms. ' }, [
-      { toolkitId: 'house', toolkitName: 'House', designId: 'house', name: 'House', description: null, problem: null },
-      { toolkitId: 'house', toolkitName: 'House', designId: 'showcase', name: 'House showcase', description: 'Finished.', problem: null },
+      { toolkitId: 'house', toolkitName: 'House', designId: 'simple-house', name: 'House', description: null, problem: null },
+      { toolkitId: 'house', toolkitName: 'House', designId: 'garden-house', name: 'Garden House', description: 'Developed.', problem: null },
     ]);
     expect(options.map((o) => [o.key, o.name, o.description, o.tag])).toEqual([
       ['built-in', 'House – graph only', 'Five rooms.', 'No toolkit'],
-      ['house/house', 'House', null, 'Toolkit: House'],
-      ['house/showcase', 'House showcase', 'Finished.', 'Toolkit: House'],
+      ['house/simple-house', 'House', null, 'Toolkit: House'],
+      ['house/garden-house', 'Garden House', 'Developed.', 'Toolkit: House'],
     ]);
-    expect(options[2]!.choice).toEqual({ kind: 'toolkit', toolkitId: 'house', designId: 'showcase' });
+    expect(options[2]!.choice).toEqual({ kind: 'toolkit', toolkitId: 'house', designId: 'garden-house' });
   });
 
-  it('opens the House showcase as a NEW project: toolkit active, custom attributes seeded, design, looks, corridors and its façade asset', async () => {
+  it('opens the Garden House as a NEW project: toolkit active, custom attributes seeded, design and its façade asset', async () => {
     const h = await houseHost();
     const first = await createProject(h, 'Mine', 'house');
     if (!first.ok) throw new Error('not created');
-    const opened = await openToolkitExample(h, 'house', 'showcase');
+    const opened = await openToolkitExample(h, 'house', 'garden-house');
     if (!opened.ok) throw new Error(opened.message);
     expect(opened.projectId).not.toBe(first.projectId);
     const p = h.controller.getState().project!;
-    expect(p.meta.name).toBe('House showcase');
-    expect(p.meta.description).toMatch(/^A finished two-storey house/);
+    expect(p.meta.name).toBe('Garden House — developed example');
+    expect(p.meta.description).toMatch(/^Conceptual two-storey garden house/);
     expect(p.meta.toolkit).toEqual({ id: 'house' });
     // The same attribute record as Create project with House (Target area, Priority).
     const created = await houseHost();
@@ -330,9 +330,8 @@ describe('Open example… (owner decision 2026-11-20)', () => {
     expect(p.meta.attributes).toEqual(created.controller.getState().project!.meta.attributes);
     expect((p.meta.attributes as { schema: { nodes: { key: string }[] } }).schema.nodes.map((f) => f.key)).toEqual(['targetArea', 'priority']);
     const design = p.scenarios[0]!.session.history.present.design;
-    expect(design.nodes).toHaveLength(11);
-    expect(design.edges).toHaveLength(10);
-    expect(design.settings.corridors).toEqual({ walls: 'open', roof: 'flat', width: 1.8 });
+    expect(design.nodes).toHaveLength(14);
+    expect(design.edges).toHaveLength(14);
     const ids = designAssetIds(design);
     expect(ids).toEqual(['facade-ea64a8beca91ce66']);
     const assets = p.meta.assets.policy === 'none' ? [] : p.meta.assets.items;
@@ -346,7 +345,7 @@ describe('Open example… (owner decision 2026-11-20)', () => {
 
   it('the plain House design opens with no assets', async () => {
     const h = await houseHost();
-    const opened = await openToolkitExample(h, 'house', 'house');
+    const opened = await openToolkitExample(h, 'house', 'simple-house');
     expect(opened.ok).toBe(true);
     const p = h.controller.getState().project!;
     expect(p.meta.assets).toEqual({ policy: 'none' });

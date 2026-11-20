@@ -54,12 +54,11 @@ describe('toolkit examples (Open example…)', () => {
     expect(examples.map((e) => e.toolkitName)).toEqual(['odd']);
   });
 
-  it('lists the three House designs of the repository, all openable', async () => {
+  it('lists the two House designs of the repository, all openable', async () => {
     const house = (await listToolkitExamples(TOOLKIT_GLOBS)).filter((e) => e.toolkitId === 'house');
     expect(house.map((e) => [e.designId, e.name, e.toolkitName, e.problem])).toEqual([
       ['garden-house', 'Garden House — developed example', 'House', null],
-      ['house', 'House', 'House', null],
-      ['showcase', 'House showcase', 'House', null],
+      ['simple-house', 'House', 'House', null],
     ]);
   });
 });
