@@ -428,7 +428,8 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
    * Create project (Welcome) and New project (Project panel): a clean project straight away, named
    * "Untitled project" (rename it in Project) with the chosen toolkit; no name form in between
    * (owner 2026-11-17). Welcome shows a Toolkit choice beside Create project; the Project panel asks
-   * in a small dialog when there is more than one toolkit. Leaving an open project with unsaved
+   * with the same choice in a small dialog whenever there is a toolkit, "No toolkit" preselected
+   * like Welcome (owner 2026-11-19). Leaving an open project with unsaved
    * changes is asked in `runFlow`.
    */
   const startNewProject = (toolkitId: string | null) =>
@@ -703,7 +704,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                       project: (
                           <ProjectPanel
                             // Keyed by project: no draft name or Save As dialog carries over to another project.
-                            overview={<ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} toolkits={toolkitOptions} defaultToolkitId={openProject?.meta.toolkit?.id ?? toolkits.defaultId} onNew={startNewProject} onOpenFile={openFile} />}
+                            overview={<ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} toolkits={toolkitOptions} defaultToolkitId={toolkits.defaultId} onNew={startNewProject} onOpenFile={openFile} />}
                             session={session}
                             docLoaded={doc !== null}
                             source={current?.source ?? null}

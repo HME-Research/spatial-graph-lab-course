@@ -1,10 +1,10 @@
-import type { EffectiveCorridorLook } from '@app/document';
 import type { ResolutionStatus } from '@app/spatial';
 import type { ViewMode } from '../contracts';
 import {
   CONNECTOR_ORDER,
   connectorPresentation,
   corridorLookKey,
+  type CorridorLookKind,
   KIND_ORDER,
   KIND_PRESENTATION,
   relationshipLine,
@@ -26,7 +26,7 @@ export const CONNECTOR_CELL_COLOR = '#cfc6b3';
 export type Swatch =
   | { readonly shape: 'line'; readonly line: LineToken }
   | { readonly shape: 'ring'; readonly color: string }
-  | { readonly shape: 'cell'; readonly color: string; readonly pattern: EffectiveCorridorLook | 'room' };
+  | { readonly shape: 'cell'; readonly color: string; readonly pattern: CorridorLookKind | 'room' };
 
 export interface LegendItem {
   /** Stable id, e.g. `status:unresolved`; also used as `data-legend-item` in the DOM. */
@@ -56,7 +56,7 @@ export interface RelationshipLegendOptions {
   /** Status counts; when given, statuses with 0 relationships are dropped (Unresolved always stays visible when > 0). */
   readonly statusCounts?: Readonly<Record<ResolutionStatus, number>>;
   /** Corridor looks (walls + roof) in use; when given, only these are listed. */
-  readonly corridorLooks?: readonly EffectiveCorridorLook[];
+  readonly corridorLooks?: readonly CorridorLookKind[];
   /** Laptop / narrow panels: hide the selection section and kind explanations. */
   readonly compact?: boolean;
 }
@@ -115,7 +115,7 @@ function kindSection(view: ViewMode): LegendSection {
   };
 }
 
-function connectorSection(looks: readonly EffectiveCorridorLook[]): LegendSection {
+function connectorSection(looks: readonly CorridorLookKind[]): LegendSection {
   return {
     id: 'connector',
     title: 'Corridors',

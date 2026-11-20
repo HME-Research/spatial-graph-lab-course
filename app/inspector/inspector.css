@@ -479,6 +479,19 @@ button.link-button:hover:not(:disabled) {
   text-overflow: ellipsis;
 }
 
+/* Corridor width (m): a number box (placeholder "Design default (1.5 m)") and ↺ when set here. */
+.sgl-corridor-width {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  min-width: 0;
+}
+
+.sgl-corridor-width input {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Position and Size (owner 2026-11-19): ONE attribute row with three values x | y | z. */
 .sgl-axis-values {
   display: grid;

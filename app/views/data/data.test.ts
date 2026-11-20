@@ -213,18 +213,20 @@ describe('tables', () => {
     expect(cells(2)['corridor.walls']).toMatchObject({ text: 'Enclosed', origin: 'default', hint: 'default · not built' });
     expect(cells(2)['corridor.roof']).toMatchObject({ text: 'None (open top)', origin: 'stored', hint: 'not built' });
     expect(cells(2)['corridor.roof']!.title).toContain('No corridor is generated for this relationship now');
+    expect(cells(1)['corridor.width']).toMatchObject({ text: '1.5 m', origin: 'default', hint: 'default' });
     // The JSON line of `corridor` belongs to Geometry.
     expect(jsonLines(doc).find((l) => l.record?.collection === 'edges' && l.text.includes('"corridor"'))?.section).toBe('geometry');
   });
 
   it('show edges with "id · Function" endpoints and the relationship label', () => {
     const t = edgeTable(inputs(houseWithAttributes()));
-    expect(t.columns.slice(0, 6).map((c) => c.label)).toEqual(['ID', 'Source', 'Target', 'Relationship', 'walls', 'roof']);
-    expect(t.columns.slice(4, 6).map((c) => [c.id, c.section, c.attribute?.label, c.editable])).toEqual([
+    expect(t.columns.slice(0, 7).map((c) => c.label)).toEqual(['ID', 'Source', 'Target', 'Relationship', 'walls', 'roof', 'width']);
+    expect(t.columns.slice(4, 7).map((c) => [c.id, c.section, c.attribute?.label, c.editable])).toEqual([
       ['corridor.walls', 'geometry', 'Corridor', true],
       ['corridor.roof', 'geometry', 'Corridor', true],
+      ['corridor.width', 'geometry', 'Corridor', true],
     ]);
-    expect(attributeHeadings(t.columns).map((h) => [h.label, h.span])).toContainEqual(['Corridor', 2]);
+    expect(attributeHeadings(t.columns).map((h) => [h.label, h.span])).toContainEqual(['Corridor', 3]);
     const e2 = t.rows.find((r) => r.id === 2)!.cells;
     expect([e2.source!.text, e2.target!.text, e2.relationship!.text]).toEqual(['2 · living', '3 · kitchen', 'Open']);
     expect(t.rows.find((r) => r.id === 2)!.cells['custom:f2']).toMatchObject({ text: 'wide door', origin: 'stored' });
@@ -316,7 +318,7 @@ describe('DataView', () => {
     const table = render(NO_SELECTION, 'table', vi.fn(), vi.fn(), () => null).html;
     expect(table).toContain('Click a cell to edit');
     const cells = (column: string) => [...table.matchAll(new RegExp(`<t[dh][^>]*data-column="${column}"[^>]*>`, 'g'))].map((m) => m[0]).filter((c) => !c.includes('scope="col"'));
-    for (const column of ['function', 'position.x', 'position.y', 'position.z', 'size.x', 'size.y', 'size.z', 'custom:f1', 'relationship', 'corridor.walls', 'corridor.roof', 'custom:f2']) {
+    for (const column of ['function', 'position.x', 'position.y', 'position.z', 'size.x', 'size.y', 'size.z', 'custom:f1', 'relationship', 'corridor.walls', 'corridor.roof', 'corridor.width', 'custom:f2']) {
       expect(cells(column).length, column).toBeGreaterThan(0);
       for (const c of cells(column)) expect(c, column).toMatch(/data-editable="true"[^>]*tabindex="-1"/);
     }

@@ -54,23 +54,31 @@ export interface Explainer {
 }
 
 /**
- * A file offered by the Guide: a text file loaded on click (the analysis template), or a file the
- * app serves from `public/` (the AI kit zip), offered as a plain download link.
+ * A file offered by the Guide or an ⓘ explainer: a text file loaded on click (`load`, P4 item I:
+ * the analysis template and the AI prompt) or, additive 2026-11-19, a file served as it is
+ * (`href`, any type, e.g. the AI kit zip under `public/downloads/`), saved through a plain link.
  */
-export type GuideDownload =
-  | {
-      readonly label: string;
-      /** Name the browser saves it under. */
-      readonly fileName: string;
-      /** The file text, loaded on click (a lazy `?raw` import, so the main bundle does not carry it). */
-      readonly load: () => Promise<string>;
-    }
-  | {
-      readonly label: string;
-      readonly fileName: string;
-      /** A URL served by the app, e.g. `/downloads/spatial-graph-lab-ai-kit.zip`. */
-      readonly href: string;
-    };
+export type GuideDownload = GuideTextDownload | GuideLinkDownload;
+
+interface GuideDownloadBase {
+  readonly label: string;
+  /** Name the browser saves it under. */
+  readonly fileName: string;
+  /** Optional words after the button: what to do with the file (additive 2026-11-19). */
+  readonly note?: string;
+}
+
+/** A text file loaded on click. */
+export interface GuideTextDownload extends GuideDownloadBase {
+  /** The file text, loaded on click (a lazy `?raw` import, so the main bundle does not carry it). */
+  readonly load: () => Promise<string>;
+}
+
+/** A file served as it is (binary allowed), saved through a plain `<a href download>` link. */
+export interface GuideLinkDownload extends GuideDownloadBase {
+  /** Its URL, under the app's base path (`import.meta.env.BASE_URL`). */
+  readonly href: string;
+}
 
 /** Props of the shared movable / resizable / minimisable window. */
 export interface FloatingWindowProps {

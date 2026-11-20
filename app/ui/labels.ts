@@ -1,5 +1,5 @@
 import { VIEW_MODE_LABELS, VIEW_MODES, type ViewMode } from '@app/views/contracts';
-import type { EffectiveCorridorLook, RelationshipKind, RoofStyle, WallStyle } from '@app/document';
+import { formatCorridorWidth, type EffectiveCorridorLook, type RelationshipKind, type RoofStyle, type WallStyle } from '@app/document';
 import type { EdgeResolution, UnresolvedReason } from '@app/spatial';
 
 /**
@@ -105,8 +105,9 @@ export { CORRIDOR_ROOF_CHOICES, CORRIDOR_WALL_CHOICES } from '@app/attributes/se
 const CORRIDOR_WALL_WORDS: Readonly<Record<WallStyle, string>> = { enclosed: 'side walls', open: 'open sides' };
 const CORRIDOR_ROOF_WORDS: Readonly<Record<RoofStyle, string>> = { flat: 'a flat roof', pergola: 'a pergola roof', none: 'no roof' };
 
-/** "open sides and a flat roof": a corridor look in words. */
-export const corridorLookText = (look: EffectiveCorridorLook): string => `${CORRIDOR_WALL_WORDS[look.walls]} and ${CORRIDOR_ROOF_WORDS[look.roof]}`;
+/** "1.5 m wide, open sides and a flat roof": a corridor look in words. */
+export const corridorLookText = (look: EffectiveCorridorLook): string =>
+  `${formatCorridorWidth(look.width)} wide, ${CORRIDOR_WALL_WORDS[look.walls]} and ${CORRIDOR_ROOF_WORDS[look.roof]}`;
 
 export const labelOfChoice = <T extends string>(choices: readonly Choice<T>[], value: T): string =>
   choices.find((c) => c.value === value)?.label ?? value;

@@ -3,6 +3,8 @@
  * Changing any value here is a contract change: it needs the integration owner.
  */
 
+import { GRID_CELL_SIZE } from '@core/spatial';
+
 export const SCHEMA_VERSION_V2 = 2 as const;
 
 /**
@@ -56,6 +58,17 @@ export const DEFAULT_WALL_STYLE: WallStyle = 'enclosed';
  */
 export const DEFAULT_CORRIDOR_WALLS: WallStyle = 'open';
 export const DEFAULT_CORRIDOR_ROOF: RoofStyle = 'flat';
+
+/**
+ * A corridor's built width in metres (owner 2026-11-19, "Corridor width"), centred in its cells:
+ * more than 0 and at most one cell (`GRID_CELL_SIZE.horizontal`). Purely architectural: the
+ * corridor still occupies its whole cells (occupancy, routing and the faces of neighbouring rooms
+ * do not change). Resolved like walls and roof: own → the Corridors card → this default.
+ */
+export const DEFAULT_CORRIDOR_WIDTH = 1.5;
+export const MAX_CORRIDOR_WIDTH: number = GRID_CELL_SIZE.horizontal;
+/** Step of the width inputs (m). Stored values need not be multiples of it. */
+export const CORRIDOR_WIDTH_STEP = 0.1;
 
 /**
  * How an imported façade module (3DM) is placed on a room's EXTERIOR walls (additive 2026-11-17,

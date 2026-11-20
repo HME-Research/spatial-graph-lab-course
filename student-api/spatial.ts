@@ -58,11 +58,16 @@ export type CorridorRoof = 'flat' | 'pergola' | 'none';
 /**
  * A relationship's own corridor look, used only when the rooms do not touch and a straight
  * corridor is generated. Each omitted field uses the design's Corridors card (Building Designer),
- * whose built-in default is open walls with a flat roof.
+ * whose built-in default is open walls with a flat roof, 1.5 m wide.
  */
 export interface CorridorLook {
   readonly walls?: CorridorWalls | undefined;
   readonly roof?: CorridorRoof | undefined;
+  /**
+   * Built width in metres, centred in the corridor's cells: more than 0 and at most one cell
+   * (3 m). Only how it looks: the corridor still takes its whole cells.
+   */
+  readonly width?: number | undefined;
 }
 
 export interface SpatialEdge extends EdgeRecord {

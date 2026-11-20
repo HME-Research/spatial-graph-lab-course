@@ -76,9 +76,11 @@ const count = <T extends { part: string }>(els: readonly T[], part: string) => e
 const facesOf = (els: readonly ArchitecturalElement[], faceId: string) => els.filter((e) => e.faceId === faceId);
 
 // Corridor looks (walls + roof) used by the fixtures.
-const ENCLOSED: CorridorLook = { walls: 'enclosed' };
-const OPEN_FLAT: CorridorLook = { walls: 'open', roof: 'flat' };
-const OPEN_NONE: CorridorLook = { walls: 'open', roof: 'none' };
+// Full-cell-wide corridors (width = one cell): their sides are the cells' faces, as before the
+// corridor width (2026-11-19). The narrower built-in width is tested in "corridor width" below.
+const ENCLOSED: CorridorLook = { walls: 'enclosed', width: W };
+const OPEN_FLAT: CorridorLook = { walls: 'open', roof: 'flat', width: W };
+const OPEN_NONE: CorridorLook = { walls: 'open', roof: 'none', width: W };
 
 /** Two rooms 3 cells apart on x, joined by `ab` (with its own corridor look, if given), with the straight route between them. */
 function corridorFixture(corridor?: CorridorLook, kind: RelationshipKind = 'access', extra: N[] = []) {
@@ -420,6 +422,85 @@ describe('straight connectors', () => {
   });
 });
 
+// ── corridor width (2026-11-19) ─────────────────────────────────────────────────────────────
+
+describe('corridor width: built at its width, centred, in whole cells', () => {
+  const across = (c: ConnectorElement) => c.size[2]; // x-axis route: across = Three Z
+
+  it.each<[string, CorridorLook | undefined, number]>([
+    ['built-in (1.5 m)', undefined, 1.5],
+    ['enclosed 2 m', { walls: 'enclosed', width: 2 }, 2],
+    ['full cell', { walls: 'enclosed', width: W }, W],
+  ])('%s: floor and roof are as wide as the corridor, centred on the cell axis', (_name, corridor, width) => {
+    const { model, spatial } = corridorFixture(corridor);
+    const deck = model.connectors.filter((c) => c.part === 'connector-floor' || c.part === 'connector-roof');
+    expect(deck.length).toBe(6);
+    expect(deck.every((c) => Math.abs(across(c) - width) < 1e-9 && c.size[0] === W && c.position[2] === 0)).toBe(true);
+    // Occupancy and routing do not change: the corridor still takes its three whole cells.
+    expect([...spatial.occupancy.cells.values()].filter((o) => o.kind === 'route')).toHaveLength(3);
+  });
+
+  it('enclosed: side walls stand on the corridor edges (± width / 2)', () => {
+    const { model } = corridorFixture({ walls: 'enclosed', width: 2 });
+    const walls = model.connectors.filter((c) => c.part === 'connector-wall');
+    expect(walls).toHaveLength(6);
+    expect(new Set(walls.map((w) => w.position[2]))).toEqual(new Set([-1, 1]));
+    expect(walls.every((w) => w.size[0] === W && w.size[1] === H)).toBe(true);
+  });
+
+  it('open + pergola: slats as wide as the corridor; posts on its edges', () => {
+    const { model } = corridorFixture({ walls: 'open', roof: 'pergola', width: 1.2 });
+    const slats = model.connectors.filter((c) => c.part === 'connector-roof');
+    expect(slats).toHaveLength(18);
+    expect(slats.every((s) => Math.abs(across(s) - 1.2) < 1e-9)).toBe(true);
+    const posts = model.connectors.filter((c) => c.part === 'connector-post');
+    expect(posts).toHaveLength(8);
+    expect(new Set(posts.map((p) => +p.position[2].toFixed(9)))).toEqual(new Set([-0.6, 0.6]));
+    expect(model.connectors.every((c) => c.target.kind === 'edge' && c.target.id === 1)).toBe(true);
+  });
+
+  it('a narrower corridor beside a room keeps its own side (the room wall is not its side any more)', () => {
+    const { model } = corridorFixture({ walls: 'enclosed', width: 1.5 }, 'access', [{ id: 3, position: [2, 1, 0] }]);
+    expect(count(model.connectors, 'connector-wall')).toBe(6);
+    // The neighbouring room's face is unchanged.
+    expect(model.faces.find((f) => f.id === '3:-y')).toMatchObject({ condition: 'solid', via: 'route', edgeId: null });
+  });
+
+  it('the room end: an `open` end is a full-height opening as wide as the corridor, with wall beside it', () => {
+    const { model } = corridorFixture({ walls: 'enclosed', width: 1.5 }, 'open');
+    expect(model.faces.find((f) => f.id === '1:+x')).toMatchObject({ condition: 'open', corridorWidth: 1.5 });
+    const parts = facesOf(model.elements, '1:+x');
+    expect(parts.map((e) => e.part).sort()).toEqual(['threshold', 'wall', 'wall']);
+    // The two wall parts leave a 1.5 m gap centred on the corridor (wall run along Three Z).
+    const inner = parts.filter((e) => e.part === 'wall').map((e) => Math.abs(e.position[2]) - e.size[2] / 2);
+    expect(inner.every((g) => Math.abs(g - 0.75) < 1e-9)).toBe(true);
+    expect(parts.filter((e) => e.part === 'wall').every((e) => Math.abs(e.size[1] - H) < 1e-9)).toBe(true);
+    expect(parts.find((e) => e.part === 'threshold')!.size[2]).toBeCloseTo(1.5 * 0.9, 9);
+  });
+
+  it('the room end: a door is no wider than the corridor', () => {
+    const narrow = corridorFixture({ walls: 'enclosed', width: 0.8 }).model;
+    const door = (m: typeof narrow) => {
+      const walls = facesOf(m.elements, '1:+x').filter((e) => e.part === 'wall' && Math.abs(e.size[1] - H) < 1e-9);
+      return 2 * Math.min(...walls.map((w) => Math.abs(w.position[2]) - w.size[2] / 2));
+    };
+    expect(door(narrow)).toBeCloseTo(0.8, 9);
+    expect(door(corridorFixture({ walls: 'enclosed', width: 1.5 }).model)).toBeCloseTo(1.0, 9); // the usual 1 m door
+  });
+
+  it('a full-cell-wide corridor builds exactly as before (no change at width = cell)', () => {
+    const full = corridorFixture({ walls: 'open', roof: 'flat', width: W }, 'open').model;
+    expect(facesOf(full.elements, '1:+x').map((e) => e.part)).toEqual(['threshold']);
+    expect(full.connectors.filter((c) => c.part === 'connector-floor').every((c) => c.size[2] === W)).toBe(true);
+  });
+
+  it('the width is clamped to the cell when the cell is narrower', () => {
+    const { doc } = corridorFixture({ walls: 'enclosed', width: 3 });
+    const small = buildBuildingV2(doc, { cell: { horizontal: 2, vertical: 3 } });
+    expect(small.connectors.filter((c) => c.part === 'connector-floor').every((c) => c.size[2] === 2)).toBe(true);
+  });
+});
+
 describe('resolveBuildingFaces', () => {
   it('reads occupancy from the spatial resolution only (consistent with resolveRelationships)', () => {
     const doc = v2([{ id: 1, position: [0, 0, 0], size: [2, 1, 1] }]);
@@ -435,7 +516,7 @@ describe('integration: real straight routing', () => {
     const real = buildBuildingV2(doc); // no injected spatial → resolveRelationships(doc)
     const r = resolveRelationships(doc).byEdge.get(1)!;
     expect(r.status).toBe('routed');
-    expect(real.relationships.map((x) => [x.edgeId, x.geometry, x.corridor])).toEqual([[1, 'connector', { walls: 'open', roof: 'flat' }]]);
+    expect(real.relationships.map((x) => [x.edgeId, x.geometry, x.corridor])).toEqual([[1, 'connector', { walls: 'open', roof: 'flat', width: 1.5 }]]);
     expect(real.connectors).toEqual(handBuilt.connectors);
   });
 

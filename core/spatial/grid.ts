@@ -6,6 +6,13 @@
  * axis, x and y are horizontal). Renderers map this to their own axes (see core/viewer/coordinates).
  */
 
+/**
+ * Size of one grid cell in metres: `horizontal` along x and y, `vertical` (storey height) along z.
+ * The ONE definition (docs/DECISIONS.md: 3 m × 3 m × 3 m); `core/viewer`'s `DEFAULT_CELL_SIZE` is
+ * this value, and pure modules that need a length limit in metres (a corridor's width) read it here.
+ */
+export const GRID_CELL_SIZE: Readonly<{ horizontal: number; vertical: number }> = Object.freeze({ horizontal: 3, vertical: 3 });
+
 /** Integer cell address `[x, y, z]`, z up. */
 export type GridCoord = [number, number, number];
 

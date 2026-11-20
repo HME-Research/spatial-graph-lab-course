@@ -112,17 +112,20 @@ export const KIND_PRESENTATION: Readonly<Record<RelationshipKind, KindPresentati
   },
 };
 
+/** What a corridor's legend entry depends on: its walls and roof (its width is not a separate look). */
+export type CorridorLookKind = Pick<EffectiveCorridorLook, 'walls' | 'roof'>;
+
 export interface ConnectorPresentation {
-  readonly look: EffectiveCorridorLook;
+  readonly look: CorridorLookKind;
   readonly label: string;
   readonly summary: string;
 }
 
 /** Every corridor look (walls × roof) in legend order: Enclosed first; Flat, Pergola, None. */
-export const CONNECTOR_ORDER: readonly EffectiveCorridorLook[] = WALL_STYLES.flatMap((walls) => ROOF_STYLES.map((roof) => ({ walls, roof })));
+export const CONNECTOR_ORDER: readonly CorridorLookKind[] = WALL_STYLES.flatMap((walls) => ROOF_STYLES.map((roof) => ({ walls, roof })));
 
 /** Stable key of a corridor look, e.g. `open-flat`. */
-export const corridorLookKey = (look: EffectiveCorridorLook): string => `${look.walls}-${look.roof}`;
+export const corridorLookKey = (look: CorridorLookKind): string => `${look.walls}-${look.roof}`;
 
 const CORRIDOR_ROOF_WORDS: Readonly<Record<RoofStyle, string>> = { flat: 'flat roof', pergola: 'pergola roof', none: 'no roof' };
 const CORRIDOR_SUMMARY: Readonly<Record<string, string>> = {
@@ -135,7 +138,7 @@ const CORRIDOR_SUMMARY: Readonly<Record<string, string>> = {
 };
 
 /** Label and one-line summary of a corridor look (the Corridors card's Walls + Roof). */
-export function connectorPresentation(look: EffectiveCorridorLook): ConnectorPresentation {
+export function connectorPresentation(look: CorridorLookKind): ConnectorPresentation {
   return {
     look,
     label: `${look.walls === 'enclosed' ? 'Enclosed' : 'Open'} corridor, ${CORRIDOR_ROOF_WORDS[look.roof]}`,

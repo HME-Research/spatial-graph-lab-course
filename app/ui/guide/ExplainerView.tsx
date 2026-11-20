@@ -77,14 +77,21 @@ function Screenshot({ shot }: { readonly shot: NonNullable<Explainer['screenshot
   );
 }
 
-/** Save a file: a served file is a plain download link; a text file is loaded on click and handed to the browser (nothing is uploaded). */
+/**
+ * Save a file: a served file through a plain download link (`href`, binary allowed), or a text
+ * file loaded on click and handed to the browser as a download (nothing is uploaded).
+ */
 function DownloadButton({ download }: { readonly download: GuideDownload }) {
   const [problem, setProblem] = useState<string | null>(null);
+  const note = download.note ? <span className="sgl-explainer-download-note"> — {download.note}</span> : null;
   if ('href' in download) {
     return (
-      <a className="sgl-explainer-download" href={download.href} download={download.fileName} data-download={download.fileName}>
-        ⤓ {download.label}
-      </a>
+      <>
+        <a className="sgl-explainer-download" href={download.href} download={download.fileName} data-download={download.fileName}>
+          ⤓ {download.label}
+        </a>
+        {note}
+      </>
     );
   }
   const load = download.load;
@@ -109,6 +116,7 @@ function DownloadButton({ download }: { readonly download: GuideDownload }) {
       <button type="button" className="sgl-explainer-download" data-download={download.fileName} onClick={() => void save()}>
         ⤓ {download.label}
       </button>
+      {note}
       {problem && <span className="sgl-error"> {problem}</span>}
     </>
   );

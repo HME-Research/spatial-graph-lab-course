@@ -51,6 +51,12 @@ export interface ResolvedFace {
    * outside, so its wall keeps the owner's façade colour and a door is a closed glass door.
    */
   readonly outside?: true;
+  /**
+   * Set only on the endpoint face of a generated corridor (2026-11-19): the corridor's built width
+   * in metres. The face's opening (door or `open` hole) is no wider than this, centred; the wall
+   * beside a narrower opening stays.
+   */
+  readonly corridorWidth?: number;
 }
 
 /**

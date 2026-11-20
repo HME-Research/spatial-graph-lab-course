@@ -211,7 +211,7 @@ describe('labels and appearance settings', () => {
     });
     expect(fnLook(doc, 'studio', { windowFraction: 0.25 }).windowFraction).toBe(0.25);
     expect(fnLook(doc, 'constructor', { windowFraction: 0.1 }).windowFraction).toBe(0.1);
-    expect(corridorLookOf(doc.edges[0]!, doc.settings)).toEqual({ walls: 'open', roof: 'flat' });
+    expect(corridorLookOf(doc.edges[0]!, doc.settings)).toEqual({ walls: 'open', roof: 'flat', width: 1.5 });
   });
 
   it('window layout is stored per type (default repeat), round-trips, and unknown layouts are rejected', () => {

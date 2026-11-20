@@ -1,7 +1,7 @@
-import { designCorridorLook, MAX_ROOM_SIZE, type AttributeValue, type DesignDocumentV2, type GraphIssue, type RelationshipKind, type RoofStyle, type WallStyle } from '@app/document';
+import { designCorridorLook, formatCorridorWidth, MAX_CORRIDOR_WIDTH, MAX_ROOM_SIZE, parseCorridorWidth, type AttributeValue, type DesignDocumentV2, type GraphIssue, type RelationshipKind, type RoofStyle, type WallStyle } from '@app/document';
 import { resolveEdgeAttributes, resolveNodeAttributes, type EffectiveAttribute } from '@app/extensions';
 import type { CorridorPatch, DesignCommand } from '@app/spatial';
-import { corridorChoiceLabel, CORRIDOR_PARTS } from '@app/attributes/sections';
+import { corridorChoiceLabel, CORRIDOR_PARTS, CORRIDOR_WIDTH_PART } from '@app/attributes/sections';
 import { decodeChoice, encodeChoice, EXPLICIT_NONE, formatFieldValue, inheritedText, INHERIT, parseValueDraft } from '@app/attributes/attributesModel';
 import { RELATIONSHIP_KIND_CHOICES } from '@app/ui/labels';
 import type { ProjectViewContext } from '@app/views/project';
@@ -17,7 +17,8 @@ import { geometryDraftEdit, GEOMETRY_ROWS, parseTypeId, typeMenu, type Triple } 
  *   (`proposeEdit`) and sends `set-node-geometry`, like Properties and the gizmo;
  * - Corridor (an edge's Geometry; walls | roof, one cell each): the choices of Properties, "Design
  *   default (<Corridors card value>)" (clears the relationship's own value) or a value →
- *   `set-edge-corridor`;
+ *   `set-edge-corridor`; width (metres) is a number field whose empty state is the design default
+ *   ("Design default (1.5 m)"; ↺ or emptying it clears the own value) → `set-edge-corridor`;
  * - Custom: `parseValueDraft` / the choice encoding of Properties → `set-node-custom` /
  *   `set-edge-custom` (`fieldCommands`), keeping every other stored value.
  * Identity and Calculated columns have no editor. No React here.
@@ -118,6 +119,19 @@ export function cellEditorSpec(
         options: [{ value: DESIGN_DEFAULT, label: `Design default (${corridorChoiceLabel(corridor, card)})` }, ...corridor.choices.map((c) => ({ value: c.value, label: c.label }))],
       };
     }
+    if (columnId === CORRIDOR_WIDTH_PART.id) {
+      const own = edge.corridor?.width;
+      const card = designCorridorLook(doc.settings).width;
+      return {
+        kind: 'input',
+        type: 'number',
+        draft: own === undefined ? '' : String(own),
+        placeholder: `Design default (${formatCorridorWidth(card)})`,
+        ...(own !== undefined && { reset: { title: `Remove this width; the design default (${formatCorridorWidth(card)}) applies again` } }),
+        min: 0,
+        max: MAX_CORRIDOR_WIDTH,
+      };
+    }
   }
 
   const custom = customOf(doc, project, collection, itemId, columnId);
@@ -203,6 +217,21 @@ export function cellCommit(
     const value = next === DESIGN_DEFAULT ? null : next;
     const patch: CorridorPatch = corridor.part === 'walls' ? { walls: value as WallStyle | null } : { roof: value as RoofStyle | null };
     return { kind: 'command', command: { type: 'set-edge-corridor', edgeId: itemId, patch } };
+  }
+
+  if (collection === 'edges' && columnId === CORRIDOR_WIDTH_PART.id) {
+    if (spec.kind !== 'input' || input.kind === 'choice') return { kind: 'unchanged' };
+    const own = doc.edges.find((e) => e.id === itemId)?.corridor?.width;
+    let width: number | null;
+    if (input.kind === 'reset') width = null;
+    else {
+      if (input.text.trim() === spec.draft) return { kind: 'unchanged' };
+      const parsed = parseCorridorWidth(input.text);
+      if (!parsed.ok) return { kind: 'invalid', issue: issue(['edges', 'corridor', 'width'], parsed.message) };
+      width = parsed.width;
+    }
+    if (width === (own ?? null)) return { kind: 'unchanged' };
+    return { kind: 'command', command: { type: 'set-edge-corridor', edgeId: itemId, patch: { width } } };
   }
 
   const row = collection === 'nodes' ? GEOMETRY_ROWS.find((g) => g.id === columnId) : undefined;

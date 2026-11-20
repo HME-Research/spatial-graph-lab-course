@@ -15,6 +15,7 @@
       "edgeId": 1,
       "condition": "door",
       "outside": true,
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -128,6 +129,7 @@
       "edgeId": 1,
       "condition": "door",
       "outside": true,
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -209,6 +211,7 @@
       "edgeId": 3,
       "condition": "open",
       "outside": true,
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -386,6 +389,7 @@
       "edgeId": 3,
       "condition": "open",
       "outside": true,
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -547,6 +551,7 @@
       "edgeId": 4,
       "condition": "door",
       "outside": true,
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -644,6 +649,7 @@
       "edgeId": 4,
       "condition": "door",
       "outside": true,
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -724,6 +730,7 @@
       "neighbourNodeId": null,
       "edgeId": 5,
       "condition": "door",
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -836,6 +843,7 @@
       "neighbourNodeId": null,
       "edgeId": 5,
       "condition": "door",
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -917,6 +925,7 @@
       "edgeId": 6,
       "condition": "open",
       "outside": true,
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -1014,6 +1023,7 @@
       "edgeId": 6,
       "condition": "open",
       "outside": true,
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -1303,6 +1313,7 @@
       "edgeId": 7,
       "condition": "door",
       "outside": true,
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -1400,6 +1411,7 @@
       "edgeId": 7,
       "condition": "door",
       "outside": true,
+      "corridorWidth": 1.5,
       "via": "route"
     },
     {
@@ -2575,7 +2587,59 @@
       ]
     },
     {
-      "id": "3:0.0.0:+x:threshold:0",
+      "id": "3:0.0.0:+x:wall:0",
+      "faceId": "3:0.0.0:+x",
+      "part": "wall",
+      "condition": "open",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": 3,
+      "ownerFunction": "gallery",
+      "neighbourNodeId": null,
+      "edgeId": 3,
+      "target": {
+        "kind": "edge",
+        "id": 3
+      },
+      "position": [
+        1.5,
+        1.5,
+        -7.1625
+      ],
+      "size": [
+        0.15,
+        3,
+        0.825
+      ]
+    },
+    {
+      "id": "3:0.0.0:+x:wall:1",
+      "faceId": "3:0.0.0:+x",
+      "part": "wall",
+      "condition": "open",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": 3,
+      "ownerFunction": "gallery",
+      "neighbourNodeId": null,
+      "edgeId": 3,
+      "target": {
+        "kind": "edge",
+        "id": 3
+      },
+      "position": [
+        1.5,
+        1.5,
+        -4.8375
+      ],
+      "size": [
+        0.15,
+        3,
+        0.825
+      ]
+    },
+    {
+      "id": "3:0.0.0:+x:threshold:2",
       "faceId": "3:0.0.0:+x",
       "part": "threshold",
       "condition": "open",
@@ -2597,7 +2661,7 @@
       "size": [
         1.5,
         0.02,
-        2.7
+        1.35
       ]
     },
     {
@@ -3651,7 +3715,59 @@
       ]
     },
     {
-      "id": "4:-x:threshold:0",
+      "id": "4:-x:wall:0",
+      "faceId": "4:-x",
+      "part": "wall",
+      "condition": "open",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": 4,
+      "ownerFunction": "storage",
+      "neighbourNodeId": null,
+      "edgeId": 3,
+      "target": {
+        "kind": "edge",
+        "id": 3
+      },
+      "position": [
+        10.5,
+        1.5,
+        -7.1625
+      ],
+      "size": [
+        0.15,
+        3,
+        0.825
+      ]
+    },
+    {
+      "id": "4:-x:wall:1",
+      "faceId": "4:-x",
+      "part": "wall",
+      "condition": "open",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": 4,
+      "ownerFunction": "storage",
+      "neighbourNodeId": null,
+      "edgeId": 3,
+      "target": {
+        "kind": "edge",
+        "id": 3
+      },
+      "position": [
+        10.5,
+        1.5,
+        -4.8375
+      ],
+      "size": [
+        0.15,
+        3,
+        0.825
+      ]
+    },
+    {
+      "id": "4:-x:threshold:2",
       "faceId": "4:-x",
       "part": "threshold",
       "condition": "open",
@@ -3673,7 +3789,7 @@
       "size": [
         1.5,
         0.02,
-        2.7
+        1.35
       ]
     },
     {
@@ -6135,7 +6251,59 @@
       ]
     },
     {
-      "id": "9:+x:threshold:0",
+      "id": "9:+x:wall:0",
+      "faceId": "9:+x",
+      "part": "wall",
+      "condition": "open",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": 9,
+      "ownerFunction": "studio",
+      "neighbourNodeId": null,
+      "edgeId": 6,
+      "target": {
+        "kind": "edge",
+        "id": 6
+      },
+      "position": [
+        1.5,
+        1.5,
+        -22.1625
+      ],
+      "size": [
+        0.15,
+        3,
+        0.825
+      ]
+    },
+    {
+      "id": "9:+x:wall:1",
+      "faceId": "9:+x",
+      "part": "wall",
+      "condition": "open",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": 9,
+      "ownerFunction": "studio",
+      "neighbourNodeId": null,
+      "edgeId": 6,
+      "target": {
+        "kind": "edge",
+        "id": 6
+      },
+      "position": [
+        1.5,
+        1.5,
+        -19.8375
+      ],
+      "size": [
+        0.15,
+        3,
+        0.825
+      ]
+    },
+    {
+      "id": "9:+x:threshold:2",
       "faceId": "9:+x",
       "part": "threshold",
       "condition": "open",
@@ -6157,7 +6325,7 @@
       "size": [
         1.5,
         0.02,
-        2.7
+        1.35
       ]
     },
     {
@@ -6586,7 +6754,59 @@
       ]
     },
     {
-      "id": "10:-x:threshold:0",
+      "id": "10:-x:wall:0",
+      "faceId": "10:-x",
+      "part": "wall",
+      "condition": "open",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": 10,
+      "ownerFunction": "studio",
+      "neighbourNodeId": null,
+      "edgeId": 6,
+      "target": {
+        "kind": "edge",
+        "id": 6
+      },
+      "position": [
+        10.5,
+        1.5,
+        -22.1625
+      ],
+      "size": [
+        0.15,
+        3,
+        0.825
+      ]
+    },
+    {
+      "id": "10:-x:wall:1",
+      "faceId": "10:-x",
+      "part": "wall",
+      "condition": "open",
+      "outside": true,
+      "orientation": "wall",
+      "ownerNodeId": 10,
+      "ownerFunction": "studio",
+      "neighbourNodeId": null,
+      "edgeId": 6,
+      "target": {
+        "kind": "edge",
+        "id": 6
+      },
+      "position": [
+        10.5,
+        1.5,
+        -19.8375
+      ],
+      "size": [
+        0.15,
+        3,
+        0.825
+      ]
+    },
+    {
+      "id": "10:-x:threshold:2",
       "faceId": "10:-x",
       "part": "threshold",
       "condition": "open",
@@ -6608,7 +6828,7 @@
       "size": [
         1.5,
         0.02,
-        2.7
+        1.35
       ]
     },
     {
@@ -9251,7 +9471,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -9271,7 +9492,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9279,7 +9500,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -9299,7 +9521,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9307,7 +9529,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9322,7 +9545,7 @@
       "position": [
         1.5,
         1.5,
-        -1.5
+        -0.75
       ],
       "size": [
         0.15,
@@ -9335,7 +9558,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9350,7 +9574,7 @@
       "position": [
         1.5,
         1.5,
-        1.5
+        0.75
       ],
       "size": [
         0.15,
@@ -9363,7 +9587,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -9383,7 +9608,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9391,7 +9616,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -9411,7 +9637,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9419,7 +9645,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9434,7 +9661,7 @@
       "position": [
         4.5,
         1.5,
-        -1.5
+        -0.75
       ],
       "size": [
         0.15,
@@ -9447,7 +9674,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9462,7 +9690,7 @@
       "position": [
         4.5,
         1.5,
-        1.5
+        0.75
       ],
       "size": [
         0.15,
@@ -9475,7 +9703,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -9495,7 +9724,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9503,7 +9732,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -9523,7 +9753,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9531,7 +9761,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9546,7 +9777,7 @@
       "position": [
         7.5,
         1.5,
-        -1.5
+        -0.75
       ],
       "size": [
         0.15,
@@ -9559,7 +9790,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9574,7 +9806,7 @@
       "position": [
         10.5,
         1.5,
-        -1.5
+        -0.75
       ],
       "size": [
         0.15,
@@ -9587,7 +9819,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9602,7 +9835,7 @@
       "position": [
         7.5,
         1.5,
-        1.5
+        0.75
       ],
       "size": [
         0.15,
@@ -9615,7 +9848,8 @@
       "edgeId": 1,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9630,7 +9864,7 @@
       "position": [
         10.5,
         1.5,
-        1.5
+        0.75
       ],
       "size": [
         0.15,
@@ -9643,7 +9877,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -9663,7 +9898,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9671,7 +9906,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -9691,7 +9927,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9699,7 +9935,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9714,7 +9951,7 @@
       "position": [
         1.5,
         1.5,
-        -7.5
+        -6.75
       ],
       "size": [
         0.15,
@@ -9727,7 +9964,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9742,7 +9980,7 @@
       "position": [
         1.5,
         1.5,
-        -4.5
+        -5.25
       ],
       "size": [
         0.15,
@@ -9755,7 +9993,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -9775,7 +10014,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9783,7 +10022,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -9803,7 +10043,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9811,7 +10051,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9826,7 +10067,7 @@
       "position": [
         4.5,
         1.5,
-        -7.5
+        -6.75
       ],
       "size": [
         0.15,
@@ -9839,7 +10080,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9854,7 +10096,7 @@
       "position": [
         4.5,
         1.5,
-        -4.5
+        -5.25
       ],
       "size": [
         0.15,
@@ -9867,7 +10109,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -9887,7 +10130,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9895,7 +10138,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -9915,7 +10159,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -9923,7 +10167,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9938,7 +10183,7 @@
       "position": [
         7.5,
         1.5,
-        -7.5
+        -6.75
       ],
       "size": [
         0.15,
@@ -9951,7 +10196,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9966,7 +10212,7 @@
       "position": [
         10.5,
         1.5,
-        -7.5
+        -6.75
       ],
       "size": [
         0.15,
@@ -9979,7 +10225,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -9994,7 +10241,7 @@
       "position": [
         7.5,
         1.5,
-        -4.5
+        -5.25
       ],
       "size": [
         0.15,
@@ -10007,7 +10254,8 @@
       "edgeId": 3,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -10022,7 +10270,7 @@
       "position": [
         10.5,
         1.5,
-        -4.5
+        -5.25
       ],
       "size": [
         0.15,
@@ -10035,7 +10283,8 @@
       "edgeId": 4,
       "look": {
         "walls": "open",
-        "roof": "none"
+        "roof": "none",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -10055,7 +10304,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10063,7 +10312,8 @@
       "edgeId": 4,
       "look": {
         "walls": "open",
-        "roof": "none"
+        "roof": "none",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -10083,7 +10333,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10091,7 +10341,8 @@
       "edgeId": 4,
       "look": {
         "walls": "open",
-        "roof": "none"
+        "roof": "none",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -10111,7 +10362,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10119,7 +10370,8 @@
       "edgeId": 5,
       "look": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -10139,7 +10391,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10147,7 +10399,8 @@
       "edgeId": 5,
       "look": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -10167,7 +10420,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10175,7 +10428,8 @@
       "edgeId": 5,
       "look": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-wall",
       "cell": [
@@ -10190,7 +10444,7 @@
       "position": [
         3,
         1.5,
-        -19.5
+        -18.75
       ],
       "size": [
         3,
@@ -10203,7 +10457,8 @@
       "edgeId": 5,
       "look": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-wall",
       "cell": [
@@ -10218,7 +10473,7 @@
       "position": [
         3,
         1.5,
-        -16.5
+        -17.25
       ],
       "size": [
         3,
@@ -10231,7 +10486,8 @@
       "edgeId": 5,
       "look": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -10251,7 +10507,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10259,7 +10515,8 @@
       "edgeId": 5,
       "look": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-wall",
       "cell": [
@@ -10274,7 +10531,7 @@
       "position": [
         6,
         1.5,
-        -19.5
+        -18.75
       ],
       "size": [
         3,
@@ -10287,7 +10544,8 @@
       "edgeId": 5,
       "look": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-wall",
       "cell": [
@@ -10302,7 +10560,7 @@
       "position": [
         6,
         1.5,
-        -16.5
+        -17.25
       ],
       "size": [
         3,
@@ -10315,7 +10573,8 @@
       "edgeId": 5,
       "look": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -10335,7 +10594,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10343,7 +10602,8 @@
       "edgeId": 5,
       "look": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -10363,7 +10623,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10371,7 +10631,8 @@
       "edgeId": 5,
       "look": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-wall",
       "cell": [
@@ -10386,7 +10647,7 @@
       "position": [
         9,
         1.5,
-        -19.5
+        -18.75
       ],
       "size": [
         3,
@@ -10399,7 +10660,8 @@
       "edgeId": 5,
       "look": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-wall",
       "cell": [
@@ -10414,7 +10676,7 @@
       "position": [
         9,
         1.5,
-        -16.5
+        -17.25
       ],
       "size": [
         3,
@@ -10427,7 +10689,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -10447,7 +10710,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10455,7 +10718,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -10475,7 +10739,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10483,7 +10747,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -10498,7 +10763,7 @@
       "position": [
         1.5,
         1.5,
-        -22.5
+        -21.75
       ],
       "size": [
         0.15,
@@ -10511,7 +10776,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -10526,7 +10792,7 @@
       "position": [
         1.5,
         1.5,
-        -19.5
+        -20.25
       ],
       "size": [
         0.15,
@@ -10539,7 +10805,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -10559,7 +10826,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10567,7 +10834,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -10587,7 +10855,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10595,7 +10863,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -10610,7 +10879,7 @@
       "position": [
         4.5,
         1.5,
-        -22.5
+        -21.75
       ],
       "size": [
         0.15,
@@ -10623,7 +10892,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -10638,7 +10908,7 @@
       "position": [
         4.5,
         1.5,
-        -19.5
+        -20.25
       ],
       "size": [
         0.15,
@@ -10651,7 +10921,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -10671,7 +10942,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10679,7 +10950,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -10699,7 +10971,7 @@
       "size": [
         3,
         0.2,
-        3
+        1.5
       ]
     },
     {
@@ -10707,7 +10979,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -10722,7 +10995,7 @@
       "position": [
         7.5,
         1.5,
-        -22.5
+        -21.75
       ],
       "size": [
         0.15,
@@ -10735,7 +11008,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -10750,7 +11024,7 @@
       "position": [
         10.5,
         1.5,
-        -22.5
+        -21.75
       ],
       "size": [
         0.15,
@@ -10763,7 +11037,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -10778,7 +11053,7 @@
       "position": [
         7.5,
         1.5,
-        -19.5
+        -20.25
       ],
       "size": [
         0.15,
@@ -10791,7 +11066,8 @@
       "edgeId": 6,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -10806,7 +11082,7 @@
       "position": [
         10.5,
         1.5,
-        -19.5
+        -20.25
       ],
       "size": [
         0.15,
@@ -10819,7 +11095,8 @@
       "edgeId": 7,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -10837,7 +11114,7 @@
         -30
       ],
       "size": [
-        3,
+        1.5,
         0.2,
         3
       ]
@@ -10847,7 +11124,8 @@
       "edgeId": 7,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -10865,7 +11143,7 @@
         -30
       ],
       "size": [
-        3,
+        1.5,
         0.2,
         3
       ]
@@ -10875,7 +11153,8 @@
       "edgeId": 7,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -10888,7 +11167,7 @@
         "id": 7
       },
       "position": [
-        7.5,
+        6.75,
         1.5,
         -28.5
       ],
@@ -10903,7 +11182,8 @@
       "edgeId": 7,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -10916,7 +11196,7 @@
         "id": 7
       },
       "position": [
-        4.5,
+        5.25,
         1.5,
         -28.5
       ],
@@ -10931,7 +11211,8 @@
       "edgeId": 7,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-floor",
       "cell": [
@@ -10949,7 +11230,7 @@
         -33
       ],
       "size": [
-        3,
+        1.5,
         0.2,
         3
       ]
@@ -10959,7 +11240,8 @@
       "edgeId": 7,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-roof",
       "cell": [
@@ -10977,7 +11259,7 @@
         -33
       ],
       "size": [
-        3,
+        1.5,
         0.2,
         3
       ]
@@ -10987,7 +11269,8 @@
       "edgeId": 7,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -11000,7 +11283,7 @@
         "id": 7
       },
       "position": [
-        7.5,
+        6.75,
         1.5,
         -31.5
       ],
@@ -11015,7 +11298,8 @@
       "edgeId": 7,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -11028,7 +11312,7 @@
         "id": 7
       },
       "position": [
-        7.5,
+        6.75,
         1.5,
         -34.5
       ],
@@ -11043,7 +11327,8 @@
       "edgeId": 7,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -11056,7 +11341,7 @@
         "id": 7
       },
       "position": [
-        4.5,
+        5.25,
         1.5,
         -31.5
       ],
@@ -11071,7 +11356,8 @@
       "edgeId": 7,
       "look": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       },
       "part": "connector-post",
       "cell": [
@@ -11084,7 +11370,7 @@
         "id": 7
       },
       "position": [
-        4.5,
+        5.25,
         1.5,
         -34.5
       ],
@@ -11126,7 +11412,8 @@
       ],
       "corridor": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       }
     },
     {
@@ -11134,8 +11421,12 @@
       "status": "routed",
       "geometry": "connector",
       "elementIds": [
-        "3:0.0.0:+x:threshold:0",
-        "4:-x:threshold:0",
+        "3:0.0.0:+x:wall:0",
+        "3:0.0.0:+x:wall:1",
+        "3:0.0.0:+x:threshold:2",
+        "4:-x:wall:0",
+        "4:-x:wall:1",
+        "4:-x:threshold:2",
         "3:route:0:connector-floor:0",
         "3:route:0:connector-roof:1",
         "3:route:0:connector-post:2",
@@ -11153,7 +11444,8 @@
       ],
       "corridor": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       }
     },
     {
@@ -11175,7 +11467,8 @@
       ],
       "corridor": {
         "walls": "open",
-        "roof": "none"
+        "roof": "none",
+        "width": 1.5
       }
     },
     {
@@ -11203,7 +11496,8 @@
       ],
       "corridor": {
         "walls": "enclosed",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       }
     },
     {
@@ -11211,8 +11505,12 @@
       "status": "routed",
       "geometry": "connector",
       "elementIds": [
-        "9:+x:threshold:0",
-        "10:-x:threshold:0",
+        "9:+x:wall:0",
+        "9:+x:wall:1",
+        "9:+x:threshold:2",
+        "10:-x:wall:0",
+        "10:-x:wall:1",
+        "10:-x:threshold:2",
         "6:route:0:connector-floor:0",
         "6:route:0:connector-roof:1",
         "6:route:0:connector-post:2",
@@ -11230,7 +11528,8 @@
       ],
       "corridor": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       }
     },
     {
@@ -11267,7 +11566,8 @@
       ],
       "corridor": {
         "walls": "open",
-        "roof": "flat"
+        "roof": "flat",
+        "width": 1.5
       }
     }
   ]

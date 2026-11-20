@@ -168,6 +168,11 @@
   text-align: right;
 }
 
+/* Corridor width (m): a number box with its spinner. */
+.sgl-designer-width input {
+  width: 64px;
+}
+
 .sgl-designer-reset {
   align-self: flex-start;
   font-size: 12px;

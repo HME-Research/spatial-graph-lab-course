@@ -75,6 +75,44 @@ describe('table cell editors: an edge’s Corridor (Geometry, walls | roof)', ()
   });
 });
 
+describe('table cell editors: an edge’s Corridor width (metres)', () => {
+  const doc = (own?: number): DesignDocumentV2 => {
+    const d = house();
+    return {
+      ...d,
+      edges: d.edges.map((e) => (e.id === 2 && own !== undefined ? { ...e, corridor: { width: own } } : e)),
+      settings: { ...d.settings, corridors: { width: 2 } },
+    };
+  };
+
+  it('is a number field whose empty state is "Design default (<card width>)"; ↺ only with an own value', () => {
+    expect(cellEditorSpec(doc(), PROJECT, 'edges', 2, 'corridor.width')).toEqual({ kind: 'input', type: 'number', draft: '', placeholder: 'Design default (2 m)', min: 0, max: 3 });
+    expect(cellEditorSpec(doc(0.9), PROJECT, 'edges', 2, 'corridor.width')).toMatchObject({ draft: '0.9', reset: { title: expect.stringContaining('2 m') } });
+    expect(cellEditorSpec(doc(), PROJECT, 'nodes', 3, 'corridor.width')).toBeNull();
+  });
+
+  it('one set-edge-corridor per edit (one undo step); empty or ↺ clears; same value sends nothing; out of range is refused', () => {
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.width', draft('1.2'))).toEqual({
+      kind: 'command',
+      command: { type: 'set-edge-corridor', edgeId: 2, patch: { width: 1.2 } },
+    });
+    expect(cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.width', draft(''))).toEqual({ kind: 'unchanged' });
+    expect(cellCommit(doc(0.9), PROJECT, 'edges', 2, 'corridor.width', draft('0.9'))).toEqual({ kind: 'unchanged' });
+    const cleared = cellCommit(doc(0.9), PROJECT, 'edges', 2, 'corridor.width', draft(''));
+    expect(cleared).toEqual({ kind: 'command', command: { type: 'set-edge-corridor', edgeId: 2, patch: { width: null } } });
+    expect(cellCommit(doc(0.9), PROJECT, 'edges', 2, 'corridor.width', { kind: 'reset' })).toEqual(cleared);
+    for (const bad of ['0', '3.5', 'wide']) {
+      const r = cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.width', draft(bad));
+      expect(r.kind, bad).toBe('invalid');
+      if (r.kind === 'invalid') expect(r.issue.message).toContain('at most 3 m');
+    }
+    const set = cellCommit(doc(), PROJECT, 'edges', 2, 'corridor.width', draft('1.2'));
+    if (set.kind !== 'command') throw new Error('expected a command');
+    const next = applyDesignCommand(doc(), set.command);
+    expect(next.ok && next.value.edges.find((e) => e.id === 2)!.corridor).toEqual({ width: 1.2 });
+  });
+});
+
 describe('table cell editors', () => {
   it('are offered for Function, Relationship, Geometry and Custom, never for Identity or Calculated', () => {
     const doc = house();

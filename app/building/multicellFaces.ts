@@ -13,7 +13,8 @@ import { connectionCondition, directionOrientation } from './resolve';
  * - a face between two different rooms is authored once, by the room whose id sorts first;
  * - a face whose neighbour cell is empty is `exterior`;
  * - a face whose neighbour cell is reserved by a generated connector is either the connector's
- *   endpoint face (`door` for access, `open` for open, selecting the edge; marked `outside` when
+ *   endpoint face (`door` for access, `open` for open, selecting the edge; carrying the corridor's
+ *   width, `corridorWidth`, so its opening is no wider than the corridor; marked `outside` when
  *   the connector is `deck` / `covered`: façade colour and a closed glass door); otherwise the connector
  *   merely runs alongside / above / below. A WALL beside a `covered` or `deck` connector stays
  *   `exterior` (the room keeps its façade colour and windows: it is still open to the air); beside
@@ -61,6 +62,8 @@ export function unitFaceKey(cell: GridCoord, direction: FaceDirection): string {
 interface DirectFace {
   readonly edgeId: number;
   readonly condition: FaceCondition;
+  /** Route endpoints only: the corridor's built width (m). */
+  readonly width?: number;
 }
 
 /** Index of the representative unit face for a single opening: lowest storey, then middle. */
@@ -92,13 +95,13 @@ function directFaceConditions(resolutions: readonly EdgeResolution[]): Map<strin
 /** Endpoint faces of generated connectors, keyed by `unitFaceKey`. */
 function routeEndpointFaces(resolutions: readonly EdgeResolution[]): Map<string, DirectFace> {
   const out = new Map<string, DirectFace>();
-  const add = (face: RoomFace, edgeId: number, condition: FaceCondition) =>
-    out.set(unitFaceKey(face.cell, face.direction), { edgeId, condition });
+  const add = (face: RoomFace, edgeId: number, condition: FaceCondition, width: number) =>
+    out.set(unitFaceKey(face.cell, face.direction), { edgeId, condition, width });
   for (const r of resolutions) {
     if (r.status !== 'routed') continue;
     const condition: FaceCondition = r.relationship === 'access' ? 'door' : 'open';
-    add(r.route.from, r.edgeId, condition);
-    add(r.route.to, r.edgeId, condition);
+    add(r.route.from, r.edgeId, condition, r.route.look.width);
+    add(r.route.to, r.edgeId, condition, r.route.look.width);
   }
   return out;
 }
@@ -132,6 +135,7 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
         let edgeId: number | null = null;
         let via: FaceVia = 'none';
         let outside = false;
+        let corridorWidth: number | undefined;
         if (occupant?.kind === 'room') {
           const d = direct.get(key);
           condition = d?.condition ?? 'solid';
@@ -145,6 +149,8 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
             edgeId = e.edgeId;
             // The end of an open-air connector is outside too: façade colour, glass door.
             outside = routeWalls.get(occupant.edgeId) !== 'enclosed';
+            // The opening into the corridor is no wider than the corridor (2026-11-19, corridor width).
+            corridorWidth = e.width;
           } else {
             // Beside an open-sided connector a wall is still outside: keep its façade (colour, windows).
             const wall = direction !== '+z' && direction !== '-z';
@@ -163,6 +169,7 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
           edgeId,
           condition,
           ...(outside ? { outside: true as const } : {}),
+          ...(corridorWidth !== undefined ? { corridorWidth } : {}),
           via,
         });
       }

@@ -193,8 +193,13 @@ function addEdge(draft: DraftV2, op: Extract<SpatialOperation, { op: 'add-edge' 
   if (draft.pairs.has(unorderedPairKey(source, target))) {
     return opError(i, 'duplicate-relationship', `${what}: nodes ${source} and ${target} are already connected`);
   }
-  const corridor = op.corridor && (op.corridor.walls !== undefined || op.corridor.roof !== undefined)
-    ? { ...(op.corridor.walls !== undefined && { walls: op.corridor.walls }), ...(op.corridor.roof !== undefined && { roof: op.corridor.roof }) }
+  const c = op.corridor;
+  const corridor = c && (c.walls !== undefined || c.roof !== undefined || c.width !== undefined)
+    ? {
+        ...(c.walls !== undefined && { walls: c.walls }),
+        ...(c.roof !== undefined && { roof: c.roof }),
+        ...(c.width !== undefined && { width: c.width }),
+      }
     : undefined;
   const edge: RelationshipEdge = { id: draft.nextEdgeId++, source, target, relationship: kind, ...(corridor && { corridor }), custom: {} };
   if (op.ref !== undefined) draft.edgeRefs.set(op.ref, edge.id);

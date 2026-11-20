@@ -10,10 +10,10 @@ import { fileOf, twoRooms } from '@app/session/projectStore.fixtures';
 import { createProjectController, showsWelcome } from '@app/session/projectStoreController';
 import { ProjectControllerContext } from '@app/session/projectStoreContext';
 import exampleJson from '../document/examples/house.json';
-import { exportProject, ProjectFiles } from './ProjectFiles';
+import { exportProject, NewProjectDialog, ProjectFiles } from './ProjectFiles';
 import { Welcome, type WelcomeProps } from './Welcome';
 import { createProject, openProjectText, tryExample, type WelcomeHost } from './welcomeFlow';
-import { projectFileName, recentRows } from './welcomeModel';
+import { newProjectStart, projectFileName, recentRows } from './welcomeModel';
 
 const example = () => {
   const r = readDesign(exampleJson);
@@ -365,5 +365,29 @@ describe('Project Files', () => {
     expect(html).toContain('Saved locally');
     expect(projectFileName('My House!')).toBe('my-house.project.json');
     expect(projectFileName('???')).toBe('project.project.json');
+  });
+
+  it('New project asks for a toolkit whenever there is one (even only House), "No toolkit" preselected like Welcome', () => {
+    expect(newProjectStart(1, null)).toEqual({ kind: 'ask', toolkitId: null });
+    expect(newProjectStart(3, null)).toEqual({ kind: 'ask', toolkitId: null });
+    // A default requested with ?toolkit= is preselected, as in Welcome.
+    expect(newProjectStart(1, 'house')).toEqual({ kind: 'ask', toolkitId: 'house' });
+    // No toolkit at all: nothing to choose, a project without a toolkit at once.
+    expect(newProjectStart(0, null)).toEqual({ kind: 'create', toolkitId: null });
+  });
+
+  it('the New project dialog shows Welcome’s toolkit choice, on "No toolkit", with Cancel and Create project', () => {
+    const house = [{ id: 'house', label: 'House' }];
+    const html = renderToStaticMarkup(createElement(NewProjectDialog, { toolkits: house, toolkitId: null, onToolkit: noop, onCancel: noop, onCreate: noop }));
+    expect(html).toContain('class="sgl-toolkit-picker"');
+    expect(html).toMatch(/<option value="house">House<\/option><option value="" selected="">No toolkit<\/option>/);
+    expect(html).toContain('>Cancel<');
+    expect(html).toContain('>Create project<');
+    // The same picker as Welcome's Create project.
+    const welcome = renderToStaticMarkup(createElement(Welcome, props({ toolkits: house })));
+    const picker = (markup: string) => markup.slice(markup.indexOf('<select'), markup.indexOf('</select>')).replace(/id="[^"]*"/, '');
+    expect(picker(html)).toBe(picker(welcome));
+    const chosen = renderToStaticMarkup(createElement(NewProjectDialog, { toolkits: house, toolkitId: 'house', onToolkit: noop, onCancel: noop, onCreate: noop }));
+    expect(chosen).toMatch(/<option value="house" selected="">House<\/option>/);
   });
 });

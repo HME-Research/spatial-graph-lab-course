@@ -1,5 +1,5 @@
 import { HelpTip } from '@app/ui/help';
-import { corridorLookOf, designCorridorLook, nodeLabel, type RelationshipKind } from '@app/document';
+import { CORRIDOR_WIDTH_STEP, corridorLookOf, designCorridorLook, formatCorridorWidth, MAX_CORRIDOR_WIDTH, nodeLabel, parseCorridorWidth, type RelationshipKind } from '@app/document';
 import {
   CollapsibleSection,
   CORRIDOR_ROOF_CHOICES,
@@ -16,7 +16,7 @@ import {
 } from '@app/ui';
 import { functionStatus } from '@app/views/project';
 import { selectNode } from '@core/viewer/selection';
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { AttributeSection } from '@app/attributes/AttributeSection';
 import { sourceResolver } from '@app/attributes/attributeSources';
 import { CustomAttributes, ManageAttributesLink } from '@app/attributes/CustomAttributes';
@@ -46,6 +46,63 @@ function RemoveConnection({ onRemove }: { readonly onRemove: () => void }) {
   );
 }
 
+/**
+ * This relationship's own corridor width (m): a number box whose empty state is "Design default
+ * (<card width>)"; Enter or leaving it sends one `set-edge-corridor` (empty = clear the own value).
+ */
+function CorridorWidthField({ edgeId, own, designWidth, onWidth, onInvalid }: {
+  readonly edgeId: number;
+  readonly own: number | undefined;
+  readonly designWidth: number;
+  readonly onWidth: (width: number | null) => void;
+  readonly onInvalid: (message: string) => void;
+}) {
+  const shown = own === undefined ? '' : String(own);
+  const [text, setText] = useState(shown);
+  useEffect(() => setText(shown), [shown]);
+  const id = `sgl-edge-${edgeId}-corridor-width`;
+  const commit = () => {
+    if (text.trim() === shown) return;
+    const parsed = parseCorridorWidth(text);
+    if (!parsed.ok) {
+      onInvalid(parsed.message);
+      setText(shown);
+      return;
+    }
+    onWidth(parsed.width);
+  };
+  return (
+    <div className="sgl-corridor-field">
+      <label htmlFor={id}>Width (m)</label>
+      <span className="sgl-corridor-width">
+        <input
+          id={id}
+          type="number"
+          inputMode="decimal"
+          min={CORRIDOR_WIDTH_STEP}
+          max={MAX_CORRIDOR_WIDTH}
+          step={CORRIDOR_WIDTH_STEP}
+          aria-label="Corridor width"
+          placeholder={`Design default (${formatCorridorWidth(designWidth)})`}
+          title={`Built width in metres, centred in the corridor's cells (more than 0, at most ${formatCorridorWidth(MAX_CORRIDOR_WIDTH)}). Empty: Design default (${formatCorridorWidth(designWidth)}).`}
+          value={text}
+          onChange={(e) => setText(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commit();
+            else if (e.key === 'Escape') setText(shown);
+          }}
+          onBlur={commit}
+        />
+        {own !== undefined && (
+          <button type="button" className="sgl-link" title={`Use the design default (${formatCorridorWidth(designWidth)})`} aria-label="Use the design default width" onClick={() => onWidth(null)}>
+            ↺
+          </button>
+        )}
+      </span>
+    </div>
+  );
+}
+
 const ENDPOINT_LOCK = 'Identity: an edge always joins the same two nodes. To join others, add another edge.';
 
 function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
@@ -72,7 +129,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   const look = corridorLookOf(edge, design.doc.settings);
   const designLook = designCorridorLook(design.doc.settings);
   const own = edge.corridor ?? {};
-  const ownCount = (own.walls === undefined ? 0 : 1) + (own.roof === undefined ? 0 : 1);
+  const ownCount = (own.walls === undefined ? 0 : 1) + (own.roof === undefined ? 0 : 1) + (own.width === undefined ? 0 : 1);
 
   const setKind = (kind: RelationshipKind) => {
     if (kind !== edge.relationship) runV2({ type: 'change-edge-kind', edgeId, relationship: kind });
@@ -170,11 +227,20 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
             attributeId="corridor"
             kind="geometry"
             label="Corridor"
-            title="This relationship’s own corridor look, walls and roof. Used only when a corridor is generated; Design default follows the Corridors card (Building Designer → Looks)."
+            title="This relationship’s own corridor look: walls, roof and width. Used only when a corridor is generated; Design default follows the Corridors card (Building Designer → Looks)."
             control={
               <div className="sgl-corridor">
                 {corridorField('walls', 'Walls', CORRIDOR_WALL_CHOICES, designLook.walls)}
                 {corridorField('roof', 'Roof', CORRIDOR_ROOF_CHOICES, designLook.roof)}
+                <CorridorWidthField
+                  edgeId={edgeId}
+                  own={own.width}
+                  designWidth={designLook.width}
+                  onWidth={(width) => {
+                    if (width !== (own.width ?? null)) runV2({ type: 'set-edge-corridor', edgeId, patch: { width } });
+                  }}
+                  onInvalid={(message) => showIssues([{ path: ['corridor', 'width'], code: 'schema', message }])}
+                />
               </div>
             }
             meta={<HelpTip topicId="connector-style" />}
@@ -185,7 +251,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
                 : `No corridor is generated for this relationship now${resolution?.status === 'direct' ? ' (its rooms touch)' : ''}; these values are used only if one is. `}
               {ownCount === 0
                 ? 'Change every corridor with the Corridors card in Building Designer → Looks.'
-                : `${ownCount === 2 ? 'Both are' : 'One is'} set for this relationship only; Design default follows the Corridors card.`}
+                : `${ownCount === 1 ? 'One is' : ownCount === 2 ? 'Two are' : 'All three are'} set for this relationship only; Design default follows the Corridors card.`}
             </p>
           </FieldRow>
         </AttributeSection>

@@ -13,6 +13,7 @@ import {
   MAX_ROOM_SIZE,
   RELATIONSHIP_KINDS,
   ROOF_STYLES,
+  MAX_CORRIDOR_WIDTH,
   WINDOW_LAYOUTS,
   WALL_STYLES,
   SCHEMA_VERSION_V2,
@@ -29,12 +30,12 @@ import {
  * - `position` is the room's MINIMUM corner cell [x, y, z] (z up); `size` is [sx, sy, sz], positive
  *   integers. The room occupies every cell position + [0..sx-1, 0..sy-1, 0..sz-1].
  * - Edge `relationship` is the relationship intent (`access` | `open`), independent of adjacency.
- * - Edge `corridor` is optional (`{ walls?, roof? }`); each absent field uses the design's corridor
+ * - Edge `corridor` is optional (`{ walls?, roof?, width? }`); each absent field uses the design's corridor
  *   card, else the built-in default (resolved on read, `corridorLookOf`).
  * - `settings.styleBy` / `settings.styles` (2026-11-18, replaced `typeAppearance`): the rooms are
  *   styled by ONE attribute; each attribute's setup (Default, value cards or number bands) is
  *   remembered. Effective looks are resolved on read (`settings.ts`), never materialised.
- * - `settings.corridors` (optional, 2026-11-19): the Corridors look card, `{ walls?, roof? }` of
+ * - `settings.corridors` (optional, 2026-11-19): the Corridors look card, `{ walls?, roof?, width? }` of
  *   every generated corridor; each field absent = built-in default. Omitted when empty.
  * - `diagram.positions` stay independent 2D diagram coordinates.
  */
@@ -67,14 +68,24 @@ export const wallStyleSchema = z.enum(WALL_STYLES, { error: `walls must be one o
 
 export const roofStyleSchema = z.enum(ROOF_STYLES, { error: `roof must be one of: ${ROOF_STYLES.join(', ')}` });
 
+const CORRIDOR_WIDTH_RANGE = `width must be more than 0 and at most ${MAX_CORRIDOR_WIDTH} m (one cell)`;
+
+/** A corridor's built width in metres, centred in its cells: 0 < width ≤ one cell (2026-11-19). */
+export const corridorWidthSchema = z
+  .number({ error: 'width must be a number of metres' })
+  .refine(Number.isFinite, { error: 'width must be finite' })
+  .gt(0, { error: CORRIDOR_WIDTH_RANGE })
+  .max(MAX_CORRIDOR_WIDTH, { error: CORRIDOR_WIDTH_RANGE });
+
 /**
- * Look of a generated corridor (owner 2026-11-19, "Corridors as a look card"): walls and roof, each
- * optional (absent = inherit). Used by the design's Corridors card (`settings.corridors`) and by
- * one relationship's own override (edge `corridor`).
+ * Look of a generated corridor (owner 2026-11-19, "Corridors as a look card"; `width` added the
+ * same day): walls, roof and width, each optional (absent = inherit). Used by the design's
+ * Corridors card (`settings.corridors`) and by one relationship's own override (edge `corridor`).
  */
 export const corridorLookSchema = z.strictObject({
   walls: wallStyleSchema.optional(),
   roof: roofStyleSchema.optional(),
+  width: corridorWidthSchema.optional(),
 });
 
 export const windowFractionSchema = z
@@ -97,7 +108,7 @@ export const relationshipEdgeSchema = z.strictObject({
   source: itemIdSchema,
   target: itemIdSchema,
   relationship: relationshipKindSchema,
-  /** This relationship's own corridor walls / roof (Properties); absent fields use the design's. */
+  /** This relationship's own corridor walls / roof / width (Properties); absent fields use the design's. */
   corridor: corridorLookSchema.optional(),
   /** The edge's custom attributes. */
   custom: attributesSchema.default({}),
@@ -200,7 +211,7 @@ export const designSettingsSchema = z.strictObject({
   styleBy: styleBySchema.default('function'),
   /** Remembered setup per attribute (switching `styleBy` back restores it). */
   styles: z.record(styleBySchema, styleSetupSchema).default({}),
-  /** The Corridors look card: walls and roof of every generated corridor (absent = built-in defaults). */
+  /** The Corridors look card: walls, roof and width of every generated corridor (absent = built-in defaults). */
   corridors: corridorLookSchema.optional(),
 });
 

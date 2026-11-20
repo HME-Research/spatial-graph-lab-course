@@ -5,7 +5,7 @@ import { useProjectControllerState } from '@app/session/projectStoreContext';
 import { SaveStatus } from '@app/scenarios/SaveStatus';
 import { Dialog } from '@app/ui/Dialog';
 import { ToolkitPicker, type ToolkitOption } from './ToolkitPicker';
-import { formatWhen, projectFileName } from './welcomeModel';
+import { formatWhen, newProjectStart, projectFileName } from './welcomeModel';
 import './welcome.css';
 
 /** Start a browser download of `text` (JSON). Throws when the browser refuses. */
@@ -54,9 +54,9 @@ export function ProjectFiles({
   onOpenFile,
 }: {
   readonly controller: ProjectController | null;
-  /** Toolkits a new project can start from; with more than one, New project asks which. */
+  /** Toolkits a new project can start from; with any, New project asks which (or No toolkit). */
   readonly toolkits?: readonly ToolkitOption[];
-  /** Preselected toolkit for New project (normally the open project's own). */
+  /** Preselected toolkit for New project: the same as Welcome's (normally null, "No toolkit"). */
   readonly defaultToolkitId?: string | null;
   readonly onNew: (toolkitId: string | null) => void;
   readonly onOpenFile: (file: File) => void;
@@ -66,7 +66,11 @@ export function ProjectFiles({
   const [saveAsName, setSaveAsName] = useState<string | null>(null);
   /** New project dialog: the toolkit being chosen (undefined: closed). */
   const [newToolkit, setNewToolkit] = useState<string | null | undefined>(undefined);
-  const startNew = () => (toolkits.length > 1 ? setNewToolkit(defaultToolkitId) : onNew(toolkits[0]?.id ?? defaultToolkitId));
+  const startNew = () => {
+    const start = newProjectStart(toolkits.length, defaultToolkitId);
+    if (start.kind === 'ask') setNewToolkit(start.toolkitId);
+    else onNew(start.toolkitId);
+  };
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -181,35 +185,59 @@ export function ProjectFiles({
       )}
 
       {newToolkit !== undefined && (
-        <Dialog
-          title="New project"
-          lead="A new, empty project. This one stays saved in this browser."
-          onClose={() => setNewToolkit(undefined)}
-          dialogId="new-project"
-          footer={
-            <>
-              <button type="button" onClick={() => setNewToolkit(undefined)}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="sgl-primary"
-                data-autofocus
-                onClick={() => {
-                  const chosen = newToolkit;
-                  setNewToolkit(undefined);
-                  onNew(chosen);
-                }}
-              >
-                Create project
-              </button>
-            </>
-          }
-        >
-          <ToolkitPicker toolkits={toolkits} value={newToolkit} onChange={setNewToolkit} />
-        </Dialog>
+        <NewProjectDialog
+          toolkits={toolkits}
+          toolkitId={newToolkit}
+          onToolkit={setNewToolkit}
+          onCancel={() => setNewToolkit(undefined)}
+          onCreate={() => {
+            const chosen = newToolkit;
+            setNewToolkit(undefined);
+            onNew(chosen);
+          }}
+        />
       )}
     </div>
+  );
+}
+
+/**
+ * New project from the Project panel: Welcome's toolkit choice (`ToolkitPicker`, "No toolkit" by
+ * default) and Create project, which takes the same path as Welcome's Create project (`onNew` →
+ * `createProject`: with a toolkit, its custom attributes and an empty graph).
+ */
+export function NewProjectDialog({
+  toolkits,
+  toolkitId,
+  onToolkit,
+  onCancel,
+  onCreate,
+}: {
+  readonly toolkits: readonly ToolkitOption[];
+  readonly toolkitId: string | null;
+  readonly onToolkit: (toolkitId: string | null) => void;
+  readonly onCancel: () => void;
+  readonly onCreate: () => void;
+}) {
+  return (
+    <Dialog
+      title="New project"
+      lead="A new, empty project. This one stays saved in this browser."
+      onClose={onCancel}
+      dialogId="new-project"
+      footer={
+        <>
+          <button type="button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" className="sgl-primary" data-autofocus onClick={onCreate}>
+            Create project
+          </button>
+        </>
+      }
+    >
+      <ToolkitPicker toolkits={toolkits} value={toolkitId} onChange={onToolkit} />
+    </Dialog>
   );
 }
 

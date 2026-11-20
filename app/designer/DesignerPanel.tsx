@@ -6,7 +6,7 @@ import { useEnabledMetrics } from '@app/views/three/enabledMetrics';
 import { EMPTY_ATTRIBUTE_SCHEMA } from '@app/extensions';
 import { buildingFacesV2, exampleFacadeProvider } from '@app/building';
 import { designUsesFacadeModules, facadeAssetIdsOf, layoutFacadeModules, type FacadeAssetV1 } from '@app/assets';
-import { FACADE_VARIANTS, ROOF_STYLES, WALL_STYLES, WINDOW_LAYOUTS, type FacadeModule, type FacadeVariant, type FacadeVariantKind } from '@app/document';
+import { CORRIDOR_WIDTH_STEP, FACADE_VARIANTS, formatCorridorWidth, MAX_CORRIDOR_WIDTH, ROOF_STYLES, WALL_STYLES, WINDOW_LAYOUTS, type FacadeModule, type FacadeVariant, type FacadeVariantKind } from '@app/document';
 import type { DesignPort } from '@app/spatial';
 import type { ProjectViewContext } from '@app/views/project';
 import { typeColor } from '@core/viewer/appearance';
@@ -20,6 +20,7 @@ import {
   resetCorridorsEdit,
   setCorridorRoofEdit,
   setCorridorWallsEdit,
+  setCorridorWidthEdit,
   WALL_LABELS,
   designerCards,
   removeCardEdit,
@@ -280,6 +281,7 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
               card={corridorCard(doc, spatial)}
               onWalls={(walls) => send(setCorridorWallsEdit(doc, walls))}
               onRoof={(roof) => send(setCorridorRoofEdit(doc, roof))}
+              onWidth={(text) => send(setCorridorWidthEdit(doc, text))}
               onReset={() => send(resetCorridorsEdit(doc))}
             />
           </li>
@@ -347,6 +349,42 @@ function RoofField({ id, title, roof, source, onRoof }: { readonly id: string; r
   );
 }
 
+/**
+ * A corridor width in metres (the Corridors card): a number box committed on Enter or when leaving
+ * it (one command), Esc restores the value in effect; empty text clears the card's own value.
+ */
+function CorridorWidthInput({ id, width, label, onCommit }: { readonly id: string; readonly width: number; readonly label: string; readonly onCommit: (text: string) => void }) {
+  const shown = String(Number(width.toFixed(2)));
+  const [text, setText] = useState(shown);
+  useEffect(() => setText(shown), [shown]);
+  const commit = () => {
+    if (text.trim() === shown) return;
+    onCommit(text);
+    setText(shown);
+  };
+  return (
+    <span className="sgl-designer-percent sgl-designer-width">
+      <input
+        id={id}
+        type="number"
+        inputMode="decimal"
+        min={CORRIDOR_WIDTH_STEP}
+        max={MAX_CORRIDOR_WIDTH}
+        step={CORRIDOR_WIDTH_STEP}
+        aria-label={label}
+        value={text}
+        onChange={(e) => setText(e.currentTarget.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit();
+          else if (e.key === 'Escape') setText(shown);
+        }}
+        onBlur={commit}
+      />
+      m
+    </span>
+  );
+}
+
 const CORRIDOR_WALL_HELP: Readonly<Record<string, string>> = {
   enclosed: 'A side wall on each side; the ends open into the rooms',
   open: 'Open sides; slim posts carry the roof',
@@ -362,11 +400,13 @@ function CorridorCard({
   card,
   onWalls,
   onRoof,
+  onWidth,
   onReset,
 }: {
   readonly card: CorridorCardRow;
   readonly onWalls: (walls: string) => void;
   readonly onRoof: (roof: string) => void;
+  readonly onWidth: (text: string) => void;
   readonly onReset: () => void;
 }) {
   const [open, toggleOpen] = useRememberedOpen('designer-card:corridors', false);
@@ -387,7 +427,7 @@ function CorridorCard({
                 Corridors (generated)
               </span>
               <span className="sgl-designer-summary">
-                {effective.walls === 'open' ? 'Open sides' : 'Enclosed'} · {SHORT_ROOF[effective.roof]}
+                {effective.walls === 'open' ? 'Open sides' : 'Enclosed'} · {SHORT_ROOF[effective.roof]} · {formatCorridorWidth(effective.width)}
                 {corridorCount !== null ? ` · ${corridorCount} ${corridorCount === 1 ? 'corridor' : 'corridors'}` : ''}
                 {card.hasOverride ? ' · changed' : ''}
               </span>
@@ -426,10 +466,20 @@ function CorridorCard({
           <RoofField id={`${idBase}-roof`} title="Roof of every generated corridor" roof={effective.roof} source={source(setHere.roof)} onRoof={onRoof} />
         </Subsection>
 
+        <Subsection idBase={idBase} name="width" title="Width" rememberId="designer-card:corridors:width">
+          <SourcedField htmlFor={`${idBase}-width`} label="Width" title="Built width of every generated corridor, in metres" source={source(setHere.width)}>
+            <CorridorWidthInput id={`${idBase}-width`} width={effective.width} label="Corridor width in metres" onCommit={onWidth} />
+          </SourcedField>
+          <p className="sgl-designer-source">
+            Built width, centred in the corridor's cells: more than 0 and at most one cell ({formatCorridorWidth(MAX_CORRIDOR_WIDTH)}). The corridor still takes its whole cells.
+            Empty the box to use the built-in default again.
+          </p>
+        </Subsection>
+
         <p className="sgl-designer-source">
           {overrideCount > 0
-            ? `${overrideCount} ${overrideCount === 1 ? 'relationship sets its' : 'relationships set their'} own walls or roof in Properties.`
-            : 'One relationship can set its own walls or roof in Properties.'}
+            ? `${overrideCount} ${overrideCount === 1 ? 'relationship sets its' : 'relationships set their'} own walls, roof or width in Properties.`
+            : 'One relationship can set its own walls, roof or width in Properties.'}
         </p>
         <div className="sgl-designer-card-actions">
           <button type="button" className="sgl-designer-reset" disabled={!card.hasOverride} onClick={onReset}>

@@ -1,4 +1,4 @@
-import { FACE_DIRECTION_OFFSETS, neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial';
+import { neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial';
 import type { EffectiveCorridorLook, WallStyle } from '@app/document';
 import type { ConnectorRoute, Occupancy } from '@app/spatial';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '@core/viewer/coordinates';
@@ -20,11 +20,17 @@ import { OPENING_PROPORTIONS } from './faceLayout';
  *   Roof parts (slab or slats) are all `connector-roof`;
  * - walls: `enclosed` = one side wall on each side; `open` = open sides, with posts at every cell
  *   boundary only where there is a roof to carry (open + none = floor only).
- * The two ENDS are always open (the room endpoint faces carry the door / opening).
- * A floor, roof, side wall or post is omitted where a room already provides that surface
- * (room cell directly below / above / beside), so no surface is doubled. Between two parallel
- * routes, a shared side wall is drawn once (by the lower edge id, unless only the other route is
- * enclosed).
+ * Width (`route.look.width`, 2026-11-19): floor, roof (slab or slats), side walls and posts are
+ * built at the corridor's width (at most the cell), centred on the cell's axis along the corridor;
+ * the corridor still takes its whole cells. The side walls and posts stand on the corridor's
+ * edges (at the cell's faces when it is a full cell wide, as before).
+ * The two ENDS are always open (the room endpoint faces carry the door / opening, no wider than
+ * the corridor: `corridorWidth` on the face, see faceLayout).
+ * A floor or roof is omitted where a room already provides that surface (room cell directly below
+ * / above). A side wall or post is omitted beside a room only when the corridor is a full cell
+ * wide (the room's wall is then its side); between two parallel full-width routes, a shared side
+ * wall is drawn once (by the lower edge id, unless only the other route is enclosed). A narrower
+ * corridor always has its own sides.
  */
 
 export type ConnectorPart = 'connector-floor' | 'connector-roof' | 'connector-wall' | 'connector-post';
@@ -53,6 +59,8 @@ export interface ConnectorOptions {
   readonly postSize?: number;
   /** Effective walls of another route by edge id (for walls shared by parallel routes). */
   readonly wallsOfEdge?: (edgeId: number) => WallStyle | undefined;
+  /** Built width (m) of another route by edge id: a shared wall is shared only between full-width routes. */
+  readonly widthOfEdge?: (edgeId: number) => number | undefined;
 }
 
 export const DEFAULT_POST_SIZE = 0.15;
@@ -87,6 +95,13 @@ export function buildConnector(route: ConnectorRoute, occupancy: Occupancy, opti
   const target = selectEdge(route.edgeId);
   const out: ConnectorElement[] = [];
   const axisIndex = route.axis === 'x' ? 0 : 2; // route axis in Three space (grid y → Three Z)
+  const acrossIndex = axisIndex === 0 ? 2 : 0;
+  // Built width across the corridor, centred; at most the cell.
+  const wc = Math.min(look.width, W);
+  const fullWidth = wc >= W - 1e-9;
+  /** A box `along` long (route axis), `height` high and `across` wide. */
+  const boxSize = (along: number, height: number, across: number): [number, number, number] =>
+    axisIndex === 0 ? [along, height, across] : [across, height, along];
 
   const isRoom = (c: GridCoord) => occupancy.at(c)?.kind === 'room';
 
@@ -96,10 +111,10 @@ export function buildConnector(route: ConnectorRoute, occupancy: Occupancy, opti
       out.push({ id: `${route.edgeId}:route:${i}:${part}:${n++}`, edgeId: route.edgeId, look, part, cell, target, position, size });
     const centre = spatialToThree(cell, cellSize);
 
-    if (!isRoom(neighbourCell(cell, '-z'))) emit('connector-floor', [centre[0], centre[1] - H / 2, centre[2]], [W, slabT, W]);
+    if (!isRoom(neighbourCell(cell, '-z'))) emit('connector-floor', [centre[0], centre[1] - H / 2, centre[2]], boxSize(W, slabT, wc));
     if (roof !== 'none' && !isRoom(neighbourCell(cell, '+z'))) {
       const y = centre[1] + H / 2;
-      if (roof === 'flat') emit('connector-roof', [centre[0], y, centre[2]], [W, slabT, W]);
+      if (roof === 'flat') emit('connector-roof', [centre[0], y, centre[2]], boxSize(W, slabT, wc));
       else {
         // Pergola: slats across the corridor, evenly spaced along it (as a room pergola's bay).
         const count = OPENING_PROPORTIONS.pergolaSlats;
@@ -108,27 +123,29 @@ export function buildConnector(route: ConnectorRoute, occupancy: Occupancy, opti
         for (let k = 0; k < count; k++) {
           const p: [number, number, number] = [centre[0], y, centre[2]];
           p[axisIndex] += -W / 2 + w / 2 + k * step;
-          const size: [number, number, number] = axisIndex === 0 ? [w, slabT, W] : [W, slabT, w];
-          emit('connector-roof', p, size);
+          emit('connector-roof', p, boxSize(w, slabT, wc));
         }
       }
     }
 
     for (const side of SIDES[route.axis]) {
       const neighbour = occupancy.at(neighbourCell(cell, side));
-      if (neighbour?.kind === 'room') continue; // the room's own (solid) wall bounds this side
+      if (fullWidth && neighbour?.kind === 'room') continue; // the room's own (solid) wall bounds this side
+      // This side's line: the cell's face for a full-width corridor, else the corridor's edge.
+      const face = faceCentre(cell, side, cellSize);
+      const edge: [number, number, number] = [face[0], face[1], face[2]];
+      edge[acrossIndex] = centre[acrossIndex]! + Math.sign(face[acrossIndex]! - centre[acrossIndex]!) * (wc / 2);
       if (walls === 'enclosed') {
-        if (neighbour?.kind === 'route') {
+        if (fullWidth && neighbour?.kind === 'route') {
           const other = options.wallsOfEdge?.(neighbour.edgeId);
-          const otherDraws = other === 'enclosed' && neighbour.edgeId < route.edgeId;
+          const otherWidth = options.widthOfEdge?.(neighbour.edgeId) ?? W;
+          const otherDraws = other === 'enclosed' && otherWidth >= W - 1e-9 && neighbour.edgeId < route.edgeId;
           if (otherDraws) continue;
         }
-        const along = FACE_DIRECTION_OFFSETS[side][0] !== 0 ? 0 : 2; // wall normal on Three X or Z
-        const size: [number, number, number] = along === 0 ? [wallT, H, W] : [W, H, wallT];
-        emit('connector-wall', faceCentre(cell, side, cellSize), size);
+        emit('connector-wall', fullWidth ? face : edge, boxSize(W, H, wallT));
       } else if (roof !== 'none') {
         // Open sides under a roof: posts at this cell's start boundary, plus the end boundary on the last cell.
-        const wall = faceCentre(cell, side, cellSize);
+        const wall = fullWidth ? face : edge;
         const step = route.cells.length > 1 ? Math.sign(spatialToThree(route.cells[1]!, cellSize)[axisIndex] - spatialToThree(route.cells[0]!, cellSize)[axisIndex]) : 1;
         const boundaries = i === route.cells.length - 1 ? [-1, 1] : [-1];
         for (const b of boundaries) {
