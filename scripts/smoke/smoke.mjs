@@ -335,12 +335,12 @@ if (wants('views')) {
           if (b.querySelector(${JSON.stringify(`[data-placeholder="${mode}"]`)})) return { kind: 'placeholder' };
           const area = (e) => { const r = e.getBoundingClientRect(); return r.width * r.height; };
           const c = [...b.querySelectorAll('canvas')].sort((x, y) => area(y) - area(x))[0]; const f = b.querySelector('.react-flow');
-          // An SVG view (Plan) marks its drawing surface with data-view-surface="<mode>".
-          const s = b.querySelector(${JSON.stringify(`svg[data-view-surface="${mode}"]`)});
+          // A view without a canvas marks its surface with data-view-surface="<mode>": an SVG (Plan) or an HTML element (Data: JSON text / tables).
+          const s = b.querySelector(${JSON.stringify(`[data-view-surface="${mode}"]`)});
           const el = c ?? f ?? s; if (!el) return null; const r = el.getBoundingClientRect(), br = b.getBoundingClientRect();
           // The main canvas must fill most of the panel (not the 300×150 default of an unsized canvas).
-          return r.width >= br.width * 0.8 && r.height >= br.height * 0.6 ? { kind: c ? 'canvas' : f ? 'react-flow' : 'svg', width: Math.round(r.width), height: Math.round(r.height) } : null; })()`,
-        `${mode} content (canvas or diagram) in panel 2`,
+          return r.width >= br.width * 0.8 && r.height >= br.height * 0.6 ? { kind: c ? 'canvas' : f ? 'react-flow' : s.tagName.toLowerCase() === 'svg' ? 'svg' : 'surface', width: Math.round(r.width), height: Math.round(r.height) } : null; })()`,
+        `${mode} content (canvas, diagram or view surface) in panel 2`,
       );
       await delay(600);
       const m = await evaluate(OVERFLOW_JS);

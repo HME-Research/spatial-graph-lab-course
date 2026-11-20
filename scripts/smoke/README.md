@@ -35,7 +35,7 @@ Unit tests for the harness helpers (`lib.mjs`, `cdp.mjs` and the pure helpers of
 | `load/app`, `load/welcome`, `load/project` | The app renders and the Welcome overlay is shown at startup (Create project, Open project, Open example…, Recent projects; no view panels, so no project was reopened automatically). The check then clicks **Open example…** → **House – graph only**, the project finishes activating and the design shows nodes in Graph 2D. |
 | `viewports/1280x720`, `1366x768`, `1920x1080` | No page scroll (document scroll size ≤ viewport). Toolbar, workspace, panel and sidebar rectangles are recorded, with a screenshot each. |
 | `select/node-without-resize` | Clicks a node. Sidebar and panel rectangles must not change by more than 1 px; any change is listed. |
-| `views/<mode>` | Each view mode in panel 2. The main canvas or diagram must fill the panel, with no page scroll. Screenshot each. |
+| `views/<mode>` | Each view mode in panel 2. The main canvas, diagram or view surface (`[data-view-surface="<mode>"]`: the Plan SVG, the Data view's JSON/table element) must fill the panel, with no page scroll. Screenshot each. |
 | `undo-redo/diagram-drag` | Drags a node in the diagram, then checks that Undo restores the exact position and Redo reapplies it. |
 | `analysis/run`, `analysis/stale-after-edit` | Runs the first graph analysis, which must show rows. After an edit, the stale warning must appear. |
 | `import/invalid-json-message` | Error clarity: the heading names the file, the message says whether the design was kept, it lists 1–5 issue lines, and the design is unchanged. |
