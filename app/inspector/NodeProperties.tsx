@@ -10,7 +10,7 @@ import { attributesOutsideSchema, findFunction } from '@app/extensions';
 import { duplicateRoom } from '@app/views/duplicateRoom';
 import { functionStatus } from '@app/views/project';
 import { CollapsibleSection, describeResolution, IssueFeedback, labelOfChoice, RELATIONSHIP_KIND_CHOICES, RouteConfirm, UNDO_HINT } from '@app/ui';
-import { typeColor } from '@core/viewer/appearance';
+import { useFunctionColour } from '@app/views/functionColour';
 import { selectEdge, selectNode } from '@core/viewer/selection';
 import { CalculatedRows, FieldRow } from './CalculatedValues';
 import { AttributesForm, NodeChecks, StoredData, TypedAttributesForm, TypeStatusNote } from './AttributeEditors';
@@ -41,6 +41,7 @@ const toCoord = (t: Triple): [number, number, number] => [t[0], t[1], t[2]];
  */
 export function NodeProperties(props: PanelProps & { readonly nodeId: number }) {
   const { design, project, nodeId } = props;
+  const functionColour = useFunctionColour();
   const { issues, showIssues, clearIssues, runShared, runV2 } = useCommands(props);
   const [pending, setPending] = useState<PendingConfirmation | null>(null);
   /** Bumped to reset the geometry drafts after Cancel. */
@@ -148,8 +149,12 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
   return (
     <div className="sgl-panel">
       <div className="sgl-title">
-        <span className="sgl-swatch" style={{ background: typeColor(node.function) }} aria-hidden="true" />
-        Room <span className="sgl-room-label">{label}</span>
+        <span className="sgl-swatch" style={{ background: functionColour(node.function) }} aria-hidden="true" />
+        {/* The Function names the room (2026-11-20); the id stays visible as its permanent identity. */}
+        <span className="sgl-room-function">{functionName}</span>
+        <span className="sgl-id" title="The room's id: permanent, never reused">
+          Room <span className="sgl-room-label">{label}</span>
+        </span>
       </div>
 
       <IssueFeedback issues={issues} context={context} onDismiss={clearIssues} />

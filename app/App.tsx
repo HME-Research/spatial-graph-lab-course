@@ -13,6 +13,8 @@ import {
   selectToolkit,
   withProjectFunctions,
   isProjectFunction,
+  defaultFunctionColour,
+  functionColourResolver,
   type AttributeCollection,
   type ExtensionDiagnostic,
   type StoredUpload,
@@ -81,6 +83,7 @@ import { SavedCamerasProvider } from '@app/camera/savedCameras';
 import { DisplayProvider } from '@app/display/DisplayProvider';
 import { sanitizeEnabledMetrics } from '@app/metrics';
 import { EnabledMetricsContext } from '@app/views/three/enabledMetrics';
+import { FunctionColourContext } from '@app/views/functionColour';
 import { EMPTY_FACADE_LIBRARY, facadeLibraryOf, FacadeLibraryContext } from '@app/views/three/facadeLibrary';
 import { RoomHighlightContext, SetRoomHighlightContext, type RoomHighlight } from '@app/views/roomHighlight';
 import { DEFAULT_VIEWPORT_STATE, deriveViewports, type ViewportState } from '@app/workspace/viewports';
@@ -346,6 +349,9 @@ export function App() {
     [session, projectId],
   );
   const project = useMemo(() => (activeToolkit ? withProjectFunctions(activeToolkit, projectFunctions, hiddenFunctions ?? []) : null), [activeToolkit, projectFunctions, hiddenFunctions]);
+  /** The ONE function colour resolver (own colour → toolkit colour → automatic) for every view and swatch. */
+  const functionColours = openProject?.meta.settings.functionColours;
+  const functionColour = useMemo(() => functionColourResolver(project, functionColours), [project, functionColours]);
   /** Every scenario's current design (attribute values are checked and counted across all of them). */
   const scenarioDesigns = useMemo(
     () => (openProject ? openProject.scenarios.map((s) => ({ id: s.id, name: s.name, doc: currentDocument(s.session).design })) : []),
@@ -714,6 +720,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                 {/* Saved cameras and Display of the ACTIVE scenario, persisted in the project file (autosaved, not undoable). */}
                 <SavedCamerasProvider scenarioId={scenarioId ?? ''} store={cameraStore}>
                 <DisplayProvider scenarioId={scenarioId ?? ''} store={displayStore}>
+                <FunctionColourContext.Provider value={functionColour}>
                 <EnabledMetricsContext.Provider value={calculatedFields}>
                 <FacadeLibraryContext.Provider value={facadeLibrary}>
                 <RoomHighlightContext.Provider value={roomHighlight}>
@@ -822,6 +829,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                 </RoomHighlightContext.Provider>
                 </FacadeLibraryContext.Provider>
                 </EnabledMetricsContext.Provider>
+                </FunctionColourContext.Provider>
                 </DisplayProvider>
                 </SavedCamerasProvider>
               </WorkspaceServicesContext.Provider>
@@ -832,6 +840,10 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                   hidden={hiddenFunctions ?? []}
                   usedTypeIds={usedTypeIds}
                   onChange={(functions, hidden) => controller.setFunctions(functions, hidden)}
+                  colourOf={functionColour}
+                  defaultColourOf={(id) => defaultFunctionColour(project, id)}
+                  ownColours={functionColours ?? {}}
+                  onColour={(id, colour) => controller.setFunctionColour(id, colour)}
                   onClose={() => setFunctionsOpen(false)}
                 />
               )}

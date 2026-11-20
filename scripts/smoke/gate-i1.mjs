@@ -312,13 +312,12 @@ await runScript({ name: 'gate-i1', usage: USAGE, url: 'http://localhost:5291/', 
     const e1 = await storedEdgeCount(st.first);
     const e2 = await storedEdgeCount(st.second);
     expect(e1 === 5 && e2 === 4, `restored edges: ${st.first} ${e1}, ${st.second} ${e2}`);
-    // Known app issue (reported, not a check): after opening from Recent, Graph 2D sometimes draws no edges
-    // until the view is remounted. ensureGraphEdges remounts it and records a NOTE.
-    const drewEdges = await ensureGraphEdges(s, e1);
-    const note = drewEdges ? '' : '; Graph 2D needed a remount to draw its edges (app issue, see NOTE)';
+    // Graph 2D must draw every restored edge without help (it used to draw none after a restore from
+    // Recent until the view was remounted; fixed 2026-11-20).
+    await ensureGraphEdges(s, e1);
     await openRail(s, 'Attributes');
     expect(/capacity/i.test(await attributesText()), 'the shared capacity attribute was not restored');
-    return `Welcome after reload (no auto-resume); Recent restored "${PROJECT}"; scenarios, geometry, the new edge (${e1} vs ${e2} edges) and "capacity" restored; history fresh${note}`;
+    return `Welcome after reload (no auto-resume); Recent restored "${PROJECT}"; scenarios, geometry, the new edge (${e1} vs ${e2} edges, all drawn in Graph 2D) and "capacity" restored; history fresh`;
   });
 
   await step(3, 'calculated-attribute-persisted', async () => {

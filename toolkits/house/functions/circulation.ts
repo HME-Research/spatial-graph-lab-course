@@ -4,6 +4,7 @@ import { defineFunction } from '@student-api';
 export default defineFunction({
   id: 'circulation',
   label: 'Circulation',
+  colour: '#9b9a8f',
   facade: { windowFraction: 0.2 },
   custom: {
     targetArea: { kind: 'number', min: 1, default: 9 },

@@ -25,7 +25,8 @@ import {
   type WallAction,
 } from '@app/building';
 import type { DesignPort } from '@app/spatial';
-import { SELECTION_COLOR, typeColor } from '@core/viewer/appearance';
+import { SELECTION_COLOR } from '@core/viewer/appearance';
+import { useFunctionColour } from '../functionColour';
 import { NO_SELECTION, selectEdge, selectNode, selectionEmphasis, type Emphasis, type Selection, type SelectionHandler } from '@core/viewer/selection';
 import type { ViewProps } from '../contracts';
 import { projectFacadeProvider } from '../project';
@@ -537,6 +538,7 @@ export function PlanDrawing({
   /** "Edit rooms": the preview outline and resize handles, drawn on top. */
   readonly editOverlay?: ReactNode;
 }) {
+  const functionColour = useFunctionColour();
   const edgeClass = (base: string, edgeId: number | null) =>
     edgeId !== null && emphasis.edges.has(edgeId) ? `${base} selected` : edgeId !== null && analysed?.edges.has(edgeId) ? `${base} analysed` : base;
   const hit = 4 * px; // 4 px of extra hit area around thin elements
@@ -571,7 +573,7 @@ export function PlanDrawing({
               key={room.nodeId}
               className={`sgl-plan-room${cls}`}
               data-node-id={room.nodeId}
-              style={{ '--sgl-plan-type': typeColor(room.function) } as CSSProperties}
+              style={{ '--sgl-plan-type': functionColour(room.function) } as CSSProperties}
               {...rectProps(room.rect)}
               {...activate(selectNode(room.nodeId))}
               aria-label={`Room ${room.label}`}

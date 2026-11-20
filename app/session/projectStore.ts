@@ -477,7 +477,35 @@ export function setProjectFunctions(project: OpenProject, functions: readonly Pr
   const sameFunctions = current.length === functions.length && current.every((f, i) => f.id === functions[i]!.id && f.label === functions[i]!.label);
   const sameHidden = currentHidden.length === hidden.length && currentHidden.every((id, i) => id === hidden[i]);
   if (sameFunctions && sameHidden) return project;
-  const settings = { ...project.meta.settings, functions: functions.map((f) => ({ id: f.id, label: f.label })), hiddenFunctions: [...hidden] };
+  // A removed project function takes its own colour with it (a later function may get its id).
+  const kept = new Set(functions.map((f) => f.id));
+  const gone = current.filter((f) => !kept.has(f.id)).map((f) => f.id);
+  const colours = withoutColours(project.meta.settings.functionColours, gone);
+  const base = { ...project.meta.settings, functions: functions.map((f) => ({ id: f.id, label: f.label })), hiddenFunctions: [...hidden] };
+  const { functionColours: _dropped, ...rest } = base;
+  const settings = colours === undefined ? rest : { ...rest, functionColours: colours };
+  return changed(project, { meta: { ...project.meta, settings } });
+}
+
+function withoutColours(colours: Readonly<Record<string, string>> | undefined, ids: readonly string[]): Readonly<Record<string, string>> | undefined {
+  if (colours === undefined || !ids.some((id) => Object.hasOwn(colours, id))) return colours;
+  const next = Object.fromEntries(Object.entries(colours).filter(([id]) => !ids.includes(id)));
+  return Object.keys(next).length === 0 ? undefined : next;
+}
+
+/**
+ * The project's own colour of one function (`settings.functionColours`, Functions dialog), or
+ * `null` to go back to the default (the toolkit's colour, else automatic). Like the other
+ * function edits: saved with the project at once, not part of Undo. `colour` must be `#rrggbb`;
+ * it is stored in lowercase. Setting the colour already stored changes nothing.
+ */
+export function setFunctionColour(project: OpenProject, functionId: string, colour: string | null): OpenProject {
+  if (colour !== null && !/^#[0-9a-fA-F]{6}$/.test(colour)) return project;
+  const current = project.meta.settings.functionColours;
+  const next = colour === null ? withoutColours(current, [functionId]) : { ...current, [functionId]: colour.toLowerCase() };
+  if (next === current || (colour !== null && current?.[functionId] === colour.toLowerCase())) return project;
+  const { functionColours: _old, ...rest } = project.meta.settings;
+  const settings = next === undefined ? rest : { ...rest, functionColours: next };
   return changed(project, { meta: { ...project.meta, settings } });
 }
 

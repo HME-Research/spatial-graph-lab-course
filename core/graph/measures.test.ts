@@ -5,8 +5,8 @@ import {
   connectedParts,
   cutNodes,
   degree,
-  detourIfRemoved,
   diameter,
+  edgeBetweenness,
   graphSize,
   incidentEdgeIds,
   leafNodes,
@@ -14,6 +14,7 @@ import {
   mostConnected,
   neighbourIds,
   reachWithin,
+  routesThrough,
   sharedNeighbours,
   shortestPath,
   touchingEdges,
@@ -81,12 +82,36 @@ describe('graph measures: node and edge', () => {
     expect(touchingEdges(HOUSE, 99)).toBeUndefined();
   });
 
-  it('detour if removed: the way round, or splits the graph for a bridge', () => {
-    expect(detourIfRemoved(HOUSE, 6)).toEqual({ path: { nodes: [5, 2, 6], edges: [4, 5] } });
-    expect(detourIfRemoved(HOUSE, 1)).toEqual({ splits: true });
-    expect(detourIfRemoved(HOUSE, 99)).toBeUndefined();
-    // A parallel edge is a way round of one step.
-    expect(detourIfRemoved(g([[1, 1, 2], [2, 1, 2]]), 1)).toEqual({ path: { nodes: [1, 2], edges: [2] } });
+  it('routes through an edge (edge betweenness): pairs whose shortest routes use it', () => {
+    // The example house: Entrance 1 – Living 2, Living – Kitchen 3, Living – Bedroom 4, Bedroom – Bath 5.
+    const example = g([
+      [1, 1, 2],
+      [2, 2, 3],
+      [3, 2, 4],
+      [4, 4, 5],
+    ]);
+    expect(routesThrough(example, 3)).toEqual({ trips: 6, pairs: 10 });
+    for (const e of [1, 2, 4]) expect(routesThrough(example, e)).toEqual({ trips: 4, pairs: 10 });
+    expect(routesThrough(example, 99)).toBeUndefined();
+    // A loop of four: each opposite pair has two shortest routes, so each edge carries 1 + ½ + ½.
+    const square = g([
+      [1, 1, 2],
+      [2, 2, 3],
+      [3, 3, 4],
+      [4, 4, 1],
+    ]);
+    expect([...edgeBetweenness(square).values()]).toEqual([2, 2, 2, 2]);
+    // A triangle with a tail: 5–6 only carries its own pair; Hall–Living carries 5 to everyone but 6.
+    expect(edgeBetweenness(HOUSE).get(6)).toBe(1);
+    expect(edgeBetweenness(HOUSE).get(4)).toBe(4);
+    expect(edgeBetweenness(HOUSE).get(1)).toBe(5);
+    // Parallel edges share their pair; disconnected pairs add nothing; a self-loop carries nothing.
+    expect([...edgeBetweenness(g([[1, 1, 2], [2, 1, 2], [3, 2, 2]])).values()]).toEqual([0.5, 0.5, 0]);
+    expect(routesThrough(SPLIT, 9)).toEqual({ trips: 1, pairs: 15 });
+    expect(routesThrough(SPLIT, 2)).toEqual({ trips: 4, pairs: 15 });
+    // Every pair's route uses some edge: the edges' sum is the total route length over connected pairs.
+    const total = [...edgeBetweenness(example).values()].reduce((a, b) => a + b, 0);
+    expect(total).toBe(18); // 1+2+2+3 (from 1) + 1+1+2 (from 2) + 2+3 (from 3) + 1 (4–5)
   });
 });
 

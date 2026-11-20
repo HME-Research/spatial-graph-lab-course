@@ -9,6 +9,7 @@ export * from './attributeBaseline';
 export * from './attributeEdits';
 export * from './projectAttributes';
 export * from './projectFunctions';
+export * from './functionColours';
 export * from './resolveAttributes';
 export * from './conformance';
 export * from './context';

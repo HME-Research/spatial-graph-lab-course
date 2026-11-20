@@ -34,6 +34,18 @@ const HOUSE: AnalysisGraph = {
     { id: 6, source: 5, target: 7 },
   ],
 };
+/** The REAL built-in example (app/document/examples/house.json): 5 rooms, 4 relationships. */
+const EXAMPLE: AnalysisGraph = {
+  nodes: [1, 2, 3, 4, 5].map((id) => ({ id })),
+  edges: [
+    { id: 1, source: 1, target: 2 },
+    { id: 2, source: 2, target: 3 },
+    { id: 3, source: 2, target: 4 },
+    { id: 4, source: 4, target: 5 },
+  ],
+};
+/** The example with a relationship Entrance–Kitchen (edge 5): a loop 1–2–3. */
+const EXAMPLE_LOOP: AnalysisGraph = { nodes: EXAMPLE.nodes, edges: [...EXAMPLE.edges, { id: 5, source: 1, target: 3 }] };
 /** The same house with a loop 2–3–4–2 and a separate pair 8–9. */
 const LOOPED: AnalysisGraph = {
   nodes: [...HOUSE.nodes, { id: 8 }, { id: 9 }],
@@ -68,12 +80,62 @@ describe('built-in analyses', () => {
     expect(runBuiltInAnalysis('degree', HOUSE, [99])).toEqual({ ok: false, messages: ['There is no node 99.'] });
   });
 
-  it('edge analyses: shared neighbours, detour (bridge or way round), touching edges', () => {
+  it('edge analyses: shared neighbours, touching edges', () => {
     expect(answer(runBuiltInAnalysis('shared-neighbours', HOUSE, [2]))).toMatchObject({ answer: '0', highlightNodes: [] });
     expect(answer(runBuiltInAnalysis('shared-neighbours', LOOPED, [2]))).toMatchObject({ answer: '1', detail: 'node 4', highlightNodes: [4], highlightEdges: [3, 7] });
-    expect(answer(runBuiltInAnalysis('detour-if-removed', HOUSE, [1]))).toMatchObject({ answer: 'Splits the graph', highlightEdges: [1] });
-    expect(answer(runBuiltInAnalysis('detour-if-removed', LOOPED, [2]))).toMatchObject({ answer: '2', detail: '2 → 4 → 3', highlightEdges: [7, 3] });
     expect(answer(runBuiltInAnalysis('touching-edges', HOUSE, [4]))).toMatchObject({ answer: '4', label: 'edges share a node with 2 → 5', highlightEdges: [1, 2, 5, 6] });
+  });
+
+  it('the four edge analyses on the example house (Entrance 1–Living 2, Living–Kitchen 3, Living–Bedroom 4, Bedroom–Bath 5)', () => {
+    // Routes through it: Living–Bedroom carries 3 × 2 = 6 of the 10 trips, the others 4.
+    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE, [3]))).toEqual({
+      answer: '6 of 10',
+      label: 'trips between two nodes take 2 → 4 on a shortest route',
+      detail: 'nearer 2: nodes 1, 2, 3 · nearer 4: nodes 4, 5',
+      highlightNodes: [2, 4],
+      highlightEdges: [3],
+      nodeValues: { 1: 'nearer 2', 2: 'nearer 2', 3: 'nearer 2', 4: 'nearer 4', 5: 'nearer 4' },
+    });
+    for (const e of [1, 2, 4]) expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE, [e])).answer).toBe('4 of 10');
+    // Touching edges: Living–Bedroom touches 1 → 2 and 2 → 3 at the Living room, 4 → 5 at the Bedroom.
+    expect(answer(runBuiltInAnalysis('touching-edges', EXAMPLE, [3]))).toMatchObject({ answer: '3', detail: '1 → 2, 2 → 3, 4 → 5', highlightEdges: [1, 2, 4] });
+    // Shared neighbours: none in the tree-shaped house.
+    for (const e of [1, 2, 3, 4]) expect(answer(runBuiltInAnalysis('shared-neighbours', EXAMPLE, [e])).answer).toBe('0');
+    // Ends' connections: Living 3 · Kitchen 1 (a hub and a dead end); Bedroom 2 · Bath 1.
+    expect(answer(runBuiltInAnalysis('ends-connections', EXAMPLE, [2]))).toEqual({
+      answer: '3 · 1',
+      label: 'edges at node 2 · at node 3',
+      detail: '2 is a hub, 3 is a dead end',
+      highlightNodes: [2, 3],
+      highlightEdges: [1, 2, 3],
+    });
+    expect(answer(runBuiltInAnalysis('ends-connections', EXAMPLE, [4]))).toMatchObject({ answer: '2 · 1', detail: '4 is on the way through, 5 is a dead end' });
+    expect(runBuiltInAnalysis('routes-through', EXAMPLE, [99])).toEqual({ ok: false, messages: ['There is no edge 99.'] });
+    expect(runBuiltInAnalysis('ends-connections', EXAMPLE, [99])).toEqual({ ok: false, messages: ['There is no edge 99.'] });
+  });
+
+  it('the four edge analyses with a loop: Entrance–Kitchen added', () => {
+    // Entrance, Living and Kitchen form a triangle; Living–Bedroom still carries 6 of 10.
+    expect(answer(runBuiltInAnalysis('shared-neighbours', EXAMPLE_LOOP, [2]))).toMatchObject({ answer: '1', detail: 'node 1', highlightNodes: [1], highlightEdges: [1, 5] });
+    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE_LOOP, [3])).answer).toBe('6 of 10');
+    // Living–Kitchen now only carries its own pair and the Kitchen's trips… which go straight to the Entrance.
+    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE_LOOP, [2])).answer).toBe('3 of 10');
+    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE_LOOP, [5])).answer).toBe('1 of 10');
+    expect(answer(runBuiltInAnalysis('touching-edges', EXAMPLE_LOOP, [2])).answer).toBe('3');
+    expect(answer(runBuiltInAnalysis('ends-connections', EXAMPLE_LOOP, [2]))).toMatchObject({ answer: '3 · 2', detail: '2 is a hub, 3 is on the way through' });
+    // A loop of four splits opposite pairs between two routes: shares shown with one decimal.
+    const square: AnalysisGraph = {
+      nodes: [1, 2, 3, 4, 5].map((id) => ({ id })),
+      edges: [
+        { id: 1, source: 1, target: 2 },
+        { id: 2, source: 2, target: 3 },
+        { id: 3, source: 3, target: 4 },
+        { id: 4, source: 4, target: 1 },
+        { id: 5, source: 1, target: 5 },
+      ],
+    };
+    expect(answer(runBuiltInAnalysis('routes-through', square, [1])).answer).toBe('3.5 of 10');
+    expect(answer(runBuiltInAnalysis('routes-through', square, [2])).answer).toBe('2.5 of 10');
   });
 
   it('network analyses on the example house', () => {
@@ -128,7 +190,18 @@ describe('built-in analyses', () => {
 
 describe('Analyse panel model', () => {
   it('lists the built-ins shown at start, then the toolkit analyses in their derived sections', () => {
-    expect(DEFAULT_SHOWN_ANALYSES).toEqual(['degree', 'neighbours', 'detour-if-removed', 'summary', 'most-connected-node', 'connected-parts', 'shortest-path']);
+    expect(DEFAULT_SHOWN_ANALYSES).toEqual([
+      'degree',
+      'neighbours',
+      'routes-through',
+      'touching-edges',
+      'shared-neighbours',
+      'ends-connections',
+      'summary',
+      'most-connected-node',
+      'connected-parts',
+      'shortest-path',
+    ]);
     const items = analysisItems(DEFAULT_SHOWN_ANALYSES, {
       name: 'House',
       analyses: [
@@ -138,7 +211,7 @@ describe('Analyse panel model', () => {
     });
     const by = itemsBySection(items, 'all');
     expect(by.node.map((i) => i.key)).toEqual(['built-in:degree', 'built-in:neighbours', 'toolkit:depth']);
-    expect(by.edge.map((i) => i.id)).toEqual(['detour-if-removed']);
+    expect(by.edge.map((i) => i.id)).toEqual(['routes-through', 'touching-edges', 'shared-neighbours', 'ends-connections']);
     expect(by.network.map((i) => i.id)).toEqual(['summary', 'most-connected-node', 'connected-parts']);
     expect(by.queries.map((i) => i.id)).toEqual(['shortest-path', 'pair']);
     expect(itemsBySection(items, 'toolkit').node.map((i) => i.id)).toEqual(['depth']);
@@ -149,10 +222,13 @@ describe('Analyse panel model', () => {
 
   it('the "+" catalogue adds and removes built-ins; stored choices are sanitised', () => {
     expect(catalogueFor('edge', DEFAULT_SHOWN_ANALYSES)).toEqual([
-      { id: 'shared-neighbours', name: 'Shared neighbours', shown: false },
-      { id: 'detour-if-removed', name: 'Detour if removed', shown: true },
-      { id: 'touching-edges', name: 'Touching edges', shown: false },
+      { id: 'routes-through', name: 'Routes through it', shown: true },
+      { id: 'touching-edges', name: 'Touching edges', shown: true },
+      { id: 'shared-neighbours', name: 'Shared neighbours', shown: true },
+      { id: 'ends-connections', name: 'Ends’ connections', shown: true },
     ]);
+    // The retired "Detour if removed" is no built-in any more: a stored id is ignored.
+    expect(sanitizeShownAnalyses(['detour-if-removed', 'degree'])).toEqual(['degree']);
     const added = setAnalysisShown(DEFAULT_SHOWN_ANALYSES, 'bridges', true);
     expect(added).toContain('bridges');
     expect(added.indexOf('bridges')).toBe(added.indexOf('connected-parts') + 1);

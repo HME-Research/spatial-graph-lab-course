@@ -361,6 +361,11 @@
   color: var(--muted, #62625c);
   transition: transform 120ms ease;
 }
+/* The Corridors card is always open in its own section: its head is not a button. */
+.sgl-designer-type .sgl-designer-type-head--static,
+:where(.toolbar, .sgl-sidenav-panel) .sgl-designer-type .sgl-designer-type-head--static {
+  cursor: default;
+}
 .sgl-designer-type-head[aria-expanded='true'] .sgl-designer-chevron {
   transform: rotate(90deg);
 }
