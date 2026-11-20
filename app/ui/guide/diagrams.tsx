@@ -278,7 +278,7 @@ const MSeg = ({ items, on }: { readonly items: readonly string[]; readonly on: s
 function SectionsMock({ hl, alt }: { readonly hl: 'all' | 'identity' | 'required' | 'geometry' | 'custom' | 'calculated'; readonly alt: string }) {
   const on = (id: string) => hl === 'all' || hl === id;
   return (
-    <Mock alt={alt} title="Room 2 · Living">
+    <Mock alt={alt} title="Living · Room 2">
       <MSec plain title="Identity" hl={on('identity')}>
         <MRow label="ID" value="2" lock />
       </MSec>
@@ -687,9 +687,9 @@ const D: Record<string, () => ReactNode> = {
 
   // Panels
   'panel-properties': () => (
-    <Mock alt="Properties of the Living room: (1) its name, (2) Required by the app with the Function, (3) Geometry with Position and Size, (4) Custom with Target area and Priority." title="Properties">
+    <Mock alt="Properties of the Living room: (1) its title, the Function Living and the id Room 2, (2) Required by the app with the Function, (3) Geometry with Position and Size, (4) Custom with Target area and Priority." title="Properties">
       <div className="sgl-gd-row big">
-        Room 2 <MNum n={1} />
+        Living <span className="sgl-gd-tag">Room 2</span> <MNum n={1} />
       </div>
       <MSec plain title="Identity">
         <MRow label="ID" value="2" lock />

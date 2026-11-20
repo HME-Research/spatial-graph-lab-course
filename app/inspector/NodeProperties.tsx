@@ -149,7 +149,11 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
     <div className="sgl-panel">
       <div className="sgl-title">
         <span className="sgl-swatch" style={{ background: functionColour(node.function) }} aria-hidden="true" />
-        Room <span className="sgl-room-label">{label}</span>
+        {/* The Function names the room (2026-11-20); the id stays visible as its permanent identity. */}
+        <span className="sgl-room-function">{functionName}</span>
+        <span className="sgl-id" title="The room's id: permanent, never reused">
+          Room <span className="sgl-room-label">{label}</span>
+        </span>
       </div>
 
       <IssueFeedback issues={issues} context={context} onDismiss={clearIssues} />

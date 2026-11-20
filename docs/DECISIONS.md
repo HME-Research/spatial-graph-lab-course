@@ -273,3 +273,6 @@ Completes "One vocabulary". Not distributed: no migration; the old names are sim
 
 ## House façade file updated (20 November 2026, owner)
 - The owner re-saved `toolkits/house/assets/facade-ex1.3dm` in Rhino (12,511,496 bytes, was 12,510,432): the **Glass** layer colour changed from red rgb(200, 0, 0) to teal rgb(63, 191, 191); the Solid layer (black), the 8 objects and the mesh are unchanged, so the asset id stays `facade-ea64a8beca91ce66` and `showcase.json` needs no change (`check:toolkit` passes). Rhino backups (`*.3dmbak`) are git-ignored.
+
+## Properties: a room is titled by its Function (20 November 2026, owner decision)
+- The Properties title of a room is its Function name (the toolkit or project label; the raw id for a function the project does not define), in the function colour swatch, followed by the id small and muted ("Living  Room 2"): the id stays visible as the permanent identity. Undo labels ("Move room 3 …") and messages keep "room <id>". No other room header exists (the 3D edit panel has no title; Graph 2D tooltips are unchanged). Guide text, mocks and the `panel-properties` / `howto-select-inspect` screenshots follow.

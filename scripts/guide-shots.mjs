@@ -333,7 +333,7 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
     await openRail(s, 'Properties');
     await shot('panel-properties', {
       clip: P('properties'),
-      markers: [{ text: 'Room 2', within: P('properties') }, { text: 'Required by the app', within: P('properties') }, { text: 'Geometry', within: P('properties') }, { text: 'Custom', within: P('properties') }],
+      markers: [{ sel: `${P('properties')} .sgl-title` }, { text: 'Required by the app', within: P('properties') }, { text: 'Geometry', within: P('properties') }, { text: 'Custom', within: P('properties') }],
     });
   });
   await step('panel-attributes', async () => {

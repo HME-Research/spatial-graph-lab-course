@@ -188,7 +188,7 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'panel-properties',
         title: 'Properties',
         summary: 'The right-hand panel: every attribute of the selected room or relationship, ready to edit.',
-        example: 'Select the Living room: (1) Room 2, (2) its Function, (3) Position and Size, (4) Target area and Priority from the House toolkit. Select a relationship to choose Access or Open.',
+        example: 'Select the Living room: (1) its title, the Function Living with its id, Room 2, (2) its Function, (3) Position and Size, (4) Target area and Priority from the House toolkit. Select a relationship to choose Access or Open.',
         diagram: 'panel-properties',
         learnMore: LINKS.neo4jConcepts,
       },

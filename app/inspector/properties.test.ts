@@ -87,7 +87,8 @@ describe('Properties panel, schema v2 (with the design port)', () => {
   it('shows display labels, position and size', () => {
     const design = fakePort();
     const html = render({ doc: v1(), design, selection: selectNode(1) });
-    expect(html).toContain('Room <span class="sgl-room-label">1</span>');
+    // The title is the Function (2026-11-20; without a project its id, "gallery"), with the room id small after it.
+    expect(html).toMatch(/<div class="sgl-title"><span class="sgl-swatch"[^>]*><\/span><span class="sgl-room-function">gallery<\/span><span class="sgl-id"[^>]*>Room <span class="sgl-room-label">1<\/span><\/span><\/div>/);
     expect(html).toContain('aria-label="Size x"');
     expect(html).toMatch(/aria-label="Size y"[^>]*value="3"|value="3"[^>]*aria-label="Size y"/);
     expect(html).toContain('aria-label="Floors"');

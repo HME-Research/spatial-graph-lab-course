@@ -30,7 +30,7 @@ export const SHOT_ALT: Readonly<Record<string, string>> = {
   'howto-upload-analysis': 'The top of Analyse: 1 Upload your own (.ts), 2 its ⓘ with the AI kit and the template, 3 the sections an upload can land in.',
   'howto-read-data-view': 'The Data view as a table: 1 the view menu set to Data, 2 JSON or Table, 3 the Living row, selected, 4 a locked column.',
   'howto-save': 'The Project panel: 1 Project in the left rail, 2 Save locally, 3 Export project, 4 Open project.',
-  'panel-properties': 'Properties of the Living room: 1 Room 2, 2 Required by the app, 3 Geometry, 4 Custom.',
+  'panel-properties': 'Properties of the Living room: 1 its title, Living · Room 2, 2 Required by the app, 3 Geometry, 4 Custom.',
   'panel-attributes': 'The Attributes panel: 1 Node and Edge tabs, 2 the five sections, 3 + Add attribute.',
   'panel-designer': 'The Building Designer: 1 Style rooms by, 2 the Default card, 3 + Style another function, 4 the Corridors section.',
   'panel-analyse': 'The Analyse panel: 1 Upload your own (.ts), 2 the Show filter, 3 Node, 4 Edge, 5 Network, 6 Queries.',
