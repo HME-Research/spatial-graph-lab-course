@@ -358,7 +358,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
     if (run(command)) onSelect(selectNode(nodeId));
   };
 
-  /** Duplicate (menu, Ctrl+D): one command; the copy is selected, or the reason is shown. */
+  /** Duplicate (menu; Ctrl+D is app-wide, in App): one command; the copy is selected, or the reason is shown. */
   const duplicate = (nodeId: number) => {
     const outcome = duplicateRoom(design, nodeId);
     setIssues(outcome.ok ? [] : outcome.issues);
@@ -465,12 +465,6 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
     if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
       removeSelected();
-    } else if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'd') {
-      // Only with a selected room; otherwise the browser keeps Ctrl+D.
-      const nodeId = focusedNode ?? (selection.kind === 'node' ? selection.id : null);
-      if (nodeId === null) return;
-      event.preventDefault();
-      duplicate(nodeId);
     } else if (event.key === 'Escape') {
       if (connectFrom !== null) setConnectFrom(null);
       else onSelect(NO_SELECTION);

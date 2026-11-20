@@ -545,3 +545,19 @@ main {
 :where(.toolbar, .sgl-sidenav, .panel-header, .sgl-concept-dialog, .sgl-dialog) button:disabled:hover {
   border-color: var(--line);
 }
+
+/* Outcome of an app-wide shortcut (Ctrl+D duplicate): a short note at the bottom centre. */
+.sgl-shortcut-note {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: min(520px, calc(100vw - 32px));
+  background: var(--surface, #fff);
+  border-radius: var(--radius, 6px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+.sgl-shortcut-note .sgl-feedback {
+  margin: 0;
+}

@@ -267,7 +267,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
             clearIssues();
             props.onSelect(selectNode(outcome.nodeId));
           }}
-          title={`A copy with the same function, size and values in the closest free place; relationships are not copied. ${UNDO_HINT}`}
+          title={`A copy with the same function, size and values in the closest free place; relationships are not copied (Ctrl+D wherever a room is selected). ${UNDO_HINT}`}
         >
           Duplicate room
         </button>
