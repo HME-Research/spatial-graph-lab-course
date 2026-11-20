@@ -5,6 +5,7 @@ import {
   degree,
   diameter,
   edgeEnds,
+  edgeSides,
   graphSize,
   incidentEdgeIds,
   leafNodes,
@@ -108,30 +109,30 @@ const RUNNERS: Readonly<Record<string, Runner>> = {
   },
   'routes-through': (graph, [edge]) => {
     const routes = routesThrough(graph, edge!);
+    const sides = edgeSides(graph, edge!);
     const ends = edgeEnds(graph, edge!);
-    if (!routes || !ends) return refuse(`There is no edge ${edge}.`);
+    if (!routes || !sides || !ends) return refuse(`There is no edge ${edge}.`);
     const a = ends.source as number;
     const b = ends.target as number;
-    // The nodes on each side: nearer one end than the other (equally near: neither side).
-    const fromA = reachWithin(graph, a, Infinity)!.steps;
-    const fromB = reachWithin(graph, b, Infinity)!.steps;
-    const sideA: number[] = [];
-    const sideB: number[] = [];
-    for (const n of graph.nodes) {
-      const da = fromA.get(n.id) ?? Infinity;
-      const db = fromB.get(n.id) ?? Infinity;
-      if (da < db) sideA.push(n.id);
-      else if (db < da) sideB.push(n.id);
-    }
-    sideA.sort((x, y) => x - y);
-    sideB.sort((x, y) => x - y);
+    // Owner 2026-11-20: one number per end. a's side = the nodes nearer a than b (a included): from
+    // b, the edge leads to each of them on a shortest route. On a tree, trips = a's side × b's side.
+    const sideA = nums(sides.source);
+    const sideB = nums(sides.target);
+    const reachable = new Set<number>(nums(reachWithin(graph, a, Infinity)!.nodes));
+    const equal = nums(sides.neither).filter((n) => reachable.has(n));
     const nodeValues: Record<number, string> = {};
-    for (const n of sideA) nodeValues[n] = `nearer ${a}`;
-    for (const n of sideB) nodeValues[n] = `nearer ${b}`;
+    for (const n of sideA) nodeValues[n] = `${a}'s side`;
+    for (const n of sideB) nodeValues[n] = `${b}'s side`;
+    const isProduct = sideA.length > 0 && Math.abs(routes.trips - sideA.length * sideB.length) < 1e-9;
+    const detail = [
+      `${formatTrips(routes.trips)} of ${routes.pairs} trips take it on a shortest route${isProduct ? ` (${sideA.length} × ${sideB.length})` : ''}`,
+      ...(sideA.length > 0 ? [`${a}'s side: ${nodesWord(sideA)}`, `${b}'s side: ${nodesWord(sideB)}`] : []),
+      ...(equal.length > 0 ? [`equally near both: ${nodesWord(equal)}`] : []),
+    ].join(' · ');
     return ok({
-      answer: `${formatTrips(routes.trips)} of ${routes.pairs}`,
-      label: `trips between two nodes take ${edgeName(graph, edge!)} on a shortest route`,
-      detail: `nearer ${a}: ${nodesWord(sideA)} · nearer ${b}: ${nodesWord(sideB)}`,
+      answer: `${sideA.length} · ${sideB.length}`,
+      label: `nodes on ${a}'s side · on ${b}'s side of ${edgeName(graph, edge!)}`,
+      detail,
       highlightNodes: [a, b],
       highlightEdges: [edge!],
       nodeValues,

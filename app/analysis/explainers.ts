@@ -68,8 +68,8 @@ export const ANALYSIS_EXPLAINERS: readonly Explainer[] = [
   {
     id: 'routes-through',
     title: 'Routes through it',
-    summary: 'How many of all the trips between two nodes use this edge, when every trip takes a shortest route. Shown as “6 of 10”: 10 is every pair of nodes. If a pair has several equally short routes, its trip is shared between them, so the answer can have a decimal (e.g. 2.5).',
-    example: 'Living–Bedroom: 6 of 10. The house has 5 rooms, so 10 pairs of rooms. Every trip from the Entrance, the Living room or the Kitchen (3 rooms) to the Bedroom or the Bath (2 rooms) must use it: 3 × 2 = 6. The other three relationships carry 4 trips each. A relationship that carries many trips is a busy route: a place for a wide door, a generous stair or a corridor. The views colour the nodes nearer each end.',
+    summary: 'Two numbers, one per end: how many nodes lie on each side of the edge. Shown as “first end’s side · second end’s side”. A node is on A’s side when it is nearer A than B: starting from B, a shortest route to it goes through this edge. The small line gives the trips between two nodes that use the edge.',
+    example: 'Five rooms in a row, A–B–C–D–E. The end relationship A–B is 1 · 4: from B it leads only to A, from A it leads to the 4 others. The middle relationship B–C is 2 · 3: from C it leads to A and B, from B to C, D and E. With no loops, every trip from one side to the other must use it, so the trips are the product: 1 × 4 = 4 and 2 × 3 = 6 of the 10 pairs. In a loop a room can be equally near both ends (it is on neither side), and pairs with two equally short routes share their trip between them, so the trips can have a decimal (e.g. 2.5). A relationship with many rooms on both sides is a busy route: a place for a wide door, a generous stair or a corridor. The views colour the two sides in two colours.',
     diagram: 'routes-through',
     learnMore: LINKS.edgeBetweenness,
   },

@@ -7,6 +7,7 @@ import {
   degree,
   diameter,
   edgeBetweenness,
+  edgeSides,
   graphSize,
   incidentEdgeIds,
   leafNodes,
@@ -112,6 +113,47 @@ describe('graph measures: node and edge', () => {
     // Every pair's route uses some edge: the edges' sum is the total route length over connected pairs.
     const total = [...edgeBetweenness(example).values()].reduce((a, b) => a + b, 0);
     expect(total).toBe(18); // 1+2+2+3 (from 1) + 1+1+2 (from 2) + 2+3 (from 3) + 1 (4–5)
+  });
+
+  it('the two sides of an edge: nearer one end than the other', () => {
+    // A path 1–2–3–4–5: an end edge is 1 · 4, a middle one 2 · 3; on a tree trips = product.
+    const path = g([
+      [1, 1, 2],
+      [2, 2, 3],
+      [3, 3, 4],
+      [4, 4, 5],
+    ]);
+    expect(edgeSides(path, 1)).toEqual({ source: [1], target: [2, 3, 4, 5], neither: [] });
+    expect(edgeSides(path, 2)).toEqual({ source: [1, 2], target: [3, 4, 5], neither: [] });
+    for (const e of [1, 2, 3, 4]) {
+      const s = edgeSides(path, e)!;
+      expect(routesThrough(path, e)!.trips, `edge ${e}`).toBe(s.source.length * s.target.length);
+    }
+    // A loop of three with a tail 3–4: the far corner of the triangle is equally near both ends.
+    const loop = g([
+      [1, 1, 2],
+      [2, 2, 3],
+      [3, 3, 1],
+      [4, 3, 4],
+    ]);
+    expect(edgeSides(loop, 1)).toEqual({ source: [1], target: [2], neither: [3, 4] });
+    expect(edgeSides(loop, 2)).toEqual({ source: [2], target: [3, 4], neither: [1] });
+    expect(edgeSides(loop, 4)).toEqual({ source: [1, 2, 3], target: [4], neither: [] });
+    // A loop of four: every node is on one side; the trips are shared, not the product.
+    const square = g([
+      [1, 1, 2],
+      [2, 2, 3],
+      [3, 3, 4],
+      [4, 4, 1],
+    ]);
+    expect(edgeSides(square, 1)).toEqual({ source: [1, 4], target: [2, 3], neither: [] });
+    expect(routesThrough(square, 1)!.trips).toBe(2);
+    // Separate parts: the other part is on neither side.
+    expect(edgeSides(SPLIT, 9)).toEqual({ source: [10], target: [11], neither: [1, 2, 3, 4] });
+    expect(edgeSides(SPLIT, 2)).toEqual({ source: [1, 2], target: [3, 4], neither: [10, 11] });
+    // A self-loop has two empty sides; an unknown edge is undefined.
+    expect(edgeSides(g([[1, 1, 2], [2, 2, 2]]), 2)).toEqual({ source: [], target: [], neither: [1, 2] });
+    expect(edgeSides(path, 99)).toBeUndefined();
   });
 });
 

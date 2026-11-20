@@ -231,6 +231,39 @@ export function routesThrough(graph: MeasureGraph, edgeId: GraphId): { readonly 
 }
 
 /**
+ * The two sides of an edge A–B (owner 2026-11-20, "Routes through it" per end): `source` = the
+ * nodes strictly nearer A than B, `target` = those strictly nearer B (each includes its own end).
+ * Because A and B are neighbours, a node's distances to them differ by at most 1, so a node is on
+ * A's side exactly when SOME shortest route from B to it goes through this edge (B → A → …), and
+ * likewise for B's side. `neither`: the nodes equally near both ends (no shortest route from
+ * either end uses the edge, e.g. the far corner of a loop of odd length) and the nodes that cannot
+ * be reached from it (another connected part). On a tree (and for any bridge) the two sides are
+ * exactly the two parts left when the edge is removed, and the edge's betweenness is
+ * `source.length × target.length`. A self-loop has two empty sides. All lists ascending;
+ * undefined for an unknown edge.
+ */
+export function edgeSides(
+  graph: MeasureGraph,
+  edgeId: GraphId,
+): { readonly source: readonly GraphId[]; readonly target: readonly GraphId[]; readonly neither: readonly GraphId[] } | undefined {
+  const ends = edgeEnds(graph, edgeId);
+  if (!ends) return undefined;
+  const fromA = search(graph, ends.source).distance;
+  const fromB = search(graph, ends.target).distance;
+  const source: GraphId[] = [];
+  const target: GraphId[] = [];
+  const neither: GraphId[] = [];
+  for (const id of adjacency(graph).ids) {
+    const da = fromA.get(id) ?? Infinity;
+    const db = fromB.get(id) ?? Infinity;
+    if (da < db) source.push(id);
+    else if (db < da) target.push(id);
+    else neither.push(id);
+  }
+  return { source, target, neither };
+}
+
+/**
  * Nodes reachable from `start` in at most `k` steps (excluding `start`, ascending), with their
  * step counts and the edges of the breadth-first tree that reaches them. Undefined for an unknown node.
  */

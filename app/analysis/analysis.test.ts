@@ -87,16 +87,20 @@ describe('built-in analyses', () => {
   });
 
   it('the four edge analyses on the example house (Entrance 1–Living 2, Living–Kitchen 3, Living–Bedroom 4, Bedroom–Bath 5)', () => {
-    // Routes through it: Living–Bedroom carries 3 × 2 = 6 of the 10 trips, the others 4.
+    // Routes through it, one number per end: 2 → 4 has 3 nodes on 2's side, 2 on 4's side; on a tree
+    // the trips are the product, 3 × 2 = 6 of the 10.
     expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE, [3]))).toEqual({
-      answer: '6 of 10',
-      label: 'trips between two nodes take 2 → 4 on a shortest route',
-      detail: 'nearer 2: nodes 1, 2, 3 · nearer 4: nodes 4, 5',
+      answer: '3 · 2',
+      label: "nodes on 2's side · on 4's side of 2 → 4",
+      detail: "6 of 10 trips take it on a shortest route (3 × 2) · 2's side: nodes 1, 2, 3 · 4's side: nodes 4, 5",
       highlightNodes: [2, 4],
       highlightEdges: [3],
-      nodeValues: { 1: 'nearer 2', 2: 'nearer 2', 3: 'nearer 2', 4: 'nearer 4', 5: 'nearer 4' },
+      nodeValues: { 1: "2's side", 2: "2's side", 3: "2's side", 4: "4's side", 5: "4's side" },
     });
-    for (const e of [1, 2, 4]) expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE, [e])).answer).toBe('4 of 10');
+    // An end edge: 1 · 4 (the end on its own, everything else behind the other end).
+    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE, [1]))).toMatchObject({ answer: '1 · 4', detail: "4 of 10 trips take it on a shortest route (1 × 4) · 1's side: node 1 · 2's side: nodes 2, 3, 4, 5" });
+    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE, [2])).answer).toBe('4 · 1');
+    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE, [4])).answer).toBe('4 · 1');
     // Touching edges: Living–Bedroom touches 1 → 2 and 2 → 3 at the Living room, 4 → 5 at the Bedroom.
     expect(answer(runBuiltInAnalysis('touching-edges', EXAMPLE, [3]))).toMatchObject({ answer: '3', detail: '1 → 2, 2 → 3, 4 → 5', highlightEdges: [1, 2, 4] });
     // Shared neighbours: none in the tree-shaped house.
@@ -117,10 +121,14 @@ describe('built-in analyses', () => {
   it('the four edge analyses with a loop: Entrance–Kitchen added', () => {
     // Entrance, Living and Kitchen form a triangle; Living–Bedroom still carries 6 of 10.
     expect(answer(runBuiltInAnalysis('shared-neighbours', EXAMPLE_LOOP, [2]))).toMatchObject({ answer: '1', detail: 'node 1', highlightNodes: [1], highlightEdges: [1, 5] });
-    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE_LOOP, [3])).answer).toBe('6 of 10');
-    // Living–Kitchen now only carries its own pair and the Kitchen's trips… which go straight to the Entrance.
-    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE_LOOP, [2])).answer).toBe('3 of 10');
-    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE_LOOP, [5])).answer).toBe('1 of 10');
+    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE_LOOP, [3])).answer).toBe('3 · 2');
+    // 2 → 3 in the triangle: node 1 is equally near both ends, so it is on neither side.
+    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE_LOOP, [2]))).toMatchObject({
+      answer: '3 · 1',
+      detail: "3 of 10 trips take it on a shortest route (3 × 1) · 2's side: nodes 2, 4, 5 · 3's side: node 3 · equally near both: node 1",
+      nodeValues: { 2: "2's side", 4: "2's side", 5: "2's side", 3: "3's side" },
+    });
+    expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE_LOOP, [5])).answer).toBe('1 · 1');
     expect(answer(runBuiltInAnalysis('touching-edges', EXAMPLE_LOOP, [2])).answer).toBe('3');
     expect(answer(runBuiltInAnalysis('ends-connections', EXAMPLE_LOOP, [2]))).toMatchObject({ answer: '3 · 2', detail: '2 is a hub, 3 is on the way through' });
     // A loop of four splits opposite pairs between two routes: shares shown with one decimal.
@@ -134,8 +142,17 @@ describe('built-in analyses', () => {
         { id: 5, source: 1, target: 5 },
       ],
     };
-    expect(answer(runBuiltInAnalysis('routes-through', square, [1])).answer).toBe('3.5 of 10');
-    expect(answer(runBuiltInAnalysis('routes-through', square, [2])).answer).toBe('2.5 of 10');
+    // In a loop the trips are shared, so they are not the product of the sides.
+    expect(answer(runBuiltInAnalysis('routes-through', square, [1]))).toMatchObject({ answer: '3 · 2', detail: "3.5 of 10 trips take it on a shortest route · 1's side: nodes 1, 4, 5 · 2's side: nodes 2, 3" });
+    expect(answer(runBuiltInAnalysis('routes-through', square, [2]))).toMatchObject({ answer: '3 · 2', detail: "2.5 of 10 trips take it on a shortest route · 2's side: nodes 1, 2, 5 · 3's side: nodes 3, 4" });
+    // Separate houses: the other house is on neither side and its pairs add no trips.
+    const twoHouses: AnalysisGraph = { nodes: [...EXAMPLE.nodes, { id: 6 }, { id: 7 }], edges: [...EXAMPLE.edges, { id: 6, source: 6, target: 7 }] };
+    expect(answer(runBuiltInAnalysis('routes-through', twoHouses, [3]))).toMatchObject({
+      answer: '3 · 2',
+      detail: "6 of 21 trips take it on a shortest route (3 × 2) · 2's side: nodes 1, 2, 3 · 4's side: nodes 4, 5",
+      nodeValues: { 1: "2's side", 2: "2's side", 3: "2's side", 4: "4's side", 5: "4's side" },
+    });
+    expect(answer(runBuiltInAnalysis('routes-through', twoHouses, [6])).answer).toBe('1 · 1');
   });
 
   it('network analyses on the example house', () => {
