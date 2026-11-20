@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "metadata": {
-    "name": "Garden House — developed example",
+    "name": "Garden house",
     "description": "Conceptual two-storey garden house on a 3 m modular grid. Public ground floor, independent upper-floor bedrooms, central stair/landing, a sheltered entrance, landscaped garden, and a small roof terrace above the kitchen. An architectural teaching model, not a detailed buildable plan."
   },
   "nextNodeId": 15,

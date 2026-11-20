@@ -180,7 +180,7 @@ describe('the garden house design', () => {
 
   it('is valid, uses only House Functions, and every relationship is direct (its rooms touch)', () => {
     const doc = gardenHouse();
-    expect(doc.metadata.name).toBe('Garden House — developed example');
+    expect(doc.metadata.name).toBe('Garden house');
     expect(doc.nodes).toHaveLength(14);
     expect(doc.edges).toHaveLength(14);
     const ids = new Set(house.functions.map((t) => t.definition.id));

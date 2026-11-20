@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "metadata": {
-    "name": "House",
+    "name": "Simple house",
     "description": "A small two-storey house to grow: five rooms of one cell each (entrance, living room and kitchen downstairs; bedroom and bath upstairs), joined by Access and Open relationships. Each room takes its target area and priority from its Function; run Grow to target area to grow the living room, kitchen and bedroom to their targets."
   },
   "nextNodeId": 6,

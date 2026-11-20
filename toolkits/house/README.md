@@ -15,9 +15,9 @@ The reference toolkit of Spatial Graph Lab. Don't edit this folder: copy it to m
   To change one room, select it and set the value in **Properties**. The other rooms keep their Function's default.
 - **One transform**, *Grow to target area* (`algorithms/grow-to-target-area.ts`), with one optional parameter, `houses`. Transform shows it as **Houses** with a one-line description: both come from the parameter's `label` and `description`.
 - **One design analysis**, *Below target area* (`algorithms/below-target-area.ts`, `defineDesignAnalysis`), in Analyse › Network: it lights up the rooms whose floor area is still below their `targetArea`, colours every room by the m² it is missing and counts them. Its `uses` names `targetArea`, so it is tagged **This project** and works only where that field exists. Run it before and after *Grow to target area*.
-- **Two designs** (both in **Open example…**, tagged `Toolkit: House`):
-  - `designs/simple-house.json`, **House**: the two-storey example house, every room one cell to start with, ready for *Grow to target area*. It is the toolkit's `defaultDesign`: `npm run check:toolkit` runs the transform on it, and a new project takes its Building settings.
-  - `designs/garden-house.json`, **Garden House — developed example**: a developed two-storey garden house with a central stair (see *The garden house* below).
+- **Two designs** (both in **Open example…**, in the `Toolkit: House` section, Simple house first):
+  - `designs/simple-house.json`, **Simple house**: the two-storey example house, every room one cell to start with, ready for *Grow to target area*. It is the toolkit's `defaultDesign`: `npm run check:toolkit` runs the transform on it, and a new project takes its Building settings.
+  - `designs/garden-house.json`, **Garden house**: a developed two-storey garden house with a central stair (see *The garden house* below).
 - **Twelve Function colours**, declared in each `functions/*.ts` (`colour`): Entrance violet `#8e6bb8`, Living amber `#e8a33d`, Kitchen terracotta `#d4623b`, Bedroom blue `#4f7cc0`, Bath aqua `#3fa9b5`, Circulation stone grey `#9b9a8f`, Garden green `#4f8f3a`, Stair / landing slate `#56606e`, Dining raspberry `#c2477d`, Study brown `#8b5e3c`, Utility olive `#8a8d2e`, Roof terrace mint `#7cc9a6`. A project can change them in the Functions dialog.
 - **One façade file**, `assets/facade-ex1.3dm` (12.5 MB; a 3 × 3 m bay with arched openings), used by the garden house's Living and Dining.
 

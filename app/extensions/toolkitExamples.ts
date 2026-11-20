@@ -34,28 +34,31 @@ export interface ToolkitExample {
   readonly problem: string | null;
 }
 
-async function toolkitName(load: () => Promise<unknown>, fallback: string): Promise<string> {
+/** The toolkit's name and default design (its id and none when `toolkit.ts` cannot be read). */
+async function toolkitInfo(load: () => Promise<unknown>, fallback: string): Promise<{ readonly name: string; readonly defaultDesign: string | null }> {
   try {
     const mod = await load();
     const definition = typeof mod === 'object' && mod !== null && 'default' in mod ? (mod as { default: unknown }).default : undefined;
     const parsed = toolkitDefinitionSchema.safeParse(definition);
-    return parsed.success ? parsed.data.name : fallback;
+    return parsed.success ? { name: parsed.data.name, defaultDesign: parsed.data.defaultDesign ?? null } : { name: fallback, defaultDesign: null };
   } catch {
-    return fallback;
+    return { name: fallback, defaultDesign: null };
   }
 }
 
 /**
- * Every design of every toolkit, toolkits by id, designs by file. Loads each `toolkit.ts` (for
- * its name) and each design's text; never activates a toolkit. A design that cannot be read is
+ * Every design of every toolkit, toolkits by id; within a toolkit its `defaultDesign` first, then
+ * the others by file (owner 2026-11-20). Loads each `toolkit.ts` (for its name and default design)
+ * and each design's text; never activates a toolkit. A design that cannot be read is
  * listed with its `problem`, so it is not silently missing.
  */
 export async function listToolkitExamples(globs: ToolkitGlobs): Promise<readonly ToolkitExample[]> {
   const out: ToolkitExample[] = [];
   for (const source of discoverToolkits(globs).toolkits) {
     if (source.designs.length === 0) continue;
-    const name = await toolkitName(source.toolkit.load, source.id);
-    for (const design of source.designs) {
+    const { name, defaultDesign } = await toolkitInfo(source.toolkit.load, source.id);
+    const designs = [...source.designs].sort((a, b) => Number(b.stem === defaultDesign) - Number(a.stem === defaultDesign));
+    for (const design of designs) {
       const base = { toolkitId: source.id, toolkitName: name, designId: design.stem, file: design.file };
       try {
         const read = readDesignJson(await design.load());

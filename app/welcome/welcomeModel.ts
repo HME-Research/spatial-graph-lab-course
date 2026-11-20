@@ -76,6 +76,20 @@ export function exampleOptions(
   ];
 }
 
+/**
+ * The examples in sections, in list order: one per tag ("No toolkit", then "Toolkit: <name>" per
+ * toolkit), each keeping its examples' order.
+ */
+export function exampleSections(options: readonly ExampleOption[]): { readonly title: string; readonly items: readonly ExampleOption[] }[] {
+  const sections: { title: string; items: ExampleOption[] }[] = [];
+  for (const option of options) {
+    const section = sections.find((s) => s.title === option.tag);
+    if (section) section.items.push(option);
+    else sections.push({ title: option.tag, items: [option] });
+  }
+  return sections;
+}
+
 export type RecentRow =
   | { readonly kind: 'ok'; readonly projectId: string; readonly name: string; readonly detail: string; readonly description: string | null; readonly unsaved: boolean }
   | { readonly kind: 'unreadable'; readonly projectId: string; readonly detail: string; readonly quarantined: boolean };

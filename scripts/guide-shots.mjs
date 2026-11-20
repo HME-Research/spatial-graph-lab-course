@@ -178,7 +178,7 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
       markers: [
         // The button is under the dialog: point at the dialog it opened.
         { text: 'Open example', within: '.sgl-open-example' },
-        { text: 'Garden House', within: '.sgl-open-example' },
+        { text: 'Garden house', within: '.sgl-open-example' },
       ],
     });
     await s.key('Escape');

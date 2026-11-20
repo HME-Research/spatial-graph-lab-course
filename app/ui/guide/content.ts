@@ -403,7 +403,7 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'howto-open-example',
         title: 'Open an example',
         summary: 'Open example… opens a built-in or toolkit example as a new project, ready to explore; the project you had open is not changed.',
-        example: '1. Open example… on Welcome or in Project. 2. Pick one: House – graph only (No toolkit), or a design tagged Toolkit: House, e.g. House or Garden House. 3. It opens with its toolkit and custom attributes, its looks by Function, its corridors and any imported façade. 4. Set a view to Building to see it.',
+        example: '1. Open example… on Welcome or in Project. 2. Pick one: House – graph only (No toolkit), or a design under Toolkit: House: Simple house or Garden house. 3. It opens with its toolkit and custom attributes, its looks by Function, its corridors and any imported façade. 4. Set a view to Building to see it.',
         diagram: 'howto-open-example',
         learnMore: LINKS.envelope,
       },

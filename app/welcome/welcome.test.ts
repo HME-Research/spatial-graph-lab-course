@@ -13,7 +13,7 @@ import exampleJson from '../document/examples/house.json';
 import { exportProject, NewProjectDialog, ProjectFiles } from './ProjectFiles';
 import { Welcome, type WelcomeProps } from './Welcome';
 import { createProject, openProjectText, openToolkitExample, openBuiltInExample, type WelcomeHost } from './welcomeFlow';
-import { exampleOptions, newProjectStart, projectFileName, recentRows } from './welcomeModel';
+import { exampleOptions, exampleSections, newProjectStart, projectFileName, recentRows } from './welcomeModel';
 import { designAssetIds, loadToolkitAssets } from '@app/extensions/toolkitExamples';
 import { importFacade3dm } from '@app/assets/importFacade';
 import { loadRhino3dm, RHINO3DM_VERSION } from '@app/assets/rhino/loader';
@@ -302,15 +302,20 @@ describe('Open example… (owner decision 2026-11-20)', () => {
 
   it('lists the built-in House first, then every toolkit design with its own name, description and toolkit tag', () => {
     const options = exampleOptions({ name: 'House – graph only', description: ' Five rooms. ' }, [
-      { toolkitId: 'house', toolkitName: 'House', designId: 'simple-house', name: 'House', description: null, problem: null },
-      { toolkitId: 'house', toolkitName: 'House', designId: 'garden-house', name: 'Garden House', description: 'Developed.', problem: null },
+      { toolkitId: 'house', toolkitName: 'House', designId: 'simple-house', name: 'Simple house', description: null, problem: null },
+      { toolkitId: 'house', toolkitName: 'House', designId: 'garden-house', name: 'Garden house', description: 'Developed.', problem: null },
     ]);
     expect(options.map((o) => [o.key, o.name, o.description, o.tag])).toEqual([
       ['built-in', 'House – graph only', 'Five rooms.', 'No toolkit'],
-      ['house/simple-house', 'House', null, 'Toolkit: House'],
-      ['house/garden-house', 'Garden House', 'Developed.', 'Toolkit: House'],
+      ['house/simple-house', 'Simple house', null, 'Toolkit: House'],
+      ['house/garden-house', 'Garden house', 'Developed.', 'Toolkit: House'],
     ]);
     expect(options[2]!.choice).toEqual({ kind: 'toolkit', toolkitId: 'house', designId: 'garden-house' });
+    // The dialog shows them in sections: No toolkit, then Toolkit: House (Simple house, then Garden house).
+    expect(exampleSections(options).map((sec) => [sec.title, sec.items.map((o) => o.name)])).toEqual([
+      ['No toolkit', ['House – graph only']],
+      ['Toolkit: House', ['Simple house', 'Garden house']],
+    ]);
   });
 
   it('opens the Garden House as a NEW project: toolkit active, custom attributes seeded, design and its façade asset', async () => {
@@ -321,7 +326,7 @@ describe('Open example… (owner decision 2026-11-20)', () => {
     if (!opened.ok) throw new Error(opened.message);
     expect(opened.projectId).not.toBe(first.projectId);
     const p = h.controller.getState().project!;
-    expect(p.meta.name).toBe('Garden House — developed example');
+    expect(p.meta.name).toBe('Garden house');
     expect(p.meta.description).toMatch(/^Conceptual two-storey garden house/);
     expect(p.meta.toolkit).toEqual({ id: 'house' });
     // The same attribute record as Create project with House (Target area, Priority).

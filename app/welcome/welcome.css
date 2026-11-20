@@ -475,7 +475,7 @@ input.sgl-project-name-input:focus {
   font-size: 13px;
 }
 
-/* Open example… (2026-11-20): one button per example, name + tag on one row, description below. */
+/* Open example… (2026-11-20): sections (No toolkit, Toolkit: <name>), one button per example, name then description. */
 .sgl-open-example {
   width: min(560px, calc(100vw - 32px));
 }
@@ -511,24 +511,20 @@ input.sgl-project-name-input:focus {
   opacity: 0.7;
   cursor: default;
 }
-.sgl-example-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+.sgl-example-section + .sgl-example-section {
+  margin-top: 14px;
+}
+.sgl-example-section-title {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .sgl-example-name {
   font-weight: 600;
   overflow-wrap: anywhere;
-}
-.sgl-example-tag {
-  flex: none;
-  padding: 1px 6px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 12px;
-  white-space: nowrap;
 }
 .sgl-example-description {
   color: var(--muted);

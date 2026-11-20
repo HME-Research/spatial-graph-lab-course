@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Dialog } from '@app/ui/Dialog';
-import type { ExampleChoice, ExampleOption } from './welcomeModel';
+import { exampleSections, type ExampleChoice, type ExampleOption } from './welcomeModel';
 
 type ListState =
   | { readonly status: 'loading' }
@@ -8,9 +8,9 @@ type ListState =
   | { readonly status: 'error'; readonly message: string };
 
 /**
- * Open example… (owner decision 2026-11-20), from Welcome and the Project panel: the built-in House
- * (graph only, no toolkit) and every design of every toolkit, each with its name, description and
- * a "No toolkit" / "Toolkit: <name>" tag. Choosing one closes the dialog and opens it as a NEW
+ * Open example… (owner decision 2026-11-20), from Welcome and the Project panel, in sections: "No
+ * toolkit" (the built-in House, graph only), then one "Toolkit: <name>" section per toolkit with its
+ * designs (its default design first), each with its name and description. Choosing one closes the dialog and opens it as a NEW
  * project (`onOpen`); the list is loaded when the dialog opens (`load`).
  */
 export function OpenExampleDialog({
@@ -57,29 +57,30 @@ export function OpenExampleDialog({
           The examples could not be listed: {state.message}
         </p>
       )}
-      {state.status === 'ready' && (
-        <ul className="sgl-example-list" aria-label="Examples">
-          {state.items.map((option, index) => (
-            <li key={option.key}>
-              <button
-                type="button"
-                className="sgl-example"
-                data-example={option.key}
-                {...(index === 0 && { 'data-autofocus': true })}
-                disabled={option.problem !== null}
-                onClick={() => onOpen(option.choice)}
-              >
-                <span className="sgl-example-head">
-                  <span className="sgl-example-name">{option.name}</span>
-                  <span className="sgl-example-tag">{option.tag}</span>
-                </span>
-                {option.description && <span className="sgl-example-description">{option.description}</span>}
-                {option.problem && <span className="sgl-example-problem">⚠ {option.problem}</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {state.status === 'ready' &&
+        exampleSections(state.items).map((section, s) => (
+          <section key={section.title} className="sgl-example-section" data-example-section={section.title}>
+            <h3 className="sgl-example-section-title">{section.title}</h3>
+            <ul className="sgl-example-list" aria-label={section.title}>
+              {section.items.map((option, index) => (
+                <li key={option.key}>
+                  <button
+                    type="button"
+                    className="sgl-example"
+                    data-example={option.key}
+                    {...(s === 0 && index === 0 && { 'data-autofocus': true })}
+                    disabled={option.problem !== null}
+                    onClick={() => onOpen(option.choice)}
+                  >
+                    <span className="sgl-example-name">{option.name}</span>
+                    {option.description && <span className="sgl-example-description">{option.description}</span>}
+                    {option.problem && <span className="sgl-example-problem">⚠ {option.problem}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
     </Dialog>
   );
 }
