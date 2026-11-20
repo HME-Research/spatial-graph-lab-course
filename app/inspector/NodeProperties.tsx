@@ -7,6 +7,7 @@ import { ManageFunctionsContext, OpenAttributesContext } from '@app/attributes/n
 import { NODE_BUILT_IN_ATTRIBUTES } from '@app/attributes/sections';
 import { MAX_ROOM_SIZE, nodeLabel, type RoomNode } from '@app/document';
 import { attributesOutsideSchema, findFunction } from '@app/extensions';
+import { duplicateRoom } from '@app/views/duplicateRoom';
 import { functionStatus } from '@app/views/project';
 import { CollapsibleSection, describeResolution, IssueFeedback, labelOfChoice, RELATIONSHIP_KIND_CHOICES, RouteConfirm, UNDO_HINT } from '@app/ui';
 import { typeColor } from '@core/viewer/appearance';
@@ -253,6 +254,18 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
       </CollapsibleSection>
 
       <section className="sgl-section sgl-panel-actions">
+        <button
+          type="button"
+          onClick={() => {
+            const outcome = duplicateRoom(design, nodeId);
+            if (!outcome.ok) return showIssues(outcome.issues);
+            clearIssues();
+            props.onSelect(selectNode(outcome.nodeId));
+          }}
+          title={`A copy with the same function, size and values in the closest free place; relationships are not copied. ${UNDO_HINT}`}
+        >
+          Duplicate room
+        </button>
         <button
           type="button"
           className="sgl-danger"
