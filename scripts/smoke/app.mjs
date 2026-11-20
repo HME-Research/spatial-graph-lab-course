@@ -445,23 +445,20 @@ export async function openSession({ url, viewport = { width: 1366, height: 768 }
 
 const WELCOME = '.sgl-welcome';
 
-/** Reload the app (session URL, or `target`) and wait for the Welcome screen. */
+/**
+ * Reload the app (session URL, or `target`) and wait for the Welcome screen, including its list of
+ * saved projects. Fixed 2026-11-20: that list used to stay on "Looking for saved projects…" in a fresh
+ * headless profile (IndexedDB held by a page frozen in the back/forward cache; see
+ * `app/project/storage.ts`). It is now always answered, at worst with "Saved projects cannot be
+ * listed" after a 5 s timeout; that message is recorded in `s.notes` (saving will not work then).
+ */
 export async function gotoWelcome(s, target = s.url) {
-  for (let attempt = 1; ; attempt++) {
-    await s.goto(target);
-    await s.waitFor(`!!document.querySelector('${WELCOME}[open]') || !!document.querySelector('${WELCOME}')`, 20_000, 'the Welcome screen');
-    await s.waitFor(`!document.querySelector('${WELCOME} .sgl-welcome-busy')`, 20_000, 'Welcome to be ready');
-    // Wait until Welcome has read the stored projects (Recent). Known issue (P4, 2026-11-19): in a
-    // fresh headless profile, right after a reload, the list sometimes never finishes ("Looking for
-    // saved projects…") and Create project then hangs; another reload clears it. Recorded in notes.
-    try {
-      await s.waitFor(`!/Looking for saved projects/.test(document.querySelector('${WELCOME}')?.innerText ?? '')`, 8_000, 'Welcome to list the saved projects');
-      return;
-    } catch (e) {
-      if (attempt >= 3) throw e;
-      s.notes.push('Welcome kept "Looking for saved projects…" after a reload; reloaded again (app issue)');
-    }
-  }
+  await s.goto(target);
+  await s.waitFor(`!!document.querySelector('${WELCOME}[open]') || !!document.querySelector('${WELCOME}')`, 20_000, 'the Welcome screen');
+  await s.waitFor(`!document.querySelector('${WELCOME} .sgl-welcome-busy')`, 20_000, 'Welcome to be ready');
+  await s.waitFor(`!/Looking for saved projects/.test(document.querySelector('${WELCOME}')?.innerText ?? '')`, 15_000, 'Welcome to list the saved projects');
+  const unavailable = await s.evaluate(`document.querySelector('${WELCOME} .sgl-welcome-recent')?.innerText.match(/Saved projects cannot be listed.*/)?.[0] ?? null`);
+  if (unavailable) s.notes.push(`Welcome: ${unavailable}`);
 }
 
 /** Wait until a project is shown: Welcome gone, `nodes` nodes in Graph 2D (or any number when null), toolkit activated. */
@@ -485,26 +482,17 @@ export async function tryExample(s) {
 }
 
 /**
- * Wait until Graph 2D draws at least `expected` relationship edges. Known app issue (P4, 2026-11-19):
- * right after a project opens, Graph 2D sometimes draws its nodes but no edges until the view is
- * remounted. When that happens this helper remounts it (panel → Data → Graph 2D), records a note in
- * `s.notes` and returns false; it returns true when the edges were drawn without help.
+ * Wait until Graph 2D draws at least `expected` relationship edges; throws when it does not. Returns
+ * true. Fixed 2026-11-20 (this helper used to remount the view as a workaround): right after a project
+ * opened, Graph 2D sometimes drew its nodes but no edges (see `app/views/graph2d/handleRepair.ts`).
  */
-export async function ensureGraphEdges(s, expected, timeout = 3000) {
+export async function ensureGraphEdges(s, expected, timeout = 5000) {
   try {
     await s.waitFor(`__sgl.edgeIds().length >= ${expected}`, timeout, `${expected} edges in Graph 2D`);
-    return true;
-  } catch {
-    /* remount below */
+  } catch (e) {
+    throw new Error(`Graph 2D drew ${await s.evaluate('__sgl.edgeIds().length')} of ${expected} edges: ${e instanceof Error ? e.message : e}`);
   }
-  const panel = await s.evaluate(`__sgl.graphPanel()?.dataset.panel ?? null`);
-  if (panel === null) return true;
-  const drawn = await s.evaluate('__sgl.edgeIds().length');
-  await setViewMode(s, Number(panel), 'data');
-  await setViewMode(s, Number(panel), 'graph2d');
-  await s.waitFor(`__sgl.edgeIds().length >= ${expected}`, 10_000, `${expected} edges in Graph 2D after remounting it`);
-  s.notes.push(`Graph 2D drew ${drawn} of ${expected} edges after the project opened; remounting the view drew them (app issue)`);
-  return false;
+  return true;
 }
 
 /**

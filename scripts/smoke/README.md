@@ -83,7 +83,7 @@ node scripts/smoke/walls.mjs    --url http://localhost:5390/ --viewport 1280x720
 node scripts/smoke/gate-i1.mjs  --url http://localhost:5390/ --viewport 1280x720
 ```
 
-Common options: `--url`, `--viewport WxH` (default 1366x768 for `workflow.mjs`, 1280x720 for the others), `--out DIR` (default `<temp>/spatial-graph-lab-<script>/<timestamp>`), `--browser PATH`, `--headed` and `--help`. Each script prints one `PASS`/`FAIL` line per step. A failed step saves a `FAIL-<step>.png`. Lines starting with `NOTE` report an app issue that was worked around (see `ensureGraphEdges` below); they are not failures. The script writes `<script>.json` (results, console errors, notes) to `--out`. Exit codes: `0` all steps pass, `1` at least one failure, `2` could not run (no browser or server).
+Common options: `--url`, `--viewport WxH` (default 1366x768 for `workflow.mjs`, 1280x720 for the others), `--out DIR` (default `<temp>/spatial-graph-lab-<script>/<timestamp>`), `--browser PATH`, `--headed` and `--help`. Each script prints one `PASS`/`FAIL` line per step. A failed step saves a `FAIL-<step>.png`. Lines starting with `NOTE` report observations that are not check results (for example, Welcome saying that saved projects cannot be listed); they are not failures. The script writes `<script>.json` (results, console errors, notes) to `--out`. Exit codes: `0` all steps pass, `1` at least one failure, `2` could not run (no browser or server).
 
 Run the scripts **one at a time** against a dev server. With several headless browsers rendering WebGL at once, the dev server and the browsers slow down until waits time out.
 
@@ -157,6 +157,17 @@ Each step belongs to an item, and an item passes only when all its steps pass. T
 - `gate-i1.mjs`: Create project now gives an empty graph, so the scenario work runs on the named and saved example. The shared field is a **custom attribute** added through the Add attribute dialog (the old "Add a node field" form is gone). The opt-in calculated value is still "Exposed façade area", added through that dialog. The check that the colour-by legend *text* changes after a move was dropped: its bands may stay the same. The value refresh is checked in Properties instead. Relationship counts after the restore come from the stored data (the Scenarios list), not from the edges Graph 2D draws.
 - `walls.mjs`: the example has no free shared wall, so the script adds room 6 to create one.
 
+## Reopen loop: `reopen.mjs`
+
+The headless reproduction of two intermittent bugs fixed on 2026-11-20. Each iteration uses a **new** private browser profile: load, reload at once, and Welcome must list the saved projects (no "Looking for saved projects…" hang, storage available). **Create project** with the House toolkit must finish. Then **Try example** must draw its 4 edges in Graph 2D, it is saved locally, and after a reload the copy restored from Recent must draw its 4 edges again. One JSON line per iteration, then the counts. It writes `reopen.json` to `--out`. Exit code `1` when anything hung or a graph lacked edges.
+
+```powershell
+node scripts/smoke/reopen.mjs --url http://localhost:5390/ --iterations 20
+```
+
+- **Welcome / Create project hang.** In a fresh profile, reloading while the first page was still creating the IndexedDB database could freeze that page in the back/forward cache, holding the database. Every later open of it then got no answer, for minutes and across reloads. `app/project/storage.ts` now keeps the page out of the back/forward cache while an open is in flight, and it times an open out after 5 s with a readable message instead of hanging.
+- **Graph 2D without edges.** A re-render right after React Flow measured the nodes reset their handle bounds while Graph 2D re-supplied their size, so React Flow never measured the handles again and drew no edge. `app/views/graph2d/handleRepair.ts` detects such nodes and has them measured again.
+
 ## Shared helper module (`app.mjs`)
 
 `scripts/smoke/app.mjs` holds the browser-driving code shared by the three scripts. Any tool that drives the app can use it, for example a guide-screenshot script. It uses only Node built-ins and `cdp.mjs`. A small page-side helper, `window.__sgl`, is installed into every document (it survives reloads).
@@ -187,7 +198,7 @@ try {
 |---|---|
 | `page`, `browser` | The raw CDP connections (`page.send(method, params)`, `page.on(event, fn)`). |
 | `url`, `viewport`, `out`, `downloadDir`, `version` | What the session was opened with. |
-| `consoleErrors`, `ignoredConsole`, `dialogs`, `notes` | Uncaught exceptions, `console.error` and network errors; ignored ones (favicon 404); accepted confirm dialogs; worked-around app issues. |
+| `consoleErrors`, `ignoredConsole`, `dialogs`, `notes` | Uncaught exceptions, `console.error` and network errors; ignored ones (favicon 404); accepted confirm dialogs; observations that are not check results. |
 | `evaluate(expr)` | Runs a page expression (awaits promises) and returns its JSON value. Throws on a page exception. |
 | `waitFor(predicateExpr, timeoutMs = 10000, what?)` | Polls until the expression is truthy and returns its value. Throws "timed out … waiting for <what>". |
 | `click(selectorOrText, { within?, timeout?, button? })` | A real mouse click at the centre of the first match: a CSS selector, or else the visible button/tab/label whose text starts with (or whose aria-label equals) the text. `within` is a scope selector. Waits until the element is enabled. |
@@ -205,7 +216,7 @@ try {
 
 | Helper | What it does |
 |---|---|
-| `gotoWelcome(s, url?)` | Reload and wait for Welcome to be ready, including its list of saved projects. If that list never finishes ("Looking for saved projects…", a known intermittent issue right after a reload in a fresh headless profile, after which Create project hangs), it reloads again (at most 3 tries) and records a `NOTE`. |
+| `gotoWelcome(s, url?)` | Reload and wait for Welcome to be ready, including its list of saved projects. The list is always answered (the former "Looking for saved projects…" hang was fixed on 2026-11-20); when it says that saved projects cannot be listed (browser storage unavailable), a `NOTE` records it. |
 | `tryExample(s)` | Welcome → **Try example** (it reloads first when Welcome is not shown). Waits for 5 rooms and 4 edges in Graph 2D. |
 | `openWithToolkit(s, toolkitId = 'house', designFile?)` | Loads `?toolkit=<id>`, then Welcome → Open project with `toolkits/<id>/designs/<id>.json`. A design file becomes a new project that uses that toolkit. Waits for its rooms and edges. Use it for the house example **with** the house toolkit (the Transform, the custom attributes targetArea and priority). |
 | `createProject(s, { toolkit? })` | Welcome → **Create project**, with the toolkit chosen in the Welcome picker (or `?toolkit=`). Today this gives an empty graph. |
@@ -218,7 +229,7 @@ try {
 | `moveRoom(s, id, [x, y, z])` | Select the room and set its Position (one command per changed axis). |
 | `expandSection(s, scopeSelector, title)` | Opens folded `.sgl-csection-toggle` sections, for example Properties → "Relationships" or "In the building". |
 | `undo(s)`, `redo(s)` | Click the header's Undo or Redo. |
-| `ensureGraphEdges(s, expected)` | Waits until Graph 2D draws `expected` edges. If it does not (a known intermittent app issue right after a project opens, most often from Recent), it remounts the view, records a `NOTE` and returns false. |
+| `ensureGraphEdges(s, expected)` | Waits until Graph 2D draws `expected` edges and throws when it does not (no workaround: the former "nodes but no edges after a project opens" issue was fixed on 2026-11-20). Returns true. |
 | `dismissNotices(s)`, `pageOverflow(s)` | Close transient notices; document vs viewport scroll sizes. |
 | `createRunner(s, name)` → `{ step(id, fn, { item? }), results, finish(extra) }` | PASS/FAIL recording with `FAIL-*.png`. `finish` writes `<name>.json`, prints the notes and the summary, closes the browser and returns the exit code. |
 | `runScript({ name, usage, url, viewport }, body)` | Standard entry point. It parses `--url --viewport --out --browser --headed --timeout --help`, opens the session, runs `body(s, opts)` and exits 0, 1 or 2. |
