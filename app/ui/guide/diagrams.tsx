@@ -2,53 +2,32 @@ import type { ReactNode } from 'react';
 import './diagrams.css';
 
 /**
- * The Guide's small diagrams (Programme P4, item H). Every diagram is drawn from ONE house, the
- * built-in example `app/document/examples/house.json` (= `toolkits/house/designs/house.json`):
- * 1 Entrance [0,1,0], 2 Living [1,1,0], 3 Kitchen [1,0,0] on the ground floor; 4 Bedroom [1,1,1]
- * over the Living room and 5 Bath [0,1,1] over the Entrance; relationships 1: 1–2 Access,
- * 2: 2–3 Open, 3: 2–4 Access, 4: 4–5 Access.
+ * The Guide's small diagrams (Programme P4, item H; owner 2026-11-20: generic, two cases each).
+ * Explanations never use the built-in example house: every graph, plan and 3D diagram is a small
+ * purpose-made example with neutral rooms A, B, C… (or a generic room word where a Function is the
+ * point), and most entries show TWO diagrams side by side that contrast two values or cases (e.g.
+ * Shared neighbours 0 vs 1). Functions use the House toolkit colours; generic rooms a neutral grey.
  *
- * Graph diagrams are SVG, laid out like the example's own Graph 2D diagram. Panel diagrams are
- * small static mock-ups styled like the app's panels (section headers, collapsible sections, tags).
- * Every diagram is one `role="img"` with a text alternative; nothing inside is interactive.
- * Numbered circles use the same numbers as the entry's steps and its screenshot markers.
+ * Panel diagrams are small static mock-ups styled like the app's panels (section headers,
+ * collapsible sections, tags). Every diagram is one `role="img"` with a text alternative; nothing
+ * inside is interactive. Numbered circles use the same numbers as the entry's steps and its
+ * screenshot markers.
  */
 
-// ── The house ─────────────────────────────────────────────────────────────────────────────────
-
-type Rel = 'access' | 'open';
-interface HouseNode {
-  readonly id: number;
-  readonly name: string;
-  readonly fn: string;
-  readonly x: number;
-  readonly y: number;
-}
-
-/** Graph 2D layout of the example (its `diagram.positions`, scaled). */
-const NODES: readonly HouseNode[] = [
-  { id: 1, name: 'Entrance', fn: 'entrance', x: 40, y: 112 },
-  { id: 2, name: 'Living', fn: 'living', x: 130, y: 112 },
-  { id: 3, name: 'Kitchen', fn: 'kitchen', x: 220, y: 112 },
-  { id: 4, name: 'Bedroom', fn: 'bedroom', x: 130, y: 38 },
-  { id: 5, name: 'Bath', fn: 'bath', x: 40, y: 38 },
-];
-const EDGES: readonly { readonly id: number; readonly s: number; readonly t: number; readonly rel: Rel }[] = [
-  { id: 1, s: 1, t: 2, rel: 'access' },
-  { id: 2, s: 2, t: 3, rel: 'open' },
-  { id: 3, s: 2, t: 4, rel: 'access' },
-  { id: 4, s: 4, t: 5, rel: 'access' },
-];
-
-/** Function colours (close to the app's default palette for the example). */
+/** The House toolkit's function colours (owner 2026-11-20); each function distinct. */
 const FN_FILL: Readonly<Record<string, string>> = {
-  entrance: '#f3d77a',
-  living: '#f0a35a',
-  kitchen: '#d9c3dc',
-  bedroom: '#b98fbf',
-  bath: '#e98a86',
-  circulation: '#b8c9d9',
+  entrance: '#8e6bb8',
+  living: '#e8a33d',
+  kitchen: '#d4623b',
+  bedroom: '#4f7cc0',
+  bath: '#3fa9b5',
+  circulation: '#9b9a8f',
 };
+/** Functions dark enough to need a light label on top. */
+const DARK_FN = new Set(['entrance', 'kitchen', 'bedroom']);
+/** A generic room (no Function shown). */
+const NEUTRAL = '#dfe3e8';
+const CELL_LINE = '#9aa0a8';
 
 // ── Small building blocks ─────────────────────────────────────────────────────────────────────
 
@@ -60,77 +39,85 @@ function Svg({ w, h, alt, children }: { readonly w: number; readonly h: number; 
   );
 }
 
-interface GraphOpts {
-  /** Primary highlight (teal, like analysis results). */
-  readonly hn?: readonly number[];
-  /** Secondary highlight. */
-  readonly hn2?: readonly number[];
-  /** Highlighted edge ids. */
-  readonly he?: readonly number[];
-  /** Selected (pink) node / edge. */
-  readonly sel?: number;
-  readonly selEdge?: number;
-  /** Edge ids drawn dashed (removed / imagined). */
-  readonly dash?: readonly number[];
-  /** Extra imagined edges (drawn dashed). */
-  readonly extra?: readonly (readonly [number, number])[];
-  readonly faded?: readonly number[];
-  /** Text badge next to a node. */
-  readonly badge?: Readonly<Record<number, string>>;
-  readonly dx?: number;
-  readonly dy?: number;
-  /** Show the room names (default true). */
-  readonly names?: boolean;
+const Cap = ({ x, y, children, anchor = 'start' }: { readonly x: number; readonly y: number; readonly children: ReactNode; readonly anchor?: 'start' | 'middle' | 'end' }) => (
+  <text className="sgl-gd-cap" x={x} y={y} textAnchor={anchor}>
+    {children}
+  </text>
+);
+
+const Txt = ({ x, y, children, anchor = 'middle', cls = '' }: { readonly x: number; readonly y: number; readonly children: ReactNode; readonly anchor?: 'start' | 'middle' | 'end'; readonly cls?: string }) => (
+  <text className={`sgl-gd-t ${cls}`.trim()} x={x} y={y} textAnchor={anchor}>
+    {children}
+  </text>
+);
+
+// ── Generic graphs ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A small generic graph, written compactly: `nodes` "A 30 50, B 90 50" (id x y), `edges`
+ * "A-B, B-C". Options name nodes / edges with the same ids: `hl` (teal) and `hlB` (gold) colour
+ * nodes, `he` / `heB` edges; `sel` / `selEdge` get the pink selection; `open` edges are drawn
+ * heavier (Open relationships), `dash` edges dashed, `fade` nodes faded; `fn` gives a node a
+ * Function colour, `badge` a number or word beside it.
+ */
+interface NetOpts {
+  readonly w?: number;
+  readonly h?: number;
+  readonly hl?: string;
+  readonly hlB?: string;
+  readonly he?: string;
+  readonly heB?: string;
+  readonly sel?: string;
+  readonly selEdge?: string;
+  readonly open?: string;
+  readonly dash?: string;
+  readonly fade?: string;
+  readonly fn?: Readonly<Record<string, string>>;
+  readonly badge?: Readonly<Record<string, string>>;
 }
 
-/** The house graph (nodes numbered by id; Open drawn heavier than Access, as in the app). */
-function HouseGraph(o: GraphOpts) {
-  const dx = o.dx ?? 0;
-  const dy = o.dy ?? 0;
-  const at = (id: number) => NODES.find((n) => n.id === id)!;
-  const cls = (base: string, on: boolean, extra = '') => [base, on ? 'hl' : '', extra].filter(Boolean).join(' ');
+const words = (s: string | undefined): string[] => (s ?? '').split(/[\s,]+/).filter(Boolean);
+const edgeKey = (a: string, b: string) => [a, b].sort().join('-');
+const splitEdge = (e: string) => e.split('-') as [string, string];
+const edgeSet = (s: string | undefined) => new Set(words(s).map((e) => edgeKey(...splitEdge(e))));
+
+function NetBody({ nodes, edges, o }: { readonly nodes: string; readonly edges: string; readonly o: NetOpts }) {
+  const pos = new Map<string, [number, number]>();
+  for (const part of nodes.split(',').map((p) => p.trim()).filter(Boolean)) {
+    const [id, x, y] = part.split(/\s+/);
+    pos.set(id!, [Number(x), Number(y)]);
+  }
+  const hl = new Set(words(o.hl));
+  const hlB = new Set(words(o.hlB));
+  const fade = new Set(words(o.fade));
+  const he = edgeSet(o.he);
+  const heB = edgeSet(o.heB);
+  const open = edgeSet(o.open);
+  const dash = edgeSet(o.dash);
+  const sel = o.selEdge ? edgeKey(...splitEdge(o.selEdge)) : undefined;
   return (
-    <g transform={`translate(${dx} ${dy})`}>
-      {EDGES.map((e) => {
-        const a = at(e.s);
-        const b = at(e.t);
-        const c = [
-          'sgl-gd-e',
-          e.rel === 'open' ? 'open' : '',
-          o.he?.includes(e.id) ? 'hl' : '',
-          o.selEdge === e.id ? 'sel' : '',
-          o.dash?.includes(e.id) ? 'dash' : '',
-          o.faded?.includes(e.s) || o.faded?.includes(e.t) ? 'fade' : '',
-        ]
-          .filter(Boolean)
-          .join(' ');
-        return <line key={`e${e.id}`} className={c} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />;
+    <g>
+      {words(edges).map((e) => {
+        const [a, b] = splitEdge(e);
+        const k = edgeKey(a, b);
+        const [x1, y1] = pos.get(a)!;
+        const [x2, y2] = pos.get(b)!;
+        const c = ['sgl-gd-e', open.has(k) && 'open', he.has(k) && 'hl', heB.has(k) && 'hlB', sel === k && 'sel', dash.has(k) && 'dash', (fade.has(a) || fade.has(b)) && 'fade'].filter(Boolean).join(' ');
+        return <line key={k} className={c} x1={x1} y1={y1} x2={x2} y2={y2} />;
       })}
-      {(o.extra ?? []).map(([s, t]) => {
-        const a = at(s);
-        const b = at(t);
-        return <path key={`x${s}-${t}`} className="sgl-gd-e dash hl" d={`M${a.x} ${a.y} Q ${(a.x + b.x) / 2} ${a.y + 34} ${b.x} ${b.y}`} fill="none" />;
-      })}
-      {NODES.map((n) => {
-        const on = o.hn?.includes(n.id) ?? false;
-        const on2 = o.hn2?.includes(n.id) ?? false;
-        const fade = o.faded?.includes(n.id) ?? false;
-        const nameBelow = n.y > 80;
+      {[...pos].map(([id, [x, y]]) => {
+        const fn = o.fn?.[id];
+        const on = hl.has(id) ? 'hl' : hlB.has(id) ? 'hlB' : '';
         return (
-          <g key={`n${n.id}`} className={fade ? 'fade' : undefined}>
-            {o.sel === n.id && <circle className="sgl-gd-selring" cx={n.x} cy={n.y} r={15} />}
-            <circle className={cls('sgl-gd-n', on, on2 ? 'hl2' : '')} cx={n.x} cy={n.y} r={11} style={{ fill: on ? undefined : FN_FILL[n.fn] }} />
-            <text className="sgl-gd-id" x={n.x} y={n.y + 4} textAnchor="middle">
-              {n.id}
+          <g key={id} className={fade.has(id) ? 'fade' : undefined}>
+            {o.sel === id && <circle className="sgl-gd-selring" cx={x} cy={y} r={16} />}
+            <circle className={`sgl-gd-n ${on}`.trim()} cx={x} cy={y} r={12} style={on ? undefined : { fill: fn ? FN_FILL[fn] : NEUTRAL }} />
+            <text className={`sgl-gd-id${!on && fn && DARK_FN.has(fn) ? ' light' : ''}`} x={x} y={y + 4} textAnchor="middle">
+              {id}
             </text>
-            {o.names !== false && (
-              <text className={cls('sgl-gd-t', on || on2)} x={n.x} y={nameBelow ? n.y + 26 : n.y - 17} textAnchor="middle">
-                {n.name}
-              </text>
-            )}
-            {o.badge?.[n.id] !== undefined && (
-              <text className="sgl-gd-badge" x={n.x + 16} y={n.y - 8}>
-                {o.badge[n.id]}
+            {o.badge?.[id] !== undefined && (
+              <text className="sgl-gd-badge" x={x + 15} y={y - 11}>
+                {o.badge[id]}
               </text>
             )}
           </g>
@@ -140,221 +127,53 @@ function HouseGraph(o: GraphOpts) {
   );
 }
 
-function Graph({ alt, h = 150, w = 260, children, ...o }: GraphOpts & { readonly alt: string; readonly h?: number; readonly w?: number; readonly children?: ReactNode }) {
+function Net({ alt, nodes, edges, children, ...o }: NetOpts & { readonly alt: string; readonly nodes: string; readonly edges: string; readonly children?: ReactNode }) {
   return (
-    <Svg w={w} h={h} alt={alt}>
-      <HouseGraph {...o} />
+    <Svg w={o.w ?? 220} h={o.h ?? 110} alt={alt}>
+      <NetBody nodes={nodes} edges={edges} o={o} />
       {children}
     </Svg>
   );
 }
 
-const Cap = ({ x, y, children, anchor = 'start' }: { readonly x: number; readonly y: number; readonly children: ReactNode; readonly anchor?: 'start' | 'middle' | 'end' }) => (
-  <text className="sgl-gd-cap" x={x} y={y} textAnchor={anchor}>
-    {children}
-  </text>
-);
+/** Layouts used again and again. */
+const ROW5 = 'A 22 46, B 66 46, C 110 46, D 154 46, E 198 46';
+const ROW5_E = 'A-B, B-C, C-D, D-E';
+const ROW4 = 'A 30 46, B 83 46, C 137 46, D 190 46';
+const ROW4_E = 'A-B, B-C, C-D';
+const STAR = 'A 50 22, B 170 22, C 110 55, D 50 88, E 170 88';
+const STAR_E = 'C-A, C-B, C-D, C-E';
+const LOOP4 = 'A 60 24, B 160 24, C 160 86, D 60 86';
+const LOOP4_E = 'A-B, B-C, C-D, D-A';
+/** A path with a fork at the end: A–B–C, then C–D and C–E. */
+const FORK = 'A 26 55, B 82 55, C 138 55, D 194 22, E 194 88';
+const FORK_E = 'A-B, B-C, C-D, C-E';
 
-// ── Oblique 3D helpers (Graph 3D, Voxels, Building) ────────────────────────────────────────────
-
-/** Oblique view: grid x → right, grid y → back (up and to the right), z → up. */
-const iso = (x: number, y: number, z: number, s = 36, ox = 64, oy = 134): [number, number] => [ox + x * s + y * s * 0.55, oy - z * s - y * s * 0.4];
-const pts = (list: readonly [number, number][]) => list.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join(' ');
-
-/** The example's cells [x, y, z, function] in grid coordinates (the Kitchen is in front, y = 0). */
-const CELLS: readonly (readonly [number, number, number, string])[] = [
-  [0, 1, 0, 'entrance'],
-  [1, 1, 0, 'living'],
-  [1, 0, 0, 'kitchen'],
-  [1, 1, 1, 'bedroom'],
-  [0, 1, 1, 'bath'],
-];
-
-/** One cell: its front (y), top (z + 1) and right (x + 1) faces. */
-function Cube({ x, y, z, fill, solid }: { readonly x: number; readonly y: number; readonly z: number; readonly fill: string; readonly solid?: boolean }) {
-  const P = (a: number, b: number, c: number) => iso(a, b, c);
-  const front = pts([P(x, y, z), P(x + 1, y, z), P(x + 1, y, z + 1), P(x, y, z + 1)]);
-  const top = pts([P(x, y, z + 1), P(x + 1, y, z + 1), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)]);
-  const side = pts([P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)]);
-  return (
-    <g className={`sgl-gd-cube${solid ? ' solid' : ''}`}>
-      <polygon className="f" points={front} style={{ fill }} />
-      <polygon className="t" points={top} style={{ fill }} />
-      <polygon className="s" points={side} style={{ fill }} />
-    </g>
-  );
-}
-
-/** Cells in painting order: back to front, bottom to top, left to right. */
-const paintOrder = [...CELLS].sort((a, b) => b[1] - a[1] || a[2] - b[2] || a[0] - b[0]);
-
-/** A window on a front face (y) or on a right-hand face (x). */
-const frontWindow = (x: number, y: number, z: number) => pts([iso(x + 0.3, y, z + 0.3), iso(x + 0.7, y, z + 0.3), iso(x + 0.7, y, z + 0.75), iso(x + 0.3, y, z + 0.75)]);
-const sideWindow = (x: number, y: number, z: number) => pts([iso(x, y + 0.3, z + 0.3), iso(x, y + 0.7, z + 0.3), iso(x, y + 0.7, z + 0.75), iso(x, y + 0.3, z + 0.75)]);
-
-// ── Panel mock-ups ────────────────────────────────────────────────────────────────────────────
-
-function Mock({ alt, title, children, wide }: { readonly alt: string; readonly title?: string; readonly children: ReactNode; readonly wide?: boolean }) {
-  return (
-    <div className={`sgl-gd-panel${wide ? ' wide' : ''}`} role="img" aria-label={alt}>
-      <div aria-hidden="true">
-        {title !== undefined && <div className="sgl-gd-ptitle">{title}</div>}
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function MNum({ n }: { readonly n: number }) {
-  return <span className="sgl-gd-num">{n}</span>;
-}
-
-/** A section header like the app's: chevron (collapsible) or thin divider, title, subtitle, ⓘ, "+". */
-function MSec({
-  title,
-  sub,
-  open,
-  plain,
-  plus,
-  hl,
-  n,
-  children,
-}: {
-  readonly title: string;
-  readonly sub?: string;
-  readonly open?: boolean;
-  /** Not collapsible (attribute sections): a thin divider and a small title. */
-  readonly plain?: boolean;
-  readonly plus?: boolean;
-  readonly hl?: boolean;
-  readonly n?: number;
-  readonly children?: ReactNode;
-}) {
-  return (
-    <div className={`sgl-gd-sec${hl ? ' hl' : ''}${plain ? ' plain' : ''}`}>
-      <div className="sgl-gd-sechead">
-        {!plain && <span className="sgl-gd-chev">{open ? '▾' : '▸'}</span>}
-        <span className="sgl-gd-sectitle">{title}</span>
-        <span className="sgl-gd-info">i</span>
-        {plus && <span className="sgl-gd-plus">+</span>}
-        {n !== undefined && <MNum n={n} />}
-        {sub !== undefined && <span className="sgl-gd-secsub">{sub}</span>}
-      </div>
-      {(open || plain) && children !== undefined && <div className="sgl-gd-secbody">{children}</div>}
-    </div>
-  );
-}
-
-function MRow({ label, value, tag, lock, hl, n, faded }: { readonly label: string; readonly value?: ReactNode; readonly tag?: string; readonly lock?: boolean; readonly hl?: boolean; readonly n?: number; readonly faded?: boolean }) {
-  return (
-    <div className={`sgl-gd-row${hl ? ' hl' : ''}`}>
-      <span className="sgl-gd-rlabel">{label}</span>
-      {value !== undefined && <span className={`sgl-gd-rvalue${faded ? ' faded' : ''}`}>{value}</span>}
-      {lock && <span className="sgl-gd-lock">🔒</span>}
-      {tag !== undefined && <span className="sgl-gd-tag">{tag}</span>}
-      {n !== undefined && <MNum n={n} />}
-    </div>
-  );
-}
-
-const MBtn = ({ children, primary, hl, n }: { readonly children: ReactNode; readonly primary?: boolean; readonly hl?: boolean; readonly n?: number }) => (
-  <span className={`sgl-gd-btn${primary ? ' primary' : ''}${hl ? ' hl' : ''}`}>
-    {children}
-    {n !== undefined && <MNum n={n} />}
-  </span>
-);
-
-const MSeg = ({ items, on }: { readonly items: readonly string[]; readonly on: string }) => (
-  <span className="sgl-gd-seg">
-    {items.map((i) => (
-      <span key={i} className={i === on ? 'on' : undefined}>
-        {i}
-      </span>
-    ))}
-  </span>
-);
-
-/** The five attribute sections of the Living room, as in Properties (`hl` = the highlighted section). */
-function SectionsMock({ hl, alt }: { readonly hl: 'all' | 'identity' | 'required' | 'geometry' | 'custom' | 'calculated'; readonly alt: string }) {
-  const on = (id: string) => hl === 'all' || hl === id;
-  return (
-    <Mock alt={alt} title="Living · Room 2">
-      <MSec plain title="Identity" hl={on('identity')}>
-        <MRow label="ID" value="2" lock />
-      </MSec>
-      <MSec plain title="Required by the app" hl={on('required')}>
-        <MRow label="Function" value="Living ▾" />
-      </MSec>
-      <MSec plain title="Geometry" hl={on('geometry')}>
-        <MRow label="Position" value="1 | 1 | 0 (Level)" />
-        <MRow label="Size" value="1 | 1 | 1 (Floors)" />
-      </MSec>
-      <MSec plain title="Custom" hl={on('custom')}>
-        <MRow label="Target area (m²)" value="36 (default)" faded tag="Toolkit: House" />
-        <MRow label="Daylight" value="high" tag="Yours" />
-      </MSec>
-      <MSec plain title="Calculated" hl={on('calculated')}>
-        <MRow label="Area" value="9 m²" lock tag="Calculated, not saved" />
-      </MSec>
-    </Mock>
-  );
-}
-
-/** A numbered strip of steps (How to…). */
-function Steps({ labels, alt }: { readonly labels: readonly string[]; readonly alt: string }) {
-  return (
-    <ol className="sgl-gd-steps" aria-label={alt}>
-      {labels.map((l, i) => (
-        <li key={i}>
-          <MNum n={i + 1} />
-          <span>{l}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function Code({ lines, alt }: { readonly lines: readonly (readonly [string, boolean?])[]; readonly alt: string }) {
-  return (
-    <pre className="sgl-gd-code" role="img" aria-label={alt}>
-      <code aria-hidden="true">
-        {lines.map(([t, hl], i) => (
-          <span key={i} className={hl ? 'hl' : undefined}>
-            {t}
-            {'\n'}
-          </span>
-        ))}
-      </code>
-    </pre>
-  );
-}
-
-// ── Floor plan (one storey) ───────────────────────────────────────────────────────────────────
+// ── Plans (one storey, from above) ────────────────────────────────────────────────────────────
 
 interface PlanRoom {
   readonly name: string;
-  readonly fn: string;
-  /** Cells [x, y] in plan coordinates (y down = towards the viewer, like the app's plan with +y up flipped). */
+  readonly fn?: string;
+  /** Cells [x, y] in plan coordinates (y down). */
   readonly cells: readonly (readonly [number, number])[];
 }
 
+/** A plan: rooms of cells; outside walls; between rooms a door (access), nothing (open) or a solid wall. */
 function Plan({
   rooms,
-  rel,
+  rel = {},
   alt,
   extra,
-  hl = [],
-  w = 260,
-  h = 150,
-  cell = 52,
-  ox = 40,
-  oy = 14,
+  w = 220,
+  h = 110,
+  cell = 44,
+  ox = 20,
+  oy = 10,
 }: {
   readonly rooms: readonly PlanRoom[];
-  readonly rel: Readonly<Record<string, Rel | 'corridor'>>;
+  readonly rel?: Readonly<Record<string, 'access' | 'open'>>;
   readonly alt: string;
   readonly extra?: ReactNode;
-  readonly hl?: readonly string[];
   readonly w?: number;
   readonly h?: number;
   readonly cell?: number;
@@ -368,12 +187,11 @@ function Plan({
   const walls: ReactNode[] = [];
   const labels: ReactNode[] = [];
   for (const r of rooms) {
-    const on = hl.includes(r.name);
-    r.cells.forEach(([x, y], i) => fills.push(<rect key={`${r.name}${i}`} className={`sgl-gd-cell${on ? ' hl' : ''}`} x={ox + x * C} y={oy + y * C} width={C} height={C} style={{ fill: FN_FILL[r.fn] }} />));
+    r.cells.forEach(([x, y], i) => fills.push(<rect key={`${r.name}${i}`} className="sgl-gd-cell" x={ox + x * C} y={oy + y * C} width={C} height={C} style={{ fill: r.fn ? FN_FILL[r.fn] : NEUTRAL }} />));
     const cx = r.cells.reduce((a, c) => a + c[0], 0) / r.cells.length;
     const cy = r.cells.reduce((a, c) => a + c[1], 0) / r.cells.length;
     labels.push(
-      <text key={`l${r.name}`} className="sgl-gd-t" x={ox + (cx + 0.5) * C} y={oy + (cy + 0.5) * C + 4} textAnchor="middle">
+      <text key={`l${r.name}`} className="sgl-gd-t strong" x={ox + (cx + 0.5) * C} y={oy + (cy + 0.5) * C + 4} textAnchor="middle" style={r.fn && DARK_FN.has(r.fn) ? { fill: '#fff' } : undefined}>
         {r.name}
       </text>,
     );
@@ -418,266 +236,771 @@ function Plan({
   );
 }
 
-/** Ground floor of the example, drawn as the app's Plan shows it (Entrance left, Kitchen in front). */
-const GROUND: readonly PlanRoom[] = [
-  { name: 'Entrance', fn: 'entrance', cells: [[0, 0]] },
-  { name: 'Living', fn: 'living', cells: [[1, 0]] },
-  { name: 'Kitchen', fn: 'kitchen', cells: [[1, 1]] },
+const TWO: readonly PlanRoom[] = [
+  { name: 'A', cells: [[0, 0]] },
+  { name: 'B', cells: [[1, 0]] },
 ];
-const GROUND_REL: Readonly<Record<string, Rel>> = { 'Entrance|Living': 'access', 'Kitchen|Living': 'open' };
+
+/** Two rooms as a graph (top) and as a plan (below): Access, Open or no relationship. */
+function GraphAndPlan({ rel, alt }: { readonly rel: 'access' | 'open' | 'none'; readonly alt: string }) {
+  return (
+    <Plan
+      rooms={TWO}
+      rel={rel === 'none' ? {} : { 'A|B': rel }}
+      alt={alt}
+      h={112}
+      ox={66}
+      oy={52}
+      extra={
+        <>
+          <NetBody nodes="A 88 20, B 132 20" edges={rel === 'none' ? '' : 'A-B'} o={{ open: rel === 'open' ? 'A-B' : '' }} />
+          <Cap x={8} y={24}>
+            graph
+          </Cap>
+          <Cap x={8} y={78}>
+            plan
+          </Cap>
+        </>
+      }
+    />
+  );
+}
+
+// ── Oblique 3D ────────────────────────────────────────────────────────────────────────────────
+
+type Pt = [number, number];
+type Project = (x: number, y: number, z: number) => Pt;
+/** Oblique projection: grid x → right, grid y → back (up and to the right), z → up. */
+const oblique =
+  (s: number, ox: number, oy: number): Project =>
+  (x, y, z) => [ox + x * s + y * s * 0.55, oy - z * s - y * s * 0.4];
+const pts = (list: readonly Pt[]) => list.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join(' ');
+const at = (p: Pt) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
+
+/** One cell: its front (y), top (z + 1) and right (x + 1) faces. `roofless` draws an open box. */
+function Cube({ P, x, y, z, fill, solid, roofless }: { readonly P: Project; readonly x: number; readonly y: number; readonly z: number; readonly fill: string; readonly solid?: boolean; readonly roofless?: boolean }) {
+  const front = pts([P(x, y, z), P(x + 1, y, z), P(x + 1, y, z + 1), P(x, y, z + 1)]);
+  const top = pts([P(x, y, z + 1), P(x + 1, y, z + 1), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)]);
+  const side = pts([P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)]);
+  if (roofless) {
+    const floor = pts([P(x, y, z), P(x + 1, y, z), P(x + 1, y + 1, z), P(x, y + 1, z)]);
+    const back = pts([P(x, y + 1, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)]);
+    const left = pts([P(x, y, z), P(x, y + 1, z), P(x, y + 1, z + 1), P(x, y, z + 1)]);
+    return (
+      <g className="sgl-gd-cube solid">
+        <polygon className="s" points={back} style={{ fill }} />
+        <polygon className="s" points={left} style={{ fill }} />
+        <polygon points={floor} style={{ fill: '#f4f1ea' }} />
+        <polygon points={front} style={{ fill, fillOpacity: 0.2 }} />
+        <polygon points={side} style={{ fill, fillOpacity: 0.2 }} />
+      </g>
+    );
+  }
+  return (
+    <g className={`sgl-gd-cube${solid ? ' solid' : ''}`}>
+      <polygon className="f" points={front} style={{ fill }} />
+      <polygon className="t" points={top} style={{ fill }} />
+      <polygon className="s" points={side} style={{ fill }} />
+    </g>
+  );
+}
+
+type CellSpec = readonly [x: number, y: number, z: number, fill: string];
+/** Cells in painting order: back to front, bottom to top, left to right. */
+const painted = (cells: readonly CellSpec[]) => [...cells].sort((a, b) => b[1] - a[1] || a[2] - b[2] || a[0] - b[0]);
+
+function Cubes({ cells, alt, solid, roofless, children, h = 120 }: { readonly cells: readonly CellSpec[]; readonly alt: string; readonly solid?: boolean; readonly roofless?: boolean; readonly children?: ReactNode; readonly h?: number }) {
+  const P = oblique(40, 40, h - 22);
+  return (
+    <Svg w={220} h={h} alt={alt}>
+      {painted(cells).map(([x, y, z, fill]) => (
+        <Cube key={`${x}${y}${z}`} P={P} x={x} y={y} z={z} fill={fill} {...(solid && { solid })} {...(roofless && { roofless })} />
+      ))}
+      {children}
+    </Svg>
+  );
+}
+
+// ── Panel mock-ups ────────────────────────────────────────────────────────────────────────────
+
+function Mock({ alt, title, children }: { readonly alt: string; readonly title?: string; readonly children: ReactNode }) {
+  return (
+    <div className="sgl-gd-panel" role="img" aria-label={alt}>
+      <div aria-hidden="true">
+        {title !== undefined && <div className="sgl-gd-ptitle">{title}</div>}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function MNum({ n }: { readonly n: number }) {
+  return <span className="sgl-gd-num">{n}</span>;
+}
+
+/** A section header like the app's: chevron (collapsible) or thin divider, title, subtitle, ⓘ, "+". */
+function MSec({
+  title,
+  sub,
+  open,
+  plain,
+  plus,
+  n,
+  children,
+}: {
+  readonly title: string;
+  readonly sub?: string;
+  readonly open?: boolean;
+  /** Not collapsible (attribute sections): a thin divider and a small title. */
+  readonly plain?: boolean;
+  readonly plus?: boolean;
+  readonly n?: number;
+  readonly children?: ReactNode;
+}) {
+  return (
+    <div className={`sgl-gd-sec${plain ? ' plain' : ''}`}>
+      <div className="sgl-gd-sechead">
+        {!plain && <span className="sgl-gd-chev">{open ? '▾' : '▸'}</span>}
+        <span className="sgl-gd-sectitle">{title}</span>
+        <span className="sgl-gd-info">i</span>
+        {plus && <span className="sgl-gd-plus">+</span>}
+        {n !== undefined && <MNum n={n} />}
+        {sub !== undefined && <span className="sgl-gd-secsub">{sub}</span>}
+      </div>
+      {(open || plain) && children !== undefined && <div className="sgl-gd-secbody">{children}</div>}
+    </div>
+  );
+}
+
+function MRow({ label, value, tag, lock, hl, n, faded }: { readonly label: string; readonly value?: ReactNode; readonly tag?: string; readonly lock?: boolean; readonly hl?: boolean; readonly n?: number; readonly faded?: boolean }) {
+  return (
+    <div className={`sgl-gd-row${hl ? ' hl' : ''}`}>
+      <span className="sgl-gd-rlabel">{label}</span>
+      {value !== undefined && <span className={`sgl-gd-rvalue${faded ? ' faded' : ''}`}>{value}</span>}
+      {lock && <span className="sgl-gd-lock">🔒</span>}
+      {tag !== undefined && <span className="sgl-gd-tag">{tag}</span>}
+      {n !== undefined && <MNum n={n} />}
+    </div>
+  );
+}
+
+const MBtn = ({ children, primary, n }: { readonly children: ReactNode; readonly primary?: boolean; readonly n?: number }) => (
+  <span className={`sgl-gd-btn${primary ? ' primary' : ''}`}>
+    {children}
+    {n !== undefined && <MNum n={n} />}
+  </span>
+);
+
+const MSeg = ({ items, on }: { readonly items: readonly string[]; readonly on: string }) => (
+  <span className="sgl-gd-seg">
+    {items.map((i) => (
+      <span key={i} className={i === on ? 'on' : undefined}>
+        {i}
+      </span>
+    ))}
+  </span>
+);
+
+/** A numbered strip of steps (How to…). */
+function Steps({ labels, alt }: { readonly labels: readonly string[]; readonly alt: string }) {
+  return (
+    <ol className="sgl-gd-steps" aria-label={alt}>
+      {labels.map((l, i) => (
+        <li key={i}>
+          <MNum n={i + 1} />
+          <span>{l}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function Code({ lines, alt }: { readonly lines: readonly (readonly [string, boolean?])[]; readonly alt: string }) {
+  return (
+    <pre className="sgl-gd-code" role="img" aria-label={alt}>
+      <code aria-hidden="true">
+        {lines.map(([t, hl], i) => (
+          <span key={i} className={hl ? 'hl' : undefined}>
+            {t}
+            {'\n'}
+          </span>
+        ))}
+      </code>
+    </pre>
+  );
+}
+
+// ── Diagram makers shared by several entries ──────────────────────────────────────────────────
+
+/** Grid cells with the size and area written under them. */
+function SizeCells({ cols, rows, alt, area, size }: { readonly cols: number; readonly rows: number; readonly alt: string; readonly area: string; readonly size: string }) {
+  const C = 30;
+  const ox = 110 - (cols * C) / 2;
+  const cells: ReactNode[] = [];
+  for (let x = 0; x < cols; x++) for (let y = 0; y < rows; y++) cells.push(<rect key={`${x}${y}`} className="sgl-gd-cell" x={ox + x * C} y={8 + y * C} width={C} height={C} style={{ fill: NEUTRAL, stroke: CELL_LINE }} />);
+  return (
+    <Svg w={220} h={112} alt={alt}>
+      {cells}
+      <rect x={ox} y={8} width={cols * C} height={rows * C} fill="none" className="sgl-gd-wall" />
+      <Txt x={110} y={8 + rows * C + 18} cls="strong">
+        {size}
+      </Txt>
+      <Txt x={110} y={8 + rows * C + 32}>
+        {area}
+      </Txt>
+    </Svg>
+  );
+}
+
+/** The Grow to target area example: Living (target 36), Bedroom (18), Bath (9), before or after. */
+function Grow({ after }: { readonly after: boolean }) {
+  const C = 26;
+  const cell = (x: number, y: number, fn: string, grown = false) => <rect key={`${x}-${y}`} className={`sgl-gd-cell${grown ? ' grow' : ''}`} x={34 + x * C} y={14 + y * C} width={C} height={C} style={{ fill: FN_FILL[fn] }} />;
+  return (
+    <Svg
+      w={220}
+      h={112}
+      alt={
+        after
+          ? 'After Grow to target area: the Living room has grown from 1 cell to 4 (36 m²), the Bedroom from 1 to 2 (18 m²); the Bath stays 1 cell (9 m²). New cells are dashed.'
+          : 'Before Grow to target area: a Living room, a Bedroom and a Bath, each one cell of 9 m², with targets 36, 18 and 9 m².'
+      }
+    >
+      {after ? (
+        <>
+          {cell(0, 1, 'living')}
+          {cell(1, 1, 'living', true)}
+          {cell(0, 0, 'living', true)}
+          {cell(1, 0, 'living', true)}
+          {cell(2, 1, 'bedroom')}
+          {cell(3, 1, 'bedroom', true)}
+          {cell(4, 1, 'bath')}
+        </>
+      ) : (
+        <>
+          {cell(0, 1, 'living')}
+          {cell(2, 1, 'bedroom')}
+          {cell(4, 1, 'bath')}
+        </>
+      )}
+      <Cap x={34} y={86}>
+        Living {after ? '36' : '9'} · Bedroom {after ? '18' : '9'} · Bath 9 m²
+      </Cap>
+      <Cap x={34} y={100}>
+        targets 36 · 18 · 9 m² (1 cell = 9 m²)
+      </Cap>
+    </Svg>
+  );
+}
+
+/** Two rooms seen from the front, cut through: the wall between them has a door or is solid. */
+function Section({ door, alt }: { readonly door: boolean; readonly alt: string }) {
+  return (
+    <Svg w={220} h={112} alt={alt}>
+      <rect className="sgl-gd-cell" x={20} y={20} width={180} height={70} style={{ fill: NEUTRAL }} />
+      <rect x={20} y={20} width={180} height={70} fill="none" className="sgl-gd-wall" />
+      {door ? (
+        <>
+          <line className="sgl-gd-wall" x1={110} y1={20} x2={110} y2={42} />
+          <rect x={104} y={42} width={12} height={48} fill="#fff" stroke="#2b2b28" strokeWidth={1} />
+        </>
+      ) : (
+        <line className="sgl-gd-wall" x1={110} y1={20} x2={110} y2={90} />
+      )}
+      <Txt x={65} y={60} cls="strong">
+        A
+      </Txt>
+      <Txt x={155} y={60} cls="strong">
+        B
+      </Txt>
+      <Cap x={110} y={106} anchor="middle">
+        {door ? 'Access: a door' : 'no relationship: a solid wall'}
+      </Cap>
+    </Svg>
+  );
+}
+
+/** A corridor between two rooms one cell apart, from above: its own side walls, or none. */
+function Corridor({ enclosed }: { readonly enclosed: boolean }) {
+  return (
+    <Svg
+      w={220}
+      h={100}
+      alt={
+        enclosed
+          ? 'From above: rooms A and B one cell apart, joined by a generated corridor with walls on both long sides (Walls Enclosed).'
+          : 'From above: rooms A and B one cell apart, joined by a generated corridor with no side walls, only posts at its corners (Walls Open).'
+      }
+    >
+      <rect className="sgl-gd-cell" x={20} y={20} width={56} height={56} style={{ fill: NEUTRAL }} />
+      <rect className="sgl-gd-cell" x={144} y={20} width={56} height={56} style={{ fill: NEUTRAL }} />
+      <rect x={20} y={20} width={56} height={56} fill="none" className="sgl-gd-wall" />
+      <rect x={144} y={20} width={56} height={56} fill="none" className="sgl-gd-wall" />
+      <rect className="sgl-gd-cell corridor" x={76} y={36} width={68} height={24} />
+      {enclosed ? (
+        <>
+          <line className="sgl-gd-wall inner" x1={76} y1={36} x2={144} y2={36} />
+          <line className="sgl-gd-wall inner" x1={76} y1={60} x2={144} y2={60} />
+        </>
+      ) : (
+        [80, 140].flatMap((x) => [36, 60].map((y) => <rect key={`${x}${y}`} x={x - 2.5} y={y - 2.5} width={5} height={5} fill="#2b2b28" />))
+      )}
+      <Txt x={48} y={52} cls="strong">
+        A
+      </Txt>
+      <Txt x={172} y={52} cls="strong">
+        B
+      </Txt>
+      <Cap x={110} y={94} anchor="middle">
+        {enclosed ? 'Walls Enclosed' : 'Walls Open'}
+      </Cap>
+    </Svg>
+  );
+}
+
+/** Routes through it on a row of five: the selected edge, its two sides in two colours. */
+function Routes({ middle }: { readonly middle: boolean }) {
+  return middle ? (
+    <Net
+      alt="Rooms A to E in a row; relationship B–C selected. A and B (2 rooms) are on B's side, coloured teal; C, D and E (3 rooms) are on C's side, coloured gold: 2 · 3, and 2 × 3 = 6 trips use it."
+      nodes={ROW5}
+      edges={ROW5_E}
+      selEdge="B-C"
+      hl="A B"
+      hlB="C D E"
+    >
+      <Txt x={44} y={82} cls="strong">
+        2
+      </Txt>
+      <Txt x={154} y={82} cls="strong">
+        3
+      </Txt>
+      <Cap x={110} y={102} anchor="middle">
+        2 · 3 · 2 × 3 = 6 trips
+      </Cap>
+    </Net>
+  ) : (
+    <Net
+      alt="Rooms A to E in a row; relationship A–B selected. Only A is on A's side, coloured teal; B, C, D and E (4 rooms) are on B's side, coloured gold: 1 · 4, and 1 × 4 = 4 trips use it."
+      nodes={ROW5}
+      edges={ROW5_E}
+      selEdge="A-B"
+      hl="A"
+      hlB="B C D E"
+    >
+      <Txt x={22} y={82} cls="strong">
+        1
+      </Txt>
+      <Txt x={132} y={82} cls="strong">
+        4
+      </Txt>
+      <Cap x={110} y={102} anchor="middle">
+        1 · 4 · 1 × 4 = 4 trips
+      </Cap>
+    </Net>
+  );
+}
+
+/** Two separate groups, or one. */
+function Parts({ two }: { readonly two: boolean }) {
+  const nodes = 'A 30 30, B 80 30, C 55 80, D 150 30, E 192 80';
+  return two ? (
+    <Net alt="Two groups with no relationship between them: A, B and C joined in one, D and E in the other: 2 connected parts, the second coloured." nodes={nodes} edges="A-B, B-C, C-A, D-E" hlB="D E" heB="D-E">
+      <rect className="sgl-gd-frame" x={10} y={10} width={92} height={90} rx={10} />
+      <rect className="sgl-gd-frame hl" x={128} y={10} width={86} height={90} rx={10} />
+    </Net>
+  ) : (
+    <Net alt="Five rooms A to E all joined into one group: 1 connected part; every room can reach every other." nodes={nodes} edges="A-B, B-C, C-A, B-D, D-E">
+      <rect className="sgl-gd-frame" x={10} y={10} width={204} height={90} rx={10} />
+    </Net>
+  );
+}
+
+/** Shortest path: next door, or three steps away. */
+function PathDiagram({ long }: { readonly long: boolean }) {
+  return long ? (
+    <Net alt="Shortest path from A to D in a row A–B–C–D: 3 steps, A → B → C → D, highlighted." nodes={ROW4} edges={ROW4_E} hl="A D" hlB="B C" he="A-B, B-C, C-D" badge={{ A: 'From', D: 'To' }} />
+  ) : (
+    <Net alt="Shortest path from A to B in a row A–B–C–D: 1 step, the relationship A–B, highlighted." nodes={ROW4} edges={ROW4_E} hl="A B" he="A-B" badge={{ A: 'From', B: 'To' }} />
+  );
+}
+
+/** Analyse (reads) or Transform (previews, Apply, Undo). */
+function Flow({ transform }: { readonly transform: boolean }) {
+  return transform ? (
+    <Svg w={220} h={80} alt="Transform: design to preview to Apply; the design changes, and one Undo reverses it.">
+      <rect className="sgl-gd-box" x={4} y={20} width={54} height={28} rx={6} />
+      <Txt x={31} y={38}>
+        Design
+      </Txt>
+      <path className="sgl-gd-arrow" d="M60 34 h10 m-4 -4 l4 4 l-4 4" />
+      <rect className="sgl-gd-box" x={72} y={20} width={58} height={28} rx={6} />
+      <Txt x={101} y={38}>
+        Preview
+      </Txt>
+      <path className="sgl-gd-arrow" d="M132 34 h10 m-4 -4 l4 4 l-4 4" />
+      <rect className="sgl-gd-box hl" x={144} y={20} width={48} height={28} rx={6} />
+      <Txt x={168} y={38}>
+        Apply
+      </Txt>
+      <Cap x={110} y={70} anchor="middle">
+        changes the design · ↶ one Undo
+      </Cap>
+    </Svg>
+  ) : (
+    <Svg w={220} h={80} alt="Analyse: design to result; the design is unchanged.">
+      <rect className="sgl-gd-box" x={20} y={20} width={66} height={28} rx={6} />
+      <Txt x={53} y={38}>
+        Design
+      </Txt>
+      <path className="sgl-gd-arrow" d="M90 34 h30 m-5 -4 l5 4 l-5 4" />
+      <rect className="sgl-gd-box hl" x={124} y={20} width={66} height={28} rx={6} />
+      <Txt x={157} y={38}>
+        Result
+      </Txt>
+      <Cap x={110} y={70} anchor="middle">
+        reads only · design unchanged
+      </Cap>
+    </Svg>
+  );
+}
+
+/** Three rooms in a row, as a small plan (Graph 2D drag: the plan does not change). */
+function RowPlan({ y }: { readonly y: number }) {
+  return (
+    <>
+      {['A', 'B', 'C'].map((n, i) => (
+        <g key={n}>
+          <rect className="sgl-gd-cell" x={44 + i * 44} y={y} width={44} height={40} style={{ fill: NEUTRAL, stroke: CELL_LINE }} />
+          <Txt x={66 + i * 44} y={y + 24} cls="strong">
+            {n}
+          </Txt>
+        </g>
+      ))}
+    </>
+  );
+}
 
 // ── The diagrams, by id ───────────────────────────────────────────────────────────────────────
 
 const D: Record<string, () => ReactNode> = {
-  // Graphs
-  'house-graph': () => <Graph alt="The example house as a graph: five numbered rooms as circles (Entrance, Living and Kitchen below; Bath and Bedroom above), lines for their four relationships." />,
-  node: () => <Graph alt="The house graph with node 2, the Living room, highlighted." hn={[2]} />,
-  edge: () => <Graph alt="The house graph with edge 1, Entrance–Living, highlighted; the heavier line Living–Kitchen is an Open relationship." he={[1]} hn2={[1, 2]} />,
-  attributes: () => (
-    <Graph alt="Living node with its values (Function living, Target area 36) and edge Living–Kitchen with Relationship open." hn={[2]} he={[2]} h={176}>
-      <rect className="sgl-gd-tagbox" x={8} y={146} width={118} height={26} rx={4} />
-      <text className="sgl-gd-t mono" x={14} y={157}>
-        function: living
-      </text>
-      <text className="sgl-gd-t mono" x={14} y={168}>
-        targetArea: 36
-      </text>
-      <rect className="sgl-gd-tagbox" x={140} y={146} width={112} height={16} rx={4} />
-      <text className="sgl-gd-t mono" x={146} y={157}>
-        relationship: open
-      </text>
-    </Graph>
+  // ── Graphs ──
+  'graph-none': () => <Net alt="Four rooms A, B, C and D as circles with no lines between them: nothing is related yet." nodes={LOOP4} edges="" />,
+  'graph-some': () => <Net alt="The same four rooms with four lines, A–B, B–C, B–D and C–D: a graph saying which rooms are related." nodes={LOOP4} edges="A-B, B-C, B-D, C-D" />,
+  'node-one-cell': () => (
+    <Svg w={220} h={100} alt="Room 1 fills one grid cell; it is one node, numbered 1.">
+      <rect className="sgl-gd-cell" x={88} y={14} width={44} height={44} style={{ fill: NEUTRAL, stroke: CELL_LINE }} />
+      <NetBody nodes="1 110 36" edges="" o={{ hl: '1' }} />
+      <Cap x={110} y={82} anchor="middle">
+        1 cell · node 1
+      </Cap>
+    </Svg>
   ),
-  'same-graph-three-ways': () => (
-    <Svg w={260} h={162} alt="Edge 1 shown three ways: a line between Entrance and Living, a JSON record, and a highlighted row in the Data table.">
-      <Cap x={42} y={12} anchor="middle">
-        Diagram
+  'node-four-cells': () => (
+    <Svg w={220} h={100} alt="Room 1 grown to four grid cells (2 × 2): still one node, still numbered 1.">
+      {[0, 1].flatMap((x) => [0, 1].map((y) => <rect key={`${x}${y}`} className="sgl-gd-cell" x={74 + x * 36} y={4 + y * 36} width={36} height={36} style={{ fill: NEUTRAL, stroke: CELL_LINE }} />))}
+      <NetBody nodes="1 110 40" edges="" o={{ hl: '1' }} />
+      <Cap x={110} y={94} anchor="middle">
+        4 cells · still node 1
       </Cap>
-      <line className="sgl-gd-e hl" x1={14} y1={40} x2={70} y2={40} />
-      <circle className="sgl-gd-n" cx={14} cy={40} r={9} style={{ fill: FN_FILL.entrance }} />
-      <circle className="sgl-gd-n" cx={70} cy={40} r={9} style={{ fill: FN_FILL.living }} />
-      <text className="sgl-gd-id" x={14} y={44} textAnchor="middle">
-        1
+    </Svg>
+  ),
+  'edge-access': () => <GraphAndPlan rel="access" alt="Rooms A and B joined by an Access relationship: a thin line in the graph, a door in the shared wall in the plan." />,
+  'edge-open': () => <GraphAndPlan rel="open" alt="Rooms A and B joined by an Open relationship: a heavy line in the graph, no wall between them in the plan (one space)." />,
+  'attr-node': () => (
+    <Svg w={220} h={96} alt="A node with its values written beside it: function bedroom, targetArea 18.">
+      <NetBody nodes="1 34 46" edges="" o={{ fn: { 1: 'bedroom' } }} />
+      <rect className="sgl-gd-tagbox" x={58} y={24} width={154} height={44} rx={4} />
+      <text className="sgl-gd-t mono" x={66} y={42}>
+        function: bedroom
       </text>
-      <text className="sgl-gd-id" x={70} y={44} textAnchor="middle">
-        2
+      <text className="sgl-gd-t mono" x={66} y={58}>
+        targetArea: 18
       </text>
-      <Cap x={100} y={12}>
-        JSON
-      </Cap>
-      <rect className="sgl-gd-codebox" x={96} y={18} width={160} height={58} rx={5} />
-      {['{ "id": 1,', '  "source": 1, "target": 2,', '  "relationship": "access",', '  "custom": {} }'].map((t, i) => (
-        <text key={i} className="sgl-gd-t mono hl" x={102} y={32 + i * 12} xmlSpace="preserve">
+    </Svg>
+  ),
+  'attr-edge': () => (
+    <Svg w={220} h={96} alt="An edge between nodes 1 and 2 with its value written under it: relationship access.">
+      <NetBody nodes="1 50 30, 2 170 30" edges="1-2" o={{ he: '1-2' }} />
+      <rect className="sgl-gd-tagbox" x={46} y={54} width={128} height={26} rx={4} />
+      <text className="sgl-gd-t mono" x={56} y={71}>
+        relationship: access
+      </text>
+    </Svg>
+  ),
+  'form-diagram': () => <Net alt="Edge 1 drawn as a line between nodes 1 and 2 in a small diagram of three nodes." nodes="1 40 50, 2 110 50, 3 180 50" edges="1-2, 2-3" he="1-2" hl="1 2" />,
+  'form-data': () => (
+    <Svg w={220} h={112} alt="The same edge 1 as a JSON record (id 1, source 1, target 2, relationship access) and as a highlighted table row.">
+      <rect className="sgl-gd-codebox" x={4} y={4} width={212} height={50} rx={5} />
+      {['{ "id": 1, "source": 1, "target": 2,', '  "relationship": "access" }'].map((t, i) => (
+        <text key={i} className="sgl-gd-t mono hl" x={10} y={22 + i * 14} xmlSpace="preserve">
           {t}
         </text>
       ))}
-      <Cap x={6} y={98}>
-        Table
-      </Cap>
-      <rect className="sgl-gd-codebox" x={4} y={104} width={252} height={52} rx={5} />
+      <rect className="sgl-gd-codebox" x={4} y={62} width={212} height={46} rx={5} />
       {['ID', 'Source', 'Target', 'Relationship'].map((t, i) => (
-        <text key={t} className="sgl-gd-t strong" x={12 + [0, 30, 104, 178][i]!} y={120}>
+        <text key={t} className="sgl-gd-t strong" x={10 + [0, 26, 76, 126][i]!} y={78}>
           {t}
         </text>
       ))}
-      <rect className="sgl-gd-rowhl" x={6} y={127} width={248} height={18} />
-      {['1', '1 · entrance', '2 · living', 'Access'].map((t, i) => (
-        <text key={t} className="sgl-gd-t" x={12 + [0, 30, 104, 178][i]!} y={140}>
+      <rect className="sgl-gd-rowhl" x={6} y={84} width={208} height={18} />
+      {['1', '1', '2', 'Access'].map((t, i) => (
+        <text key={i} className="sgl-gd-t" x={10 + [0, 26, 76, 126][i]!} y={97}>
           {t}
         </text>
       ))}
     </Svg>
   ),
-  'graph-vs-space': () => (
-    <Svg w={260} h={150} alt="Left: Living and Kitchen joined by a relationship. Right: in the plan the Kitchen has been moved one cell away, so the app builds a corridor through the free cell between them.">
-      <Cap x={50} y={12} anchor="middle">
-        Graph
-      </Cap>
-      <line className="sgl-gd-e hl" x1={18} y1={60} x2={82} y2={60} />
-      <circle className="sgl-gd-n" cx={18} cy={60} r={10} style={{ fill: FN_FILL.living }} />
-      <circle className="sgl-gd-n" cx={82} cy={60} r={10} style={{ fill: FN_FILL.kitchen }} />
-      <text className="sgl-gd-id" x={18} y={64} textAnchor="middle">
-        2
-      </text>
-      <text className="sgl-gd-id" x={82} y={64} textAnchor="middle">
-        3
-      </text>
-      <text className="sgl-gd-t" x={18} y={86} textAnchor="middle">
-        Living
-      </text>
-      <text className="sgl-gd-t" x={82} y={86} textAnchor="middle">
-        Kitchen
-      </text>
-      <Cap x={185} y={12} anchor="middle">
-        Plan
-      </Cap>
-      <rect className="sgl-gd-cell" x={118} y={36} width={44} height={44} style={{ fill: FN_FILL.living }} />
-      <rect className="sgl-gd-cell corridor" x={162} y={50} width={44} height={16} />
-      <rect className="sgl-gd-cell" x={206} y={36} width={44} height={44} style={{ fill: FN_FILL.kitchen }} />
-      <text className="sgl-gd-t" x={140} y={96} textAnchor="middle">
-        Living
-      </text>
-      <text className="sgl-gd-t" x={184} y={46} textAnchor="middle">
-        corridor
-      </text>
-      <text className="sgl-gd-t" x={228} y={96} textAnchor="middle">
-        Kitchen
-      </text>
-      <Cap x={130} y={122} anchor="middle">
-        Not touching: the app builds a corridor,
-      </Cap>
-      <Cap x={130} y={136} anchor="middle">
-        or marks the relationship Unresolved.
-      </Cap>
-    </Svg>
-  ),
-
-  // Attributes
-  'sections-all': () => <SectionsMock hl="all" alt="The five attribute sections of the Living room, in order: Identity, Required by the app, Geometry, Custom, Calculated." />,
-  'section-identity': () => <SectionsMock hl="identity" alt="The five attribute sections with Identity highlighted: ID 2, locked." />,
-  'section-required': () => <SectionsMock hl="required" alt="The five attribute sections with Required by the app highlighted: Function Living." />,
-  'section-geometry': () => <SectionsMock hl="geometry" alt="The five attribute sections with Geometry highlighted: Position 1, 1, Level 0; Size 1, 1, 1 floor." />,
-  'section-custom': () => <SectionsMock hl="custom" alt="The five attribute sections with Custom highlighted: Target area tagged Toolkit: House, and a Daylight attribute tagged Yours." />,
-  'section-calculated': () => <SectionsMock hl="calculated" alt="The five attribute sections with Calculated highlighted: Area 9 m², locked, calculated and not saved." />,
-
-  // Views
-  'view-graph2d': () => (
-    <Graph alt="Graph 2D: the house graph; the Living node is dragged to tidy the diagram, which does not move the room." sel={2} h={162}>
-      <path className="sgl-gd-arrow" d="M146 128 l18 12 m-8 1 l8 -1 l-2 -8" />
-      <Cap x={130} y={158} anchor="middle">
-        drag = tidy the diagram only
-      </Cap>
-    </Graph>
-  ),
-  'view-graph3d': () => {
-    const P = (x: number, y: number, z: number) => iso(x, y, z, 56, 30, 166);
-    const L1 = 1.5;
-    const left: Record<number, boolean> = { 1: true, 5: true };
-    const plate = (z: number) => pts([P(0, 0, z), P(2, 0, z), P(2, 2, z), P(0, 2, z)]);
-    const pos: Record<number, [number, number, number]> = { 1: [0.5, 1.5, 0], 2: [1.5, 1.5, 0], 3: [1.5, 0.5, 0], 4: [1.5, 1.5, L1], 5: [0.5, 1.5, L1] };
-    const pt = (id: number) => P(...pos[id]!);
-    return (
-      <Svg w={260} h={176} alt="Graph 3D: each node sits where its room is. Entrance, Living and Kitchen on level 0; Bath and Bedroom on level 1; the vertical edge Living–Bedroom is highlighted.">
-        <polygon className="sgl-gd-plate" points={plate(0)} />
-        <polygon className="sgl-gd-plate" points={plate(L1)} />
-        {EDGES.map((e) => {
-          const [x1, y1] = pt(e.s);
-          const [x2, y2] = pt(e.t);
-          return <line key={e.id} className={`sgl-gd-e${e.rel === 'open' ? ' open' : ''}${e.id === 3 ? ' hl' : ''}`} x1={x1} y1={y1} x2={x2} y2={y2} />;
-        })}
-        {NODES.map((n) => {
-          const [x, y] = pt(n.id);
-          return (
-            <g key={n.id}>
-              <circle className="sgl-gd-n" cx={x} cy={y} r={8} style={{ fill: FN_FILL[n.fn] }} />
-              <text className="sgl-gd-id" x={x} y={y + 3.5} textAnchor="middle">
-                {n.id}
-              </text>
-              <text className="sgl-gd-t" x={left[n.id] ? x - 11 : x + 11} y={y + 4} textAnchor={left[n.id] ? "end" : "start"}>
-                {n.name}
-              </text>
-            </g>
-          );
-        })}
-        <Cap x={4} y={P(0, 0, L1)[1] + 4}>
-          Level 1
+  'space-touching': () => (
+    <Plan
+      rooms={TWO}
+      rel={{ 'A|B': 'access' }}
+      alt="Rooms A and B touch and have an Access relationship: a door in their shared wall."
+      ox={66}
+      oy={20}
+      extra={
+        <Cap x={110} y={100} anchor="middle">
+          touching: a door
         </Cap>
-        <Cap x={4} y={P(0, 0, 0)[1] + 4}>
+      }
+    />
+  ),
+  'space-apart': () => (
+    <Svg w={220} h={110} alt="Rooms A and B one cell apart with an Access relationship: the app builds a corridor through the free cell between them.">
+      <rect className="sgl-gd-cell" x={22} y={20} width={56} height={56} style={{ fill: NEUTRAL }} />
+      <rect className="sgl-gd-cell corridor" x={78} y={36} width={64} height={24} />
+      <rect className="sgl-gd-cell" x={142} y={20} width={56} height={56} style={{ fill: NEUTRAL }} />
+      <rect x={22} y={20} width={56} height={56} fill="none" className="sgl-gd-wall" />
+      <rect x={142} y={20} width={56} height={56} fill="none" className="sgl-gd-wall" />
+      <Txt x={50} y={52} cls="strong">
+        A
+      </Txt>
+      <Txt x={170} y={52} cls="strong">
+        B
+      </Txt>
+      <Txt x={110} y={30}>
+        corridor
+      </Txt>
+      <Cap x={110} y={100} anchor="middle">
+        one cell apart: a corridor
+      </Cap>
+    </Svg>
+  ),
+
+  // ── Attributes ──
+  'sections-node': () => (
+    <Mock alt="The five attribute sections of a room, in order: Identity (ID 3), Required by the app (Function Bedroom), Geometry (Position, Size), Custom (Target area), Calculated (Area)." title="Bedroom · Room 3">
+      <MSec plain title="Identity">
+        <MRow label="ID" value="3" lock />
+      </MSec>
+      <MSec plain title="Required by the app">
+        <MRow label="Function" value="Bedroom ▾" />
+      </MSec>
+      <MSec plain title="Geometry">
+        <MRow label="Position" value="2 | 0 | 0" />
+        <MRow label="Size" value="1 | 1 | 1" />
+      </MSec>
+      <MSec plain title="Custom">
+        <MRow label="Target area (m²)" value="18" faded tag="Toolkit: House" />
+      </MSec>
+      <MSec plain title="Calculated">
+        <MRow label="Area" value="9 m²" lock />
+      </MSec>
+    </Mock>
+  ),
+  'sections-edge': () => (
+    <Mock alt="The attribute sections of a relationship, in the same order: Identity (ID 1, Source 1, Target 2), Required by the app (Relationship Access), Geometry (Corridor), Custom (a Note you added)." title="Relationship 1 ↔ 2">
+      <MSec plain title="Identity">
+        <MRow label="ID" value="1" lock />
+        <MRow label="Source · Target" value="1 · 2" lock />
+      </MSec>
+      <MSec plain title="Required by the app">
+        <MRow label="Relationship" value={<MSeg items={['Access', 'Open']} on="Access" />} />
+      </MSec>
+      <MSec plain title="Geometry">
+        <MRow label="Corridor" value="Design default" faded />
+      </MSec>
+      <MSec plain title="Custom">
+        <MRow label="Note" value="main door" tag="Yours" />
+      </MSec>
+    </Mock>
+  ),
+  'ids-before': () => <Net alt="Three rooms numbered 1, 2 and 3, joined in a row." nodes="1 40 50, 2 110 50, 3 180 50" edges="1-2, 2-3" />,
+  'ids-after': () => (
+    <Net alt="Room 3 deleted (dashed outline) and a new room added: the new room is numbered 4, not 3." nodes="1 40 36, 2 110 36, 4 110 88" edges="1-2, 2-4" hl="4" h={112}>
+      <circle className="sgl-gd-ghost" cx={180} cy={36} r={12} />
+      <Txt x={180} y={40}>
+        3
+      </Txt>
+      <Cap x={180} y={66} anchor="middle">
+        deleted
+      </Cap>
+    </Net>
+  ),
+  'fn-bedroom': () => (
+    <Cubes cells={[[1, 0, 0, FN_FILL.bedroom!]]} alt="A room with Function Bedroom: drawn in the Bedroom colour (blue) in every view, with the Bedroom's look." solid h={100}>
+      <Cap x={110} y={96} anchor="middle">
+        Function: Bedroom
+      </Cap>
+    </Cubes>
+  ),
+  'fn-kitchen': () => (
+    <Cubes cells={[[1, 0, 0, FN_FILL.kitchen!]]} alt="The same room with Function Kitchen: now drawn in the Kitchen colour (terracotta), with the Kitchen's look." solid h={100}>
+      <Cap x={110} y={96} anchor="middle">
+        Function: Kitchen
+      </Cap>
+    </Cubes>
+  ),
+  'geo-1cell': () => <SizeCells cols={1} rows={1} alt="A room of Size 1 | 1 | 1: one grid cell of 3 × 3 m, 9 m²." size="Size 1 | 1 | 1" area="3 × 3 m = 9 m²" />,
+  'geo-2cell': () => <SizeCells cols={2} rows={1} alt="A room of Size 2 | 1 | 1: two grid cells side by side, 6 × 3 m, 18 m²." size="Size 2 | 1 | 1" area="6 × 3 m = 18 m²" />,
+  'custom-toolkit': () => (
+    <Mock alt="Custom attributes from the toolkit: Target area and Priority, showing their Function's defaults faded, tagged Toolkit: House; they cannot be deleted." title="Custom">
+      <MRow label="Target area (m²)" value="18 (default)" faded tag="Toolkit: House" />
+      <MRow label="Priority" value="2 (default)" faded tag="Toolkit: House" />
+    </Mock>
+  ),
+  'custom-yours': () => (
+    <Mock alt="A custom attribute you added: Daylight, with its own value high, tagged Yours; you can delete it." title="Custom">
+      <MRow label="Daylight" value="high" tag="Yours" hl />
+      <MRow label="Target area (m²)" value="24" tag="Toolkit: House" />
+    </Mock>
+  ),
+  'calc-1cell': () => <SizeCells cols={1} rows={1} alt="A room of one cell: its calculated Area is 9 m²." size="1 cell" area="Area 9 m² (calculated)" />,
+  'calc-4cells': () => <SizeCells cols={2} rows={2} alt="The same room made 2 × 2 cells: its calculated Area changes by itself to 36 m²." size="2 × 2 cells" area="Area 36 m² (calculated)" />,
+
+  // ── Views ──
+  'g2d-before': () => (
+    <Svg w={220} h={118} alt="Before a drag: the diagram shows A, B and C in a row; below, the plan of the three rooms in a row.">
+      <NetBody nodes="A 50 22, B 110 22, C 170 22" edges="A-B, B-C" o={{}} />
+      <RowPlan y={60} />
+      <Cap x={4} y={114}>
+        plan
+      </Cap>
+    </Svg>
+  ),
+  'g2d-after': () => (
+    <Svg w={220} h={118} alt="After dragging node B down in the diagram: the diagram changed, but the plan below is exactly the same: room B did not move.">
+      <NetBody nodes="A 50 22, B 110 44, C 170 22" edges="A-B, B-C" o={{ sel: 'B' }} />
+      <RowPlan y={66} />
+      <Cap x={4} y={116}>
+        plan: unchanged
+      </Cap>
+    </Svg>
+  ),
+  'g3d-one': () => {
+    const P = oblique(46, 16, 96);
+    return (
+      <Svg w={220} h={112} alt="Graph 3D of a one-storey design: nodes A, B and C all sit on the level 0 plate, joined by flat edges.">
+        <polygon className="sgl-gd-plate" points={pts([P(0, 0, 0), P(3, 0, 0), P(3, 2, 0), P(0, 2, 0)])} />
+        <NetBody nodes={`A ${at(P(0.5, 1, 0))}, B ${at(P(1.5, 1, 0))}, C ${at(P(2.5, 1, 0))}`} edges="A-B, B-C" o={{}} />
+        <Cap x={4} y={108}>
           Level 0
         </Cap>
       </Svg>
     );
   },
-  'view-voxels': () => (
-    <Svg w={260} h={156} alt="Voxels: five see-through cubes, one per grid cell, coloured by Function: Kitchen in front, Entrance and Living behind it, Bath and Bedroom above them.">
-      {paintOrder.map(([x, y, z, fn]) => (
-        <Cube key={`${x}${y}${z}`} x={x} y={y} z={z} fill={FN_FILL[fn]!} />
-      ))}
-      <Cap x={4} y={152}>
-        One cube = one 3 × 3 m cell · colour = Function
-      </Cap>
-    </Svg>
+  'g3d-two': () => {
+    const P = oblique(46, 16, 106);
+    return (
+      <Svg w={220} h={124} alt="Graph 3D of a two-storey design: A and B on the level 0 plate, C on the level 1 plate above B, joined to B by a vertical edge (highlighted).">
+        <polygon className="sgl-gd-plate" points={pts([P(0, 0, 0), P(3, 0, 0), P(3, 2, 0), P(0, 2, 0)])} />
+        <polygon className="sgl-gd-plate" points={pts([P(0, 0, 1.4), P(3, 0, 1.4), P(3, 2, 1.4), P(0, 2, 1.4)])} />
+        <NetBody nodes={`A ${at(P(0.5, 1, 0))}, B ${at(P(1.5, 1, 0))}, C ${at(P(1.5, 1, 1.4))}`} edges="A-B, B-C" o={{ he: 'B-C' }} />
+        <Cap x={4} y={120}>
+          Level 0
+        </Cap>
+        <Cap x={4} y={P(0, 0, 1.4)[1] + 12}>
+          Level 1
+        </Cap>
+      </Svg>
+    );
+  },
+  'vox-function': () => (
+    <Cubes
+      cells={[
+        [0, 0, 0, FN_FILL.bedroom!],
+        [1, 0, 0, FN_FILL.living!],
+        [2, 0, 0, FN_FILL.kitchen!],
+        [0, 0, 1, FN_FILL.bath!],
+      ]}
+      alt="Voxels coloured by Function: a Bedroom (blue), a Living room (amber) and a Kitchen (terracotta) in a row, a Bath (aqua) above the Bedroom; one see-through cube per cell."
+    />
   ),
-  'view-building': () => (
-    <Svg w={260} h={156} alt="Building: the house as walls, windows and flat roofs, built from the graph and the geometry; the upper floor sits over the Entrance and the Living room.">
-      {paintOrder.map(([x, y, z, fn]) => (
-        <Cube key={`${x}${y}${z}`} x={x} y={y} z={z} fill={FN_FILL[fn]!} solid />
-      ))}
-      <polygon className="sgl-gd-win" points={frontWindow(1, 0, 0)} />
-      <polygon className="sgl-gd-win" points={frontWindow(0, 1, 0)} />
-      <polygon className="sgl-gd-win" points={frontWindow(0, 1, 1)} />
-      <polygon className="sgl-gd-win" points={frontWindow(1, 1, 1)} />
-      <polygon className="sgl-gd-win" points={sideWindow(2, 0, 0)} />
-      <polygon className="sgl-gd-win" points={sideWindow(2, 1, 0)} />
-      <polygon className="sgl-gd-win" points={sideWindow(2, 1, 1)} />
-      <Cap x={4} y={152}>
-        Walls, doors, windows and roofs from graph + geometry
-      </Cap>
-    </Svg>
+  'vox-number': () => (
+    <Cubes
+      cells={[
+        [0, 0, 0, '#9fd8d2'],
+        [1, 0, 0, '#1f7f77'],
+        [2, 0, 0, '#4fb3a9'],
+        [0, 0, 1, '#e3f4f2'],
+      ]}
+      alt="The same voxels coloured by a number, Target area: light for small values, dark for large (the middle room, 36 m², is darkest; the room above, 9 m², lightest)."
+    />
   ),
-  'view-plan': () => (
+  'bld-access': () => <Section door alt="Two rooms A and B seen from the front, cut through: they have an Access relationship, so the wall between them has a door." />,
+  'bld-none': () => <Section door={false} alt="Two rooms A and B seen from the front, cut through: they touch but have no relationship, so the wall between them is solid." />,
+  'plan-l0': () => (
     <Plan
-      rooms={GROUND}
-      rel={GROUND_REL}
-      alt="Plan of the ground floor: a door gap between Entrance and Living (Access), no wall between Living and Kitchen (Open), outside walls all round."
+      rooms={[
+        { name: 'A', cells: [[0, 0]] },
+        { name: 'B', cells: [[1, 0]] },
+        { name: 'C', cells: [[2, 0]] },
+      ]}
+      rel={{ 'A|B': 'access', 'B|C': 'open' }}
+      alt="Plan of level 0: rooms A, B and C in a row, a door between A and B, no wall between B and C; a dashed outline marks room D on the level above A."
+      ox={44}
+      oy={14}
       extra={
         <>
-          <Cap x={170} y={30}>
-            Access → door
-          </Cap>
-          <Cap x={170} y={88}>
-            Open → no wall
-          </Cap>
-          <Cap x={4} y={142}>
-            Level 0 · Bedroom and Bath are on level 1
+          <rect className="sgl-gd-ghost" x={50} y={20} width={32} height={32} />
+          <Cap x={110} y={82} anchor="middle">
+            Level 0 · dashed: D above
           </Cap>
         </>
       }
     />
   ),
-  'view-data': () => (
-    <Svg w={260} h={150} alt="Data view: the Living room highlighted in the JSON text and as a table row; the calculated Area column is locked and not saved.">
-      <Cap x={4} y={12}>
-        JSON
-      </Cap>
-      <rect className="sgl-gd-codebox" x={2} y={18} width={122} height={128} rx={5} />
-      {['{ "id": 2,', '  "function": "living",', '  "position": [1, 1, 0],', '  "size": [1, 1, 1],', '  "custom": {} }'].map((t, i) => (
-        <g key={i}>
-          <rect className="sgl-gd-rowhl" x={4} y={26 + i * 14} width={118} height={14} />
-          <text className="sgl-gd-t mono tiny" x={7} y={36 + i * 14} xmlSpace="preserve">
-            {t}
-          </text>
-        </g>
+  'plan-l1': () => (
+    <Plan
+      rooms={[{ name: 'D', cells: [[0, 0]] }]}
+      alt="Plan of level 1: only room D, which stands above room A."
+      ox={44}
+      oy={14}
+      extra={
+        <Cap x={110} y={82} anchor="middle">
+          Level 1 · only D
+        </Cap>
+      }
+    />
+  ),
+  'data-json': () => (
+    <Code
+      alt="The Data view as JSON: the text of one node, with id, function, position, size and custom values."
+      lines={[['{ "id": 3,', true], ['  "function": "bedroom",', true], ['  "position": [2, 0, 0],', true], ['  "size": [1, 1, 1],', true], ['  "custom": {} }', true]]}
+    />
+  ),
+  'data-table': () => (
+    <Svg w={220} h={100} alt="The Data view as a table: one row per room; the row of room 3 is selected; the Area column is locked (calculated, not saved).">
+      <rect className="sgl-gd-codebox" x={2} y={2} width={216} height={94} rx={5} />
+      {['ID', 'Function', 'Area 🔒'].map((t, i) => (
+        <text key={t} className="sgl-gd-t strong" x={10 + [0, 34, 130][i]!} y={20}>
+          {t}
+        </text>
       ))}
-      <Cap x={132} y={12}>
-        Table
-      </Cap>
-      <rect className="sgl-gd-codebox" x={130} y={18} width={128} height={128} rx={5} />
-      <text className="sgl-gd-t tiny strong" x={136} y={34}>
-        ID
-      </text>
-      <text className="sgl-gd-t tiny strong" x={152} y={34}>
-        Function
-      </text>
-      <text className="sgl-gd-t tiny strong" x={204} y={34}>
-        Area 🔒
-      </text>
       {[
-        ['1', 'entrance'],
-        ['2', 'living'],
-        ['3', 'kitchen'],
-        ['4', 'bedroom'],
-        ['5', 'bath'],
+        ['1', 'living'],
+        ['2', 'kitchen'],
+        ['3', 'bedroom'],
       ].map(([a, b], i) => (
         <g key={a}>
-          {i === 1 && <rect className="sgl-gd-rowhl" x={132} y={41 + i * 18} width={124} height={17} />}
-          <text className="sgl-gd-t tiny" x={136} y={53 + i * 18}>
+          {i === 2 && <rect className="sgl-gd-rowhl" x={4} y={27 + i * 20} width={212} height={19} />}
+          <text className="sgl-gd-t" x={10} y={41 + i * 20}>
             {a}
           </text>
-          <text className="sgl-gd-t tiny" x={152} y={53 + i * 18}>
+          <text className="sgl-gd-t" x={44} y={41 + i * 20}>
             {b}
           </text>
-          <text className="sgl-gd-t tiny calc" x={204} y={53 + i * 18}>
+          <text className="sgl-gd-t calc" x={140} y={41 + i * 20}>
             9 m²
           </text>
         </g>
@@ -685,25 +1008,25 @@ const D: Record<string, () => ReactNode> = {
     </Svg>
   ),
 
-  // Panels
+  // ── Panels (one mock each, numbered like the screenshot) ──
   'panel-properties': () => (
-    <Mock alt="Properties of the Living room: (1) its title, the Function Living and the id Room 2, (2) Required by the app with the Function, (3) Geometry with Position and Size, (4) Custom with Target area and Priority." title="Properties">
+    <Mock alt="Properties of a room: (1) its title, the Function Bedroom and the id Room 3, (2) Required by the app with the Function, (3) Geometry with Position and Size, (4) Custom with Target area and Priority." title="Properties">
       <div className="sgl-gd-row big">
-        Living <span className="sgl-gd-tag">Room 2</span> <MNum n={1} />
+        Bedroom <span className="sgl-gd-tag">Room 3</span> <MNum n={1} />
       </div>
       <MSec plain title="Identity">
-        <MRow label="ID" value="2" lock />
+        <MRow label="ID" value="3" lock />
       </MSec>
       <MSec plain title="Required by the app" n={2}>
-        <MRow label="Function" value="Living ▾" />
+        <MRow label="Function" value="Bedroom ▾" />
       </MSec>
       <MSec plain title="Geometry" n={3}>
-        <MRow label="Position" value="1 | 1 | 0 (Level)" />
+        <MRow label="Position" value="2 | 0 | 0 (Level)" />
         <MRow label="Size" value="1 | 1 | 1 (Floors)" />
       </MSec>
       <MSec plain title="Custom" n={4}>
-        <MRow label="Target area (m²)" value="36 (default)" faded tag="Toolkit: House" />
-        <MRow label="Priority" value="1 (default)" faded tag="Toolkit: House" />
+        <MRow label="Target area (m²)" value="18 (default)" faded tag="Toolkit: House" />
+        <MRow label="Priority" value="2 (default)" faded tag="Toolkit: House" />
       </MSec>
     </Mock>
   ),
@@ -741,7 +1064,7 @@ const D: Record<string, () => ReactNode> = {
       <MRow label="Style rooms by" value="Function ▾" n={1} />
       <MSec title="Looks by Function" open>
         <div className="sgl-gd-card">
-          <b>Default</b> 25 % · Repeat · Flat roof · 5 rooms <MNum n={2} />
+          <b>Default</b> 25 % · Repeat · Flat roof <MNum n={2} />
         </div>
         <div className="sgl-gd-row">
           <MBtn>+ Style another function… ▾</MBtn> <MNum n={3} />
@@ -794,9 +1117,9 @@ const D: Record<string, () => ReactNode> = {
         <MBtn primary>Run</MBtn> <MNum n={3} />
       </div>
       <div className="sgl-gd-preview">
-        <MNum n={4} /> Living 2: 9 → 36 m² (target 36) ✓<br />
-        Kitchen 3: 9 → 18 m² (target 18) ✓<br />
-        Bedroom 4: 9 → 18 m² (target 18) ✓
+        <MNum n={4} /> Living 1: 9 → 36 m² (target 36) ✓<br />
+        Bedroom 2: 9 → 18 m² (target 18) ✓<br />
+        Bath 3: 9 m² (target 9) ✓
       </div>
       <div className="sgl-gd-row">
         <MBtn primary>Apply</MBtn> <MBtn>Discard</MBtn> <MNum n={5} />
@@ -804,12 +1127,12 @@ const D: Record<string, () => ReactNode> = {
     </Mock>
   ),
   'panel-scenarios': () => (
-    <Mock alt="Scenarios panel: (1) Scenario 1, the active one, with 5 nodes and 4 edges, and rename, duplicate and delete buttons, (2) a second scenario, (3) + New scenario." title="Scenarios">
+    <Mock alt="Scenarios panel: (1) Scenario 1, the active one, with 3 nodes and 2 edges, and rename, duplicate and delete buttons, (2) a second scenario, (3) + New scenario." title="Scenarios">
       <div className="sgl-gd-card on">
-        <b>Scenario 1</b> 5 nodes · 4 edges ✎ ⧉ 🗑 <MNum n={1} />
+        <b>Scenario 1</b> 3 nodes · 2 edges ✎ ⧉ 🗑 <MNum n={1} />
       </div>
       <div className="sgl-gd-card">
-        <b>Grown</b> 5 nodes · 4 edges <MNum n={2} />
+        <b>Scenario 2</b> 4 nodes · 3 edges <MNum n={2} />
       </div>
       <div className="sgl-gd-dashed">
         + New scenario <MNum n={3} />
@@ -838,7 +1161,7 @@ const D: Record<string, () => ReactNode> = {
     </Mock>
   ),
   'panel-project': () => (
-    <Mock alt="Project panel: (1) Save locally, (2) Export project, (3) Open project; the toolkit is shown under Advanced." title="Project">
+    <Mock alt="Project panel: (1) Save locally, (2) Export project, (3) Open project, (4) New project, (5) Open example…." title="Project">
       <div className="sgl-gd-row">
         <MBtn primary>Save locally</MBtn> <MNum n={1} />
       </div>
@@ -848,118 +1171,73 @@ const D: Record<string, () => ReactNode> = {
       <div className="sgl-gd-row">
         <MBtn>Open project</MBtn> <MNum n={3} />
       </div>
-      <MSec title="Advanced" sub="Toolkit: House" />
+      <div className="sgl-gd-row">
+        <MBtn>New project</MBtn> <MNum n={4} />
+      </div>
+      <div className="sgl-gd-row">
+        <MBtn>Open example…</MBtn> <MNum n={5} />
+      </div>
     </Mock>
   ),
-
-  // Toolkits & JSON
-  toolkit: () => (
-    <Code
-      alt="The house toolkit folder: functions (one file per Function), algorithms (Grow to target area), designs (the example house) and toolkit.ts."
-      lines={[
-        ['toolkits/house/'],
-        ['  functions/      entrance.ts, living.ts, kitchen.ts …', true],
-        ['  algorithms/     grow-to-target-area.ts', true],
-        ['  designs/        house.json', true],
-        ['  toolkit.ts      name, custom attributes'],
+  'corr-enclosed': () => <Corridor enclosed />,
+  'corr-open': () => <Corridor enclosed={false} />,
+  'roofs-on': () => (
+    <Cubes
+      cells={[
+        [0, 0, 0, FN_FILL.living!],
+        [1, 0, 0, FN_FILL.bedroom!],
       ]}
+      solid
+      alt="Building view with Roofs on: two rooms closed by flat roofs, seen from above at an angle."
+      h={100}
     />
   ),
-  'grow-to-target-area': () => {
-    const C = 24;
-    const cell = (ox: number, x: number, y: number, fn: string, cls = '') => (
-      <rect key={`${ox}-${x}-${y}`} className={`sgl-gd-cell ${cls}`} x={ox + x * C} y={20 + y * C} width={C} height={C} style={{ fill: FN_FILL[fn] }} />
-    );
-    // Plan rows: 0 = back (Living grows here), 1 = Entrance/Living row, 2 = front (Kitchen).
-    return (
-      <Svg w={260} h={128} alt="Ground floor before and after Grow to target area: Living grows from 1 to 4 cells (36 m²), the Kitchen from 1 to 2 cells (18 m²); the Entrance stays 1 cell (9 m²).">
-        <Cap x={14} y={13}>
-          Before
-        </Cap>
-        {cell(14, 0, 1, 'entrance')}
-        {cell(14, 1, 1, 'living')}
-        {cell(14, 1, 2, 'kitchen')}
-        <path className="sgl-gd-arrow" d="M100 56 h26 m-6 -5 l6 5 l-6 5" />
-        <Cap x={146} y={13}>
-          After
-        </Cap>
-        {cell(146, 0, 1, 'entrance')}
-        {cell(146, 1, 1, 'living')}
-        {cell(146, 2, 1, 'living', 'grow')}
-        {cell(146, 1, 0, 'living', 'grow')}
-        {cell(146, 2, 0, 'living', 'grow')}
-        {cell(146, 1, 2, 'kitchen')}
-        {cell(146, 2, 2, 'kitchen', 'grow')}
-        <Cap x={4} y={108}>
-          Living 9 → 36 m², Kitchen 9 → 18 m², Entrance 9 m²
-        </Cap>
-        <Cap x={4} y={122}>
-          1 cell = 9 m². Upstairs, the Bedroom grows to 18 m².
-        </Cap>
-      </Svg>
-    );
-  },
-  'design-json': () => (
-    <Code
-      alt="A shortened design file: one node with id, function, position, size and custom, and one edge with id, source, target, relationship and custom."
-      lines={[
-        ['{ "schemaVersion": 2,'],
-        ['  "nodes": [ {'],
-        ['    "id": 3,', true],
-        ['    "function": "kitchen",', true],
-        ['    "position": [1, 0, 0],', true],
-        ['    "size": [1, 1, 1],', true],
-        ['    "custom": { "targetArea": 27 } } ],', true],
-        ['  "edges": [ {'],
-        ['    "id": 2, "source": 2, "target": 3,', true],
-        ['    "relationship": "open", "custom": {} } ] }', true],
+  'roofs-off': () => (
+    <Cubes
+      cells={[
+        [0, 0, 0, FN_FILL.living!],
+        [1, 0, 0, FN_FILL.bedroom!],
       ]}
+      roofless
+      alt="The same two rooms with Roofs off: no roofs, so you look into the rooms from above and see their floors and inner walls."
+      h={100}
     />
   ),
-  'analyse-vs-transform': () => (
-    <Svg w={260} h={120} alt="Analyse: design to result; the design is unchanged. Transform: design to preview to Apply; Undo reverses it.">
-      <Cap x={4} y={12}>
-        Analyse — reads
-      </Cap>
-      <rect className="sgl-gd-box" x={4} y={18} width={66} height={28} rx={6} />
-      <text className="sgl-gd-t" x={37} y={36} textAnchor="middle">
-        Design
-      </text>
-      <path className="sgl-gd-arrow" d="M74 32 h20 m-5 -4 l5 4 l-5 4" />
-      <rect className="sgl-gd-box hl" x={98} y={18} width={66} height={28} rx={6} />
-      <text className="sgl-gd-t" x={131} y={36} textAnchor="middle">
-        Result
-      </text>
-      <Cap x={170} y={36}>
-        design unchanged
-      </Cap>
-      <Cap x={4} y={70}>
-        Transform — changes
-      </Cap>
-      <rect className="sgl-gd-box" x={4} y={76} width={54} height={28} rx={6} />
-      <text className="sgl-gd-t" x={31} y={94} textAnchor="middle">
-        Design
-      </text>
-      <path className="sgl-gd-arrow" d="M60 90 h12 m-4 -4 l4 4 l-4 4" />
-      <rect className="sgl-gd-box" x={74} y={76} width={58} height={28} rx={6} />
-      <text className="sgl-gd-t" x={103} y={94} textAnchor="middle">
-        Preview
-      </text>
-      <path className="sgl-gd-arrow" d="M134 90 h12 m-4 -4 l4 4 l-4 4" />
-      <rect className="sgl-gd-box hl" x={148} y={76} width={50} height={28} rx={6} />
-      <text className="sgl-gd-t" x={173} y={94} textAnchor="middle">
-        Apply
-      </text>
-      <text className="sgl-gd-t" x={206} y={94}>
-        ↶ Undo
-      </text>
-    </Svg>
-  ),
-  'ask-ai': () => <Steps alt="Four steps: download the AI kit, describe the measure to an AI assistant, upload the .ts file in Analyse, it appears tagged Yours." labels={['Download the AI kit', 'Describe the measure to the AI', 'Upload your own (.ts)', 'It appears, tagged Yours']} />,
+  'scen-1': () => <Net alt="Scenario 1: three rooms A, B and C in a row." nodes="A 40 50, B 110 50, C 180 50" edges="A-B, B-C" />,
+  'scen-2': () => <Net alt="Scenario 2, a duplicate you changed: a fourth room D joined to B. Scenario 1 still has three rooms." nodes="A 40 36, B 110 36, C 180 36, D 110 90" edges="A-B, B-C, B-D" hl="D" he="B-D" h={112} />,
+  'grow-before': () => <Grow after={false} />,
+  'grow-after': () => <Grow after />,
 
-  // How to…
+  // ── Toolkits & JSON ──
+  'tk-none': () => (
+    <Code
+      alt="No toolkit: a plain graph; you add Functions yourself in the Functions dialog; no transforms and no example designs."
+      lines={[['No toolkit'], ['  Functions:  add your own'], ['  Custom:     add your own'], ['  Transform:  (empty)'], ['  Examples:   —']]}
+    />
+  ),
+  'tk-house': () => (
+    <Code
+      alt="A toolkit folder: functions (one file per Function), algorithms, designs, assets and toolkit.ts with its name and custom attributes."
+      lines={[['toolkits/house/'], ['  functions/   living.ts, bath.ts …', true], ['  algorithms/  grow-to-target-area.ts', true], ['  designs/     *.json', true], ['  assets/      façade files', true], ['  toolkit.ts   name, custom attributes']]}
+    />
+  ),
+  'json-node': () => (
+    <Code
+      alt="A node in the design file: id, function, position, size and custom values."
+      lines={[['{ "id": 3,', true], ['  "function": "bedroom",', true], ['  "position": [2, 0, 0],', true], ['  "size": [1, 1, 1],', true], ['  "custom": { "targetArea": 18 } }', true]]}
+    />
+  ),
+  'json-edge': () => (
+    <Code alt="An edge in the design file: id, source, target, relationship and custom values." lines={[['{ "id": 1,', true], ['  "source": 1, "target": 3,', true], ['  "relationship": "access",', true], ['  "custom": {} }', true]]} />
+  ),
+  'avt-analyse': () => <Flow transform={false} />,
+  'avt-transform': () => <Flow transform />,
+  'route-ai': () => <Steps alt="With the AI kit: 1 download the AI kit, 2 describe the measure to an AI assistant, 3 upload the .ts file it writes in Analyse." labels={['Download the AI kit', 'Describe the measure to the AI', 'Upload the .ts in Analyse']} />,
+  'route-template': () => <Steps alt="From the template: 1 download the template, 2 change it yourself, 3 upload the .ts file in Analyse." labels={['Download the template', 'Change it yourself', 'Upload the .ts in Analyse']} />,
+
+  // ── How to… (numbered steps, like the screenshot markers) ──
   'howto-start': () => <Steps alt="Welcome: 1 Create project (with or without a toolkit), 2 Open project from a file, 3 Open example…, 4 Recent projects." labels={['Create project', 'Open project…', 'Open example…', 'Recent projects']} />,
-  'howto-open-example': () => <Steps alt="1 Open example… on Welcome or in Project, 2 pick the example house or a toolkit design, 3 it opens as a new project with its toolkit, looks and façades, 4 see it in the Building view." labels={['Open example…', 'Pick an example', 'A new project', 'View: Building']} />,
+  'howto-open-example': () => <Steps alt="1 Open example… on Welcome or in Project, 2 pick an example, 3 it opens as a new project with its toolkit, looks and façades, 4 see it in the Building view." labels={['Open example…', 'Pick an example', 'A new project', 'View: Building']} />,
   'howto-select': () => <Steps alt="1 Click a node in Graph 2D, 2 it is highlighted in every view, 3 read and edit it in Properties." labels={['Click a node or edge', 'Highlighted in every view', 'Read and edit in Properties']} />,
   'howto-add-room': () => <Steps alt="1 + Add node, 2 choose its Function in Properties, 3 set Position and Size." labels={['+ Add node', 'Function', 'Position and Size']} />,
   'howto-connect': () => <Steps alt="1 Select the first room, 2 Add connection…, 3 click the second room, 4 choose Access or Open in Properties." labels={['Select the first room', 'Add connection…', 'Click the second room', 'Access or Open']} />,
@@ -971,102 +1249,43 @@ const D: Record<string, () => ReactNode> = {
   'howto-data': () => <Steps alt="1 Set a view to Data, 2 JSON or Table, 3 click a row to select it everywhere, 4 locked columns are calculated and not saved." labels={['View: Data', 'JSON | Table', 'Click a row', 'Locked = calculated']} />,
   'howto-save': () => <Steps alt="1 Project in the left rail, 2 Save locally, 3 Export project, 4 Open project." labels={['Project', 'Save locally', 'Export project', 'Open project']} />,
 
-  // Analyse sections
-  'section-node': () => <Graph alt="Node section: questions about the one selected node, here the Living room." sel={2} hn={[2]} />,
-  'section-edge': () => <Graph alt="Edge section: questions about the one selected edge, here Living–Kitchen." selEdge={2} hn2={[2, 3]} he={[2]} />,
-  'section-network': () => (
-    <Graph alt="Network section: the whole graph at once, outlined.">
-      <rect className="sgl-gd-frame" x={6} y={6} width={248} height={138} rx={12} />
-    </Graph>
-  ),
-  'section-queries': () => <Graph alt="Queries section: you pick the inputs, here From = Entrance and To = Bath." hn={[1, 5]} badge={{ 1: 'From', 5: 'To' }} />,
+  // ── Analyse sections ──
+  'sec-node-leaf': () => <Net alt="Node section with a dead end selected: A, at the start of the row A–B–C that forks into D and E, has 1 edge and 1 neighbour." nodes={FORK} edges={FORK_E} sel="A" hl="A" he="A-B" badge={{ A: '1' }} />,
+  'sec-node-hub': () => <Net alt="Node section with a hub selected: C, where the row forks, has 3 edges and 3 neighbours." nodes={FORK} edges={FORK_E} sel="C" hl="C" he="B-C, C-D, C-E" badge={{ C: '3' }} />,
 
-  // Built-in analyses
-  degree: () => <Graph alt="Living has degree 3: its three edges, to Entrance, Kitchen and Bedroom, are highlighted." hn={[2]} he={[1, 2, 3]} badge={{ 2: '3' }} />,
-  neighbours: () => <Graph alt="Living selected; its neighbours Entrance, Kitchen and Bedroom are highlighted." sel={2} hn={[1, 3, 4]} he={[1, 2, 3]} />,
-  'routes-through': () => (
-    <Graph
-      alt="Edge Living–Bedroom selected. Entrance, Living and Kitchen (3 rooms) are on one side, Bedroom and Bath (2 rooms) on the other: every trip between the two sides uses it, 3 × 2 = 6 of the 10 trips."
-      selEdge={3}
-      hn={[1, 2, 3]}
-      hn2={[4, 5]}
-      h={166}
-    >
-      <Cap x={4} y={162}>
-        3 rooms × 2 rooms = 6 of 10 trips use Living–Bedroom.
-      </Cap>
-    </Graph>
-  ),
-  'shared-neighbours': () => (
-    <Svg
-      w={300}
-      h={150}
-      alt="Before and after. Before: Living–Kitchen selected; no room is joined to both, so the answer is 0 and the only way back from the Kitchen is the way you came. After adding Entrance–Kitchen (dashed): the Entrance is joined to both, the answer is 1, and Entrance, Living and Kitchen form a loop you can walk round."
-    >
-      <g transform="translate(-14 0) scale(0.62)">
-        <HouseGraph selEdge={2} names={false} />
-      </g>
-      <g transform="translate(140 0) scale(0.62)">
-        <HouseGraph selEdge={2} hn={[1]} he={[1]} extra={[[1, 3]]} names={false} />
-      </g>
-      <line className="sgl-gd-e" x1={146} y1={14} x2={146} y2={104} />
-      <Cap x={10} y={118}>Before: 0</Cap>
-      <Cap x={162} y={118}>After: 1 (a loop)</Cap>
-      <Cap x={4} y={136}>1 Entrance · 2 Living · 3 Kitchen</Cap>
-      <Cap x={4} y={148}>Loop: 1 → 2 → 3 → 1, no need to go back</Cap>
-    </Svg>
-  ),
-  'ends-connections': () => (
-    <Graph
-      alt="Edge Living–Kitchen selected: the Living room has 3 relationships (a hub), the Kitchen only this one (a dead end): 3 · 1."
-      selEdge={2}
-      hn={[2, 3]}
-      he={[1, 3]}
-      badge={{ 2: '3', 3: '1' }}
-      h={166}
-    >
-      <Cap x={4} y={162}>
-        Living 3 · Kitchen 1: a hub joined to a dead end.
-      </Cap>
-    </Graph>
-  ),
-  'touching-edges': () => <Graph alt="Edge Living–Bedroom selected; the edges that share one of its ends, Entrance–Living, Living–Kitchen and Bedroom–Bath, are highlighted." selEdge={3} he={[1, 2, 4]} />,
-  summary: () => (
-    <Graph alt="The whole house graph with the counts: 5 nodes and 4 edges." h={168}>
-      <rect className="sgl-gd-tagbox" x={80} y={146} width={100} height={18} rx={4} />
-      <text className="sgl-gd-t strong" x={130} y={159} textAnchor="middle">
-        5 nodes · 4 edges
-      </text>
-    </Graph>
-  ),
-  'most-connected-node': () => <Graph alt="Living is the most connected node, with 3 edges." hn={[2]} badge={{ 2: '3' }} />,
-  'connected-parts': () => (
-    <Svg w={260} h={110} alt="Two connected parts: House 1 and a copy, House 2, with no relationship between them.">
-      <g transform="translate(0 6) scale(0.48)">
-        <HouseGraph names={false} />
-      </g>
-      <g transform="translate(132 6) scale(0.48)">
-        <HouseGraph names={false} hn={[1, 2, 3, 4, 5]} he={[1, 2, 3, 4]} />
-      </g>
-      <rect className="sgl-gd-frame" x={8} y={2} width={118} height={78} rx={10} />
-      <rect className="sgl-gd-frame hl" x={140} y={2} width={118} height={78} rx={10} />
-      <Cap x={67} y={98} anchor="middle">
-        House 1
-      </Cap>
-      <Cap x={199} y={98} anchor="middle">
-        House 2 (a copy)
-      </Cap>
-    </Svg>
-  ),
-  bridges: () => <Graph alt="Bridges highlighted: all four edges, because the house has no loops." he={[1, 2, 3, 4]} />,
-  'cut-nodes': () => <Graph alt="Cut nodes Living and Bedroom: remove the Living room and the Entrance, the Kitchen and the upper floor are cut off from each other." hn={[2, 4]} />,
-  'leaf-nodes': () => <Graph alt="Leaf nodes highlighted: Entrance, Kitchen and Bath each have one edge." hn={[1, 3, 5]} />,
-  diameter: () => <Graph alt="Diameter 3: the longest shortest route, Entrance–Living–Bedroom–Bath, is highlighted." hn={[1, 5]} hn2={[2, 4]} he={[1, 3, 4]} badge={{ 5: '3 steps' }} />,
-  'most-central-node': () => <Graph alt="Living is the most central node: 1 step to Entrance, Kitchen and Bedroom and 2 to the Bath, 5 steps in total." hn={[2]} badge={{ 1: '1', 3: '1', 4: '1', 5: '2' }} />,
-  'shortest-path': () => (
-    <Graph alt="Shortest path from Entrance to Bath: Entrance–Living–Bedroom–Bath, 3 steps, although the Bath is right above the Entrance." hn={[1, 5]} hn2={[2, 4]} he={[1, 3, 4]} badge={{ 1: 'From', 5: 'To' }} />
-  ),
-  'reach-within-k': () => <Graph alt="From the Entrance within 2 steps: Living (1 step), Kitchen and Bedroom (2 steps); the Bath is 3 steps away, outside." hn={[1]} hn2={[2, 3, 4]} faded={[5]} badge={{ 2: '1', 3: '2', 4: '2' }} />,
+  // ── Built-in analyses (two cases each) ──
+  'deg-1': () => <Net alt="Degree 1: in a star of five rooms, the outer room A has a single edge, highlighted: a dead end." nodes={STAR} edges={STAR_E} hl="A" he="C-A" badge={{ A: '1' }} />,
+  'deg-4': () => <Net alt="Degree 4: in the same star, the centre room C has four edges, highlighted: a hub." nodes={STAR} edges={STAR_E} hl="C" he={STAR_E} badge={{ C: '4' }} />,
+  'nb-1': () => <Net alt="A selected at the start of the row: its only neighbour, B, is highlighted (1 neighbour)." nodes={FORK} edges={FORK_E} sel="A" hl="B" he="A-B" />,
+  'nb-3': () => <Net alt="C selected where the row forks: its neighbours B, D and E are highlighted (3 neighbours)." nodes={FORK} edges={FORK_E} sel="C" hl="B D E" he="B-C, C-D, C-E" />,
+  'routes-end': () => <Routes middle={false} />,
+  'routes-middle': () => <Routes middle />,
+  'touch-1': () => <Net alt="A–B selected at the start of the row: only B–C shares a node with it (at B): 1 touching edge, highlighted." nodes={FORK} edges={FORK_E} selEdge="A-B" he="B-C" />,
+  'touch-3': () => <Net alt="B–C selected: A–B shares B with it, C–D and C–E share C: 3 touching edges, highlighted." nodes={FORK} edges={FORK_E} selEdge="B-C" he="A-B, C-D, C-E" />,
+  'shared-0': () => <Net alt="A–B selected; room C is joined to B only, so no room is joined to both ends: 0. From A the only way back is the way you came." nodes="A 50 80, B 170 80, C 110 24" edges="A-B, B-C" selEdge="A-B" />,
+  'shared-1': () => <Net alt="A–B selected; room C is joined to both A and B: 1 shared neighbour, highlighted. A, B and C form a loop you can walk round." nodes="A 50 80, B 170 80, C 110 24" edges="A-B, B-C, C-A" selEdge="A-B" hl="C" he="B-C, C-A" />,
+  'ends-hub-dead': () => <Net alt="Relationship C–E selected in a star: C has 4 relationships (a hub), E only this one (a dead end): 4 · 1." nodes="A 50 22, B 50 88, C 110 55, D 170 22, E 170 88" edges="C-A, C-B, C-D, C-E" selEdge="C-E" hl="C E" badge={{ C: '4', E: '1' }} />,
+  'ends-through': () => <Net alt="Relationship B–C selected in a row A–B–C–D: B and C each have 2 relationships, so both are on the way through: 2 · 2." nodes={ROW4} edges={ROW4_E} selEdge="B-C" hl="B C" badge={{ B: '2', C: '2' }} />,
+  'sum-tree': () => <Net alt="Four rooms and three relationships, A–B, B–C and B–D: one edge fewer than nodes, no loop." nodes={LOOP4} edges="A-B, B-C, B-D" />,
+  'sum-loop': () => <Net alt="Four rooms and four relationships round a square: as many edges as nodes, one loop (highlighted)." nodes={LOOP4} edges={LOOP4_E} he={LOOP4_E} />,
+  'mc-row': () => <Net alt="A row A–B–C–D: B and C tie as most connected, with 2 edges each." nodes={ROW4} edges={ROW4_E} hl="B C" badge={{ B: '2', C: '2' }} />,
+  'mc-star': () => <Net alt="A star of five rooms: the centre C is the most connected, with 4 edges." nodes={STAR} edges={STAR_E} hl="C" badge={{ C: '4' }} />,
+  'parts-one': () => <Parts two={false} />,
+  'parts-two': () => <Parts two />,
+  'bridges-row': () => <Net alt="A row A–B–C–D: all 3 relationships are bridges, highlighted: remove any one and the row splits." nodes={ROW4} edges={ROW4_E} he={ROW4_E} />,
+  'bridges-loop': () => <Net alt="A loop A–B–C–D–A: no bridges; remove any one relationship and there is still a way round." nodes={LOOP4} edges={LOOP4_E} />,
+  'cut-row': () => <Net alt="A row A–B–C–D: B and C are cut nodes, highlighted; remove either and the row splits." nodes={ROW4} edges={ROW4_E} hl="B C" />,
+  'cut-loop': () => <Net alt="A loop A–B–C–D–A: no cut nodes; remove any one room and the others are still joined." nodes={LOOP4} edges={LOOP4_E} />,
+  'leaf-loop': () => <Net alt="A loop A–B–C–D–A: every room has 2 relationships, so there are no leaf nodes (0 dead ends)." nodes={LOOP4} edges={LOOP4_E} />,
+  'leaf-star': () => <Net alt="A star of five rooms: the four outer rooms A, B, D and E each have one relationship: 4 leaf nodes, highlighted." nodes={STAR} edges={STAR_E} hl="A B D E" />,
+  'diam-star': () => <Net alt="A star of five rooms: any two outer rooms are 2 steps apart through the centre, so the diameter is 2 (A → C → E highlighted)." nodes={STAR} edges={STAR_E} hl="A E" hlB="C" he="C-A, C-E" badge={{ E: '2' }} />,
+  'diam-row': () => <Net alt="A row of five rooms A to E: from A to E takes 4 steps, so the diameter is 4 (the whole row highlighted)." nodes={ROW5} edges={ROW5_E} hl="A E" hlB="B C D" he={ROW5_E} badge={{ E: '4' }} />,
+  'central-row': () => <Net alt="A row of five rooms: the middle room C is the most central, 2 + 1 + 1 + 2 = 6 steps to all the others (step counts beside each room)." nodes={ROW5} edges={ROW5_E} hl="C" badge={{ A: '2', B: '1', D: '1', E: '2' }} />,
+  'central-star': () => <Net alt="A star of five rooms: the centre C is the most central, 1 step to each of the 4 others, 4 in total." nodes={STAR} edges={STAR_E} hl="C" badge={{ A: '1', B: '1', D: '1', E: '1' }} />,
+  'path-short': () => <PathDiagram long={false} />,
+  'path-long': () => <PathDiagram long />,
+  'reach-1': () => <Net alt="From A with k = 1: only B, 1 step away, is reached; C, D and E are faded." nodes={ROW5} edges={ROW5_E} sel="A" hl="B" he="A-B" fade="C D E" badge={{ B: '1' }} />,
+  'reach-2': () => <Net alt="From A with k = 2: B (1 step) and C (2 steps) are reached; D and E are faded." nodes={ROW5} edges={ROW5_E} sel="A" hl="B C" he="A-B, B-C" fade="D E" badge={{ B: '1', C: '2' }} />,
 };
 
 /** Ids of every Guide diagram (tests check that content only names these). */

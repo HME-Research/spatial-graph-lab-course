@@ -25,7 +25,9 @@ export interface GuideLink {
 
 /**
  * Explainer content for one algorithm, section or concept. Same shape for the Guide and for every
- * ⓘ explainer: plain language, answer first, one tiny example, one diagram, one checked link.
+ * ⓘ explainer: plain language, answer first, one tiny example, two contrasting diagrams (or one
+ * when a contrast means nothing), one checked link. Examples are small, generic and made for the
+ * purpose (rooms A, B, C…), never the built-in example house (owner 2026-11-20).
  */
 export interface Explainer {
   readonly id: string;
@@ -34,7 +36,12 @@ export interface Explainer {
   readonly summary: string;
   /** A tiny example, using rooms. */
   readonly example: string;
-  /** Id of a small diagram component (rendered by the explainer). */
+  /**
+   * Two contrasting cases side by side (additive 2026-11-20), e.g. Shared neighbours 0 vs 1: each a
+   * diagram id with a one-line caption under it. Shown before `diagram` when both are set.
+   */
+  readonly diagrams?: readonly [GuideDiagramCase, GuideDiagramCase];
+  /** Id of a small diagram component (rendered by the explainer), e.g. a panel mock-up or steps. */
   readonly diagram?: string;
   /** One reliable external link. */
   readonly learnMore?: { readonly label: string; readonly url: string };
@@ -56,6 +63,12 @@ export interface Explainer {
     /** Marker centres as fractions (0–1) of the image width/height. */
     readonly markers: readonly { readonly n: number; readonly x: number; readonly y: number }[];
   };
+}
+
+/** One case of an explainer's contrasting pair: a diagram id and the one-line caption under it. */
+export interface GuideDiagramCase {
+  readonly diagram: string;
+  readonly caption: string;
 }
 
 /**

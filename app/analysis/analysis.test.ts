@@ -68,7 +68,9 @@ describe('built-in analyses', () => {
     // The owner's edits: no "for the Student API"; item H: every explainer has a Guide diagram and a link.
     for (const e of [...SECTION_EXPLAINERS, ...ANALYSIS_EXPLAINERS, ANALYSE_VS_TRANSFORM]) {
       expect(JSON.stringify(e)).not.toContain('for the Student API');
-      expect(GUIDE_DIAGRAM_IDS, e.id).toContain(e.diagram);
+      // Owner 2026-11-20: two contrasting diagrams each.
+      expect(e.diagrams, e.id).toHaveLength(2);
+      for (const c of e.diagrams!) expect(GUIDE_DIAGRAM_IDS, e.id).toContain(c.diagram);
       expect(e.learnMore?.url, e.id).toMatch(/^https:\/\//);
     }
   });
@@ -86,7 +88,7 @@ describe('built-in analyses', () => {
     expect(answer(runBuiltInAnalysis('touching-edges', HOUSE, [4]))).toMatchObject({ answer: '4', label: 'edges share a node with 2 → 5', highlightEdges: [1, 2, 5, 6] });
   });
 
-  it('the four edge analyses on the example house (Entrance 1–Living 2, Living–Kitchen 3, Living–Bedroom 4, Bedroom–Bath 5)', () => {
+  it('the four edge analyses on the built-in example (Entrance 1–Living 2, Living–Kitchen 3, Living–Bedroom 4, Bedroom–Bath 5)', () => {
     // Routes through it, one number per end: 2 → 4 has 3 nodes on 2's side, 2 on 4's side; on a tree
     // the trips are the product, 3 × 2 = 6 of the 10.
     expect(answer(runBuiltInAnalysis('routes-through', EXAMPLE, [3]))).toEqual({
@@ -155,7 +157,7 @@ describe('built-in analyses', () => {
     expect(answer(runBuiltInAnalysis('routes-through', twoHouses, [6])).answer).toBe('1 · 1');
   });
 
-  it('network analyses on the example house', () => {
+  it('network analyses on the built-in example', () => {
     expect(answer(runBuiltInAnalysis('summary', HOUSE, []))).toMatchObject({ answer: '7 · 6', detail: '7 nodes and 6 edges' });
     expect(answer(runBuiltInAnalysis('most-connected-node', HOUSE, []))).toMatchObject({ answer: '2, 5', label: 'nodes have the most edges: 3', highlightNodes: [2, 5] });
     expect(answer(runBuiltInAnalysis('connected-parts', HOUSE, []))).toMatchObject({ answer: '1' });

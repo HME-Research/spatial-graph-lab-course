@@ -447,3 +447,59 @@ a.sgl-explainer-download:focus-visible {
   outline: 2px solid var(--accent, #2c5d8f);
   outline-offset: 1px;
 }
+
+/* Two contrasting cases side by side (owner 2026-11-20); they wrap one under the other when narrow. */
+.sgl-explainer-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px) var(--space-3, 12px);
+  margin: 0 0 var(--space-2, 8px);
+}
+.sgl-explainer-case {
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 320px;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--line, #e1e1dc);
+  border-radius: var(--radius, 6px);
+  background: var(--panel, #fff);
+}
+.sgl-explainer-case-img {
+  overflow-x: auto;
+}
+.sgl-explainer-case .sgl-gd {
+  width: 100%;
+}
+.sgl-explainer-case .sgl-gd-panel,
+.sgl-explainer-case .sgl-gd-code,
+.sgl-explainer-case .sgl-gd-steps {
+  max-width: 100%;
+}
+.sgl-explainer-case figcaption {
+  margin-top: 4px;
+  font-size: var(--text-xs, 12px);
+  line-height: 1.3;
+  color: var(--fg, #1f1f1d);
+}
+.sgl-gd-n.hlB {
+  fill: #f2b84b;
+  stroke: #8a5d0b;
+  stroke-width: 2;
+}
+.sgl-gd-e.hlB {
+  stroke: #c98a12;
+  stroke-width: 3.2;
+}
+.sgl-gd-id.light {
+  fill: #fff;
+}
+.sgl-gd-cell.neutral {
+  fill: #dfe3e8;
+}
+.sgl-gd-ghost {
+  fill: none;
+  stroke: var(--muted, #62625c);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+}

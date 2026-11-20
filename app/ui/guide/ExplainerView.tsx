@@ -9,6 +9,7 @@ export const sectionDomId = (id: string) => `guide-section-${id}`;
 
 /**
  * One explainer block: title, then the one-sentence summary (strongest), the example, an optional
+ * pair of contrasting diagrams (side by side, each with its caption), an optional single
  * diagram, an optional screenshot of the app with numbered markers, downloads and an optional
  * "Learn more" link (new tab). `renderDiagram` maps `explainer.diagram` (a diagram id) to a
  * component; it defaults to the Guide diagrams (`diagrams.tsx`).
@@ -30,6 +31,16 @@ export function ExplainerView({
       <p className="sgl-explainer-example">
         <span className="sgl-explainer-label">Example</span> {explainer.example}
       </p>
+      {explainer.diagrams && (
+        <div className="sgl-explainer-pair" data-diagrams={explainer.diagrams.map((c) => c.diagram).join(' ')}>
+          {explainer.diagrams.map((c) => (
+            <figure key={c.diagram} className="sgl-explainer-case" data-diagram={c.diagram}>
+              <div className="sgl-explainer-case-img">{renderDiagram?.(c.diagram)}</div>
+              <figcaption>{c.caption}</figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
       {explainer.diagram !== undefined && (
         <div className="sgl-explainer-diagram" data-diagram={explainer.diagram}>
           {renderDiagram?.(explainer.diagram)}
