@@ -3,7 +3,7 @@ import { clampColumnWidth, columnWidthCss, keyboardColumnWidth, MAX_COLUMN_WIDTH
 
 /** Resizable Data table columns (owner 2026-11-20). */
 describe('Data table column widths', () => {
-  it('are whole pixels within [40, 800]', () => {
+  it('are whole pixels within [24, 800]', () => {
     expect(clampColumnWidth(120.4)).toBe(120);
     expect(clampColumnWidth(5)).toBe(MIN_COLUMN_WIDTH);
     expect(clampColumnWidth(5000)).toBe(MAX_COLUMN_WIDTH);
@@ -19,16 +19,19 @@ describe('Data table column widths', () => {
   it('move in 10 px steps with the arrow keys', () => {
     expect(keyboardColumnWidth(100, 'ArrowRight')).toBe(110);
     expect(keyboardColumnWidth(100, 'ArrowLeft')).toBe(90);
-    expect(keyboardColumnWidth(45, 'ArrowLeft')).toBe(MIN_COLUMN_WIDTH);
+    expect(keyboardColumnWidth(30, 'ArrowLeft')).toBe(MIN_COLUMN_WIDTH);
     expect(keyboardColumnWidth(100, 'Enter')).toBeNull();
   });
 
-  it('become one CSS rule per resized column, scoped to its table, cutting long text with …', () => {
+  it('become one CSS rule per resized column, scoped to its table, sizing the content box (width minus the cell padding)', () => {
     expect(columnWidthCss(':r1:', {})).toBe('');
+    const t = '.sgl-dataview-table[data-width-scope=":r1:"]';
+    const fn = `${t} [data-column="function"]`;
+    const custom = `${t} [data-column="custom:target \\"x\\""]`;
     expect(columnWidthCss(':r1:', { function: 150, 'custom:target "x"': 90 })).toBe(
       [
-        '.sgl-dataview-table[data-width-scope=":r1:"] [data-column="function"]{width:150px;min-width:150px;max-width:150px;overflow:hidden;text-overflow:ellipsis}',
-        '.sgl-dataview-table[data-width-scope=":r1:"] [data-column="custom:target \\"x\\""]{width:90px;min-width:90px;max-width:90px;overflow:hidden;text-overflow:ellipsis}',
+        `${fn} > .sgl-dataview-cell,${fn} > .sgl-dataview-head{width:130px;min-width:130px;max-width:130px}`,
+        `${custom} > .sgl-dataview-cell,${custom} > .sgl-dataview-head{width:70px;min-width:70px;max-width:70px}`,
       ].join('\n'),
     );
   });

@@ -392,8 +392,11 @@ function DataTableView({
             <tr className="sgl-dataview-groups">
               {groups.map((g) => (
                 <th key={g.section} scope="colgroup" colSpan={g.span} data-section={g.section} title={ATTRIBUTE_SECTIONS[g.section].summary}>
-                  {SECTION_HEAD[g.section]}
-                  {lockedSection(g.section) && <LockIcon />}
+                  {/* Never wider than its columns: cut with "…" (like a spreadsheet's merged header). */}
+                  <span className="sgl-dataview-span-label">
+                    {SECTION_HEAD[g.section]}
+                    {lockedSection(g.section) && <LockIcon />}
+                  </span>
                 </th>
               ))}
             </tr>
@@ -401,7 +404,7 @@ function DataTableView({
               {headings.map((h) =>
                 h.split ? (
                   <th key={h.id} scope="colgroup" colSpan={h.span} data-section={h.first.section} data-attribute={h.id} title={h.first.attribute?.title} className={cellClass(h.first, starts)}>
-                    {h.label}
+                    <span className="sgl-dataview-span-label">{h.label}</span>
                   </th>
                 ) : (
                   <ColumnHeading key={h.id} column={h.first} starts={starts} rowSpan={hasValueRow ? 2 : 1} width={widths[h.first.id]} onWidth={setColumnWidth} />
@@ -442,7 +445,7 @@ function DataTableView({
 
 /**
  * One column heading: its label, a lock when it cannot be edited, a custom attribute's source tag and a
- * resize handle on its right edge (drag, or the arrow keys; double-click returns it to its natural width).
+ * resize handle on its right edge (drag, or the arrow keys; double-click fits it to its content again).
  */
 function ColumnHeading({
   column: c,
@@ -462,15 +465,18 @@ function ColumnHeading({
   const [main, sub] = headingLines(c.label);
   return (
     <th scope="col" rowSpan={rowSpan > 1 ? rowSpan : undefined} data-section={c.section} data-column={c.id} title={c.title} className={cellClass(c, starts)}>
-      {main}
-      {!c.editable && <LockIcon />}
-      {sub !== null && <span className="sgl-dataview-head-sub">{sub}</span>}
-      {/* The shared `.sgl-source-tag` style of app/ui/SourceTag (views may not import the shell's component). */}
-      {c.tag !== undefined && (
-        <span className="sgl-source-tag sgl-dataview-tag" title={c.tag === 'Yours' ? 'Added in this project: you can delete it in Attributes.' : 'Comes from the toolkit: it cannot be deleted.'}>
-          {c.tag}
-        </span>
-      )}
+      {/* The heading's content: its width is the column's width once the column is resized. */}
+      <span className="sgl-dataview-head">
+        {main}
+        {!c.editable && <LockIcon />}
+        {sub !== null && <span className="sgl-dataview-head-sub">{sub}</span>}
+        {/* The shared `.sgl-source-tag` style of app/ui/SourceTag (views may not import the shell's component). */}
+        {c.tag !== undefined && (
+          <span className="sgl-source-tag sgl-dataview-tag" title={c.tag === 'Yours' ? 'Added in this project: you can delete it in Attributes.' : 'Comes from the toolkit: it cannot be deleted.'}>
+            {c.tag}
+          </span>
+        )}
+      </span>
       <ColumnResizeHandle columnId={c.id} label={c.label} width={width} onWidth={onWidth} />
     </th>
   );
@@ -518,7 +524,7 @@ function ColumnResizeHandle({
       aria-orientation="vertical"
       aria-label={`Resize the ${label} column`}
       {...(width !== undefined && { 'aria-valuenow': width })}
-      title="Drag (or use the arrow keys) to resize; double-click for the natural width"
+      title="Drag (or use the arrow keys) to resize; double-click to fit the content"
       tabIndex={0}
       data-resize-column={columnId}
       onPointerDown={onPointerDown}
@@ -617,8 +623,11 @@ function DataCellView({
         <EditingCellSlot collection={collection} rowId={rowId} column={column} />
       ) : (
         <>
-          {cell.text}
-          {hint && <span className="sgl-dataview-hint">{hint}</span>}
+          {/* The value's box: its width is the column's width once the column is resized (text cut with "…"). */}
+          <span className="sgl-dataview-cell">
+            {cell.text}
+            {hint && <span className="sgl-dataview-hint">{hint}</span>}
+          </span>
         </>
       )}
     </Cell>

@@ -285,10 +285,10 @@ describe('DataView', () => {
   it('renders section group headers, a locked Calculated group and faded inherited values', () => {
     const table = render(NO_SELECTION, 'table').html;
     for (const title of ['Identity', 'Required', 'Geometry', 'Custom', 'Calculated, not saved']) expect(table).toContain(`>${title}`);
-    expect(table).toMatch(/colSpan="3"[^>]*data-attribute="position"[^>]*>Position</);
+    expect(table).toMatch(/colSpan="3"[^>]*data-attribute="position"[^>]*><span class="sgl-dataview-span-label">Position</);
     // Wrapped like a spreadsheet header: the part in brackets on its own line.
-    expect(table).toMatch(/data-column="position.z"[^>]*>z<span class="sgl-dataview-head-sub">\(Level\)<\/span>/);
-    expect(table).toMatch(/data-column="size.z"[^>]*>z<span class="sgl-dataview-head-sub">\(Floors\)<\/span>/);
+    expect(table).toMatch(/data-column="position.z"[^>]*><span class="sgl-dataview-head">z<span class="sgl-dataview-head-sub">\(Level\)<\/span>/);
+    expect(table).toMatch(/data-column="size.z"[^>]*><span class="sgl-dataview-head">z<span class="sgl-dataview-head-sub">\(Floors\)<\/span>/);
     expect(table).toContain('sgl-dataview-lock');
     expect(table).toContain('data-origin="default"');
     expect(table).toContain('from type');
@@ -328,7 +328,7 @@ describe('DataView', () => {
       for (const c of cells(column)) expect(c, column).not.toMatch(/data-editable|tabindex/);
     }
     // Locked columns carry the lock in their header.
-    expect(table).toMatch(/data-column="id"[^>]*>ID<svg class="sgl-dataview-lock"/);
+    expect(table).toMatch(/data-column="id"[^>]*><span class="sgl-dataview-head">ID<svg class="sgl-dataview-lock"/);
   });
 
   it('is read-only without a cell editor', () => {
@@ -339,7 +339,7 @@ describe('DataView', () => {
 
   it('tags custom column headers with their source (Toolkit: <name> / Yours)', () => {
     const table = render(NO_SELECTION, 'table').html;
-    expect(table).toMatch(/data-column="custom:f1"[^>]*>Target area<span class="sgl-source-tag sgl-dataview-tag"[^>]*>Toolkit: House<\/span>/);
-    expect(table).toMatch(/data-column="custom:f2"[^>]*>Note<span class="sgl-source-tag sgl-dataview-tag"[^>]*>Yours<\/span>/);
+    expect(table).toMatch(/data-column="custom:f1"[^>]*><span class="sgl-dataview-head">Target area<span class="sgl-source-tag sgl-dataview-tag"[^>]*>Toolkit: House<\/span>/);
+    expect(table).toMatch(/data-column="custom:f2"[^>]*><span class="sgl-dataview-head">Note<span class="sgl-source-tag sgl-dataview-tag"[^>]*>Yours<\/span>/);
   });
 });

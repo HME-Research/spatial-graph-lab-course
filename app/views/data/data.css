@@ -445,3 +445,28 @@
   color: var(--muted);
   font-weight: 400;
 }
+
+/*
+ * Spreadsheet-like resizing (owner 2026-11-20). A value's box never wraps; when its column is resized
+ * narrower the value is cut with "…" (its full text stays in the tooltip). A heading's box wraps between words as its
+ * column narrows; a word wider than the column is cut. Section and Position / Size / Corridor labels span several columns and never make
+ * them wider: they take the width their columns give them and are cut with "…".
+ */
+.sgl-dataview-cell {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sgl-dataview-head {
+  display: block;
+  overflow: hidden;
+}
+.sgl-dataview-span-label {
+  display: block;
+  width: 0;
+  min-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
