@@ -592,14 +592,32 @@ export async function selectNode(s, id) {
 
 /** Select relationship `id` by clicking its Graph 2D edge (real click on the path's midpoint); waits for its Properties. */
 export async function selectEdge(s, id) {
-  const c = await s.waitFor(
-    `(() => { const e = __sgl.graphPanel()?.querySelector('.react-flow__edge[data-id="${id}"]'); const p = e?.querySelector('path.react-flow__edge-interaction') ?? e?.querySelector('path'); if (!p) return null; const L = p.getTotalLength(); const pt = p.getPointAtLength(L / 2); const m = p.getScreenCTM(); return { x: m.a * pt.x + m.c * pt.y + m.e, y: m.b * pt.x + m.d * pt.y + m.f }; })()`,
-    10_000,
-    `edge ${id} in Graph 2D`,
-  );
-  await s.clickAt(c.x, c.y);
+  const midpoint = `(() => { const e = __sgl.graphPanel()?.querySelector('.react-flow__edge[data-id="${id}"]'); const p = e?.querySelector('path.react-flow__edge-interaction') ?? e?.querySelector('path'); if (!p) return null; const L = p.getTotalLength(); const pt = p.getPointAtLength(L / 2); const m = p.getScreenCTM(); return { x: Math.round(m.a * pt.x + m.c * pt.y + m.e), y: Math.round(m.b * pt.x + m.d * pt.y + m.f) }; })()`;
+  const selected = `!!__sgl.graphPanel()?.querySelector('.react-flow__edge.selected[data-id="${id}"]')`;
+  await s.waitFor(midpoint, 10_000, `edge ${id} in Graph 2D`);
+  // Graph 2D re-fits when a side panel opens or closes, so the edge can still be moving: wait until
+  // its midpoint reads the same three times (100 ms apart) before clicking, and retry once if the
+  // click landed on the moving diagram's empty pane (which clears the selection by design).
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    let last = '';
+    let same = 0;
+    const deadline = Date.now() + 5_000;
+    let c = null;
+    while (Date.now() < deadline && same < 3) {
+      c = await s.evaluate(midpoint);
+      const key = JSON.stringify(c);
+      same = c && key === last ? same + 1 : 1;
+      last = key;
+      if (same < 3) await new Promise((r) => setTimeout(r, 100));
+    }
+    if (!c) throw new Error(`edge ${id} has no position in Graph 2D`);
+    await s.clickAt(c.x, c.y);
+    const ok = await s.waitFor(selected, 2_000, `edge ${id} selected`).then(() => true, () => false);
+    if (ok) break;
+    if (attempt === 2) await s.waitFor(selected, 8_000, `edge ${id} selected`);
+  }
   await openRail(s, 'properties');
-  await s.waitFor(`!!__sgl.graphPanel()?.querySelector('.react-flow__edge.selected[data-id="${id}"]')`, 10_000, `edge ${id} selected`);
+  await s.waitFor(selected, 10_000, `edge ${id} selected`);
 }
 
 /** Click Undo / Redo in the header (real clicks). */
