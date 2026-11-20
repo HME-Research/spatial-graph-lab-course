@@ -341,7 +341,7 @@ const TEXT: readonly GuideTabContent[] = [
       {
         id: 'howto-add-room',
         title: 'Add a room',
-        summary: 'In Graph 2D press + Add node; the new room takes a free cell. Then set its Function, Position and Size.',
+        summary: 'In Graph 2D press + Add node; the new room takes a free cell. Then set its Function, Position and Size. To copy a room, right-click it › Duplicate (or Ctrl+D): same Function, Size and values, in the closest free place, without relationships.',
         example: '1. + Add node: room 6 appears. 2. In Properties choose its Function, e.g. Circulation. 3. Set Position and Size (cells of 3 × 3 m); a place that overlaps another room is refused with a reason.',
         diagram: 'howto-add-room',
         learnMore: LINKS.voxels,
