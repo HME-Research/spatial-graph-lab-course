@@ -205,7 +205,7 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'view-building',
         title: 'Building',
         summary: 'A 3D building made from the graph and the geometry: walls, doors, openings, windows and roofs.',
-        example: 'Two touching rooms A and B. With Access between them: a door in the shared wall (a floor opening between storeys). Open: no wall. No relationship: a solid wall or floor. A wall facing outside → a façade styled by the room’s Function. Choose Level 0 only and turn Roofs off to look into that floor from above.',
+        example: 'Two touching rooms A and B. With Access between them: a door in the shared wall (a floor opening between storeys). Open: no wall. No relationship: a solid wall or floor. A wall facing outside → a façade styled by the room’s Function; so is a wall between a closed room and an open one (a terrace or garden). Choose Level 0 only and turn Roofs off to look into that floor from above.',
         diagrams: [
           { diagram: 'bld-access', caption: 'Access: a door' },
           { diagram: 'bld-none', caption: 'No relationship: a solid wall' },

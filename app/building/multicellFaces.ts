@@ -29,6 +29,14 @@ import { connectionCondition, directionOrientation } from './resolve';
  * opening) opens a single representative unit face — the lowest storey, then the middle of the
  * deterministic shared-face order; its other shared faces are solid. `open` removes the wall
  * (or voids the slab) on every shared unit face.
+ *
+ * Enclosed room beside an open-walled room (owner 2026-11-20, `facadeOwnerOfSharedWall`): when the
+ * caller passes the rooms' walls (`ResolveFacesOptions.wallsOf`, from the effective looks), a WALL
+ * the two rooms share is authored by the ENCLOSED room and is its exterior façade: no relationship
+ * → `exterior` (styled by its look like its other exterior walls); Access → `door` marked `outside`
+ * (façade colour, a closed glass door, the look's door module); Open → `open` (no wall, as before).
+ * Slabs between storeys, two enclosed rooms and two open-walled rooms are unchanged. The neighbour
+ * stays in `neighbourNodeId`, so the wall can still be clicked to add or edit the relationship.
  */
 
 /** How a face's condition was decided. */
@@ -108,11 +116,34 @@ function routeEndpointFaces(resolutions: readonly EdgeResolution[]): Map<string,
 
 const byId = (a: { id: number }, b: { id: number }) => a.id - b.id;
 
+export interface ResolveFacesOptions {
+  /**
+   * Each room's effective walls (`nodeLooks` → `look.walls`). When given, a wall between an
+   * enclosed and an open-walled room is the enclosed room's façade (`facadeOwnerOfSharedWall`).
+   * Omitted: every room counts as enclosed (pure topology, e.g. the exterior-wall metric).
+   */
+  readonly wallsOf?: (nodeId: number) => WallStyle;
+}
+
+/**
+ * THE rule for a wall shared by rooms `a` and `b` (owner 2026-11-20): when exactly one of them has
+ * enclosed walls and the other open walls (a terrace, garden, porch), the wall is the ENCLOSED
+ * room's exterior façade, so that room authors it; returns its id. Otherwise null: the room whose
+ * id sorts first authors the face, as for every other shared face.
+ */
+export function facadeOwnerOfSharedWall(a: number, b: number, wallsOf: ((nodeId: number) => WallStyle) | undefined): number | null {
+  if (!wallsOf) return null;
+  const wa = wallsOf(a);
+  const wb = wallsOf(b);
+  if (wa === wb) return null;
+  return wa === 'enclosed' ? a : b;
+}
+
 /**
  * Every bounding face of every room of a VALIDATED v2 document, given its spatial resolution.
  * Sorted by owner id, then cell (z, y, x), then FACE_DIRECTIONS. Independent of array order.
  */
-export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialResolution): BuildingFace[] {
+export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialResolution, options: ResolveFacesOptions = {}): BuildingFace[] {
   const direct = directFaceConditions(spatial.edges);
   const endpoints = routeEndpointFaces(spatial.edges);
   const routeWalls = new Map<number, WallStyle>();
@@ -125,7 +156,11 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
       for (const direction of FACE_DIRECTIONS) {
         const occupant = spatial.occupancy.at(neighbourCell(cell, direction));
         if (occupant?.kind === 'room' && occupant.nodeId === node.id) continue; // interior of the room
-        if (occupant?.kind === 'room' && !(node.id < occupant.nodeId)) continue; // neighbour authors it
+        // A wall between an enclosed and an open-walled room is the enclosed room's façade.
+        const facadeOwner =
+          occupant?.kind === 'room' && directionOrientation(direction) === 'wall' ? facadeOwnerOfSharedWall(node.id, occupant.nodeId, options.wallsOf) : null;
+        const authors = facadeOwner !== null ? facadeOwner === node.id : occupant?.kind !== 'room' || node.id < occupant.nodeId;
+        if (!authors) continue; // neighbour authors it
         if (occupant?.kind === 'room' && !typeOf.has(occupant.nodeId)) {
           throw new Error(`occupancy names unknown room "${occupant.nodeId}"`);
         }
@@ -141,6 +176,11 @@ export function resolveBuildingFaces(doc: DesignDocumentV2, spatial: SpatialReso
           condition = d?.condition ?? 'solid';
           edgeId = d?.edgeId ?? null;
           via = d ? 'direct' : 'none';
+          if (facadeOwner !== null) {
+            // The enclosed room's façade: a plain exterior wall, or a door in it (Open: no wall, unchanged).
+            if (condition === 'solid') condition = 'exterior';
+            else if (condition === 'door') outside = true;
+          }
         } else if (occupant?.kind === 'route') {
           const e = endpoints.get(key);
           via = 'route';

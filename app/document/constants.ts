@@ -42,8 +42,9 @@ export const DEFAULT_WINDOW_LAYOUT: WindowLayout = 'repeat';
 /**
  * Whether a node type's rooms are enclosed by exterior walls (per design, per type; additive
  * 2026-11-17). `open` leaves out the room's EXTERIOR walls (and their windows), e.g. a pavilion,
- * pergola or terrace; walls shared with another room stay, as the neighbour still needs them.
- * Combine with the roof: open + flat = floor and roof; open + pergola; open + none = floor only.
+ * pergola or terrace; a wall shared with an ENCLOSED room stays and is that room's exterior façade
+ * (2026-11-20); between two open rooms it is an internal wall as usual. Combine with the roof: open + flat = floor
+ * and roof; open + pergola; open + none = floor only. Open walls with no roof set get a pergola.
  */
 export const WALL_STYLES = ['enclosed', 'open'] as const;
 export type WallStyle = (typeof WALL_STYLES)[number];

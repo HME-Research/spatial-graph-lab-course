@@ -1,8 +1,9 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
-import { resolveBuildingFaces } from '@app/building';
+import { buildingFacesV2, exampleFacadeProvider } from '@app/building';
 import { NO_SELECTION, type Selection } from '@core/viewer/selection';
 import type { ViewProps } from '../../contracts';
 import { PlanView, type PlanWallEvent } from '../../plan/PlanView';
+import { useStyleValues } from '../../styleValues';
 import { placeBeside } from './panelPlacement';
 import { faceIndex, wallClickSelection } from './wallPanelModel';
 import { WallActionPanel } from './WallActionPanel';
@@ -15,9 +16,16 @@ import { WallActionPanel } from './WallActionPanel';
  * (room, opening, background) closes it. Contains no Three.js, so the Plan stays in the main chunk.
  */
 export function PlanWallView(props: ViewProps) {
-  const { design, onSelect } = props;
+  const { design, onSelect, project } = props;
   const [activeWall, setActiveWall] = useState<string | null>(null);
-  const faces = useMemo(() => (design ? faceIndex(resolveBuildingFaces(design.doc, design.spatial)) : null), [design]);
+  // The SAME faces the Plan draws (`buildingFacesV2`, with the rooms' looks): a wall between an
+  // enclosed and an open-walled room is authored by the enclosed room (2026-11-20), so its id matches.
+  const styleValues = useStyleValues(design?.doc, design?.spatial, project?.attributes);
+  const facade = project?.facade ?? exampleFacadeProvider;
+  const faces = useMemo(
+    () => (design ? faceIndex(buildingFacesV2(design.doc, design.spatial, facade, styleValues).faces) : null),
+    [design, facade, styleValues],
+  );
   const host = useRef<HTMLDivElement>(null);
   const anchorBox = useRef<HTMLDivElement>(null);
   /** Last pointer press inside the Plan, in host pixels: where a wall click happened. */

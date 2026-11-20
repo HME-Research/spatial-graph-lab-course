@@ -99,7 +99,9 @@ export function buildingFacesV2(
   const windowLayout: WindowLayoutProvider = (nodeId) => look(nodeId)?.windowLayout ?? 'repeat';
   const walls: WallStyleProvider = (nodeId) => look(nodeId)?.walls ?? 'enclosed';
   const roof: RoofStyleProvider = (nodeId) => look(nodeId)?.roof ?? 'flat';
-  const faces = resolveBuildingFaces(doc, spatial).filter((f) => !isExposedTop(f) || roof(String(f.ownerNodeId)) !== 'none');
+  // A wall between an enclosed and an open-walled room is the enclosed room's façade (2026-11-20).
+  const wallsOf = (nodeId: number) => looks.get(nodeId)?.look.walls ?? 'enclosed';
+  const faces = resolveBuildingFaces(doc, spatial, { wallsOf }).filter((f) => !isExposedTop(f) || roof(String(f.ownerNodeId)) !== 'none');
   return { faces, facade, windowLayout, walls, roof, styleKey: 'node', looks };
 }
 

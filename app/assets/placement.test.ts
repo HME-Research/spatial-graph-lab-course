@@ -131,6 +131,21 @@ describe('imported façade modules: which walls, Repeat and Stretch', () => {
     expect(layout.instances).toHaveLength(3);
   });
 
+  it('the wall an enclosed room shares with an open-sided room is its façade: wall module, or door module with Access (2026-11-20)', () => {
+    // Gallery 1 is open-sided; studio 2 (enclosed) touches it on its west side, joined by access edge 1.
+    const settings = functionStyleSettings({ gallery: { walls: 'open' }, studio: { facade: { ...repeat(), door: { assetId: A2 } } } });
+    const withDoor = modules(design(settings)).layout.instances;
+    expect(withDoor.find((i) => i.variant === 'door')).toMatchObject({ faceIds: ['2:-x'], ownerNodeId: 2, assetId: A2 });
+    expect(withDoor.filter((i) => i.variant === 'wall')).toHaveLength(3);
+    // Without a relationship the same wall is a plain exterior bay: the wall module covers all four sides.
+    const rooms: N[] = [
+      { id: 1, position: [0, 0, 0], size: [3, 1, 1], function: 'gallery' },
+      { id: 2, position: [3, 0, 0], function: 'studio' },
+    ];
+    const plain = modules(design(settings, rooms)).layout.instances;
+    expect(plain.filter((i) => i.variant === 'wall').map((i) => i.faceIds[0]).sort()).toEqual(['2:+x', '2:+y', '2:-x', '2:-y']);
+  });
+
   it('an asset missing from the project draws nothing and is reported', () => {
     const missing = 'facade-aaaaaaaaaaaaaaaa';
     const doc = design(functionStyleSettings({ gallery: { facade: repeat(missing) }, studio: { facade: repeat(A1) } }));

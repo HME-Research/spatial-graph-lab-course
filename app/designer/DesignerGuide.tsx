@@ -26,10 +26,10 @@ export function DesignerGuideContent({ titleId, descriptionId }: { readonly titl
         </h3>
         <p>
           Automatic gives exterior walls with the windows set below. Open has none: combine with the roof for a pavilion (Flat), a pergola
-          (Pergola) or an open terrace (None). Import replaces the exterior walls with a façade module drawn in Rhino (.3dm, one 3 m bay ×
+          (Pergola, what Open gets while no roof is chosen) or an open terrace (None). Import replaces the exterior walls with a façade module drawn in Rhino (.3dm, one 3 m bay ×
           one storey, Front view outside): choose which side faces out, Repeat or Stretch, and Materials… for solid, glass and colours.
-          Optionally import a Door bay and an Open bay module for where an open-air connector meets the room; without them those bays stay automatic.
-          Walls shared with another room always stay.
+          Optionally import a Door bay and an Open bay module for where an open-air connector or an Open room meets the room; without them those bays stay automatic.
+          Walls shared with another room always stay; beside an Open room, the closed room’s shared wall is part of its façade.
         </p>
       </section>
 
