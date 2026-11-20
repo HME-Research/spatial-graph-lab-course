@@ -87,15 +87,15 @@ describe('Upload your own analysis: one button at the top of Analyse', () => {
     expect(UPLOAD_EXPLAINER_WINDOW_SIZE.height).toBeGreaterThan(DEFAULT_EXPLAINER_WINDOW_SIZE.height);
     // Fits a 1366 × 768 screen, centred (the window's default state).
     const state = defaultState(UPLOAD_EXPLAINER_WINDOW_SIZE, DEFAULT_MIN_SIZE, { width: 1366, height: 768 });
-    expect(state).toMatchObject({ ...UPLOAD_EXPLAINER_WINDOW_SIZE, x: (1366 - 440) / 2, y: (768 - 360) / 2 });
-    // The remembered place is keyed by the size: the old 360 × 300 entry ("explainer-upload-your-own") is not read.
+    expect(state).toMatchObject({ ...UPLOAD_EXPLAINER_WINDOW_SIZE, x: (1366 - 560) / 2, y: (768 - 560) / 2 });
+    // The remembered place is keyed by the size: the older 440 × 360 entry is not read.
     const id = explainerWindowId(explainer);
-    expect(id).toBe('explainer-upload-your-own@440x360');
+    expect(id).toBe('explainer-upload-your-own@560x560');
     const html = renderToStaticMarkup(createElement(ExplainerWindow, { explainer, open: true, onClose: noop }));
     expect(html).toContain(`data-floating="${id}"`);
-    expect(html).toMatch(/width:440px;height:360px/);
-    // Other explainers keep their id and the default size.
-    expect(explainerWindowId({ id: 'degree' })).toBe('explainer-degree');
+    expect(html).toMatch(/width:560px;height:560px/);
+    // Every other explainer opens at the default size, under an id that carries it.
+    expect(explainerWindowId({ id: 'degree' })).toBe('explainer-degree@520x480');
   });
 
   it('the template download loads the real template text on click', async () => {

@@ -57,6 +57,15 @@ export function defaultState(size: Size, min: Size, viewport: Size): WindowState
   return fitState({ x, y, ...s, minimised: false }, min, viewport);
 }
 
+/**
+ * A window id that carries its opening size (owner 2026-11-20): `<id>@<w>x<h>`. When a window's
+ * opening size changes, its remembered place and size (saved under the old id) are no longer read,
+ * so it opens at the new size, centred, instead of keeping an older small or moved state.
+ */
+export function sizedWindowId(id: string, size: Size): string {
+  return `${id}@${size.width}x${size.height}`;
+}
+
 export function storageKey(id: string): string {
   return `sgl.floating.${id}`;
 }

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { Explainer, GuideDownload } from '../guideContracts';
-import { FloatingWindow } from '../floating';
+import { FloatingWindow, sizedWindowId } from '../floating';
 import { renderGuideDiagram } from './diagrams';
 import './guide.css';
 
@@ -9,6 +9,7 @@ export const sectionDomId = (id: string) => `guide-section-${id}`;
 
 /**
  * One explainer block: title, then the one-sentence summary (strongest), the example, an optional
+ * pair of contrasting diagrams (side by side, each with its caption), an optional single
  * diagram, an optional screenshot of the app with numbered markers, downloads and an optional
  * "Learn more" link (new tab). `renderDiagram` maps `explainer.diagram` (a diagram id) to a
  * component; it defaults to the Guide diagrams (`diagrams.tsx`).
@@ -30,6 +31,16 @@ export function ExplainerView({
       <p className="sgl-explainer-example">
         <span className="sgl-explainer-label">Example</span> {explainer.example}
       </p>
+      {explainer.diagrams && (
+        <div className="sgl-explainer-pair" data-diagrams={explainer.diagrams.map((c) => c.diagram).join(' ')}>
+          {explainer.diagrams.map((c) => (
+            <figure key={c.diagram} className="sgl-explainer-case" data-diagram={c.diagram}>
+              <div className="sgl-explainer-case-img">{renderDiagram?.(c.diagram)}</div>
+              <figcaption>{c.caption}</figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
       {explainer.diagram !== undefined && (
         <div className="sgl-explainer-diagram" data-diagram={explainer.diagram}>
           {renderDiagram?.(explainer.diagram)}
@@ -122,15 +133,16 @@ function DownloadButton({ download }: { readonly download: GuideDownload }) {
   );
 }
 
-/** Opening size of an explainer's pop-up when it sets no `windowSize`. */
-export const DEFAULT_EXPLAINER_WINDOW_SIZE = { width: 360, height: 300 } as const;
+/** Opening size of an explainer's pop-up when it sets no `windowSize` (owner 2026-11-20: bigger, room for two diagrams). */
+export const DEFAULT_EXPLAINER_WINDOW_SIZE = { width: 520, height: 480 } as const;
 
 /**
- * Id of an explainer's window (its place and size are remembered by it): `explainer-<id>`, plus
- * `@<w>x<h>` when it sets its own size, so a new opening size is not hidden by an older remembered one.
+ * Id of an explainer's window (its place and size are remembered by it): `explainer-<id>@<w>x<h>`,
+ * the opening size included, so a new opening size is not hidden by an older remembered one (e.g. a
+ * small window that a student had moved to the top right under the old id `explainer-<id>`).
  */
 export const explainerWindowId = (explainer: Pick<Explainer, 'id' | 'windowSize'>): string =>
-  explainer.windowSize ? `explainer-${explainer.id}@${explainer.windowSize.width}x${explainer.windowSize.height}` : `explainer-${explainer.id}`;
+  sizedWindowId(`explainer-${explainer.id}`, explainer.windowSize ?? DEFAULT_EXPLAINER_WINDOW_SIZE);
 
 /** A FloatingWindow showing one Explainer (for the analysis items' info buttons). */
 export function ExplainerWindow({

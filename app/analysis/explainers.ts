@@ -4,11 +4,10 @@ import { LINKS } from '@app/ui/guide/links';
 /**
  * Explainers of the Analyse and Transform tabs (Programme P4): one per Analyse section, one per
  * built-in analysis, and Analyse vs Transform. Plain language, answer first, one tiny example, one
- * diagram (`app/ui/guide/diagrams.tsx`), one checked link. Generic analyses use graph vocabulary;
- * rooms appear only in the examples, and every example is the built-in example house
- * (1 Entrance, 2 Living, 3 Kitchen; 4 Bedroom over the Living room, 5 Bath over the Entrance;
- * Entrance–Living, Living–Kitchen (Open), Living–Bedroom, Bedroom–Bath). The house has no loops:
- * every relationship is the only way between its two rooms.
+ * checked link, and TWO contrasting diagrams side by side (`app/ui/guide/diagrams.tsx`), each with
+ * a one-line caption (owner 2026-11-20). Generic analyses use graph vocabulary; the examples are
+ * small purpose-made graphs of rooms A, B, C… (a row, a star, a loop, a fork), never the built-in
+ * example house.
  */
 
 /** Section explainers; `id` = `analyse-<section id>`. */
@@ -17,32 +16,44 @@ export const SECTION_EXPLAINERS: readonly Explainer[] = [
     id: 'analyse-node',
     title: 'Node',
     summary: 'Measures about the node you have selected. An analysis lands here when its only input is one node.',
-    example: 'Select the Living room to see how many edges it has (3) and which rooms it connects to.',
-    diagram: 'section-node',
+    example: 'In a row A–B–C that forks into D and E, select A: Degree 1, one neighbour. Select C instead: Degree 3, three neighbours. The same measures, a different node, a different answer.',
+    diagrams: [
+      { diagram: 'sec-node-leaf', caption: 'A selected: a dead end (1)' },
+      { diagram: 'sec-node-hub', caption: 'C selected: a hub (3)' },
+    ],
     learnMore: LINKS.ssConnectivity,
   },
   {
     id: 'analyse-edge',
     title: 'Edge',
     summary: 'Measures about the edge you have selected and the two nodes it joins. An analysis lands here when its only input is one edge.',
-    example: 'Select Living–Bedroom: 6 of the 10 trips between rooms use it, it touches 3 other relationships, no room is joined to both its ends (0), and its ends have 3 · 2 relationships.',
-    diagram: 'section-edge',
+    example: 'Five rooms in a row, A–B–C–D–E. Select the end relationship A–B: Routes through it is 1 · 4, it touches 1 other relationship, and its ends have 1 · 2 relationships. Select the middle one, B–C: 2 · 3, it touches 2, and its ends have 2 · 2.',
+    diagrams: [
+      { diagram: 'routes-end', caption: 'An end relationship: 1 · 4' },
+      { diagram: 'routes-middle', caption: 'A middle one: 2 · 3' },
+    ],
     learnMore: LINKS.ssAdjacent,
   },
   {
     id: 'analyse-network',
     title: 'Network',
     summary: 'Network = the whole graph: measures about all nodes and edges at once, with no input to pick.',
-    example: 'How many rooms and relationships the house has (5 and 4), which room is most connected (Living), whether any part is cut off (no: 1 part).',
-    diagram: 'section-network',
+    example: 'How many rooms and relationships there are, which room is most connected, whether any part is cut off: five rooms all joined are 1 part; take away the relationship that links D and E to the rest and they become a second part.',
+    diagrams: [
+      { diagram: 'parts-one', caption: 'All joined: 1 part' },
+      { diagram: 'parts-two', caption: 'Split: 2 parts' },
+    ],
     learnMore: LINKS.ekBook,
   },
   {
     id: 'analyse-queries',
     title: 'Queries',
     summary: 'Measures that need inputs you pick: two nodes, a node and a number, or any other list. Pick nodes and edges in any view; type numbers.',
-    example: 'Shortest path asks for From and To: pick the Entrance, then the Bath. The current selection fills the first input when it fits; Esc cancels.',
-    diagram: 'section-queries',
+    example: 'Shortest path asks for From and To. In a row A–B–C–D, pick A and B: 1 step. Pick A and D: 3 steps. The current selection fills the first input when it fits; Esc cancels.',
+    diagrams: [
+      { diagram: 'path-short', caption: 'A to B: 1 step' },
+      { diagram: 'path-long', caption: 'A to D: 3 steps' },
+    ],
     learnMore: LINKS.bfs,
   },
 ];
@@ -53,128 +64,176 @@ export const ANALYSIS_EXPLAINERS: readonly Explainer[] = [
     id: 'degree',
     title: 'Degree',
     summary: 'The number of edges a node has.',
-    example: 'The Living room has degree 3: it connects to the Entrance, the Kitchen and the Bedroom. A high degree often marks a room people pass through.',
-    diagram: 'degree',
+    example: 'In a star of five rooms, an outer room has degree 1: a dead end, reached one way only. The centre has degree 4: a hub every route passes through. A high degree often marks a room people pass through.',
+    diagrams: [
+      { diagram: 'deg-1', caption: '1: a dead end' },
+      { diagram: 'deg-4', caption: '4: a hub' },
+    ],
     learnMore: LINKS.ssConnectivity,
   },
   {
     id: 'neighbours',
     title: 'Neighbours',
     summary: 'The nodes joined to the selected node by an edge.',
-    example: 'The Living room’s neighbours are the Entrance, the Kitchen and the Bedroom: the rooms you can reach in one step.',
-    diagram: 'neighbours',
+    example: 'In a row A–B–C that forks into D and E, A has 1 neighbour (B); C has 3 (B, D and E): the rooms you can reach from it in one step.',
+    diagrams: [
+      { diagram: 'nb-1', caption: 'A: 1 neighbour' },
+      { diagram: 'nb-3', caption: 'C: 3 neighbours' },
+    ],
     learnMore: LINKS.ssAdjacent,
   },
   {
     id: 'routes-through',
     title: 'Routes through it',
-    summary: 'How many of all the trips between two nodes use this edge, when every trip takes a shortest route. Shown as “6 of 10”: 10 is every pair of nodes. If a pair has several equally short routes, its trip is shared between them, so the answer can have a decimal (e.g. 2.5).',
-    example: 'Living–Bedroom: 6 of 10. The house has 5 rooms, so 10 pairs of rooms. Every trip from the Entrance, the Living room or the Kitchen (3 rooms) to the Bedroom or the Bath (2 rooms) must use it: 3 × 2 = 6. The other three relationships carry 4 trips each. A relationship that carries many trips is a busy route: a place for a wide door, a generous stair or a corridor. The views colour the nodes nearer each end.',
-    diagram: 'routes-through',
+    summary: 'Two numbers, one per end: how many nodes lie on each side of the edge. Shown as “first end’s side · second end’s side”. A node is on A’s side when it is nearer A than B: starting from B, a shortest route to it goes through this edge. The small line gives the trips between two nodes that use the edge.',
+    example: 'Five rooms in a row, A–B–C–D–E. The end relationship A–B is 1 · 4: on one side only A, on the other the 4 rooms it leads to from A. The middle one, B–C, is 2 · 3. With no loops every trip from one side to the other uses it, so the trips are the product: 1 × 4 = 4 and 2 × 3 = 6 of the 10 pairs. In a loop a room can be equally near both ends (on neither side), and a trip with two equally short routes is shared, so the trips can have a decimal (e.g. 2.5). Many rooms on both sides means a busy route: a place for a wide door, a generous stair or a corridor. The views colour the two sides in two colours.',
+    diagrams: [
+      { diagram: 'routes-end', caption: 'An end relationship: 1 · 4, 4 trips' },
+      { diagram: 'routes-middle', caption: 'A middle one: 2 · 3, 6 trips' },
+    ],
     learnMore: LINKS.edgeBetweenness,
   },
   {
     id: 'touching-edges',
     title: 'Touching edges',
     summary: 'How many other edges share a node with the selected edge: the relationships you meet at either end of it.',
-    example: 'Living–Bedroom: 3. It touches Entrance–Living and Living–Kitchen at the Living room, and Bedroom–Bath at the Bedroom. Many touching edges means the relationship sits where several routes meet.',
-    diagram: 'touching-edges',
+    example: 'In a row A–B–C that forks into D and E, A–B touches only B–C: 1. B–C touches A–B at B and both C–D and C–E at C: 3. Many touching edges means the relationship sits where several routes meet.',
+    diagrams: [
+      { diagram: 'touch-1', caption: 'A–B: 1' },
+      { diagram: 'touch-3', caption: 'B–C: 3' },
+    ],
     learnMore: LINKS.brilliantGraph,
   },
   {
     id: 'shared-neighbours',
     title: 'Shared neighbours',
     summary: 'How many nodes are joined to BOTH ends of the selected edge. Each one closes a loop of three, a triangle: a way round, so you do not have to go back the way you came.',
-    example: 'Living–Kitchen in the example house: 0. No room is related to both the Living room and the Kitchen, so from the Kitchen the only way out is back through the Living room. Add a relationship Entrance–Kitchen: now the Entrance is joined to both, the answer is 1, and Entrance, Living and Kitchen form a loop: you can walk Entrance → Living → Kitchen → Entrance instead of turning back. Loops give a choice of route; space syntax calls a plan with many of them “ringy”.',
-    diagram: 'shared-neighbours',
+    example: 'A–B with a third room C joined to B only: 0. From A, the only way out is back through B the way you came. Join C to A as well: now C is joined to both, the answer is 1, and A, B and C form a loop you can walk round: A → B → C → A. Loops give a choice of route; space syntax calls a plan with many of them “ringy”.',
+    diagrams: [
+      { diagram: 'shared-0', caption: '0: no room joined to both' },
+      { diagram: 'shared-1', caption: '1: C joined to both A and B, a loop' },
+    ],
     learnMore: LINKS.ssRinginess,
   },
   {
     id: 'ends-connections',
     title: 'Ends’ connections',
     summary: 'How many edges each end of the selected edge has (its degree), shown as “first end · second end”. It tells you whether the edge links a hub to a dead end, two hubs, or two rooms on a line.',
-    example: 'Living–Kitchen: 3 · 1. The Living room has 3 relationships (a hub); the Kitchen has only this one (a dead end), so the Kitchen is reached only through the Living room. Bedroom–Bath is 2 · 1: the Bath is a dead end behind the Bedroom.',
-    diagram: 'ends-connections',
+    example: 'In a star, the relationship from the centre C to an outer room E is 4 · 1: a hub joined to a dead end, so E is reached only through C. In a row A–B–C–D, the middle relationship B–C is 2 · 2: two rooms on the way through.',
+    diagrams: [
+      { diagram: 'ends-hub-dead', caption: 'Hub–dead end: 4 · 1' },
+      { diagram: 'ends-through', caption: 'Two pass-through rooms: 2 · 2' },
+    ],
     learnMore: LINKS.ssConnectivity,
   },
   {
     id: 'summary',
     title: 'Summary',
     summary: 'The size of the whole graph: how many nodes and how many edges it has.',
-    example: 'The example house has 5 nodes (rooms) and 4 edges (relationships): one edge fewer than nodes, all in one part, so it has no loops.',
-    diagram: 'summary',
+    example: 'Four rooms with three relationships: 4 · 3, one edge fewer than nodes, so (all in one part) there is no loop. Add a fourth relationship to close the square: 4 · 4, and there is a loop.',
+    diagrams: [
+      { diagram: 'sum-tree', caption: '4 nodes · 3 edges: no loop' },
+      { diagram: 'sum-loop', caption: '4 nodes · 4 edges: one loop' },
+    ],
     learnMore: LINKS.brilliantGraph,
   },
   {
     id: 'most-connected-node',
     title: 'Most connected node',
     summary: 'The node with the highest degree: the most edges.',
-    example: 'The Living room, with 3 edges: the room the others connect through, typical of a hub.',
-    diagram: 'most-connected-node',
+    example: 'In a row A–B–C–D, B and C tie with 2 edges each: no single centre. In a star, the centre has 4 edges: the room the others connect through, typical of a hub.',
+    diagrams: [
+      { diagram: 'mc-row', caption: 'A row: B and C tie (2)' },
+      { diagram: 'mc-star', caption: 'A star: the centre (4)' },
+    ],
     learnMore: LINKS.ssConnectivity,
   },
   {
     id: 'connected-parts',
     title: 'Connected parts',
     summary: 'How many separate groups the graph falls into; within a group every node can reach every other.',
-    example: 'The example house is 1 part. Run Grow to target area with Houses = 2 and the copy, House 2, has no relationship to House 1: 2 parts. In one building, a second part means rooms you cannot reach from the rest.',
-    diagram: 'connected-parts',
+    example: 'Five rooms all joined: 1 part. Remove the relationship that links D and E to the others: 2 parts. In one building, a second part means rooms you cannot reach from the rest; two houses on one site are two parts on purpose.',
+    diagrams: [
+      { diagram: 'parts-one', caption: '1 part' },
+      { diagram: 'parts-two', caption: '2 parts' },
+    ],
     learnMore: LINKS.ekGraphs,
   },
   {
     id: 'bridges',
     title: 'Bridges',
     summary: 'Edges that are the only link to part of the graph: remove one and the graph splits.',
-    example: 'In the example house all 4 relationships are bridges, because it has no loops. Living–Bedroom, for instance, is the only way upstairs.',
-    diagram: 'bridges',
+    example: 'In a row A–B–C–D every relationship is a bridge (3): take one away and the row falls in two. Close it into a loop and there are none (0): every room can still be reached the other way round.',
+    diagrams: [
+      { diagram: 'bridges-row', caption: 'A row: 3 bridges' },
+      { diagram: 'bridges-loop', caption: 'A loop: 0 bridges' },
+    ],
     learnMore: LINKS.ekTies,
   },
   {
     id: 'cut-nodes',
     title: 'Cut nodes',
     summary: 'Nodes that hold the graph together: remove one and the graph splits.',
-    example: 'The Living room and the Bedroom. Everyone going to the Kitchen or upstairs passes through the Living room; the Bath can only be reached through the Bedroom.',
-    diagram: 'cut-nodes',
+    example: 'In a row A–B–C–D, B and C are cut nodes (2): everyone going from one end to the other passes through them. In a loop there are none (0): remove any room and the rest are still joined.',
+    diagrams: [
+      { diagram: 'cut-row', caption: 'A row: 2 cut nodes' },
+      { diagram: 'cut-loop', caption: 'A loop: 0' },
+    ],
     learnMore: LINKS.ssBSpace,
   },
   {
     id: 'leaf-nodes',
     title: 'Leaf nodes',
     summary: 'Nodes with exactly one edge: dead ends.',
-    example: 'The Entrance, the Kitchen and the Bath each have one relationship. In a plan, dead ends are often the most private rooms, at the end of a route.',
-    diagram: 'leaf-nodes',
+    example: 'In a loop of four rooms there are none (0): every room has two ways out. In a star, the four outer rooms are leaves (4). In a plan, dead ends are often the most private rooms, at the end of a route.',
+    diagrams: [
+      { diagram: 'leaf-loop', caption: 'A loop: 0 leaves' },
+      { diagram: 'leaf-star', caption: 'A star: 4 leaves' },
+    ],
     learnMore: LINKS.ssASpace,
   },
   {
     id: 'diameter',
     title: 'Diameter',
     summary: 'The largest number of steps you ever need between two nodes, always taking the shortest way.',
-    example: 'From the Entrance to the Bath takes 3 steps (Living, Bedroom, Bath), and no pair is further apart: the diameter is 3. A large diameter means a deep, spread-out plan.',
-    diagram: 'diameter',
+    example: 'In a star of five rooms no two rooms are more than 2 steps apart: the diameter is 2, a compact plan. Lay the same five rooms out in a row and the two ends are 4 steps apart: the diameter is 4, a deep, spread-out plan.',
+    diagrams: [
+      { diagram: 'diam-star', caption: 'A star: 2' },
+      { diagram: 'diam-row', caption: 'A row: 4' },
+    ],
     learnMore: LINKS.ssDepth,
   },
   {
     id: 'most-central-node',
     title: 'Most central node',
     summary: 'The node with the fewest steps, in total, to every other node.',
-    example: 'The Living room: 1 step to the Entrance, the Kitchen and the Bedroom and 2 to the Bath, 5 in total. Space syntax calls the same idea integration: the most integrated space is the easiest to reach from everywhere.',
-    diagram: 'most-central-node',
+    example: 'In a row of five rooms the middle one, C, wins with 2 + 1 + 1 + 2 = 6 steps. In a star the centre wins with 1 step to each of the 4 others, 4 in total: even easier to reach. Space syntax calls the same idea integration: the most integrated space is the easiest to reach from everywhere.',
+    diagrams: [
+      { diagram: 'central-row', caption: 'A row: C, 6 steps in total' },
+      { diagram: 'central-star', caption: 'A star: the centre, 4 steps' },
+    ],
     learnMore: LINKS.ssIntegration,
   },
   {
     id: 'shortest-path',
     title: 'Shortest path',
     summary: 'The route with the fewest steps between two nodes you pick.',
-    example: 'Entrance → Living → Bedroom → Bath: 3 steps, although the Bath is right above the Entrance (they have no relationship, so the floor between them is solid). Counting steps from the Entrance shows how deep, how private, each room is.',
-    diagram: 'shortest-path',
+    example: 'In a row A–B–C–D, from A to B is 1 step; from A to D is 3 steps, through B and C, even if D stands right above A (rooms without a relationship have a solid wall or floor between them). Counting steps from an entrance shows how deep, how private, each room is.',
+    diagrams: [
+      { diagram: 'path-short', caption: 'A to B: 1 step' },
+      { diagram: 'path-long', caption: 'A to D: 3 steps' },
+    ],
     learnMore: LINKS.bfs,
   },
   {
     id: 'reach-within-k',
     title: 'Reach within k steps',
     summary: 'All nodes you can reach from a chosen node in at most k steps.',
-    example: 'From the Entrance with k = 2: the Living room (1 step), the Kitchen and the Bedroom (2 steps). The Bath is 3 steps away, so it is not included.',
-    diagram: 'reach-within-k',
+    example: 'In a row A–B–C–D–E, from A with k = 1 you reach only B. With k = 2 you also reach C. D and E are further away, so they are not included.',
+    diagrams: [
+      { diagram: 'reach-1', caption: 'k = 1: B' },
+      { diagram: 'reach-2', caption: 'k = 2: B and C' },
+    ],
     learnMore: LINKS.ssJustified,
   },
 ];
@@ -184,8 +243,11 @@ export const ANALYSE_VS_TRANSFORM: Explainer = {
   id: 'analysis-vs-transformation',
   title: 'Analyse vs Transform',
   summary: 'An analysis reads the graph and shows a result; a transform proposes a change you preview, Apply, and can undo.',
-  example: 'Degree (an analysis) tells you the Living room has 3 edges; nothing changes. Grow to target area (a transform, House toolkit) shows the bigger rooms first; only Apply changes the design, and one Undo reverses it.',
-  diagram: 'analyse-vs-transform',
+  example: 'Degree (an analysis) tells you a room has 3 edges; nothing changes. Grow to target area (a transform, House toolkit) shows the bigger rooms first; only Apply changes the design, and one Undo reverses it.',
+  diagrams: [
+    { diagram: 'avt-analyse', caption: 'Analyse: reads, nothing changes' },
+    { diagram: 'avt-transform', caption: 'Transform: preview, Apply, Undo' },
+  ],
   learnMore: LINKS.ocwAlgorithms,
 };
 

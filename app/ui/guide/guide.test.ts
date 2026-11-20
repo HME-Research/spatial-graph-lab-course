@@ -6,8 +6,9 @@ import { GUIDE_TAB_IDS, GUIDE_TAB_LABELS, type Explainer } from '../guideContrac
 import { AboutButton, AboutContent, appVersion } from '../about';
 import { GuideButton } from './GuideButton';
 import { GUIDE_CONTENT, guideTabContent, tabsWithoutContent } from './content';
-import { ExplainerView, ExplainerWindow } from './ExplainerView';
-import { GuideWindow } from './GuideWindow';
+import { DEFAULT_EXPLAINER_WINDOW_SIZE, ExplainerView, ExplainerWindow } from './ExplainerView';
+import { GUIDE_WINDOW_ID, GUIDE_WINDOW_SIZE, GuideWindow } from './GuideWindow';
+import { DEFAULT_MIN_SIZE, defaultState, readWindowState, type StorageLike } from '../floating';
 
 /** package.json read from disk (Node 22 built-in; the app tree may not import files outside app/). */
 const pkg = JSON.parse(
@@ -84,6 +85,24 @@ describe('Explainer rendering', () => {
     const html = renderToStaticMarkup(createElement(ExplainerWindow, { explainer: sample, open: true, onClose: () => undefined }));
     expect(html).toContain('Demo title');
     expect(html).toContain('One sentence.');
-    expect(html).toContain('data-floating="explainer-demo"');
+    expect(html).toContain('data-floating="explainer-demo@520x480"');
+  });
+  it('explainer windows and the Guide open bigger and centred, under ids that older remembered states cannot match (owner 2026-11-20)', () => {
+    expect(DEFAULT_EXPLAINER_WINDOW_SIZE).toEqual({ width: 520, height: 480 });
+    expect(GUIDE_WINDOW_SIZE.width).toBeGreaterThan(DEFAULT_EXPLAINER_WINDOW_SIZE.width);
+    expect(GUIDE_WINDOW_SIZE.height).toBeGreaterThan(DEFAULT_EXPLAINER_WINDOW_SIZE.height);
+    const vp = { width: 1366, height: 768 };
+    expect(defaultState(DEFAULT_EXPLAINER_WINDOW_SIZE, DEFAULT_MIN_SIZE, vp)).toEqual({ x: 423, y: 144, width: 520, height: 480, minimised: false });
+    expect(defaultState(GUIDE_WINDOW_SIZE, DEFAULT_MIN_SIZE, vp)).toEqual({ x: 323, y: 64, width: 720, height: 640, minimised: false });
+    // Clamped to a small browser window, still centred.
+    expect(defaultState(GUIDE_WINDOW_SIZE, DEFAULT_MIN_SIZE, { width: 640, height: 500 })).toEqual({ x: 0, y: 0, width: 640, height: 500, minimised: false });
+    // A small top-right place remembered by an older version (ids "guide", "explainer-demo") is not read.
+    const old = JSON.stringify({ x: 900, y: 40, width: 360, height: 300, minimised: false });
+    const store: StorageLike = { getItem: (k) => (k === 'sgl.floating.guide' || k === 'sgl.floating.explainer-demo' ? old : null), setItem: () => undefined };
+    expect(GUIDE_WINDOW_ID).toBe('guide@720x640');
+    expect(readWindowState(GUIDE_WINDOW_ID, store)).toBeNull();
+    expect(readWindowState('explainer-demo@520x480', store)).toBeNull();
+    const guide = renderToStaticMarkup(createElement(GuideWindow, { open: true, onClose: () => undefined, link: null }));
+    expect(guide).toContain('data-floating="guide@720x640"');
   });
 });

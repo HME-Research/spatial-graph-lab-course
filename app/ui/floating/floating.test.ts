@@ -10,6 +10,7 @@ import {
   clampSize,
   defaultState,
   fitState,
+  sizedWindowId,
   nudgeFor,
   parseWindowState,
   readWindowState,
@@ -73,6 +74,10 @@ describe('remembered state', () => {
     for (const bad of [null, undefined, '', 'nope', '[]', '{}', JSON.stringify({ ...good, x: 'a' }), JSON.stringify({ ...good, minimised: 1 }), JSON.stringify({ ...good, width: null })]) {
       expect(parseWindowState(bad)).toBeNull();
     }
+  });
+  it('a sized id carries the opening size, so a new size is not hidden by an older remembered state', () => {
+    expect(sizedWindowId('guide', { width: 720, height: 640 })).toBe('guide@720x640');
+    expect(sizedWindowId('explainer-degree', { width: 520, height: 480 })).not.toBe(sizedWindowId('explainer-degree', { width: 360, height: 300 }));
   });
   it('round-trips per id', () => {
     const data = new Map<string, string>();

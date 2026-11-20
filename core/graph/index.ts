@@ -43,6 +43,7 @@ export {
   degree,
   diameter,
   edgeBetweenness,
+  edgeSides,
   edgeEnds,
   graphSize,
   incidentEdgeIds,
