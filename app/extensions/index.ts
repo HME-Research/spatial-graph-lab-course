@@ -14,6 +14,7 @@ export * from './resolveAttributes';
 export * from './conformance';
 export * from './context';
 export * from './designAnalysisContext';
+export { metricInfos } from './metricReader';
 export * from './definitions';
 export * from './diagnostics';
 export * from './discover';

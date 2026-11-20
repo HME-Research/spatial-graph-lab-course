@@ -10,13 +10,9 @@ import type { MetricInfo, MetricReader } from '@student-api';
  * so algorithms that never read metrics pay nothing. Only primitives and frozen copies leave
  * this reader, so nothing an algorithm does can reach the document or the evaluator's cache.
  */
-export function createMetricReader(
-  doc: DesignDocumentV2,
-  spatial: SpatialResolution | undefined,
-  fail: (code: 'unknown-metric' | 'unknown-node-reference', message: string) => Error,
-  evaluator: MetricEvaluator = defaultMetricEvaluator,
-): MetricReader {
-  const infos: readonly MetricInfo[] = Object.freeze(
+/** Every calculated value the app offers, as algorithms see it (`ctx.metrics.list()`). */
+export function metricInfos(evaluator: MetricEvaluator = defaultMetricEvaluator): readonly MetricInfo[] {
+  return Object.freeze(
     evaluator.metrics.map((m) =>
       Object.freeze({
         id: m.id,
@@ -28,6 +24,15 @@ export function createMetricReader(
       }),
     ),
   );
+}
+
+export function createMetricReader(
+  doc: DesignDocumentV2,
+  spatial: SpatialResolution | undefined,
+  fail: (code: 'unknown-metric' | 'unknown-node-reference', message: string) => Error,
+  evaluator: MetricEvaluator = defaultMetricEvaluator,
+): MetricReader {
+  const infos = metricInfos(evaluator);
   const byId = new Map(evaluator.metrics.map((m) => [m.id, m] as const));
   const nodeIds = new Set(doc.nodes.map((n) => n.id));
   const edgeIds = new Set(doc.edges.map((e) => e.id));

@@ -15,7 +15,7 @@ export const ALGORITHM_TABS = ['analyse', 'transform'] as const;
 export type AlgorithmTab = (typeof ALGORITHM_TABS)[number];
 
 export const ALGORITHM_TAB_LABELS: Readonly<Record<AlgorithmTab, { readonly label: string; readonly summary: string }>> = {
-  analyse: { label: 'Analyse', summary: 'Reads the graph and shows a result. Never changes your design.' },
+  analyse: { label: 'Analyse', summary: 'Reads your design and shows a result. Never changes it.' },
   transform: { label: 'Transform', summary: 'Proposes a change to your design: preview, then Apply (one undo step).' },
 };
 

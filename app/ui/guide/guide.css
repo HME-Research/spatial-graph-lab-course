@@ -126,3 +126,29 @@
 .sgl-explainer-prompt-copy {
   margin: 0 0 var(--space-2, 8px);
 }
+.sgl-aikits {
+  margin: 0 0 var(--space-2, 8px);
+  padding-top: var(--space-2, 8px);
+  border-top: 1px solid var(--line, #e1e1dc);
+}
+.sgl-aikits-intro {
+  margin: 0 0 var(--space-2, 8px);
+}
+.sgl-aikits .sgl-htabs-panel {
+  padding-top: var(--space-2, 8px);
+}
+.sgl-aikits-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.sgl-aikits-help {
+  margin: 2px 0 var(--space-2, 8px);
+}
+.sgl-aikits-toolkit {
+  margin: 0;
+}
+.sgl-aikits-download {
+  margin: 0 0 var(--space-2, 8px);
+}

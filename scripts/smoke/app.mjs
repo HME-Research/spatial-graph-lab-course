@@ -23,7 +23,7 @@ export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', 
 /** The built-in example (Welcome → Open example… → House – graph only): 5 rooms, 4 relationships, no toolkit. */
 export const EXAMPLE_DESIGN_FILE = join(REPO_ROOT, 'app', 'document', 'examples', 'house.json');
 /** The house toolkit's design (the same house), opened with `?toolkit=house`. */
-export const HOUSE_DESIGN_FILE = join(REPO_ROOT, 'toolkits', 'house', 'designs', 'house.json');
+export const HOUSE_DESIGN_FILE = join(REPO_ROOT, 'toolkits', 'house', 'designs', 'simple-house.json');
 
 // ── pure helpers (unit-tested in lib.test.mjs) ───────────────────────────────────────────────────
 
@@ -506,7 +506,7 @@ export async function ensureGraphEdges(s, expected, timeout = 5000) {
  * the toolkit's design file through Welcome → Open project (a design file becomes a new project
  * that uses the requested toolkit). Waits for its 5 rooms.
  */
-export async function openWithToolkit(s, toolkitId = 'house', designFile = join(REPO_ROOT, 'toolkits', toolkitId, 'designs', `${toolkitId}.json`)) {
+export async function openWithToolkit(s, toolkitId = 'house', designFile = toolkitId === 'house' ? HOUSE_DESIGN_FILE : join(REPO_ROOT, 'toolkits', toolkitId, 'designs', `${toolkitId}.json`)) {
   if (!existsSync(designFile)) throw new Error(`no design file ${designFile}`);
   await gotoWelcome(s, urlWithToolkit(s.url, toolkitId));
   await s.setFiles(`${WELCOME} input[type="file"]`, designFile);

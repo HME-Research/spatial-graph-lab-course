@@ -4,8 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ANALYSE_VS_TRANSFORM, ANALYSIS_EXPLAINERS, SECTION_EXPLAINERS } from '@app/analysis/explainers';
 import { uploadExplainer } from '@app/analysis/uploadExplainer';
 import { GUIDE_TAB_IDS, type Explainer } from '../guideContracts';
-import { AI_PROMPT_GUIDE } from './aiPrompt';
-import { AI_KIT_URL, GUIDE_CONTENT } from './content';
+import { GUIDE_CONTENT } from './content';
 import { GUIDE_DIAGRAM_IDS, renderGuideDiagram } from './diagrams';
 import { ExplainerView } from './ExplainerView';
 import { GuideWindow } from './GuideWindow';
@@ -26,7 +25,7 @@ const fs = node.process.getBuiltinModule('node:fs');
 const ROOT = new URL('../../../', import.meta.url);
 
 const guideEntries: Explainer[] = GUIDE_CONTENT.flatMap((t) => [...t.blocks]);
-const explainers: Explainer[] = [...SECTION_EXPLAINERS, ...ANALYSIS_EXPLAINERS, ANALYSE_VS_TRANSFORM, uploadExplainer('/')];
+const explainers: Explainer[] = [...SECTION_EXPLAINERS, ...ANALYSIS_EXPLAINERS, ANALYSE_VS_TRANSFORM, uploadExplainer()];
 /** Every diagram id an entry names (its contrasting pair and its single diagram). */
 const diagramIds = (e: Explainer): string[] => [...(e.diagrams ?? []).map((c) => c.diagram), ...(e.diagram !== undefined ? [e.diagram] : [])];
 /**
@@ -185,30 +184,13 @@ describe('Guide content (P4 item H)', () => {
     expect(html).toContain('left:100.00%;top:0.00%');
   });
 
-  it('offers the AI kit zip as a plain link and the template on click', () => {
+  it('Write your own analysis shows the same AI kit tabs as the Upload ⓘ, with no old prompt files', () => {
     const ai = guideEntries.find((e) => e.id === 'ask-ai-for-analysis')!;
-    expect(ai.downloads?.map((d) => d.fileName)).toEqual(['spatial-graph-lab-ai-kit.zip', 'graph-analysis-template.ts']);
-    expect(fs.existsSync(new URL(`public${AI_KIT_URL}`, ROOT))).toBe(true);
+    expect(ai.aiKits).toBe(true);
+    expect(ai.downloads).toBeUndefined();
     const html = renderToStaticMarkup(createElement(ExplainerView, { explainer: ai }));
-    expect(html).toContain(`href="${AI_KIT_URL}"`);
-    expect(html).toContain('download="spatial-graph-lab-ai-kit.zip"');
+    expect(html).toContain('data-ai-kits=""');
     expect(html).not.toContain('ALGORITHM-PROMPT');
     expect(html).not.toContain('YOUR-PROMPT');
-  });
-
-  it('shows how to write the AI prompt (no longer a file in the kit): its parts, a text to copy and tips, in the Guide and the Upload ⓘ', () => {
-    const ai = guideEntries.find((e) => e.id === 'ask-ai-for-analysis')!;
-    expect(ai.promptGuide).toBe(AI_PROMPT_GUIDE);
-    expect(uploadExplainer('/').promptGuide).toBe(AI_PROMPT_GUIDE);
-    expect(AI_PROMPT_GUIDE.parts.map((p) => p.label)).toEqual(['1. Ask', '2. Idea', '3. Pick', '4. Answer']);
-    // The starting text names the kit's instructions file and has a blank per part the student fills in.
-    expect(AI_PROMPT_GUIDE.text).toContain('Read PROMPT.md');
-    for (const line of ['My idea: ___', 'I will pick: ___', 'Show the answer as: ___']) expect(AI_PROMPT_GUIDE.text).toContain(line);
-    const html = renderToStaticMarkup(createElement(ExplainerView, { explainer: ai }));
-    expect(html).toContain('<h4 class="sgl-explainer-prompt-title">How to write your prompt</h4>');
-    expect(html).toContain('data-copy-prompt=""');
-    expect(html).toContain('My idea: ___');
-    // After the downloads.
-    expect(html.indexOf('data-prompt-guide')).toBeGreaterThan(html.indexOf('sgl-explainer-downloads'));
   });
 });

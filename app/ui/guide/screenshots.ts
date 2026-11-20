@@ -27,7 +27,7 @@ export const SHOT_ALT: Readonly<Record<string, string>> = {
   'howto-run-analysis': 'Degree of the Living room: 1 the selected node, 2 Analyse in the left rail, 3 the Degree button, 4 the result 3, 5 Clear.',
   'howto-query': 'Shortest path from the Entrance to the Bath: 1 the Queries section, 2 Shortest path, 3 the Entrance, 4 the Bath, 5 the result.',
   'howto-transform-undo': 'Grow to target area previewed: 1 Transform in the left rail, 2 Grow to target area, 3 Run, 4 the preview, 5 Apply, 6 Undo.',
-  'howto-upload-analysis': 'The top of Analyse: 1 Upload your own (.ts), 2 its ⓘ with the AI kit and the template, 3 the sections an upload can land in.',
+  'howto-upload-analysis': 'The top of Analyse: 1 Upload your own (.ts), 2 its ⓘ with the AI kits and the templates, 3 the sections an upload can land in.',
   'howto-read-data-view': 'The Data view as a table: 1 the view menu set to Data, 2 JSON or Table, 3 the Living row, selected, 4 a locked column.',
   'howto-save': 'The Project panel: 1 Project in the left rail, 2 Save locally, 3 Export project, 4 Open project.',
   'panel-properties': 'Properties of the Living room: 1 its title, Living · Room 2, 2 Required by the app, 3 Geometry, 4 Custom.',

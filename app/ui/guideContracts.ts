@@ -48,10 +48,10 @@ export interface Explainer {
   /** Files the student can save (e.g. a template); each is loaded only when clicked. */
   readonly downloads?: readonly GuideDownload[];
   /**
-   * How to write a prompt for an AI assistant (additive 2026-11-20): its parts, then a starting
-   * text with a Copy button. Shown after the downloads.
+   * Show the AI kit tabs (owner 2026-11-20: Any project · This project · Template, each with its
+   * download and its prompt guide; `AiKitTabs`) after the downloads.
    */
-  readonly promptGuide?: GuidePromptGuide;
+  readonly aiKits?: boolean;
   /**
    * Opening size of its pop-up window (`ExplainerWindow`, additive 2026-11-20); default 520 × 480,
    * centred. The window is remembered per size, so a new size takes effect over an older remembered one.
@@ -70,7 +70,7 @@ export interface Explainer {
   };
 }
 
-/** A prompt the student writes themselves: its parts in order, a text to copy and short tips. */
+/** A prompt the student writes themselves (the AI kit tabs): its parts in order, a text to copy and short tips. */
 export interface GuidePromptGuide {
   readonly title: string;
   /** The parts of the prompt, in order: a short label and what to write there. */
@@ -89,7 +89,7 @@ export interface GuideDiagramCase {
 /**
  * A file offered by the Guide or an ⓘ explainer: a text file loaded on click (`load`, P4 item I:
  * the analysis template and the AI prompt) or, additive 2026-11-19, a file served as it is
- * (`href`, any type, e.g. the AI kit zip under `public/downloads/`), saved through a plain link.
+ * (`href`, any type, e.g. a file under `public/`), saved through a plain link.
  */
 export type GuideDownload = GuideTextDownload | GuideLinkDownload;
 

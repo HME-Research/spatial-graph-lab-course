@@ -1,5 +1,4 @@
 import { GUIDE_TAB_IDS, type Explainer, type GuideTabId } from '../guideContracts';
-import { AI_PROMPT_GUIDE } from './aiPrompt';
 import { LINKS } from './links';
 import { withScreenshot } from './screenshots';
 
@@ -9,8 +8,6 @@ export interface GuideTabContent {
   readonly blocks: readonly Explainer[];
 }
 
-/** The AI kit zip (built by `npm run build:ai-kit`, served from `public/downloads/`). */
-export const AI_KIT_URL = '/downloads/spatial-graph-lab-ai-kit.zip';
 
 /**
  * The Guide text (Programme P4, item H; owner 2026-11-20: generic, two cases). Plain language,
@@ -380,22 +377,14 @@ const TEXT: readonly GuideTabContent[] = [
       {
         id: 'ask-ai-for-analysis',
         title: 'Write your own analysis (with an AI assistant)',
-        summary: 'Describe a graph measure in words; an AI assistant writes it as a .ts file using the Student API; upload it in Analyse.',
-        example: 'Download the AI kit, attach the zip to an AI assistant and write your prompt as shown below: your idea, what you will pick and how the answer should show, e.g. “For each room, how many steps is it from the room I pick?”. Or start from the template and change it yourself. Either way the file may import only @student-api, sees only node ids and edges, and lists its inputs (which decide its section).',
+        summary: 'Describe an analysis in words; an AI assistant writes it as a .ts file using the Student API; upload it in Analyse.',
+        example: 'Pick a tab below. Any project: a kit for an analysis that works everywhere (with room basics: Function, size, position, area; without: the graph only). This project: a kit that also lists your toolkit’s and your own fields. Attach the zip to an AI assistant and write your prompt, e.g. “The largest room on each level”. Or start from a template. Either way the file may import only @student-api and lists its inputs (which decide its section).',
         diagrams: [
-          { diagram: 'route-ai', caption: 'With the AI kit: describe it' },
+          { diagram: 'route-ai', caption: 'With an AI kit: describe it' },
           { diagram: 'route-template', caption: 'From the template: write it yourself' },
         ],
         learnMore: LINKS.typescript,
-        downloads: [
-          { label: 'AI kit (.zip)', fileName: 'spatial-graph-lab-ai-kit.zip', href: AI_KIT_URL, note: 'attach it to an AI assistant, then write your prompt (below).' },
-          {
-            label: 'Template analysis (.ts)',
-            fileName: 'graph-analysis-template.ts',
-            load: () => import('../../../docs/templates/graph-analysis-template.ts?raw').then((m) => m.default),
-          },
-        ],
-        promptGuide: AI_PROMPT_GUIDE,
+        aiKits: true,
       },
     ],
   },
@@ -482,7 +471,7 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'howto-upload-analysis',
         title: 'Upload your own analysis',
         summary: 'At the top of Analyse, press Upload your own (.ts); the app checks the file and lists it with the tag Yours.',
-        example: '1. Upload your own (.ts). 2. Its ⓘ offers the AI kit and the template. 3. The analysis appears in Node, Edge, Network or Queries, depending on its inputs, and that section opens. A refused file gets a message saying why. Uploads are saved with your project.',
+        example: '1. Upload your own (.ts). 2. Its ⓘ offers the AI kits (Any project, This project) and the templates. 3. The analysis appears in Node, Edge, Network or Queries, depending on its inputs, and that section opens. A refused file gets a message saying why. Uploads are saved with your project.',
         diagram: 'howto-upload',
         learnMore: LINKS.typescript,
       },

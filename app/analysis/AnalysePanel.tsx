@@ -86,8 +86,8 @@ export interface AnalysePanelProps {
  * shared selection, so views know nothing about analyses); Esc cancels. One result at a time: a
  * big answer, a short label and at most one small line; its nodes and edges are highlighted in
  * every view. Analyses never change the design. At the very top, ONE "Upload your own (.ts)" button
- * (with an ⓘ that opens the shared pop-up explainer: what an analysis reads, the AI kit and the
- * template, `uploadExplainer`); after an upload, the section it
+ * (with an ⓘ that opens the shared pop-up explainer: what an uploaded analysis is, then the AI kit
+ * tabs, `uploadExplainer`); after an upload, the section it
  * landed in opens and is brought into view.
  */
 export function AnalysePanel({
@@ -327,7 +327,7 @@ export function AnalysePanel({
               title="About uploading your own analysis"
               aria-haspopup="dialog"
               data-upload-info-button
-              onClick={() => setExplainer(uploadExplainer(import.meta.env.BASE_URL))}
+              onClick={() => setExplainer(uploadExplainer())}
             >
               ⓘ
             </button>

@@ -1,6 +1,8 @@
-import { useState, type ReactNode } from 'react';
-import type { Explainer, GuideDownload, GuidePromptGuide } from '../guideContracts';
+import type { ReactNode } from 'react';
+import type { Explainer } from '../guideContracts';
 import { FloatingWindow, sizedWindowId } from '../floating';
+import { AiKitTabs } from './AiKitTabs';
+import { DownloadButton } from './DownloadButton';
 import { renderGuideDiagram } from './diagrams';
 import './guide.css';
 
@@ -10,8 +12,8 @@ export const sectionDomId = (id: string) => `guide-section-${id}`;
 /**
  * One explainer block: title, then the one-sentence summary (strongest), the example, an optional
  * pair of contrasting diagrams (side by side, each with its caption), an optional single
- * diagram, an optional screenshot of the app with numbered markers, downloads, an optional
- * "How to write your prompt" section and an optional "Learn more" link (new tab). `renderDiagram` maps `explainer.diagram` (a diagram id) to a
+ * diagram, an optional screenshot of the app with numbered markers, downloads, the AI kit tabs
+ * (`aiKits`) and an optional "Learn more" link (new tab). `renderDiagram` maps `explainer.diagram` (a diagram id) to a
  * component; it defaults to the Guide diagrams (`diagrams.tsx`).
  */
 export function ExplainerView({
@@ -56,7 +58,7 @@ export function ExplainerView({
           ))}
         </ul>
       )}
-      {explainer.promptGuide && <PromptGuide guide={explainer.promptGuide} />}
+      {explainer.aiKits && <AiKitTabs />}
       {explainer.learnMore && (
         <p className="sgl-explainer-more">
           <a href={explainer.learnMore.url} target="_blank" rel="noopener noreferrer">
@@ -86,94 +88,6 @@ function Screenshot({ shot }: { readonly shot: NonNullable<Explainer['screenshot
       </div>
       <figcaption>In the app (numbers match the steps above)</figcaption>
     </figure>
-  );
-}
-
-/**
- * How to write a prompt: its parts in order, a starting text the student copies (Copy button; the
- * text is also selectable by hand when the clipboard is not available) and short tips.
- */
-function PromptGuide({ guide }: { readonly guide: GuidePromptGuide }) {
-  const [copied, setCopied] = useState<'yes' | 'no' | null>(null);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(guide.text);
-      setCopied('yes');
-    } catch {
-      setCopied('no');
-    }
-  };
-  return (
-    <section className="sgl-explainer-prompt" data-prompt-guide="">
-      <h4 className="sgl-explainer-prompt-title">{guide.title}</h4>
-      <ol className="sgl-explainer-prompt-parts">
-        {guide.parts.map((p) => (
-          <li key={p.label}>
-            <strong>{p.label}</strong> — {p.text}
-          </li>
-        ))}
-      </ol>
-      <pre className="sgl-explainer-prompt-text">{guide.text}</pre>
-      <p className="sgl-explainer-prompt-copy">
-        <button type="button" className="sgl-explainer-download" data-copy-prompt="" onClick={() => void copy()}>
-          Copy prompt
-        </button>
-        {copied === 'yes' && <span className="sgl-explainer-download-note"> Copied. Paste it into the AI chat and fill in the blanks (___).</span>}
-        {copied === 'no' && <span className="sgl-explainer-download-note"> Could not copy: select the text above and copy it.</span>}
-      </p>
-      {guide.tips && guide.tips.length > 0 && (
-        <ul className="sgl-explainer-prompt-tips">
-          {guide.tips.map((t) => (
-            <li key={t}>{t}</li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-/**
- * Save a file: a served file through a plain download link (`href`, binary allowed), or a text
- * file loaded on click and handed to the browser as a download (nothing is uploaded).
- */
-function DownloadButton({ download }: { readonly download: GuideDownload }) {
-  const [problem, setProblem] = useState<string | null>(null);
-  const note = download.note ? <span className="sgl-explainer-download-note"> — {download.note}</span> : null;
-  if ('href' in download) {
-    return (
-      <>
-        <a className="sgl-explainer-download" href={download.href} download={download.fileName} data-download={download.fileName}>
-          ⤓ {download.label}
-        </a>
-        {note}
-      </>
-    );
-  }
-  const load = download.load;
-  const save = async () => {
-    setProblem(null);
-    try {
-      const text = await load();
-      const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = download.fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (error) {
-      setProblem(`Could not load ${download.fileName}: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
-  return (
-    <>
-      <button type="button" className="sgl-explainer-download" data-download={download.fileName} onClick={() => void save()}>
-        ⤓ {download.label}
-      </button>
-      {note}
-      {problem && <span className="sgl-error"> {problem}</span>}
-    </>
   );
 }
 

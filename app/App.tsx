@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AboutButton } from './ui/about';
 import { GuideButton } from './ui/guide';
+import { AiKitProjectContext, projectSheetInput } from './ui/guide/projectKit';
 import exampleDesign from './document/examples/house.json';
 import { type DesignDocumentV2, formatIssuePath, type GraphIssue, nodeLabel, readDesign } from '@app/document';
 import {
@@ -364,6 +365,8 @@ export function App() {
   const schema = attributes && project && attributes.projectId === project.id ? currentSchema(attributes) : undefined;
   const projectContext = useMemo(() => (doc ? buildProjectViewContext(project, doc, facade, schema) : undefined), [project, doc, facade, schema]);
   const attributesVersion = useMemo(() => (attributes && schema ? { schema, revision: attributes.revision } : undefined), [attributes, schema]);
+  /** The open project as the This project AI kit describes it (its Functions and fields, never the design). */
+  const aiKitProject = useMemo(() => (project && schema ? projectSheetInput(project, schema, toolkitId !== null) : null), [project, schema, toolkitId]);
 
   /** Shared selection handler: a node/edge selection opens Properties unless deliberately collapsed. */
   const select = useCallback((next: Selection) => {
@@ -651,6 +654,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
 
   return (
     <ProjectControllerContext.Provider value={controller}>
+      <AiKitProjectContext.Provider value={aiKitProject}>
       <div className="app">
         <header className="toolbar">
           <div className="toolbar-title">
@@ -888,6 +892,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
           )}
         </main>
       </div>
+      </AiKitProjectContext.Provider>
     </ProjectControllerContext.Provider>
   );
 }

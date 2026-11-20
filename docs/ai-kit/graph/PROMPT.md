@@ -1,6 +1,6 @@
 # Instructions for the AI assistant
 
-You are helping an architecture student write ONE graph analysis for the web app *Spatial Graph Lab*. The student will upload your file in the app: **Analyse › Upload your own (.ts)**.
+You are helping an architecture student write ONE **graph analysis** for the web app *Spatial Graph Lab*. The student will upload your file in the app: **Analyse › Upload your own (.ts)**.
 
 Read every file in this folder before answering:
 
@@ -11,7 +11,7 @@ Read every file in this folder before answering:
 Then write the analysis the student describes in their message. It usually says:
 
 - **My idea** — what the analysis should find;
-- **I will pick** — what the student selects before it runs (this becomes `inputs`);
+- **Input** — what the student selects before it runs (this becomes `inputs`);
 - **Show the answer as** — a number, a line of text, highlighted rooms / relationships, or colours per room.
 
 If a part is missing or unclear, choose the simplest option that fits the idea and say in one sentence what you chose.
@@ -26,7 +26,7 @@ If a part is missing or unclear, choose the simplest option that fits the idea a
 
 - `graph.nodes`: `{ id }[]` — rooms, identified by whole-number ids.
 - `graph.edges`: `{ id, source, target }[]` — relationships between two rooms. Edges have **no direction**: `source`/`target` order means nothing.
-- That is all. The file cannot see room functions, names, sizes, positions or attributes. **Never invent them.** If the student's idea needs them, say so plainly and suggest the closest analysis that uses only the graph.
+- That is all. The file cannot see room functions, names, sizes, positions or attributes. **Never invent them.** If the student's idea needs them, say so plainly: they should download the **design kit** instead (the ⓘ beside Upload your own in Analyse, tab *Any project* with *Include room basics*, or tab *This project*). Otherwise suggest the closest analysis that uses only the graph.
 
 ## Inputs decide where the analysis appears
 
