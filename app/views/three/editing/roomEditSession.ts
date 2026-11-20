@@ -82,7 +82,15 @@ export function beginDrag(
 /** New snapped step count during a drag: preview only, never a command. */
 export function updateDrag(port: DesignPort, state: RoomEditState, steps: number): RoomEditState {
   if (state.phase !== 'dragging') return state;
-  const draft = applyAxisSteps(state.start, state.mode, state.axis, steps, state.side);
+  return updateDraft(port, state, applyAxisSteps(state.start, state.mode, state.axis, steps, state.side));
+}
+
+/**
+ * New snapped draft during a drag, however it was derived (the Plan's 2D handles move or resize on
+ * x and y at once): preview only, never a command. The same `proposeEdit` rules as `updateDrag`.
+ */
+export function updateDraft(port: DesignPort, state: RoomEditState, draft: RoomGeometry): RoomEditState {
+  if (state.phase !== 'dragging') return state;
   if (sameGeometry(draft, state.draft)) return state;
   const proposal = sameGeometry(draft, state.start)
     ? null
