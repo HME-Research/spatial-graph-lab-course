@@ -140,7 +140,8 @@ await runScript({ name: 'workflow', usage: USAGE, url: 'http://localhost:5181/',
   await step('workflow/corridors-card', async () => {
     await openRail(s, 'Building Designer');
     const card = '#sidebar-panel-designer [data-card="corridors"]';
-    await s.evaluate(`(() => { const h = document.querySelector('${card} .sgl-designer-type-head'); if (h && h.getAttribute('aria-expanded') !== 'true') h.click(); return true; })()`);
+    // The card sits in its own Corridors section (2026-11-20), always open inside it: open the section.
+    await expandSection(s, '#sidebar-panel-designer', /^Corridors/);
     const roof = await s.waitFor(`document.querySelector('${card} select')?.value ?? null`, 10_000, 'the Corridors card roof');
     const before = await undoTitle();
     await s.evaluate(`__sgl.setValue(document.querySelector('${card} select'), 'pergola'); true`);

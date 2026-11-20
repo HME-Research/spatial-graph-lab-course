@@ -16,7 +16,8 @@ import { formatProjectIssues, nowIso, readProjectFile, serializeProjectFile, typ
  *   no IndexedDB (or it cannot be opened) → `blocked/unavailable`; anything else → `blocked/error`.
  * - `list()` = readable projects sorted by `updatedAt` (newest first), then unreadable records.
  *
- * Only the IndexedDB adapter touches browser APIs, through an injected `IDBFactory`.
+ * Only the IndexedDB adapter touches browser APIs, through an injected `IDBFactory` (and an injectable
+ * event target for its back/forward-cache guard, see `createIndexedDbProjectStore`).
  */
 
 export type ProjectSummary =
@@ -472,16 +473,76 @@ function defaultFactory(): ProjectDbFactory | null {
 export interface IndexedDbProjectStoreOptions extends RecordStoreOptions {
   /** Default: `globalThis.indexedDB` (null/absent → every save is `blocked/unavailable`). */
   readonly factory?: ProjectDbFactory | null;
+  /** How long opening the database may take before storage is reported unavailable (default 5000 ms). */
+  readonly openTimeoutMs?: number;
+  /** Where the `unload` guard is registered while an open is in flight (default: the window; null = none). */
+  readonly guardTarget?: GuardTarget | null;
 }
 
+/** Default for `openTimeoutMs`: a healthy open answers in well under a second. */
+export const DB_OPEN_TIMEOUT_MS = 5000;
+
+/** Where the open guard is registered (injectable). */
+export type GuardTarget = Pick<EventTarget, 'addEventListener' | 'removeEventListener'>;
+
+function defaultGuardTarget(): GuardTarget | null {
+  const g = globalThis as { addEventListener?: unknown; removeEventListener?: unknown; document?: unknown };
+  // Only in a page (not in workers or Node).
+  return g.document !== undefined && typeof g.addEventListener === 'function' && typeof g.removeEventListener === 'function'
+    ? (globalThis as unknown as GuardTarget)
+    : null;
+}
+
+/**
+ * Opening the database never hangs (2026-11-20).
+ *
+ * Root cause (reproduced headlessly in Edge): when a page navigates away while its open request is
+ * still in flight (in a fresh profile, the open that CREATES the database, so a version-change
+ * transaction is running), Chromium may keep the page in the back/forward cache, frozen with that
+ * request unfinished. The frozen page then holds the database: every later open of the same name
+ * (this tab after a reload, a new page) gets no success, error or blocked event, for minutes, while
+ * other database names still open. Two defences:
+ * - **Guard**: while an open request is in flight, a no-op `unload` listener is registered, and it
+ *   is removed as soon as the request answers. A page with an `unload` listener is not put in the
+ *   back/forward cache, so it is discarded and its request aborted instead of frozen holding the
+ *   database. The window is the few milliseconds an open takes; afterwards the page is cacheable.
+ * - **Timeout**: an open that does not answer within `openTimeoutMs` is reported as
+ *   `StoreUnavailableError` with a readable message, and while that request is still pending,
+ *   further calls fail at once with the same message instead of queueing more requests behind it.
+ *   If the browser answers later, the connection is kept and storage works again by itself.
+ *
+ * `blocked` (another tab holds an older version open) is not a failure: the request still succeeds
+ * once that tab lets go, so it only changes the timeout message. A connection is closed on
+ * `versionchange` and dropped on an unexpected `close`; the next operation opens it again.
+ */
 export function createIndexedDbProjectStore(dbName: string = PROJECT_DB_NAME, options: IndexedDbProjectStoreOptions = {}): ProjectStore {
   const factory = options.factory === undefined ? defaultFactory() : options.factory;
+  const timeoutMs = options.openTimeoutMs ?? DB_OPEN_TIMEOUT_MS;
+  const guardTarget = options.guardTarget === undefined ? defaultGuardTarget() : options.guardTarget;
+  let connection: IDBDatabase | null = null;
   let opening: Promise<IDBDatabase> | null = null;
+  /** Set while a timed-out open request is still unanswered: its readable failure. */
+  let stalled: StoreUnavailableError | null = null;
+
+  function adopt(db: IDBDatabase): IDBDatabase {
+    const drop = () => {
+      if (connection === db) connection = null;
+    };
+    db.onversionchange = () => {
+      drop();
+      db.close();
+    };
+    db.onclose = drop;
+    connection = db;
+    return db;
+  }
 
   function open(): Promise<IDBDatabase> {
     if (!factory) return Promise.reject(new StoreUnavailableError('IndexedDB is not available in this browser'));
+    if (connection) return Promise.resolve(connection);
     if (opening) return opening;
-    opening = new Promise<IDBDatabase>((resolve, reject) => {
+    if (stalled) return Promise.reject(stalled);
+    const attempt = new Promise<IDBDatabase>((resolve, reject) => {
       let req: IDBOpenDBRequest;
       try {
         req = factory.open(dbName, DB_VERSION);
@@ -489,26 +550,57 @@ export function createIndexedDbProjectStore(dbName: string = PROJECT_DB_NAME, op
         reject(new StoreUnavailableError(messageOf(error)));
         return;
       }
+      // Keep this page out of the back/forward cache until the request answers (see above).
+      const guard = (): void => undefined;
+      guardTarget?.addEventListener('unload', guard);
+      const unguard = () => guardTarget?.removeEventListener('unload', guard);
+      let blockedByTab = false;
+      let settled = false;
+      const seconds = Math.max(1, Math.round(timeoutMs / 1000));
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        stalled = new StoreUnavailableError(
+          blockedByTab
+            ? `the project database is held open by another tab of this app (no answer within ${seconds} s); close the other tabs or reload this page`
+            : `the browser's project database (IndexedDB) did not answer within ${seconds} s; close this tab and open the app in a new tab to try again`,
+        );
+        reject(stalled);
+      }, timeoutMs);
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains(PROJECTS_STORE)) db.createObjectStore(PROJECTS_STORE);
         if (!db.objectStoreNames.contains(QUARANTINE_STORE)) db.createObjectStore(QUARANTINE_STORE);
       };
       req.onsuccess = () => {
-        const db = req.result;
-        db.onversionchange = () => {
-          db.close();
-          opening = null;
-        };
-        resolve(db);
+        clearTimeout(timer);
+        unguard();
+        stalled = null;
+        // A late answer (after the timeout) is still adopted: storage recovers without a reload.
+        const db = adopt(req.result);
+        if (!settled) {
+          settled = true;
+          resolve(db);
+        }
       };
-      req.onerror = () => reject(new StoreUnavailableError(messageOf(req.error ?? 'IndexedDB could not be opened')));
-      req.onblocked = () => reject(new StoreUnavailableError('IndexedDB is blocked by another open tab'));
+      req.onerror = () => {
+        clearTimeout(timer);
+        unguard();
+        stalled = null;
+        if (settled) return;
+        settled = true;
+        reject(new StoreUnavailableError(messageOf(req.error ?? 'IndexedDB could not be opened')));
+      };
+      req.onblocked = () => {
+        blockedByTab = true;
+      };
     });
-    opening.catch(() => {
-      opening = null;
-    });
-    return opening;
+    opening = attempt;
+    const clear = () => {
+      if (opening === attempt) opening = null;
+    };
+    attempt.then(clear, clear);
+    return attempt;
   }
 
   async function entries(storeName: string): Promise<Array<readonly [string, unknown]>> {

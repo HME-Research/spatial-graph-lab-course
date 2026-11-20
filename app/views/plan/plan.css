@@ -294,3 +294,128 @@ rect.sgl-plan-slab.access-marker.selected {
 rect.sgl-plan-slab.access-marker.analysed {
   fill: var(--sgl-plan-analysis);
 }
+
+/* "Edit rooms" (move/resize the selected room). The toggle sits under the zoom bar; the preview
+   outline uses the 3D gizmo's tones: selection = valid, red = refused, amber = needs confirmation. */
+.sgl-plan-edit-toggle {
+  position: absolute;
+  top: 44px;
+  left: 8px;
+  display: flex;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #d9d9d2;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.sgl-plan-edit-toggle button {
+  font: inherit;
+  padding: 2px 8px;
+}
+.sgl-plan-edit-toggle button[aria-pressed='true'] {
+  font-weight: 600;
+  background: #2f2f2a;
+  color: #fff;
+  border: 1px solid #2f2f2a;
+  border-radius: 3px;
+}
+.sgl-plan-edit-move {
+  fill: transparent;
+  stroke: none;
+}
+.sgl-plan-edit-outline {
+  fill: var(--sgl-plan-selection);
+  fill-opacity: 0.12;
+  stroke: var(--sgl-plan-selection);
+  stroke-width: 2px;
+  pointer-events: none;
+}
+.sgl-plan-edit.busy .sgl-plan-edit-outline {
+  stroke-dasharray: 6 3;
+  fill-opacity: 0.22;
+}
+.sgl-plan-edit-outline.tone-blocked {
+  fill: #c0392b;
+  stroke: #c0392b;
+}
+.sgl-plan-edit-outline.tone-warning {
+  fill: #e0a000;
+  stroke: #b5650a;
+}
+.sgl-plan-edit-handle {
+  fill: #ffffff;
+  stroke: var(--sgl-plan-selection);
+  stroke-width: 1.5px;
+}
+.sgl-plan-edit-handle:hover {
+  fill: var(--sgl-plan-selection);
+}
+.sgl-plan-edit.busy .sgl-plan-edit-handle {
+  pointer-events: none;
+}
+.sgl-plan-edit-panel {
+  position: absolute;
+  right: 8px;
+  bottom: 28px;
+  width: 260px;
+  max-width: calc(100% - 16px);
+  max-height: 40%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #d9d9d2;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.sgl-plan-edit-hint {
+  color: #66665f;
+}
+.sgl-plan-edit-status,
+.sgl-plan-edit-message {
+  border-radius: 4px;
+  padding: 4px 6px;
+  background: #f2f2ec;
+}
+.sgl-plan-edit-message {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.sgl-plan-edit-message span {
+  flex: 1;
+}
+.sgl-plan-edit-status.tone-blocked,
+.sgl-plan-edit-message.tone-error {
+  background: #fbe9e7;
+  color: #8e2a1f;
+}
+.sgl-plan-edit-status.tone-warning,
+.sgl-plan-edit-message.tone-warning {
+  background: #fdf1dc;
+  color: #7a4c05;
+}
+.sgl-plan-edit-panel button {
+  font: inherit;
+  cursor: pointer;
+}
+.sgl-plan-edit-dismiss {
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  line-height: 1;
+}
+.sgl-plan-edit-confirm {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.sgl-plan-edit-confirm .primary {
+  background: #b5650a;
+  color: #fff;
+  border: 1px solid #9a5408;
+  border-radius: 4px;
+}

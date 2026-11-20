@@ -138,7 +138,7 @@ describe('corridor card model', () => {
   });
 });
 
-describe('Corridors card in the Looks list', () => {
+describe('Corridors card in its own Corridors section', () => {
   const html = (doc: DesignDocumentV2 = base()) => renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(doc) }));
   const cardOf = (markup: string) => {
     const start = markup.indexOf('data-card="corridors"');
@@ -146,13 +146,21 @@ describe('Corridors card in the Looks list', () => {
     return markup.slice(start, markup.indexOf('</article>', start));
   };
 
-  it('is one card after the room cards, built like a room card: Walls and Roof with source tags, preview, reset', () => {
+  it('is one card in its own section after Looks (not a look), built like a room card: Walls, Roof, Width with source tags, preview, reset', () => {
     const markup = html();
-    // In the Looks list, after the Default card; the old separate section is gone.
-    expect(markup).not.toContain('data-section="designer-corridors"');
-    const list = markup.slice(markup.indexOf('<ul class="sgl-designer-list">'));
-    expect(list.indexOf('data-card="corridors"')).toBeGreaterThan(list.indexOf('>Default<'));
+    // Its own collapsible section (2026-11-20), after the Looks section; the Looks list does not contain it.
+    const looks = markup.indexOf('data-section="designer-functions"');
+    const section = markup.indexOf('data-section="designer-corridors"');
+    expect(looks).toBeGreaterThan(-1);
+    expect(section).toBeGreaterThan(looks);
+    expect(markup.slice(looks, section)).not.toContain('data-card="corridors"');
+    expect(markup.indexOf('data-card="corridors"')).toBeGreaterThan(section);
     expect(markup.split('data-card="corridors"').length - 1).toBe(1);
+    // The Looks count is Default + the function cards only.
+    expect(markup.slice(looks, section)).toMatch(/Looks by Function<\/span><span class="[^"]*">1</);
+    // Always open inside its section: no toggle of its own, the body is never hidden.
+    expect(cardOf(markup)).not.toContain('<button type="button" class="sgl-designer-type-head');
+    expect(markup).not.toMatch(/id="sgl-designer-corridors-body"[^>]*hidden/);
     const card = cardOf(markup);
     expect(card).toContain('>Corridors (generated)</span>');
     expect(card).toContain('Open sides · Flat roof');
@@ -216,7 +224,7 @@ describe('Properties: corridor walls and roof of one relationship', () => {
     const html = render(withCorridors({ walls: 'enclosed', roof: 'pergola' }));
     expect(html).toMatch(/aria-label="Corridor walls"[^>]*>.*?<option value=""[^>]*selected=""[^>]*>Design default \(Enclosed\)<\/option>/);
     expect(html).toMatch(/aria-label="Corridor roof"[^>]*>.*?<option value=""[^>]*selected=""[^>]*>Design default \(Pergola \(open slats\)\)<\/option>/);
-    expect(html).toContain('Change every corridor with the Corridors card in Building Designer → Looks.');
+    expect(html).toContain('Change every corridor with the Corridors card in Building Designer → Corridors.');
     const builtIn = render(base());
     expect(builtIn).toContain('Design default (Open)');
     expect(builtIn).toContain('Design default (Flat)');

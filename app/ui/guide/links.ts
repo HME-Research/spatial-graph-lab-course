@@ -33,6 +33,7 @@ export const LINKS = {
   ekTies: { label: 'Bridges, local bridges and triangles (ch. 3) — Easley & Kleinberg', url: `${EK}/networks-book-ch03.pdf` },
   spatialNetworks: { label: 'Spatial networks — M. Barthelemy (review, arXiv)', url: 'https://arxiv.org/abs/1010.0302' },
   neo4jConcepts: { label: 'Nodes, relationships and properties — Neo4j graph concepts', url: 'https://neo4j.com/docs/getting-started/appendix/graphdb-concepts/' },
+  edgeBetweenness: { label: 'Edge betweenness — NetworkX documentation', url: 'https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.edge_betweenness_centrality.html' },
   ocwAlgorithms: { label: 'Introduction to Algorithms — MIT OpenCourseWare', url: 'https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/' },
   // Architecture and representation.
   voxels: { label: 'Voxels — Tapestry reader, University of Washington (Architecture)', url: 'https://courses.washington.edu/arch481/1.Tapestry%20Reader/1.3D%20Data/1.Types/4.Voxels.html' },

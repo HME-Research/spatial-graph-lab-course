@@ -109,7 +109,7 @@ spatialToThree(grid: readonly [number, number, number], cell = DEFAULT_CELL_SIZE
 
 ## 6. Appearance — `core/viewer/appearance.ts`
 
-`typeColor(functionId)` gives the deterministic fallback colour per Function, used identically in 2D and 3D. Stage 3 toolkit Functions keep this colour (custom colours are deferred); `typeAppearance` in `app/extensions` adds toolkit façades, which reach the views through `ViewProps.project.facade` (`projectFacadeProvider` in `app/views/project.ts`). `SELECTION_COLOR` is the shared highlight colour.
+`typeColor(functionId)` gives the deterministic automatic colour per Function. Since 2026-11-20 views never call it directly: every view, legend and swatch reads `useFunctionColour()` (`app/views/functionColour.ts`), the shell's one resolver (project colour → toolkit `colour` → `typeColor`), so 2D and 3D always agree; `typeAppearance` in `app/extensions` adds toolkit façades, which reach the views through `ViewProps.project.facade` (`projectFacadeProvider` in `app/views/project.ts`). `SELECTION_COLOR` is the shared highlight colour.
 
 ## A. Graph 2D editing — implement `Graph2DView` and `Inspector`
 

@@ -438,6 +438,10 @@ describe('functions (node types) added or removed in the project', () => {
         usedTypeIds: ['gallery'],
         onChange: () => {},
         onClose: () => {},
+        colourOf: () => '#123456',
+        defaultColourOf: () => '#123456',
+        ownColours: {},
+        onColour: () => {},
       }),
     );
     for (const text of ['>Functions<', 'New function name', '>Add<', '>Gallery<', '>Kiosk<', '1 node', 'Restore Studio', 'aria-label="Rename Kiosk"']) expect(html, text).toContain(text);

@@ -48,6 +48,7 @@ import {
   setUploadedAnalyses,
   setDisplayDefaults,
   setProjectFunctions,
+  setFunctionColour,
   setProjectDescription,
   setScenarioCameras,
   setScenarioDisplay,
@@ -202,6 +203,8 @@ export interface ProjectController {
   setUploadedAnalyses(uploads: readonly StoredUpload[]): void;
   /** Project `settings.functions` (node types added in the browser). Not undoable; autosaved. */
   setFunctions(functions: readonly ProjectFunction[], hiddenFunctions: readonly string[]): void;
+  /** Project `settings.functionColours`: one function's own colour, or null for its default. Not undoable; autosaved. */
+  setFunctionColour(functionId: string, colour: string | null): void;
   setAttributeRecord(record: unknown | null): void;
   /** Add an imported façade (project `assets`). Not undoable; autosaved and exported. Same id twice: no change. */
   addFacadeAsset(asset: FacadeAssetV1): Outcome<void>;
@@ -690,6 +693,9 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
     setFunctions(functions, hiddenFunctions) {
       mutate((p) => setProjectFunctions(p, functions, hiddenFunctions));
+    },
+    setFunctionColour(functionId, colour) {
+      mutate((p) => setFunctionColour(p, functionId, colour));
     },
     setAttributeRecord(record) {
       mutate((p) => setAttributeRecord(p, record));

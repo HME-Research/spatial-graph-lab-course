@@ -66,7 +66,7 @@ Student algorithms (`toolkits/<id>/algorithms/`, Stage 3) receive a **copy** of 
 - For multi-floor cases, slab ownership and geometry must be verified separately; initial architectural phase may be single level.
 
 ## Student function definition (Stage 3; renamed 2026-11-19)
-In `toolkits/<id>/functions/<file>.ts`, `export default defineFunction({ id, label, facade?, custom? })` — typed declarations, not renderer code. Definitions are validated at runtime on activation; an invalid or duplicated definition is disabled with a conspicuous error (no silent fallback), while a node `function` with no definition keeps the existing fallback colour and façade. Custom colours, procedural style functions and GLB assets are **later phases**. Full contract: `docs/STUDENT-API.md`.
+In `toolkits/<id>/functions/<file>.ts`, `export default defineFunction({ id, label, colour?, facade?, custom? })` — typed declarations, not renderer code. Definitions are validated at runtime on activation; an invalid or duplicated definition is disabled with a conspicuous error (no silent fallback), while a node `function` with no definition keeps the existing fallback colour and façade. Function colours (2026-11-20) resolve project colour (Functions dialog) → the definition's `colour` → automatic `typeColor`, through one resolver (`functionColourResolver`, provided to views by `FunctionColourContext`). Procedural style functions and GLB assets are **later phases**. Full contract: `docs/STUDENT-API.md`.
 
 ## User interface v1
 - Compact main toolbar: Undo/Redo (also Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl+Y outside text fields), load example, import/export. Single/split is in the first view panel's header.

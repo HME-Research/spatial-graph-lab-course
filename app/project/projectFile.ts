@@ -120,6 +120,13 @@ export interface ProjectSettings {
    */
   readonly hiddenFunctions?: readonly string[];
   /**
+   * The project's own function colours (optional, 2026-11-20), set in the Functions dialog:
+   * function id → `#rrggbb` (lowercase), for toolkit and project functions alike. A colour here wins
+   * over the toolkit function's `colour`, which wins over the automatic colour
+   * (`functionColourResolver`). Absent = none; written only when set, keys sorted.
+   */
+  readonly functionColours?: Readonly<Record<string, string>>;
+  /**
    * The built-in analyses listed in Analyse (optional, P4): ids of `BUILT_IN_ANALYSES`, chosen with
    * each section's "+". Absent = the defaults (`shownAtStart`). The app reads them with
    * `sanitizeShownAnalyses` (unknown ids ignored). Written only when set.
@@ -146,6 +153,10 @@ export interface ProjectFunction {
 export const FUNCTION_ID_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
 export const MAX_FUNCTION_LABEL = 60;
 export const MAX_PROJECT_FUNCTIONS = 64;
+/** A stored function colour: `#rrggbb` in lowercase (as `STORED_COLOUR_PATTERN` in app/extensions). */
+export const FUNCTION_COLOUR_PATTERN = /^#[0-9a-f]{6}$/;
+/** Toolkit and project functions together can have at most this many colours. */
+export const MAX_FUNCTION_COLOURS = 2 * MAX_PROJECT_FUNCTIONS;
 
 /** Id of an uploaded analysis entry (`settings.uploadedAnalyses[].id`). */
 export const UPLOAD_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -233,6 +244,14 @@ const projectShape = z.strictObject({
     hiddenFunctions: z
       .array(z.string().regex(FUNCTION_ID_PATTERN, { error: 'a function id must be lowercase letters, digits or "-", starting with a letter' }))
       .max(MAX_PROJECT_FUNCTIONS)
+      .optional(),
+    functionColours: z
+      .record(
+        z.string().regex(FUNCTION_ID_PATTERN, { error: 'a function id must be lowercase letters, digits or "-", starting with a letter' }),
+        z.string().regex(FUNCTION_COLOUR_PATTERN, { error: 'a function colour must be "#rrggbb" in lowercase hex, e.g. "#e8a33d"' }),
+        { error: 'functionColours must map function ids to "#rrggbb" colours' },
+      )
+      .refine((m) => Object.keys(m).length <= MAX_FUNCTION_COLOURS, { error: `at most ${MAX_FUNCTION_COLOURS} function colours` })
       .optional(),
     analyses: z.array(z.string().min(1).max(64), { error: 'analyses must be a list of analysis ids' }).max(64).optional(),
     uploadedAnalyses: z
@@ -438,12 +457,17 @@ const canonicalDefaults = (d: DisplayDefaults): DisplayDefaults => ({
  * by edge id, optional fields omitted when undefined, trailing newline. Same file → same text.
  * Expects a valid file (as returned by `readProjectFile` or the builders here).
  */
+/** Function colours with their ids in sorted order (same colours → same text). */
+const sortedColours = (colours: Readonly<Record<string, string>>): Record<string, string> =>
+  Object.fromEntries(Object.keys(colours).sort().map((id) => [id, colours[id]!]));
+
 /** Settings in canonical key order; optional keys only when present (older files stay byte-identical). */
 const canonicalSettings = (settings: {
   readonly display: DisplayDefaults;
   readonly calculatedFields?: readonly string[] | undefined;
   readonly functions?: readonly ProjectFunction[] | undefined;
   readonly hiddenFunctions?: readonly string[] | undefined;
+  readonly functionColours?: Readonly<Record<string, string>> | undefined;
   readonly analyses?: readonly string[] | undefined;
   readonly uploadedAnalyses?: readonly StoredUpload[] | undefined;
 }): ProjectSettings => ({
@@ -451,6 +475,7 @@ const canonicalSettings = (settings: {
   ...(settings.calculatedFields !== undefined && { calculatedFields: [...settings.calculatedFields] }),
   ...(settings.functions !== undefined && { functions: settings.functions.map((f) => ({ id: f.id, label: f.label })) }),
   ...(settings.hiddenFunctions !== undefined && { hiddenFunctions: [...settings.hiddenFunctions] }),
+  ...(settings.functionColours !== undefined && { functionColours: sortedColours(settings.functionColours) }),
   ...(settings.analyses !== undefined && { analyses: [...settings.analyses] }),
   ...(settings.uploadedAnalyses !== undefined && {
     uploadedAnalyses: settings.uploadedAnalyses.map((u) => ({ id: u.id, fileName: u.fileName, source: u.source, addedAt: u.addedAt })),

@@ -1,6 +1,7 @@
 import { Handle, Position, useConnection, useStore, type Node, type NodeProps } from '@xyflow/react';
 import { memo } from 'react';
-import { SELECTION_COLOR, typeColor } from '@core/viewer/appearance';
+import { SELECTION_COLOR } from '@core/viewer/appearance';
+import { useFunctionColour } from '../functionColour';
 
 export type RoomNodeData = {
   readonly function: string;
@@ -36,7 +37,7 @@ export const RoomNode = memo(function RoomNode({ id, data, selected }: NodeProps
   const connection = useConnection();
   const dropTarget = connection.inProgress && connection.fromNode.id !== id;
   const { lines, hidden, diameter, function: functionId, emphasised, brokenType, connectSource, unresolved, analysis } = data;
-  const color = typeColor(functionId);
+  const color = useFunctionColour()(functionId);
   // Counter-scale text against the diagram zoom so labels stay readable on screen (audit m4):
   // the id at least ~11 px, captions at least ~10 px, capped so a zoomed-out diagram stays tidy.
   const zoom = useStore((s) => s.transform[2]);

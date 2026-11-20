@@ -335,7 +335,7 @@ describe('DesignerPanel (static render)', () => {
     const doc = labDocV2({ studio: { windowLayout: 'stretch', windowFraction: 0.4 } });
     const html = renderToStaticMarkup(createElement(DesignerPanel, { design: fakePort(doc) }));
     const heads = html.match(/<button type="button" class="sgl-designer-type-head"[^>]*>/g) ?? [];
-    expect(heads.length).toBe(3); // Default + the studio card + Corridors
+    expect(heads.length).toBe(2); // Default + the studio card (Corridors has its own section, always open)
     for (const head of heads) expect(head).toContain('aria-expanded="false"');
     expect(html).toMatch(/id="sgl-designer-studio-body" class="sgl-designer-type-body" hidden=""/);
     expect(html).toMatch(/40 % · Stretch · Flat roof · 1 room · changed/);

@@ -3,7 +3,6 @@ import {
   bridgesAndCutNodes,
   connectedParts,
   degree,
-  detourIfRemoved,
   diameter,
   edgeEnds,
   graphSize,
@@ -13,6 +12,7 @@ import {
   mostConnected,
   neighbourIds,
   reachWithin,
+  routesThrough,
   sharedNeighbours,
   shortestPath,
   touchingEdges,
@@ -106,18 +106,51 @@ const RUNNERS: Readonly<Record<string, Runner>> = {
       highlightEdges: [...new Set(nums(ids).flatMap(toEnds))],
     });
   },
-  'detour-if-removed': (graph, [edge]) => {
-    const detour = detourIfRemoved(graph, edge!);
-    if (!detour) return refuse(`There is no edge ${edge}.`);
-    const name = edgeName(graph, edge!);
-    if ('splits' in detour) return ok({ answer: 'Splits the graph', label: `no way round without ${name}: it is a bridge`, highlightEdges: [edge!] });
-    const { path } = detour;
+  'routes-through': (graph, [edge]) => {
+    const routes = routesThrough(graph, edge!);
+    const ends = edgeEnds(graph, edge!);
+    if (!routes || !ends) return refuse(`There is no edge ${edge}.`);
+    const a = ends.source as number;
+    const b = ends.target as number;
+    // The nodes on each side: nearer one end than the other (equally near: neither side).
+    const fromA = reachWithin(graph, a, Infinity)!.steps;
+    const fromB = reachWithin(graph, b, Infinity)!.steps;
+    const sideA: number[] = [];
+    const sideB: number[] = [];
+    for (const n of graph.nodes) {
+      const da = fromA.get(n.id) ?? Infinity;
+      const db = fromB.get(n.id) ?? Infinity;
+      if (da < db) sideA.push(n.id);
+      else if (db < da) sideB.push(n.id);
+    }
+    sideA.sort((x, y) => x - y);
+    sideB.sort((x, y) => x - y);
+    const nodeValues: Record<number, string> = {};
+    for (const n of sideA) nodeValues[n] = `nearer ${a}`;
+    for (const n of sideB) nodeValues[n] = `nearer ${b}`;
     return ok({
-      answer: String(path.edges.length),
-      label: `${path.edges.length === 1 ? 'step' : 'steps'} round without ${name}`,
-      detail: pathText(path),
-      highlightNodes: nums(path.nodes),
-      highlightEdges: nums(path.edges),
+      answer: `${formatTrips(routes.trips)} of ${routes.pairs}`,
+      label: `trips between two nodes take ${edgeName(graph, edge!)} on a shortest route`,
+      detail: `nearer ${a}: ${nodesWord(sideA)} · nearer ${b}: ${nodesWord(sideB)}`,
+      highlightNodes: [a, b],
+      highlightEdges: [edge!],
+      nodeValues,
+    });
+  },
+  'ends-connections': (graph, [edge]) => {
+    const ends = edgeEnds(graph, edge!);
+    if (!ends) return refuse(`There is no edge ${edge}.`);
+    const a = ends.source as number;
+    const b = ends.target as number;
+    const da = degree(graph, a)!;
+    const db = degree(graph, b)!;
+    const role = (n: number, d: number) => (d <= 1 ? `${n} is a dead end` : d >= 3 ? `${n} is a hub` : `${n} is on the way through`);
+    return ok({
+      answer: `${da} · ${db}`,
+      label: `edges at node ${a} · at node ${b}`,
+      detail: `${role(a, da)}, ${role(b, db)}`,
+      highlightNodes: [a, b],
+      highlightEdges: [...new Set([...nums(incidentEdgeIds(graph, a)), ...nums(incidentEdgeIds(graph, b))])],
     });
   },
   'touching-edges': (graph, [edge]) => {
@@ -255,6 +288,9 @@ export function runBuiltInAnalysis(id: string, graph: AnalysisGraph, inputs: rea
   }
   return runner(graph, inputs);
 }
+
+/** Trips through an edge: whole numbers as they are, shares of several routes to one decimal. */
+export const formatTrips = (n: number): string => (Math.abs(n - Math.round(n)) < 1e-9 ? String(Math.round(n)) : n.toFixed(1));
 
 /** A number as an answer: whole numbers as they are, others to 3 decimals. */
 export const formatAnswerNumber = (n: number): string => (Number.isInteger(n) ? String(n) : String(Math.round(n * 1000) / 1000));
