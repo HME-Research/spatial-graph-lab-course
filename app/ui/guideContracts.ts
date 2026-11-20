@@ -41,8 +41,8 @@ export interface Explainer {
   /** Files the student can save (e.g. a template); each is loaded only when clicked. */
   readonly downloads?: readonly GuideDownload[];
   /**
-   * Opening size of its pop-up window (`ExplainerWindow`, additive 2026-11-20); default 360 × 300.
-   * The window is remembered per size, so a new size takes effect over an older remembered one.
+   * Opening size of its pop-up window (`ExplainerWindow`, additive 2026-11-20); default 520 × 480,
+   * centred. The window is remembered per size, so a new size takes effect over an older remembered one.
    */
   readonly windowSize?: { readonly width: number; readonly height: number };
   /**

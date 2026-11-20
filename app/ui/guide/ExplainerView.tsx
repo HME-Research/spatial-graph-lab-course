@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { Explainer, GuideDownload } from '../guideContracts';
-import { FloatingWindow } from '../floating';
+import { FloatingWindow, sizedWindowId } from '../floating';
 import { renderGuideDiagram } from './diagrams';
 import './guide.css';
 
@@ -122,15 +122,16 @@ function DownloadButton({ download }: { readonly download: GuideDownload }) {
   );
 }
 
-/** Opening size of an explainer's pop-up when it sets no `windowSize`. */
-export const DEFAULT_EXPLAINER_WINDOW_SIZE = { width: 360, height: 300 } as const;
+/** Opening size of an explainer's pop-up when it sets no `windowSize` (owner 2026-11-20: bigger, room for two diagrams). */
+export const DEFAULT_EXPLAINER_WINDOW_SIZE = { width: 520, height: 480 } as const;
 
 /**
- * Id of an explainer's window (its place and size are remembered by it): `explainer-<id>`, plus
- * `@<w>x<h>` when it sets its own size, so a new opening size is not hidden by an older remembered one.
+ * Id of an explainer's window (its place and size are remembered by it): `explainer-<id>@<w>x<h>`,
+ * the opening size included, so a new opening size is not hidden by an older remembered one (e.g. a
+ * small window that a student had moved to the top right under the old id `explainer-<id>`).
  */
 export const explainerWindowId = (explainer: Pick<Explainer, 'id' | 'windowSize'>): string =>
-  explainer.windowSize ? `explainer-${explainer.id}@${explainer.windowSize.width}x${explainer.windowSize.height}` : `explainer-${explainer.id}`;
+  sizedWindowId(`explainer-${explainer.id}`, explainer.windowSize ?? DEFAULT_EXPLAINER_WINDOW_SIZE);
 
 /** A FloatingWindow showing one Explainer (for the analysis items' info buttons). */
 export function ExplainerWindow({
