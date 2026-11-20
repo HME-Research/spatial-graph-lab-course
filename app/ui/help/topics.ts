@@ -56,7 +56,7 @@ const topics = [
     details:
       'Walls: Enclosed puts a side wall on each side; Open leaves the sides open, with slim posts where there is a roof to carry. Roof: Flat, Pergola (open slats) or None. ' +
       'Width: how wide the corridor is built, in metres, centred in its cells (more than 0, at most one cell, 3 m); the default is 1.5 m. The corridor still takes its whole cells, and the opening into each room is no wider than the corridor. ' +
-      'The default is Open with a Flat roof, 1.5 m wide; Open with no roof is just the floor. Set every corridor with the Corridors card in Building Designer → Looks; one relationship can set its own walls, roof or width in Properties or the Data table ("Design default" follows the card). ' +
+      'The default is Open with a Flat roof, 1.5 m wide; Open with no roof is just the floor. Set every corridor with the Corridors card in Building Designer → Corridors; one relationship can set its own walls, roof or width in Properties or the Data table ("Design default" follows the card). ' +
       'A corridor is only built when the relationship is Connected via route. Corridor cells are reserved, so rooms cannot be placed on them without confirmation.',
   },
   {

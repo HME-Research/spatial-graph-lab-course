@@ -32,7 +32,7 @@ export const SHOT_ALT: Readonly<Record<string, string>> = {
   'howto-save': 'The Project panel: 1 Project in the left rail, 2 Save locally, 3 Export project, 4 Open project.',
   'panel-properties': 'Properties of the Living room: 1 Room 2, 2 Required by the app, 3 Geometry, 4 Custom.',
   'panel-attributes': 'The Attributes panel: 1 Node and Edge tabs, 2 the five sections, 3 + Add attribute.',
-  'panel-designer': 'The Building Designer: 1 Style rooms by, 2 the Default card, 3 the Corridors (generated) card, 4 + Style another function.',
+  'panel-designer': 'The Building Designer: 1 Style rooms by, 2 the Default card, 3 + Style another function, 4 the Corridors section.',
   'panel-analyse': 'The Analyse panel: 1 Upload your own (.ts), 2 the Show filter, 3 Node, 4 Edge, 5 Network, 6 Queries.',
   'panel-transform': 'The Transform panel: 1 Grow to target area, 2 the Houses parameter, 3 Run, 4 the preview, 5 Apply and Discard.',
   'panel-scenarios': 'The Scenarios panel: 1 Scenario 1, 2 a second scenario, 3 + New scenario.',

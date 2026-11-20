@@ -193,6 +193,7 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
   const isNumber = cards.attribute.kind === 'number';
   const bands = cards.mode === 'bands';
   const noun = addNoun(cards.attribute);
+  const corridors = corridorCard(doc, spatial);
   return (
     <div className="sgl-designer" aria-label="Building Designer">
       <div className="sgl-designer-intro">
@@ -276,15 +277,6 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
         <ul className="sgl-designer-list">
           {renderCard(cards.defaultCard)}
           {cards.cards.map(renderCard)}
-          <li key="corridors">
-            <CorridorCard
-              card={corridorCard(doc, spatial)}
-              onWalls={(walls) => send(setCorridorWallsEdit(doc, walls))}
-              onRoof={(roof) => send(setCorridorRoofEdit(doc, roof))}
-              onWidth={(text) => send(setCorridorWidthEdit(doc, text))}
-              onReset={() => send(resetCorridorsEdit(doc))}
-            />
-          </li>
         </ul>
         {cards.missingCount > 0 && cards.attribute.status !== 'removed' && (
           <p className="sgl-designer-source">
@@ -301,6 +293,17 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
           <AddCardMenu noun={noun} cards={cards} onAdd={(option) => send(addCardEdit(doc, cards.by, option.value, option.label))} />
         )}
         {facades && <FacadeLibraryFooter facades={facades} usedHere={usedHere} />}
+      </CollapsibleSection>
+
+      {/* Corridors are generic (2026-11-20): their own section, not a look of a function or attribute value. */}
+      <CollapsibleSection title="Corridors" sectionId="designer-corridors" defaultOpen meta={corridors.corridorCount !== null ? String(corridors.corridorCount) : undefined}>
+        <CorridorCard
+          card={corridors}
+          onWalls={(walls) => send(setCorridorWallsEdit(doc, walls))}
+          onRoof={(roof) => send(setCorridorRoofEdit(doc, roof))}
+          onWidth={(text) => send(setCorridorWidthEdit(doc, text))}
+          onReset={() => send(resetCorridorsEdit(doc))}
+        />
       </CollapsibleSection>
     </div>
   );
@@ -391,10 +394,11 @@ const CORRIDOR_WALL_HELP: Readonly<Record<string, string>> = {
 };
 
 /**
- * The Corridors card (owner 2026-11-19, "Corridors as a look card"): built like a room card, after
- * the room cards whatever "Style rooms by" is (corridors are not grouped by room values). Walls
- * (Enclosed / Open) and Roof (Flat / Pergola / None) of every generated corridor; windows and
- * imported façades do not apply to corridors. One relationship can still set its own in Properties.
+ * The Corridors card (owner 2026-11-19, "Corridors as a look card"; in its own Corridors section
+ * since 2026-11-20, because corridors are not grouped by any room value): built like a room card,
+ * always open (the section collapses it). Walls (Enclosed / Open), Roof (Flat / Pergola / None) and
+ * Width of every generated corridor; windows and imported façades do not apply to corridors. One
+ * relationship can still set its own in Properties.
  */
 function CorridorCard({
   card,
@@ -409,7 +413,6 @@ function CorridorCard({
   readonly onWidth: (text: string) => void;
   readonly onReset: () => void;
 }) {
-  const [open, toggleOpen] = useRememberedOpen('designer-card:corridors', false);
   const idBase = 'sgl-designer-corridors';
   const { effective, setHere, overrideCount, corridorCount } = card;
   const source = (here: boolean) => (here ? 'Set here' : 'Built-in default');
@@ -417,10 +420,7 @@ function CorridorCard({
     <article className="sgl-designer-type sgl-designer-corridors" data-card="corridors" aria-labelledby={`${idBase}-name`}>
       <div className="sgl-designer-type-titlebar">
         <h4 className="sgl-designer-type-title">
-          <button type="button" className="sgl-designer-type-head" aria-expanded={open} aria-controls={`${idBase}-body`} onClick={toggleOpen}>
-            <svg className="sgl-designer-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-              <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+          <div className="sgl-designer-type-head sgl-designer-type-head--static">
             <span className="sgl-designer-swatch sgl-designer-swatch--corridor" aria-hidden="true" />
             <span className="sgl-designer-type-text">
               <span id={`${idBase}-name`} className="sgl-designer-type-name">
@@ -433,11 +433,11 @@ function CorridorCard({
               </span>
             </span>
             <FacadePreview fraction={0} layout="repeat" roof={effective.roof} walls={effective.walls} />
-          </button>
+          </div>
         </h4>
       </div>
 
-      <div id={`${idBase}-body`} className="sgl-designer-type-body" hidden={!open}>
+      <div id={`${idBase}-body`} className="sgl-designer-type-body">
         <p className="sgl-help">Corridors are built automatically between related rooms that don't touch.</p>
 
         <Subsection idBase={idBase} name="walls" title="Walls" rememberId="designer-card:corridors:walls">

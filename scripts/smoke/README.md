@@ -96,7 +96,7 @@ Run the scripts **one at a time** against a dev server. With several headless br
 | `workflow/move-in-properties` | Properties → Position moves it to [5,1,0]: one command and one undo step per changed axis. |
 | `workflow/connect-generates-corridor` | Properties → Relationships → **Connect** to room 2: the relationship is "Connected via route", its Corridor walls follow "Design default (…)", and Voxels counts 3 connector cells. |
 | `workflow/corridor-own-walls-and-roof` | The relationship's own Corridor walls (Enclosed) and roof (None) in Properties: one undo step each. |
-| `workflow/corridors-card` | Building Designer → **Corridors (generated)** card: roof Pergola is one undo step, the card summary changes and the card says one relationship sets its own look. The edge keeps its own roof, and its default option now reads "Design default (Pergola…)". |
+| `workflow/corridors-card` | Building Designer → **Corridors** section → the **Corridors (generated)** card: roof Pergola is one undo step, the card summary changes and the card says one relationship sets its own look. The edge keeps its own roof, and its default option now reads "Design default (Pergola…)". |
 | `workflow/resize-in-properties` | Size [2,1,1] ("Resize room 6 to 2×1×1"); the calculated Area shows 18 m². |
 | `workflow/function-card-window` | "Style another function" → Living card, then window coverage 60 %: one undo step each. The two steps share a label, so the check waits for the card summary. |
 | `workflow/undo-redo-every-step` | Undo every recorded step one at a time, checking each label, until no Undo is left (N operations = N undo steps). Then redo all of them. |

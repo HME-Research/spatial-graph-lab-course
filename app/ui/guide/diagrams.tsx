@@ -737,23 +737,27 @@ const D: Record<string, () => ReactNode> = {
     </Mock>
   ),
   'panel-designer': () => (
-    <Mock alt="Building Designer: (1) Style rooms by Function, (2) the Default look card, (3) the Corridors (generated) card open, with Walls Enclosed or Open and Roof Flat, Pergola or None, (4) + Style another function." title="Building Designer">
+    <Mock alt="Building Designer: (1) Style rooms by Function, (2) the Default look card in Looks by Function, (3) + Style another function, (4) the Corridors section, separate from the looks, with Walls Enclosed or Open, Roof Flat, Pergola or None, and Width." title="Building Designer">
       <MRow label="Style rooms by" value="Function ▾" n={1} />
       <MSec title="Looks by Function" open>
         <div className="sgl-gd-card">
           <b>Default</b> 25 % · Repeat · Flat roof · 5 rooms <MNum n={2} />
         </div>
+        <div className="sgl-gd-row">
+          <MBtn>+ Style another function… ▾</MBtn> <MNum n={3} />
+        </div>
+      </MSec>
+      <MSec title="Corridors" open n={4}>
         <div className="sgl-gd-card open">
-          <b>Corridors (generated)</b> Open sides · Flat roof <MNum n={3} />
+          <b>Corridors (generated)</b> Open sides · Flat roof · 1.5 m
           <div className="sgl-gd-sub">WALLS</div>
           <MRow label="Sides" value={<MSeg items={['Enclosed', 'Open']} on="Open" />} tag="Built-in default" />
           <div className="sgl-gd-sub">ROOF</div>
           <MRow label="Style" value="Flat ▾ (Flat · Pergola · None)" />
+          <div className="sgl-gd-sub">WIDTH</div>
+          <MRow label="Width" value="1.5 m" tag="Built-in default" />
         </div>
       </MSec>
-      <div className="sgl-gd-row">
-        <MBtn>+ Style another function… ▾</MBtn> <MNum n={4} />
-      </div>
     </Mock>
   ),
   'panel-analyse': () => (

@@ -203,8 +203,8 @@ const TEXT: readonly GuideTabContent[] = [
       {
         id: 'panel-designer',
         title: 'Building Designer',
-        summary: 'How the building looks: rooms are styled by one attribute, and each group gets a look card (façade, windows, roof).',
-        example: '(1) Style rooms by Function, (2) the Default card for every room without its own card, (3) the Corridors (generated) card: Walls Enclosed or Open, Roof Flat, Pergola or None, and Width in metres, centred in the corridor’s cells (default Open + Flat, 1.5 m), (4) + Style another function to give, say, the Kitchen its own look.',
+        summary: 'How the building looks: rooms are styled by one attribute, and each group gets a look card (façade, windows, roof). Generated corridors have their own section.',
+        example: '(1) Style rooms by Function, (2) the Default card for every room without its own card, (3) + Style another function to give, say, the Kitchen its own look, (4) the Corridors section, for every generated corridor whatever the rooms are styled by: Walls Enclosed or Open, Roof Flat, Pergola or None, and Width in metres, centred in the corridor’s cells (default Open + Flat, 1.5 m).',
         diagram: 'panel-designer',
         learnMore: LINKS.envelope,
       },

@@ -347,7 +347,7 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
     await openRail(s, 'Building Designer');
     await shot('panel-designer', {
       clip: P('designer'),
-      markers: [{ text: 'Style rooms by', within: P('designer') }, { text: 'Default', within: P('designer') }, { text: 'Corridors', within: P('designer') }, { text: '+ Style another function', within: P('designer') }],
+      markers: [{ text: 'Style rooms by', within: P('designer') }, { text: 'Default', within: P('designer') }, { text: '+ Style another function', within: P('designer') }, { text: 'Corridors', within: P('designer') }],
     });
   });
   await step('panel-analyse', async () => {
