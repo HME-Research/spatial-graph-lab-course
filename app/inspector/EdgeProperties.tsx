@@ -148,7 +148,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
         aria-label={`Corridor ${field}`}
         onChange={(e) => setCorridor(field, e.currentTarget.value)}
       >
-        <option value="" title="The Corridors card of the whole design (Building Designer → Looks)">
+        <option value="" title="The Corridors card of the whole design (Building Designer → Corridors)">
           Design default ({labelOfChoice(choices, designValue)})
         </option>
         {choices.map((c) => (
@@ -227,7 +227,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
             attributeId="corridor"
             kind="geometry"
             label="Corridor"
-            title="This relationship’s own corridor look: walls, roof and width. Used only when a corridor is generated; Design default follows the Corridors card (Building Designer → Looks)."
+            title="This relationship’s own corridor look: walls, roof and width. Used only when a corridor is generated; Design default follows the Corridors card (Building Designer → Corridors)."
             control={
               <div className="sgl-corridor">
                 {corridorField('walls', 'Walls', CORRIDOR_WALL_CHOICES, designLook.walls)}
@@ -250,7 +250,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
                 ? `This corridor: ${corridorLookText(look)}. `
                 : `No corridor is generated for this relationship now${resolution?.status === 'direct' ? ' (its rooms touch)' : ''}; these values are used only if one is. `}
               {ownCount === 0
-                ? 'Change every corridor with the Corridors card in Building Designer → Looks.'
+                ? 'Change every corridor with the Corridors card in Building Designer → Corridors.'
                 : `${ownCount === 1 ? 'One is' : ownCount === 2 ? 'Two are' : 'All three are'} set for this relationship only; Design default follows the Corridors card.`}
             </p>
           </FieldRow>

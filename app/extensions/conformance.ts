@@ -1,6 +1,6 @@
 import { exampleFacadeProvider, type FacadeSpec } from '@app/building';
 import type { AttributeValue, DesignDocumentV2 } from '@app/document';
-import { typeColor } from '@core/viewer/appearance';
+import { defaultFunctionColour } from './functionColours';
 import type { ActiveToolkit, RegisteredFunction } from './activate';
 import { diagnostic, isBlocking, type ExtensionDiagnostic } from './diagnostics';
 import { describeField, type ProjectAttributeSchema } from './projectAttributes';
@@ -148,13 +148,13 @@ export type TypeAppearance =
   | { readonly status: 'broken'; readonly color: string; readonly diagnosticIds: readonly string[] };
 
 /**
- * Colour and façade of a node type. Colour is always the existing deterministic `typeColor`
- * (custom colours are deferred). Façade: the type's own declaration, else the existing example
+ * Colour and façade of a node type. Colour: the toolkit function's `colour`, else `typeColor`
+ * (a project's own colour is applied by `functionColourResolver`). Façade: the type's own declaration, else the existing example
  * façade for that id. A broken definition yields `broken` (no façade), never a silent fallback;
  * no project or no definition gives today's behaviour.
  */
 export function typeAppearance(project: ActiveToolkit | null, functionId: string): TypeAppearance {
-  const color = typeColor(functionId);
+  const color = defaultFunctionColour(project, functionId);
   const type = project ? findFunction(project, functionId) : undefined;
   if (type && !type.status.ok) return { status: 'broken', color, diagnosticIds: type.status.diagnosticIds };
   const declared = type?.definition.facade;

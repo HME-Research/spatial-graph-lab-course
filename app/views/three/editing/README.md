@@ -63,6 +63,10 @@ export function VoxelView({ doc, selection, onSelect, design }: ViewProps) {
   - Optional: dim the stored room while `editing.state.phase !== 'idle' && editing.nodeId === id`. The preview box then reads clearly.
 - Do **not** use this module in `Graph3DView`. Graph 3D stays abstract and read-only.
 
+### The Plan (2D)
+
+The Plan's "Edit rooms" toggle reuses `useRoomEditing` and this session without the 3D gizmo: it starts a gesture with `gizmo.onDragStart`, previews each snapped x/y draft with `setDraft` (`updateDraft` in the session, the same `proposeEdit` rules as `updateDrag`) and releases with `gizmo.onDragEnd` / `onDragCancel`. Its pure 2D handle maths is `app/views/plan/planRoomEdit.ts`.
+
 ### Known behaviour
 
 - Pressing a handle also fires the OrbitControls `start` event. The camera is then marked `data-camera="user"`, so it is not automatically refitted after a gizmo drag. A manual **Fit view** still works.

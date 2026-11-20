@@ -333,7 +333,7 @@ function corridorCells(edge: RelationshipEdge, ctx: MetricContext): Record<strin
         : {
             text: corridorChoiceLabel(p, card[p.part]),
             origin: 'default',
-            title: `Not stored: the design’s Corridors card applies (Building Designer → Looks).${unused}`,
+            title: `Not stored: the design’s Corridors card applies (Building Designer → Corridors).${unused}`,
             hint: built ? 'default' : 'default · not built',
           };
   }
@@ -345,7 +345,7 @@ function corridorCells(edge: RelationshipEdge, ctx: MetricContext): Record<strin
       : {
           text: formatCorridorWidth(card.width),
           origin: 'default',
-          title: `Not stored: the design’s Corridors card applies (Building Designer → Looks).${unused}`,
+          title: `Not stored: the design’s Corridors card applies (Building Designer → Corridors).${unused}`,
           hint: built ? 'default' : 'default · not built',
         };
   return out;

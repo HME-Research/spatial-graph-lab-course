@@ -332,7 +332,7 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
     await openRail(s, 'Properties');
     await shot('panel-properties', {
       clip: P('properties'),
-      markers: [{ text: 'Room 2', within: P('properties') }, { text: 'Required by the app', within: P('properties') }, { text: 'Geometry', within: P('properties') }, { text: 'Custom', within: P('properties') }],
+      markers: [{ sel: `${P('properties')} .sgl-title` }, { text: 'Required by the app', within: P('properties') }, { text: 'Geometry', within: P('properties') }, { text: 'Custom', within: P('properties') }],
     });
   });
   await step('panel-attributes', async () => {
@@ -346,10 +346,12 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
     await openRail(s, 'Building Designer');
     await shot('panel-designer', {
       clip: P('designer'),
-      markers: [{ text: 'Style rooms by', within: P('designer') }, { text: 'Default', within: P('designer') }, { text: 'Corridors', within: P('designer') }, { text: '+ Style another function', within: P('designer') }],
+      markers: [{ text: 'Style rooms by', within: P('designer') }, { text: 'Default', within: P('designer') }, { text: '+ Style another function', within: P('designer') }, { text: 'Corridors', within: P('designer') }],
     });
   });
   await step('panel-analyse', async () => {
+    // The Edge section lists four analyses at the start (2026-11-20): a taller window keeps Network and Queries in view.
+    await tall(960);
     await openRail(s, 'Analyse');
     await shot('panel-analyse', {
       clip: P('analyse'),
@@ -362,6 +364,7 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
         { text: 'Queries', within: P('analyse') },
       ],
     });
+    await tall(null);
   });
   await step('panel-transform', async () => {
     await tall(1150);

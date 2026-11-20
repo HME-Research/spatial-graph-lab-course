@@ -278,7 +278,7 @@ const MSeg = ({ items, on }: { readonly items: readonly string[]; readonly on: s
 function SectionsMock({ hl, alt }: { readonly hl: 'all' | 'identity' | 'required' | 'geometry' | 'custom' | 'calculated'; readonly alt: string }) {
   const on = (id: string) => hl === 'all' || hl === id;
   return (
-    <Mock alt={alt} title="Room 2 · Living">
+    <Mock alt={alt} title="Living · Room 2">
       <MSec plain title="Identity" hl={on('identity')}>
         <MRow label="ID" value="2" lock />
       </MSec>
@@ -687,9 +687,9 @@ const D: Record<string, () => ReactNode> = {
 
   // Panels
   'panel-properties': () => (
-    <Mock alt="Properties of the Living room: (1) its name, (2) Required by the app with the Function, (3) Geometry with Position and Size, (4) Custom with Target area and Priority." title="Properties">
+    <Mock alt="Properties of the Living room: (1) its title, the Function Living and the id Room 2, (2) Required by the app with the Function, (3) Geometry with Position and Size, (4) Custom with Target area and Priority." title="Properties">
       <div className="sgl-gd-row big">
-        Room 2 <MNum n={1} />
+        Living <span className="sgl-gd-tag">Room 2</span> <MNum n={1} />
       </div>
       <MSec plain title="Identity">
         <MRow label="ID" value="2" lock />
@@ -737,27 +737,31 @@ const D: Record<string, () => ReactNode> = {
     </Mock>
   ),
   'panel-designer': () => (
-    <Mock alt="Building Designer: (1) Style rooms by Function, (2) the Default look card, (3) the Corridors (generated) card open, with Walls Enclosed or Open and Roof Flat, Pergola or None, (4) + Style another function." title="Building Designer">
+    <Mock alt="Building Designer: (1) Style rooms by Function, (2) the Default look card in Looks by Function, (3) + Style another function, (4) the Corridors section, separate from the looks, with Walls Enclosed or Open, Roof Flat, Pergola or None, and Width." title="Building Designer">
       <MRow label="Style rooms by" value="Function ▾" n={1} />
       <MSec title="Looks by Function" open>
         <div className="sgl-gd-card">
           <b>Default</b> 25 % · Repeat · Flat roof · 5 rooms <MNum n={2} />
         </div>
+        <div className="sgl-gd-row">
+          <MBtn>+ Style another function… ▾</MBtn> <MNum n={3} />
+        </div>
+      </MSec>
+      <MSec title="Corridors" open n={4}>
         <div className="sgl-gd-card open">
-          <b>Corridors (generated)</b> Open sides · Flat roof <MNum n={3} />
+          <b>Corridors (generated)</b> Open sides · Flat roof · 1.5 m
           <div className="sgl-gd-sub">WALLS</div>
           <MRow label="Sides" value={<MSeg items={['Enclosed', 'Open']} on="Open" />} tag="Built-in default" />
           <div className="sgl-gd-sub">ROOF</div>
           <MRow label="Style" value="Flat ▾ (Flat · Pergola · None)" />
+          <div className="sgl-gd-sub">WIDTH</div>
+          <MRow label="Width" value="1.5 m" tag="Built-in default" />
         </div>
       </MSec>
-      <div className="sgl-gd-row">
-        <MBtn>+ Style another function… ▾</MBtn> <MNum n={4} />
-      </div>
     </Mock>
   ),
   'panel-analyse': () => (
-    <Mock alt="Analyse panel: (1) Upload your own (.ts) with its i, (2) Show: All, Built-in, Toolkit, Yours, (3) Node section open with Degree and Neighbours, (4) Edge section open with Detour if removed, (5) Network and (6) Queries collapsed." title="Analyse">
+    <Mock alt="Analyse panel: (1) Upload your own (.ts) with its i, (2) Show: All, Built-in, Toolkit, Yours, (3) Node section open with Degree and Neighbours, (4) Edge section open with Routes through it, Touching edges, Shared neighbours and Ends’ connections, (5) Network and (6) Queries collapsed." title="Analyse">
       <div className="sgl-gd-row">
         <MBtn>Upload your own (.ts)</MBtn>
         <span className="sgl-gd-info">i</span> <MNum n={1} />
@@ -770,7 +774,10 @@ const D: Record<string, () => ReactNode> = {
         <MRow label="Neighbours" tag="Built-in" />
       </MSec>
       <MSec title="Edge" sub="about the selected edge" open plus n={4}>
-        <MRow label="Detour if removed" tag="Built-in" />
+        <MRow label="Routes through it" tag="Built-in" />
+        <MRow label="Touching edges" tag="Built-in" />
+        <MRow label="Shared neighbours" tag="Built-in" />
+        <MRow label="Ends’ connections" tag="Built-in" />
       </MSec>
       <MSec title="Network" sub="measures of the whole graph" plus n={5} />
       <MSec title="Queries" sub="inputs you pick" plus n={6} />
@@ -977,14 +984,52 @@ const D: Record<string, () => ReactNode> = {
   // Built-in analyses
   degree: () => <Graph alt="Living has degree 3: its three edges, to Entrance, Kitchen and Bedroom, are highlighted." hn={[2]} he={[1, 2, 3]} badge={{ 2: '3' }} />,
   neighbours: () => <Graph alt="Living selected; its neighbours Entrance, Kitchen and Bedroom are highlighted." sel={2} hn={[1, 3, 4]} he={[1, 2, 3]} />,
-  'shared-neighbours': () => (
-    <Graph alt="Edge Living–Kitchen selected. With an imagined extra relationship Entrance–Kitchen (dashed), the Entrance is a shared neighbour: Entrance, Living and Kitchen form a loop." selEdge={2} hn={[1]} extra={[[1, 3]]} h={160}>
-      <Cap x={4} y={156}>
-        In the example there is no loop: the answer is 0.
+  'routes-through': () => (
+    <Graph
+      alt="Edge Living–Bedroom selected. Entrance, Living and Kitchen (3 rooms) are on one side, Bedroom and Bath (2 rooms) on the other: every trip between the two sides uses it, 3 × 2 = 6 of the 10 trips."
+      selEdge={3}
+      hn={[1, 2, 3]}
+      hn2={[4, 5]}
+      h={166}
+    >
+      <Cap x={4} y={162}>
+        3 rooms × 2 rooms = 6 of 10 trips use Living–Bedroom.
       </Cap>
     </Graph>
   ),
-  'detour-if-removed': () => <Graph alt="Edge Living–Kitchen removed (dashed): there is no other way to the Kitchen, so the graph splits." dash={[2]} faded={[3]} hn2={[2]} />,
+  'shared-neighbours': () => (
+    <Svg
+      w={300}
+      h={150}
+      alt="Before and after. Before: Living–Kitchen selected; no room is joined to both, so the answer is 0 and the only way back from the Kitchen is the way you came. After adding Entrance–Kitchen (dashed): the Entrance is joined to both, the answer is 1, and Entrance, Living and Kitchen form a loop you can walk round."
+    >
+      <g transform="translate(-14 0) scale(0.62)">
+        <HouseGraph selEdge={2} names={false} />
+      </g>
+      <g transform="translate(140 0) scale(0.62)">
+        <HouseGraph selEdge={2} hn={[1]} he={[1]} extra={[[1, 3]]} names={false} />
+      </g>
+      <line className="sgl-gd-e" x1={146} y1={14} x2={146} y2={104} />
+      <Cap x={10} y={118}>Before: 0</Cap>
+      <Cap x={162} y={118}>After: 1 (a loop)</Cap>
+      <Cap x={4} y={136}>1 Entrance · 2 Living · 3 Kitchen</Cap>
+      <Cap x={4} y={148}>Loop: 1 → 2 → 3 → 1, no need to go back</Cap>
+    </Svg>
+  ),
+  'ends-connections': () => (
+    <Graph
+      alt="Edge Living–Kitchen selected: the Living room has 3 relationships (a hub), the Kitchen only this one (a dead end): 3 · 1."
+      selEdge={2}
+      hn={[2, 3]}
+      he={[1, 3]}
+      badge={{ 2: '3', 3: '1' }}
+      h={166}
+    >
+      <Cap x={4} y={162}>
+        Living 3 · Kitchen 1: a hub joined to a dead end.
+      </Cap>
+    </Graph>
+  ),
   'touching-edges': () => <Graph alt="Edge Living–Bedroom selected; the edges that share one of its ends, Entrance–Living, Living–Kitchen and Bedroom–Bath, are highlighted." selEdge={3} he={[1, 2, 4]} />,
   summary: () => (
     <Graph alt="The whole house graph with the counts: 5 nodes and 4 edges." h={168}>

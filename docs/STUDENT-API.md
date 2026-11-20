@@ -66,6 +66,7 @@ import { defineFunction } from '@student-api';
 export default defineFunction({
   id: 'gallery',                     // the node's "function" in designs
   label: 'Gallery',
+  colour: '#e8a33d',                 // optional; the rooms' colour in every view, hex "#rrggbb"
   facade: { windowFraction: 0.7 },   // optional; 0 = closed wall, 1 = fully glazed
   custom: {                          // optional: custom attributes of rooms with this function
     daylight: { kind: 'enum', values: ['high', 'medium', 'low'] },
@@ -78,7 +79,7 @@ export default defineFunction({
 
 Attribute kinds are `number` (with optional `min` and `max`), `text`, `boolean` and `enum` (`values`). Each attribute may have a `default`. Stored values are always JSON primitives.
 
-If you leave out `facade`, the function keeps the app's existing façade. Every function uses the existing colour for its id; custom colours aren't supported yet.
+If you leave out `facade`, the function keeps the app's existing façade. `colour` is the default colour of rooms with this function in every view (Graph 2D, the 3D views, Building, Plan, legends and swatches), written `#rrggbb` (e.g. `'#e8a33d'`); any other form disables the function with an error. Without it the app picks an automatic colour from the id. A project can change any function's colour in the **Functions** dialog (the colour swatch; "Reset to default" returns to yours); that choice is saved in the project, not in your toolkit.
 
 ### How the app treats your custom attributes
 

@@ -15,6 +15,7 @@ import {
   IDLE,
   nudge as nudgeRoom,
   previewTone,
+  updateDraft,
   updateDrag,
   type EditFeedback,
   type EditStep,
@@ -64,6 +65,11 @@ export interface RoomEditing {
   readonly cancel: () => void;
   /** One whole-cell step on an axis in the current mode (button / keyboard alternative). */
   readonly nudge: (axis: GizmoAxis, steps: number) => void;
+  /**
+   * During a drag started with `gizmo.onDragStart`: preview a snapped draft derived elsewhere (the
+   * Plan's 2D handles change x and y at once). Release with `gizmo.onDragEnd` as for the gizmo.
+   */
+  readonly setDraft: (draft: RoomGeometry) => void;
 }
 
 export function useRoomEditing(
@@ -139,6 +145,13 @@ export function useRoomEditing(
     },
     [apply],
   );
+  const setDraft = useCallback(
+    (draft: RoomGeometry) => {
+      const { design: d, state: s } = live.current;
+      if (d) setState(updateDraft(d, s, draft));
+    },
+    [setState],
+  );
   const dismissFeedback = useCallback(() => setFeedback(null), []);
 
   // Escape also cancels a pending confirmation (a drag's Escape is handled by the gizmo).
@@ -176,5 +189,6 @@ export function useRoomEditing(
     confirm,
     cancel,
     nudge,
+    setDraft,
   };
 }

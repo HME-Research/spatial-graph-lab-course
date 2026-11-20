@@ -843,7 +843,7 @@ export function selectedRelationship(
 
 // ---------------------------------------------------------------------------------------------
 // The Corridors card (owner 2026-11-19, "Corridors as a look card"): walls + roof of every
-// generated corridor, shown in the Looks list after the room cards whatever "Style rooms by" is.
+// generated corridor, shown in its own Corridors section after the Looks (2026-11-20), whatever "Style rooms by" is.
 
 /** The Corridors card: effective walls, roof and width and whether the card sets them. */
 export interface CorridorCardRow {

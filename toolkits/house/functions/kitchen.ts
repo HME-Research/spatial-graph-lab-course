@@ -4,6 +4,7 @@ import { defineFunction } from '@student-api';
 export default defineFunction({
   id: 'kitchen',
   label: 'Kitchen',
+  colour: '#d4623b',
   facade: { windowFraction: 0.4 },
   custom: {
     targetArea: { kind: 'number', min: 1, default: 18 },

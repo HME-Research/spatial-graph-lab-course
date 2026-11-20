@@ -99,6 +99,8 @@ export function useUnitCylinder(): CylinderGeometry {
 export interface ConnectorCell {
   readonly key: string;
   readonly edgeId: number;
+  /** Route cell (grid space); its z is the storey the corridor belongs to. */
+  readonly cell: readonly [number, number, number];
   readonly position: WorldPoint;
   readonly size: WorldPoint;
 }
@@ -116,6 +118,7 @@ export function connectorCells(design: DesignPort | undefined): ConnectorCell[] 
       out.push({
         key: `${r.edgeId}:${cell.join(',')}`,
         edgeId: r.edgeId,
+        cell,
         position: [centre[0], centre[1] - v / 2 + v * 0.1, centre[2]],
         size: [h * 0.94, v * 0.2, h * 0.94],
       });

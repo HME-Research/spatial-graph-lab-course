@@ -173,15 +173,61 @@ export function shortestPath(graph: MeasureGraph, from: GraphId, to: GraphId, op
 }
 
 /**
- * Detour if the edge were removed: the shortest path between its ends without it, or
- * `{ splits: true }` when there is none (the edge is a bridge). Undefined for an unknown edge.
- * A self-loop's "detour" is 0 steps.
+ * Edge betweenness (Brandes, undirected, not normalised): for every edge, the number of node
+ * PAIRS whose shortest routes pass through it. When a pair has several shortest routes, each
+ * route carries an equal share (2 routes, one through the edge: ½). Parallel edges are separate
+ * routes; self-loops carry nothing. Pairs in different connected parts have no route and add
+ * nothing. Sums are rounded to 1e-9 so whole numbers stay whole.
  */
-export function detourIfRemoved(graph: MeasureGraph, edgeId: GraphId): { readonly path: GraphPath } | { readonly splits: true } | undefined {
-  const ends = edgeEnds(graph, edgeId);
-  if (!ends) return undefined;
-  const path = shortestPath(graph, ends.source, ends.target, { skipEdge: edgeId });
-  return path ? { path } : { splits: true };
+export function edgeBetweenness(graph: MeasureGraph): ReadonlyMap<GraphId, number> {
+  const { ids, links, edges } = adjacency(graph);
+  const score = new Map<GraphId, number>([...edges.keys()].map((e) => [e, 0]));
+  for (const s of ids) {
+    const order: GraphId[] = [s];
+    const dist = new Map<GraphId, number>([[s, 0]]);
+    const sigma = new Map<GraphId, number>([[s, 1]]);
+    const preds = new Map<GraphId, Link[]>();
+    for (let head = 0; head < order.length; head++) {
+      const v = order[head]!;
+      for (const link of links.get(v)!) {
+        const w = link.node;
+        if (w === v) continue;
+        if (!dist.has(w)) {
+          dist.set(w, dist.get(v)! + 1);
+          sigma.set(w, 0);
+          preds.set(w, []);
+          order.push(w);
+        }
+        if (dist.get(w) === dist.get(v)! + 1) {
+          sigma.set(w, sigma.get(w)! + sigma.get(v)!);
+          preds.get(w)!.push({ node: v, edge: link.edge });
+        }
+      }
+    }
+    const delta = new Map<GraphId, number>(order.map((n) => [n, 0]));
+    for (let i = order.length - 1; i > 0; i--) {
+      const w = order[i]!;
+      for (const p of preds.get(w)!) {
+        const c = (sigma.get(p.node)! / sigma.get(w)!) * (1 + delta.get(w)!);
+        score.set(p.edge, score.get(p.edge)! + c);
+        delta.set(p.node, delta.get(p.node)! + c);
+      }
+    }
+  }
+  // Each unordered pair was counted from both of its nodes.
+  for (const [e, v] of score) score.set(e, Math.round((v / 2) * 1e9) / 1e9);
+  return score;
+}
+
+/**
+ * Routes through an edge: `trips` = its edge betweenness (pairs whose shortest routes use it,
+ * shared when there are several), out of `pairs` = every unordered pair of distinct nodes.
+ * Undefined for an unknown edge.
+ */
+export function routesThrough(graph: MeasureGraph, edgeId: GraphId): { readonly trips: number; readonly pairs: number } | undefined {
+  if (!edgeEnds(graph, edgeId)) return undefined;
+  const n = adjacency(graph).ids.length;
+  return { trips: edgeBetweenness(graph).get(edgeId)!, pairs: (n * (n - 1)) / 2 };
 }
 
 /**

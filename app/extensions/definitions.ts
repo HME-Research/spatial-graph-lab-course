@@ -102,9 +102,13 @@ export const toolkitDefinitionSchema = z.strictObject({
     .optional(),
 });
 
+/** A function colour: hex `#rrggbb` (either case; the app uses it in lowercase). */
+export const HEX_COLOUR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
 export const functionDefinitionSchema = z.strictObject({
   id: functionIdSchema,
   label,
+  colour: z.string({ error: 'colour must be text' }).regex(HEX_COLOUR_PATTERN, { error: 'colour must be a hex colour "#rrggbb", e.g. "#e8a33d"' }).optional(),
   facade: z
     .strictObject({
       windowFraction: finite.refine((f) => f >= 0 && f <= 1, { error: 'windowFraction must be between 0 and 1' }),

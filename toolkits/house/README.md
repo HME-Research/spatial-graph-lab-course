@@ -17,6 +17,7 @@ The reference toolkit of Spatial Graph Lab. Don't edit this folder: copy it to m
 - **Two designs** (both in **Open example…**, tagged `Toolkit: House`):
   - `designs/house.json`, **House**: the two-storey example house, every room one cell to start with, ready for *Grow to target area*. It is the toolkit's `defaultDesign`: `npm run check:toolkit` runs the transform on it, and a new project takes its Building settings.
   - `designs/showcase.json`, **House showcase**: a finished two-storey house that shows what the app can do (see *The showcase* below).
+- **Six Function colours**, declared in each `functions/*.ts` (`colour`): Entrance violet `#8e6bb8`, Living amber `#e8a33d`, Kitchen terracotta `#d4623b`, Bedroom blue `#4f7cc0`, Bath aqua `#3fa9b5`, Circulation stone grey `#9b9a8f`. A project can change them in the Functions dialog.
 - **One façade file**, `assets/facade-ex1.3dm` (12.5 MB; a 3 × 3 m bay with arched openings), used by the showcase's bedrooms.
 
 **Create project with this toolkit** gives you an **empty graph** that already has the two custom attributes (Target area and Priority, tagged `Toolkit: House`, with each Function's defaults), so you can draw your own house and grow it. To work on one of the designs, choose **Open example…** (Welcome or Project) and pick it: it opens as a new project with this toolkit, its attributes, its Building Designer settings and the façade it uses.
