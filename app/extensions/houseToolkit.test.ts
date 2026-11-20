@@ -193,9 +193,9 @@ describe('the garden house design', () => {
     expect(preview.summary!.split('\n')).toEqual([
       '0 rooms grown, 0 blocked.',
       'Living 3: 36 m² (target 36) ✓',
-      'Circulation / stair 2: 9 m² (target 9) ✓',
+      'Stair / landing 2: 9 m² (target 9) ✓',
       'Kitchen 5: 18 m² (target 18) ✓',
-      'Circulation / stair 8: 18 m² (target 18) ✓',
+      'Stair / landing 8: 18 m² (target 18) ✓',
       'Bedroom 9: 18 m² (target 18) ✓',
       'Bedroom 10: 18 m² (target 18) ✓',
       'Dining 4: 18 m² (target 18) ✓',

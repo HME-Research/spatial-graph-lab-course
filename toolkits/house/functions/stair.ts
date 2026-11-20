@@ -3,7 +3,7 @@ import { defineFunction } from '@student-api';
 /** The stair and landing that join the storeys. */
 export default defineFunction({
   id: 'stair',
-  label: 'Circulation / stair',
+  label: 'Stair / landing',
   colour: '#56606e',
   facade: { windowFraction: 0.2 },
   custom: {

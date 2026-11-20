@@ -317,3 +317,4 @@ Completes "One vocabulary". Not distributed: no migration; the old names are sim
 
 - The owner's exported Garden House project became a toolkit design, `toolkits/house/designs/garden-house.json` (14 rooms, 14 direct relationships, Living and Dining use the toolkit façade `facade-ex1`). A toolkit's `designs/` holds design files only: a project file there makes the toolkit report an invalid design and the project open with errors.
 - Six Functions added to the House toolkit: Garden, Circulation / stair (`stair`), Dining, Study, Utility, Roof terrace, each with its own colour and Target area / Priority defaults. The existing six keep their defaults (a design cannot change a toolkit's defaults).
+- Follow-up (owner, 20 November 2026): the stair Function is labelled **Stair / landing** (id `stair` unchanged). The Garden House follows the toolkit's own priorities (the project file's different priorities are not adopted).

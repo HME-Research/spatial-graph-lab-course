@@ -4,13 +4,13 @@ The reference toolkit of Spatial Graph Lab. Don't edit this folder: copy it to m
 
 ## What it adds
 
-- **Twelve Functions** (`functions/`): Entrance, Circulation, Living, Kitchen, Bedroom and Bath, and six more that the garden house uses: Garden, Circulation / stair (`stair`), Dining, Study, Utility and Roof terrace (`terrace`). Each has its own façade (how much of an outside wall is glass) and its own defaults for the two custom attributes below.
+- **Twelve Functions** (`functions/`): Entrance, Circulation, Living, Kitchen, Bedroom and Bath, and six more that the garden house uses: Garden, Stair / landing (`stair`), Dining, Study, Utility and Roof terrace (`terrace`). Each has its own façade (how much of an outside wall is glass) and its own defaults for the two custom attributes below.
 - **Two custom room attributes**, both used by the transform (stored under a room's `custom` in the JSON):
 
   | Attribute | Meaning | Defaults per Function |
   |---|---|---|
-  | `targetArea` | the floor area (m²) the room should grow to | Entrance 9 · Circulation 9 · Living 36 · Kitchen 18 · Bedroom 18 · Bath 9 · Garden 36 · Circulation / stair 9 · Dining 18 · Study 9 · Utility 9 · Roof terrace 9 |
-  | `priority` | growth order, a whole number: 1 grows first | Living 1 · Kitchen 2 · Circulation / stair 2 · Bedroom 3 · Bath 4 · Dining 4 · Entrance 5 · Circulation 6 · Garden 8 · Study 9 · Roof terrace 10 · Utility 11 |
+  | `targetArea` | the floor area (m²) the room should grow to | Entrance 9 · Circulation 9 · Living 36 · Kitchen 18 · Bedroom 18 · Bath 9 · Garden 36 · Stair / landing 9 · Dining 18 · Study 9 · Utility 9 · Roof terrace 9 |
+  | `priority` | growth order, a whole number: 1 grows first | Living 1 · Kitchen 2 · Stair / landing 2 · Bedroom 3 · Bath 4 · Dining 4 · Entrance 5 · Circulation 6 · Garden 8 · Study 9 · Roof terrace 10 · Utility 11 |
 
   To change one room, select it and set the value in **Properties**. The other rooms keep their Function's default.
 - **One transform**, *Grow to target area* (`algorithms/grow-to-target-area.ts`), with one optional parameter, `houses`. Transform shows it as **Houses** with a one-line description: both come from the parameter's `label` and `description`.
@@ -18,7 +18,7 @@ The reference toolkit of Spatial Graph Lab. Don't edit this folder: copy it to m
   - `designs/house.json`, **House**: the two-storey example house, every room one cell to start with, ready for *Grow to target area*. It is the toolkit's `defaultDesign`: `npm run check:toolkit` runs the transform on it, and a new project takes its Building settings.
   - `designs/showcase.json`, **House showcase**: a finished two-storey house that shows what the app can do (see *The showcase* below).
   - `designs/garden-house.json`, **Garden House — developed example**: a developed two-storey garden house with a central stair (see *The garden house* below).
-- **Twelve Function colours**, declared in each `functions/*.ts` (`colour`): Entrance violet `#8e6bb8`, Living amber `#e8a33d`, Kitchen terracotta `#d4623b`, Bedroom blue `#4f7cc0`, Bath aqua `#3fa9b5`, Circulation stone grey `#9b9a8f`, Garden green `#4f8f3a`, Circulation / stair slate `#56606e`, Dining raspberry `#c2477d`, Study brown `#8b5e3c`, Utility olive `#8a8d2e`, Roof terrace mint `#7cc9a6`. A project can change them in the Functions dialog.
+- **Twelve Function colours**, declared in each `functions/*.ts` (`colour`): Entrance violet `#8e6bb8`, Living amber `#e8a33d`, Kitchen terracotta `#d4623b`, Bedroom blue `#4f7cc0`, Bath aqua `#3fa9b5`, Circulation stone grey `#9b9a8f`, Garden green `#4f8f3a`, Stair / landing slate `#56606e`, Dining raspberry `#c2477d`, Study brown `#8b5e3c`, Utility olive `#8a8d2e`, Roof terrace mint `#7cc9a6`. A project can change them in the Functions dialog.
 - **One façade file**, `assets/facade-ex1.3dm` (12.5 MB; a 3 × 3 m bay with arched openings), used by the showcase's bedrooms and by the garden house's Living and Dining.
 
 **Create project with this toolkit** gives you an **empty graph** that already has the two custom attributes (Target area and Priority, tagged `Toolkit: House`, with each Function's defaults), so you can draw your own house and grow it. To work on one of the designs, choose **Open example…** (Welcome or Project) and pick it: it opens as a new project with this toolkit, its attributes, its Building Designer settings and the façade it uses.
@@ -36,8 +36,8 @@ The reference toolkit of Spatial Graph Lab. Don't edit this folder: copy it to m
 
 `designs/garden-house.json` has fourteen rooms on two storeys around a central stair, with fourteen relationships; every related pair shares a wall or a floor, so it has no corridors:
 
-- **Ground floor:** a sheltered Entrance 1 (open walls, pergola roof), opening onto the stair hall (Circulation / stair 2). From the hall: Living 2 × 2 (3, 36 m²), Kitchen 5 (18 m²) and Bath 6. Dining 4 (18 m²) is open to the living room and the kitchen, and opens onto Garden 7 (2 × 2 cells, 36 m², open walls, no roof). Utility 14 is reached through the kitchen.
-- **Upper floor:** the landing (Circulation / stair 8, 18 m², reached from the hall by a vertical Access relationship) serves two Bedrooms 9 and 10 over the living room, Bath 11, Study 12 and Roof terrace 13 above the kitchen (open walls, no roof).
+- **Ground floor:** a sheltered Entrance 1 (open walls, pergola roof), opening onto the stair hall (Stair / landing 2). From the hall: Living 2 × 2 (3, 36 m²), Kitchen 5 (18 m²) and Bath 6. Dining 4 (18 m²) is open to the living room and the kitchen, and opens onto Garden 7 (2 × 2 cells, 36 m², open walls, no roof). Utility 14 is reached through the kitchen.
+- **Upper floor:** the landing (Stair / landing 8, 18 m², reached from the hall by a vertical Access relationship) serves two Bedrooms 9 and 10 over the living room, Bath 11, Study 12 and Roof terrace 13 above the kitchen (open walls, no roof).
 - **Looks by Function:** Living and Dining use the imported façade `facade-ex1` (Repeat); Bedroom 28 % and Kitchen 30 % stretched windows; Study 40 %; Bath and Utility 10 %; Entrance a pergola porch; Garden and Roof terrace open to the sky.
 
 Every room is already at its target area, so *Grow to target area* grows nothing here: raise a room's `targetArea` to see it grow.
