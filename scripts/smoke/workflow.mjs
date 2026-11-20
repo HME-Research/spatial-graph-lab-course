@@ -147,7 +147,7 @@ await runScript({ name: 'workflow', usage: USAGE, url: 'http://localhost:5181/',
     await s.waitFor(`__sgl.undoTitle() !== ${JSON.stringify(before)}`, 10_000, 'the card change to be recorded');
     await record();
     const summary = await s.waitFor(`(() => { const t = document.querySelector('${card} .sgl-designer-summary')?.textContent ?? ''; return /Pergola/i.test(t) && t; })()`, 10_000, 'the card summary');
-    const note = await s.evaluate(`document.querySelector('${card}').innerText.split('\\n').find((l) => /own walls or roof/.test(l)) ?? ''`);
+    const note = await s.evaluate(`document.querySelector('${card}').innerText.split('\\n').find((l) => /sets? (its|their) own walls/.test(l)) ?? ''`);
     expect(/1 relationship sets its own/.test(note), `card note: ${note}`);
     // The per-edge override still wins: Properties says the corridor has no roof.
     await selectEdge(s, newEdge);
