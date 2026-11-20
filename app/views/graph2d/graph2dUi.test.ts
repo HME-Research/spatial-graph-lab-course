@@ -332,7 +332,7 @@ describe('context menu items', () => {
   it('node menu offers Inspect and Add connection, and nothing for a deleted node', () => {
     const model = v2Model(v2Doc());
     const labels = menuItems(model, { kind: 'node', id: 1 }).map((i) => i.label);
-    expect(labels).toEqual(['Inspect', 'Add connection…', 'Add node next to it', 'Delete node']);
+    expect(labels).toEqual(['Inspect', 'Add connection…', 'Add node next to it', 'Duplicate', 'Delete node']);
     expect(menuItems(model, { kind: 'node', id: 99 })).toEqual([]);
   });
 

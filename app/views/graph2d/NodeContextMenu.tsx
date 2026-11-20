@@ -18,6 +18,8 @@ export type MenuAction =
   | { readonly type: 'inspect'; readonly nodeId: number }
   | { readonly type: 'connect'; readonly nodeId: number }
   | { readonly type: 'add-node'; readonly nearNodeId?: number }
+  /** A copy of the room (function, size, stored values; no relationships) in the closest free place. */
+  | { readonly type: 'duplicate-node'; readonly nodeId: number }
   | { readonly type: 'remove-node'; readonly nodeId: number }
   | { readonly type: 'remove-edge'; readonly edgeId: number }
   | { readonly type: 'set-relationship-kind'; readonly edgeId: number; readonly kind: RelationshipKind }
@@ -55,6 +57,11 @@ export function menuItems(model: DiagramModel, target: MenuTarget): readonly Men
       { label: 'Inspect', action: { type: 'inspect', nodeId: node.id } },
       { label: 'Add connection…', action: { type: 'connect', nodeId: node.id }, title: 'Then click the node to connect to' },
       { label: 'Add node next to it', action: { type: 'add-node', nearNodeId: node.id } },
+      {
+        label: 'Duplicate',
+        action: { type: 'duplicate-node', nodeId: node.id },
+        title: 'Same function, size and values in the closest free place; relationships are not copied (Ctrl+D)',
+      },
       { label: 'Delete node', action: { type: 'remove-node', nodeId: node.id }, separated: true, title: 'Also deletes its relationships' },
     ];
   }
