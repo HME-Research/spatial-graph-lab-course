@@ -286,8 +286,9 @@ describe('DataView', () => {
     const table = render(NO_SELECTION, 'table').html;
     for (const title of ['Identity', 'Required', 'Geometry', 'Custom', 'Calculated, not saved']) expect(table).toContain(`>${title}`);
     expect(table).toMatch(/colSpan="3"[^>]*data-attribute="position"[^>]*>Position</);
-    expect(table).toMatch(/data-column="position.z"[^>]*>z \(Level\)/);
-    expect(table).toMatch(/data-column="size.z"[^>]*>z \(Floors\)/);
+    // Wrapped like a spreadsheet header: the part in brackets on its own line.
+    expect(table).toMatch(/data-column="position.z"[^>]*>z<span class="sgl-dataview-head-sub">\(Level\)<\/span>/);
+    expect(table).toMatch(/data-column="size.z"[^>]*>z<span class="sgl-dataview-head-sub">\(Floors\)<\/span>/);
     expect(table).toContain('sgl-dataview-lock');
     expect(table).toContain('data-origin="default"');
     expect(table).toContain('from type');

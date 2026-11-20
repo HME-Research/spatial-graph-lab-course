@@ -380,7 +380,9 @@
 
 /* Source tag in a custom column header (`Toolkit: <name>` / `Yours`). */
 .sgl-dataview-tag {
-  margin-left: 6px;
+  display: block;
+  width: fit-content;
+  margin-top: 2px;
   font-weight: 400;
 }
 
@@ -423,4 +425,23 @@
 .sgl-dataview-col-resize:focus-visible {
   background: var(--accent-line, rgba(44, 93, 143, 0.35));
   outline: none;
+}
+
+/*
+ * Spreadsheet look (owner 2026-11-20): gridlines between every column, and wrapped headings (a part
+ * in brackets and the source tag on their own lines) so columns are no wider than their values need.
+ */
+.sgl-dataview-table th,
+.sgl-dataview-table td {
+  border-right: 1px solid var(--line);
+}
+.sgl-dataview-columns th {
+  white-space: normal;
+  vertical-align: bottom;
+  line-height: 1.25;
+}
+.sgl-dataview-head-sub {
+  display: block;
+  color: var(--muted);
+  font-weight: 400;
 }

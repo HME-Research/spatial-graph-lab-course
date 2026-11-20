@@ -22,7 +22,7 @@ import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
 import { useEnabledMetrics } from '../three/enabledMetrics';
 import { DataCellEditorContext, type CellEditorProps, type CellMove } from './cellEditing';
-import { clampColumnWidth, columnWidthCss, keyboardColumnWidth, withColumnWidth, type ColumnWidths } from './columnWidths';
+import { clampColumnWidth, columnWidthCss, headingLines, keyboardColumnWidth, withColumnWidth, type ColumnWidths } from './columnWidths';
 import { attributeHeadings, columnGroups, edgeTable, nodeTable, type DataCell, type DataColumn, type DataRow, type DataTable, type StoredSectionId } from './dataModel';
 import { edgeEmphasis, nodeEmphasis, revealIn, revealSideways, selectionOf, type RowEmphasis } from './dataSelection';
 import { JsonPane } from './JsonPane';
@@ -458,10 +458,13 @@ function ColumnHeading({
   readonly width: number | undefined;
   readonly onWidth: (columnId: string, width: number | null) => void;
 }) {
+  // Wrapped like a spreadsheet header: "z (Level)" → "z" / "(Level)", so the column can be narrower.
+  const [main, sub] = headingLines(c.label);
   return (
     <th scope="col" rowSpan={rowSpan > 1 ? rowSpan : undefined} data-section={c.section} data-column={c.id} title={c.title} className={cellClass(c, starts)}>
-      {c.label}
+      {main}
       {!c.editable && <LockIcon />}
+      {sub !== null && <span className="sgl-dataview-head-sub">{sub}</span>}
       {/* The shared `.sgl-source-tag` style of app/ui/SourceTag (views may not import the shell's component). */}
       {c.tag !== undefined && (
         <span className="sgl-source-tag sgl-dataview-tag" title={c.tag === 'Yours' ? 'Added in this project: you can delete it in Attributes.' : 'Comes from the toolkit: it cannot be deleted.'}>

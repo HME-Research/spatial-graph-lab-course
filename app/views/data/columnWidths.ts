@@ -42,3 +42,13 @@ export function columnWidthCss(scope: string, widths: ColumnWidths): string {
     })
     .join('\n');
 }
+
+/**
+ * A column heading on two lines (owner 2026-11-20: narrower columns by default, like a spreadsheet's
+ * wrapped header): a trailing part in brackets goes on its own line, e.g. "z (Level)" → "z" /
+ * "(Level)", "Target area (m²)" → "Target area" / "(m²)". Labels without one stay on one line.
+ */
+export function headingLines(label: string): readonly [string, string | null] {
+  const match = /^(.*\S)\s+(\([^()]*\))$/.exec(label);
+  return match ? [match[1]!, match[2]!] : [label, null];
+}

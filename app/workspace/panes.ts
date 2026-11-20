@@ -16,7 +16,12 @@ export const PANE_STORAGE_KEYS = {
   leftWidth: 'sgl:ui:left-width',
   leftCollapsed: 'sgl:ui:left-collapsed',
   rightCollapsed: 'sgl:ui:right-collapsed',
+  rightWidth: 'sgl:ui:right-width',
 } as const;
+
+/** Properties pane width limits (owner 2026-11-20: resizable like the left pane). */
+export const RIGHT_WIDTH_MIN = 240;
+export const RIGHT_WIDTH_MAX = 640;
 
 /** The part of `Storage` the panes use. */
 export interface PaneStorage {
@@ -82,6 +87,42 @@ export function readLeftWidth(storage: PaneStorage | null): number {
 
 export function writeLeftWidth(storage: PaneStorage | null, width: number): void {
   safeSet(storage, PANE_STORAGE_KEYS.leftWidth, String(clampLeftWidth(width)));
+}
+
+/** Properties pane width clamped to [MIN, MAX] and rounded (not finite: the minimum). */
+export function clampRightWidth(width: number): number {
+  if (!Number.isFinite(width)) return RIGHT_WIDTH_MIN;
+  return Math.min(RIGHT_WIDTH_MAX, Math.max(RIGHT_WIDTH_MIN, Math.round(width)));
+}
+
+/**
+ * New Properties width for a key on its handle (on the pane's LEFT edge, so ArrowLeft widens it), or
+ * null for keys it does not handle.
+ */
+export function keyboardRightResize(width: number, key: string): number | null {
+  switch (key) {
+    case 'ArrowLeft':
+      return clampRightWidth(width + LEFT_WIDTH_STEP);
+    case 'ArrowRight':
+      return clampRightWidth(width - LEFT_WIDTH_STEP);
+    case 'Home':
+      return RIGHT_WIDTH_MIN;
+    case 'End':
+      return RIGHT_WIDTH_MAX;
+    default:
+      return null;
+  }
+}
+
+/** The remembered Properties width (clamped), or null when never set: the stylesheet's default applies. */
+export function readRightWidth(storage: PaneStorage | null): number | null {
+  const raw = safeGet(storage, PANE_STORAGE_KEYS.rightWidth);
+  if (raw === null || raw.trim() === '' || !Number.isFinite(Number(raw))) return null;
+  return clampRightWidth(Number(raw));
+}
+
+export function writeRightWidth(storage: PaneStorage | null, width: number): void {
+  safeSet(storage, PANE_STORAGE_KEYS.rightWidth, String(clampRightWidth(width)));
 }
 
 /** A remembered explicit choice: true / false, or null when never chosen (or unreadable). */

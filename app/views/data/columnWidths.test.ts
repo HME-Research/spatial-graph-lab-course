@@ -33,3 +33,15 @@ describe('Data table column widths', () => {
     );
   });
 });
+
+describe('Data table headings', () => {
+  it('put a trailing part in brackets on its own line', async () => {
+    const { headingLines } = await import('./columnWidths');
+    expect(headingLines('z (Level)')).toEqual(['z', '(Level)']);
+    expect(headingLines('z (Floors)')).toEqual(['z', '(Floors)']);
+    expect(headingLines('Target area (m²)')).toEqual(['Target area', '(m²)']);
+    expect(headingLines('Function')).toEqual(['Function', null]);
+    expect(headingLines('(only brackets)')).toEqual(['(only brackets)', null]);
+    expect(headingLines('a (b) c')).toEqual(['a (b) c', null]);
+  });
+});

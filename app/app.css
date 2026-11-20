@@ -391,6 +391,28 @@ main {
   z-index: 2;
 }
 
+.right-pane {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The Properties pane's separator, in the gap on its LEFT edge (2026-11-20). */
+.right-pane-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--gap));
+  width: var(--gap);
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 2;
+}
+
+.right-pane-resize:hover,
+.right-pane-resize:focus-visible,
 .left-pane-resize:hover,
 .left-pane-resize:focus-visible {
   background: var(--accent-line);
@@ -560,7 +582,8 @@ main {
     grid-template-rows: none;
   }
 
-  .viewport-divider {
+  .viewport-divider,
+  .right-pane-resize {
     display: none;
   }
 

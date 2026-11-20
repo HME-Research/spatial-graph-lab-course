@@ -11,7 +11,19 @@ import { ViewportCameraContext, type ViewportCamera } from '@app/views/viewportC
 import { ViewportDisplay } from '@app/display/DisplayProvider';
 import { ChevronIcon, PROPERTIES_DESCRIPTION, PROPERTIES_LABEL, PropertiesIcon, SidebarNav, VIEW_CAPTIONS, ViewModeSelect, type SidebarSection } from '@app/ui';
 import { DESTINATIONS } from '@app/workspace/destinations';
-import { browserPaneStorage, clampLeftWidth, keyboardResize, LEFT_WIDTH_MAX, LEFT_WIDTH_MIN } from '@app/workspace/panes';
+import {
+  browserPaneStorage,
+  clampLeftWidth,
+  clampRightWidth,
+  keyboardResize,
+  keyboardRightResize,
+  LEFT_WIDTH_MAX,
+  LEFT_WIDTH_MIN,
+  readRightWidth,
+  RIGHT_WIDTH_MAX,
+  RIGHT_WIDTH_MIN,
+  writeRightWidth,
+} from '@app/workspace/panes';
 import { keyboardSplit, readViewportSplit, splitFromPointer, splitStyle, writeViewportSplit, type ViewportSplit } from '@app/workspace/viewportSplit';
 import { WorkspaceServicesContext } from '@app/workspace/services';
 import {
@@ -127,10 +139,17 @@ export function Workspace({
     if (done) writeViewportSplit(browserPaneStorage(), next);
   };
   const showDividers = viewports.layout !== 1 && viewports.maximised === null;
+  // The Properties pane is resizable too (owner 2026-11-20); null = the stylesheet's default width.
+  const [rightWidth, setRightWidth] = useState<number | null>(() => readRightWidth(browserPaneStorage()));
+  const changeRightWidth = (width: number, done: boolean) => {
+    setRightWidth(width);
+    if (done) writeRightWidth(browserPaneStorage(), width);
+  };
+  const workspaceStyle = { '--left-width': `${leftWidth}px`, ...(rightWidth !== null && { '--right-width': `${rightWidth}px` }) } as CSSProperties;
 
   return (
     <AnalysisOverlayContext.Provider value={analysis}>
-      <section className={className} aria-label="Workspace" style={{ '--left-width': `${leftWidth}px` } as CSSProperties}>
+      <section className={className} aria-label="Workspace" style={workspaceStyle}>
         <div className="left-pane">
           <SidebarNav
             side="left"
@@ -201,6 +220,8 @@ export function Workspace({
           <div className="panels panels-empty">{empty ?? <p className="meta">No design is open.</p>}</div>
         )}
 
+        <div className="right-pane">
+        {!rightCollapsed && <RightResizeHandle width={rightWidth} onWidth={changeRightWidth} />}
         <SidebarNav
           side="right"
           label="Properties"
@@ -218,8 +239,64 @@ export function Workspace({
             },
           ]}
         />
+        </div>
       </section>
     </AnalysisOverlayContext.Provider>
+  );
+}
+
+/**
+ * Vertical separator on the LEFT edge of the open Properties pane (owner 2026-11-20): drag or use the
+ * arrow keys (ArrowLeft widens it). `width` null = the stylesheet's default, read from the pane itself.
+ */
+function RightResizeHandle({ width, onWidth }: { readonly width: number | null; readonly onWidth: (width: number, done: boolean) => void }) {
+  const drag = useRef<{ readonly startX: number; readonly startWidth: number; last: number } | null>(null);
+  const current = (el: HTMLElement) => width ?? el.parentElement?.getBoundingClientRect().width ?? RIGHT_WIDTH_MIN;
+  const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const start = current(event.currentTarget);
+    drag.current = { startX: event.clientX, startWidth: start, last: start };
+  };
+  const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const next = clampRightWidth(d.startWidth - (event.clientX - d.startX));
+    if (next === d.last) return;
+    d.last = next;
+    onWidth(next, false);
+  };
+  const end = () => {
+    const d = drag.current;
+    if (!d) return;
+    drag.current = null;
+    onWidth(d.last, true);
+  };
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const next = keyboardRightResize(current(event.currentTarget), event.key);
+    if (next === null) return;
+    event.preventDefault();
+    onWidth(next, true);
+  };
+  return (
+    <div
+      className="right-pane-resize"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize Properties"
+      {...(width !== null && { 'aria-valuenow': width })}
+      aria-valuemin={RIGHT_WIDTH_MIN}
+      aria-valuemax={RIGHT_WIDTH_MAX}
+      title="Drag (or use the arrow keys) to resize"
+      tabIndex={0}
+      data-right-resize=""
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={end}
+      onPointerCancel={end}
+      onKeyDown={onKeyDown}
+    />
   );
 }
 
