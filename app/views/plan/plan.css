@@ -64,17 +64,39 @@
   fill-opacity: 0.22;
 }
 
-/* Generated connector cells (routed relationships). */
-.sgl-plan-route {
+/* Generated connector cells (routed relationships): the reserved cell, faint and dashed, and the
+   corridor as built in it (its width, centred on the route axis). */
+.sgl-plan-route rect {
+  vector-effect: non-scaling-stroke;
+}
+.sgl-plan-route-cell {
   fill: #e4e1da;
+  fill-opacity: 0.35;
   stroke: var(--sgl-plan-muted);
   stroke-width: 1px;
   stroke-dasharray: 4 3;
-  vector-effect: non-scaling-stroke;
+  stroke-opacity: 0.6;
 }
-.sgl-plan-route.selected {
+.sgl-plan-route-corridor {
+  fill: #d9d4c8;
+  stroke: var(--sgl-plan-muted);
+  stroke-width: 1px;
+}
+.sgl-plan-route:focus-visible {
+  outline: none;
+}
+.sgl-plan-route:focus-visible .sgl-plan-route-corridor {
+  stroke: var(--sgl-plan-selection);
+  stroke-width: 2px;
+}
+.sgl-plan-route.selected .sgl-plan-route-cell {
   fill: var(--sgl-plan-selection);
-  fill-opacity: 0.25;
+  fill-opacity: 0.08;
+  stroke: var(--sgl-plan-selection);
+}
+.sgl-plan-route.selected .sgl-plan-route-corridor {
+  fill: var(--sgl-plan-selection);
+  fill-opacity: 0.3;
   stroke: var(--sgl-plan-selection);
 }
 
@@ -251,9 +273,12 @@ rect.sgl-plan-slab.access-marker.selected {
   fill: var(--sgl-plan-analysis);
   fill-opacity: 0.35;
 }
-.sgl-plan-route.analysed {
+.sgl-plan-route.analysed .sgl-plan-route-corridor {
   fill: var(--sgl-plan-analysis);
   fill-opacity: 0.3;
+  stroke: var(--sgl-plan-analysis);
+}
+.sgl-plan-route.analysed .sgl-plan-route-cell {
   stroke: var(--sgl-plan-analysis);
 }
 .sgl-plan-opening.analysed path,

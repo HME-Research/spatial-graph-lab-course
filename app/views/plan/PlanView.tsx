@@ -387,15 +387,19 @@ export function PlanDrawing({
   return (
     <>
       <g className="sgl-plan-routes">
+        {/* Each connector cell: the reserved cell, faint and dashed, and the corridor as built in it
+            (its resolved width, centred on the route axis). Either part selects the relationship. */}
         {plan.routeCells.map((r) => (
-          <rect
+          <g
             key={`${r.edgeId}:${r.cell.join(',')}`}
             className={edgeClass('sgl-plan-route', r.edgeId)}
             data-edge-id={r.edgeId}
-            {...rectProps(r.rect)}
             {...activate(selectEdge(r.edgeId))}
             aria-label={`Connector of relationship ${r.edgeId}`}
-          />
+          >
+            <rect className="sgl-plan-route-cell" {...rectProps(r.rect)} />
+            <rect className="sgl-plan-route-corridor" {...rectProps(r.corridor)} />
+          </g>
         ))}
       </g>
 

@@ -25,7 +25,8 @@ import type { BuildingFace } from './multicellFaces';
  * - Slab marks: openings of the storey's FLOOR slab (`position: 'floor'`) and of its CEILING slab
  *   (`position: 'ceiling'`, drawn as "above" by convention).
  * - Rooms: every room that spans this storey (a multi-storey room appears on each storey).
- * - Route cells: generated connector cells on this storey (they select their relationship).
+ * - Route cells: generated connector cells on this storey (they select their relationship): the
+ *   reserved cell and the corridor as built in it, at its resolved width, centred on the route axis.
  *
  * Unresolved relationships build no face condition, so they never appear as openings.
  */
@@ -98,7 +99,22 @@ export interface PlanSlabMark {
 export interface PlanRouteCell {
   readonly edgeId: number;
   readonly cell: GridCoord;
+  /** The whole reserved cell (occupancy). */
   readonly rect: PlanRect;
+  /**
+   * The corridor as built in this cell (2026-11-20): its resolved width (at most the cell), centred
+   * on the route axis, the cell's full length along it. `= rect` when the width is unknown or a full cell.
+   */
+  readonly corridor: PlanRect;
+}
+
+/** A connector cell as the Plan source gives it: its route's axis and built width, when known. */
+export interface PlanRouteCellSource {
+  readonly cell: GridCoord;
+  readonly edgeId: number;
+  readonly axis?: 'x' | 'y';
+  /** Resolved corridor width in metres (`route.look.width`: relationship → Corridors card → built-in). */
+  readonly width?: number;
 }
 
 /**
@@ -132,7 +148,7 @@ export interface PlanModel {
 export interface PlanSource {
   readonly layouts: readonly FaceLayout<BuildingFace>[];
   readonly rooms: readonly Pick<RoomNode, 'id' | 'position' | 'size' | 'function'>[];
-  readonly routeCells?: readonly { readonly cell: GridCoord; readonly edgeId: number }[];
+  readonly routeCells?: readonly PlanRouteCellSource[];
 }
 
 export interface PlanOptions {
@@ -167,7 +183,7 @@ export function planSourceV2(doc: DesignDocumentV2, spatial: SpatialResolution, 
     ...(options.cell ? { cell: options.cell } : {}),
     ...(options.wallThickness !== undefined ? { wallThickness: options.wallThickness } : {}),
   });
-  const routeCells: { cell: GridCoord; edgeId: number }[] = [];
+  const routeCells: PlanRouteCellSource[] = [];
   const seen = new Set<string>();
   for (const r of spatial.edges) {
     if (r.status !== 'routed') continue;
@@ -176,7 +192,8 @@ export function planSourceV2(doc: DesignDocumentV2, spatial: SpatialResolution, 
       // Only cells actually reserved for this route (the same rule the Building's connectors use).
       if (occupant?.kind !== 'route' || occupant.edgeId !== r.edgeId || seen.has(gridKey(cell))) continue;
       seen.add(gridKey(cell));
-      routeCells.push({ cell, edgeId: r.edgeId });
+      // The width the Building builds (`route.look.width`), so the Plan draws the same corridor.
+      routeCells.push({ cell, edgeId: r.edgeId, axis: r.route.axis, width: r.route.look.width });
     }
   }
   return { layouts, rooms: doc.nodes, routeCells };
@@ -205,6 +222,21 @@ function boxRect(min: GridCoord, size: readonly [number, number], cell: CellSize
   const a = spatialToThree([min[0] - 0.5, min[1] - 0.5, min[2]], cell);
   const b = spatialToThree([min[0] + size[0] - 0.5, min[1] + size[1] - 0.5, min[2]], cell);
   return rectOf(a[0], b[0], a[2], b[2]);
+}
+
+/**
+ * The built corridor within a reserved route cell `rect`: as wide as the corridor (at most the
+ * cell), centred across the route axis (grid x = plan x; grid y = plan y), full length along it.
+ */
+function corridorRect(rect: PlanRect, route: Pick<PlanRouteCellSource, 'axis' | 'width'>, cell: CellSize): PlanRect {
+  if (route.axis === undefined || route.width === undefined || !(route.width < cell.horizontal - EPS)) return rect;
+  const half = Math.max(route.width, 0) / 2;
+  if (route.axis === 'x') {
+    const mid = (rect.y0 + rect.y1) / 2;
+    return { ...rect, y0: mid - half, y1: mid + half };
+  }
+  const mid = (rect.x0 + rect.x1) / 2;
+  return { ...rect, x0: mid - half, x1: mid + half };
 }
 
 /** Plan axis (0 = x, 1 = y) of a horizontal world axis (0 = X, 2 = Z). */
@@ -342,7 +374,10 @@ export function buildPlan(source: PlanSource, level: number, cutHeight: number =
 
   const routeCells: PlanRouteCell[] = (source.routeCells ?? [])
     .filter((r) => r.cell[2] === level)
-    .map((r) => ({ edgeId: r.edgeId, cell: r.cell, rect: boxRect(r.cell, [1, 1], cell) }));
+    .map((r) => {
+      const rect = boxRect(r.cell, [1, 1], cell);
+      return { edgeId: r.edgeId, cell: r.cell, rect, corridor: corridorRect(rect, r, cell) };
+    });
 
   const bounds = union([...rooms.map((r) => r.rect), ...walls.map((w) => w.rect), ...routeCells.map((r) => r.rect)]);
   return { level, cutHeight: cut, rooms, walls, openings, slabs, routeCells, wallTargets, bounds };
