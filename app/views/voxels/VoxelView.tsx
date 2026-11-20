@@ -17,7 +17,8 @@ import { ColorBySelect, Legend } from '../three/SpatialControls';
 import { cellBounds, framingFor, includeBoxes } from '../three/sceneModel';
 import { LevelFilterSelect, useLevelFilter } from '../three/LevelFilterSelect';
 import { hiddenSelectionNote, isCellShown, levelFilterLabel, levelRange, roomsOnLevels, storeysOf } from '../three/levelFilter';
-import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
+import { RoomEditGizmo, RoomEditPanel, RoomKeyScope, useRoomEditing } from '../three/editing';
+import { ROOM_KEYS_HELP_3D, ROOM_KEYS_SHORT } from '../three/editing/roomKeys';
 import { useAnalysisOverlay } from '../analysisOverlay';
 import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
 import { analysisNodeStyle, isAnalysisEdge } from '../presentation/analysis';
@@ -98,124 +99,128 @@ export function VoxelView({ selection, onSelect, design, project }: ViewProps) {
   );
 
   return (
-    <SceneCanvas
-      {...viewportCamera}
-      ariaLabel="Voxel view"
-      framing={framing}
-      cameraMemory={camera}
-      fitRequest={s.fitRequest}
-      grid={s.grid}
-      cursor={hovered ? 'pointer' : 'grab'}
-      onBackgroundClick={() => onSelect(NO_SELECTION)}
-      overlay={
-        <>
-          {probe}
-          <ControlBar>
-            {compact ? (
-              <details className="viewer3d-options">
-                <summary title="Colour by and opacity">View options</summary>
-                <div className="viewer3d-options-body">{options}</div>
-              </details>
-            ) : (
-              options
-            )}
-            <LevelFilterSelect levels={s.levels} filter={levelFilter} onChange={setLevelFilter} />
-            <button type="button" onClick={s.refit} title="Frame the shown model again (also after you orbit or zoom)">
-              Fit view
-            </button>
-          </ControlBar>
-          <InfoPanel>
-            <HoverInfo hovered={hovered} design={design} attributeKey={s.colorMode.kind === 'attribute' ? s.colorMode.key : null} />
-            <div className="viewer3d-count">
-              {doc.nodes.length} {design ? 'rooms' : 'cells'}
-              {connectors.length > 0 && ` · ${connectors.length} connector cells`} · {s.levels.length} level{s.levels.length === 1 ? '' : 's'} ·{' '}
-              {s.groups.count} access group{s.groups.count === 1 ? '' : 's'}
-            </div>
-            {range !== null && (
+    <RoomKeyScope editing={editing}>
+      <SceneCanvas
+        {...viewportCamera}
+        ariaLabel="Voxel view"
+        framing={framing}
+        cameraMemory={camera}
+        fitRequest={s.fitRequest}
+        grid={s.grid}
+        cursor={hovered ? 'pointer' : 'grab'}
+        onBackgroundClick={() => onSelect(NO_SELECTION)}
+        overlay={
+          <>
+            {probe}
+            <ControlBar>
+              {compact ? (
+                <details className="viewer3d-options">
+                  <summary title="Colour by and opacity">View options</summary>
+                  <div className="viewer3d-options-body">{options}</div>
+                </details>
+              ) : (
+                options
+              )}
+              <LevelFilterSelect levels={s.levels} filter={levelFilter} onChange={setLevelFilter} />
+              <button type="button" onClick={s.refit} title="Frame the shown model again (also after you orbit or zoom)">
+                Fit view
+              </button>
+            </ControlBar>
+            <InfoPanel>
+              <HoverInfo hovered={hovered} design={design} attributeKey={s.colorMode.kind === 'attribute' ? s.colorMode.key : null} />
               <div className="viewer3d-count">
-                Showing {nodeItems.length} of {doc.nodes.length} rooms · {levelFilterLabel(levelFilter)}
+                {doc.nodes.length} {design ? 'rooms' : 'cells'}
+                {connectors.length > 0 && ` · ${connectors.length} connector cells`} · {s.levels.length} level{s.levels.length === 1 ? '' : 's'} ·{' '}
+                {s.groups.count} access group{s.groups.count === 1 ? '' : 's'}
+              </div>
+              {range !== null && (
+                <div className="viewer3d-count">
+                  Showing {nodeItems.length} of {doc.nodes.length} rooms · {levelFilterLabel(levelFilter)}
+                </div>
+              )}
+              {hiddenNote && <div role="status" className="viewer3d-count">{hiddenNote}</div>}
+            </InfoPanel>
+            <RoomEditPanel editing={editing} />
+            <Legend coloring={s.coloring} open={legendOpen} onOpenChange={setLegendOpen}>
+              {s.emphasis.secondaryNodes.size > 0 && <div className="viewer3d-count">Selected edge: endpoints outlined</div>}
+              {analysis && <div className="viewer3d-count">Fill: analysis “{analysis.title}”{analysis.stale ? ' (out of date)' : ''}</div>}
+              {design && <ViewRelationshipLegend view="voxels" design={design} />}
+            </Legend>
+            {doc.nodes.length === 0 ? (
+              <div className="viewer3d-empty">No nodes in this design.</div>
+            ) : editing.active && compact ? null : (
+              // Narrow panel while editing: the room editor already shows the snap and Esc hints.
+              <div className={editing.active ? 'viewer3d-hint beside-edit' : 'viewer3d-hint'} title={editing.active ? ROOM_KEYS_HELP_3D : undefined}>
+                {editing.active ? `${NAVIGATION_HINT} · ${ROOM_KEYS_SHORT}` : NAVIGATION_HINT}
               </div>
             )}
-            {hiddenNote && <div role="status" className="viewer3d-count">{hiddenNote}</div>}
-          </InfoPanel>
-          <RoomEditPanel editing={editing} />
-          <Legend coloring={s.coloring} open={legendOpen} onOpenChange={setLegendOpen}>
-            {s.emphasis.secondaryNodes.size > 0 && <div className="viewer3d-count">Selected edge: endpoints outlined</div>}
-            {analysis && <div className="viewer3d-count">Fill: analysis “{analysis.title}”{analysis.stale ? ' (out of date)' : ''}</div>}
-            {design && <ViewRelationshipLegend view="voxels" design={design} />}
-          </Legend>
-          {doc.nodes.length === 0 ? (
-            <div className="viewer3d-empty">No nodes in this design.</div>
-          ) : editing.active && compact ? null : (
-            // Narrow panel while editing: the room editor already shows the snap and Esc hints.
-            <div className={editing.active ? 'viewer3d-hint beside-edit' : 'viewer3d-hint'}>{NAVIGATION_HINT}</div>
-          )}
-        </>
-      }
-    >
-      <LevelLabels levels={shownLevels} bounds={shownBounds} levelCentreY={(l) => spatialToThree([0, 0, l])[1]} />
-      {nodeItems.map((n) => {
-        const primary = s.emphasis.primaryNodes.has(n.id);
-        const secondary = s.emphasis.secondaryNodes.has(n.id);
-        const emphasised = primary || secondary;
-        const isHovered = hovered?.kind === 'node' && hovered.id === n.id;
-        const missing = s.coloring.missing.has(n.id);
-        const overlay = analysisNodeStyle(n.id, analysis, selection);
-        const color = overlay.fill ?? s.coloring.colorOf.get(n.id)!;
-        const dimmed = editingId === n.id; // the gizmo's preview box carries the edit
-        const base = overlay.fill ? Math.max(opacity, overlay.fillOpacity * 0.8) : opacity;
-        const fill = dimmed ? 0.04 : primary ? Math.max(base, 0.65) : missing ? base * 0.55 : base;
-        const scale: [number, number, number] = [n.extent[0] - GAP, n.extent[1] - GAP, n.extent[2] - GAP];
-        return (
-          <group key={n.id} position={[...n.position]}>
-            <mesh geometry={geo.box} scale={scale} {...pickHandlers('node', n.id, onSelect, s.setHovered)}>
-              <meshLambertMaterial
-                color={primary ? SELECTION_COLOR : color}
-                transparent
-                opacity={isHovered && !primary ? Math.min(1, fill + 0.15) : fill}
-                depthWrite={false}
-              />
-            </mesh>
-            {missing ? (
-              <lineSegments geometry={geo.edges} scale={scale} onUpdate={(l) => l.computeLineDistances()}>
-                <lineDashedMaterial color="#5c5c55" dashSize={0.25} gapSize={0.18} transparent opacity={0.8} depthWrite={false} />
-              </lineSegments>
-            ) : (
-              <lineSegments geometry={geo.edges} scale={scale}>
-                <lineBasicMaterial color={color} transparent opacity={0.85} depthWrite={false} />
-              </lineSegments>
-            )}
-            {emphasised && (
-              // Drawn on top of everything so a selected room inside a cluster stays visible.
-              <lineSegments geometry={geo.edges} scale={[scale[0] * 1.02, scale[1] * 1.02, scale[2] * 1.02]} renderOrder={10}>
-                <lineBasicMaterial color={SELECTION_COLOR} depthTest={false} transparent opacity={primary ? 1 : 0.7} />
-              </lineSegments>
-            )}
-          </group>
-        );
-      })}
-      {design && (
-        <ConnectorCells cells={connectors} selection={selection} onSelect={onSelect} setHovered={s.setHovered} hoveredEdge={hoveredEdge} />
-      )}
-      {unresolved.map((e) => {
-        const line = lineOf(design, e.id);
-        if (!line) return null;
-        return (
-          <RelationshipTube
-            key={e.id}
-            item={e}
-            line={line}
-            geometry={tube}
-            selected={s.emphasis.edges.has(e.id)}
-            analysed={isAnalysisEdge(analysis, e.id)}
-            hovered={hoveredEdge === e.id}
-            ghost={false}
-            handlers={pickHandlers('edge', e.id, onSelect, s.setHovered)}
-          />
-        );
-      })}
-      <RoomEditGizmo editing={editing} />
-    </SceneCanvas>
+          </>
+        }
+      >
+        <LevelLabels levels={shownLevels} bounds={shownBounds} levelCentreY={(l) => spatialToThree([0, 0, l])[1]} />
+        {nodeItems.map((n) => {
+          const primary = s.emphasis.primaryNodes.has(n.id);
+          const secondary = s.emphasis.secondaryNodes.has(n.id);
+          const emphasised = primary || secondary;
+          const isHovered = hovered?.kind === 'node' && hovered.id === n.id;
+          const missing = s.coloring.missing.has(n.id);
+          const overlay = analysisNodeStyle(n.id, analysis, selection);
+          const color = overlay.fill ?? s.coloring.colorOf.get(n.id)!;
+          const dimmed = editingId === n.id; // the gizmo's preview box carries the edit
+          const base = overlay.fill ? Math.max(opacity, overlay.fillOpacity * 0.8) : opacity;
+          const fill = dimmed ? 0.04 : primary ? Math.max(base, 0.65) : missing ? base * 0.55 : base;
+          const scale: [number, number, number] = [n.extent[0] - GAP, n.extent[1] - GAP, n.extent[2] - GAP];
+          return (
+            <group key={n.id} position={[...n.position]}>
+              <mesh geometry={geo.box} scale={scale} {...pickHandlers('node', n.id, onSelect, s.setHovered)}>
+                <meshLambertMaterial
+                  color={primary ? SELECTION_COLOR : color}
+                  transparent
+                  opacity={isHovered && !primary ? Math.min(1, fill + 0.15) : fill}
+                  depthWrite={false}
+                />
+              </mesh>
+              {missing ? (
+                <lineSegments geometry={geo.edges} scale={scale} onUpdate={(l) => l.computeLineDistances()}>
+                  <lineDashedMaterial color="#5c5c55" dashSize={0.25} gapSize={0.18} transparent opacity={0.8} depthWrite={false} />
+                </lineSegments>
+              ) : (
+                <lineSegments geometry={geo.edges} scale={scale}>
+                  <lineBasicMaterial color={color} transparent opacity={0.85} depthWrite={false} />
+                </lineSegments>
+              )}
+              {emphasised && (
+                // Drawn on top of everything so a selected room inside a cluster stays visible.
+                <lineSegments geometry={geo.edges} scale={[scale[0] * 1.02, scale[1] * 1.02, scale[2] * 1.02]} renderOrder={10}>
+                  <lineBasicMaterial color={SELECTION_COLOR} depthTest={false} transparent opacity={primary ? 1 : 0.7} />
+                </lineSegments>
+              )}
+            </group>
+          );
+        })}
+        {design && (
+          <ConnectorCells cells={connectors} selection={selection} onSelect={onSelect} setHovered={s.setHovered} hoveredEdge={hoveredEdge} />
+        )}
+        {unresolved.map((e) => {
+          const line = lineOf(design, e.id);
+          if (!line) return null;
+          return (
+            <RelationshipTube
+              key={e.id}
+              item={e}
+              line={line}
+              geometry={tube}
+              selected={s.emphasis.edges.has(e.id)}
+              analysed={isAnalysisEdge(analysis, e.id)}
+              hovered={hoveredEdge === e.id}
+              ghost={false}
+              handlers={pickHandlers('edge', e.id, onSelect, s.setHovered)}
+            />
+          );
+        })}
+        <RoomEditGizmo editing={editing} />
+      </SceneCanvas>
+    </RoomKeyScope>
   );
 }
 

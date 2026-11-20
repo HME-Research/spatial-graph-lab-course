@@ -4,6 +4,7 @@
  */
 export { RoomEditGizmo } from './RoomEditGizmo';
 export { RoomEditPanel } from './RoomEditPanel';
+export { RoomKeyScope } from './RoomKeyScope';
 export { useRoomEditing, type RoomEditing } from './useRoomEditing';
 export * from './roomEditSession';
 export * from './roomGeometry';

@@ -1,5 +1,5 @@
 import type { GizmoAxis, GizmoMode, GizmoSide, GizmoTone } from '@core/viewer/three/gizmoMath';
-import { nodeLabel, type DesignDocumentV2, relationshipLabel } from '@app/document';
+import { MAX_ROOM_SIZE, nodeLabel, type DesignDocumentV2, relationshipLabel } from '@app/document';
 import type { DesignPort, SpatialEditProposal } from '@app/spatial';
 import { applyAxisSteps, formatGrid, formatSize, sameGeometry, type RoomGeometry } from './roomGeometry';
 
@@ -120,13 +120,21 @@ export function cancelEdit(state: RoomEditState): EditStep {
   };
 }
 
-/** Keyboard/button alternative: one whole-cell step as a complete gesture (at most one command). */
-export function nudge(port: DesignPort, nodeId: number, mode: GizmoMode, axis: GizmoAxis, steps: number): EditStep {
-  const started = beginDrag(port, nodeId, mode, axis);
+/**
+ * Keyboard alternative (arrow keys, 2026-11-20): one whole-cell step as a complete gesture (at most
+ * one command, so one Undo step). `side` is the face a resize moves (as for the gizmo's handles).
+ */
+export function nudge(port: DesignPort, nodeId: number, mode: GizmoMode, axis: GizmoAxis, steps: number, side: GizmoSide = 1): EditStep {
+  const started = beginDrag(port, nodeId, mode, axis, side);
   if (started.phase !== 'dragging') return { state: IDLE, feedback: null };
-  const draft = applyAxisSteps(started.start, mode, axis, steps);
+  const draft = applyAxisSteps(started.start, mode, axis, steps, side);
   if (sameGeometry(draft, started.start)) {
-    return { state: IDLE, feedback: mode === 'resize' ? { tone: 'info', text: 'A room is at least 1 cell in every direction.' } : null };
+    if (mode !== 'resize') return { state: IDLE, feedback: null };
+    const grows = steps * side > 0;
+    return {
+      state: IDLE,
+      feedback: { tone: 'info', text: grows ? `A room is at most ${MAX_ROOM_SIZE} cells in every direction.` : 'A room is at least 1 cell in every direction.' },
+    };
   }
   return endDrag(port, { ...started, draft });
 }

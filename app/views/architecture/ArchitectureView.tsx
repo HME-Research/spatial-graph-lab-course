@@ -24,7 +24,8 @@ import { useViewportCamera } from '../viewportCamera';
 import { buildEdgeItems, framingFor, storeyLevels } from '../three/sceneModel';
 import { LevelFilterSelect, useLevelFilter } from '../three/LevelFilterSelect';
 import { hiddenSelectionNote, isCellShown, isFaceShown, levelFilterLabel, levelRange, roomsOnLevels, type LevelFilter } from '../three/levelFilter';
-import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
+import { RoomEditGizmo, RoomEditPanel, RoomKeyScope, useRoomEditing } from '../three/editing';
+import { ROOM_KEYS_HELP_3D, ROOM_KEYS_SHORT } from '../three/editing/roomKeys';
 import { lineOf, RelationshipTube, useUnitCylinder, ViewRelationshipLegend } from '../three/v2Scene';
 import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
 import { presetColour, useRoofsDisplay, useViewDisplay, type SceneDisplay } from '../three/viewDisplay';
@@ -252,100 +253,104 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
   }, [range]);
 
   return (
-    <SceneCanvas
-      {...viewportCamera}
-      ariaLabel="Building view"
-      framing={framing}
-      fitRequest={fitRequest}
-      cameraMemory={camera}
-      grid={grid}
-      cursor={hovered || hoveredEdge ? 'pointer' : 'grab'}
-      onBackgroundClick={() => pick(NO_SELECTION)}
-      lighting={LIGHTING}
-      background="#f4f3ef"
-      flat={false}
-      frameloop="demand"
-      damping={false}
-      overlay={
-        <>
-          <Overlay
-            empty={elements.length === 0}
-            brokenTypes={broken}
-            showRoofs={showRoofs}
-            onToggleRoofs={setShowRoofs}
-            onFit={() => setFitRequest((n) => n + 1)}
-            v2
-            connectors={connectors.length > 0}
-            roofsHiddenByDesigner={roofsHiddenByDesigner}
-            hint={
-              hoverPanel && hoverPanel.kind !== 'unavailable'
-                ? `Wall between ${hoverPanel.rooms[0].label} and ${hoverPanel.rooms[1].label}: click for ${hoverPanel.kind === 'add' ? 'Add relationship' : 'its relationship'}`
-                : NAVIGATION_HINT
-            }
-            hintWall={shownHover}
-            besideEditor={editing.active}
-            design={design}
-            facadeModules={modules.instances.length > 0}
-            missingFacades={modules.missingAssets}
-            levelControl={<LevelFilterSelect levels={levels} filter={levelFilter} onChange={setLevelFilter} />}
-            levelFilter={levelFilter}
-            hiddenSelection={hiddenNote}
-          />
-          <RoomEditPanel editing={editing} />
-        </>
-      }
-    >
-      <Scene
-        elements={visible}
-        connectors={visibleConnectors}
-        selection={selection}
-        pick={pick}
-        setHovered={setHovered}
-        eligibleWalls={eligible}
-        hoveredWall={shownHover}
-        activeWall={activeWall}
-        onWallHover={hoverWall}
-        onWallClick={clickWall}
-      />
-      {shownModules.length > 0 && (
-        <FacadeModules instances={shownModules} assets={library.byId} selection={selection} pick={pick} setHovered={setHovered} />
-      )}
-      <StoreyLabels nodes={shownNodes} bounds={bounds} />
-      {design && activeWall !== null && faces.get(activeWall) && faceShown(activeWall) && (
-        // Pinned beside the clicked wall (follows it when the camera moves), not docked over the view.
-        <WallPanelAnchor face={faces.get(activeWall)!}>
-          <WallActionPanel
-            className="anchored"
-            design={design}
-            faceId={activeWall}
-            faces={faces}
-            onSelect={onSelect}
-            onClose={() => setActiveWall(null)}
-          />
-        </WallPanelAnchor>
-      )}
-      {unresolved.map((e) => {
-        const line = lineOf(design, e.id);
-        if (!line) return null;
-        return (
-          <RelationshipTube
-            key={e.id}
-            item={e}
-            line={line}
-            geometry={tube}
-            selected={selection.kind === 'edge' && selection.id === e.id}
-            analysed={isAnalysisEdge(analysis, e.id)}
-            hovered={hoveredEdge === e.id}
-            ghost={false}
-            handlers={pickHandlers('edge', e.id, pick, (update) => {
-              const next = update(null);
-              setHoveredEdge(next ? next.id : null);
-            })}
-          />
-        );
-      })}
-      <RoomEditGizmo editing={editing} />
-    </SceneCanvas>
+    <RoomKeyScope editing={editing}>
+      <SceneCanvas
+        {...viewportCamera}
+        ariaLabel="Building view"
+        framing={framing}
+        fitRequest={fitRequest}
+        cameraMemory={camera}
+        grid={grid}
+        cursor={hovered || hoveredEdge ? 'pointer' : 'grab'}
+        onBackgroundClick={() => pick(NO_SELECTION)}
+        lighting={LIGHTING}
+        background="#f4f3ef"
+        flat={false}
+        frameloop="demand"
+        damping={false}
+        overlay={
+          <>
+            <Overlay
+              empty={elements.length === 0}
+              brokenTypes={broken}
+              showRoofs={showRoofs}
+              onToggleRoofs={setShowRoofs}
+              onFit={() => setFitRequest((n) => n + 1)}
+              v2
+              connectors={connectors.length > 0}
+              roofsHiddenByDesigner={roofsHiddenByDesigner}
+              hint={
+                hoverPanel && hoverPanel.kind !== 'unavailable'
+                  ? `Wall between ${hoverPanel.rooms[0].label} and ${hoverPanel.rooms[1].label}: click for ${hoverPanel.kind === 'add' ? 'Add relationship' : 'its relationship'}`
+                  : editing.active
+                  ? `${NAVIGATION_HINT} · ${ROOM_KEYS_SHORT}`
+                  : NAVIGATION_HINT
+              }
+              hintWall={shownHover}
+              besideEditor={editing.active}
+              design={design}
+              facadeModules={modules.instances.length > 0}
+              missingFacades={modules.missingAssets}
+              levelControl={<LevelFilterSelect levels={levels} filter={levelFilter} onChange={setLevelFilter} />}
+              levelFilter={levelFilter}
+              hiddenSelection={hiddenNote}
+            />
+            <RoomEditPanel editing={editing} />
+          </>
+        }
+      >
+        <Scene
+          elements={visible}
+          connectors={visibleConnectors}
+          selection={selection}
+          pick={pick}
+          setHovered={setHovered}
+          eligibleWalls={eligible}
+          hoveredWall={shownHover}
+          activeWall={activeWall}
+          onWallHover={hoverWall}
+          onWallClick={clickWall}
+        />
+        {shownModules.length > 0 && (
+          <FacadeModules instances={shownModules} assets={library.byId} selection={selection} pick={pick} setHovered={setHovered} />
+        )}
+        <StoreyLabels nodes={shownNodes} bounds={bounds} />
+        {design && activeWall !== null && faces.get(activeWall) && faceShown(activeWall) && (
+          // Pinned beside the clicked wall (follows it when the camera moves), not docked over the view.
+          <WallPanelAnchor face={faces.get(activeWall)!}>
+            <WallActionPanel
+              className="anchored"
+              design={design}
+              faceId={activeWall}
+              faces={faces}
+              onSelect={onSelect}
+              onClose={() => setActiveWall(null)}
+            />
+          </WallPanelAnchor>
+        )}
+        {unresolved.map((e) => {
+          const line = lineOf(design, e.id);
+          if (!line) return null;
+          return (
+            <RelationshipTube
+              key={e.id}
+              item={e}
+              line={line}
+              geometry={tube}
+              selected={selection.kind === 'edge' && selection.id === e.id}
+              analysed={isAnalysisEdge(analysis, e.id)}
+              hovered={hoveredEdge === e.id}
+              ghost={false}
+              handlers={pickHandlers('edge', e.id, pick, (update) => {
+                const next = update(null);
+                setHoveredEdge(next ? next.id : null);
+              })}
+            />
+          );
+        })}
+        <RoomEditGizmo editing={editing} />
+      </SceneCanvas>
+    </RoomKeyScope>
   );
 }
 
@@ -647,7 +652,11 @@ function Overlay({
         <div className="viewer3d-empty">No occupied cells to interpret yet.</div>
       ) : besideEditor && compact ? null : (
         // Narrow panel while editing: the room editor already shows the snap and Esc hints.
-        <div className={besideEditor ? 'viewer3d-hint beside-edit' : 'viewer3d-hint'} data-wall-hover={hintWall ?? undefined}>
+        <div
+          className={besideEditor ? 'viewer3d-hint beside-edit' : 'viewer3d-hint'}
+          data-wall-hover={hintWall ?? undefined}
+          title={besideEditor ? ROOM_KEYS_HELP_3D : undefined}
+        >
           {hint}
         </div>
       )}

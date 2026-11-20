@@ -5,6 +5,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
+  outline: none;
   background: #fbfbf9;
   color: #1d1d1b;
   --sgl-plan-ink: #232320;
@@ -295,24 +296,16 @@ rect.sgl-plan-slab.access-marker.analysed {
   fill: var(--sgl-plan-analysis);
 }
 
-/* "Edit rooms" (move/resize the selected room). The toggle sits under the zoom bar; the preview
-   outline uses the 3D gizmo's tones: selection = valid, red = refused, amber = needs confirmation. */
-.sgl-plan-edit-toggle {
-  position: absolute;
-  top: 44px;
-  left: 8px;
-  display: flex;
-  padding: 4px 6px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid #d9d9d2;
-  border-radius: 6px;
-  font-size: 13px;
+/* "Edit rooms" (move/resize the selected room). The toggle sits in the zoom row (owner 2026-11-20),
+   after a thin separator; the preview outline uses the 3D gizmo's tones: selection = valid,
+   red = refused, amber = needs confirmation. */
+.sgl-plan-tools-sep {
+  align-self: stretch;
+  width: 1px;
+  margin: 0 2px;
+  background: #d9d9d2;
 }
-.sgl-plan-edit-toggle button {
-  font: inherit;
-  padding: 2px 8px;
-}
-.sgl-plan-edit-toggle button[aria-pressed='true'] {
+.sgl-plan-zoom button.sgl-plan-edit-toggle[aria-pressed='true'] {
   font-weight: 600;
   background: #2f2f2a;
   color: #fff;

@@ -41,6 +41,7 @@ import type { ProjectAttributeSchema } from '@app/extensions';
 import { useRoomEditing, type RoomEditing } from '../three/editing/useRoomEditing';
 import type { RoomGeometry } from '../three/editing/roomGeometry';
 import { PlanEditPanel } from './PlanEditPanel';
+import { keepsOwnKeys, PLAN_FRAME, ROOM_KEYS_HELP_PLAN } from '../three/editing/roomKeys';
 import { PLAN_RESIZE_HANDLES, geometryRect, handleCursor, handleMode, handlePoint, handleTitle, planDraft, type PlanHandle } from './planRoomEdit';
 
 /**
@@ -59,7 +60,8 @@ import { PLAN_RESIZE_HANDLES, geometryRect, handleCursor, handleMode, handlePoin
  * - "Edit rooms" (off by default, remembered by the panel): the selected room on this storey gets
  *   a move surface and eight resize handles. Drags snap to whole cells and run through the same
  *   room-edit session as the 3D gizmo (same validity, one `set-node-geometry` command on release);
- *   the storey and height never change here.
+ *   the storey and height never change here. The toggle sits in the zoom row; with focus in the
+ *   Plan the arrow keys move the room one cell (Shift: grow, Shift+Alt: shrink), one command each.
  */
 
 /** Hover/click on an eligible shared wall, with the shared `wallAction` verdict. */
@@ -332,6 +334,16 @@ function PlanCanvas({
     setEditRooms(!editRooms);
   };
 
+  // Arrow keys (Edit rooms on, a room of this storey selected, focus in the Plan): one whole-cell
+  // move or resize per press, through the same session (one validated command = one Undo step).
+  const onPlanKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.defaultPrevented || !editable || keepsOwnKeys(e.target)) return;
+    if (editing.handleKey(e, PLAN_FRAME, false)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
   const fit = () => setManual(null);
   const zoomBy = (factor: number) => setManual(zoomAt(viewport, size, factor));
 
@@ -373,7 +385,7 @@ function PlanCanvas({
         : null;
 
   return (
-    <div className="sgl-plan" ref={hostRef}>
+    <div className="sgl-plan" ref={hostRef} tabIndex={-1} onKeyDown={onPlanKeyDown}>
       <svg
         ref={svgRef}
         className="sgl-plan-svg"
@@ -406,7 +418,7 @@ function PlanCanvas({
         </label>
       </div>
 
-      <div className="sgl-plan-zoom" role="group" aria-label="Plan zoom">
+      <div className="sgl-plan-zoom" role="group" aria-label="Plan tools">
         <button type="button" onClick={() => zoomBy(1.25)} title="Zoom in" aria-label="Zoom in">
           +
         </button>
@@ -416,18 +428,18 @@ function PlanCanvas({
         <button type="button" onClick={fit} title="Fit the building to the panel" aria-pressed={manual === null}>
           Fit
         </button>
-      </div>
-
-      <div className="sgl-plan-edit-toggle">
+        {/* In the zoom row (owner 2026-11-20), so it never covers the selected room's handles. */}
+        <span className="sgl-plan-tools-sep" aria-hidden="true" />
         <button
           type="button"
+          className="sgl-plan-edit-toggle"
           aria-pressed={editRooms}
           onClick={toggleEditRooms}
           data-plan-edit-toggle=""
           title={
             editRooms
-              ? 'Hide the move and resize handles'
-              : 'Show handles to move and resize the selected room on this storey, by whole cells. Its storey and height stay the same in the Plan.'
+              ? `Hide the move and resize handles. ${ROOM_KEYS_HELP_PLAN}.`
+              : `Show handles to move and resize the selected room on this storey, by whole cells (${ROOM_KEYS_HELP_PLAN}). Its storey and height stay the same in the Plan.`
           }
         >
           Edit rooms

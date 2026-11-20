@@ -159,3 +159,10 @@
     max-width: none;
   }
 }
+
+/* Keyboard scope of a 3D view with the room gizmo (arrow keys nudge the selected room). */
+.room-key-scope {
+  position: absolute;
+  inset: 0;
+  outline: none;
+}
