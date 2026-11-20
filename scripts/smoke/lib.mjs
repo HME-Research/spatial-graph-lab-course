@@ -13,7 +13,7 @@ export const VIEWPORTS = [
 export const FEATURES = {
   help: 'Stage 07 HelpTip buttons ([data-help-topic]) wired into the shell/inspector',
   legend: 'Stage 07 RelationshipLegend ([data-legend-view]) wired into the views',
-  'analysis-overlay': 'Stage 07 AnalysisLegend (.sgl-pres-analysis) shown after running an analysis',
+  'analysis-overlay': 'Stage 07 AnalysisLegend (.sgl-pres-analysis) shown after running an analysis with node values (Routes through it)',
   v2: 'Schema v2 document in the app (export writes schemaVersion 2; unresolved relationships drawn)',
 };
 
