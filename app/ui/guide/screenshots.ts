@@ -18,7 +18,8 @@ export const CAPTURED_SHOTS: Readonly<Record<string, CapturedShot>> = captured a
 
 /** Alt text per entry id (what the screenshot shows and what each marker points at). */
 export const SHOT_ALT: Readonly<Record<string, string>> = {
-  'howto-start': 'The Welcome screen: 1 Try example, 2 Create project, 3 Open project, 4 Recent projects.',
+  'howto-start': 'The Welcome screen: 1 Try example, 2 Create project, 3 Open project, 4 Open example…, 5 Recent projects.',
+  'howto-open-example': 'Open example… over the Welcome screen: 1 the Open example dialog, listing the example house (No toolkit) and the House designs, 2 House showcase, a design tagged Toolkit: House.',
   'howto-select-inspect': 'The app with the Living room selected: 1 the node in Graph 2D, 2 the same room highlighted in the Building view, 3 its attributes in Properties.',
   'howto-add-room': 'A new room 6 added: 1 the + Add node button, 2 its Function in Properties, 3 its Position and Size.',
   'howto-connect': 'A new relationship Entrance–Bath: 1 the Entrance node, 2 the Add connection… button, 3 the Bath node, 4 Access or Open in Properties.',
@@ -37,7 +38,7 @@ export const SHOT_ALT: Readonly<Record<string, string>> = {
   'panel-scenarios': 'The Scenarios panel: 1 Scenario 1, 2 a second scenario, 3 + New scenario.',
   'panel-camera': 'The Camera panel: 1 Target viewport, 2 Save current view, 3 Saved cameras.',
   'panel-display': 'The Display panel: 1 the view buttons, 2 Labels, Legend and Roofs, 3 Colours.',
-  'panel-project': 'The Project panel: 1 Save locally, 2 Export project, 3 Open project.',
+  'panel-project': 'The Project panel: 1 Save locally, 2 Export project, 3 Open project, 4 New project, 5 Open example….',
 };
 
 /** The explainer with its captured screenshot attached (unchanged when none was captured). */

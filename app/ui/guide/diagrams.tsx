@@ -951,7 +951,8 @@ const D: Record<string, () => ReactNode> = {
   'ask-ai': () => <Steps alt="Four steps: download the AI kit, describe the measure to an AI assistant, upload the .ts file in Analyse, it appears tagged Yours." labels={['Download the AI kit', 'Describe the measure to the AI', 'Upload your own (.ts)', 'It appears, tagged Yours']} />,
 
   // How to…
-  'howto-start': () => <Steps alt="Welcome: 1 Try example, 2 Create project (with or without a toolkit), 3 Open project from a file, 4 Recent projects." labels={['Try example', 'Create project', 'Open project…', 'Recent projects']} />,
+  'howto-start': () => <Steps alt="Welcome: 1 Try example, 2 Create project (with or without a toolkit), 3 Open project from a file, 4 Open example…, 5 Recent projects." labels={['Try example', 'Create project', 'Open project…', 'Open example…', 'Recent projects']} />,
+  'howto-open-example': () => <Steps alt="1 Open example… on Welcome or in Project, 2 pick the example house or a toolkit design, 3 it opens as a new project with its toolkit, looks and façades, 4 see it in the Building view." labels={['Open example…', 'Pick an example', 'A new project', 'View: Building']} />,
   'howto-select': () => <Steps alt="1 Click a node in Graph 2D, 2 it is highlighted in every view, 3 read and edit it in Properties." labels={['Click a node or edge', 'Highlighted in every view', 'Read and edit in Properties']} />,
   'howto-add-room': () => <Steps alt="1 + Add node, 2 choose its Function in Properties, 3 set Position and Size." labels={['+ Add node', 'Function', 'Position and Size']} />,
   'howto-connect': () => <Steps alt="1 Select the first room, 2 Add connection…, 3 click the second room, 4 choose Access or Open in Properties." labels={['Select the first room', 'Add connection…', 'Click the second room', 'Access or Open']} />,

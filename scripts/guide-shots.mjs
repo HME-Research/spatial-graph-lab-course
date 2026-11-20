@@ -164,9 +164,25 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
         { text: 'Try example', within: '.sgl-welcome', at: 'corner' },
         { text: 'Create project', within: '.sgl-welcome', at: 'corner' },
         { text: 'Open project', within: '.sgl-welcome', at: 'corner' },
+        { text: 'Open example…', within: '.sgl-welcome', at: 'corner' },
         { text: 'Recent', within: '.sgl-welcome' },
       ],
     });
+  });
+
+  await step('howto-open-example', async () => {
+    await gotoWelcome(s);
+    await clickText('Open example…', '.sgl-welcome');
+    await s.waitFor(`document.querySelectorAll('.sgl-example').length > 1`, 10_000, 'the examples');
+    await delay(300);
+    await shot('howto-open-example', {
+      markers: [
+        // The button is under the dialog: point at the dialog it opened.
+        { text: 'Open example', within: '.sgl-open-example' },
+        { text: 'House showcase', within: '.sgl-open-example' },
+      ],
+    });
+    await s.key('Escape');
   });
 
   await step('howto-select-inspect', async () => {
@@ -384,7 +400,13 @@ await runScript({ name: 'guide-shots', usage: USAGE, url: 'http://localhost:5180
     await openRail(s, 'Project');
     await shot('panel-project', {
       clip: P('project'),
-      markers: [{ text: 'Save locally', within: P('project') }, { text: 'Export project', within: P('project') }, { text: 'Open project', within: P('project') }],
+      markers: [
+        { text: 'Save locally', within: P('project') },
+        { text: 'Export project', within: P('project') },
+        { text: 'Open project', within: P('project') },
+        { text: 'New project', within: P('project') },
+        { text: 'Open example…', within: P('project') },
+      ],
     });
   });
   await step('panel-scenarios', async () => {
