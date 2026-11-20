@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type
 import { domFocusScope, handleDialogKeyDown } from '@app/ui/concepts/dialogKeys';
 import { useGuide } from '@app/ui/guide';
 import { ToolkitPicker, type ToolkitOption } from './ToolkitPicker';
-import { recentRows, type RecentState } from './welcomeModel';
+import { OpenExampleDialog } from './OpenExampleDialog';
+import { recentRows, type ExampleChoice, type ExampleOption, type RecentState } from './welcomeModel';
 import './welcome.css';
 
 export interface WelcomeProps {
@@ -21,6 +22,12 @@ export interface WelcomeProps {
   readonly onCreate: (toolkitId: string | null) => void;
   readonly onOpenFile: (file: File) => void;
   readonly onTryExample: () => void;
+  /**
+   * Open example… (owner decision 2026-11-20): the examples to list (loaded when the dialog opens)
+   * and what to do with the chosen one. Both absent: the button is not shown.
+   */
+  readonly loadExamples?: () => Promise<readonly ExampleOption[]>;
+  readonly onOpenExample?: (choice: ExampleChoice) => void;
   readonly onRestore: (projectId: string) => void;
   /** Explicit user decision, confirmed here: delete an unreadable stored record (a copy is kept aside). */
   readonly onDiscardUnreadable: (projectId: string) => void;
@@ -31,7 +38,8 @@ export interface WelcomeProps {
  * every startup — a stored project is never reopened automatically. The shell behind it is empty
  * and inert (the modal makes it so; nothing is created or saved to draw it).
  *
- * Three entry actions (Create project, the strongest; Open project; Try example), then the projects
+ * Entry actions (Create project, the strongest; Open project; Try example; Open example…, which lists
+ * the built-in example and every toolkit design, owner 2026-11-20), then the projects
  * saved in this browser (name, scenarios, last edited), with a short note on where they are stored.
  * Keyboard: focus starts on Create project; Tab stays inside; Escape does nothing (there is nothing
  * behind Welcome to return to).
@@ -45,10 +53,13 @@ export function Welcome({
   onCreate,
   onOpenFile,
   onTryExample,
+  loadExamples,
+  onOpenExample,
   onRestore,
   onDiscardUnreadable,
 }: WelcomeProps) {
   const disabled = busy !== null;
+  const [examplesOpen, setExamplesOpen] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const guideButton = useRef<HTMLButtonElement>(null);
   const [toolkitId, setToolkitId] = useState<string | null>(defaultToolkitId);
@@ -162,6 +173,12 @@ export function Welcome({
                 <span className="sgl-welcome-action-title">Try example</span>
                 <span className="sgl-welcome-action-sub">Example – graph only (no toolkit)</span>
               </button>
+              {loadExamples && onOpenExample && (
+                <button type="button" className="sgl-welcome-action" onClick={() => setExamplesOpen(true)} disabled={disabled} aria-haspopup="dialog">
+                  <span className="sgl-welcome-action-title">Open example…</span>
+                  <span className="sgl-welcome-action-sub">The example house or a toolkit’s designs</span>
+                </button>
+              )}
             </div>
             {toolkits.length > 0 && <ToolkitPicker toolkits={toolkits} value={toolkitId} onChange={setToolkitId} disabled={disabled} />}
         </section>
@@ -173,6 +190,16 @@ export function Welcome({
         </section>
       </div>
     </dialog>
+    {examplesOpen && loadExamples && onOpenExample && (
+      <OpenExampleDialog
+        load={loadExamples}
+        onCancel={() => setExamplesOpen(false)}
+        onOpen={(choice) => {
+          setExamplesOpen(false);
+          onOpenExample(choice);
+        }}
+      />
+    )}
     </>
   );
 }

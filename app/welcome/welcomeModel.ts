@@ -31,6 +31,51 @@ export interface DefinitionChoice {
   readonly label: string;
 }
 
+/** What Open example… opens: the built-in graph-only example, or one design of one toolkit. */
+export type ExampleChoice = { readonly kind: 'built-in' } | { readonly kind: 'toolkit'; readonly toolkitId: string; readonly designId: string };
+
+/** One row of Open example…. */
+export interface ExampleOption {
+  /** `built-in`, or `<toolkit id>/<design id>`. */
+  readonly key: string;
+  readonly name: string;
+  readonly description: string | null;
+  /** "No toolkit" or "Toolkit: <name>" (the tag the Attributes list uses for a toolkit). */
+  readonly tag: string;
+  /** Why it cannot be opened (an invalid design file), else null. */
+  readonly problem: string | null;
+  readonly choice: ExampleChoice;
+}
+
+/**
+ * The rows of Open example… (owner decision 2026-11-20): the built-in House first (graph only, no
+ * toolkit), then every design of every toolkit (toolkits by id, designs by file name), each with
+ * the design's own name and description.
+ */
+export function exampleOptions(
+  builtIn: { readonly name: string; readonly description?: string | undefined },
+  toolkitExamples: readonly {
+    readonly toolkitId: string;
+    readonly toolkitName: string;
+    readonly designId: string;
+    readonly name: string;
+    readonly description: string | null;
+    readonly problem: string | null;
+  }[],
+): ExampleOption[] {
+  return [
+    { key: 'built-in', name: builtIn.name, description: builtIn.description?.trim() || null, tag: 'No toolkit', problem: null, choice: { kind: 'built-in' } },
+    ...toolkitExamples.map((e) => ({
+      key: `${e.toolkitId}/${e.designId}`,
+      name: e.name,
+      description: e.description,
+      tag: `Toolkit: ${e.toolkitName}`,
+      problem: e.problem,
+      choice: { kind: 'toolkit' as const, toolkitId: e.toolkitId, designId: e.designId },
+    })),
+  ];
+}
+
 export type RecentRow =
   | { readonly kind: 'ok'; readonly projectId: string; readonly name: string; readonly detail: string; readonly description: string | null; readonly unsaved: boolean }
   | { readonly kind: 'unreadable'; readonly projectId: string; readonly detail: string; readonly quarantined: boolean };

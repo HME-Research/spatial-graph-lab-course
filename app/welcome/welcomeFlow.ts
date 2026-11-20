@@ -1,6 +1,7 @@
+import type { FacadeAssetV1 } from '@app/assets';
 import type { DesignDocumentV2 } from '@app/document';
 import { EMPTY_ATTRIBUTE_SCHEMA, makeAttributeRecord, serializeAttributeRecord, type ProjectAttributeSchema } from '@app/extensions/projectAttributes';
-import { formatProjectIssues, readProjectFile, serializeProjectFile, type ProjectFileV2, type ProjectIssue } from '@app/project';
+import { formatProjectIssues, projectAssetsOf, readProjectFile, serializeProjectFile, type ProjectFileV2, type ProjectIssue } from '@app/project';
 import { blankDesign, checkName, newProjectFromDesign, readProjectOrDesign, type ProjectOrigin } from '@app/session/projectStore';
 import type { LeaveOptions, ProjectController } from '@app/session/projectStoreController';
 
@@ -31,12 +32,23 @@ export type StartingDesign =
     }
   | { readonly ok: false; readonly message: string };
 
+/**
+ * A toolkit design opened with Open example… (owner decision 2026-11-20): the validated design,
+ * the toolkit's custom attributes (as for Create project) and the façade assets the design uses,
+ * already imported from `toolkits/<id>/assets/` through the normal façade import.
+ */
+export type ExampleDesign =
+  | (Omit<Extract<StartingDesign, { ok: true }>, 'ok'> & { readonly ok: true; readonly assets: readonly FacadeAssetV1[] })
+  | { readonly ok: false; readonly source: string; readonly message: string; readonly issues?: readonly ProjectIssue[] };
+
 export interface WelcomeHost {
   readonly controller: ProjectController;
   /** The starting design of toolkit `toolkitId` (its default design, else the built-in example). */
   readonly startingDesign: (toolkitId: string | null) => Promise<StartingDesign>;
   /** Toolkit referenced by projects made from a plain design file. */
   readonly defaultToolkitId: string | null;
+  /** Design `designId` of toolkit `toolkitId` for Open example… (absent: toolkit examples cannot be opened). */
+  readonly exampleDesign?: (toolkitId: string, designId: string) => Promise<ExampleDesign>;
 }
 
 export type FlowOutcome =
@@ -84,12 +96,33 @@ export function minimalProjectFile(
   attributeSignature: string | undefined,
   attributeSchema: ProjectAttributeSchema = EMPTY_ATTRIBUTE_SCHEMA,
 ): { readonly ok: true; readonly value: ProjectFileV2 } | { readonly ok: false; readonly issues: readonly ProjectIssue[] } {
-  const attributes =
-    file.toolkit !== null && attributeSignature !== undefined
-      ? (JSON.parse(serializeAttributeRecord(makeAttributeRecord(file.toolkit.id, attributeSchema, attributeSignature))) as unknown)
-      : file.attributes;
+  const attributes = toolkitAttributes(file, attributeSignature, attributeSchema);
   // Re-read the result: validated exactly like a stored or imported file.
   const read = readProjectFile(serializeProjectFile({ ...file, attributes, settings: { ...file.settings, calculatedFields: [] } }));
+  return read.ok ? { ok: true, value: read.value } : { ok: false, issues: read.issues };
+}
+
+/** The attribute record of a new project: exactly the toolkit's custom attributes (with a toolkit that activated). */
+function toolkitAttributes(file: ProjectFileV2, attributeSignature: string | undefined, attributeSchema: ProjectAttributeSchema): unknown {
+  return file.toolkit !== null && attributeSignature !== undefined
+    ? (JSON.parse(serializeAttributeRecord(makeAttributeRecord(file.toolkit.id, attributeSchema, attributeSignature))) as unknown)
+    : file.attributes;
+}
+
+/**
+ * The project of a toolkit example (owner decision 2026-11-20): the design as its one scenario
+ * (rooms, relationships and Building Designer settings kept), the toolkit's custom attributes
+ * seeded as by Create project, the imported façades it uses as project assets, and the default
+ * calculated attributes (like Try example). Re-read, so it is validated like any opened file.
+ */
+export function exampleProjectFile(
+  file: ProjectFileV2,
+  attributeSignature: string | undefined,
+  attributeSchema: ProjectAttributeSchema = EMPTY_ATTRIBUTE_SCHEMA,
+  assets: readonly FacadeAssetV1[] = [],
+): { readonly ok: true; readonly value: ProjectFileV2 } | { readonly ok: false; readonly issues: readonly ProjectIssue[] } {
+  const attributes = toolkitAttributes(file, attributeSignature, attributeSchema);
+  const read = readProjectFile(serializeProjectFile({ ...file, attributes, assets: projectAssetsOf(assets) }));
   return read.ok ? { ok: true, value: read.value } : { ok: false, issues: read.issues };
 }
 
@@ -127,6 +160,25 @@ export async function tryExample(host: WelcomeHost, example: DesignDocumentV2, e
   if (!file.ok) return failed(exampleSource, `The example could not be opened: ${formatProjectIssues(file.issues)}`, file.issues);
   const withFunctions: ProjectFileV2 = { ...file.value, settings: { ...file.value.settings, functions: functionsOfDesign(example) } };
   return openNew(host, withFunctions, { kind: 'example', label: exampleSource }, options);
+}
+
+/**
+ * Open example… → a toolkit design (owner decision 2026-11-20): always a NEW project (the open one
+ * is never overwritten) named after the design, with that toolkit active, its custom attributes
+ * seeded (the same record as Create project with that toolkit), the design with its Building
+ * Designer settings, and the façade assets it uses. Nothing is opened when the design, its assets
+ * or the resulting project are invalid.
+ */
+export async function openToolkitExample(host: WelcomeHost, toolkitId: string, designId: string, options: LeaveOptions = {}): Promise<FlowOutcome> {
+  if (!host.exampleDesign) return failed(designId, 'Toolkit examples cannot be opened here.');
+  const start = await host.exampleDesign(toolkitId, designId);
+  if (!start.ok) return failed(start.source, `The example could not be opened: ${start.message}`, start.issues ?? []);
+  const name = checkName(start.doc.metadata.name, 'project');
+  const file = newProjectFromDesign(start.doc, { name: name.ok ? name.value : designId, toolkit: { id: toolkitId } });
+  if (!file.ok) return failed(start.source, `The example could not be opened: ${formatProjectIssues(file.issues)}`, file.issues);
+  const project = exampleProjectFile(file.value, start.attributeSignature, start.attributeSchema, start.assets);
+  if (!project.ok) return failed(start.source, `The example could not be opened: ${formatProjectIssues(project.issues)}`, project.issues);
+  return openNew(host, project.value, { kind: 'example', label: start.source }, options);
 }
 
 /**

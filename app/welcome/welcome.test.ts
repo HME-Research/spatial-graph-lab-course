@@ -12,8 +12,14 @@ import { ProjectControllerContext } from '@app/session/projectStoreContext';
 import exampleJson from '../document/examples/house.json';
 import { exportProject, NewProjectDialog, ProjectFiles } from './ProjectFiles';
 import { Welcome, type WelcomeProps } from './Welcome';
-import { createProject, openProjectText, tryExample, type WelcomeHost } from './welcomeFlow';
-import { newProjectStart, projectFileName, recentRows } from './welcomeModel';
+import { createProject, openProjectText, openToolkitExample, tryExample, type WelcomeHost } from './welcomeFlow';
+import { exampleOptions, newProjectStart, projectFileName, recentRows } from './welcomeModel';
+import { designAssetIds, loadToolkitAssets } from '@app/extensions/toolkitExamples';
+import { importFacade3dm } from '@app/assets/importFacade';
+import { loadRhino3dm, RHINO3DM_VERSION } from '@app/assets/rhino/loader';
+
+// Node only (vitest runs in Node): read toolkit asset files without a @types/node dependency.
+const fs = (globalThis as unknown as { process: { getBuiltinModule(id: string): { readFileSync(url: URL): Uint8Array } } }).process.getBuiltinModule('node:fs');
 
 const example = () => {
   const r = readDesign(exampleJson);
@@ -267,6 +273,97 @@ describe('Welcome flow', () => {
   });
 });
 
+describe('Open example… (owner decision 2026-11-20)', () => {
+  /** The shell's `exampleDesign` for toolkits/house, with the façade files imported as the browser does (real rhino3dm, in Node). */
+  async function houseHost(): Promise<WelcomeHost & { store: ReturnType<typeof createMemoryProjectStore>; kept: ReturnType<typeof createMemoryKeptMarks> }> {
+    const source = discoverToolkits(TOOLKIT_GLOBS).toolkits.find((t) => t.id === 'house')!;
+    const activation = await activateToolkit(source);
+    if (activation.status !== 'active') throw new Error('toolkits/house did not activate');
+    const { attributeBaseline, designs } = activation.toolkit;
+    const base = host();
+    const house = designs.find((d) => d.id === 'house')!.result;
+    if (!house.ok) throw new Error('designs/house.json is invalid');
+    return {
+      ...base,
+      // As the shell does for Create project with House.
+      startingDesign: async () => ({ ok: true, doc: house.value, source: 'toolkits/house/designs/house.json', attributeSignature: attributeBaseline.signature, attributeSchema: attributeBaseline.schema }),
+      exampleDesign: async (_toolkitId, designId) => {
+        const design = designs.find((d) => d.id === designId);
+        if (!design?.result.ok) return { ok: false, source: designId, message: 'no such design' };
+        const files = source.assets.map((f) => ({ ...f, load: async () => f.file }));
+        const assets = await loadToolkitAssets('house', files, designAssetIds(design.result.value), {
+          fetchBytes: async (file) => new Uint8Array(fs.readFileSync(new URL(`../../${file}`, import.meta.url))),
+          importFile: async (bytes, fileName) => importFacade3dm(bytes, { fileName, outward: '-y', rhino: await loadRhino3dm(), reader: `rhino3dm@${RHINO3DM_VERSION}` }),
+        });
+        if (!assets.ok) return { ok: false, source: design.file, message: assets.message };
+        return { ok: true, doc: design.result.value, source: design.file, attributeSignature: attributeBaseline.signature, attributeSchema: attributeBaseline.schema, assets: assets.assets };
+      },
+    };
+  }
+
+  it('lists the built-in House first, then every toolkit design with its own name, description and toolkit tag', () => {
+    const options = exampleOptions({ name: 'House – graph only', description: ' Five rooms. ' }, [
+      { toolkitId: 'house', toolkitName: 'House', designId: 'house', name: 'House', description: null, problem: null },
+      { toolkitId: 'house', toolkitName: 'House', designId: 'showcase', name: 'House showcase', description: 'Finished.', problem: null },
+    ]);
+    expect(options.map((o) => [o.key, o.name, o.description, o.tag])).toEqual([
+      ['built-in', 'House – graph only', 'Five rooms.', 'No toolkit'],
+      ['house/house', 'House', null, 'Toolkit: House'],
+      ['house/showcase', 'House showcase', 'Finished.', 'Toolkit: House'],
+    ]);
+    expect(options[2]!.choice).toEqual({ kind: 'toolkit', toolkitId: 'house', designId: 'showcase' });
+  });
+
+  it('opens the House showcase as a NEW project: toolkit active, custom attributes seeded, design, looks, corridors and its façade asset', async () => {
+    const h = await houseHost();
+    const first = await createProject(h, 'Mine', 'house');
+    if (!first.ok) throw new Error('not created');
+    const opened = await openToolkitExample(h, 'house', 'showcase');
+    if (!opened.ok) throw new Error(opened.message);
+    expect(opened.projectId).not.toBe(first.projectId);
+    const p = h.controller.getState().project!;
+    expect(p.meta.name).toBe('House showcase');
+    expect(p.meta.description).toMatch(/^A finished two-storey house/);
+    expect(p.meta.toolkit).toEqual({ id: 'house' });
+    // The same attribute record as Create project with House (Target area, Priority).
+    const created = await houseHost();
+    await createProject(created, 'x', 'house');
+    expect(p.meta.attributes).toEqual(created.controller.getState().project!.meta.attributes);
+    expect((p.meta.attributes as { schema: { nodes: { key: string }[] } }).schema.nodes.map((f) => f.key)).toEqual(['targetArea', 'priority']);
+    const design = p.scenarios[0]!.session.history.present.design;
+    expect(design.nodes).toHaveLength(11);
+    expect(design.edges).toHaveLength(10);
+    expect(design.settings.corridors).toEqual({ walls: 'open', roof: 'flat', width: 1.8 });
+    const ids = designAssetIds(design);
+    expect(ids).toEqual(['facade-ea64a8beca91ce66']);
+    const assets = p.meta.assets.policy === 'none' ? [] : p.meta.assets.items;
+    expect(assets.map((a) => [a.id, a.name])).toEqual([['facade-ea64a8beca91ce66', 'facade-ex1']]);
+    // Default calculated attributes, as for Try example.
+    expect(p.meta.settings.calculatedFields).toBeUndefined();
+    // The exported project reads back as a valid project file, façade included.
+    const exported = h.controller.exportFile();
+    expect(exported.ok && readProjectFile(exported.value.text).ok).toBe(true);
+  }, 60_000);
+
+  it('the plain House design opens with no assets', async () => {
+    const h = await houseHost();
+    const opened = await openToolkitExample(h, 'house', 'house');
+    expect(opened.ok).toBe(true);
+    const p = h.controller.getState().project!;
+    expect(p.meta.assets).toEqual({ policy: 'none' });
+    expect(p.scenarios[0]!.session.history.present.design.nodes).toHaveLength(5);
+  });
+
+  it('opens nothing when the design or its assets cannot be loaded', async () => {
+    const h: WelcomeHost = { ...host(), exampleDesign: async () => ({ ok: false, source: 'toolkits/x/designs/y.json', message: 'the design uses façade facade-0000000000000000, which no file provides' }) };
+    const r = await openToolkitExample(h, 'x', 'y');
+    expect(r.ok === false && r.message).toMatch(/^The example could not be opened: the design uses façade/);
+    expect(h.controller.getState().project).toBeNull();
+    const without = await openToolkitExample(host(), 'x', 'y');
+    expect(without.ok).toBe(false);
+  });
+});
+
 describe('leaving a project that could not be saved', () => {
   it('a flow reports needsConfirmation and only discards on the explicit retry', async () => {
     const h = host(createMemoryProjectStore({ quotaBytes: 10 }));
@@ -307,6 +404,10 @@ describe('Welcome screen', () => {
     expect(html).toContain('No saved projects yet.');
     expect(html).toContain('Projects are saved in this browser');
     for (const old of ['design file', 'Open file', 'Try Example']) expect(html).not.toContain(old);
+    // Open example… only when the shell supplies the examples (it always does).
+    expect(html).not.toContain('Open example');
+    const withExamples = renderToStaticMarkup(createElement(Welcome, props({ loadExamples: async () => [], onOpenExample: noop })));
+    expect(withExamples).toMatch(/<button[^>]*aria-haspopup="dialog"[^>]*><span class="sgl-welcome-action-title">Open example…<\/span>/);
   });
 
   it('lists readable projects and unreadable records honestly', () => {
@@ -363,6 +464,15 @@ describe('Project Files', () => {
     html = render();
     expect(html).not.toContain('>Save locally<');
     expect(html).toContain('Saved locally');
+    const withExamples = renderToStaticMarkup(
+      createElement(
+        ProjectControllerContext.Provider,
+        { value: h.controller },
+        createElement(ProjectFiles, { controller: h.controller, onNew: noop, onOpenFile: noop, loadExamples: async () => [], onOpenExample: noop, busy: 'Opening the example…' }),
+      ),
+    );
+    expect(withExamples.split('>Open example…<').length).toBe(2);
+    expect(withExamples).toContain('Opening the example…');
     expect(projectFileName('My House!')).toBe('my-house.project.json');
     expect(projectFileName('???')).toBe('project.project.json');
   });

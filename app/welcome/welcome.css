@@ -59,7 +59,8 @@
 }
 .sgl-welcome-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  /* Four actions (2026-11-20, Open example…): two by two in the Welcome card, one column when narrow. */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
 .sgl-welcome-action {
@@ -468,5 +469,70 @@ input.sgl-project-name-input:focus {
 .sgl-toolkit-picker-help {
   flex-basis: 100%;
   color: var(--muted);
+  font-size: 13px;
+}
+
+/* Open example… (2026-11-20): one button per example, name + tag on one row, description below. */
+.sgl-open-example {
+  width: min(560px, calc(100vw - 32px));
+}
+.sgl-example-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sgl-example {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel, transparent);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sgl-example:hover:not(:disabled),
+.sgl-example:focus-visible {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+.sgl-example:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.sgl-example-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sgl-example-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.sgl-example-tag {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.sgl-example-description {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.sgl-example-problem {
+  color: var(--danger, #b42318);
   font-size: 13px;
 }

@@ -42,7 +42,8 @@ describe('3DM reader is lazily loaded', () => {
     const loaders = Object.entries(sources)
       .filter(([, text]) => dynamicImports(text).includes('@app/assets/rhino/browser'))
       .map(([file]) => file);
-    expect(loaders).toEqual(['../designer/FacadeLibraryPanel.tsx']);
+    // The Designer's Import .3dm…, and Open example… for a toolkit design that uses a façade (2026-11-20).
+    expect(loaders.sort()).toEqual(['../App.tsx', '../designer/FacadeLibraryPanel.tsx']);
   });
 
   it('the assets barrel does not re-export the import pipeline', () => {

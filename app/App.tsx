@@ -4,7 +4,10 @@ import { GuideButton } from './ui/guide';
 import exampleDesign from './document/examples/house.json';
 import { type DesignDocumentV2, formatIssuePath, type GraphIssue, nodeLabel, readDesign } from '@app/document';
 import {
+  designAssetIds,
   discoverToolkits,
+  listToolkitExamples,
+  loadToolkitAssets,
   projectOnlyToolkit,
   TOOLKIT_GLOBS,
   selectToolkit,
@@ -56,8 +59,8 @@ import { EmptyShell, Welcome } from './welcome/Welcome';
 import { FunctionsDialog } from './attributes/FunctionsDialog';
 import { ManageFunctionsContext } from './attributes/navigation';
 import { SIDEBAR_LABELS, SIDEBAR_SECTIONS } from '@app/ui/labels';
-import { createProject, openProjectText, tryExample, type FlowOutcome, type WelcomeHost } from './welcome/welcomeFlow';
-import { DEFAULT_PROJECT_NAME, recentStateOf, toolkitLabel, type RecentState } from './welcome/welcomeModel';
+import { createProject, openProjectText, openToolkitExample, tryExample, type FlowOutcome, type WelcomeHost } from './welcome/welcomeFlow';
+import { DEFAULT_PROJECT_NAME, exampleOptions, recentStateOf, toolkitLabel, type ExampleChoice, type RecentState } from './welcome/welcomeModel';
 import { Workspace } from './Workspace';
 import { DESTINATION_PANELS } from '@app/workspace/panelSlots';
 import {
@@ -376,9 +379,38 @@ export function App() {
         }
         return { ok: false, message: `The starting design of ${id === null ? 'the built-in example' : `toolkit “${toolkitLabel(id)}”`} (${start.startup.source}) could not be loaded.` };
       },
+      // Open example… (owner decision 2026-11-20): one design of one toolkit, validated by
+      // activation, with the toolkit's custom attributes and the façade assets the design uses.
+      exampleDesign: async (toolkitId, designId) => {
+        const start = await startToolkit(TOOLKIT_GLOBS, { query: toolkitId, env: null }, builtInExample());
+        const active = activeToolkitOf(start.session);
+        if (!active) return { ok: false, source: toolkitLabel(toolkitId), message: `toolkit “${toolkitLabel(toolkitId)}” could not be activated.` };
+        const design = active.designs.find((d) => d.id === designId);
+        if (!design) return { ok: false, source: designId, message: `toolkit “${active.definition.name}” has no design “${designId}”.` };
+        if (!design.result.ok) {
+          const issues = design.result.issues.map((i) => ({ path: ['design', ...i.path], code: 'invalid-design' as const, message: i.message }));
+          return { ok: false, source: design.file, message: `${design.file} is not a valid design.`, issues };
+        }
+        const files = discoverToolkits(TOOLKIT_GLOBS).toolkits.find((t) => t.id === toolkitId)?.assets ?? [];
+        // The toolkit's façade files go through the normal (lazily loaded) 3DM import, only when the design uses one.
+        const assets = await loadToolkitAssets(toolkitId, files, designAssetIds(design.result.value), {
+          fetchBytes: async (url) => {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`the server answered ${response.status}`);
+            return new Uint8Array(await response.arrayBuffer());
+          },
+          importFile: async (bytes, fileName) => (await import('@app/assets/rhino/browser')).importFacadeFile(bytes, fileName, { outward: '-y' }),
+        });
+        if (!assets.ok) return { ok: false, source: design.file, message: assets.message };
+        const baseline = active.attributeBaseline;
+        return { ok: true, doc: design.result.value, source: design.file, attributeSignature: baseline.signature, attributeSchema: baseline.schema, assets: assets.assets };
+      },
     }),
     [controller, toolkits.defaultId],
   );
+
+  /** Open example…: the built-in example and every toolkit design (listed when the dialog opens). */
+  const loadExamples = useCallback(async () => exampleOptions(builtInExample().doc.metadata, await listToolkitExamples(TOOLKIT_GLOBS)), []);
 
   /**
    * Run a Welcome / Project Files action; failures are shown and never replace the open project.
@@ -424,6 +456,11 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
       return openProjectText(host, text, file.name, options);
     });
   const startExample = () => void runFlow('Opening the example…', (options) => tryExample(host, builtInExample().doc, EXAMPLE_LABEL, options));
+  /** Open example… (owner 2026-11-20): always a NEW project; the built-in one takes Try example's path. */
+  const openExample = (choice: ExampleChoice) =>
+    choice.kind === 'built-in'
+      ? startExample()
+      : void runFlow('Opening the example…', (options) => openToolkitExample(host, choice.toolkitId, choice.designId, options));
   /**
    * Create project (Welcome) and New project (Project panel): a clean project straight away, named
    * "Untitled project" (rename it in Project) with the chosen toolkit; no name form in between
@@ -658,6 +695,8 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
               onCreate={startNewProject}
               onOpenFile={openFile}
               onTryExample={startExample}
+              loadExamples={loadExamples}
+              onOpenExample={openExample}
               onRestore={(id) =>
                 void runFlow('Opening…', async (options) => {
                   const r = await controller.restore(id, options);
@@ -704,7 +743,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                       project: (
                           <ProjectPanel
                             // Keyed by project: no draft name or Save As dialog carries over to another project.
-                            overview={<ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} toolkits={toolkitOptions} defaultToolkitId={toolkits.defaultId} onNew={startNewProject} onOpenFile={openFile} />}
+                            overview={<ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} toolkits={toolkitOptions} defaultToolkitId={toolkits.defaultId} onNew={startNewProject} onOpenFile={openFile} loadExamples={loadExamples} onOpenExample={openExample} busy={busy} />}
                             session={session}
                             docLoaded={doc !== null}
                             source={current?.source ?? null}

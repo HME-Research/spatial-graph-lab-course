@@ -4,8 +4,9 @@ import type { ProjectController } from '@app/session/projectStoreController';
 import { useProjectControllerState } from '@app/session/projectStoreContext';
 import { SaveStatus } from '@app/scenarios/SaveStatus';
 import { Dialog } from '@app/ui/Dialog';
+import { OpenExampleDialog } from './OpenExampleDialog';
 import { ToolkitPicker, type ToolkitOption } from './ToolkitPicker';
-import { formatWhen, newProjectStart, projectFileName } from './welcomeModel';
+import { formatWhen, newProjectStart, projectFileName, type ExampleChoice, type ExampleOption } from './welcomeModel';
 import './welcome.css';
 
 /** Start a browser download of `text` (JSON). Throws when the browser refuses. */
@@ -52,6 +53,9 @@ export function ProjectFiles({
   defaultToolkitId = null,
   onNew,
   onOpenFile,
+  loadExamples,
+  onOpenExample,
+  busy: running = null,
 }: {
   readonly controller: ProjectController | null;
   /** Toolkits a new project can start from; with any, New project asks which (or No toolkit). */
@@ -60,10 +64,16 @@ export function ProjectFiles({
   readonly defaultToolkitId?: string | null;
   readonly onNew: (toolkitId: string | null) => void;
   readonly onOpenFile: (file: File) => void;
+  /** Open example… (owner 2026-11-20), as on Welcome; both absent: the button is not shown. */
+  readonly loadExamples?: () => Promise<readonly ExampleOption[]>;
+  readonly onOpenExample?: (choice: ExampleChoice) => void;
+  /** A New / Open / Open example action still running (e.g. "Opening the example…"), shown under the actions. */
+  readonly busy?: string | null;
 }) {
   const state = useProjectControllerState(controller);
   const project = state.project;
   const [saveAsName, setSaveAsName] = useState<string | null>(null);
+  const [examplesOpen, setExamplesOpen] = useState(false);
   /** New project dialog: the toolkit being chosen (undefined: closed). */
   const [newToolkit, setNewToolkit] = useState<string | null | undefined>(undefined);
   const startNew = () => {
@@ -118,7 +128,29 @@ export function ProjectFiles({
           Open project
           <input type="file" accept=".json,application/json" onChange={onFile} aria-label="Open a project file" />
         </label>
+        {loadExamples && onOpenExample && (
+          <button type="button" onClick={() => setExamplesOpen(true)} aria-haspopup="dialog" title="Open the example house or a toolkit design as a new project">
+            Open example…
+          </button>
+        )}
       </div>
+
+      {running && (
+        <p className="meta" role="status">
+          {running}
+        </p>
+      )}
+
+      {examplesOpen && loadExamples && onOpenExample && (
+        <OpenExampleDialog
+          load={loadExamples}
+          onCancel={() => setExamplesOpen(false)}
+          onOpen={(choice) => {
+            setExamplesOpen(false);
+            onOpenExample(choice);
+          }}
+        />
+      )}
 
       {message && (
         <p className="sgl-project-files-error" role="alert">
