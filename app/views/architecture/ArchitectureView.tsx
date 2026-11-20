@@ -23,7 +23,7 @@ import { useStyleValues } from '../styleValues';
 import { useViewportCamera } from '../viewportCamera';
 import { buildEdgeItems, framingFor, storeyLevels } from '../three/sceneModel';
 import { LevelFilterSelect, useLevelFilter } from '../three/LevelFilterSelect';
-import { clipToLevels, hiddenSelectionNote, isCellShown, isFaceShown, levelFilterLabel, levelRange, type LevelFilter } from '../three/levelFilter';
+import { hiddenSelectionNote, isCellShown, isFaceShown, levelFilterLabel, levelRange, roomsOnLevels, type LevelFilter } from '../three/levelFilter';
 import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
 import { lineOf, RelationshipTube, useUnitCylinder, ViewRelationshipLegend } from '../three/v2Scene';
 import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
@@ -146,22 +146,22 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
   const [hovered, setHovered] = useState(false);
   const [hoveredEdge, setHoveredEdge] = useState<number | null>(null);
 
-  // Level filter (view state, remembered per panel; owner 2026-11-20). Walls by their cell's storey,
-  // floors and inner slabs of the shown storeys, the lid on the top shown storey (its roofs and the
-  // slab under the next storey) only while Roofs is on; corridors by their route cells' storey;
-  // façade modules with their walls; rooms (labels, relationship lines) clipped to the shown storeys.
+  // Level filter (view state, remembered per panel; owner 2026-11-20). A room with a storey in the
+  // range is shown WHOLE; its walls and floor follow it, its lid (roof, or the slab under a hidden
+  // room) only while Roofs is on; corridors by their route cells' storey; façade modules with their
+  // walls; labels and relationship lines of the shown rooms.
   const levels = useMemo(() => storeyLevels(v2Doc.nodes), [v2Doc.nodes]);
   const [levelFilter, setLevelFilter] = useLevelFilter('architecture', levels);
   const range = useMemo(() => levelRange(levelFilter), [levelFilter]);
-  const shownNodes = useMemo(() => clipToLevels(v2Doc.nodes, range), [v2Doc.nodes, range]);
+  const shownNodes = useMemo(() => roomsOnLevels(v2Doc.nodes, range), [v2Doc.nodes, range]);
   const shownIds = useMemo(() => new Set(shownNodes.map((n) => n.id)), [shownNodes]);
   const faces = useMemo(() => faceIndex(v2.faces), [v2]);
   const faceShown = useCallback(
     (faceId: string) => {
       const f = faces.get(faceId);
-      return !f || isFaceShown(f, range, showRoofs);
+      return !f || isFaceShown(f, range === null ? null : shownIds, showRoofs);
     },
-    [faces, range, showRoofs],
+    [faces, range, shownIds, showRoofs],
   );
 
   // A façade module replaces its wall (owner 2026-11-17): the wall and Designer windows of every face

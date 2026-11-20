@@ -10,7 +10,7 @@ import { createPanelMemory, PanelMemoryContext } from '../panelMemory';
 import { LevelFilterSelect, useLevelFilter } from './LevelFilterSelect';
 import {
   ALL_LEVELS,
-  clipToLevels,
+  isRoomShown,
   effectiveLevelFilter,
   hiddenSelectionNote,
   isCellShown,
@@ -19,6 +19,8 @@ import {
   levelFilterOptions,
   levelFilterToValue,
   levelRange,
+  roomsOnLevels,
+  storeysOf,
   type LevelFace,
   type LevelFilter,
 } from './levelFilter';
@@ -36,67 +38,74 @@ describe('level filter: rooms', () => {
   ];
 
   it('All levels returns the rooms unchanged', () => {
-    expect(clipToLevels(nodes, levelRange(ALL_LEVELS))).toBe(nodes);
+    expect(roomsOnLevels(nodes, levelRange(ALL_LEVELS))).toBe(nodes);
   });
 
-  it('Level n only keeps the rooms with a storey on n, multi-storey rooms clipped to it', () => {
-    const shown = clipToLevels(nodes, levelRange(only(1)));
+  it('Level n only keeps the rooms with a storey on n, a multi-storey room WHOLE', () => {
+    const shown = roomsOnLevels(nodes, levelRange(only(1)));
     expect(shown.map((n) => n.id)).toEqual([2, 3]);
-    expect(shown[0]).toBe(nodes[1]); // wholly inside: the same object
-    expect(shown[1]).toMatchObject({ id: 3, position: [2, 0, 1], size: [2, 1, 1] });
-    expect(nodes[2]!.position).toEqual([2, 0, 0]); // never mutated
+    expect(shown[1]).toBe(nodes[2]); // the same object: position and size unchanged
+    expect(roomsOnLevels(nodes, levelRange(only(2))).map((n) => n.id)).toEqual([3]);
   });
 
-  it('Up to level n keeps every room below or on n, a tall room cut at the top of n', () => {
-    const shown = clipToLevels(nodes, levelRange(upTo(0)));
-    expect(shown.map((n) => n.id)).toEqual([1, 3]);
-    expect(shown[1]).toMatchObject({ position: [2, 0, 0], size: [2, 1, 1] });
-    expect(clipToLevels(nodes, levelRange(upTo(1)))[2]).toMatchObject({ size: [2, 1, 2] });
+  it('Up to level n keeps every room with a storey on or below n, a tall room whole', () => {
+    expect(roomsOnLevels(nodes, levelRange(upTo(0))).map((n) => n.id)).toEqual([1, 3]);
+    expect(roomsOnLevels(nodes, levelRange(upTo(1))).map((n) => n.id)).toEqual([1, 2, 3]);
   });
 
   it('a one-cell room without size is one storey', () => {
-    expect(clipToLevels([{ id: 9, position: [0, 0, 2] }], levelRange(only(2)))).toHaveLength(1);
-    expect(clipToLevels([{ id: 9, position: [0, 0, 2] }], levelRange(upTo(1)))).toHaveLength(0);
+    expect(roomsOnLevels([{ id: 9, position: [0, 0, 2] }], levelRange(only(2)))).toHaveLength(1);
+    expect(roomsOnLevels([{ id: 9, position: [0, 0, 2] }], levelRange(upTo(1)))).toHaveLength(0);
+    expect(isRoomShown({ position: [0, 0, 2] }, levelRange(only(3)))).toBe(false);
+  });
+
+  it('the shown storeys follow the rooms (a whole tall room keeps its upper labels)', () => {
+    expect(storeysOf(roomsOnLevels(nodes, levelRange(upTo(0))))).toEqual([0, 1, 2]);
+    expect(storeysOf([nodes[1]!])).toEqual([1]);
   });
 });
 
-describe('level filter: faces', () => {
-  const face = (cell: [number, number, number], direction: LevelFace['direction'], neighbourNodeId: number | null = null): LevelFace => ({
-    cell,
+describe('level filter: faces follow the rooms', () => {
+  const face = (ownerNodeId: number, direction: LevelFace['direction'], neighbourNodeId: number | null = null): LevelFace => ({
+    ownerNodeId,
     direction,
     orientation: direction === '+z' || direction === '-z' ? 'slab' : 'wall',
     neighbourNodeId,
   });
+  const shown = new Set([1, 2]);
 
-  it('walls belong to their cell storey', () => {
-    expect(isFaceShown(face([0, 0, 1], '+x'), levelRange(only(1)), true)).toBe(true);
-    expect(isFaceShown(face([0, 0, 1], '+x'), levelRange(only(0)), true)).toBe(false);
-    expect(isFaceShown(face([0, 0, 1], '-y'), levelRange(upTo(1)), false)).toBe(true);
-    expect(isFaceShown(face([0, 0, 2], '-y'), levelRange(upTo(1)), false)).toBe(false);
+  it('a wall is drawn when the room on either side is shown', () => {
+    expect(isFaceShown(face(1, '+x'), shown, false)).toBe(true);
+    expect(isFaceShown(face(3, '+x'), shown, true)).toBe(false);
+    expect(isFaceShown(face(1, '-y', 3), shown, false)).toBe(true);
+    expect(isFaceShown(face(3, '-y', 2), shown, false)).toBe(true); // owned by a hidden room, wall of a shown one
+    expect(isFaceShown(face(3, '-y', 4), shown, true)).toBe(false);
   });
 
-  it('floors of shown storeys are drawn; a lower wing roof under the lowest shown storey is not', () => {
-    const r = levelRange(only(1));
-    expect(isFaceShown(face([0, 0, 1], '-z'), r, false)).toBe(true); // exposed underside / floor of a level-1 room
-    expect(isFaceShown(face([0, 0, 0], '+z', 7), r, false)).toBe(true); // slab between level 0 and a level-1 room
-    expect(isFaceShown(face([0, 0, 0], '+z'), r, true)).toBe(false); // roof of a level-0 wing
-    expect(isFaceShown(face([0, 0, 0], '-z'), r, true)).toBe(false); // ground floor of level 0
+  it('the floor of a shown room is drawn, whatever is below it', () => {
+    expect(isFaceShown(face(1, '-z'), shown, false)).toBe(true); // ground floor / underside
+    expect(isFaceShown(face(3, '+z', 1), shown, false)).toBe(true); // slab over a hidden room, floor of room 1
+    expect(isFaceShown(face(1, '-z', 3), shown, false)).toBe(true); // the same, owned from above
+    expect(isFaceShown(face(1, '+z', 2), shown, false)).toBe(true); // slab between two shown rooms
   });
 
-  it('the lid on the top shown storey follows the Roofs toggle', () => {
-    const r = levelRange(upTo(0));
-    expect(isFaceShown(face([0, 0, 0], '+z'), r, true)).toBe(true); // roof of a level-0 room
-    expect(isFaceShown(face([0, 0, 0], '+z', 4), r, true)).toBe(true); // slab under level 1
-    expect(isFaceShown(face([0, 0, 1], '-z', 4), r, true)).toBe(true); // the same slab owned from above
-    expect(isFaceShown(face([0, 0, 0], '+z'), r, false)).toBe(false);
-    expect(isFaceShown(face([0, 0, 1], '-z', 4), r, false)).toBe(false);
-    expect(isFaceShown(face([0, 0, 1], '-z'), r, true)).toBe(false); // underside of an overhang above empty ground
-    expect(isFaceShown(face([0, 0, 1], '+z'), r, true)).toBe(false); // roof of level 1
-    expect(isFaceShown(face([0, 0, 0], '-z'), r, false)).toBe(true); // ground floor (up to: no bottom cut)
+  it('the lid of a shown room (its roof, or the slab under a hidden room) follows the Roofs toggle', () => {
+    expect(isFaceShown(face(1, '+z'), shown, true)).toBe(true);
+    expect(isFaceShown(face(1, '+z'), shown, false)).toBe(false);
+    expect(isFaceShown(face(1, '+z', 3), shown, true)).toBe(true);
+    expect(isFaceShown(face(1, '+z', 3), shown, false)).toBe(false);
+    expect(isFaceShown(face(3, '-z', 1), shown, false)).toBe(false); // the same lid owned from above
+    expect(isFaceShown(face(3, '-z', 1), shown, true)).toBe(true);
+  });
+
+  it('faces of hidden rooms only are not drawn', () => {
+    expect(isFaceShown(face(3, '+z'), shown, true)).toBe(false);
+    expect(isFaceShown(face(3, '-z'), shown, true)).toBe(false);
+    expect(isFaceShown(face(3, '+z', 4), shown, true)).toBe(false);
   });
 
   it('All levels shows every face', () => {
-    expect(isFaceShown(face([0, 0, 5], '+z'), null, false)).toBe(true);
+    expect(isFaceShown(face(9, '+z'), null, false)).toBe(true);
   });
 });
 
@@ -125,8 +134,13 @@ describe('level filter: building model', () => {
   const spatial = resolveRelationships(doc);
   const building = buildBuildingV2(doc, { spatial });
   const faces = new Map(building.faces.map((f) => [f.id, f]));
+  const shownIdsOf = (filter: LevelFilter) => {
+    const range = levelRange(filter);
+    return range === null ? null : new Set(roomsOnLevels(doc.nodes, range).map((n) => n.id));
+  };
   const shownElements = (filter: LevelFilter, roofs: boolean) =>
-    building.elements.filter((e) => isFaceShown(faces.get(e.faceId)!, levelRange(filter), roofs) && (roofs || e.part !== 'roof'));
+    building.elements.filter((e) => isFaceShown(faces.get(e.faceId)!, shownIdsOf(filter), roofs) && (roofs || e.part !== 'roof'));
+  const storeyOf = (e: (typeof building.elements)[number]) => faces.get(e.faceId)!.cell[2];
 
   it('corridors are routed on both storeys and belong to their route cells storey', () => {
     const levels = new Set(building.connectors.map((c) => c.cell[2]));
@@ -140,23 +154,28 @@ describe('level filter: building model', () => {
     expect(cells.filter((c) => isCellShown(c.cell, levelRange(only(1)))).every((c) => c.edgeId === 2)).toBe(true);
   });
 
-  it('Level 0 only with Roofs off draws no element above storey 0 (the level is open from above)', () => {
+  it('Level 0 only shows the two-storey room whole (walls on both storeys), not room 3 on level 1', () => {
     const shown = shownElements(only(0), false);
-    expect(shown.length).toBeGreaterThan(0);
-    expect(shown.length).toBeLessThan(building.elements.length);
-    const top = Math.max(...shown.map((e) => e.position[1] + e.size[1] / 2));
-    const storey1Floor = Math.min(...building.elements.filter((e) => faces.get(e.faceId)!.cell[2] === 1 && e.part === 'wall').map((e) => e.position[1] - e.size[1] / 2));
-    expect(top).toBeLessThanOrEqual(storey1Floor + 1e-9);
-    // Walls of the two-storey room: only its level-0 half.
-    expect(shown.some((e) => e.ownerNodeId === 1 && e.part === 'wall')).toBe(true);
-    expect(shown.some((e) => faces.get(e.faceId)!.cell[2] === 1 && e.part === 'wall')).toBe(false);
+    expect(shown.some((e) => e.ownerNodeId === 1 && e.part === 'wall' && storeyOf(e) === 0)).toBe(true);
+    expect(shown.some((e) => e.ownerNodeId === 1 && e.part === 'wall' && storeyOf(e) === 1)).toBe(true);
+    expect(shown.some((e) => e.ownerNodeId === 3)).toBe(false);
+    expect(shown.some((e) => e.ownerNodeId === 2 && e.part === 'wall')).toBe(true);
   });
 
-  it('with Roofs on the top shown storey is closed (its roofs and the slab under the next storey)', () => {
-    const closed = shownElements(only(0), true);
+  it('Roofs off leaves the shown rooms open from above; Roofs on closes them (roof of room 1, slab under room 3)', () => {
     const open = shownElements(only(0), false);
-    expect(closed.length).toBeGreaterThan(open.length);
+    const closed = shownElements(only(0), true);
+    expect(open.some((e) => faces.get(e.faceId)!.neighbourNodeId === 3)).toBe(false);
     expect(closed.some((e) => e.part === 'slab' && faces.get(e.faceId)!.neighbourNodeId === 3)).toBe(true);
+    expect(open.some((e) => e.ownerNodeId === 1 && e.part === 'roof')).toBe(false);
+    expect(closed.some((e) => e.ownerNodeId === 1 && e.part === 'roof')).toBe(true);
+  });
+
+  it('Level 1 only shows room 3 on its floor (the slab over hidden room 2) and room 1 whole', () => {
+    const shown = shownElements(only(1), false);
+    expect(shown.some((e) => e.part === 'slab' && e.ownerNodeId === 2 && faces.get(e.faceId)!.neighbourNodeId === 3)).toBe(true);
+    expect(shown.some((e) => e.ownerNodeId === 2 && e.part === 'wall')).toBe(false);
+    expect(shown.some((e) => e.ownerNodeId === 1 && e.part === 'wall' && storeyOf(e) === 0)).toBe(true);
   });
 
   it('All levels draws the whole model', () => {

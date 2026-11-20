@@ -3,7 +3,7 @@ import type { GridCoord } from '@core/spatial';
 import type { Selection } from '@core/viewer/selection';
 
 /**
- * Level filter of the Voxel and Building views (owner 2026-11-20): which storeys are previewed.
+ * Level filter of the Graph 3D, Voxel and Building views (owner 2026-11-20): which storeys are previewed.
  * Pure (no React, no Three.js). It is view state only, remembered per panel; it never changes the
  * design, its resolution or the building model, it only chooses what a view draws and picks.
  *
@@ -11,9 +11,9 @@ import type { Selection } from '@core/viewer/selection';
  * - `only`: one storey.
  * - `up-to`: that storey and every storey below it (the upper floors taken off).
  *
- * Multi-storey rooms are CLIPPED to the shown storeys (a section cut): a double-height room shows
- * only its part on the shown storeys, so "Up to level 0" never covers level 0 with the upper half
- * of a tall room.
+ * A room is shown WHOLE when any of its storeys is in the range (owner follow-up 2026-11-20; it was
+ * clipped to the range before): a room on levels 0..1 is shown entire by "Up to level 0" and by
+ * "Level 1 only". Its walls, floor and lid follow the room (`isFaceShown`).
  */
 export type LevelFilter =
   | { readonly kind: 'all' }
@@ -98,60 +98,61 @@ export interface LevelSized {
   readonly size?: readonly [number, number, number];
 }
 
-/**
- * The rooms on the shown storeys, each clipped to them (position z / size z), in input order.
- * Rooms with no storey in the range are left out. All levels returns `nodes` itself.
- */
-export function clipToLevels<N extends LevelSized>(nodes: readonly N[], range: LevelRange | null): readonly N[] {
-  if (range === null) return nodes;
-  const out: N[] = [];
-  for (const n of nodes) {
-    const [sx, sy, sz] = n.size ?? [1, 1, 1];
-    const bottom = n.position[2];
-    const top = bottom + sz - 1;
-    const lo = Math.max(bottom, range.lo);
-    const hi = Math.min(top, range.hi);
-    if (lo > hi) continue;
-    if (lo === bottom && hi === top) out.push(n);
-    else out.push({ ...n, position: [n.position[0], n.position[1], lo], size: [sx, sy, hi - lo + 1] });
-  }
-  return out;
+/** Whether a room has a storey in the range (it is then shown whole). */
+export function isRoomShown(room: LevelSized, range: LevelRange | null): boolean {
+  if (range === null) return true;
+  const bottom = room.position[2];
+  const top = bottom + (room.size?.[2] ?? 1) - 1;
+  return bottom <= range.hi && top >= range.lo;
+}
+
+/** The rooms with a storey in the range, WHOLE and unchanged, in input order. All levels returns `nodes` itself. */
+export function roomsOnLevels<N extends LevelSized>(nodes: readonly N[], range: LevelRange | null): readonly N[] {
+  return range === null ? nodes : nodes.filter((n) => isRoomShown(n, range));
+}
+
+/** The storeys the given rooms occupy (ascending): level labels follow the shown rooms, so a whole tall room keeps its upper label. */
+export function storeysOf(nodes: readonly LevelSized[]): number[] {
+  const out = new Set<number>();
+  for (const n of nodes) for (let z = 0; z < (n.size?.[2] ?? 1); z++) out.add(n.position[2] + z);
+  return [...out].sort((a, b) => a - b);
 }
 
 /** A building face as the filter needs it (`BuildingFace` has these fields). */
 export interface LevelFace {
-  readonly cell: GridCoord;
+  readonly ownerNodeId: number;
   readonly direction: FaceDirection;
   readonly orientation: FaceOrientation;
-  /** The room on the other side (null: exterior). */
+  /** The room on the other side (null: exterior or a generated corridor). */
   readonly neighbourNodeId: number | null;
 }
 
 /**
- * Whether a building face is drawn under `range`.
- * - A wall belongs to its cell's storey.
- * - A horizontal face (floor, slab, roof) lies on a storey boundary `b` (between storeys b-1 and b).
- *   Between two shown storeys (lo < b ≤ hi) it is drawn. At the bottom (b = lo) it is drawn only as
- *   the floor of a shown room (not the roof of a lower wing that nothing on storey lo stands on).
- *   At the top (b = hi + 1) it is the lid of a shown room (its roof, or the slab under the next
- *   storey), drawn only when `showTop` (the Building view's Roofs toggle): with Roofs off the
- *   chosen storey is seen open from above, with Roofs on it is closed.
+ * Whether a building face is drawn when only the rooms in `shown` are shown (null: All levels). The
+ * faces follow the rooms, so a whole tall room keeps all its walls and slabs:
+ * - A wall is drawn when the room on either side of it is shown.
+ * - A horizontal face (floor, slab, roof) with a shown room ABOVE it is that room's floor: drawn.
+ * - One with a shown room only BELOW it is that room's lid (its roof, or the slab under a hidden
+ *   room): drawn only when `showTop` (the Building view's Roofs toggle). With Roofs off each shown
+ *   room is open from above wherever nothing shown stands on it; with Roofs on it is closed.
+ * - A face of hidden rooms only is not drawn.
  */
-export function isFaceShown(face: LevelFace, range: LevelRange | null, showTop: boolean): boolean {
-  if (range === null) return true;
-  const z = face.cell[2];
-  if (face.direction !== '+z' && face.direction !== '-z') return isLevelShown(z, range);
-  const up = face.direction === '+z';
-  const boundary = up ? z + 1 : z;
-  const shared = face.neighbourNodeId !== null;
-  if (boundary > range.lo && boundary <= range.hi) return true;
-  // The owner cell is above the boundary for a -z face, below it for a +z face.
-  if (boundary === range.lo) return !up || shared;
-  if (boundary === range.hi + 1) return showTop && (up || shared);
-  return false;
+export function isFaceShown(face: LevelFace, shown: ReadonlySet<number> | null, showTop: boolean): boolean {
+  if (shown === null) return true;
+  const owner = shown.has(face.ownerNodeId);
+  const other = face.neighbourNodeId !== null && shown.has(face.neighbourNodeId);
+  if (face.direction !== '+z' && face.direction !== '-z') return owner || other;
+  // A +z face has its owner below the boundary, a -z face above it.
+  const ownerBelow = face.direction === '+z';
+  const upper = ownerBelow ? other : owner;
+  const lower = ownerBelow ? owner : other;
+  return upper || (lower && showTop);
 }
 
-/** A corridor (connector) element or reserved cell belongs to its route cell's storey. */
+/**
+ * A corridor (connector) element or reserved cell belongs to its route cell's storey (a corridor is
+ * not a room: it is not extended with a whole tall room).
+ */
 export const isCellShown = (cell: readonly [number, number, number], range: LevelRange | null): boolean => isLevelShown(cell[2], range);
 
 /** Info line when the selected room is not drawn under the filter (the selection itself is kept). */

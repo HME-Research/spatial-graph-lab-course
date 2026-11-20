@@ -195,10 +195,6 @@
   user-select: none;
 }
 
-.viewer3d-level.faded {
-  opacity: 0.4;
-}
-
 /*
  * Labels are information only: neither the drei wrapper nor the text may ever take a pointer
  * press (programme phase 05, audit M2: the room label intercepted the Z arrow of the gizmo).

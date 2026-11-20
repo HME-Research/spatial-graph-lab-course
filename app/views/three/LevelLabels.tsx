@@ -8,12 +8,10 @@ export function LevelLabels({
   levels,
   bounds,
   levelCentreY,
-  hidden,
 }: {
   readonly levels: readonly number[];
   readonly bounds: Bounds | null;
   readonly levelCentreY: (level: number) => number;
-  readonly hidden?: (level: number) => boolean;
 }) {
   const { labels } = useSceneOptions();
   if (!labels || !bounds || levels.length === 0) return null;
@@ -23,7 +21,7 @@ export function LevelLabels({
         const p: WorldPoint = [bounds.min[0] - 0.6, levelCentreY(level), bounds.max[2]];
         return (
           <Html key={level} position={[...p]} center zIndexRange={[5, 0]} pointerEvents="none">
-            <span className={hidden?.(level) ? 'viewer3d-level faded' : 'viewer3d-level'}>L{level}</span>
+            <span className="viewer3d-level">L{level}</span>
           </Html>
         );
       })}

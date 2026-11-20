@@ -14,9 +14,9 @@ import { useViewportCamera } from '../viewportCamera';
 import type { CameraState } from '@core/viewer/three/viewport';
 import { ControlBar, InfoPanel, NAVIGATION_HINT } from '@core/viewer/three/ViewControls';
 import { ColorBySelect, Legend } from '../three/SpatialControls';
-import { buildNodeItems, cellBounds, framingFor, includeBoxes } from '../three/sceneModel';
+import { cellBounds, framingFor, includeBoxes } from '../three/sceneModel';
 import { LevelFilterSelect, useLevelFilter } from '../three/LevelFilterSelect';
-import { clipToLevels, hiddenSelectionNote, isCellShown, isLevelShown, levelFilterLabel, levelRange } from '../three/levelFilter';
+import { hiddenSelectionNote, isCellShown, levelFilterLabel, levelRange, roomsOnLevels, storeysOf } from '../three/levelFilter';
 import { RoomEditGizmo, RoomEditPanel, useRoomEditing } from '../three/editing';
 import { useAnalysisOverlay } from '../analysisOverlay';
 import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
@@ -55,15 +55,15 @@ export function VoxelView({ selection, onSelect, design, project }: ViewProps) {
   const tube = useUnitCylinder();
   const analysis = useAnalysisOverlay();
 
-  // Level filter (view state, remembered per panel): rooms clipped to the shown storeys, corridors
-  // by their route cells' storey, relationship lines only between shown rooms.
+  // Level filter (view state, remembered per panel): a room with a storey in the range is shown
+  // whole, corridors by their route cells' storey, relationship lines only between shown rooms.
   const [levelFilter, setLevelFilter] = useLevelFilter('voxels', s.levels);
   const range = useMemo(() => levelRange(levelFilter), [levelFilter]);
-  const shownNodes = useMemo(() => clipToLevels(source.nodes, range), [source.nodes, range]);
-  const nodeItems = useMemo(() => (range === null ? s.nodeItems : buildNodeItems(shownNodes)), [range, s.nodeItems, shownNodes]);
+  const shownNodes = useMemo(() => roomsOnLevels(source.nodes, range), [source.nodes, range]);
   const shownIds = useMemo(() => new Set(shownNodes.map((n) => n.id)), [shownNodes]);
+  const nodeItems = useMemo(() => (range === null ? s.nodeItems : s.nodeItems.filter((n) => shownIds.has(n.id))), [range, s.nodeItems, shownIds]);
   const shownBounds = useMemo(() => (range === null ? s.bounds : cellBounds(shownNodes)), [range, s.bounds, shownNodes]);
-  const shownLevels = useMemo(() => s.levels.filter((l) => isLevelShown(l, range)), [s.levels, range]);
+  const shownLevels = useMemo(() => (range === null ? s.levels : storeysOf(shownNodes)), [range, s.levels, shownNodes]);
   const hiddenNote = hiddenSelectionNote(selection, shownIds, levelFilter);
   // A hidden selected room keeps its selection but gets no gizmo (it is not drawn).
   const editing = useRoomEditing(design, hiddenNote ? NO_SELECTION : selection);

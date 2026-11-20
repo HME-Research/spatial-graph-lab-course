@@ -19,7 +19,7 @@ import { accessGroups, buildEdgeItems, buildNodeItems, cellBounds, framingFor, g
 
 /**
  * Everything a 3D view derives from the read-only document, plus its view-local UI state
- * (colour-by, level cut, hover, camera fit requests). Derived data is memoised on the
+ * (colour-by, hover, camera fit requests; each view applies its own level filter). Derived data is memoised on the
  * document's node/edge arrays, so selection changes never rebuild scene data.
  */
 export function useSpatialScene(
@@ -71,15 +71,12 @@ export function useSpatialScene(
     return neutral ? neutralColoring(resolved) : resolved;
   }, [valued, edges, colorMode, metricSource, neutral, functionColour]);
 
-  const [maxLevel, setMaxLevel] = useState<number | null>(null);
-  const isLevelHidden = useCallback((level: number) => maxLevel !== null && level > maxLevel, [maxLevel]);
-
   const [rawHovered, setHovered] = useState<Hover | null>(null);
-  // An item removed or ghosted while hovered must not keep the pointer cursor or info.
+  // An item removed while hovered must not keep the pointer cursor or info.
   const hovered =
     rawHovered &&
     (rawHovered.kind === 'node'
-      ? nodeItems.some((n) => n.id === rawHovered.id && !isLevelHidden(n.level))
+      ? nodeItems.some((n) => n.id === rawHovered.id)
       : edges.some((e) => e.id === rawHovered.id))
       ? rawHovered
       : null;
@@ -110,9 +107,6 @@ export function useSpatialScene(
     colorMode,
     setColorMode,
     coloring,
-    maxLevel,
-    setMaxLevel,
-    isLevelHidden,
     hovered,
     setHovered,
   };
