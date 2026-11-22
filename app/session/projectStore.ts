@@ -487,6 +487,58 @@ export function setProjectFunctions(project: OpenProject, functions: readonly Pr
   return changed(project, { meta: { ...project.meta, settings } });
 }
 
+/** How a student settles a project function whose id a toolkit function now also has. */
+export type FunctionClashChoice = 'keep-mine' | 'use-toolkit';
+
+/** A design with every use of function `from` (rooms and Designer cards) moved to `to`. Pure. */
+export function withFunctionMoved(design: DesignDocumentV2, from: string, to: string): DesignDocumentV2 {
+  const moves = design.nodes.some((n) => n.function === from);
+  const setup = Object.hasOwn(design.settings.styles, 'function') ? design.settings.styles['function'] : undefined;
+  const cardMoves = setup?.groups?.some((g) => g.value === from) === true;
+  if (!moves && !cardMoves) return design;
+  const nodes = moves ? design.nodes.map((n) => (n.function === from ? { ...n, function: to } : n)) : design.nodes;
+  const settings = cardMoves
+    ? { ...design.settings, styles: { ...design.settings.styles, function: { ...setup!, groups: setup!.groups!.map((g) => (g.value === from ? { ...g, value: to } : g)) } } }
+    : design.settings;
+  return { ...design, nodes, settings };
+}
+
+/**
+ * Settle a clash (2026-11-22, owner decision): a project function (`settings.functions`) whose id a
+ * toolkit function now also defines (the toolkit gained it after the student made theirs). Until the
+ * student chooses, the toolkit's definition applies and nothing is saved. Either choice keeps the
+ * student's function under a new id and suffixed name (`rename`, e.g. "Gallery 2"), with its own colour:
+ * - `keep-mine`: every room and Designer card using the id in every scenario moves to the new id,
+ *   so the design looks as before (ONE undo step per affected scenario; an undo moves those rooms
+ *   back to the toolkit's function).
+ * - `use-toolkit`: designs are not changed; the rooms take the toolkit's function.
+ */
+export function resolveFunctionClash(project: OpenProject, functionId: string, choice: FunctionClashChoice, rename: ProjectFunction): Outcome<OpenProject> {
+  const current = project.meta.settings.functions ?? [];
+  const mine = current.find((f) => f.id === functionId);
+  if (!mine) return refuse('That function is not one of this project’s own functions.');
+  if (current.some((f) => f.id === rename.id) || rename.id === functionId) return refuse('That new function id is already taken.');
+  const functions = current.map((f) => (f.id === functionId ? { id: rename.id, label: rename.label } : f));
+  const colours = project.meta.settings.functionColours;
+  const ownColour = colours !== undefined && Object.hasOwn(colours, functionId) ? colours[functionId]! : undefined;
+  const movedColours = ownColour === undefined ? colours : { ...withoutColours(colours, [functionId]), [rename.id]: ownColour };
+  const { functionColours: _old, ...rest } = { ...project.meta.settings, functions };
+  const settings = movedColours === undefined ? rest : { ...rest, functionColours: movedColours };
+  let revision = project.revision;
+  const scenarios =
+    choice === 'use-toolkit'
+      ? project.scenarios
+      : project.scenarios.map((s) => {
+          const content = currentDocument(s.session);
+          const design = withFunctionMoved(content.design, functionId, rename.id);
+          if (design === content.design) return s;
+          const session = commitDocument(s.session, { ...content, design }, `Keep your “${mine.label}” as “${rename.label}”`);
+          revision = Math.max(revision, session.revision);
+          return { ...s, session };
+        });
+  return accept(changed(project, { scenarios, revision, meta: { ...project.meta, settings } }));
+}
+
 function withoutColours(colours: Readonly<Record<string, string>> | undefined, ids: readonly string[]): Readonly<Record<string, string>> | undefined {
   if (colours === undefined || !ids.some((id) => Object.hasOwn(colours, id))) return colours;
   const next = Object.fromEntries(Object.entries(colours).filter(([id]) => !ids.includes(id)));

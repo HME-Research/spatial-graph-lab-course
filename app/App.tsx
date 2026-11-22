@@ -17,6 +17,7 @@ import {
   defaultFunctionColour,
   functionColourResolver,
   functionNameResolver,
+  functionClashes,
   type AttributeCollection,
   type ExtensionDiagnostic,
   type StoredUpload,
@@ -63,6 +64,8 @@ import './session/session.css';
 import { ProjectFiles } from './welcome/ProjectFiles';
 import { EmptyShell, Welcome } from './welcome/Welcome';
 import { FunctionsDialog } from './attributes/FunctionsDialog';
+import { FunctionClashNotice, type FunctionClashItem } from './attributes/FunctionClashNotice';
+import { generateFunctionId, suffixedFunctionName } from './attributes/attributeList';
 import { ManageFunctionsContext } from './attributes/navigation';
 import { SIDEBAR_LABELS, SIDEBAR_SECTIONS } from '@app/ui/labels';
 import { createProject, openProjectText, openToolkitExample, openBuiltInExample, type FlowOutcome, type WelcomeHost } from './welcome/welcomeFlow';
@@ -371,6 +374,20 @@ export function App() {
     () => [...new Set([...scenarioDesigns.flatMap((s) => Object.keys(functionLooks(s.doc.settings))), ...Object.keys(schema?.functionDefaults ?? {})])],
     [scenarioDesigns, schema],
   );
+  /**
+   * Project functions whose id a toolkit function now also has (2026-11-22): the student is asked
+   * which their rooms use; either way their function is kept under a suffixed name and a fresh id.
+   */
+  const functionClashItems = useMemo((): FunctionClashItem[] => {
+    const clashes = functionClashes(activeToolkit, projectFunctions);
+    if (clashes.length === 0) return [];
+    const labels = [...(activeToolkit?.functions ?? []).map((t) => (t.status.ok ? t.definition.label : t.id)), ...(projectFunctions ?? []).map((f) => f.label)];
+    const ids = [...(activeToolkit?.functions ?? []).map((t) => t.id), ...(projectFunctions ?? []).map((f) => f.id), ...reservedFunctionIds];
+    return clashes.map((c) => {
+      const label = suffixedFunctionName(c.label, labels);
+      return { ...c, rename: { id: generateFunctionId(label, ids), label }, rooms: usedTypeIds.filter((id) => id === c.id).length };
+    });
+  }, [activeToolkit, projectFunctions, reservedFunctionIds, usedTypeIds]);
   const projectContext = useMemo(() => (doc ? buildProjectViewContext(project, doc, facade, schema) : undefined), [project, doc, facade, schema]);
   const attributesVersion = useMemo(() => (attributes && schema ? { schema, revision: attributes.revision } : undefined), [attributes, schema]);
   /** The open project as the This project AI kit describes it (its Functions and fields, never the design). */
@@ -729,6 +746,15 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                 <IssueFeedback issues={duplicateNote.issues} onDismiss={() => setDuplicateNote(null)} />
               )}
             </div>
+          )}
+          {!welcome && (
+            <FunctionClashNotice
+              clashes={functionClashItems}
+              onChoose={(clash, choice) => {
+                const r = controller.resolveFunctionClash(clash.id, choice, clash.rename);
+                return r.ok ? null : r.message;
+              }}
+            />
           )}
           {cstate.notice && (
             <section className="issues sgl-notice" role="status">

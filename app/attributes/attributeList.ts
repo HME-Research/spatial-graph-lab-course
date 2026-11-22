@@ -316,6 +316,16 @@ export function functionNameProblem(label: string, rows: readonly FunctionRow[],
   return removed ? `“${removed.label}” is a toolkit function removed from this project. Restore it below instead.` : null;
 }
 
+/** `label` with the first free number suffix ("Gallery" → "Gallery 2"), unique ignoring case among `takenLabels`. */
+export function suffixedFunctionName(label: string, takenLabels: readonly string[]): string {
+  const taken = new Set(takenLabels.map(norm));
+  for (let n = 2; ; n++) {
+    const suffix = ` ${n}`;
+    const name = `${label.trim().slice(0, MAX_FUNCTION_NAME - suffix.length).trimEnd()}${suffix}`;
+    if (!taken.has(norm(name))) return name;
+  }
+}
+
 /** Why a removed toolkit function cannot be restored (null: it can): a shown function now has its name. */
 export function restoreProblem(row: FunctionRow, shown: readonly FunctionRow[]): string | null {
   const other = shown.find((r) => r.id !== row.id && norm(r.label) === norm(row.label));

@@ -48,6 +48,8 @@ import {
   setUploadedAnalyses,
   setDisplayDefaults,
   setProjectFunctions,
+  resolveFunctionClash,
+  type FunctionClashChoice,
   setFunctionColour,
   setProjectDescription,
   setScenarioCameras,
@@ -203,6 +205,8 @@ export interface ProjectController {
   setUploadedAnalyses(uploads: readonly StoredUpload[]): void;
   /** Project `settings.functions` (node types added in the browser). Not undoable; autosaved. */
   setFunctions(functions: readonly ProjectFunction[], hiddenFunctions: readonly string[]): void;
+  /** Settle a project function whose id a toolkit function now also has (`resolveFunctionClash`). */
+  resolveFunctionClash(functionId: string, choice: FunctionClashChoice, rename: ProjectFunction): Outcome<void>;
   /** Project `settings.functionColours`: one function's own colour, or null for its default. Not undoable; autosaved. */
   setFunctionColour(functionId: string, colour: string | null): void;
   setAttributeRecord(record: unknown | null): void;
@@ -702,6 +706,7 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
     addFacadeAsset: (asset) => mutateOutcome((p) => addFacadeAsset(p, asset), () => undefined),
     removeFacadeAsset: (assetId, options) => mutateOutcome((p) => removeFacadeAsset(p, assetId, options), () => undefined),
+    resolveFunctionClash: (functionId, choice, rename) => mutateOutcome((p) => resolveFunctionClash(p, functionId, choice, rename), () => undefined),
     facadeUses: (assetId) => (state.project ? facadeUses(state.project, assetId) : []),
     renameFacadeAsset: (assetId, name) => mutateOutcome((p) => renameFacadeAsset(p, assetId, name), () => undefined),
     setFacadeAssetMaterials: (assetId, materials, role) => mutateOutcome((p) => setFacadeAssetMaterials(p, assetId, materials, role), () => undefined),

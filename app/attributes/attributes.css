@@ -538,3 +538,14 @@ button.sgl-attr-add {
   flex: 0 1 auto;
   min-width: 2.5em;
 }
+
+/* A project function sharing its id with a toolkit function (FunctionClashNotice). */
+.sgl-function-clash-item + .sgl-function-clash-item {
+  margin-top: var(--space-2, 8px);
+}
+
+.sgl-function-clash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}

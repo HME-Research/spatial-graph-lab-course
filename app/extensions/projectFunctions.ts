@@ -22,6 +22,31 @@ export interface ProjectFunctionInput {
 
 export const isProjectFunction = (type: Pick<RegisteredFunction, 'file'>): boolean => type.file === PROJECT_FUNCTIONS_FILE;
 
+/** A project function whose id a toolkit function also defines (the toolkit gained it later). */
+export interface FunctionClash {
+  readonly id: string;
+  /** The student's own name for it. */
+  readonly label: string;
+  /** The toolkit function's name (its id when its definition is invalid). */
+  readonly toolkitLabel: string;
+}
+
+/**
+ * Project functions whose id a toolkit function (valid or not, removed from the project or not)
+ * also has. The toolkit's definition wins (`withProjectFunctions`), so the student's function is
+ * not offered until the clash is settled (`resolveFunctionClash` in app/session). Pure.
+ */
+export function functionClashes(toolkit: Pick<ActiveToolkit, 'functions'> | null, functions: readonly ProjectFunctionInput[] | undefined): FunctionClash[] {
+  if (!toolkit || !functions || functions.length === 0) return [];
+  const own = new Map(toolkit.functions.filter((t) => !isProjectFunction(t)).map((t) => [t.id, t] as const));
+  return functions.flatMap((f) => {
+    const t = own.get(f.id);
+    if (!t) return [];
+    const label = (t.definition as { label?: unknown }).label;
+    return [{ id: f.id, label: f.label, toolkitLabel: typeof label === 'string' && label.trim() !== '' ? label : t.id }];
+  });
+}
+
 /**
  * `hidden`: ids of toolkit functions removed from this project; they are left out of `functions`
  * (a node that still uses one is then reported as using an undefined type, like any unknown id).
