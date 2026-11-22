@@ -382,7 +382,8 @@ export function designerCards(
   const types = by === FUNCTION ? designerTypeRows(doc, project, facade) : [];
 
   const row = (group: StyleGroupRef, name: string, functionId: string | null, warning: string | null): DesignerCardRow => {
-    const target: CardTarget = { by, group, name: functionId ?? name };
+    // Undo labels use the readable name ("Set Gallery roof …"), never the id.
+    const target: CardTarget = { by, group, name };
     const nodeIds = roomsOf(group);
     const own = functionId !== null ? facade(functionId).windowFraction : sharedBase(doc, nodeIds, facade);
     const base = own ?? MIXED_BASE;

@@ -279,6 +279,8 @@ export interface TableInputs {
   readonly evaluator: MetricEvaluator;
   /** The active toolkit, for the `Toolkit: <name>` / `Yours` tags of custom columns (none: Yours). */
   readonly toolkit?: AttributeToolkit | null;
+  /** Each function's readable name (`functionNameResolver`); default: the id. */
+  readonly functionName?: (functionId: string) => string;
 }
 
 /** The heading of a Geometry attribute (`Position`, `Size`). */
@@ -288,7 +290,7 @@ const geometryHeading = (id: string): string => NODE_BUILT_IN_ATTRIBUTES.find((a
  * One row per node, columns in the order of the saved JSON keys: id · function · position (x | y |
  * z) · size (x | y | z) · custom attributes; then the calculated values (never saved), locked.
  */
-export function nodeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInputs): DataTable {
+export function nodeTable({ ctx, schema, enabled, evaluator, toolkit, functionName = (id) => id }: TableInputs): DataTable {
   const columns: DataColumn[] = [
     { id: 'id', label: 'ID', section: 'identity', title: 'Stored as "id". Never changes.', numeric: true, editable: false },
     { id: 'function', label: 'Function', section: 'required', title: 'Stored as "function".', editable: true },
@@ -305,9 +307,11 @@ export function nodeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInp
     ...calculatedColumns('nodes', enabled, evaluator),
   ];
   const rows = ctx.doc.nodes.map((n): DataRow => {
-    const cells: Record<string, DataCell> = { id: stored(n.id), function: stored(n.function) };
+    const name = functionName(n.function);
+    // The Function cell shows the current name; the stored id is in its title when it differs.
+    const cells: Record<string, DataCell> = { id: stored(n.id), function: stored(name, name === n.function ? undefined : `Stored as "${n.function}".`) };
     for (const g of GEOMETRY_AXES) cells[g.id] = stored(n[g.part][g.axis]);
-    for (const r of resolveNodeAttributes(schema, n)) cells[`custom:${r.field.id}`] = customCell(r, n.function);
+    for (const r of resolveNodeAttributes(schema, n)) cells[`custom:${r.field.id}`] = customCell(r, name);
     Object.assign(cells, calculatedCells(ctx, 'nodes', enabled, evaluator, n.id));
     return { id: n.id, cells };
   });

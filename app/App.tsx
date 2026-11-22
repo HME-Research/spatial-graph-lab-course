@@ -3,7 +3,7 @@ import { AboutButton } from './ui/about';
 import { GuideButton } from './ui/guide';
 import { AiKitProjectContext, projectSheetInput } from './ui/guide/projectKit';
 import exampleDesign from './document/examples/house.json';
-import { type DesignDocumentV2, formatIssuePath, type GraphIssue, nodeLabel, readDesign } from '@app/document';
+import { type DesignDocumentV2, formatIssuePath, functionLooks, type GraphIssue, nodeLabel, readDesign } from '@app/document';
 import {
   designAssetIds,
   discoverToolkits,
@@ -16,6 +16,7 @@ import {
   isProjectFunction,
   defaultFunctionColour,
   functionColourResolver,
+  functionNameResolver,
   type AttributeCollection,
   type ExtensionDiagnostic,
   type StoredUpload,
@@ -86,7 +87,7 @@ import { SavedCamerasProvider } from '@app/camera/savedCameras';
 import { DisplayProvider } from '@app/display/DisplayProvider';
 import { sanitizeEnabledMetrics } from '@app/metrics';
 import { EnabledMetricsContext } from '@app/views/three/enabledMetrics';
-import { FunctionColourContext } from '@app/views/functionColour';
+import { FunctionColourContext, FunctionNameContext } from '@app/views/functionColour';
 import { EMPTY_FACADE_LIBRARY, facadeLibraryOf, FacadeLibraryContext } from '@app/views/three/facadeLibrary';
 import { RoomHighlightContext, SetRoomHighlightContext, type RoomHighlight } from '@app/views/roomHighlight';
 import { DEFAULT_VIEWPORT_STATE, deriveViewports, type ViewportState } from '@app/workspace/viewports';
@@ -355,6 +356,8 @@ export function App() {
   /** The ONE function colour resolver (own colour → toolkit colour → automatic) for every view and swatch. */
   const functionColours = openProject?.meta.settings.functionColours;
   const functionColour = useMemo(() => functionColourResolver(project, functionColours), [project, functionColours]);
+  /** The ONE function name resolver (current label → id) for every view, legend, tooltip and table. */
+  const functionName = useMemo(() => functionNameResolver(project), [project]);
   /** Every scenario's current design (attribute values are checked and counted across all of them). */
   const scenarioDesigns = useMemo(
     () => (openProject ? openProject.scenarios.map((s) => ({ id: s.id, name: s.name, doc: currentDocument(s.session).design })) : []),
@@ -363,6 +366,11 @@ export function App() {
   const usedTypeIds = useMemo(() => scenarioDesigns.flatMap((s) => s.doc.nodes.map((n) => n.function)), [scenarioDesigns]);
   const facade = useMemo(() => projectFacadeProvider(project), [project]);
   const schema = attributes && project && attributes.projectId === project.id ? currentSchema(attributes) : undefined;
+  /** Function ids still referenced by stored settings (any scenario's Designer cards, attribute defaults): a new function never reuses one. */
+  const reservedFunctionIds = useMemo(
+    () => [...new Set([...scenarioDesigns.flatMap((s) => Object.keys(functionLooks(s.doc.settings))), ...Object.keys(schema?.functionDefaults ?? {})])],
+    [scenarioDesigns, schema],
+  );
   const projectContext = useMemo(() => (doc ? buildProjectViewContext(project, doc, facade, schema) : undefined), [project, doc, facade, schema]);
   const attributesVersion = useMemo(() => (attributes && schema ? { schema, revision: attributes.revision } : undefined), [attributes, schema]);
   /** The open project as the This project AI kit describes it (its Functions and fields, never the design). */
@@ -762,6 +770,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                 <SavedCamerasProvider scenarioId={scenarioId ?? ''} store={cameraStore}>
                 <DisplayProvider scenarioId={scenarioId ?? ''} store={displayStore}>
                 <FunctionColourContext.Provider value={functionColour}>
+                <FunctionNameContext.Provider value={functionName}>
                 <EnabledMetricsContext.Provider value={calculatedFields}>
                 <FacadeLibraryContext.Provider value={facadeLibrary}>
                 <RoomHighlightContext.Provider value={roomHighlight}>
@@ -870,6 +879,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                 </RoomHighlightContext.Provider>
                 </FacadeLibraryContext.Provider>
                 </EnabledMetricsContext.Provider>
+                </FunctionNameContext.Provider>
                 </FunctionColourContext.Provider>
                 </DisplayProvider>
                 </SavedCamerasProvider>
@@ -880,6 +890,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                   projectFunctions={projectFunctions ?? []}
                   hidden={hiddenFunctions ?? []}
                   usedTypeIds={usedTypeIds}
+                  reservedIds={reservedFunctionIds}
                   onChange={(functions, hidden) => controller.setFunctions(functions, hidden)}
                   colourOf={functionColour}
                   defaultColourOf={(id) => defaultFunctionColour(project, id)}

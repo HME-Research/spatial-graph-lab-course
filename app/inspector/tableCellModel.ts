@@ -1,5 +1,5 @@
 import { designCorridorLook, formatCorridorWidth, MAX_CORRIDOR_WIDTH, MAX_ROOM_SIZE, parseCorridorWidth, type AttributeValue, type DesignDocumentV2, type GraphIssue, type RelationshipKind, type RoofStyle, type WallStyle } from '@app/document';
-import { resolveEdgeAttributes, resolveNodeAttributes, type EffectiveAttribute } from '@app/extensions';
+import { functionNameResolver, resolveEdgeAttributes, resolveNodeAttributes, type EffectiveAttribute } from '@app/extensions';
 import type { CorridorPatch, DesignCommand } from '@app/spatial';
 import { corridorChoiceLabel, CORRIDOR_PARTS, CORRIDOR_WIDTH_PART } from '@app/attributes/sections';
 import { decodeChoice, encodeChoice, EXPLICIT_NONE, formatFieldValue, inheritedText, INHERIT, parseValueDraft } from '@app/attributes/attributesModel';
@@ -138,7 +138,7 @@ export function cellEditorSpec(
   if (!custom) return null;
   const { r, function: functionId } = custom;
   const { field } = r;
-  const inherit = inheritedText(r, functionId);
+  const inherit = inheritedText(r, functionId === undefined ? undefined : functionNameResolver(project?.project ?? null)(functionId));
   if (field.kind === 'enum' || field.kind === 'boolean') {
     const values: CellChoice[] =
       field.kind === 'enum'

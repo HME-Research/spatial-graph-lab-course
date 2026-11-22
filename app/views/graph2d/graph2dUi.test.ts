@@ -238,6 +238,8 @@ describe('node display', () => {
     expect(l.hidden).toBe(6 - MAX_NODE_LINES);
     expect(l.diameter).toBeLessThanOrEqual(MAX_NODE_DIAMETER);
     expect(l.lines[1]).toBe('gallery');
+    // With the project's names, "Show type" shows the function's current label, not its id.
+    expect(nodeLines(node, all, (id) => (id === 'gallery' ? 'Museum' : id)).lines[1]).toBe('Museum');
   });
 
   it('truncates long values and skips attributes a node does not have', () => {

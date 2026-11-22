@@ -96,9 +96,12 @@ export function functionStatus(project: ActiveToolkit | null, functionId: string
   };
 }
 
-/** Readable name of a type for menus and labels: "Gallery (gallery)", or the id alone. */
+/**
+ * Readable name of a function for labels and cards: its current label ("Gallery"), so a rename shows at
+ * once; the id is added only for an invalid definition, or is the name of an unknown function.
+ */
 export function typeDisplayName(status: FunctionStatus, functionId: string): string {
-  if (status.kind === 'registered') return `${status.label} (${functionId})`;
+  if (status.kind === 'registered') return status.label;
   if (status.kind === 'broken') return `${status.label ?? functionId} (${functionId}) — invalid definition`;
   return functionId;
 }

@@ -81,7 +81,7 @@ describe('designer type rows', () => {
     expect(rows.map((r) => r.function)).toEqual(['gallery', 'studio', 'kiosk']);
     const [gallery, studio, kiosk] = rows;
     expect(gallery).toMatchObject({
-      name: 'Gallery (gallery)',
+      name: 'Gallery',
       nodeCount: 2,
       projectDefault: { windowFraction: 0.6, source: 'type-definition' },
       effective: { windowFraction: 0.6, roof: 'flat', source: { windowFraction: 'base', roof: 'base' } },
@@ -99,7 +99,7 @@ describe('designer type rows', () => {
     const project = await labToolkit({ 'toolkits/lab/functions/pavilion.ts': { default: pavilionType } });
     const rows = designerTypeRows(labDocV2(), project, projectFacadeProvider(project));
     const pavilion = rows.find((r) => r.function === 'pavilion');
-    expect(pavilion).toMatchObject({ name: 'Pavilion (pavilion)', nodeCount: 0, orphanOverride: false, warning: null });
+    expect(pavilion).toMatchObject({ name: 'Pavilion', nodeCount: 0, orphanOverride: false, warning: null });
     expect(pavilion!.effective.windowFraction).toBe(0.9);
   });
 
@@ -370,9 +370,11 @@ describe('DesignerPanel (static render)', () => {
       createElement(DesignerPanel, { design: fakePort(doc), project: context, selection: selectEdge(2), onShowRelationship: () => {} }),
     );
     expect(html).toMatch(/<label for="sgl-designer-style-by"[^>]*>Style rooms by<\/label>/);
-    expect(html).toMatch(/Gallery \(gallery\)/);
+    // Cards and menu name functions by their current label only (never the id), so a rename shows at once.
+    expect(html).toMatch(/Gallery/);
+    expect(html).not.toMatch(/Gallery \(gallery\)/);
     // Studio has no card: offered in the add menu with its room count.
-    expect(html).toMatch(/<option value="studio">Studio \(studio\) · 1 room<\/option>/);
+    expect(html).toMatch(/<option value="studio">Studio · 1 room<\/option>/);
     expect(html).toMatch(/does not define &quot;kiosk&quot;/);
     expect(html).toMatch(/exterior walls/);
     expect(html).toMatch(/value="35"/);

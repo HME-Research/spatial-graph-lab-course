@@ -299,16 +299,34 @@ export function functionRows(
   ];
 }
 
-/** Why `label` cannot name a function (null: it can). Unique ignoring case, also against toolkit functions. */
-export function functionNameProblem(label: string, rows: readonly FunctionRow[], selfId?: string): string | null {
+/**
+ * Why `label` cannot name a function (null: it can). Names are compared with names only (ignoring
+ * case and spacing), never with ids: an id is fixed when a function is created and keeps its first
+ * name after a rename, so "x" renamed to "y" frees the name "x" (the new function gets a fresh id,
+ * see `generateFunctionId`). `removedToolkit`: toolkit functions removed from this project; their
+ * names are refused too, because restoring one is what gives back its façade, colour and defaults.
+ */
+export function functionNameProblem(label: string, rows: readonly FunctionRow[], selfId?: string, removedToolkit: readonly FunctionRow[] = []): string | null {
   const n = norm(label);
   if (n === '') return 'Enter a name.';
   if (label.trim().length > MAX_FUNCTION_NAME) return `Use at most ${MAX_FUNCTION_NAME} characters.`;
-  const other = rows.find((r) => r.id !== selfId && (norm(r.label) === n || r.id === n));
-  return other ? `There is already a function called “${other.label}”.` : null;
+  const other = rows.find((r) => r.id !== selfId && norm(r.label) === n);
+  if (other) return `There is already a function called “${other.label}”.`;
+  const removed = removedToolkit.find((r) => r.id !== selfId && norm(r.label) === n);
+  return removed ? `“${removed.label}” is a toolkit function removed from this project. Restore it below instead.` : null;
 }
 
-/** A unique document type id for a new function: "Reading room" → "reading-room". */
+/** Why a removed toolkit function cannot be restored (null: it can): a shown function now has its name. */
+export function restoreProblem(row: FunctionRow, shown: readonly FunctionRow[]): string | null {
+  const other = shown.find((r) => r.id !== row.id && norm(r.label) === norm(row.label));
+  return other ? `Rename “${other.label}” first: two functions cannot share a name.` : null;
+}
+
+/**
+ * A unique document type id for a new function: "Reading room" → "reading-room". `takenIds` must
+ * include every id still referenced anywhere (existing functions, Designer cards, attribute
+ * defaults), so a new function never inherits a deleted one's stored settings.
+ */
 export function generateFunctionId(label: string, takenIds: readonly string[]): string {
   let stem = label
     .normalize('NFKD')

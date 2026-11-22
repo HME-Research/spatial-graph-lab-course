@@ -38,6 +38,12 @@ describe('colour by type', () => {
     ]);
     expect(c.missing.size).toBe(0);
   });
+
+  it('names legend entries by the function name it is given (a renamed function shows its new name)', () => {
+    const doc = threeRooms();
+    const c = resolveColoring(doc.nodes, doc.edges, DEFAULT_COLOR_MODE, undefined, typeColor, (id) => (id === 'gallery' ? 'Museum' : id));
+    expect(c.legend.map((l) => l.label)).toEqual(['Museum', 'studio']);
+  });
 });
 
 describe('colour by access group', () => {

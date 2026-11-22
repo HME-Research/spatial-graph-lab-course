@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { applySchemaEdit, EMPTY_ATTRIBUTE_SCHEMA, resolveNodeAttributes, withProjectFunctions, PROJECT_FUNCTIONS_FILE, type ProjectAttributeSchema, type SchemaEdit } from '@app/extensions';
+import { applySchemaEdit, EMPTY_ATTRIBUTE_SCHEMA, functionNameResolver, resolveNodeAttributes, withProjectFunctions, PROJECT_FUNCTIONS_FILE, type ProjectAttributeSchema, type SchemaEdit } from '@app/extensions';
 import { labToolkit } from '@app/extensions/test-fixtures';
 import { canUndoAttributes, currentSchema, editAttributesBatch, loadAttributeSession, undoAttributes } from '@app/session/projectAttributeStore';
 import { readDesign } from '@app/document';
@@ -18,6 +18,7 @@ import {
   generateAttributeKey,
   generateFunctionId,
   keyHasIncompatibleValues,
+  restoreProblem,
   keyStem,
   scenarioSamples,
   sectionedRows,
@@ -403,6 +404,41 @@ describe('functions (node types) added or removed in the project', () => {
     expect(functionNameProblem('Kiosk', rows, 'kiosk')).toBeNull();
     expect(generateFunctionId('Reading room', ['reading-room'])).toBe('reading-room-2');
     expect(generateFunctionId('2 Café', [])).toBe('f-2-cafe');
+  });
+
+  it('names are unique among names only: renaming "x" to "y" frees "x" for a new function with a fresh id (bug 2026-11-22)', () => {
+    // Created as "x" (id "x"), then renamed to "y": the id keeps the first name.
+    const rows = functionRows([], [{ id: 'x', label: 'y' }], []);
+    expect(functionNameProblem('x', rows)).toBeNull();
+    expect(functionNameProblem('Y', rows)).toMatch(/already a function called “y”/);
+    expect(generateFunctionId('x', rows.map((r) => r.id))).toBe('x-2');
+    // Renaming back to its own first name is fine too.
+    expect(functionNameProblem('x', rows, 'x')).toBeNull();
+  });
+
+  it('a removed toolkit function keeps its name: adding or renaming to it is refused (Restore instead); Restore is blocked while a shown function has that name', () => {
+    const all = functionRows([{ id: 'kitchen', label: 'Kitchen' }], [{ id: 'hall', label: 'Hall' }], []);
+    const removed = all.filter((r) => r.id === 'kitchen');
+    const shown = all.filter((r) => r.id !== 'kitchen');
+    expect(functionNameProblem('kitchen', shown, undefined, removed)).toMatch(/removed from this project\. Restore it/);
+    expect(functionNameProblem('Kitchen', shown, 'hall', removed)).toMatch(/Restore it/);
+    expect(restoreProblem(removed[0]!, shown)).toBeNull();
+    // A project saved before this rule may already have a "Kitchen" of its own.
+    const clash = functionRows([{ id: 'kitchen', label: 'Kitchen' }], [{ id: 'kitchen-2', label: 'Kitchen' }], []);
+    expect(restoreProblem(clash[0]!, clash.filter((r) => r.id !== 'kitchen'))).toMatch(/Rename “Kitchen” first/);
+  });
+
+  it('a new function never takes an id a deleted one left in stored settings', () => {
+    expect(generateFunctionId('Gallery', ['gallery'])).toBe('gallery-2');
+  });
+
+  it('functionNameResolver gives the current label of toolkit and project functions, else the id', async () => {
+    const project = withProjectFunctions(await labToolkit(), [{ id: 'x', label: 'y' }]);
+    const name = functionNameResolver(project);
+    expect(name('x')).toBe('y');
+    expect(name('gallery')).toBe('Gallery');
+    expect(name('unknown')).toBe('unknown');
+    expect(functionNameResolver(null)('x')).toBe('x');
   });
 
   it('merges project functions into the active project as valid types; toolkit definitions win; removed toolkit functions are left out', async () => {

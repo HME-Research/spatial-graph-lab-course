@@ -10,7 +10,7 @@ import { attributesOutsideSchema, findFunction } from '@app/extensions';
 import { duplicateRoom } from '@app/views/duplicateRoom';
 import { functionStatus } from '@app/views/project';
 import { CollapsibleSection, describeResolution, IssueFeedback, labelOfChoice, RELATIONSHIP_KIND_CHOICES, RouteConfirm, UNDO_HINT } from '@app/ui';
-import { useFunctionColour } from '@app/views/functionColour';
+import { useFunctionColour, useFunctionName } from '@app/views/functionColour';
 import { selectEdge, selectNode } from '@core/viewer/selection';
 import { CalculatedRows, FieldRow } from './CalculatedValues';
 import { AttributesForm, NodeChecks, StoredData, TypedAttributesForm, TypeStatusNote } from './AttributeEditors';
@@ -292,6 +292,7 @@ const incidentCount = ({ design }: PanelProps, nodeId: number): number =>
 /** v2: every relationship of the room with its spatial status, and "Connect to…". */
 function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { readonly nodeId: number; readonly runV2: ReturnType<typeof useCommands>['runV2'] }) {
   const [target, setTarget] = useState('');
+  const functionName = useFunctionName();
   if (!design) return null;
   const v2 = design.doc;
   const label = (id: number) => {
@@ -339,7 +340,7 @@ function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { rea
             <option value="">Connect to room…</option>
             {candidates.map((n) => (
               <option key={n.id} value={n.id}>
-                {nodeLabel(n)} ({n.function})
+                {nodeLabel(n)} ({functionName(n.function)})
               </option>
             ))}
           </select>

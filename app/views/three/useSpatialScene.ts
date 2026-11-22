@@ -13,7 +13,7 @@ import {
   type ColorMode,
 } from './colorBy';
 import { useEnabledMetrics } from './enabledMetrics';
-import { useFunctionColour } from '../functionColour';
+import { useFunctionColour, useFunctionName } from '../functionColour';
 import { isNeutral, neutralColoring, useViewDisplay } from './viewDisplay';
 import { accessGroups, buildEdgeItems, buildNodeItems, cellBounds, framingFor, groundGrid, storeyLevels } from './sceneModel';
 
@@ -33,6 +33,7 @@ export function useSpatialScene(
 ) {
   const projectMetricIds = useEnabledMetrics();
   const functionColour = useFunctionColour();
+  const functionName = useFunctionName();
   const enabledMetricIds = enabledMetricIdsArg ?? projectMetricIds;
   const { nodes, edges } = doc;
   // Colour-by reads EFFECTIVE values of the project's node fields (the shared resolver), so a type
@@ -67,9 +68,9 @@ export function useSpatialScene(
   // calculated-value and access-group colourings are explicit choices in the view and stay as chosen.
   const neutral = isNeutral(useViewDisplay()) && colorMode.kind === 'type';
   const coloring = useMemo(() => {
-    const resolved = resolveColoring(valued, edges, colorMode, metricSource, functionColour);
+    const resolved = resolveColoring(valued, edges, colorMode, metricSource, functionColour, functionName);
     return neutral ? neutralColoring(resolved) : resolved;
-  }, [valued, edges, colorMode, metricSource, neutral, functionColour]);
+  }, [valued, edges, colorMode, metricSource, neutral, functionColour, functionName]);
 
   const [rawHovered, setHovered] = useState<Hover | null>(null);
   // An item removed while hovered must not keep the pointer cursor or info.

@@ -25,6 +25,7 @@ import {
 } from './attributesModel';
 import { HelpTip } from '@app/ui/help';
 import { SourceTag } from '@app/ui/SourceTag';
+import { useFunctionName } from '@app/views/functionColour';
 import { customAttributeTag, type CustomAttributeSource } from './sections';
 import './attributes.css';
 
@@ -151,9 +152,12 @@ function FieldValue({
 }) {
   const { field } = r;
   const id = useId();
-  const source = sourceText(r, functionId);
+  // Chips name the function by its current label ("Gallery default"), never its id.
+  const functionName = useFunctionName();
+  const functionLabel = functionId === undefined ? undefined : functionName(functionId);
+  const source = sourceText(r, functionLabel);
   const own = r.source === 'instance';
-  const inherit = inheritedText(r, functionId);
+  const inherit = inheritedText(r, functionLabel);
   const label = `${field.label} (${field.key})`;
 
   let control;

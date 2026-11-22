@@ -51,10 +51,11 @@ export function formatAttributeValue(value: AttributeValue | undefined): string 
  * The text a node's circle shows and how big the circle is. Extra information enlarges the circle
  * only within a conservative bound; beyond `MAX_NODE_LINES` it is summarised, never a giant bubble.
  */
-export function nodeLines(node: DiagramNode, settings: DisplaySettings): NodeLines {
+/** `nameOf`: the function's readable name (`useFunctionName`); default: the id. */
+export function nodeLines(node: DiagramNode, settings: DisplaySettings, nameOf: (functionId: string) => string = (id) => id): NodeLines {
   const requested: string[] = [];
   if (settings.showId) requested.push(node.label);
-  if (settings.showType) requested.push(node.function);
+  if (settings.showType) requested.push(nameOf(node.function));
   for (const key of settings.attributeKeys) {
     if (key in node.custom) requested.push(`${key}: ${formatAttributeValue(node.custom[key])}`);
   }

@@ -57,7 +57,7 @@ describe('project appearance in the views', () => {
   it('type status distinguishes registered, undefined and no project', async () => {
     const lab = await labToolkit();
     expect(functionStatus(lab, 'gallery')).toEqual({ kind: 'registered', label: 'Gallery', file: 'toolkits/lab/functions/gallery.ts' });
-    expect(typeDisplayName(functionStatus(lab, 'gallery'), 'gallery')).toBe('Gallery (gallery)');
+    expect(typeDisplayName(functionStatus(lab, 'gallery'), 'gallery')).toBe('Gallery');
     expect(functionStatus(lab, 'kiosk')).toEqual({ kind: 'undefined-type' });
     expect(functionStatus(null, 'gallery')).toEqual({ kind: 'no-project' });
     expect(brokenTypeIds(lab, labDoc())).toEqual([]);

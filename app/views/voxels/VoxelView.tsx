@@ -20,6 +20,7 @@ import { hiddenSelectionNote, isCellShown, levelFilterLabel, levelRange, roomsOn
 import { RoomEditGizmo, RoomEditPanel, RoomKeyScope, useRoomEditing } from '../three/editing';
 import { ROOM_KEYS_HELP_3D, ROOM_KEYS_SHORT } from '../three/editing/roomKeys';
 import { useAnalysisOverlay } from '../analysisOverlay';
+import { useFunctionName } from '../functionColour';
 import { useDefaultOpen, useOverlayWidth } from '../three/overlayWidth';
 import { analysisNodeStyle, isAnalysisEdge } from '../presentation/analysis';
 import {
@@ -233,6 +234,7 @@ function HoverInfo({
   readonly design: ViewProps['design'];
   readonly attributeKey: string | null;
 }) {
+  const functionName = useFunctionName();
   if (!hovered) return <div className="viewer3d-count">Hover a {design ? 'room or connector' : 'voxel'}</div>;
   if (hovered.kind === 'edge') {
     const tip = tooltipOf(design, hovered.id);
@@ -243,7 +245,7 @@ function HoverInfo({
   const value = attributeKey === null ? undefined : n.custom[attributeKey];
   return (
     <div>
-      <strong>{nodeLabel(n)}</strong> · {n.function} · position [{n.position.join(', ')}] · size {n.size.join('×')}
+      <strong>{nodeLabel(n)}</strong> · {functionName(n.function)} · position [{n.position.join(', ')}] · size {n.size.join('×')}
       {attributeKey !== null && (
         <>
           {' '}

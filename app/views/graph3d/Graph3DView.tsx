@@ -18,6 +18,7 @@ import { LevelFilterSelect, useLevelFilter } from '../three/LevelFilterSelect';
 import { hiddenSelectionNote, levelFilterLabel, levelRange, roomsOnLevels, storeysOf } from '../three/levelFilter';
 import { nodeLabel } from '@app/document';
 import { useAnalysisOverlay } from '../analysisOverlay';
+import { useFunctionName } from '../functionColour';
 import { analysisNodeStyle, isAnalysisEdge } from '../presentation/analysis';
 import { lineOf, RelationshipTube, tooltipOf, useSceneSource, ViewRelationshipLegend } from '../three/v2Scene';
 
@@ -180,6 +181,7 @@ export function Graph3DView({ selection, onSelect, design, project }: ViewProps)
 }
 
 function HoverInfo({ hovered, design }: { readonly hovered: Hover | null; readonly design: ViewProps['design'] }) {
+  const functionName = useFunctionName();
   if (!hovered) return <div className="viewer3d-count">Hover a node or edge</div>;
   if (hovered.kind === 'edge') {
     const tip = tooltipOf(design, hovered.id);
@@ -189,7 +191,7 @@ function HoverInfo({ hovered, design }: { readonly hovered: Hover | null; readon
   if (!room) return null;
   return (
     <div>
-      <strong>{nodeLabel(room)}</strong> · {room.function} · position [{room.position.join(', ')}] · size {room.size.join('×')} · L{room.position[2]}
+      <strong>{nodeLabel(room)}</strong> · {functionName(room.function)} · position [{room.position.join(', ')}] · size {room.size.join('×')} · L{room.position[2]}
     </div>
   );
 }

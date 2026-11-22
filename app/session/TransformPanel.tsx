@@ -4,6 +4,7 @@ import type { ActiveToolkit, ExtensionDiagnostic, ParameterSpec, TransformationP
 import { ALGORITHM_TAB_LABELS, sourceTag, type AlgorithmSource } from '@app/ui/analysisSections';
 import { ExplainerWindow } from '@app/ui/guide';
 import { SourceTag } from '@app/ui/SourceTag';
+import { useFunctionName } from '@app/views/functionColour';
 import { ANALYSE_VS_TRANSFORM } from '@app/analysis/explainers';
 import '@app/analysis/analysis.css';
 import { selectNode, type SelectionHandler } from '@core/viewer/selection';
@@ -279,6 +280,7 @@ function RunResult({
   readonly onSelect: SelectionHandler;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const functionName = useFunctionName();
   const stale = isStale(run, version, attributesRevision);
   const doc = version?.doc ?? null;
   const nodeButton = (id: number, enabled = true) =>
@@ -331,7 +333,7 @@ function RunResult({
               <ul className="sgl-list">
                 {summary.addedNodes.map((n) => (
                   <li key={n.id}>
-                    <code>{n.id}</code> ({n.function}) at [{n.position.join(', ')}]
+                    <code>{n.id}</code> ({functionName(n.function)}) at [{n.position.join(', ')}]
                   </li>
                 ))}
               </ul>

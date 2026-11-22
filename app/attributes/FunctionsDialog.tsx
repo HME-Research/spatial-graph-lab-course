@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import type { ProjectFunction } from '@app/project';
 import { Dialog } from '@app/ui/Dialog';
-import { functionNameProblem, functionRows, generateFunctionId, type FunctionRow } from './attributeList';
+import { functionNameProblem, functionRows, generateFunctionId, restoreProblem, type FunctionRow } from './attributeList';
 
 /**
  * The Functions pop-up (UI refinement 2026-11-17): add, rename and remove the functions (node
@@ -11,6 +11,8 @@ import { functionNameProblem, functionRows, generateFunctionId, type FunctionRow
  * - Project functions are stored in the project file (`settings.functions`): their name can be
  *   changed at any time; their identifier never changes, so nodes keep their function.
  * - A function used by a node in any scenario cannot be removed (nothing is ever reassigned).
+ * - Names are unique among names only (2026-11-22): renaming "x" to "y" frees "x" for a new
+ *   function, which gets a fresh id. A removed toolkit function's name is offered as Restore instead.
  * - Every function has a colour (2026-11-20), used by every view, legend and swatch. The swatch
  *   opens the browser's colour picker; the chosen colour is the project's own
  *   (`settings.functionColours`). "Reset to default" returns to the toolkit function's colour, else
@@ -28,6 +30,7 @@ export function FunctionsDialog({
   defaultColourOf,
   ownColours,
   onColour,
+  reservedIds = [],
 }: {
   /** The toolkit's valid types, in its order (hidden ones included). */
   readonly toolkitTypes: readonly { readonly id: string; readonly label: string }[];
@@ -46,6 +49,8 @@ export function FunctionsDialog({
   readonly ownColours: Readonly<Record<string, string>>;
   /** Set a function's own colour (`#rrggbb`), or `null` to go back to its default. */
   readonly onColour: (functionId: string, colour: string | null) => void;
+  /** Ids still referenced by stored settings (Designer cards, attribute defaults): a new function never takes one. */
+  readonly reservedIds?: readonly string[];
 }) {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -57,11 +62,12 @@ export function FunctionsDialog({
 
   const add = (e: FormEvent) => {
     e.preventDefault();
-    const problem = functionNameProblem(name, shown);
+    const problem = functionNameProblem(name, shown, undefined, removedToolkit);
     if (problem) return setError(problem);
     const label = name.trim().replace(/\s+/g, ' ');
-    // Never reuse the id of any toolkit function (hidden ones included) or project function.
-    const id = generateFunctionId(label, all.map((r) => r.id));
+    // Never reuse the id of any toolkit function (hidden ones included) or project function, nor an
+    // id a deleted function left behind (Designer cards, attribute defaults).
+    const id = generateFunctionId(label, [...all.map((r) => r.id), ...reservedIds]);
     onChange([...projectFunctions, { id, label }], hidden);
     setName('');
     setError(null);
@@ -75,7 +81,7 @@ export function FunctionsDialog({
 
   const commitRename = () => {
     if (!renaming) return;
-    const problem = functionNameProblem(renaming.label, shown, renaming.id);
+    const problem = functionNameProblem(renaming.label, shown, renaming.id, removedToolkit);
     if (problem) return setError(problem);
     const label = renaming.label.trim().replace(/\s+/g, ' ');
     onChange(projectFunctions.map((f) => (f.id === renaming.id ? { ...f, label } : f)), hidden);
@@ -184,11 +190,21 @@ export function FunctionsDialog({
       {removedToolkit.length > 0 && (
         <div className="sgl-function-removed">
           <span className="sgl-dialog-hint">Removed toolkit functions:</span>
-          {removedToolkit.map((r) => (
-            <button key={r.id} type="button" className="sgl-link" onClick={() => onChange(projectFunctions, hidden.filter((h) => h !== r.id))} title={`Offer ${r.label} again`}>
-              Restore {r.label}
-            </button>
-          ))}
+          {removedToolkit.map((r) => {
+            const blocked = restoreProblem(r, shown);
+            return (
+              <button
+                key={r.id}
+                type="button"
+                className="sgl-link"
+                disabled={blocked !== null}
+                onClick={() => onChange(projectFunctions, hidden.filter((h) => h !== r.id))}
+                title={blocked ?? `Offer ${r.label} again`}
+              >
+                Restore {r.label}
+              </button>
+            );
+          })}
         </div>
       )}
     </Dialog>

@@ -21,6 +21,7 @@ import { selectionEmphasis, type Emphasis, type Selection, type SelectionHandler
 import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
 import { useEnabledMetrics } from '../three/enabledMetrics';
+import { useFunctionName } from '../functionColour';
 import { DataCellEditorContext, type CellEditorProps, type CellMove } from './cellEditing';
 import { clampColumnWidth, columnWidthCss, headingLines, keyboardColumnWidth, withColumnWidth, type ColumnWidths } from './columnWidths';
 import { attributeHeadings, columnGroups, edgeTable, nodeTable, type DataCell, type DataColumn, type DataRow, type DataTable, type StoredSectionId } from './dataModel';
@@ -151,13 +152,14 @@ function TablePane({
   readonly onSelect: SelectionHandler;
 }) {
   const enabled = useEnabledMetrics();
+  const functionName = useFunctionName();
   const Editor = useContext(DataCellEditorContext);
   const { doc, spatial } = design;
   const schema = project?.attributes ?? EMPTY_ATTRIBUTE_SCHEMA;
   const toolkit = project?.project ?? null;
   const inputs = useMemo(
-    () => ({ ctx: { doc, spatial }, schema, enabled, evaluator: defaultMetricEvaluator, toolkit }),
-    [doc, spatial, schema, enabled, toolkit],
+    () => ({ ctx: { doc, spatial }, schema, enabled, evaluator: defaultMetricEvaluator, toolkit, functionName }),
+    [doc, spatial, schema, enabled, toolkit, functionName],
   );
   const nodes = useMemo(() => nodeTable(inputs), [inputs]);
   const edges = useMemo(() => edgeTable(inputs), [inputs]);

@@ -184,6 +184,14 @@ describe('tables', () => {
     for (const r of t.rows) for (const c of t.columns.filter((x) => x.section === 'calculated')) expect(r.cells[c.id]!.origin).toBe('calculated');
   });
 
+  it('show the Function by its current name (a renamed function), with the stored id in the title', () => {
+    const kitchen = house().nodes.find((n) => n.function === 'kitchen')!.id;
+    const t = nodeTable({ ...inputs(house()), functionName: (id) => (id === 'kitchen' ? 'Cook room' : id) });
+    const cells = t.rows.find((r) => r.id === kitchen)!.cells;
+    expect(cells['function']).toMatchObject({ text: 'Cook room', title: 'Stored as "kitchen".' });
+    expect(cells['custom:f1']!.title).toContain('“Cook room”');
+  });
+
   it('show an edge’s Corridor as two Geometry cells, walls | roof: own values plain, the Corridors card marked default, unused ones marked not built', () => {
     // Edge 1 joins rooms 5 cells apart (a corridor is generated); edge 2 joins touching rooms and stores its own roof.
     const doc = expectOk(

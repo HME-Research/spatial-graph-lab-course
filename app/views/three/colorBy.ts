@@ -133,22 +133,24 @@ export function resolveColoring(
   metrics?: MetricColorSource,
   /** The function colours (`useFunctionColour`); default: the automatic colours. */
   colourOf: (functionId: string) => string = typeColor,
+  /** The function names (`useFunctionName`) for the legend; default: the id. */
+  nameOf: (functionId: string) => string = (id) => id,
 ): Coloring {
   switch (mode.kind) {
     case 'type':
-      return byType(nodes, colourOf);
+      return byType(nodes, colourOf, nameOf);
     case 'group':
       return byGroup(nodes, edges);
     case 'attribute':
       return byAttribute(nodes, mode.key);
     case 'metric': {
       const metric = metrics?.metrics.find((m) => m.id === mode.metricId);
-      return metrics && metric ? byMetric(nodes, metric, metrics.values(metric.id)) : byType(nodes, colourOf);
+      return metrics && metric ? byMetric(nodes, metric, metrics.values(metric.id)) : byType(nodes, colourOf, nameOf);
     }
   }
 }
 
-function byType(nodes: readonly ColorNode[], colourOf: (functionId: string) => string): Coloring {
+function byType(nodes: readonly ColorNode[], colourOf: (functionId: string) => string, nameOf: (functionId: string) => string): Coloring {
   const counts = countBy(nodes, (n) => n.function);
   const types = [...counts.keys()].sort();
   const colours = new Set(types.map((t) => colourOf(t)));
@@ -156,7 +158,7 @@ function byType(nodes: readonly ColorNode[], colourOf: (functionId: string) => s
     title: 'Node type',
     colorOf: new Map(nodes.map((n) => [n.id, colourOf(n.function)] as const)),
     missing: new Set(),
-    legend: types.map((t) => ({ label: t, color: colourOf(t), count: counts.get(t)! })),
+    legend: types.map((t) => ({ label: nameOf(t), color: colourOf(t), count: counts.get(t)! })),
     ...(colours.size < types.length && { note: 'Some functions share a colour (change one in Functions).' }),
   };
 }

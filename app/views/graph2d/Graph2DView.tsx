@@ -24,6 +24,7 @@ import type { DiagramPosition, GraphIssue } from '@app/document';
 import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
 import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
+import { useFunctionName } from '../functionColour';
 import { functionStatus, typeDisplayName } from '../project';
 import { resolveDiagramPositions } from './diagram';
 import { nodesMissingHandles } from './handleRepair';
@@ -214,28 +215,29 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
     return counts;
   }, [model]);
 
-  const lines = useMemo(() => new Map(model.nodes.map((n) => [n.id, nodeLines(n, display)])), [model, display]);
+  const functionName = useFunctionName();
+  const lines = useMemo(() => new Map(model.nodes.map((n) => [n.id, nodeLines(n, display, functionName)])), [model, display, functionName]);
 
   const nodes = useMemo<RoomFlowNode[]>(() => {
     const analysisFill = (id: number) => (analysis ? analysisNodeStyle(id, analysis, NO_SELECTION).fill : null);
     return model.nodes.map((node) => {
         const o = overlay[node.id];
         const p = positions.get(node.id) ?? [0, 0];
-        const l = lines.get(node.id) ?? nodeLines(node, display);
+        const l = lines.get(node.id) ?? nodeLines(node, display, functionName);
         const broken = typeStatus.get(node.function)?.kind === 'broken';
         const unresolved = unresolvedCount.get(node.id) ?? 0;
         return {
           id: String(node.id),
           type: 'room',
           position: o?.drag ?? { x: p[0], y: p[1] },
-          ariaLabel: `Node ${node.label}, type ${node.function}`,
+          ariaLabel: `Node ${node.label}, type ${functionName(node.function)}`,
           data: {
             function: node.function,
             lines: l.lines,
             hidden: l.hidden,
             diameter: l.diameter,
             tooltip:
-              `${node.label} · ${node.function}${broken ? ' (invalid type definition)' : ''}\n${describePlacement(node)}` +
+              `${node.label} · ${functionName(node.function)}${broken ? ' (invalid type definition)' : ''}\n${describePlacement(node)}` +
               (unresolved ? `\n${unresolved} relationship(s) not buildable yet` : ''),
             emphasised: emphasised.has(node.id),
             brokenType: broken,
@@ -254,7 +256,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
           ...(o?.measured ? { measured: o.measured } : {}),
         };
       });
-  }, [model, positions, overlay, selection, emphasised, typeStatus, lines, display, unresolvedCount, connectFrom, analysis]);
+  }, [model, positions, overlay, selection, emphasised, typeStatus, lines, display, unresolvedCount, connectFrom, analysis, functionName]);
 
   const invalidRows = useMemo(() => invalidConnectionRows(model), [model]);
   const reviewing = reviewInvalid && invalidRows.length > 0;
