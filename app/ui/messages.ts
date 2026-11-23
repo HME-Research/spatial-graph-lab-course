@@ -2,7 +2,7 @@ import { formatIssuePath, type GraphIssue } from '@app/document';
 
 /**
  * Turns validation/command issues into beginner-facing messages: the message first, in plain
- * language ("This room overlaps room 03"), with the original path, code and text kept as
+ * language ("This node overlaps node 03"), with the original path, code and text kept as
  * optional technical details. Pure; the original issue text is never lost.
  */
 
@@ -33,10 +33,10 @@ const sentence = (text: string): string => {
   return /[.!?]$/.test(t) ? t : `${t}.`;
 };
 
-/** "room 03", "rooms 03 and 05", "rooms 03, 05 and 07". */
+/** "node 03", "nodes 03 and 05", "nodes 03, 05 and 07". */
 export function roomList(labels: readonly string[]): string {
-  if (labels.length <= 1) return `room ${labels[0] ?? ''}`.trim();
-  return `rooms ${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+  if (labels.length <= 1) return `node ${labels[0] ?? ''}`.trim();
+  return `nodes ${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
 }
 
 export function technicalText(issue: GraphIssue): string {
@@ -56,33 +56,33 @@ export function friendlyText(issue: GraphIssue, context: MessageContext = {}): s
       // `room "a" overlaps room "b" at cell [x, y, z]`: either room may be the edited one.
       const others = other(names);
       if (context.subjectNodeId !== undefined && others.length < names.length && others.length > 0) {
-        return `This room overlaps ${roomList(others.map(room))}. Rooms cannot share cells.`;
+        return `This node overlaps ${roomList(others.map(room))}. Nodes cannot share cells.`;
       }
       return names.length >= 2
-        ? `Room ${room(names[0]!)} overlaps room ${room(names[1]!)}. Rooms cannot share cells.`
-        : 'Two rooms overlap. Rooms cannot share cells.';
+        ? `Node ${room(names[0]!)} overlaps node ${room(names[1]!)}. Nodes cannot share cells.`
+        : 'Two nodes overlap. Nodes cannot share cells.';
     }
     case 'invalid-edge-geometry': {
       // `"door" edge "e" requires <requirement>; "a" [..] and "b" [..] are not`
       const requirement = /requires (.+?);/.exec(issue.message)?.[1];
       const edgeId = names[1];
       const [a, b] = [names[2], names[3]];
-      const who = a !== undefined && b !== undefined ? `rooms ${room(a)} and ${room(b)}` : 'the rooms';
+      const who = a !== undefined && b !== undefined ? `nodes ${room(a)} and ${room(b)}` : 'the nodes';
       return (
-        `The ${names[0] ?? ''} relationship${edgeId !== undefined ? ` ${relationship(edgeId)}` : ''} needs ${requirement ?? 'touching cells'}, ` +
-        `and ${who} would not be. Keep the rooms touching, or delete the relationship first.`
+        `The ${names[0] ?? ''} edge${edgeId !== undefined ? ` ${relationship(edgeId)}` : ''} needs ${requirement ?? 'touching cells'}, ` +
+        `and ${who} would not be. Keep the nodes touching, or delete the edge first.`
       ).replace(/ {2,}/g, ' ');
     }
     case 'route-displacement':
       return names.length > 0
-        ? `This would block the generated corridor of ${names.length === 1 ? 'relationship' : 'relationships'} ${names.map(relationship).join(', ')}.`
+        ? `This would block the generated corridor of ${names.length === 1 ? 'edge' : 'edges'} ${names.map(relationship).join(', ')}.`
         : 'This would block a generated corridor.';
     case 'duplicate-relationship':
-      return 'These two rooms are already connected. Edit the existing relationship instead.';
+      return 'These two nodes are already connected. Edit the existing edge instead.';
     case 'self-edge':
-      return 'A room cannot be connected to itself.';
+      return 'A node cannot be connected to itself.';
     case 'dangling-edge':
-      return 'A relationship refers to a room that does not exist.';
+      return 'An edge refers to a node that does not exist.';
     case 'not-found':
       return 'That item no longer exists. It may have been deleted or undone.';
     case 'coordinate-out-of-range':
@@ -91,11 +91,11 @@ export function friendlyText(issue: GraphIssue, context: MessageContext = {}): s
     case 'too-many-nodes':
       return sentence(`The design is too large: ${issue.message}`);
     case 'duplicate-node-id':
-      return 'Another room already has that id.';
+      return 'Another node already has that id.';
     case 'duplicate-edge-id':
-      return 'Another relationship already has that id.';
+      return 'Another edge already has that id.';
     case 'unknown-node-type':
-      return names[0] !== undefined ? `The room type ${names[0]} is not known.` : 'The room type is not known.';
+      return names[0] !== undefined ? `The Function ${names[0]} is not known.` : 'The Function is not known.';
     default:
       return sentence(issue.message);
   }

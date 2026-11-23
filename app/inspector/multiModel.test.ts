@@ -62,7 +62,7 @@ describe('multi-selection attribute model', () => {
     expect(result.ok && result.command?.type).toBe('set-nodes-custom');
     const next = expectOk(applyDesignCommand(doc, commandOf(result)));
     expect(next.nodes.map((n) => n.custom)).toEqual([{ other: 'kept', capacity: 12 }, { capacity: 12 }, { capacity: 12 }]);
-    expect(designCommandLabel(commandOf(result), doc)).toBe('Edit the attributes of 3 rooms');
+    expect(designCommandLabel(commandOf(result), doc)).toBe('Edit the attributes of 3 nodes');
   });
 
   it('"Use default" clears every own value so each Function default applies again', () => {
@@ -87,7 +87,7 @@ describe('multi-selection attribute model', () => {
 
     const corridor = expectOk(applyDesignCommand(doc, { type: 'set-edges-corridor', edgeIds: [1, 2], patch: { roof: 'pergola', walls: null } }));
     expect(corridor.edges.map((e) => e.corridor)).toEqual([{ roof: 'pergola' }, { roof: 'pergola' }]);
-    expect(designCommandLabel({ type: 'set-edges-kind', edgeIds: [1, 2], relationship: 'open' }, doc)).toBe('Change 2 connections to Open');
+    expect(designCommandLabel({ type: 'set-edges-kind', edgeIds: [1, 2], relationship: 'open' }, doc)).toBe('Change 2 edges to Open');
   });
 
   it('refuses empty lists and unknown ids without change', () => {

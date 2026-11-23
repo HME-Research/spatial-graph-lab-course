@@ -139,23 +139,23 @@ export function projectSheet(input: ProjectSheetInput): string {
     out.push('');
   }
 
-  out.push('## Custom room fields (`room.custom.<key>`, list them in `uses.nodeFields`)', '');
-  out.push(...(input.nodeFields.length === 0 ? ['This project has no custom room fields.'] : fieldTable(input.nodeFields, input)), '');
-  out.push('## Custom relationship fields (`edge.custom.<key>`, list them in `uses.edgeFields`)', '');
-  out.push(...(input.edgeFields.length === 0 ? ['This project has no custom relationship fields.'] : fieldTable(input.edgeFields, input)), '');
+  out.push('## Custom node fields (`room.custom.<key>`, list them in `uses.nodeFields`)', '');
+  out.push(...(input.nodeFields.length === 0 ? ['This project has no custom node fields.'] : fieldTable(input.nodeFields, input)), '');
+  out.push('## Custom edge fields (`edge.custom.<key>`, list them in `uses.edgeFields`)', '');
+  out.push(...(input.edgeFields.length === 0 ? ['This project has no custom edge fields.'] : fieldTable(input.edgeFields, input)), '');
   out.push('A custom value may be missing or `null` ("no value"): check its type before using it.', '');
 
   out.push('## Calculated values (`ctx.metrics.value(id, itemId)`, every project has them)', '');
   out.push('| id | of | value | unit | what it is |', '|---|---|---|---|---|');
   for (const m of input.metrics) {
-    out.push(`| ${code(m.id)} | ${m.collection === 'nodes' ? 'room' : 'relationship'} | ${m.valueKind} | ${m.unit ?? '—'} | ${cell(m.label)}${m.definition ? `: ${cell(m.definition)}` : ''} |`);
+    out.push(`| ${code(m.id)} | ${m.collection === 'nodes' ? 'node' : 'edge'} | ${m.valueKind} | ${m.unit ?? '—'} | ${cell(m.label)}${m.definition ? `: ${cell(m.definition)}` : ''} |`);
   }
   out.push('');
 
   out.push('## Grid', '');
   out.push(
-    `A room is a box of whole cells. One cell is ${input.cell.horizontal} × ${input.cell.horizontal} m and one level ${input.cell.vertical} m high. ` +
-      '`position` is the room\'s minimum corner cell `[x, y, z]`; z is the level (0 = ground). `size` is `[sx, sy, sz]` in cells (sz = number of floors).',
+    `Each node becomes a room: a box of whole cells. One cell is ${input.cell.horizontal} × ${input.cell.horizontal} m and one level ${input.cell.vertical} m high. ` +
+      '`position` is the node\'s minimum corner cell `[x, y, z]`; z is the level (0 = ground). `size` is `[sx, sy, sz]` in cells (sz = number of floors).',
     '',
   );
 
@@ -171,7 +171,7 @@ export function projectSheet(input: ProjectSheetInput): string {
     edges: [{ id: 1, source: 1, target: 2, relationship: 'access', custom: edgeCustom }],
   };
   out.push('## Example (made up, not your design)', '');
-  out.push('What `ctx.design` looks like for two rooms side by side when the analysis lists every field above in `uses`:', '');
+  out.push('What `ctx.design` looks like for two nodes side by side when the analysis lists every field above in `uses`:', '');
   out.push('```json', JSON.stringify(example, null, 2), '```', '');
   return out.join('\n');
 }

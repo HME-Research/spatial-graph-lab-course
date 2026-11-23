@@ -187,7 +187,7 @@ describe('set-node-geometry: move and resize rooms (P4, additive)', () => {
     const route = resolveRelationships(withRoute).byEdge.get(2)!;
     const cell = route.status === 'routed' ? route.route.cells[0]! : ([0, 0, 0] as const);
     const taken = expectDiagnostic(await run([{ op: 'set-node-geometry', nodeId: 3, position: cell, size: [1, 1, 1] }], withRoute), 'occupied-cell');
-    expect(taken.message).toContain('generated connector of relationship 2');
+    expect(taken.message).toContain('generated connector of edge 2');
     // Nothing changed: the run failed as a whole.
     expect(withRoute.nodes.find((n) => n.id === 3)!.position).toEqual([0, 5, 0]);
   });

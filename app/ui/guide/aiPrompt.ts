@@ -8,12 +8,12 @@ import type { GuidePromptGuide } from '../guideContracts';
  * the answer shows.
  */
 
-const IDEA = { label: '2. Idea', text: 'what it should find, in plain words: rooms, relationships, neighbours, steps, areas, levels…' };
+const IDEA = { label: '2. Idea', text: 'what it should find, in plain words: nodes, edges, neighbours, steps, areas, levels…' };
 const INPUT = {
   label: '3. Input',
-  text: 'what you select before it runs: nothing (the whole design), one room, one relationship, or a mix such as two rooms or a room and a number. This decides where it appears in Analyse.',
+  text: 'what you select before it runs: nothing (the whole design), one node, one edge, or a mix such as two nodes or a node and a number. This decides where it appears in Analyse.',
 };
-const ANSWER = { label: '4. Answer', text: 'how it should show: a number, one line of text, rooms or relationships lit up, or a colour per room.' };
+const ANSWER = { label: '4. Answer', text: 'how it should show: a number, one line of text, nodes or edges lit up, or a colour per node.' };
 const BLANKS = ['', 'My idea: ___', 'Input: ___', 'Show the answer as: ___'];
 const REFUSED = 'If the app refuses the file, paste its message back to the assistant and ask it to fix exactly that.';
 
@@ -23,8 +23,8 @@ export const GRAPH_PROMPT_GUIDE: GuidePromptGuide = {
   parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit and write one graph analysis (the first line below).' }, IDEA, INPUT, ANSWER],
   text: ["I've attached the Spatial Graph Lab graph kit. Read PROMPT.md and every file in it, then write ONE graph analysis that follows it exactly.", ...BLANKS].join('\n'),
   tips: [
-    'Example: “The rooms that are neighbours of both rooms I select.” · Input: two rooms · Show: light them up and count them.',
-    'A graph analysis sees only room ids and relationships: no Functions, sizes or positions. For those, tick Include room basics.',
+    'Example: “The nodes that are neighbours of both nodes I select.” · Input: two nodes · Show: light them up and count them.',
+    'A graph analysis sees only node ids and edges: no Functions, sizes or positions. For those, tick Include node basics.',
     REFUSED,
   ],
 };
@@ -34,12 +34,12 @@ export const DESIGN_PROMPT_GUIDE: GuidePromptGuide = {
   title: 'How to write your prompt',
   parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit and write one design analysis that works in any project (the first line below).' }, IDEA, INPUT, ANSWER],
   text: [
-    "I've attached the Spatial Graph Lab design kit. Read PROMPT.md and every file in it, then write ONE design analysis that works in any project (room basics only, no custom fields).",
+    "I've attached the Spatial Graph Lab design kit. Read PROMPT.md and every file in it, then write ONE design analysis that works in any project (node basics only, no custom fields).",
     ...BLANKS,
   ].join('\n'),
   tips: [
     'Example: “The largest room on each level.” · Input: nothing · Show: light them up and colour every room by its area.',
-    'It can read each room’s Function, size, position and level, the relationship type and calculated values such as area, but not custom fields such as a target area. For those, use This project.',
+    'It can read each node’s Function, size, position and level, each edge’s Relationship (Access or Open) and calculated values such as area, but not custom fields such as a target area. For those, use This project.',
     REFUSED,
   ],
 };

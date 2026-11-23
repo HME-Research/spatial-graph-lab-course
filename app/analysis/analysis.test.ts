@@ -244,7 +244,7 @@ describe('Analyse panel model', () => {
       { id: 'routes-through', name: 'Routes through it', shown: true },
       { id: 'touching-edges', name: 'Touching edges', shown: true },
       { id: 'shared-neighbours', name: 'Shared neighbours', shown: true },
-      { id: 'ends-connections', name: 'Ends’ connections', shown: true },
+      { id: 'ends-connections', name: 'Ends’ edges', shown: true },
     ]);
     // The retired "Detour if removed" is no built-in any more: a stored id is ignored.
     expect(sanitizeShownAnalyses(['detour-if-removed', 'degree'])).toEqual(['degree']);

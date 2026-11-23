@@ -27,7 +27,7 @@ export const CONCEPTS: Readonly<Record<ConceptId, Concept>> = {
   'access-open': {
     id: 'access-open',
     title: 'Access and Open',
-    lead: 'Both are relationships between two rooms. They differ in what is built between them.',
+    lead: 'Both are values of an edge’s Relationship. They differ in what is built between the two rooms.',
     parts: [
       { heading: 'Access', text: 'Separate rooms that people can pass between: a door in the shared wall, or a floor opening.' },
       { heading: 'Open', text: 'The rooms flow into one space: the shared wall (or floor) is left out.' },
@@ -40,7 +40,7 @@ export const CONCEPTS: Readonly<Record<ConceptId, Concept>> = {
     lead: 'A project holds the shared rules; each scenario is one complete design alternative.',
     parts: [
       { heading: 'Project', text: 'Shared by every scenario: functions, attributes and settings.' },
-      { heading: 'Scenario', text: 'Its own rooms, relationships, values and undo history. Switch scenarios in the Scenarios tab.' },
+      { heading: 'Scenario', text: 'Its own nodes, edges, values and undo history. Switch scenarios in the Scenarios tab.' },
     ],
     diagramLabel: 'A project box containing shared attributes, with three scenario cards (A, B, C) inside it.',
   },
@@ -49,10 +49,10 @@ export const CONCEPTS: Readonly<Record<ConceptId, Concept>> = {
     title: 'Calculated values',
     lead: 'Calculated values are worked out from the design. You cannot type them; they update when the design changes.',
     parts: [
-      { heading: 'Inputs you edit', text: 'Position, size, relationships and attribute values.' },
-      { heading: 'Calculated (read-only)', text: 'For example area from the size, or degree from the relationships. They are never saved as values.' },
+      { heading: 'Inputs you edit', text: 'Position, size, edges and attribute values.' },
+      { heading: 'Calculated (read-only)', text: 'For example area from the size, or degree from the edges. They are never saved as values.' },
     ],
-    diagramLabel: 'Editable inputs (size, relationships) flow through an arrow into a read-only calculated value with a lock.',
+    diagramLabel: 'Editable inputs (size, edges) flow through an arrow into a read-only calculated value with a lock.',
   },
   'repeat-stretch': {
     id: 'repeat-stretch',

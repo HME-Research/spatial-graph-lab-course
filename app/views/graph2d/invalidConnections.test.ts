@@ -58,26 +58,26 @@ describe('Remove invalid connections (pure)', () => {
     expect(removeInvalidCommand(rows, new Set([99]))).toEqual({ type: 'remove-edges', edgeIds: [2, 3, 4] });
   });
 
-  it('a design without unresolved relationships has nothing to remove', () => {
+  it('a design without unresolved edges has nothing to remove', () => {
     const example = readDesign(exampleDesign);
     if (!example.ok) throw new Error('example');
     expect(invalidConnectionRows(model(example.value.doc))).toEqual([]);
-    expect(NO_INVALID_CONNECTIONS).toMatch(/no invalid connections/);
+    expect(NO_INVALID_CONNECTIONS).toMatch(/no invalid edges/);
   });
 
   it('summarises the confirmation', () => {
-    expect(removeSummary(3, 2)).toBe('Remove 2 of 3 invalid connections; 1 is kept. One undo step restores them.');
-    expect(removeSummary(1, 1)).toBe('Remove 1 of 1 invalid connection. One undo step restores them.');
+    expect(removeSummary(3, 2)).toBe('Remove 2 of 3 invalid edges; 1 is kept. One undo step restores them.');
+    expect(removeSummary(1, 1)).toBe('Remove 1 of 1 invalid edge. One undo step restores them.');
     expect(removeSummary(2, 0)).toMatch(/Nothing is selected/);
   });
 
   it('the canvas menu offers it (with the count)', () => {
     const items = menuItems(model(withInvalid()), { kind: 'pane' });
-    expect(items.map((i) => i.label)).toEqual(['Add node here', 'Remove invalid connections (3)…']);
+    expect(items.map((i) => i.label)).toEqual(['Add node here', 'Remove invalid edges (3)…']);
     expect(items[1]!.action).toEqual({ type: 'remove-invalid' });
     const example = readDesign(exampleDesign);
     if (!example.ok) throw new Error('example');
-    expect(menuItems(model(example.value.doc), { kind: 'pane' })[1]).toMatchObject({ label: 'Remove invalid connections…', title: 'There are no invalid connections' });
+    expect(menuItems(model(example.value.doc), { kind: 'pane' })[1]).toMatchObject({ label: 'Remove invalid edges…', title: 'There are no invalid edges' });
   });
 
   it('the review list shows every row checked unless unchecked, and disables Remove with nothing checked', () => {

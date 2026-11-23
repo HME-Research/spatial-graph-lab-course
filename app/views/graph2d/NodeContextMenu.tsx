@@ -23,7 +23,7 @@ export type MenuAction =
   | { readonly type: 'remove-node'; readonly nodeId: number }
   | { readonly type: 'remove-edge'; readonly edgeId: number }
   | { readonly type: 'set-relationship-kind'; readonly edgeId: number; readonly kind: RelationshipKind }
-  /** Open the "Remove invalid connections" review (or explain that there is nothing to remove). */
+  /** Open the "Remove invalid edges" review (or explain that there is nothing to remove). */
   | { readonly type: 'remove-invalid' };
 
 export interface MenuItem {
@@ -43,10 +43,10 @@ export function menuItems(model: DiagramModel, target: MenuTarget): readonly Men
     return [
       add,
       {
-        label: invalid > 0 ? `Remove invalid connections (${invalid})…` : 'Remove invalid connections…',
+        label: invalid > 0 ? `Remove invalid edges (${invalid})…` : 'Remove invalid edges…',
         action: { type: 'remove-invalid' },
         separated: true,
-        title: invalid > 0 ? 'Review the relationships that cannot be built' : 'There are no invalid connections',
+        title: invalid > 0 ? 'Review the edges that cannot be built' : 'There are no invalid edges',
       },
     ];
   }
@@ -55,14 +55,14 @@ export function menuItems(model: DiagramModel, target: MenuTarget): readonly Men
     if (!node) return [];
     return [
       { label: 'Inspect', action: { type: 'inspect', nodeId: node.id } },
-      { label: 'Add connection…', action: { type: 'connect', nodeId: node.id }, title: 'Then click the node to connect to' },
+      { label: 'Add edge…', action: { type: 'connect', nodeId: node.id }, title: 'Then click the node to connect to' },
       { label: 'Add node next to it', action: { type: 'add-node', nearNodeId: node.id } },
       {
         label: 'Duplicate',
         action: { type: 'duplicate-node', nodeId: node.id },
-        title: 'Same function, size and values in the closest free place; relationships are not copied (Ctrl+D)',
+        title: 'Same function, size and values in the closest free place; edges are not copied (Ctrl+D)',
       },
-      { label: 'Delete node', action: { type: 'remove-node', nodeId: node.id }, separated: true, title: 'Also deletes its relationships' },
+      { label: 'Delete node', action: { type: 'remove-node', nodeId: node.id }, separated: true, title: 'Also deletes its edges' },
     ];
   }
   const edge = model.edges.find((e) => e.id === target.id);
@@ -75,7 +75,7 @@ export function menuItems(model: DiagramModel, target: MenuTarget): readonly Men
       disabled: edge.relationship === kind,
     });
   }
-  return [...kindItems, { label: 'Delete relationship', action: { type: 'remove-edge', edgeId: edge.id }, separated: true }];
+  return [...kindItems, { label: 'Delete edge', action: { type: 'remove-edge', edgeId: edge.id }, separated: true }];
 }
 
 export function NodeContextMenu({

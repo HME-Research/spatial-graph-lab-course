@@ -152,8 +152,8 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
         <span className="sgl-swatch" style={{ background: functionColour(node.function) }} aria-hidden="true" />
         {/* The Function names the room (2026-11-20); the id stays visible as its permanent identity. */}
         <span className="sgl-room-function">{functionName}</span>
-        <span className="sgl-id" title="The room's id: permanent, never reused">
-          Room <span className="sgl-room-label">{label}</span>
+        <span className="sgl-id" title="The node's id: permanent, never reused">
+          Node <span className="sgl-room-label">{label}</span>
         </span>
       </div>
 
@@ -177,7 +177,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
             attributeId="function"
             kind="required"
             label="Function"
-            title="What the room is used for. Every room has one."
+            title="What the room is used for. Every node has one."
             control={
               /* Re-keyed on the stored value so the menu resets after any change (or undo). */
               <TypeSelect key={node.function} current={node.function} menu={menu} onChange={(functionId) => runShared({ type: 'set-node-type', nodeId, function: functionId })} />
@@ -254,7 +254,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
         <CalculatedRows design={design} collection="nodes" itemId={nodeId} />
       </div>
 
-      <CollapsibleSection title="Relationships" sectionId="relationships" defaultOpen={false} meta={String(incidentCount(props, nodeId))}>
+      <CollapsibleSection title="Edges" sectionId="relationships" defaultOpen={false} meta={String(incidentCount(props, nodeId))}>
         <RelationshipsV2 {...props} nodeId={nodeId} runV2={runV2} />
       </CollapsibleSection>
 
@@ -267,17 +267,17 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
             clearIssues();
             props.onSelect(selectNode(outcome.nodeId));
           }}
-          title={`A copy with the same function, size and values in the closest free place; relationships are not copied (Ctrl+D wherever a room is selected). ${UNDO_HINT}`}
+          title={`A copy with the same function, size and values in the closest free place; edges are not copied (Ctrl+D wherever a node is selected). ${UNDO_HINT}`}
         >
-          Duplicate room
+          Duplicate node
         </button>
         <button
           type="button"
           className="sgl-danger"
           onClick={() => runShared({ type: 'remove-node', nodeId })}
-          title={`Also removes its ${incidentCount(props, nodeId)} relationship(s) and its diagram position. ${UNDO_HINT}`}
+          title={`Also removes its ${incidentCount(props, nodeId)} edge(s) and its diagram position. ${UNDO_HINT}`}
         >
-          Delete room
+          Delete node
         </button>
       </section>
 
@@ -310,7 +310,7 @@ function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { rea
 
   return (
     <section className="sgl-section">
-      {incident.length === 0 && <p className="meta">No relationships yet.</p>}
+      {incident.length === 0 && <p className="meta">No edges yet.</p>}
       <ul className="sgl-list sgl-relations">
         {incident.map((e) => {
           const other = e.source === nodeId ? e.target : e.source;
@@ -318,12 +318,12 @@ function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { rea
           const status = resolution ? describeResolution(resolution) : null;
           return (
             <li key={e.id}>
-              <button type="button" className="sgl-link" onClick={() => onSelect(selectEdge(e.id))} title="Show this relationship">
+              <button type="button" className="sgl-link" onClick={() => onSelect(selectEdge(e.id))} title="Show this edge">
                 {labelOfChoice(RELATIONSHIP_KIND_CHOICES, e.relationship)}
               </button>{' '}
               with{' '}
-              <button type="button" className="sgl-link" onClick={() => onSelect(selectNode(other))} title="Show this room">
-                room {label(other)}
+              <button type="button" className="sgl-link" onClick={() => onSelect(selectNode(other))} title="Show this node">
+                node {label(other)}
               </button>
               {status && (
                 <span className={`sgl-chip sgl-chip-${status.tone}`} title={status.detail}>
@@ -336,15 +336,15 @@ function RelationshipsV2({ design, onSelect, nodeId, runV2 }: PanelProps & { rea
       </ul>
       {candidates.length > 0 && (
         <div className="sgl-row sgl-connect">
-          <select value={target} aria-label="Room to connect to" onChange={(e) => setTarget(e.currentTarget.value)}>
-            <option value="">Connect to room…</option>
+          <select value={target} aria-label="Node to connect to" onChange={(e) => setTarget(e.currentTarget.value)}>
+            <option value="">Connect to node…</option>
             {candidates.map((n) => (
               <option key={n.id} value={n.id}>
                 {nodeLabel(n)} ({functionName(n.function)})
               </option>
             ))}
           </select>
-          <button type="button" disabled={target === ''} onClick={connect} title="Add an Access relationship (you can change it to Open afterwards)">
+          <button type="button" disabled={target === ''} onClick={connect} title="Add an Access edge (you can change it to Open afterwards)">
             Connect
           </button>
         </div>

@@ -105,7 +105,7 @@ export function BandsEditor({ idBase, attribute, dividers, numbers, onCommit, on
             key={`seg-${i}`}
             className={`sgl-bands-segment sgl-bands-segment--${i % 2 === 0 ? 'even' : 'odd'}`}
             style={{ left: pct(edges[i]!), width: `calc(${pct(hi)} - ${pct(edges[i]!)})` }}
-            title={`${counts[i]} ${counts[i] === 1 ? 'room' : 'rooms'}`}
+            title={`${counts[i]} ${counts[i] === 1 ? 'node' : 'nodes'}`}
           >
             <span className="sgl-bands-count">{counts[i]}</span>
           </span>
@@ -136,7 +136,7 @@ export function BandsEditor({ idBase, attribute, dividers, numbers, onCommit, on
         ))}
       </div>
       <p className="sgl-designer-source">
-        Drag a divider (or use ← →); each dot is a room. Rooms exactly on a divider go in the band above it.
+        Drag a divider (or use ← →); each dot is a node. Nodes exactly on a divider go in the band above it.
       </p>
       {shown.length > 0 && (
         <ol className="sgl-bands-list">

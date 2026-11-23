@@ -21,16 +21,16 @@ const doc = expectOk(
 );
 
 describe('Duplicate room in the history', () => {
-  it('is one undo step labelled "Duplicate room 1 as room 5"; redo restores the copy', () => {
+  it('is one undo step labelled "Duplicate node 1 as node 5"; redo restores the copy', () => {
     const r = duplicateRoomRequest(doc, 1);
     if (r.status !== 'command') throw new Error(r.message);
     const outcome = applyDesignCommandToSession(openDocument(doc, 'test', null), r.command);
     if (!outcome.ok) throw new Error(outcome.issues.map((i) => i.message).join('; '));
     expect(outcome.session.history.past).toHaveLength(1);
-    expect(undoLabel(outcome.session.history)).toBe('Duplicate room 1 as room 5');
+    expect(undoLabel(outcome.session.history)).toBe('Duplicate node 1 as node 5');
     const undone = undoDocument(outcome.session);
     expect(currentDocument(undone)).toEqual(doc);
-    expect(redoLabel(undone.history)).toBe('Duplicate room 1 as room 5');
+    expect(redoLabel(undone.history)).toBe('Duplicate node 1 as node 5');
     const redone = currentDocument(redoDocument(undone));
     expect(redone.nodes.map((n) => n.id)).toEqual([1, 4, 5]);
     expect(redone.edges).toEqual(doc.edges);

@@ -93,7 +93,7 @@ export function checkFacePreference(
 }
 
 const NOT_AVAILABLE_TEXT: Readonly<Record<'not-endpoint' | 'outside-room' | 'not-shared', string>> = {
-  'not-endpoint': 'names a room that is not one of its two rooms',
+  'not-endpoint': 'names a node that is not one of its two nodes',
   'outside-room': 'is no longer inside the room (it was resized)',
   'not-shared': 'is no longer shared by the two rooms',
 };
@@ -157,7 +157,7 @@ export function resolveWithPreferences(doc: DesignDocumentV2, preferences: FaceP
     if (edge.relationship !== 'access' || !Object.prototype.hasOwnProperty.call(preferences, edge.id)) continue;
     const check = checkFacePreference(doc, edge, preferences[edge.id]!);
     if (check.ok) preferred.set(edge.id, check.face);
-    else unavailable.set(edge.id, `the wall chosen for the connection between "${edge.source}" and "${edge.target}" ${NOT_AVAILABLE_TEXT[check.reason]}`);
+    else unavailable.set(edge.id, `the wall chosen for the edge between "${edge.source}" and "${edge.target}" ${NOT_AVAILABLE_TEXT[check.reason]}`);
   }
   if (preferred.size === 0 && unavailable.size === 0) return resolveRelationships(doc);
 

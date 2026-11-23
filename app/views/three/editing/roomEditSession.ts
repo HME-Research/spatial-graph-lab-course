@@ -151,7 +151,7 @@ function settle(port: DesignPort, nodeId: number, mode: GizmoMode, draft: RoomGe
           tone: 'warning',
           text:
             `${capitalise(name)} would take the connector cells of ${relationships(port.doc, proposal.displacedRoutes)}. ` +
-            'Relationships are kept; their connectors are recalculated and may become unresolved.',
+            'Edges are kept; their connectors are recalculated and may become unresolved.',
         },
       };
     case 'ok':
@@ -180,7 +180,7 @@ function send(
     return { state: IDLE, feedback: { tone: 'error', text: `${capitalise(name)} was not changed: ${reason}.` } };
   }
   const done = mode === 'move' ? `Moved ${name} to ${formatGrid(draft.position)}.` : `Resized ${name} to ${formatSize(draft.size)} cells.`;
-  const changed = impacted.length > 0 ? ` ${impacted.length} relationship${impacted.length === 1 ? '' : 's'} changed status.` : '';
+  const changed = impacted.length > 0 ? ` ${impacted.length} edge${impacted.length === 1 ? '' : 's'} changed status.` : '';
   return { state: IDLE, feedback: { tone: 'info', text: done + changed } };
 }
 
@@ -195,7 +195,7 @@ function rejectionText(doc: DesignDocumentV2, name: string, proposal: Extract<Sp
 
 /** "relationship 04 ↔ 07" — readable room labels, never raw edge ids (phase 07, O08). */
 const relationships = (doc: DesignDocumentV2, ids: readonly number[]) =>
-  `relationship${ids.length === 1 ? '' : 's'} ${list(ids.map((id) => relationshipLabel(doc, id)))}`;
+  `edge${ids.length === 1 ? '' : 's'} ${list(ids.map((id) => relationshipLabel(doc, id)))}`;
 
 
 const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

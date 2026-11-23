@@ -17,11 +17,11 @@ describe('design analyses in Analyse', () => {
   it('describe what they need in plain words, and tag themselves by it', () => {
     expect(designNeeds(undefined)).toEqual({ needs: [] });
     const needs = designNeeds({ functions: ['bedroom'], nodeFields: ['targetArea'], edgeFields: ['width'] });
-    expect(needs.needs).toEqual(['Function “bedroom”', 'room field “targetArea”', 'relationship field “width”']);
-    expect(designTag({ needs: [] })).toEqual({ text: 'Any project', title: 'Reads the rooms (Function, size, position, calculated values). Works in any project.' });
+    expect(needs.needs).toEqual(['Function “bedroom”', 'node field “targetArea”', 'edge field “width”']);
+    expect(designTag({ needs: [] })).toEqual({ text: 'Any project', title: 'Reads the nodes (Function, size, position, calculated values). Works in any project.' });
     expect(designTag(needs)).toEqual({
       text: 'This project',
-      title: 'Reads the rooms and uses Function “bedroom”, room field “targetArea”, relationship field “width”. Works only in projects that have them.',
+      title: 'Reads the nodes and uses Function “bedroom”, node field “targetArea”, edge field “width”. Works only in projects that have them.',
     });
     expect(renderToStaticMarkup(createElement(SourceTag, designTag(needs)))).toContain('>This project</span>');
   });

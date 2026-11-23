@@ -27,10 +27,10 @@ export function RouteConfirm({
   return (
     <Feedback
       tone="warning"
-      title={`${verb} this room would block the generated corridor of ${relationships.length === 1 ? 'relationship' : 'relationships'} ${list}.`}
+      title={`${verb} this node would block the generated corridor of ${relationships.length === 1 ? 'edge' : 'edges'} ${list}.`}
       messages={[
         {
-          text: 'If you continue, the relationships are kept and their corridors are recalculated. Some may become “Unresolved”.',
+          text: 'If you continue, the edges are kept and their corridors are recalculated. Some may become “Unresolved”.',
           technical: '',
         },
       ]}

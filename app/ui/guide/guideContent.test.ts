@@ -134,7 +134,7 @@ describe('Guide content (P4 item H)', () => {
     expect(html).toContain('class="sgl-explainer-pair"');
     expect(html).toContain('data-diagram="shared-0"');
     expect(html).toContain('data-diagram="shared-1"');
-    expect(html).toContain('<figcaption>0: no room joined to both</figcaption>');
+    expect(html).toContain('<figcaption>0: no node joined to both</figcaption>');
     expect(html.match(/role="img"/g)).toHaveLength(2);
     expect(html.indexOf('shared-0')).toBeLessThan(html.indexOf('shared-1'));
   });

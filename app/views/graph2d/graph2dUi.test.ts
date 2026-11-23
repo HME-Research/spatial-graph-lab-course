@@ -316,7 +316,7 @@ describe('popoverRows', () => {
     const doc = v2Doc({ ...v2Raw(), nodes: [v2Raw().nodes[0], { id: 2, position: [0, 0, 3], function: 'studio' }] });
     const model = v2Model(doc);
     const rows = popoverRows(model, model.byNode.get(1)!, { brokenType: false, attributeKeys: [] });
-    expect(rows.map((r) => r.label)).toEqual(['Type', 'Placement', 'Relationships', '↔ 2']);
+    expect(rows.map((r) => r.label)).toEqual(['Type', 'Placement', 'Edges', '↔ 2']);
     expect(rows.find((r) => r.label === 'Placement')?.value).toBe('cell [0, 0, 0] · 2×3×1 cells · storey 0');
     expect(rows.at(-1)).toMatchObject({ tone: 'unresolved' });
   });
@@ -334,7 +334,7 @@ describe('context menu items', () => {
   it('node menu offers Inspect and Add connection, and nothing for a deleted node', () => {
     const model = v2Model(v2Doc());
     const labels = menuItems(model, { kind: 'node', id: 1 }).map((i) => i.label);
-    expect(labels).toEqual(['Inspect', 'Add connection…', 'Add node next to it', 'Duplicate', 'Delete node']);
+    expect(labels).toEqual(['Inspect', 'Add edge…', 'Add node next to it', 'Duplicate', 'Delete node']);
     expect(menuItems(model, { kind: 'node', id: 99 })).toEqual([]);
   });
 
@@ -343,7 +343,7 @@ describe('context menu items', () => {
     expect(items.map((i) => [i.label, !!i.disabled])).toEqual([
       ['✓ Access', true],
       ['Open', false],
-      ['Delete relationship', false],
+      ['Delete edge', false],
     ]);
     expect(items[1]!.action).toEqual({ type: 'set-relationship-kind', edgeId: 1, kind: 'open' });
   });

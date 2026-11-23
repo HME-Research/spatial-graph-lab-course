@@ -50,8 +50,8 @@ export function designNeeds(uses: AnalysisUses | undefined): DesignNeeds {
   return {
     needs: [
       ...(uses?.functions ?? []).map((id) => `Function “${id}”`),
-      ...(uses?.nodeFields ?? []).map((key) => `room field “${key}”`),
-      ...(uses?.edgeFields ?? []).map((key) => `relationship field “${key}”`),
+      ...(uses?.nodeFields ?? []).map((key) => `node field “${key}”`),
+      ...(uses?.edgeFields ?? []).map((key) => `edge field “${key}”`),
     ],
   };
 }
@@ -59,8 +59,8 @@ export function designNeeds(uses: AnalysisUses | undefined): DesignNeeds {
 /** The tag of a design analysis: "Any project" or "This project", with what it reads as its title. */
 export function designTag(design: DesignNeeds): { readonly text: string; readonly title: string } {
   return design.needs.length === 0
-    ? { text: 'Any project', title: 'Reads the rooms (Function, size, position, calculated values). Works in any project.' }
-    : { text: 'This project', title: `Reads the rooms and uses ${design.needs.join(', ')}. Works only in projects that have them.` };
+    ? { text: 'Any project', title: 'Reads the nodes (Function, size, position, calculated values). Works in any project.' }
+    : { text: 'This project', title: `Reads the nodes and uses ${design.needs.join(', ')}. Works only in projects that have them.` };
 }
 
 export const builtInKey = (id: string) => `built-in:${id}`;

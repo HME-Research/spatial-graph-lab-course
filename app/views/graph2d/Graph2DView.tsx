@@ -158,7 +158,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   const [boxDrag, setBoxDrag] = useState<BoxDrag | null>(null);
   /** The click event that ends a box drag must not clear the selection it just made. */
   const suppressPaneClick = useRef(false);
-  /** "Remove invalid connections" review: open, and the rows the student unchecked (rows start checked). */
+  /** "Remove invalid edges" review: open, and the rows the student unchecked (rows start checked). */
   const [reviewInvalid, setReviewInvalid] = useState(false);
   const [keepInvalid, setKeepInvalid] = useState<ReadonlySet<number>>(() => new Set());
   /** Panel size (CSS px), so the legend starts folded in small (split / 4-viewport) panels. */
@@ -285,7 +285,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
             diameter: l.diameter,
             tooltip:
               `${node.label} · ${functionName(node.function)}${broken ? ' (invalid type definition)' : ''}\n${describePlacement(node)}` +
-              (unresolved ? `\n${unresolved} relationship(s) not buildable yet` : ''),
+              (unresolved ? `\n${unresolved} edge(s) not buildable yet` : ''),
             emphasised: emphasised.has(node.id),
             brokenType: broken,
             connectSource: connectFrom === node.id,
@@ -392,7 +392,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
     const request = connectRequest(model, source, target);
     if (request.status === 'existing') {
       onSelect(selectEdge(request.edgeId));
-      setNotice({ kind: 'message', text: 'These nodes are already connected; that relationship is now selected.' });
+      setNotice({ kind: 'message', text: 'These nodes are already connected; that edge is now selected.' });
     } else if (request.status === 'refused') {
       setNotice({ kind: 'message', text: request.message });
     } else if (run(request.command)) {
@@ -512,7 +512,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
     if (selection.kind === 'edge' && removed.has(selection.id)) onSelect(NO_SELECTION);
     const n = command.edgeIds.length;
     closeInvalidReview();
-    setNotice({ kind: 'message', text: `Removed ${n} invalid connection${n === 1 ? '' : 's'}. Ctrl/⌘+Z restores ${n === 1 ? 'it' : 'them'}.` });
+    setNotice({ kind: 'message', text: `Removed ${n} invalid edge${n === 1 ? '' : 's'}. Ctrl/⌘+Z restores ${n === 1 ? 'it' : 'them'}.` });
   };
 
   const onMenuAction = (action: MenuAction) => {
@@ -725,7 +725,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
             aria-pressed={connectFrom !== null}
             title="Connect the selected node: then click the node to connect to"
           >
-            {connectFrom ? 'Cancel connection' : 'Add connection…'}
+            {connectFrom ? 'Cancel' : 'Add edge…'}
           </button>
           <button
             type="button"
@@ -775,9 +775,9 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
               onClick={() => (reviewing ? closeInvalidReview() : openInvalidReview())}
               aria-pressed={reviewing}
               aria-haspopup="dialog"
-              title="Review the relationships that cannot be built and remove the ones you choose (one undo step)"
+              title="Review the edges that cannot be built and remove the ones you choose (one undo step)"
             >
-              Remove invalid connections ({invalidRows.length})…
+              Remove invalid edges ({invalidRows.length})…
             </button>
           )}
           <span className="sgl-hint">
@@ -826,7 +826,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
         {display.showLegend && (
           // Collapsible, and click-through when open, so it never blocks nodes underneath. It starts
           // folded in small panels (split / 4-viewport layouts) so it does not hide nodes there.
-          <Panel position="bottom-right" className="sgl-legend" aria-label="Relationship legend">
+          <Panel position="bottom-right" className="sgl-legend" aria-label="Edge legend">
             <details
               open={legendOpen}
               onToggle={(e) => {
@@ -834,7 +834,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
                 if (e.currentTarget.open !== legendOpen) setLegendChoice(e.currentTarget.open);
               }}
             >
-              <summary>Relationships</summary>
+              <summary>Edges</summary>
               <RelationshipLegendRows />
             </details>
           </Panel>
@@ -903,7 +903,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
 
 function menuLabel(model: DiagramModel, target: MenuTarget): string {
   if (target.kind === 'node') return `Actions for node ${model.byNode.get(target.id)?.label ?? target.id}`;
-  if (target.kind === 'edge') return 'Actions for relationship';
+  if (target.kind === 'edge') return 'Actions for edge';
   return 'Diagram actions';
 }
 
@@ -956,7 +956,7 @@ function NoticeLine({
       Connected <strong>{a}</strong> ↔ <strong>{b}</strong> as {kind}
       {' '}(change it from the right-click menu or Properties).
       {unresolved && <span className="sgl-unresolved-text"> Unresolved: {UNRESOLVED_REASON_TEXT[unresolved.reason]}</span>}{' '}
-      <button type="button" className="sgl-link" onClick={() => onRemove(edge.id)} title="Delete this new relationship (Ctrl/⌘+Z also undoes it)">
+      <button type="button" className="sgl-link" onClick={() => onRemove(edge.id)} title="Delete this new edge (Ctrl/⌘+Z also undoes it)">
         Remove
       </button>{' '}
       <span className="sgl-muted">· Ctrl/⌘+Z to undo</span> {dismiss}

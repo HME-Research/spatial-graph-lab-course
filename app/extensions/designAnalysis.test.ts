@@ -128,8 +128,8 @@ describe('design analyses', () => {
     const schema = project.attributeBaseline!.schema;
     expect(missingUses({ functions: ['gallery', 'cafe', 'bar'], nodeFields: ['seats'], edgeFields: ['width'] }, functionInfos(project), schema)).toEqual([
       'Needs the Functions “cafe” and “bar”, which this project does not have.',
-      'Needs the room field “seats”, which this project does not have.',
-      'Needs the relationship field “width”, which this project does not have.',
+      'Needs the node field “seats”, which this project does not have.',
+      'Needs the edge field “width”, which this project does not have.',
     ]);
     expect(missingUses(undefined, [], schema)).toEqual([]);
 
@@ -137,7 +137,7 @@ describe('design analyses', () => {
     const viaUpload = await runUploadedAnalysis(status, 'public-galleries.ts', doc(), [], inProcess, { doc: doc(), functions: functionInfos(project), schema });
     expect(viaUpload).toEqual({
       ok: false,
-      messages: ['Needs the Function “cafe”, which this project does not have.', 'Needs the room field “seats”, which this project does not have.'],
+      messages: ['Needs the Function “cafe”, which this project does not have.', 'Needs the node field “seats”, which this project does not have.'],
     });
   });
 

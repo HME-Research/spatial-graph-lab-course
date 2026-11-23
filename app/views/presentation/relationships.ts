@@ -113,7 +113,7 @@ export function summarizeRelationships(spatial: SpatialResolution): Relationship
   const words: Record<ResolutionStatus, string> = { direct: 'direct', routed: 'via route', unresolved: 'unresolved' };
   const parts = STATUS_ORDER.filter((s) => counts[s] > 0).map((s) => `${counts[s]} ${words[s]}`);
   const sentence =
-    total === 0 ? 'No relationships yet.' : `${total} ${total === 1 ? 'relationship' : 'relationships'}: ${parts.join(', ')}.`;
+    total === 0 ? 'No edges yet.' : `${total} ${total === 1 ? 'edge' : 'edges'}: ${parts.join(', ')}.`;
   return { total, counts, unresolvedIds, sentence };
 }
 

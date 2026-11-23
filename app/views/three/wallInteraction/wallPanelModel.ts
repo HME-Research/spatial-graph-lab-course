@@ -59,7 +59,7 @@ export type WallPanel =
     };
 
 const UNAVAILABLE_TEXT: Readonly<Record<Extract<WallAction, { kind: 'not-eligible' }>['reason'], string>> = {
-  exterior: 'This is an exterior wall: only a wall shared by two rooms can carry a relationship.',
+  exterior: 'This is an exterior wall: only a wall shared by two rooms can carry an edge.',
   slab: 'This is a floor or ceiling: choose a wall shared by two rooms.',
   route: 'This wall faces a generated connector, not another room.',
   interior: 'This boundary lies inside one room.',

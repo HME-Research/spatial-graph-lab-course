@@ -186,7 +186,7 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
     send(styleByEdit(doc, next, spatial ? styleValuesFor(doc, spatial, by, schema) : undefined));
   };
   const groups: readonly { readonly key: StyleAttribute['group']; readonly label: string }[] = [
-    { key: 'room', label: 'Room' },
+    { key: 'room', label: 'Node' },
     { key: 'attributes', label: 'Your attributes' },
     { key: 'measured', label: 'Measured' },
   ];
@@ -248,7 +248,7 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
           </span>
           <div className="sgl-segmented sgl-segmented-sm" role="radiogroup" aria-labelledby="sgl-designer-style-mode">
             {(['values', 'bands'] as const).map((m) => (
-              <label key={m} className={cards.mode === m ? 'checked' : undefined} title={m === 'values' ? 'One card for each value the rooms have' : 'One card for each range of values'}>
+              <label key={m} className={cards.mode === m ? 'checked' : undefined} title={m === 'values' ? 'One card for each value the nodes have' : 'One card for each range of values'}>
                 <input
                   type="radio"
                   name="sgl-designer-style-mode"
@@ -280,7 +280,7 @@ export function DesignerPanel({ design, project, facades }: DesignerPanelProps) 
         </ul>
         {cards.missingCount > 0 && cards.attribute.status !== 'removed' && (
           <p className="sgl-designer-source">
-            {cards.missingCount} {cards.missingCount === 1 ? 'room has' : 'rooms have'} no {cards.byLabel} value and {cards.missingCount === 1 ? 'uses' : 'use'} Default.
+            {cards.missingCount} {cards.missingCount === 1 ? 'node has' : 'nodes have'} no {cards.byLabel} value and {cards.missingCount === 1 ? 'uses' : 'use'} Default.
           </p>
         )}
         {!bands && cards.cards.length === 0 && cards.attribute.status !== 'removed' && (
@@ -478,8 +478,8 @@ function CorridorCard({
 
         <p className="sgl-designer-source">
           {overrideCount > 0
-            ? `${overrideCount} ${overrideCount === 1 ? 'relationship sets its' : 'relationships set their'} own walls, roof or width in Properties.`
-            : 'One relationship can set its own walls, roof or width in Properties.'}
+            ? `${overrideCount} ${overrideCount === 1 ? 'edge sets its' : 'edges set their'} own walls, roof or width in Properties.`
+            : 'One edge can set its own walls, roof or width in Properties.'}
         </p>
         <div className="sgl-designer-card-actions">
           <button type="button" className="sgl-designer-reset" disabled={!card.hasOverride} onClick={onReset}>
@@ -625,7 +625,7 @@ function OutsideControl({ idBase, flip, onFlip }: { readonly idBase: string; rea
 const VARIANT_LABELS: Readonly<Record<FacadeVariantKind, string>> = { door: 'Door bay', open: 'Open bay' };
 const VARIANT_HELP: Readonly<Record<FacadeVariantKind, string>> = {
   door: 'Optional module for façade bays with a door (where an open-air connector meets the room). Automatic: the built-in glass door.',
-  open: 'Optional module for façade bays with an Open relationship (where an open-air connector meets the room). Automatic: the built-in open side.',
+  open: 'Optional module for façade bays with an Open edge (where an open-air connector meets the room). Automatic: the built-in open side.',
 };
 
 /** Optional Door / Open bay module: menu (Automatic or an imported façade) and Import .3dm… on one row, then Outside. */
@@ -787,7 +787,7 @@ function CardRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
                   : `${formatPercent(shownFraction)} % · ${WINDOW_LAYOUT_LABELS[row.effective.windowLayout]}`}{' '}
               ·{' '}
               {SHORT_ROOF[row.effective.roof]} ·{' '}
-              {nodeCount} {nodeCount === 1 ? 'room' : 'rooms'}
+              {nodeCount} {nodeCount === 1 ? 'node' : 'nodes'}
               {row.hasOverride ? ' · changed' : ''}
             </span>
           </span>
@@ -805,7 +805,7 @@ function CardRow({ row, onWindow, onInvalid, onLayout, onMode, onRoof, onReset, 
           className="sgl-designer-highlight"
           aria-pressed={highlighted === true}
           aria-label={`Highlight the rooms of ${row.name}`}
-          title={nodeCount === 0 ? 'No room uses this card' : highlighted ? 'Stop highlighting these rooms' : 'Highlight these rooms in the Building and the Plan'}
+          title={nodeCount === 0 ? 'No node uses this card' : highlighted ? 'Stop highlighting these rooms' : 'Highlight these rooms in the Building and the Plan'}
           disabled={nodeCount === 0 && !highlighted}
           onClick={onHighlight}
         >
@@ -983,7 +983,7 @@ function AddCardMenu({ noun, cards, onAdd }: { readonly noun: string; readonly c
         <option value="">+ Style another {noun}…</option>
         {cards.addable.map((a) => (
           <option key={`${typeof a.value}:${String(a.value)}`} value={String(a.value)}>
-            {a.label} · {a.nodeCount} {a.nodeCount === 1 ? 'room' : 'rooms'}
+            {a.label} · {a.nodeCount} {a.nodeCount === 1 ? 'node' : 'nodes'}
           </option>
         ))}
       </select>
@@ -1015,7 +1015,7 @@ function TextValueAdd({ label, suggestions, onAdd }: { readonly label: string; r
       <datalist id="sgl-designer-text-values">
         {suggestions.map((s) => (
           <option key={String(s.value)} value={String(s.value)}>
-            {s.nodeCount} {s.nodeCount === 1 ? 'room' : 'rooms'}
+            {s.nodeCount} {s.nodeCount === 1 ? 'node' : 'nodes'}
           </option>
         ))}
       </datalist>

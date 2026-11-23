@@ -100,15 +100,15 @@ export function WallActionPanel({
       {panel.kind === 'add' && (
         <>
           <p>
-            {panel.rooms[0].label} ({panel.rooms[0].function}) and {panel.rooms[1].label} ({panel.rooms[1].function}) have no relationship:
+            {panel.rooms[0].label} ({panel.rooms[0].function}) and {panel.rooms[1].label} ({panel.rooms[1].function}) have no edge:
             a solid wall separates them.
           </p>
           {!choosing ? (
             <button type="button" className="sgl-wall-primary" onClick={() => setChoosing(true)} aria-expanded={false}>
-              Add relationship…
+              Add edge…
             </button>
           ) : (
-            <div className="sgl-wall-choices" role="group" aria-label="Add relationship">
+            <div className="sgl-wall-choices" role="group" aria-label="Add edge">
               <button
                 type="button"
                 onClick={() => add('access')}
@@ -166,8 +166,8 @@ function ExistingBody({
   return (
     <>
       <p>
-        <button type="button" className="sgl-wall-link" onClick={() => onSelect(selectEdge(panel.edgeId))} title="Select this relationship (Properties)">
-          {kind} relationship
+        <button type="button" className="sgl-wall-link" onClick={() => onSelect(selectEdge(panel.edgeId))} title="Select this edge (Properties)">
+          {kind} edge
         </button>{' '}
         · <span className={`sgl-wall-status ${panel.status}`}>{panel.statusLabel}</span>. {where}
       </p>
@@ -178,7 +178,7 @@ function ExistingBody({
             Put the door on this wall
           </button>
         )}
-        <button type="button" onClick={() => send(changeKindCommand(panel, other))} title={`Change this relationship to ${other === 'open' ? 'Open' : 'Access'}`}>
+        <button type="button" onClick={() => send(changeKindCommand(panel, other))} title={`Change this edge to ${other === 'open' ? 'Open' : 'Access'}`}>
           Change to {other === 'open' ? 'Open' : 'Access'}
         </button>
         <button
@@ -188,9 +188,9 @@ function ExistingBody({
             // The removed edge must not stay selected (I2): select the owner room, as a click on this now-free wall would.
             if (send(removeRelationshipCommand(panel))) onSelect(selectionAfterRemove(panel));
           }}
-          title="Remove this relationship (Ctrl/⌘+Z undoes it)"
+          title="Remove this edge (Ctrl/⌘+Z undoes it)"
         >
-          Remove relationship
+          Delete edge
         </button>
       </div>
     </>

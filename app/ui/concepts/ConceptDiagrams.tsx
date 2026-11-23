@@ -67,7 +67,7 @@ function ProjectScenario() {
             Scenario {name}
           </text>
           <text x={60 + i * 90} y={93} className="sgl-dg-small" textAnchor="middle">
-            own rooms
+            own nodes
           </text>
         </g>
       ))}
@@ -84,7 +84,7 @@ function CalculatedValues() {
       </text>
       <rect x={10} y={60} width={104} height={30} rx={5} className="sgl-dg-input" />
       <text x={62} y={80} className="sgl-dg-label" textAnchor="middle">
-        3 relationships
+        3 edges
       </text>
       <path d="M120 31 C150 31 150 53 176 53 M120 75 C150 75 150 53 176 53" className="sgl-dg-arrow" />
       <path d="M170 48 L178 53 L170 58" className="sgl-dg-arrow" />

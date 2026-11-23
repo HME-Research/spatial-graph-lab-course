@@ -56,7 +56,7 @@ const UNRESOLVED_MESSAGES = {
   'blocked-by-room': (a: number, b: number) =>
     `every straight connector between rooms ${a} and ${b} would pass through another room`,
   'blocked-by-route': (a: number, b: number) =>
-    `every straight connector between rooms ${a} and ${b} would cross a connector of another relationship`,
+    `every straight connector between rooms ${a} and ${b} would cross a connector of another edge`,
 } as const;
 
 function resolveOne(

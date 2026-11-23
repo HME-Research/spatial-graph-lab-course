@@ -39,8 +39,8 @@ export function EdgeProperties(props: PanelProps & { readonly edgeId: number }) 
 function RemoveConnection({ onRemove }: { readonly onRemove: () => void }) {
   return (
     <section className="sgl-section sgl-panel-actions">
-      <button type="button" className="sgl-danger" onClick={onRemove} title={`The two rooms stay where they are. ${UNDO_HINT}`}>
-        Remove connection
+      <button type="button" className="sgl-danger" onClick={onRemove} title={`The two nodes stay where they are. ${UNDO_HINT}`}>
+        Delete edge
       </button>
     </section>
   );
@@ -183,7 +183,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   return (
     <div className="sgl-panel">
       <div className="sgl-title">
-        Relationship {label(edge.source)} ↔ {label(edge.target)}
+        Edge {label(edge.source)} ↔ {label(edge.target)}
       </div>
 
       <IssueFeedback issues={issues} context={messageContextFor(props)} onDismiss={clearIssues} />
@@ -227,7 +227,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
             attributeId="corridor"
             kind="geometry"
             label="Corridor"
-            title="This relationship’s own corridor look: walls, roof and width. Used only when a corridor is generated; Design default follows the Corridors card (Building Designer → Corridors)."
+            title="This edge’s own corridor look: walls, roof and width. Used only when a corridor is generated; Design default follows the Corridors card (Building Designer → Corridors)."
             control={
               <div className="sgl-corridor">
                 {corridorField('walls', 'Walls', CORRIDOR_WALL_CHOICES, designLook.walls)}
@@ -248,10 +248,10 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
             <p className="sgl-help">
               {resolution?.status === 'routed'
                 ? `This corridor: ${corridorLookText(look)}. `
-                : `No corridor is generated for this relationship now${resolution?.status === 'direct' ? ' (its rooms touch)' : ''}; these values are used only if one is. `}
+                : `No corridor is generated for this edge now${resolution?.status === 'direct' ? ' (its rooms touch)' : ''}; these values are used only if one is. `}
               {ownCount === 0
                 ? 'Change every corridor with the Corridors card in Building Designer → Corridors.'
-                : `${ownCount === 1 ? 'One is' : ownCount === 2 ? 'Two are' : 'All three are'} set for this relationship only; Design default follows the Corridors card.`}
+                : `${ownCount === 1 ? 'One is' : ownCount === 2 ? 'Two are' : 'All three are'} set for this edge only; Design default follows the Corridors card.`}
             </p>
           </FieldRow>
         </AttributeSection>
@@ -282,7 +282,7 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
             status.tone === 'warning' && resolution.status === 'unresolved' ? (
               <Feedback
                 tone="warning"
-                title="Unresolved: nothing can be built yet. The relationship is kept."
+                title="Unresolved: nothing can be built yet. The edge is kept."
                 messages={[{ text: status.detail, technical: `${resolution.reason} · ${resolution.message}` }]}
               />
             ) : (

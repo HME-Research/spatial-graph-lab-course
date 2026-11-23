@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { checkedEdgeIds, removeSummary, type InvalidConnectionRow } from './invalidConnections';
 
 /**
- * Review list for "Remove invalid connections" (wave 2, D): every unresolved relationship with
+ * Review list for "Remove invalid edges" (wave 2, D): every unresolved relationship with
  * its rooms and reason, CHECKED by default; the student unchecks the ones to keep, sees the
  * preview (checked edges are marked in the diagram) and confirms. The host sends one
  * `remove-edges` command. Escape or Cancel closes it without any change.
@@ -40,9 +40,9 @@ export function RemoveInvalidDialog({
         }
       }}
     >
-      <h3 id="sgl-invalid-title">Remove invalid connections</h3>
+      <h3 id="sgl-invalid-title">Remove invalid edges</h3>
       <p className="sgl-muted">
-        These relationships cannot be built in the current design. Uncheck the ones you want to keep; the checked ones are
+        These edges cannot be built in the current design. Uncheck the ones you want to keep; the checked ones are
         marked in the diagram.
       </p>
       <ul className="sgl-invalid-list">

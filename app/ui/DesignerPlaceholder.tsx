@@ -12,7 +12,7 @@ export function DesignerPlaceholder() {
         <strong>Not available yet.</strong>
       </p>
       <p className="sgl-help">
-        The Designer will set how each room type looks in this design, such as how much of the façade is window and
+        The Designer will set how each Function looks in this design, such as how much of the façade is window and
         whether rooms get a flat roof. Nothing on this tab changes your design yet.
       </p>
     </div>

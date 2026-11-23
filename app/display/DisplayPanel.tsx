@@ -18,7 +18,7 @@ const FIELD_HINTS: Readonly<Record<DisplayField, string>> = {
   labels: 'Room and storey labels drawn in the 3D view.',
   legend: 'The colour legend over the view.',
   roofs: 'Shows or hides roofs in the picture only. The Designer still decides which rooms have roofs.',
-  colourPreset: 'By function: each room type in its own colour. Neutral: one quiet colour for every room.',
+  colourPreset: 'By function: each function in its own colour. Neutral: one quiet colour for every room.',
   lighting: 'Default: directional light with shadows of form. Soft: even, low-contrast light.',
 };
 

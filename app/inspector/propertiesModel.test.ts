@@ -101,7 +101,7 @@ describe('move / resize plan (schema v2 port)', () => {
     expect(plan.kind).toBe('reject');
     if (plan.kind !== 'reject') return;
     const messages = friendlyMessages(plan.issues, { subjectNodeId: '3', roomLabel: (id) => id });
-    expect(messages[0]?.text).toBe('This room overlaps room 1. Rooms cannot share cells.');
+    expect(messages[0]?.text).toBe('This node overlaps node 1. Nodes cannot share cells.');
     expect(messages[0]?.technical).toContain('room-overlap');
   });
 

@@ -162,7 +162,7 @@ describe('AI kits: declarations, templates and examples', () => {
     expect(definition.uses).toEqual({ nodeFields: ['targetArea'] });
     expect(outcome).toMatchObject({ ok: true, result: { value: 3, text: '3 rooms are below their target area.' } });
     const refused = await runDesign(belowTarget, 'below-target-area.ts', design.value, [], null);
-    expect(refused.outcome).toEqual({ ok: false, messages: ['Needs the room field “targetArea”, which this project does not have.'] });
+    expect(refused.outcome).toEqual({ ok: false, messages: ['Needs the node field “targetArea”, which this project does not have.'] });
   });
 });
 
@@ -172,8 +172,8 @@ describe('AI kits: PROJECT.md', () => {
     expect(sheet).toMatch(/^# This project: toolkit House\n/);
     expect(sheet).toContain('| `bedroom` | Bedroom | Toolkit: House |');
     expect(sheet).toMatch(/\| `targetArea` \| Target area \(m²\) \| number ≥ 1 \| — \| [^|]*living 36[^|]* \| Toolkit: House \|/);
-    expect(sheet).toContain('This project has no custom relationship fields.');
-    expect(sheet).toContain('| `area` | room | number | m² |');
+    expect(sheet).toContain('This project has no custom edge fields.');
+    expect(sheet).toContain('| `area` | node | number | m² |');
     expect(sheet).toContain('One cell is 3 × 3 m and one level 3 m high.');
     expect(sheet).toContain('## Example (made up, not your design)');
     expect(sheet).toContain(`"function": "${houseSheet().functions[0]!.id}"`);

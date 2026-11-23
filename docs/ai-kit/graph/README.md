@@ -1,6 +1,6 @@
 # Graph kit: write a graph analysis with an AI assistant
 
-This folder is everything an AI assistant needs to write a **graph analysis** for *Spatial Graph Lab*: one that reads only the rooms' ids and the relationships between them, so it works in any project. Download it from the app: the ⓘ beside **Upload your own (.ts)** in **Analyse**, tab **Any project**, with **Include room basics** off (or **Guide › Toolkits & JSON › Write your own analysis**).
+This folder is everything an AI assistant needs to write a **graph analysis** for *Spatial Graph Lab*: one that reads only the nodes' ids and the edges between them, so it works in any project. Download it from the app: the ⓘ beside **Upload your own (.ts)** in **Analyse**, tab **Any project**, with **Include node basics** off (or **Guide › Toolkits & JSON › Write your own analysis**).
 
 1. Open an AI assistant that accepts files (for example Claude) and **attach the zip**.
 2. Write your prompt: your idea, the input (what you select before it runs) and how the answer should show. The app shows how, with a starting text to copy, under the download.

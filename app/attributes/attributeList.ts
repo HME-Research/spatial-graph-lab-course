@@ -66,7 +66,7 @@ export const BUILT_IN_INFO: Readonly<Record<AttributeCollection, Readonly<Record
     relationship: { typeText: 'Choice', info: 'Access (a door or floor opening) or Open (no wall between the rooms). Choose it in Properties.' },
     corridor: {
       typeText: 'Choices walls | roof',
-      info: 'How this relationship’s corridor looks: walls Enclosed or Open, roof Flat, Pergola or None. Used only when a corridor is generated (the rooms do not touch). Not set: the design’s Corridors card applies. Edit it in Properties or the Data table.',
+      info: 'How this edge’s corridor looks: walls Enclosed or Open, roof Flat, Pergola or None. Used only when a corridor is generated (the rooms do not touch). Not set: the design’s Corridors card applies. Edit it in Properties or the Data table.',
     },
   },
 };

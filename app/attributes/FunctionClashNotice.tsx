@@ -27,7 +27,7 @@ export function FunctionClashNotice({
   const [error, setError] = useState<string | null>(null);
   if (clashes.length === 0) return null;
   const choose = (clash: FunctionClashItem, choice: FunctionClashChoice) => setError(onChoose(clash, choice));
-  const rooms = (n: number) => `${n} room${n === 1 ? '' : 's'}`;
+  const rooms = (n: number) => `${n} node${n === 1 ? '' : 's'}`;
   return (
     <section className="issues sgl-notice sgl-function-clash" role="status" aria-label="Function name clash">
       {clashes.map((c) => (
@@ -35,7 +35,7 @@ export function FunctionClashNotice({
           <p>
             <strong>Two functions share an identifier.</strong> The toolkit now has its own function “{c.toolkitLabel}”, with the same identifier (
             <code>{c.id}</code>) as your function “{c.label}”. Your function will be kept as “{c.rename.label}”.{' '}
-            {c.rooms > 0 ? `Which should your ${rooms(c.rooms)} use? Until you choose, they use the toolkit’s.` : 'No rooms use it.'}
+            {c.rooms > 0 ? `Which should your ${rooms(c.rooms)} use? Until you choose, they use the toolkit’s.` : 'No nodes use it.'}
           </p>
           <div className="sgl-function-clash-actions">
             {c.rooms > 0 ? (

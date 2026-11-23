@@ -33,7 +33,7 @@ export function Inspector({ selection, onSelect, project, design }: InspectorPro
         <EdgeProperties key={`edge:${edgeId}`} {...panel} edgeId={edgeId} />
       ) : (
         <div className="sgl-panel">
-          <p className="sgl-empty">Select a room or a relationship in any view to see and edit its properties here.</p>
+          <p className="sgl-empty">Select a node or an edge in any view to see and edit its properties here.</p>
           <DesignSummary design={design} />
         </div>
       )}
@@ -59,7 +59,7 @@ function DesignSummary({ design }: { readonly design: DesignPort }) {
         {notBuilt > 0 ? ` (${notBuilt} unresolved)` : ''} · levels: {storeys.join(', ') || '—'}
       </p>
       <div className="sgl-help-row">
-        <span className="sgl-help">Relationship lines: solid = direct, long dashes = via route, short red dashes = unresolved.</span>
+        <span className="sgl-help">Edge lines: solid = direct, long dashes = via route, short red dashes = unresolved.</span>
         <HelpTip topicId="relationship-status" />
       </div>
     </section>

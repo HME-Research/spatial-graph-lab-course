@@ -86,7 +86,7 @@ describe('per-scenario undo isolation', () => {
     expect(gridOf(p, 3)).toEqual([6, 7, 0]);
     expect(canUndo(activeSession(p).history)).toBe(false);
     p = move(p, 2, [2, 1, 0]);
-    expect(undoLabel(activeSession(p).history)).toMatch(/Move room/);
+    expect(undoLabel(activeSession(p).history)).toMatch(/Move node/);
 
     // Switching does not touch either history.
     p = ok(switchScenario(p, first));

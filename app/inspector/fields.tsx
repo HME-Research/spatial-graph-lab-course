@@ -194,7 +194,7 @@ export function TypeSelect({
     <div className="sgl-type-select">
       <select
         value={custom !== null ? CUSTOM : current}
-        aria-label="Room type"
+        aria-label="Node function"
         onChange={(e) => {
           const value = e.currentTarget.value;
           setError(null);
@@ -221,7 +221,7 @@ export function TypeSelect({
             autoFocus
             value={custom}
             placeholder="new-type-id"
-            aria-label="New room type id"
+            aria-label="New function id"
             spellCheck={false}
             onChange={(e) => {
               setCustom(e.currentTarget.value);

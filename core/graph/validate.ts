@@ -28,7 +28,7 @@ export const structuralIssue = {
     at(
       ['edges', index],
       'parallel-edge',
-      `edge "${edge.id}" duplicates edge "${existingId}": only one relationship is allowed between "${edge.source}" and "${edge.target}"`,
+      `edge "${edge.id}" duplicates edge "${existingId}": only one edge is allowed between "${edge.source}" and "${edge.target}"`,
     ),
 };
 

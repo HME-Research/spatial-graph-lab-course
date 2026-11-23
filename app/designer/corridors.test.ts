@@ -101,7 +101,7 @@ describe('corridor card model', () => {
     expect(currentDocument(s)).toBe(before);
     const own = applyDesignCommandToSession(s, { type: 'set-edge-corridor', edgeId: 1, patch: { width: 0.9 } });
     if (!own.ok) throw new Error('expected ok');
-    expect(undoLabel(own.session.history)).toBe('Set the corridor width of connection 1 → 2 to 0.9 m');
+    expect(undoLabel(own.session.history)).toBe('Set the corridor width of edge 1 → 2 to 0.9 m');
     expect(currentDocument(own.session).edges[0]!.corridor).toEqual({ width: 0.9 });
   });
 
@@ -180,7 +180,7 @@ describe('Corridors card in its own Corridors section', () => {
     // No windows or imported façade for corridors.
     expect(card).not.toContain('Windows');
     expect(card).not.toContain('Imported façade');
-    expect(card).toContain('One relationship can set its own walls, roof or width in Properties.');
+    expect(card).toContain('One edge can set its own walls, roof or width in Properties.');
     expect(card).toMatch(/<button type="button" class="sgl-designer-reset" disabled="">Reset Corridors<\/button>/);
   });
 
@@ -195,7 +195,7 @@ describe('Corridors card in its own Corridors section', () => {
     const card = cardOf(html(withCorridors({ roof: 'none' }, { walls: 'enclosed' })));
     expect(card.split('>Set here</span>').length - 1).toBe(1);
     expect(card).toContain('Open sides and no roof: just the floor (no posts).');
-    expect(card).toContain('1 relationship sets its own walls, roof or width in Properties.');
+    expect(card).toContain('1 edge sets its own walls, roof or width in Properties.');
     const wide = cardOf(html(withCorridors({ width: 2.4 })));
     expect(wide).toContain('Open sides · Flat roof · 2.4 m');
     expect(wide).toMatch(/>Width<\/label><span class="sgl-designer-source">Set here<\/span>/);
@@ -235,7 +235,7 @@ describe('Properties: corridor walls and roof of one relationship', () => {
     expect(html).toMatch(/aria-label="Corridor walls"[^>]*>.*?<option value=""[^>]*selected=""/);
     expect(html).toMatch(/<option value="none" [^>]*selected=""[^>]*>None \(open top\)<\/option>/);
     expect(html).toContain('This corridor: 1.5 m wide, side walls and no roof.');
-    expect(html).toContain('One is set for this relationship only');
+    expect(html).toContain('One is set for this edge only');
   });
 
   it('width: a number box whose empty state is "Design default (<card width>)"; its own value shows with ↺', () => {
@@ -253,7 +253,7 @@ describe('Properties: corridor walls and roof of one relationship', () => {
     const r = applyDesignCommandToSession(s, { type: 'set-edge-corridor', edgeId: 1, patch: { walls: null } });
     if (!r.ok) throw new Error('expected ok');
     s = r.session;
-    expect(undoLabel(s.history)).toBe("Use the design's corridor walls for connection 1 → 2");
+    expect(undoLabel(s.history)).toBe("Use the design's corridor walls for edge 1 → 2");
     expect('corridor' in currentDocument(s).edges[0]!).toBe(false);
     s = undoDocument(s);
     expect(currentDocument(s).edges[0]!.corridor).toEqual({ walls: 'enclosed' });

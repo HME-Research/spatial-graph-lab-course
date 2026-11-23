@@ -514,7 +514,7 @@ function Section({ door, alt }: { readonly door: boolean; readonly alt: string }
         B
       </Txt>
       <Cap x={110} y={106} anchor="middle">
-        {door ? 'Access: a door' : 'no relationship: a solid wall'}
+        {door ? 'Access: a door' : 'no edge: a solid wall'}
       </Cap>
     </Svg>
   );
@@ -562,7 +562,7 @@ function Corridor({ enclosed }: { readonly enclosed: boolean }) {
 function Routes({ middle }: { readonly middle: boolean }) {
   return middle ? (
     <Net
-      alt="Rooms A to E in a row; relationship B–C selected. A and B (2 rooms) are on B's side, coloured teal; C, D and E (3 rooms) are on C's side, coloured gold: 2 · 3, and 2 × 3 = 6 trips use it."
+      alt="Nodes A to E in a row; edge B–C selected. A and B (2 nodes) are on B's side, coloured teal; C, D and E (3 nodes) are on C's side, coloured gold: 2 · 3, and 2 × 3 = 6 trips use it."
       nodes={ROW5}
       edges={ROW5_E}
       selEdge="B-C"
@@ -581,7 +581,7 @@ function Routes({ middle }: { readonly middle: boolean }) {
     </Net>
   ) : (
     <Net
-      alt="Rooms A to E in a row; relationship A–B selected. Only A is on A's side, coloured teal; B, C, D and E (4 rooms) are on B's side, coloured gold: 1 · 4, and 1 × 4 = 4 trips use it."
+      alt="Nodes A to E in a row; edge A–B selected. Only A is on A's side, coloured teal; B, C, D and E (4 nodes) are on B's side, coloured gold: 1 · 4, and 1 × 4 = 4 trips use it."
       nodes={ROW5}
       edges={ROW5_E}
       selEdge="A-B"
@@ -605,12 +605,12 @@ function Routes({ middle }: { readonly middle: boolean }) {
 function Parts({ two }: { readonly two: boolean }) {
   const nodes = 'A 30 30, B 80 30, C 55 80, D 150 30, E 192 80';
   return two ? (
-    <Net alt="Two groups with no relationship between them: A, B and C joined in one, D and E in the other: 2 connected parts, the second coloured." nodes={nodes} edges="A-B, B-C, C-A, D-E" hlB="D E" heB="D-E">
+    <Net alt="Two groups with no edge between them: A, B and C joined in one, D and E in the other: 2 connected parts, the second coloured." nodes={nodes} edges="A-B, B-C, C-A, D-E" hlB="D E" heB="D-E">
       <rect className="sgl-gd-frame" x={10} y={10} width={92} height={90} rx={10} />
       <rect className="sgl-gd-frame hl" x={128} y={10} width={86} height={90} rx={10} />
     </Net>
   ) : (
-    <Net alt="Five rooms A to E all joined into one group: 1 connected part; every room can reach every other." nodes={nodes} edges="A-B, B-C, C-A, B-D, D-E">
+    <Net alt="Five nodes A to E all joined into one group: 1 connected part; every node can reach every other." nodes={nodes} edges="A-B, B-C, C-A, B-D, D-E">
       <rect className="sgl-gd-frame" x={10} y={10} width={204} height={90} rx={10} />
     </Net>
   );
@@ -621,7 +621,7 @@ function PathDiagram({ long }: { readonly long: boolean }) {
   return long ? (
     <Net alt="Shortest path from A to D in a row A–B–C–D: 3 steps, A → B → C → D, highlighted." nodes={ROW4} edges={ROW4_E} hl="A D" hlB="B C" he="A-B, B-C, C-D" badge={{ A: 'From', D: 'To' }} />
   ) : (
-    <Net alt="Shortest path from A to B in a row A–B–C–D: 1 step, the relationship A–B, highlighted." nodes={ROW4} edges={ROW4_E} hl="A B" he="A-B" badge={{ A: 'From', B: 'To' }} />
+    <Net alt="Shortest path from A to B in a row A–B–C–D: 1 step, the edge A–B, highlighted." nodes={ROW4} edges={ROW4_E} hl="A B" he="A-B" badge={{ A: 'From', B: 'To' }} />
   );
 }
 
@@ -685,10 +685,10 @@ function RowPlan({ y }: { readonly y: number }) {
 
 const D: Record<string, () => ReactNode> = {
   // ── Graphs ──
-  'graph-none': () => <Net alt="Four rooms A, B, C and D as circles with no lines between them: nothing is related yet." nodes={LOOP4} edges="" />,
-  'graph-some': () => <Net alt="The same four rooms with four lines, A–B, B–C, B–D and C–D: a graph saying which rooms are related." nodes={LOOP4} edges="A-B, B-C, B-D, C-D" />,
+  'graph-none': () => <Net alt="Four nodes A, B, C and D as circles with no lines between them: nothing is related yet." nodes={LOOP4} edges="" />,
+  'graph-some': () => <Net alt="The same four nodes with four lines, A–B, B–C, B–D and C–D: a graph saying which nodes are related." nodes={LOOP4} edges="A-B, B-C, B-D, C-D" />,
   'node-one-cell': () => (
-    <Svg w={220} h={100} alt="Room 1 fills one grid cell; it is one node, numbered 1.">
+    <Svg w={220} h={100} alt="Node 1: its room fills one grid cell; it is one node, numbered 1.">
       <rect className="sgl-gd-cell" x={88} y={14} width={44} height={44} style={{ fill: NEUTRAL, stroke: CELL_LINE }} />
       <NetBody nodes="1 110 36" edges="" o={{ hl: '1' }} />
       <Cap x={110} y={82} anchor="middle">
@@ -697,7 +697,7 @@ const D: Record<string, () => ReactNode> = {
     </Svg>
   ),
   'node-four-cells': () => (
-    <Svg w={220} h={100} alt="Room 1 grown to four grid cells (2 × 2): still one node, still numbered 1.">
+    <Svg w={220} h={100} alt="Node 1: its room grown to four grid cells (2 × 2); still one node, still numbered 1.">
       {[0, 1].flatMap((x) => [0, 1].map((y) => <rect key={`${x}${y}`} className="sgl-gd-cell" x={74 + x * 36} y={4 + y * 36} width={36} height={36} style={{ fill: NEUTRAL, stroke: CELL_LINE }} />))}
       <NetBody nodes="1 110 40" edges="" o={{ hl: '1' }} />
       <Cap x={110} y={94} anchor="middle">
@@ -705,8 +705,8 @@ const D: Record<string, () => ReactNode> = {
       </Cap>
     </Svg>
   ),
-  'edge-access': () => <GraphAndPlan rel="access" alt="Rooms A and B joined by an Access relationship: a thin line in the graph, a door in the shared wall in the plan." />,
-  'edge-open': () => <GraphAndPlan rel="open" alt="Rooms A and B joined by an Open relationship: a heavy line in the graph, no wall between them in the plan (one space)." />,
+  'edge-access': () => <GraphAndPlan rel="access" alt="Nodes A and B joined by an Access edge: a thin line in the graph, a door in the shared wall of their rooms in the plan." />,
+  'edge-open': () => <GraphAndPlan rel="open" alt="Nodes A and B joined by an Open edge: a heavy line in the graph, no wall between their rooms in the plan (one space)." />,
   'attr-node': () => (
     <Svg w={220} h={96} alt="A node with its values written beside it: function bedroom, targetArea 18.">
       <NetBody nodes="1 34 46" edges="" o={{ fn: { 1: 'bedroom' } }} />
@@ -755,7 +755,7 @@ const D: Record<string, () => ReactNode> = {
     <Plan
       rooms={TWO}
       rel={{ 'A|B': 'access' }}
-      alt="Rooms A and B touch and have an Access relationship: a door in their shared wall."
+      alt="Rooms A and B touch and are joined by an Access edge: a door in their shared wall."
       ox={66}
       oy={20}
       extra={
@@ -766,7 +766,7 @@ const D: Record<string, () => ReactNode> = {
     />
   ),
   'space-apart': () => (
-    <Svg w={220} h={110} alt="Rooms A and B one cell apart with an Access relationship: the app builds a corridor through the free cell between them.">
+    <Svg w={220} h={110} alt="Rooms A and B one cell apart, joined by an Access edge: the app builds a corridor through the free cell between them.">
       <rect className="sgl-gd-cell" x={22} y={20} width={56} height={56} style={{ fill: NEUTRAL }} />
       <rect className="sgl-gd-cell corridor" x={78} y={36} width={64} height={24} />
       <rect className="sgl-gd-cell" x={142} y={20} width={56} height={56} style={{ fill: NEUTRAL }} />
@@ -789,7 +789,7 @@ const D: Record<string, () => ReactNode> = {
 
   // ── Attributes ──
   'sections-node': () => (
-    <Mock alt="The five attribute sections of a room, in order: Identity (ID 3), Required by the app (Function Bedroom), Geometry (Position, Size), Custom (Target area), Calculated (Area)." title="Bedroom · Room 3">
+    <Mock alt="The five attribute sections of a node, in order: Identity (ID 3), Required by the app (Function Bedroom), Geometry (Position, Size), Custom (Target area), Calculated (Area)." title="Bedroom · Node 3">
       <MSec plain title="Identity">
         <MRow label="ID" value="3" lock />
       </MSec>
@@ -809,7 +809,7 @@ const D: Record<string, () => ReactNode> = {
     </Mock>
   ),
   'sections-edge': () => (
-    <Mock alt="The attribute sections of a relationship, in the same order: Identity (ID 1, Source 1, Target 2), Required by the app (Relationship Access), Geometry (Corridor), Custom (a Note you added)." title="Relationship 1 ↔ 2">
+    <Mock alt="The attribute sections of an edge, in the same order: Identity (ID 1, Source 1, Target 2), Required by the app (Relationship Access), Geometry (Corridor), Custom (a Note you added)." title="Edge 1 ↔ 2">
       <MSec plain title="Identity">
         <MRow label="ID" value="1" lock />
         <MRow label="Source · Target" value="1 · 2" lock />
@@ -825,9 +825,9 @@ const D: Record<string, () => ReactNode> = {
       </MSec>
     </Mock>
   ),
-  'ids-before': () => <Net alt="Three rooms numbered 1, 2 and 3, joined in a row." nodes="1 40 50, 2 110 50, 3 180 50" edges="1-2, 2-3" />,
+  'ids-before': () => <Net alt="Three nodes numbered 1, 2 and 3, joined in a row." nodes="1 40 50, 2 110 50, 3 180 50" edges="1-2, 2-3" />,
   'ids-after': () => (
-    <Net alt="Room 3 deleted (dashed outline) and a new room added: the new room is numbered 4, not 3." nodes="1 40 36, 2 110 36, 4 110 88" edges="1-2, 2-4" hl="4" h={112}>
+    <Net alt="Node 3 deleted (dashed outline) and a new node added: the new node is numbered 4, not 3." nodes="1 40 36, 2 110 36, 4 110 88" edges="1-2, 2-4" hl="4" h={112}>
       <circle className="sgl-gd-ghost" cx={180} cy={36} r={12} />
       <Txt x={180} y={40}>
         3
@@ -838,21 +838,21 @@ const D: Record<string, () => ReactNode> = {
     </Net>
   ),
   'fn-bedroom': () => (
-    <Cubes cells={[[1, 0, 0, FN_FILL.bedroom!]]} alt="A room with Function Bedroom: drawn in the Bedroom colour (blue) in every view, with the Bedroom's look." solid h={100}>
+    <Cubes cells={[[1, 0, 0, FN_FILL.bedroom!]]} alt="A node with Function Bedroom: drawn in the Bedroom colour (blue) in every view, with the Bedroom's look." solid h={100}>
       <Cap x={110} y={96} anchor="middle">
         Function: Bedroom
       </Cap>
     </Cubes>
   ),
   'fn-kitchen': () => (
-    <Cubes cells={[[1, 0, 0, FN_FILL.kitchen!]]} alt="The same room with Function Kitchen: now drawn in the Kitchen colour (terracotta), with the Kitchen's look." solid h={100}>
+    <Cubes cells={[[1, 0, 0, FN_FILL.kitchen!]]} alt="The same node with Function Kitchen: now drawn in the Kitchen colour (terracotta), with the Kitchen's look." solid h={100}>
       <Cap x={110} y={96} anchor="middle">
         Function: Kitchen
       </Cap>
     </Cubes>
   ),
-  'geo-1cell': () => <SizeCells cols={1} rows={1} alt="A room of Size 1 | 1 | 1: one grid cell of 3 × 3 m, 9 m²." size="Size 1 | 1 | 1" area="3 × 3 m = 9 m²" />,
-  'geo-2cell': () => <SizeCells cols={2} rows={1} alt="A room of Size 2 | 1 | 1: two grid cells side by side, 6 × 3 m, 18 m²." size="Size 2 | 1 | 1" area="6 × 3 m = 18 m²" />,
+  'geo-1cell': () => <SizeCells cols={1} rows={1} alt="A node of Size 1 | 1 | 1: one grid cell of 3 × 3 m, 9 m²." size="Size 1 | 1 | 1" area="3 × 3 m = 9 m²" />,
+  'geo-2cell': () => <SizeCells cols={2} rows={1} alt="A node of Size 2 | 1 | 1: two grid cells side by side, 6 × 3 m, 18 m²." size="Size 2 | 1 | 1" area="6 × 3 m = 18 m²" />,
   'custom-toolkit': () => (
     <Mock alt="Custom attributes from the toolkit: Target area and Priority, showing their Function's defaults faded, tagged Toolkit: House; they cannot be deleted." title="Custom">
       <MRow label="Target area (m²)" value="18 (default)" faded tag="Toolkit: House" />
@@ -865,8 +865,8 @@ const D: Record<string, () => ReactNode> = {
       <MRow label="Target area (m²)" value="24" tag="Toolkit: House" />
     </Mock>
   ),
-  'calc-1cell': () => <SizeCells cols={1} rows={1} alt="A room of one cell: its calculated Area is 9 m²." size="1 cell" area="Area 9 m² (calculated)" />,
-  'calc-4cells': () => <SizeCells cols={2} rows={2} alt="The same room made 2 × 2 cells: its calculated Area changes by itself to 36 m²." size="2 × 2 cells" area="Area 36 m² (calculated)" />,
+  'calc-1cell': () => <SizeCells cols={1} rows={1} alt="A node of one cell: its calculated Area is 9 m²." size="1 cell" area="Area 9 m² (calculated)" />,
+  'calc-4cells': () => <SizeCells cols={2} rows={2} alt="The same node made 2 × 2 cells: its calculated Area changes by itself to 36 m²." size="2 × 2 cells" area="Area 36 m² (calculated)" />,
 
   // ── Views ──
   'g2d-before': () => (
@@ -937,8 +937,8 @@ const D: Record<string, () => ReactNode> = {
       alt="The same voxels coloured by a number, Target area: light for small values, dark for large (the middle room, 36 m², is darkest; the room above, 9 m², lightest)."
     />
   ),
-  'bld-access': () => <Section door alt="Two rooms A and B seen from the front, cut through: they have an Access relationship, so the wall between them has a door." />,
-  'bld-none': () => <Section door={false} alt="Two rooms A and B seen from the front, cut through: they touch but have no relationship, so the wall between them is solid." />,
+  'bld-access': () => <Section door alt="Two rooms A and B seen from the front, cut through: they are joined by an Access edge, so the wall between them has a door." />,
+  'bld-none': () => <Section door={false} alt="Two rooms A and B seen from the front, cut through: they touch but have no edge, so the wall between them is solid." />,
   'plan-l0': () => (
     <Plan
       rooms={[
@@ -980,7 +980,7 @@ const D: Record<string, () => ReactNode> = {
     />
   ),
   'data-table': () => (
-    <Svg w={220} h={100} alt="The Data view as a table: one row per room; the row of room 3 is selected; the Area column is locked (calculated, not saved).">
+    <Svg w={220} h={100} alt="The Data view as a table: one row per node; the row of node 3 is selected; the Area column is locked (calculated, not saved).">
       <rect className="sgl-gd-codebox" x={2} y={2} width={216} height={94} rx={5} />
       {['ID', 'Function', 'Area 🔒'].map((t, i) => (
         <text key={t} className="sgl-gd-t strong" x={10 + [0, 34, 130][i]!} y={20}>
@@ -1010,9 +1010,9 @@ const D: Record<string, () => ReactNode> = {
 
   // ── Panels (one mock each, numbered like the screenshot) ──
   'panel-properties': () => (
-    <Mock alt="Properties of a room: (1) its title, the Function Bedroom and the id Room 3, (2) Required by the app with the Function, (3) Geometry with Position and Size, (4) Custom with Target area and Priority." title="Properties">
+    <Mock alt="Properties of a node: (1) its title, the Function Bedroom and the id Node 3, (2) Required by the app with the Function, (3) Geometry with Position and Size, (4) Custom with Target area and Priority." title="Properties">
       <div className="sgl-gd-row big">
-        Bedroom <span className="sgl-gd-tag">Room 3</span> <MNum n={1} />
+        Bedroom <span className="sgl-gd-tag">Node 3</span> <MNum n={1} />
       </div>
       <MSec plain title="Identity">
         <MRow label="ID" value="3" lock />
@@ -1084,7 +1084,7 @@ const D: Record<string, () => ReactNode> = {
     </Mock>
   ),
   'panel-analyse': () => (
-    <Mock alt="Analyse panel: (1) Upload your own (.ts) with its i, (2) Show: All, Built-in, Toolkit, Yours, (3) Node section open with Degree and Neighbours, (4) Edge section open with Routes through it, Touching edges, Shared neighbours and Ends’ connections, (5) Network and (6) Queries collapsed." title="Analyse">
+    <Mock alt="Analyse panel: (1) Upload your own (.ts) with its i, (2) Show: All, Built-in, Toolkit, Yours, (3) Node section open with Degree and Neighbours, (4) Edge section open with Routes through it, Touching edges, Shared neighbours and Ends’ edges, (5) Network and (6) Queries collapsed." title="Analyse">
       <div className="sgl-gd-row">
         <MBtn>Upload your own (.ts)</MBtn>
         <span className="sgl-gd-info">i</span> <MNum n={1} />
@@ -1100,14 +1100,14 @@ const D: Record<string, () => ReactNode> = {
         <MRow label="Routes through it" tag="Built-in" />
         <MRow label="Touching edges" tag="Built-in" />
         <MRow label="Shared neighbours" tag="Built-in" />
-        <MRow label="Ends’ connections" tag="Built-in" />
+        <MRow label="Ends’ edges" tag="Built-in" />
       </MSec>
       <MSec title="Network" sub="measures of the whole graph" plus n={5} />
       <MSec title="Queries" sub="inputs you pick" plus n={6} />
     </Mock>
   ),
   'panel-transform': () => (
-    <Mock alt="Transform panel: (1) Grow to target area under Toolkit: House, (2) its Houses parameter, (3) Run, (4) the preview, one line per room, (5) Apply or Discard." title="Transform">
+    <Mock alt="Transform panel: (1) Grow to target area under Toolkit: House, (2) its Houses parameter, (3) Run, (4) the preview, one line per node, (5) Apply or Discard." title="Transform">
       <div className="sgl-gd-sub">Toolkit: House</div>
       <div className="sgl-gd-card on">
         <b>Grow to target area</b> <span className="sgl-gd-tag">Toolkit: House</span> <MNum n={1} />
@@ -1203,8 +1203,8 @@ const D: Record<string, () => ReactNode> = {
       h={100}
     />
   ),
-  'scen-1': () => <Net alt="Scenario 1: three rooms A, B and C in a row." nodes="A 40 50, B 110 50, C 180 50" edges="A-B, B-C" />,
-  'scen-2': () => <Net alt="Scenario 2, a duplicate you changed: a fourth room D joined to B. Scenario 1 still has three rooms." nodes="A 40 36, B 110 36, C 180 36, D 110 90" edges="A-B, B-C, B-D" hl="D" he="B-D" h={112} />,
+  'scen-1': () => <Net alt="Scenario 1: three nodes A, B and C in a row." nodes="A 40 50, B 110 50, C 180 50" edges="A-B, B-C" />,
+  'scen-2': () => <Net alt="Scenario 2, a duplicate you changed: a fourth node D joined to B. Scenario 1 still has three nodes." nodes="A 40 36, B 110 36, C 180 36, D 110 90" edges="A-B, B-C, B-D" hl="D" he="B-D" h={112} />,
   'grow-before': () => <Grow after={false} />,
   'grow-after': () => <Grow after />,
 
@@ -1240,7 +1240,7 @@ const D: Record<string, () => ReactNode> = {
   'howto-open-example': () => <Steps alt="1 Open example… on Welcome or in Project, 2 pick an example, 3 it opens as a new project with its toolkit, looks and façades, 4 see it in the Building view." labels={['Open example…', 'Pick an example', 'A new project', 'View: Building']} />,
   'howto-select': () => <Steps alt="1 Click a node in Graph 2D, 2 it is highlighted in every view, 3 read and edit it in Properties." labels={['Click a node or edge', 'Highlighted in every view', 'Read and edit in Properties']} />,
   'howto-add-room': () => <Steps alt="1 + Add node, 2 choose its Function in Properties, 3 set Position and Size." labels={['+ Add node', 'Function', 'Position and Size']} />,
-  'howto-connect': () => <Steps alt="1 Select the first room, 2 Add connection…, 3 click the second room, 4 choose Access or Open in Properties." labels={['Select the first room', 'Add connection…', 'Click the second room', 'Access or Open']} />,
+  'howto-connect': () => <Steps alt="1 Select the first node, 2 Add edge…, 3 click the second node, 4 choose Access or Open in Properties." labels={['Select the first node', 'Add edge…', 'Click the second node', 'Access or Open']} />,
   'howto-attribute': () => <Steps alt="1 Attributes in the left rail, 2 + Add attribute, 3 Custom attribute, 4 set values in Properties." labels={['Attributes', '+ Add attribute', 'Custom attribute', 'Values in Properties']} />,
   'howto-analysis': () => <Steps alt="1 Select a node, 2 open Analyse, 3 press Degree, 4 read the result; it is highlighted in every view, 5 Clear." labels={['Select a node', 'Analyse', 'Degree', 'Read the result', 'Clear']} />,
   'howto-query': () => <Steps alt="1 Open Queries, 2 press Shortest path, 3 pick From, 4 pick To, 5 read the route." labels={['Open Queries', 'Shortest path', 'Pick From', 'Pick To', 'Read the route']} />,
@@ -1254,34 +1254,34 @@ const D: Record<string, () => ReactNode> = {
   'sec-node-hub': () => <Net alt="Node section with a hub selected: C, where the row forks, has 3 edges and 3 neighbours." nodes={FORK} edges={FORK_E} sel="C" hl="C" he="B-C, C-D, C-E" badge={{ C: '3' }} />,
 
   // ── Built-in analyses (two cases each) ──
-  'deg-1': () => <Net alt="Degree 1: in a star of five rooms, the outer room A has a single edge, highlighted: a dead end." nodes={STAR} edges={STAR_E} hl="A" he="C-A" badge={{ A: '1' }} />,
-  'deg-4': () => <Net alt="Degree 4: in the same star, the centre room C has four edges, highlighted: a hub." nodes={STAR} edges={STAR_E} hl="C" he={STAR_E} badge={{ C: '4' }} />,
+  'deg-1': () => <Net alt="Degree 1: in a star of five nodes, the outer node A has a single edge, highlighted: a dead end." nodes={STAR} edges={STAR_E} hl="A" he="C-A" badge={{ A: '1' }} />,
+  'deg-4': () => <Net alt="Degree 4: in the same star, the centre node C has four edges, highlighted: a hub." nodes={STAR} edges={STAR_E} hl="C" he={STAR_E} badge={{ C: '4' }} />,
   'nb-1': () => <Net alt="A selected at the start of the row: its only neighbour, B, is highlighted (1 neighbour)." nodes={FORK} edges={FORK_E} sel="A" hl="B" he="A-B" />,
   'nb-3': () => <Net alt="C selected where the row forks: its neighbours B, D and E are highlighted (3 neighbours)." nodes={FORK} edges={FORK_E} sel="C" hl="B D E" he="B-C, C-D, C-E" />,
   'routes-end': () => <Routes middle={false} />,
   'routes-middle': () => <Routes middle />,
   'touch-1': () => <Net alt="A–B selected at the start of the row: only B–C shares a node with it (at B): 1 touching edge, highlighted." nodes={FORK} edges={FORK_E} selEdge="A-B" he="B-C" />,
   'touch-3': () => <Net alt="B–C selected: A–B shares B with it, C–D and C–E share C: 3 touching edges, highlighted." nodes={FORK} edges={FORK_E} selEdge="B-C" he="A-B, C-D, C-E" />,
-  'shared-0': () => <Net alt="A–B selected; room C is joined to B only, so no room is joined to both ends: 0. From A the only way back is the way you came." nodes="A 50 80, B 170 80, C 110 24" edges="A-B, B-C" selEdge="A-B" />,
-  'shared-1': () => <Net alt="A–B selected; room C is joined to both A and B: 1 shared neighbour, highlighted. A, B and C form a loop you can walk round." nodes="A 50 80, B 170 80, C 110 24" edges="A-B, B-C, C-A" selEdge="A-B" hl="C" he="B-C, C-A" />,
-  'ends-hub-dead': () => <Net alt="Relationship C–E selected in a star: C has 4 relationships (a hub), E only this one (a dead end): 4 · 1." nodes="A 50 22, B 50 88, C 110 55, D 170 22, E 170 88" edges="C-A, C-B, C-D, C-E" selEdge="C-E" hl="C E" badge={{ C: '4', E: '1' }} />,
-  'ends-through': () => <Net alt="Relationship B–C selected in a row A–B–C–D: B and C each have 2 relationships, so both are on the way through: 2 · 2." nodes={ROW4} edges={ROW4_E} selEdge="B-C" hl="B C" badge={{ B: '2', C: '2' }} />,
-  'sum-tree': () => <Net alt="Four rooms and three relationships, A–B, B–C and B–D: one edge fewer than nodes, no loop." nodes={LOOP4} edges="A-B, B-C, B-D" />,
-  'sum-loop': () => <Net alt="Four rooms and four relationships round a square: as many edges as nodes, one loop (highlighted)." nodes={LOOP4} edges={LOOP4_E} he={LOOP4_E} />,
+  'shared-0': () => <Net alt="A–B selected; node C is joined to B only, so no node is joined to both ends: 0. From A the only way back is the way you came." nodes="A 50 80, B 170 80, C 110 24" edges="A-B, B-C" selEdge="A-B" />,
+  'shared-1': () => <Net alt="A–B selected; node C is joined to both A and B: 1 shared neighbour, highlighted. A, B and C form a loop you can walk round." nodes="A 50 80, B 170 80, C 110 24" edges="A-B, B-C, C-A" selEdge="A-B" hl="C" he="B-C, C-A" />,
+  'ends-hub-dead': () => <Net alt="Edge C–E selected in a star: C has 4 edges (a hub), E only this one (a dead end): 4 · 1." nodes="A 50 22, B 50 88, C 110 55, D 170 22, E 170 88" edges="C-A, C-B, C-D, C-E" selEdge="C-E" hl="C E" badge={{ C: '4', E: '1' }} />,
+  'ends-through': () => <Net alt="Edge B–C selected in a row A–B–C–D: B and C each have 2 edges, so both are on the way through: 2 · 2." nodes={ROW4} edges={ROW4_E} selEdge="B-C" hl="B C" badge={{ B: '2', C: '2' }} />,
+  'sum-tree': () => <Net alt="Four nodes and three edges, A–B, B–C and B–D: one edge fewer than nodes, no loop." nodes={LOOP4} edges="A-B, B-C, B-D" />,
+  'sum-loop': () => <Net alt="Four nodes and four edges round a square: as many edges as nodes, one loop (highlighted)." nodes={LOOP4} edges={LOOP4_E} he={LOOP4_E} />,
   'mc-row': () => <Net alt="A row A–B–C–D: B and C tie as most connected, with 2 edges each." nodes={ROW4} edges={ROW4_E} hl="B C" badge={{ B: '2', C: '2' }} />,
-  'mc-star': () => <Net alt="A star of five rooms: the centre C is the most connected, with 4 edges." nodes={STAR} edges={STAR_E} hl="C" badge={{ C: '4' }} />,
+  'mc-star': () => <Net alt="A star of five nodes: the centre C is the most connected, with 4 edges." nodes={STAR} edges={STAR_E} hl="C" badge={{ C: '4' }} />,
   'parts-one': () => <Parts two={false} />,
   'parts-two': () => <Parts two />,
-  'bridges-row': () => <Net alt="A row A–B–C–D: all 3 relationships are bridges, highlighted: remove any one and the row splits." nodes={ROW4} edges={ROW4_E} he={ROW4_E} />,
-  'bridges-loop': () => <Net alt="A loop A–B–C–D–A: no bridges; remove any one relationship and there is still a way round." nodes={LOOP4} edges={LOOP4_E} />,
+  'bridges-row': () => <Net alt="A row A–B–C–D: all 3 edges are bridges, highlighted: remove any one and the row splits." nodes={ROW4} edges={ROW4_E} he={ROW4_E} />,
+  'bridges-loop': () => <Net alt="A loop A–B–C–D–A: no bridges; remove any one edge and there is still a way round." nodes={LOOP4} edges={LOOP4_E} />,
   'cut-row': () => <Net alt="A row A–B–C–D: B and C are cut nodes, highlighted; remove either and the row splits." nodes={ROW4} edges={ROW4_E} hl="B C" />,
-  'cut-loop': () => <Net alt="A loop A–B–C–D–A: no cut nodes; remove any one room and the others are still joined." nodes={LOOP4} edges={LOOP4_E} />,
-  'leaf-loop': () => <Net alt="A loop A–B–C–D–A: every room has 2 relationships, so there are no leaf nodes (0 dead ends)." nodes={LOOP4} edges={LOOP4_E} />,
-  'leaf-star': () => <Net alt="A star of five rooms: the four outer rooms A, B, D and E each have one relationship: 4 leaf nodes, highlighted." nodes={STAR} edges={STAR_E} hl="A B D E" />,
-  'diam-star': () => <Net alt="A star of five rooms: any two outer rooms are 2 steps apart through the centre, so the diameter is 2 (A → C → E highlighted)." nodes={STAR} edges={STAR_E} hl="A E" hlB="C" he="C-A, C-E" badge={{ E: '2' }} />,
-  'diam-row': () => <Net alt="A row of five rooms A to E: from A to E takes 4 steps, so the diameter is 4 (the whole row highlighted)." nodes={ROW5} edges={ROW5_E} hl="A E" hlB="B C D" he={ROW5_E} badge={{ E: '4' }} />,
-  'central-row': () => <Net alt="A row of five rooms: the middle room C is the most central, 2 + 1 + 1 + 2 = 6 steps to all the others (step counts beside each room)." nodes={ROW5} edges={ROW5_E} hl="C" badge={{ A: '2', B: '1', D: '1', E: '2' }} />,
-  'central-star': () => <Net alt="A star of five rooms: the centre C is the most central, 1 step to each of the 4 others, 4 in total." nodes={STAR} edges={STAR_E} hl="C" badge={{ A: '1', B: '1', D: '1', E: '1' }} />,
+  'cut-loop': () => <Net alt="A loop A–B–C–D–A: no cut nodes; remove any one node and the others are still joined." nodes={LOOP4} edges={LOOP4_E} />,
+  'leaf-loop': () => <Net alt="A loop A–B–C–D–A: every node has 2 edges, so there are no leaf nodes (0 dead ends)." nodes={LOOP4} edges={LOOP4_E} />,
+  'leaf-star': () => <Net alt="A star of five nodes: the four outer nodes A, B, D and E each have one edge: 4 leaf nodes, highlighted." nodes={STAR} edges={STAR_E} hl="A B D E" />,
+  'diam-star': () => <Net alt="A star of five nodes: any two outer nodes are 2 steps apart through the centre, so the diameter is 2 (A → C → E highlighted)." nodes={STAR} edges={STAR_E} hl="A E" hlB="C" he="C-A, C-E" badge={{ E: '2' }} />,
+  'diam-row': () => <Net alt="A row of five nodes A to E: from A to E takes 4 steps, so the diameter is 4 (the whole row highlighted)." nodes={ROW5} edges={ROW5_E} hl="A E" hlB="B C D" he={ROW5_E} badge={{ E: '4' }} />,
+  'central-row': () => <Net alt="A row of five nodes: the middle node C is the most central, 2 + 1 + 1 + 2 = 6 steps to all the others (step counts beside each node)." nodes={ROW5} edges={ROW5_E} hl="C" badge={{ A: '2', B: '1', D: '1', E: '2' }} />,
+  'central-star': () => <Net alt="A star of five nodes: the centre C is the most central, 1 step to each of the 4 others, 4 in total." nodes={STAR} edges={STAR_E} hl="C" badge={{ A: '1', B: '1', D: '1', E: '1' }} />,
   'path-short': () => <PathDiagram long={false} />,
   'path-long': () => <PathDiagram long />,
   'reach-1': () => <Net alt="From A with k = 1: only B, 1 step away, is reached; C, D and E are faded." nodes={ROW5} edges={ROW5_E} sel="A" hl="B" he="A-B" fade="C D E" badge={{ B: '1' }} />,

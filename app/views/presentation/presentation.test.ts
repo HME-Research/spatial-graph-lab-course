@@ -183,8 +183,8 @@ describe('relationship presentation', () => {
     const s = summarizeRelationships(spatial);
     expect(s.counts).toEqual({ direct: 1, routed: 3, unresolved: 2 });
     expect(s.unresolvedIds).toEqual([9, 3]);
-    expect(s.sentence).toBe('6 relationships: 1 direct, 3 via route, 2 unresolved.');
-    expect(summarizeRelationships(spatialOf([])).sentence).toBe('No relationships yet.');
+    expect(s.sentence).toBe('6 edges: 1 direct, 3 via route, 2 unresolved.');
+    expect(summarizeRelationships(spatialOf([])).sentence).toBe('No edges yet.');
     // Distinct looks, in legend order (enclosed first; flat, pergola, none).
     expect(corridorLooksInUse(spatial)).toEqual([
       { walls: 'enclosed', roof: 'flat' },

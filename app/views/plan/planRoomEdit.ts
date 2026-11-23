@@ -83,10 +83,10 @@ export function handleCursor(handle: PlanHandle): string {
 }
 
 const HANDLE_NAMES: Readonly<Record<PlanResizeHandle, string>> = {
-  n: 'top edge',
-  s: 'bottom edge',
-  e: 'right edge',
-  w: 'left edge',
+  n: 'top side',
+  s: 'bottom side',
+  e: 'right side',
+  w: 'left side',
   ne: 'top-right corner',
   nw: 'top-left corner',
   se: 'bottom-right corner',

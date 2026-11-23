@@ -76,9 +76,9 @@ describe('plain-language messages', () => {
 
   it('names the other room in an overlap, from either side', () => {
     const overlap = issue('room-overlap', 'room "c" overlaps room "a" at cell [1, 1, 0]');
-    expect(friendlyText(overlap, { roomLabel: room, subjectNodeId: 'c' })).toBe('This room overlaps room 01. Rooms cannot share cells.');
-    expect(friendlyText(overlap, { roomLabel: room, subjectNodeId: 'a' })).toBe('This room overlaps room 03. Rooms cannot share cells.');
-    expect(friendlyText(overlap, { roomLabel: room })).toBe('Room 03 overlaps room 01. Rooms cannot share cells.');
+    expect(friendlyText(overlap, { roomLabel: room, subjectNodeId: 'c' })).toBe('This node overlaps node 01. Nodes cannot share cells.');
+    expect(friendlyText(overlap, { roomLabel: room, subjectNodeId: 'a' })).toBe('This node overlaps node 03. Nodes cannot share cells.');
+    expect(friendlyText(overlap, { roomLabel: room })).toBe('Node 03 overlaps node 01. Nodes cannot share cells.');
   });
 
   it('explains a broken v1 relationship and a blocked corridor', () => {
@@ -88,10 +88,10 @@ describe('plain-language messages', () => {
       ['edges', 0, 'kind'],
     );
     expect(friendlyText(geometry)).toBe(
-      'The door relationship ab needs horizontally face-adjacent cells (same z), and rooms a and b would not be. Keep the rooms touching, or delete the relationship first.',
+      'The door edge ab needs horizontally face-adjacent cells (same z), and nodes a and b would not be. Keep the nodes touching, or delete the edge first.',
     );
     const displaced = issue('route-displacement', 'this would take cells of the connector(s) of "ab"; confirm …');
-    expect(friendlyText(displaced, { relationshipLabel: () => '01 ↔ 02' })).toBe('This would block the generated corridor of relationship 01 ↔ 02.');
+    expect(friendlyText(displaced, { relationshipLabel: () => '01 ↔ 02' })).toBe('This would block the generated corridor of edge 01 ↔ 02.');
   });
 
   it('keeps technical details and falls back to the original sentence', () => {
@@ -106,8 +106,8 @@ describe('plain-language messages', () => {
   });
 
   it('lists rooms readably', () => {
-    expect(roomList(['01'])).toBe('room 01');
-    expect(roomList(['01', '02', '03'])).toBe('rooms 01, 02 and 03');
+    expect(roomList(['01'])).toBe('node 01');
+    expect(roomList(['01', '02', '03'])).toBe('nodes 01, 02 and 03');
   });
 });
 
@@ -185,7 +185,7 @@ describe('shell components (static markup)', () => {
       createElement(IssueFeedback, { issues: [issue('room-overlap', 'room "c" overlaps room "a" at cell [1, 1, 0]', ['nodes', 2, 'position'])], context: { subjectNodeId: 'c' } }),
     );
     expect(html).toContain('role="alert"');
-    expect(html.indexOf('This room overlaps room a.')).toBeLessThan(html.indexOf('Technical details'));
+    expect(html.indexOf('This node overlaps node a.')).toBeLessThan(html.indexOf('Technical details'));
     expect(html).toContain('<details class="sgl-feedback-details"><summary>Technical details</summary>');
     expect(html).toContain('nodes[2].position · room-overlap');
   });
@@ -198,7 +198,7 @@ describe('shell components (static markup)', () => {
 
   it('offers Cancel and "Move anyway and recalculate", naming the relationship', () => {
     const html = renderToStaticMarkup(createElement(RouteConfirm, { relationships: ['01 ↔ 02'], onCancel: () => {}, onConfirm: () => {} }));
-    expect(html).toContain('Moving this room would block the generated corridor of relationship 01 ↔ 02.');
+    expect(html).toContain('Moving this node would block the generated corridor of edge 01 ↔ 02.');
     expect(html).toContain('>Cancel</button>');
     expect(html).toContain('>Move anyway and recalculate</button>');
   });

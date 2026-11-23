@@ -51,11 +51,11 @@ describe('Plan room edits are one undo step each, labelled like the 3D gizmo', (
   it('move, resize and move-and-resize each record one labelled step; Undo restores the room', () => {
     const host = sessionHost();
     host.drag(2, 'move', 1 * H, -2 * H);
-    expect(host.session.history.past.at(-1)?.label).toBe('Move room 2 to [4, 2, 0]');
+    expect(host.session.history.past.at(-1)?.label).toBe('Move node 2 to [4, 2, 0]');
     host.drag(2, 'e', 1 * H, 0);
-    expect(host.session.history.past.at(-1)?.label).toBe('Resize room 2 to 2×1×1');
+    expect(host.session.history.past.at(-1)?.label).toBe('Resize node 2 to 2×1×1');
     host.drag(2, 'sw', -1 * H, 1 * H);
-    expect(host.session.history.past.at(-1)?.label).toBe('Move and resize room 2');
+    expect(host.session.history.past.at(-1)?.label).toBe('Move and resize node 2');
     expect(host.session.history.past).toHaveLength(3);
 
     host.undo();

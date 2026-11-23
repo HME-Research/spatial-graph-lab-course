@@ -94,7 +94,7 @@ describe('PlanView', () => {
   it('never draws an unresolved relationship and says it is not drawn', () => {
     const html = render(twoRooms);
     expect(html).not.toContain('data-edge-id="2"');
-    expect(html).toContain('1 unresolved relationship not drawn');
+    expect(html).toContain('1 unresolved edge not drawn');
   });
 
   it('wall targets are not drawn without the wall data hook, and are with it (shared walls only)', () => {

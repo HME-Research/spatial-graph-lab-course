@@ -8,7 +8,7 @@ import { BASE_NODE_DIAMETER } from './NodeDisplay';
 
 export type RelationEdgeData = {
   readonly presentation: EdgePresentation;
-  /** "Remove invalid connections" preview: this relationship is checked for removal. */
+  /** "Remove invalid edges" preview: this relationship is checked for removal. */
   readonly removePreview?: boolean;
   /** Highlighted by the shown analysis (P4: a path, a bridge, a node's edges…). */
   readonly analysed?: boolean;

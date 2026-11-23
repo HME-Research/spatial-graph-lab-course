@@ -153,7 +153,7 @@ describe('one gesture = at most one command', () => {
     expect(room(host.port, 2).position).toEqual([5, 3, 0]);
     expect(r.state).toBe(IDLE);
     // Real resolver: 2 leaves the 1–2 corridor axis, so edge 1 goes from routed to unresolved.
-    expect(r.feedback).toEqual({ tone: 'info', text: 'Moved room 2 to [5, 3, 0]. 1 relationship changed status.' });
+    expect(r.feedback).toEqual({ tone: 'info', text: 'Moved room 2 to [5, 3, 0]. 1 edge changed status.' });
   });
 
   it('a drag that returns to the start sends nothing', () => {
@@ -237,7 +237,7 @@ describe('corridor reservations need confirmation', () => {
     expect(previewTone(r.during)).toBe('warning');
     expect(r.state.phase).toBe('confirm');
     expect(r.feedback?.tone).toBe('warning');
-    expect(r.feedback?.text).toContain('relationship 1 → 2'); // phase 07 (O08): room labels, not the raw id
+    expect(r.feedback?.text).toContain('edge 1 → 2'); // phase 07 (O08): room labels, not the raw id
     expect(host.sent).toHaveLength(0);
     expect(displayedGeometry(host.port.doc, r.state, 2)?.position).toEqual([3, 0, 0]);
 

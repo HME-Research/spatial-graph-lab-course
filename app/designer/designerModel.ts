@@ -125,7 +125,7 @@ function warningFor(row: Pick<DesignerTypeRow, 'status' | 'orphanOverride' | 'fu
     const why = row.status.problems.length > 0 ? `: ${row.status.problems.join('; ')}` : '';
     return `The type definition in ${row.status.file} is invalid${why}. Rooms of this type show a closed wall until it is fixed.`;
   }
-  if (row.orphanOverride) return 'No room uses this type and the project does not define it. Remove the card if it is not needed.';
+  if (row.orphanOverride) return 'No node uses this type and the project does not define it. Remove the card if it is not needed.';
   if (row.status.kind === 'undefined-type') {
     return `The active project does not define "${row.function}"; the fallback window coverage is used.`;
   }
@@ -425,7 +425,7 @@ export function designerCards(
         cards.push(row(group, t?.name ?? functionId, functionId, t?.warning ?? null));
       } else {
         const notAnOption = optionKeys !== null && !optionKeys.has(styleValueKey(g.value));
-        cards.push(row(group, valueName(attribute, g.value), null, notAnOption ? `“${String(g.value)}” is no longer an option of ${attribute.label}, so no room uses this card.` : null));
+        cards.push(row(group, valueName(attribute, g.value), null, notAnOption ? `“${String(g.value)}” is no longer an option of ${attribute.label}, so no node uses this card.` : null));
       }
     }
   }

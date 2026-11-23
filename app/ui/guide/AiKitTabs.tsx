@@ -10,7 +10,7 @@ import { useAiKitProject } from './projectKit';
  * How to write your own analysis (owner 2026-11-20), shown in the ⓘ of "Upload your own (.ts)" and
  * in the Guide: a shared line on top, then three tabs.
  *
- * - **Any project**: "Include room basics" (on by default; what it means is written under it, not in
+ * - **Any project**: "Include node basics" (on by default; what it means is written under it, not in
  *   a tooltip). On: the design kit, a design analysis using only what every project has. Off: the
  *   graph kit, ids and relationships only. The download and the prompt guide follow the checkbox.
  * - **This project**: the open project's toolkit (or "No toolkit"), and the design kit with a
@@ -26,9 +26,9 @@ const TABS = [
   { id: 'template', label: 'Template' },
 ] as const;
 
-export const BASICS_LABEL = 'Include room basics';
+export const BASICS_LABEL = 'Include node basics';
 export const BASICS_HELP =
-  'Room basics: each room’s Function, size, position and level, the relationship type (Access / Open) and calculated values such as area. Never custom fields. Off: room ids and relationships only (a graph analysis).';
+  'Node basics: each node’s Function, size, position and level, each edge’s Relationship (Access / Open) and calculated values such as area. Never custom fields. Off: node ids and edges only (a graph analysis).';
 
 export function AiKitTabs({ initialTab = 'any', initialBasics = true }: { readonly initialTab?: AiKitTabId; readonly initialBasics?: boolean }) {
   const project = useAiKitProject();
@@ -80,10 +80,10 @@ export function AiKitTabs({ initialTab = 'any', initialBasics = true }: { readon
             <p className="sgl-help sgl-aikits-help">Write it yourself: change a template, then upload it with Upload your own (.ts).</p>
             <ul className="sgl-explainer-downloads" aria-label="Templates">
               <li>
-                <DownloadButton download={{ label: 'Graph template (.ts)', ...TEMPLATES.graph, note: 'ids and relationships only; any project.' }} />
+                <DownloadButton download={{ label: 'Graph template (.ts)', ...TEMPLATES.graph, note: 'ids and edges only; any project.' }} />
               </li>
               <li>
-                <DownloadButton download={{ label: 'Design template (.ts)', ...TEMPLATES.design, note: 'reads the rooms (area, level); any project.' }} />
+                <DownloadButton download={{ label: 'Design template (.ts)', ...TEMPLATES.design, note: 'reads the nodes (area, level); any project.' }} />
               </li>
             </ul>
           </div>

@@ -113,7 +113,7 @@ describe('findDuplicatePlacement', () => {
     const p = findDuplicatePlacement(d, 1, { limits: { maxAbsCoordinate: 1 } });
     expect(p.status).toBe('no-space');
     const r = duplicateRoomRequest(d, 1, { limits: { maxAbsCoordinate: 1 } });
-    expect(r.status === 'refused' && r.message).toMatch(/no free place for a copy of room 1/);
+    expect(r.status === 'refused' && r.message).toMatch(/no free place for a copy of node 1/);
   });
 });
 

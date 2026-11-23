@@ -91,7 +91,7 @@ export function CustomAttributes({
     }
     return run(result.command);
   };
-  const what = collection === 'nodes' ? 'room' : 'relationship';
+  const what = collection === 'nodes' ? 'node' : 'edge';
 
   return (
     <section className="sgl-section sgl-custom-attributes" aria-label={before !== undefined ? 'Attributes' : 'Custom attributes'}>

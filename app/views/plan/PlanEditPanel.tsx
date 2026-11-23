@@ -23,7 +23,7 @@ export function PlanEditPanel({ editing, editable }: { readonly editing: RoomEdi
   return (
     <div className="sgl-plan-edit-panel" role="group" aria-label="Room edit">
       {hint && <div className="sgl-plan-edit-hint">{hint}</div>}
-      {!hint && !status && !confirming && !feedback && <div className="sgl-plan-edit-hint">Drag the room or its edges, or use the arrow keys (Shift: resize) · {editing.hint}</div>}
+      {!hint && !status && !confirming && !feedback && <div className="sgl-plan-edit-hint">Drag the room or its sides, or use the arrow keys (Shift: resize) · {editing.hint}</div>}
       {status && (
         <div className={`sgl-plan-edit-status tone-${editing.tone}`} aria-live="polite">
           {status}

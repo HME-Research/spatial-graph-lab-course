@@ -40,7 +40,7 @@ describe('Properties panel: one-cell rooms', () => {
   it('offers the project types in a real dropdown with the current one selected', () => {
     const node = doc.nodes[0]!;
     const html = render({ doc, selection: selectNode(node.id), project: buildProjectViewContext(project, doc) });
-    expect(selectOptions(html, 'Room type')).toEqual(['Gallery', 'Studio']);
+    expect(selectOptions(html, 'Node function')).toEqual(['Gallery', 'Studio']);
     expect(html).toMatch(new RegExp(`<option value="${node.function}" selected=""`));
     expect(html).not.toContain('<datalist');
   });
@@ -60,16 +60,16 @@ describe('Properties panel: one-cell rooms', () => {
   it('keeps an unknown type visible with a warning', async () => {
     const legacy = expectOk(validateDocumentV2({ ...structuredClone(doc), nodes: doc.nodes.map((n, i) => (i === 0 ? { ...n, function: 'legacy-thing' } : n)) }));
     const html = render({ doc: legacy, selection: selectNode(legacy.nodes[0]!.id), project: buildProjectViewContext(project, legacy) });
-    expect(selectOptions(html, 'Room type')[0]).toBe('legacy-thing: not defined in this project');
+    expect(selectOptions(html, 'Node function')[0]).toBe('legacy-thing: not defined in this project');
     expect(html).toContain('does not offer the function “legacy-thing”');
   });
 
   it('shows the relationship kind and a remove action with an undo hint', () => {
     const edge = doc.edges[0]!;
     const html = render({ doc, selection: selectEdge(edge.id) });
-    expect(html).toContain(`Relationship ${edge.source} ↔ ${edge.target}`);
+    expect(html).toContain(`Edge ${edge.source} ↔ ${edge.target}`);
     expect(html).toContain('aria-label="Relationship kind"');
-    expect(html).toContain('>Remove connection</button>');
+    expect(html).toContain('>Delete edge</button>');
     expect(html).toContain('Ctrl+Z');
   });
 
@@ -88,7 +88,7 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     const design = fakePort();
     const html = render({ doc: v1(), design, selection: selectNode(1) });
     // The title is the Function (2026-11-20; without a project its id, "gallery"), with the room id small after it.
-    expect(html).toMatch(/<div class="sgl-title"><span class="sgl-swatch"[^>]*><\/span><span class="sgl-room-function">gallery<\/span><span class="sgl-id"[^>]*>Room <span class="sgl-room-label">1<\/span><\/span><\/div>/);
+    expect(html).toMatch(/<div class="sgl-title"><span class="sgl-swatch"[^>]*><\/span><span class="sgl-room-function">gallery<\/span><span class="sgl-id"[^>]*>Node <span class="sgl-room-label">1<\/span><\/span><\/div>/);
     expect(html).toContain('aria-label="Size x"');
     expect(html).toMatch(/aria-label="Size y"[^>]*value="3"|value="3"[^>]*aria-label="Size y"/);
     expect(html).toContain('aria-label="Floors"');
@@ -100,21 +100,21 @@ describe('Properties panel, schema v2 (with the design port)', () => {
   it('lists relationships with their spatial status and offers Connect', () => {
     const design = fakePort();
     const html = render({ doc: v1(), design, selection: selectNode(1) });
-    expect(html).toContain('room 2');
+    expect(html).toContain('node 2');
     expect(html).toContain('>Connected via route</span>');
-    expect(selectOptions(html, 'Room to connect to')).toEqual(['Connect to room…', '3 (studio)']);
+    expect(selectOptions(html, 'Node to connect to')).toEqual(['Connect to node…', '3 (studio)']);
   });
 
   it('selected relationship: Access/Open, corridor walls and roof, and plain status', () => {
     const design = fakePort();
     const html = render({ doc: v1(), design, selection: selectEdge(1) });
-    expect(html).toContain('Relationship 1 ↔ 2');
+    expect(html).toContain('Edge 1 ↔ 2');
     expect(html).toMatch(/<input type="radio" name="kind-1" checked="" value="access"\/>Access/);
     expect(html).toContain('>Open</label>');
     expect(selectOptions(html, 'Corridor walls')).toEqual(['Design default (Open)', 'Enclosed', 'Open']);
     expect(selectOptions(html, 'Corridor roof')).toEqual(['Design default (Flat)', 'Flat', 'Pergola (open slats)', 'None (open top)']);
     expect(html).toContain('Joined by a generated corridor (1.5 m wide, open sides and a flat roof), 3 cells long, on storey 0.');
-    expect(html).toContain('>Remove connection</button>');
+    expect(html).toContain('>Delete edge</button>');
   });
 
   it('an unresolved relationship is a non-blocking warning with technical details', () => {
@@ -122,14 +122,14 @@ describe('Properties panel, schema v2 (with the design port)', () => {
     const blocked = { ...raw, nodes: [...raw.nodes, { id: 4, position: [3, 0, 0], size: [1, 1, 1], function: 'studio', custom: {} }] };
     const design = fakePort(blocked);
     const html = render({ doc: v1(), design, selection: selectEdge(1) });
-    expect(html).toContain('Unresolved: nothing can be built yet. The relationship is kept.');
+    expect(html).toContain('Unresolved: nothing can be built yet. The edge is kept.');
     expect(html).toContain('Another room is in the way of every straight corridor between these rooms.');
     expect(html).toContain('role="status"');
     expect(html).not.toContain('role="alert"');
     expect(html).toContain('Technical details');
     // No corridor now, yet its walls / roof stay editable (Geometry), with a note that they are unused.
     expect(selectOptions(html, 'Corridor walls')).toEqual(['Design default (Open)', 'Enclosed', 'Open']);
-    expect(html).toContain('No corridor is generated for this relationship now; these values are used only if one is.');
+    expect(html).toContain('No corridor is generated for this edge now; these values are used only if one is.');
   });
 
   it('summarises the scenario when nothing is selected (student vocabulary; the schema only as a tooltip)', () => {

@@ -40,9 +40,9 @@ export type ScenarioCommand =
   | { readonly type: 'add-edge-at-face'; readonly edge: NewRelationship; readonly preference: FacePreference };
 
 const CHECK_TEXT = {
-  'not-endpoint': 'the chosen face must belong to one of the two rooms of the connection',
+  'not-endpoint': 'the chosen face must belong to one of the two rooms of the edge',
   'outside-room': 'the chosen face is not inside the room',
-  'not-shared': 'the chosen face is not shared by the two rooms of the connection',
+  'not-shared': 'the chosen face is not shared by the two rooms of the edge',
 } as const;
 
 function withPreference(prefs: FacePreferences, edgeId: number, preference: FacePreference | null): FacePreferences {
@@ -87,7 +87,7 @@ function preferenceIssue(doc: DesignDocumentV2, edgeId: number, preference: Face
     return issue(
       ['facePreferences', edgeId],
       'schema',
-      `only access connections can choose the wall they open on; "${edgeId}" is an ${edge.relationship} connection, which opens the whole shared boundary`,
+      `only access edges can choose the wall they open on; "${edgeId}" is an ${edge.relationship} edge, which opens the whole shared boundary`,
     );
   }
   const check = checkFacePreference(doc, edge, preference);

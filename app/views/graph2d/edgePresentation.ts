@@ -46,7 +46,7 @@ export const STATUS_LABELS: Readonly<Record<ResolutionStatus, string>> = {
 export const STATUS_HINTS: Readonly<Record<ResolutionStatus, string>> = {
   direct: 'the rooms share a wall or floor',
   routed: 'joined by a generated straight connector',
-  unresolved: 'kept as a relationship, but no physical connection can be made yet',
+  unresolved: 'kept as an edge, but nothing can be built for it yet',
 };
 
 /** Short beginner explanations of why a relationship cannot be built: the shared teaching text. */

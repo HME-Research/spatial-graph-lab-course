@@ -97,7 +97,7 @@ export function Graph3DView({ selection, onSelect, design, project }: ViewProps)
             </div>
             {range !== null && (
               <div className="viewer3d-count">
-                Showing {nodeItems.length} of {doc.nodes.length} rooms · {levelFilterLabel(levelFilter)}
+                Showing {nodeItems.length} of {doc.nodes.length} nodes · {levelFilterLabel(levelFilter)}
               </div>
             )}
             {hiddenNote && <div role="status" className="viewer3d-count">{hiddenNote}</div>}

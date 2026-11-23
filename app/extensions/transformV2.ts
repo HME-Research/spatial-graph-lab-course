@@ -262,7 +262,7 @@ function setNodeGeometry(draft: DraftV2, op: Extract<SpatialOperation, { op: 'se
     }
     const route = draft.routeCells.at(cell);
     if (route?.kind === 'route') {
-      return opError(i, 'occupied-cell', `${what}: cell ${fmt(cell)} is a generated connector of relationship ${route.edgeId}`);
+      return opError(i, 'occupied-cell', `${what}: cell ${fmt(cell)} is a generated connector of edge ${route.edgeId}`);
     }
   }
   for (const cell of footprintCells(node)) draft.cells.delete(gridKey(cell));

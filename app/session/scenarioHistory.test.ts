@@ -37,7 +37,7 @@ describe('remove-edges history', () => {
     const r = applyDesignCommandToSession(start, { type: 'remove-edges', edgeIds: [1, 2] });
     if (!r.ok) throw new Error(r.issues.map((i) => i.message).join('; '));
     expect(currentDocument(r.session).edges).toEqual([]);
-    expect(undoLabel(r.session.history)).toBe('Remove 2 invalid connections');
+    expect(undoLabel(r.session.history)).toBe('Remove 2 invalid edges');
     const undone = undoDocument(r.session);
     expect(currentDocument(undone)).toEqual(doc());
     expect(canUndo(undone.history)).toBe(false);

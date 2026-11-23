@@ -121,9 +121,9 @@ describe('wall panel model (wallAction-driven)', () => {
     };
     const html = renderToStaticMarkup(createElement(WallActionPanel, { design: port, faceId: FACE_NORTH, faces: index, onSelect: () => {}, onClose: () => {} }));
     expect(html).toContain('Wall between 1 and 2');
-    expect(html).toContain('Add relationship');
+    expect(html).toContain('Add edge');
     expect(html).toContain('data-wall-state="add"');
-    expect(html).not.toContain('Remove relationship');
+    expect(html).not.toContain('Delete edge');
   });
 });
 
@@ -156,8 +156,8 @@ describe('wall panel for a related wall', () => {
     expect(html).toContain('data-wall-opening="elsewhere"');
     expect(html).toContain('Put the door on this wall');
     expect(html).toContain('Change to Open');
-    expect(html).toContain('Remove relationship');
-    expect(html).not.toContain('Add relationship');
+    expect(html).toContain('Delete edge');
+    expect(html).not.toContain('Add edge');
     // Without the scenario port the door cannot be placed on a chosen wall: the button is disabled.
     const { onScenarioCommand: _omit, ...plain } = port;
     const noScenario = renderToStaticMarkup(createElement(WallActionPanel, { design: plain, faceId: FACE_NORTH, faces: index, onSelect: () => {}, onClose: () => {} }));

@@ -220,7 +220,7 @@ describe('tables', () => {
     expect(cells(1)['corridor.roof']).toMatchObject({ text: 'Flat', origin: 'default', hint: 'default' });
     expect(cells(2)['corridor.walls']).toMatchObject({ text: 'Enclosed', origin: 'default', hint: 'default · not built' });
     expect(cells(2)['corridor.roof']).toMatchObject({ text: 'None (open top)', origin: 'stored', hint: 'not built' });
-    expect(cells(2)['corridor.roof']!.title).toContain('No corridor is generated for this relationship now');
+    expect(cells(2)['corridor.roof']!.title).toContain('No corridor is generated for this edge now');
     expect(cells(1)['corridor.width']).toMatchObject({ text: '1.5 m', origin: 'default', hint: 'default' });
     // The JSON line of `corridor` belongs to Geometry.
     expect(jsonLines(doc).find((l) => l.record?.collection === 'edges' && l.text.includes('"corridor"'))?.section).toBe('geometry');

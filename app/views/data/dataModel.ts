@@ -327,13 +327,13 @@ export function nodeTable({ ctx, schema, enabled, evaluator, toolkit, functionNa
 function corridorCells(edge: RelationshipEdge, ctx: MetricContext): Record<string, DataCell> {
   const card = designCorridorLook(ctx.doc.settings);
   const built = ctx.spatial.byEdge.get(edge.id)?.status === 'routed';
-  const unused = built ? '' : '\nNo corridor is generated for this relationship now; the value is used only if one is.';
+  const unused = built ? '' : '\nNo corridor is generated for this edge now; the value is used only if one is.';
   const out: Record<string, DataCell> = {};
   for (const p of CORRIDOR_PARTS) {
     const own = edge.corridor?.[p.part];
     out[p.id] =
       own !== undefined
-        ? { text: corridorChoiceLabel(p, own), origin: 'stored', title: `Stored on this relationship as "corridor".${p.part}: "${own}".${unused}`, ...(!built && { hint: 'not built' }) }
+        ? { text: corridorChoiceLabel(p, own), origin: 'stored', title: `Stored on this edge as "corridor".${p.part}: "${own}".${unused}`, ...(!built && { hint: 'not built' }) }
         : {
             text: corridorChoiceLabel(p, card[p.part]),
             origin: 'default',
@@ -345,7 +345,7 @@ function corridorCells(edge: RelationshipEdge, ctx: MetricContext): Record<strin
   const ownWidth = edge.corridor?.width;
   out[w.id] =
     ownWidth !== undefined
-      ? { text: formatCorridorWidth(ownWidth), origin: 'stored', title: `Stored on this relationship as "corridor".width: ${ownWidth} (metres).${unused}`, ...(!built && { hint: 'not built' }) }
+      ? { text: formatCorridorWidth(ownWidth), origin: 'stored', title: `Stored on this edge as "corridor".width: ${ownWidth} (metres).${unused}`, ...(!built && { hint: 'not built' }) }
       : {
           text: formatCorridorWidth(card.width),
           origin: 'default',
@@ -372,7 +372,7 @@ export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInp
       attribute: {
         id: 'corridor',
         label: 'Corridor',
-        title: 'Stored as "corridor": this relationship’s own corridor look, three values, walls | roof | width. Used only when a corridor is generated; not stored, the design’s Corridors card applies.',
+        title: 'Stored as "corridor": this edge’s own corridor look, three values, walls | roof | width. Used only when a corridor is generated; not stored, the design’s Corridors card applies.',
       },
       section: 'geometry' as const,
       title: `${p.name}: stored as "corridor".${p.part}${p.part === 'width' ? ' (metres)' : ''}; empty uses the Corridors card.`,

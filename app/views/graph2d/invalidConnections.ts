@@ -3,7 +3,7 @@ import type { DiagramModel } from './diagramModel';
 import { RELATIONSHIP_KIND_LABELS, UNRESOLVED_REASON_TEXT } from './edgePresentation';
 
 /**
- * "Remove invalid connections" (wave 2, D). Pure. An invalid connection is a relationship whose
+ * "Remove invalid edges" (wave 2, D). Pure. An invalid connection is a relationship whose
  * derived spatial status is `unresolved` (it is still valid graph data; the student may remove it
  * explicitly). Nothing here mutates anything: the view shows the rows, the student unchecks what
  * to keep, and ONE `remove-edges` command removes the rest (one undo step). Never automatic.
@@ -51,12 +51,12 @@ export function removeInvalidCommand(rows: readonly InvalidConnectionRow[], unch
 
 /** Why the action is not offered (explicit, never a silent no-op). */
 export const NO_INVALID_CONNECTIONS =
-  'There are no invalid connections: every relationship is built directly or by a connector.';
+  'There are no invalid edges: every edge is built directly or by a connector.';
 
 /** Short confirmation summary, e.g. "Remove 2 of 3 invalid connections; 1 is kept." */
 export function removeSummary(total: number, checked: number): string {
-  if (checked === 0) return 'Nothing is selected: check the connections to remove.';
+  if (checked === 0) return 'Nothing is selected: check the edges to remove.';
   const kept = total - checked;
   const s = (n: number) => (n === 1 ? '' : 's');
-  return `Remove ${checked} of ${total} invalid connection${s(total)}${kept > 0 ? `; ${kept} ${kept === 1 ? 'is' : 'are'} kept` : ''}. One undo step restores them.`;
+  return `Remove ${checked} of ${total} invalid edge${s(total)}${kept > 0 ? `; ${kept} ${kept === 1 ? 'is' : 'are'} kept` : ''}. One undo step restores them.`;
 }

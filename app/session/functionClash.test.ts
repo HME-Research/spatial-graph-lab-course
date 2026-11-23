@@ -74,11 +74,11 @@ describe('function id clashes between the toolkit and the project', () => {
     const item = { id: 'gallery', label: 'Gallery', toolkitLabel: 'Gallery', rename, rooms: 3 };
     const html = renderToStaticMarkup(createElement(FunctionClashNotice, { clashes: [item], onChoose: () => null }));
     expect(html).toContain('Your function will be kept as “Gallery 2”');
-    expect(html).toContain('Which should your 3 rooms use?');
+    expect(html).toContain('Which should your 3 nodes use?');
     expect(html).toContain('Keep mine (“Gallery 2”)');
     expect(html).toContain('Use the toolkit’s “Gallery”');
     const unused = renderToStaticMarkup(createElement(FunctionClashNotice, { clashes: [{ ...item, rooms: 0 }], onChoose: () => null }));
-    expect(unused).toContain('No rooms use it.');
+    expect(unused).toContain('No nodes use it.');
     expect(unused).toContain('Rename mine to “Gallery 2”');
     expect(unused).not.toContain('Keep mine');
     expect(renderToStaticMarkup(createElement(FunctionClashNotice, { clashes: [], onChoose: () => null }))).toBe('');

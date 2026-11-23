@@ -26,7 +26,7 @@ If a part is missing or unclear, choose the simplest option that fits the idea a
 
 - `graph.nodes`: `{ id }[]` — rooms, identified by whole-number ids.
 - `graph.edges`: `{ id, source, target }[]` — relationships between two rooms. Edges have **no direction**: `source`/`target` order means nothing.
-- That is all. The file cannot see room functions, names, sizes, positions or attributes. **Never invent them.** If the student's idea needs them, say so plainly: they should download the **design kit** instead (the ⓘ beside Upload your own in Analyse, tab *Any project* with *Include room basics*, or tab *This project*). Otherwise suggest the closest analysis that uses only the graph.
+- That is all. The file cannot see node Functions, names, sizes, positions or attributes. **Never invent them.** If the student's idea needs them, say so plainly: they should download the **design kit** instead (the ⓘ beside Upload your own in Analyse, tab *Any project* with *Include node basics*, or tab *This project*). Otherwise suggest the closest analysis that uses only the graph.
 
 ## Inputs decide where the analysis appears
 

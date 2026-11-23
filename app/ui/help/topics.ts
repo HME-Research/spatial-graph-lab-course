@@ -17,7 +17,7 @@ const topics = [
   {
     id: 'graph-vs-grid',
     title: 'Diagram position vs Position',
-    summary: 'Moving a room in the diagram only tidies the drawing; its Position (x, y, z) decides where it is built.',
+    summary: 'Moving a node in the diagram only tidies the drawing; its Position (x, y, z) decides where its room is built.',
     details:
       'The 2D diagram is an abstract picture of the graph. Dragging a circle changes only the diagram. ' +
       'The Position (x, y, z) is the room’s place in the building, measured in 3 m cells with z going up. ' +
@@ -30,21 +30,21 @@ const topics = [
     details:
       'Access: on the same storey a door is placed in the shared wall; between storeys a floor opening with an access marker is shown ' +
       '(a symbol only, not a designed staircase). Open: on the same storey the wall is removed; between storeys the floor becomes an open void. ' +
-      'New relationships are Access by default.',
+      'New edges are Access by default.',
   },
   {
     id: 'relationship-status',
     title: 'Direct, Connected via route, Unresolved',
-    summary: 'Every relationship stays in the graph; its spatial status says whether and how it can be built.',
+    summary: 'Every edge stays in the graph; its spatial status says whether and how it can be built.',
     details:
-      'Direct: the rooms touch, so the connection is in their shared wall or floor. ' +
+      'Direct: the rooms touch, so the edge is built in their shared wall or floor. ' +
       'Connected via route: the rooms are on the same storey and face each other along x or y with free cells between, so a straight connector is generated. ' +
       'Unresolved: neither is possible yet. The status is recalculated after every change and is never an error in your design.',
   },
   {
     id: 'unresolved',
-    title: 'Unresolved relationship',
-    summary: 'A short-dashed muted red line: the relationship is kept, but nothing can be built for it in the current layout.',
+    title: 'Unresolved edge',
+    summary: 'A short-dashed muted red line: the edge is kept, but nothing can be built for it in the current layout.',
     details:
       'Common causes: the rooms are on different storeys and do not touch, they do not line up along x or y, or another room or connector is in the way. ' +
       'Move or resize a room so they touch or face each other with clear cells between. Unresolved is not a validation error and the design can still be saved.',
@@ -56,8 +56,8 @@ const topics = [
     details:
       'Walls: Enclosed puts a side wall on each side; Open leaves the sides open, with slim posts where there is a roof to carry. Roof: Flat, Pergola (open slats) or None. ' +
       'Width: how wide the corridor is built, in metres, centred in its cells (more than 0, at most one cell, 3 m); the default is 1.5 m. The corridor still takes its whole cells, and the opening into each room is no wider than the corridor. ' +
-      'The default is Open with a Flat roof, 1.5 m wide; Open with no roof is just the floor. Set every corridor with the Corridors card in Building Designer → Corridors; one relationship can set its own walls, roof or width in Properties or the Data table ("Design default" follows the card). ' +
-      'A corridor is only built when the relationship is Connected via route. Corridor cells are reserved, so rooms cannot be placed on them without confirmation.',
+      'The default is Open with a Flat roof, 1.5 m wide; Open with no roof is just the floor. Set every corridor with the Corridors card in Building Designer → Corridors; one edge can set its own walls, roof or width in Properties or the Data table ("Design default" follows the card). ' +
+      'A corridor is only built when the edge is Connected via route. Corridor cells are reserved, so rooms cannot be placed on them without confirmation.',
   },
   {
     id: 'room-size',
@@ -88,7 +88,7 @@ const topics = [
     title: 'Analysis results',
     summary: 'Analysis colours show computed values temporarily; they are not saved and do not change the design.',
     details:
-      'Grey means no value: the room was unreachable, returned null, or was added after the analysis ran. ' +
+      'Grey means no value: the node was unreachable, returned null, or was added after the analysis ran. ' +
       'The pink selection outline always stays on top. Use Clear to remove the colours.',
   },
   {
@@ -109,10 +109,10 @@ const topics = [
   },
   {
     id: 'display-id',
-    title: 'Room label',
+    title: 'Node label',
     summary: 'The short label (such as 01) is for reading; the permanent id never changes.',
     details:
-      'Labels are stored in the design and must be unique. Renumbering labels does not change relationships, which refer to permanent ids.',
+      'Labels are stored in the design and must be unique. Renumbering labels does not change edges, which refer to permanent ids.',
   },
 ] as const satisfies readonly HelpTopic[];
 

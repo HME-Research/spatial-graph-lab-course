@@ -145,7 +145,7 @@ export function Welcome({
           </button>
           <h2 id="sgl-welcome-title">Welcome to Spatial Graph Lab</h2>
           <p id="sgl-welcome-lead" className="sgl-welcome-lead">
-            Design buildings as graphs of rooms and their relationships, then explore them as plans and in 3D.
+            Design buildings as graphs of nodes and edges, then explore them as plans and in 3D.
           </p>
         </header>
 

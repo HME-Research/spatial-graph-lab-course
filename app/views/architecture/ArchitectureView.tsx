@@ -281,7 +281,7 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
               roofsHiddenByDesigner={roofsHiddenByDesigner}
               hint={
                 hoverPanel && hoverPanel.kind !== 'unavailable'
-                  ? `Wall between ${hoverPanel.rooms[0].label} and ${hoverPanel.rooms[1].label}: click for ${hoverPanel.kind === 'add' ? 'Add relationship' : 'its relationship'}`
+                  ? `Wall between ${hoverPanel.rooms[0].label} and ${hoverPanel.rooms[1].label}: click for ${hoverPanel.kind === 'add' ? 'Add edge' : 'its edge'}`
                   : editing.active
                   ? `${NAVIGATION_HINT} · ${ROOM_KEYS_SHORT}`
                   : NAVIGATION_HINT

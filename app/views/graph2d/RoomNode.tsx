@@ -16,7 +16,7 @@ export type RoomNodeData = {
   readonly emphasised: boolean;
   /** True when the active project's definition of this node's type is invalid. */
   readonly brokenType?: boolean;
-  /** True while this node is the source of an "Add connection" in progress. */
+  /** True while this node is the source of an "Add edge" in progress. */
   readonly connectSource?: boolean;
   /** Number of this node's relationships that cannot be built yet (v2 only). */
   readonly unresolved?: number;
@@ -84,7 +84,7 @@ export const RoomNode = memo(function RoomNode({ id, data, selected }: NodeProps
         </span>
       )}
       {!brokenType && !!unresolved && (
-        <span className="sgl-badge sgl-badge-unresolved" aria-label={`${unresolved} relationship(s) not buildable yet`}>
+        <span className="sgl-badge sgl-badge-unresolved" aria-label={`${unresolved} edge(s) not buildable yet`}>
           {unresolved}
         </span>
       )}
@@ -93,7 +93,7 @@ export const RoomNode = memo(function RoomNode({ id, data, selected }: NodeProps
           {analysis.value}
         </span>
       )}
-      <Handle type="source" position={Position.Bottom} className="sgl-handle" title="Drag onto another node to connect (or use “Add connection…”)" />
+      <Handle type="source" position={Position.Bottom} className="sgl-handle" title="Drag onto another node to connect (or use “Add edge…”)" />
       {dropTarget && <Handle type="target" position={Position.Top} className="sgl-drop-target" isConnectableStart={false} />}
     </div>
   );

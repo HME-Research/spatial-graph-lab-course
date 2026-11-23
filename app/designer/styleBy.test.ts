@@ -275,14 +275,14 @@ describe('Designer panel (S3 render)', () => {
 
   it('the selector groups Room, Your attributes and Measured', () => {
     const html = render(lab());
-    expect(html).toMatch(/<optgroup label="Room">.*<optgroup label="Your attributes"><option value="attribute:comfort">Comfort<\/option>.*<optgroup label="Measured">/s);
+    expect(html).toMatch(/<optgroup label="Node">.*<optgroup label="Your attributes"><option value="attribute:comfort">Comfort<\/option>.*<optgroup label="Measured">/s);
   });
 
   it('Text: a text box with suggestions and "+ Add card"', () => {
     const html = render(lab({ styleBy: 'attribute:zone', styles: {} }));
     expect(html).toMatch(/<input type="text" aria-label="Zone value to style"[^>]*list="sgl-designer-text-values"/);
-    expect(html).toMatch(/<datalist id="sgl-designer-text-values"><option value="North">2 rooms<\/option><option value="South">1 room<\/option><\/datalist>/);
-    expect(html).toContain('1 room has no Zone value and uses Default.');
+    expect(html).toMatch(/<datalist id="sgl-designer-text-values"><option value="North">2 nodes<\/option><option value="South">1 node<\/option><\/datalist>/);
+    expect(html).toContain('1 node has no Zone value and uses Default.');
   });
 
   it('Bands: the Cards choice, a track with a handle per divider, a number box each, and "+ Add divider"', () => {
@@ -300,7 +300,7 @@ describe('Designer panel (S3 render)', () => {
 
   it('Level by value: "+ Style another level" with room counts', () => {
     const html = render(lab({ styleBy: 'level', styles: {} }));
-    expect(html).toMatch(/<option value="" selected="">\+ Style another level…<\/option><option value="0">Level 0 · 3 rooms<\/option><option value="1">Level 1 · 1 room<\/option>/);
+    expect(html).toMatch(/<option value="" selected="">\+ Style another level…<\/option><option value="0">Level 0 · 3 nodes<\/option><option value="1">Level 1 · 1 node<\/option>/);
     expect(html).toMatch(/checked="" value="values"/);
   });
 

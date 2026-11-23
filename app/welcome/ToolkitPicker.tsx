@@ -34,7 +34,7 @@ export function ToolkitPicker({
         ))}
         <option value="">No toolkit</option>
       </select>
-      <span className="sgl-toolkit-picker-help">Its room functions, custom attributes and algorithms come with the new project. The graph starts empty.</span>
+      <span className="sgl-toolkit-picker-help">Its Functions, custom attributes and algorithms come with the new project. The graph starts empty.</span>
     </div>
   );
 }

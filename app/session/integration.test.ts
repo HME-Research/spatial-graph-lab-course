@@ -43,7 +43,7 @@ describe('v2 document session (one command = one history step)', () => {
     const r = applyDesignCommandToSession(s, { type: 'set-edge-corridor', edgeId: 1, patch: { roof: 'none' } });
     if (!r.ok) throw new Error('expected ok');
     s = r.session;
-    expect(undoLabel(s.history)).toBe('Set the corridor roof of connection 1 → 2 to None'); // readable relationship label, not the edge id
+    expect(undoLabel(s.history)).toBe('Set the corridor roof of edge 1 → 2 to None'); // readable edge label (source → target), not the edge id
     expect(s.history.past).toHaveLength(1);
     expect(isModified(s)).toBe(true);
     s = undoDocument(s);
@@ -86,10 +86,10 @@ describe('v2 document session (one command = one history step)', () => {
 describe('undo labels name what changes', () => {
   const doc = v2();
   it.each([
-    [{ type: 'set-node-geometry', nodeId: 2, position: [6, 0, 0], size: [1, 1, 1] }, 'Move room 2 to [6, 0, 0]'],
-    [{ type: 'set-node-geometry', nodeId: 2, position: [5, 0, 0], size: [2, 1, 1] }, 'Resize room 2 to 2×1×1'],
-    [{ type: 'set-node-geometry', nodeId: 2, position: [6, 0, 0], size: [2, 1, 1] }, 'Move and resize room 2'],
-    [{ type: 'add-node', node: { position: [9, 9, 0], function: 'x' } }, 'Add room 3'],
+    [{ type: 'set-node-geometry', nodeId: 2, position: [6, 0, 0], size: [1, 1, 1] }, 'Move node 2 to [6, 0, 0]'],
+    [{ type: 'set-node-geometry', nodeId: 2, position: [5, 0, 0], size: [2, 1, 1] }, 'Resize node 2 to 2×1×1'],
+    [{ type: 'set-node-geometry', nodeId: 2, position: [6, 0, 0], size: [2, 1, 1] }, 'Move and resize node 2'],
+    [{ type: 'add-node', node: { position: [9, 9, 0], function: 'x' } }, 'Add node 3'],
     [{ type: 'set-look', by: 'function', group: { kind: 'value', value: 'gallery' }, patch: { roof: 'none' } }, 'Change Designer settings for gallery'],
   ] as const)('%j → %s', (command, label) => {
     expect(designCommandLabel(command as Parameters<typeof designCommandLabel>[0], doc)).toBe(label);

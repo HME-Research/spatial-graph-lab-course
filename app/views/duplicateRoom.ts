@@ -23,6 +23,6 @@ export function duplicateRoom(design: Pick<DesignPort, 'doc' | 'spatial' | 'onCo
   return {
     ok: true,
     nodeId: request.nodeId,
-    message: `Duplicated room ${nodeId} as room ${request.nodeId} at [${request.position.join(', ')}]. Relationships are not copied.`,
+    message: `Duplicated node ${nodeId} as node ${request.nodeId} at [${request.position.join(', ')}]. Edges are not copied.`,
   };
 }

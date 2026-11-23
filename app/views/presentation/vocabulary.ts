@@ -79,7 +79,7 @@ export const STATUS_PRESENTATION: Readonly<Record<ResolutionStatus, StatusPresen
   unresolved: {
     status: 'unresolved',
     label: 'Unresolved',
-    summary: 'The relationship is kept in the graph, but nothing can be built for it yet.',
+    summary: 'The edge is kept in the graph, but nothing can be built for it yet.',
     glyph: '⋯',
   },
 };
@@ -154,14 +154,14 @@ export const UNRESOLVED_REASON_TEXT: Readonly<Record<UnresolvedReason, string>> 
   'blocked-by-route': 'The straight path is already used by another connector.',
   'endpoint-clearance': 'There is not enough clear space at a room face to start a connector.',
   'routing-unavailable': 'Connector routing is not available in this build yet.',
-  'preferred-face-unavailable': 'The wall chosen for this connection is no longer shared by the two rooms.',
+  'preferred-face-unavailable': 'The wall chosen for this edge is no longer shared by the two rooms.',
 };
 
 /** Reason text for any string, including reasons added after this file was written. */
 export function unresolvedReasonText(reason: string): string {
   return Object.hasOwn(UNRESOLVED_REASON_TEXT, reason)
     ? UNRESOLVED_REASON_TEXT[reason as UnresolvedReason]
-    : 'The relationship cannot be built in the current design.';
+    : 'The edge cannot be built in the current design.';
 }
 
 // ── The one relationship line scheme (Gate 1 decision, all views and legends) ──────────────────

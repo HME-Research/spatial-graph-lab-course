@@ -379,7 +379,7 @@ function PlanCanvas({
 
   const message =
     level === null
-      ? 'This scenario has no rooms yet. Add a room in Graph 2D or the Building view to see its plan.'
+      ? 'This scenario has no rooms yet. Add a node in Graph 2D or the Building view to see its plan.'
       : plan && plan.rooms.length === 0
         ? `No rooms on ${levelName(level)}${plan.routeCells.length > 0 ? ' — only generated connectors pass through it' : ''}.`
         : null;
@@ -450,7 +450,7 @@ function PlanCanvas({
 
       <p className="sgl-plan-note">
         Cut at {DEFAULT_CUT_HEIGHT.toFixed(1)} m · dashed = above
-        {unresolvedHere > 0 && ` · ${unresolvedHere} unresolved relationship${unresolvedHere === 1 ? '' : 's'} not drawn`}
+        {unresolvedHere > 0 && ` · ${unresolvedHere} unresolved edge${unresolvedHere === 1 ? '' : 's'} not drawn`}
       </p>
 
       {message && (
@@ -566,7 +566,7 @@ export function PlanDrawing({
             className={edgeClass('sgl-plan-route', r.edgeId)}
             data-edge-id={r.edgeId}
             {...activate(selectEdge(r.edgeId))}
-            aria-label={`Connector of relationship ${r.edgeId}`}
+            aria-label={`Connector of edge ${r.edgeId}`}
           >
             <rect className="sgl-plan-route-cell" {...rectProps(r.rect)} />
             <rect className="sgl-plan-route-corridor" {...rectProps(r.corridor)} />

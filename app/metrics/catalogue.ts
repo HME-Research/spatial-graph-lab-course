@@ -59,7 +59,7 @@ export const degreeMetric: CatalogueMetric = {
   collection: 'nodes',
   valueKind: 'number',
   dependsOn: ['topology'],
-  definition: 'Number of relationships (Access or Open edges) that end at this room, whether or not they can be built.',
+  definition: 'Number of edges (Access or Open) that end at this node, whether or not they can be built.',
   compute: ({ doc }, nodeId) => {
     if (!doc.nodes.some((n) => n.id === nodeId)) return null;
     let degree = 0;
@@ -115,11 +115,11 @@ export const exposedFacadeAreaMetric: CatalogueMetric = {
 
 export const unresolvedConnectionsMetric: CatalogueMetric = {
   id: 'unresolved-connections',
-  label: 'Unresolved connections',
+  label: 'Unresolved edges',
   collection: 'nodes',
   valueKind: 'number',
   dependsOn: ['topology', 'resolution'],
-  definition: 'Number of relationships of this room that cannot be built (status unresolved: different storeys, not aligned, blocked, or the chosen wall is no longer shared).',
+  definition: 'Number of edges of this node that cannot be built (status unresolved: different storeys, not aligned, blocked, or the chosen wall is no longer shared).',
   compute: ({ doc, spatial }, nodeId) => {
     if (!doc.nodes.some((n) => n.id === nodeId)) return null;
     let count = 0;
@@ -138,7 +138,7 @@ export const resolutionStatusMetric: CatalogueMetric = {
   collection: 'edges',
   valueKind: 'text',
   dependsOn: ['resolution'],
-  definition: 'How the relationship is built: "direct" (the rooms touch), "routed" (a generated straight connector) or "unresolved" (kept, but not built).',
+  definition: 'How the edge is built: "direct" (the rooms touch), "routed" (a generated straight connector) or "unresolved" (kept, but not built).',
   compute: ({ spatial }, edgeId) => spatial.byEdge.get(edgeId)?.status ?? null,
 };
 

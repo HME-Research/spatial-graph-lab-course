@@ -100,8 +100,8 @@ export function missingUses(uses: AnalysisUses | undefined, functions: readonly 
   const edges = (uses.edgeFields ?? []).filter((k) => !fieldForKey(schema, 'edges', k));
   const out: string[] = [];
   if (lacking.length > 0) out.push(`Needs the Function${lacking.length > 1 ? 's' : ''} ${quoteList(lacking)}, which this project does not have.`);
-  if (nodes.length > 0) out.push(`Needs the room field${nodes.length > 1 ? 's' : ''} ${quoteList(nodes)}, which this project does not have.`);
-  if (edges.length > 0) out.push(`Needs the relationship field${edges.length > 1 ? 's' : ''} ${quoteList(edges)}, which this project does not have.`);
+  if (nodes.length > 0) out.push(`Needs the node field${nodes.length > 1 ? 's' : ''} ${quoteList(nodes)}, which this project does not have.`);
+  if (edges.length > 0) out.push(`Needs the edge field${edges.length > 1 ? 's' : ''} ${quoteList(edges)}, which this project does not have.`);
   return out;
 }
 

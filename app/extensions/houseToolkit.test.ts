@@ -555,6 +555,6 @@ describe('Below target area (a design analysis of the House toolkit)', () => {
   it('is refused, with the reason, in a project without the targetArea field', () => {
     const noFields = { nodes: [], edges: [], functionDefaults: {} };
     const refused = runAlgorithmV2(houseDesign(), house, 'below-target-area', undefined, { attributes: noFields });
-    expect(refused.ok === false && refused.issues.map((d) => d.message)).toEqual(['Needs the room field “targetArea”, which this project does not have.']);
+    expect(refused.ok === false && refused.issues.map((d) => d.message)).toEqual(['Needs the node field “targetArea”, which this project does not have.']);
   });
 });

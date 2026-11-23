@@ -219,7 +219,7 @@ export function AttributesPanel({
           tabs={(['nodes', 'edges'] as const).map((c) => ({
             id: c,
             label: c === 'nodes' ? 'Node' : 'Edge',
-            description: c === 'nodes' ? 'Attributes of every node (room)' : 'Attributes of every edge (relationship), Access and Open alike',
+            description: c === 'nodes' ? 'Attributes of every node' : 'Attributes of every edge, Access and Open alike',
           }))}
         >
           {sectionedRows(rows).map(({ section, rows: sectionRows }) => (

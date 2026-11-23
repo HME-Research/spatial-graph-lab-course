@@ -19,7 +19,7 @@ describe('help topics', () => {
   });
 
   it('resolves unknown ids to undefined, including prototype keys', () => {
-    expect(helpTopic('unresolved')?.title).toBe('Unresolved relationship');
+    expect(helpTopic('unresolved')?.title).toBe('Unresolved edge');
     expect(helpTopic('nope')).toBeUndefined();
     expect(helpTopic('toString')).toBeUndefined();
   });

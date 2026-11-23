@@ -128,7 +128,7 @@ const CORRIDOR_VALUE_WORDS: Readonly<Record<string, string>> = { enclosed: 'Encl
 
 /**
  * Undo label of a corridor change: of the Corridors card (`connection` absent) or of one
- * relationship's own corridor ("connection 3 → 7").
+ * relationship's own corridor ("edge 3 → 7").
  */
 function corridorPatchLabel(patch: CorridorPatch, connection?: string): string {
   const keys = (['walls', 'roof', 'width'] as const).filter((k) => patch[k] !== undefined);
@@ -145,13 +145,13 @@ function corridorPatchLabel(patch: CorridorPatch, connection?: string): string {
 }
 
 /**
- * Short label for a schema-v2 command, in the app's vocabulary (rooms, connections, Building), using
+ * Short label for a schema-v2 command, in the app's vocabulary (nodes, edges, Building), using
  * the room ids (P4: the id is the label) of the document the command applies to.
  */
 export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocumentV2, 'nodes'> & { readonly edges?: DesignDocumentV2['edges'] }): string {
   const room = (id: number) => {
     const node = doc.nodes.find((n) => n.id === id);
-    return `room ${node ? nodeLabel(node) : id}`;
+    return `node ${node ? nodeLabel(node) : id}`;
   };
   /** "3 → 7" for a relationship id; the raw id only if it is unknown. */
   const connection = (edgeId: number) => (doc.edges ? relationshipLabel({ edges: doc.edges }, edgeId) : String(edgeId));
@@ -159,8 +159,8 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
     case 'add-node':
       // The command gives the new room the document's next node id.
       if (command.duplicateOf !== undefined && 'nextNodeId' in doc)
-        return `Duplicate ${room(command.duplicateOf)} as room ${(doc as Pick<DesignDocumentV2, 'nextNodeId'>).nextNodeId}`;
-      return `Add room ${'nextNodeId' in doc ? (doc as Pick<DesignDocumentV2, 'nextNodeId'>).nextNodeId : ''}`.trimEnd();
+        return `Duplicate ${room(command.duplicateOf)} as node ${(doc as Pick<DesignDocumentV2, 'nextNodeId'>).nextNodeId}`;
+      return `Add node ${'nextNodeId' in doc ? (doc as Pick<DesignDocumentV2, 'nextNodeId'>).nextNodeId : ''}`.trimEnd();
     case 'remove-node':
       return `Delete ${room(command.nodeId)}`;
     case 'set-node-geometry': {
@@ -181,52 +181,52 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
     case 'set-diagram-position':
       return `Move ${room(command.nodeId)} in the diagram`;
     case 'add-edge':
-      return `Add connection ${command.edge.source} → ${command.edge.target}`;
+      return `Add edge ${command.edge.source} → ${command.edge.target}`;
     case 'remove-edge':
-      return `Remove connection ${connection(command.edgeId)}`;
+      return `Delete edge ${connection(command.edgeId)}`;
     case 'remove-edges': {
       const n = command.edgeIds.length;
-      return `Remove ${n} invalid connection${n === 1 ? '' : 's'}`;
+      return `Remove ${n} invalid edge${n === 1 ? '' : 's'}`;
     }
     case 'remove-items': {
       const rooms = command.nodeIds.length;
       const links = command.edgeIds.length;
       if (rooms === 1 && links === 0) return `Delete ${room(command.nodeIds[0]!)}`;
-      if (links === 1 && rooms === 0) return `Remove connection ${connection(command.edgeIds[0]!)}`;
-      const parts = [rooms ? `${rooms} room${rooms === 1 ? '' : 's'}` : '', links ? `${links} connection${links === 1 ? '' : 's'}` : ''];
+      if (links === 1 && rooms === 0) return `Delete edge ${connection(command.edgeIds[0]!)}`;
+      const parts = [rooms ? `${rooms} node${rooms === 1 ? '' : 's'}` : '', links ? `${links} edge${links === 1 ? '' : 's'}` : ''];
       return `Delete ${parts.filter(Boolean).join(' and ')}`;
     }
     case 'set-nodes-type': {
       const n = command.nodeIds.length;
-      return n === 1 ? `Change the type of ${room(command.nodeIds[0]!)}` : `Change the type of ${n} rooms`;
+      return n === 1 ? `Change the type of ${room(command.nodeIds[0]!)}` : `Change the type of ${n} nodes`;
     }
     case 'set-diagram-positions': {
       const ids = Object.keys(command.positions).map(Number);
-      return ids.length === 1 ? `Move ${room(ids[0]!)} in the diagram` : `Move ${ids.length} rooms in the diagram`;
+      return ids.length === 1 ? `Move ${room(ids[0]!)} in the diagram` : `Move ${ids.length} nodes in the diagram`;
     }
     case 'set-nodes-custom': {
       const ids = Object.keys(command.custom).map(Number);
-      return ids.length === 1 ? `Edit the attributes of ${room(ids[0]!)}` : `Edit the attributes of ${ids.length} rooms`;
+      return ids.length === 1 ? `Edit the attributes of ${room(ids[0]!)}` : `Edit the attributes of ${ids.length} nodes`;
     }
     case 'set-edges-custom': {
       const ids = Object.keys(command.custom).map(Number);
-      return ids.length === 1 ? `Edit the attributes of connection ${connection(ids[0]!)}` : `Edit the attributes of ${ids.length} connections`;
+      return ids.length === 1 ? `Edit the attributes of edge ${connection(ids[0]!)}` : `Edit the attributes of ${ids.length} edges`;
     }
     case 'set-edges-kind': {
       const kind = command.relationship === 'open' ? 'Open' : 'Access';
       const n = command.edgeIds.length;
-      return n === 1 ? `Change connection ${connection(command.edgeIds[0]!)} to ${kind}` : `Change ${n} connections to ${kind}`;
+      return n === 1 ? `Change edge ${connection(command.edgeIds[0]!)} to ${kind}` : `Change ${n} edges to ${kind}`;
     }
     case 'set-edges-corridor': {
       const n = command.edgeIds.length;
-      return corridorPatchLabel(command.patch, n === 1 ? `connection ${connection(command.edgeIds[0]!)}` : `${n} connections`);
+      return corridorPatchLabel(command.patch, n === 1 ? `edge ${connection(command.edgeIds[0]!)}` : `${n} edges`);
     }
     case 'change-edge-kind':
-      return `Change connection ${connection(command.edgeId)} to ${command.relationship === 'open' ? 'Open' : 'Access'}`;
+      return `Change edge ${connection(command.edgeId)} to ${command.relationship === 'open' ? 'Open' : 'Access'}`;
     case 'set-edge-custom':
-      return `Edit the attributes of connection ${connection(command.edgeId)}`;
+      return `Edit the attributes of edge ${connection(command.edgeId)}`;
     case 'set-edge-corridor':
-      return corridorPatchLabel(command.patch, `connection ${connection(command.edgeId)}`);
+      return corridorPatchLabel(command.patch, `edge ${connection(command.edgeId)}`);
     case 'set-corridors':
       return corridorPatchLabel(command.patch);
     case 'set-style-by':

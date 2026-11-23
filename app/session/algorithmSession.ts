@@ -311,7 +311,7 @@ export function applyPreviewV2(
     return {
       ok: false,
       reason: 'needs-confirmation',
-      message: `New rooms would take the corridor cells of ${preview.displacedRoutes.map((id) => relationshipLabel(current.doc, id)).join(', ')}. Confirm "Move anyway and recalculate" to apply.`,
+      message: `New nodes would take the corridor cells of ${preview.displacedRoutes.map((id) => relationshipLabel(current.doc, id)).join(', ')}. Confirm "Move anyway and recalculate" to apply.`,
     };
   }
   return { ok: true, doc: preview.after };

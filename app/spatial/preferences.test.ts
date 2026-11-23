@@ -236,11 +236,11 @@ describe('preferences only for access edges', () => {
   it('set-face-preference and add-edge-at-face refuse an open edge with a readable issue', () => {
     const set = applyScenarioCommand({ design: openPair(), facePreferences: {} }, { type: 'set-face-preference', edgeId: 1, preference: PREF });
     expect(set.ok).toBe(false);
-    expect(!set.ok && set.issues[0]!.message).toMatch(/only access connections/);
+    expect(!set.ok && set.issues[0]!.message).toMatch(/only access edges/);
     const empty: ScenarioContent = { design: make([{ id: 1, position: [0, 0, 0], size: [1, 3, 1] }, { id: 2, position: [1, 0, 0], size: [1, 3, 1] }], []), facePreferences: {} };
     const added = applyScenarioCommand(empty, { type: 'add-edge-at-face', edge: { source: 1, target: 2, relationship: 'open' }, preference: PREF });
     expect(added.ok).toBe(false);
-    expect(!added.ok && added.issues[0]!.message).toMatch(/only access connections/);
+    expect(!added.ok && added.issues[0]!.message).toMatch(/only access edges/);
   });
 
   it('change-edge-kind to open drops the preference in the same step; back to access does not resurrect it', () => {

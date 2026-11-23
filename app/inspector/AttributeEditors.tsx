@@ -38,7 +38,7 @@ export function TypeStatusNote({ status, functionId }: { status: FunctionStatus;
     case 'undefined-type':
       return (
         <p className="sgl-warning">
-          ⚠ This project does not offer the function “{functionId}”. The room keeps it (with a fallback colour and façade) until
+          ⚠ This project does not offer the function “{functionId}”. The node keeps it (with a fallback colour and façade) until
           you choose another function above, or add it with Edit functions.
         </p>
       );

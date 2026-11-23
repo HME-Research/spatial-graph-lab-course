@@ -158,5 +158,5 @@ export const isCellShown = (cell: readonly [number, number, number], range: Leve
 /** Info line when the selected room is not drawn under the filter (the selection itself is kept). */
 export function hiddenSelectionNote(selection: Selection, shownNodeIds: ReadonlySet<number>, filter: LevelFilter): string | null {
   if (filter.kind === 'all' || selection.kind !== 'node' || shownNodeIds.has(selection.id)) return null;
-  return 'The selected room is on a hidden level.';
+  return 'The selected node is on a hidden level.';
 }

@@ -329,7 +329,7 @@ function RunResult({
           </p>
           {summary.addedNodes.length > 0 && (
             <>
-              <h4>New rooms</h4>
+              <h4>New nodes</h4>
               <ul className="sgl-list">
                 {summary.addedNodes.map((n) => (
                   <li key={n.id}>
@@ -341,7 +341,7 @@ function RunResult({
           )}
           {summary.addedEdges.length > 0 && (
             <>
-              <h4>New connections</h4>
+              <h4>New edges</h4>
               <ul className="sgl-list">
                 {summary.addedEdges.map((e) => (
                   <li key={e.id}>
@@ -365,7 +365,7 @@ function RunResult({
           )}
           {summary.geometryChanges.length > 0 && (
             <>
-              <h4>Moved or resized rooms</h4>
+              <h4>Moved or resized nodes</h4>
               <ul className="sgl-list">
                 {summary.geometryChanges.map((c) => (
                   <li key={c.nodeId}>
@@ -377,7 +377,7 @@ function RunResult({
           )}
           {summary.edgeAttributeChanges.length > 0 && (
             <>
-              <h4>Changed connection attributes</h4>
+              <h4>Changed edge attributes</h4>
               <ul className="sgl-list">
                 {summary.edgeAttributeChanges.map((c) => (
                   <li key={`${c.edgeId}.${c.key}`}>
@@ -399,7 +399,7 @@ function RunResult({
       )}
       {!stale && !empty && preview.displacedRoutes.length > 0 && (
         <p className="sgl-warning" role="status">
-          ⚠ New rooms would take the corridor cells of {preview.displacedRoutes.map((id) => relationshipLabel(preview.before, id)).join(', ')}. Applying keeps those relationships
+          ⚠ New nodes would take the corridor cells of {preview.displacedRoutes.map((id) => relationshipLabel(preview.before, id)).join(', ')}. Applying keeps those edges
           and recalculates their corridors; some may become Unresolved.
         </p>
       )}

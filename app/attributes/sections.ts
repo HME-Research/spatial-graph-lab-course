@@ -41,7 +41,7 @@ export const ATTRIBUTE_SECTIONS: Readonly<Record<AttributeSectionId, AttributeSe
   },
   geometry: {
     title: 'Geometry',
-    summary: 'Where a room is and how big it is, in voxels, and how a relationship’s corridor looks. Specific to this app, not to graphs.',
+    summary: 'Where a node’s room is and how big it is, in voxels, and how an edge’s corridor looks. Specific to this app, not to graphs.',
     editable: true,
   },
   custom: {

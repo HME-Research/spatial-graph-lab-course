@@ -2,7 +2,7 @@
 
 This folder is everything an AI assistant needs to write a **design analysis** for *Spatial Graph Lab*: one that reads the rooms themselves (Function, position, size, relationship kind, calculated values such as area), not only the graph. Download it from the app: the ⓘ beside **Upload your own (.ts)** in **Analyse** (or **Guide › Toolkits & JSON › Write your own analysis**):
 
-- tab **Any project**, with **Include room basics** on: this kit as it is. The analysis works in every project.
+- tab **Any project**, with **Include node basics** on: this kit as it is. The analysis works in every project.
 - tab **This project**: this kit plus `PROJECT.md`, which lists your project's Functions and custom fields (from its toolkit and your own). The analysis may use them, and then works only in projects that have them.
 
 1. Open an AI assistant that accepts files (for example Claude) and **attach the zip**.

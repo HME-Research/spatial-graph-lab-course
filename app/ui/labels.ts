@@ -18,9 +18,9 @@ export const VIEW_LABELS: Readonly<Record<ViewMode, string>> = {
 
 /** One-line tooltip per view, shown on the view selector. */
 export const VIEW_DESCRIPTIONS: Readonly<Record<ViewMode, string>> = {
-  graph2d: 'Diagram of rooms and their relationships. Its layout is free: dragging a node never moves the room.',
-  graph3d: 'Rooms as points at their physical cells, with relationships drawn as lines.',
-  voxels: 'The occupied cells of the building grid, coloured by room type.',
+  graph2d: 'Diagram of nodes and their edges. Its layout is free: dragging a node never moves the room.',
+  graph3d: 'Nodes as points at their physical cells, with edges drawn as lines.',
+  voxels: 'The occupied cells of the building grid, coloured by Function.',
   architecture: 'The building generated from the graph: walls, doors, openings, floors and roofs.',
   plan: 'An architectural floor plan of one storey of the same building, cut at 1.2 m: walls, doors, openings and rooms.',
   data: 'The same graph as data: the saved JSON text, or a table with one row per node and per edge.',
@@ -31,10 +31,10 @@ export const VIEW_DESCRIPTIONS: Readonly<Record<ViewMode, string>> = {
  * "Voxels" is kept as the established name; the caption explains it.
  */
 export const VIEW_CAPTIONS: Readonly<Record<ViewMode, string>> = {
-  graph2d: 'Relationships · free layout',
-  graph3d: 'Relationships at real cell positions',
+  graph2d: 'Edges · free layout',
+  graph3d: 'Edges at real cell positions',
   voxels: 'Occupied grid cells (one box per cell)',
-  architecture: 'Building generated from rooms and relationships',
+  architecture: 'Building generated from nodes and edges',
   plan: 'Floor plan of one storey of the building',
   data: 'The graph as JSON text or as tables',
 };
@@ -76,7 +76,7 @@ export const SIDEBAR_DESCRIPTIONS: Readonly<Record<SidebarSection, string>> = {
 };
 
 export const PROPERTIES_LABEL = 'Properties';
-export const PROPERTIES_DESCRIPTION = 'Properties of the selected room or relationship';
+export const PROPERTIES_DESCRIPTION = 'Properties of the selected node or edge';
 
 // ── Relationships (schema v2) ────────────────────────────────────────────────────────────────
 
@@ -122,7 +122,7 @@ export const UNRESOLVED_REASON_TEXT: Readonly<Record<UnresolvedReason, string>> 
   'endpoint-clearance': 'There is not enough clear space at one end of the corridor.',
   'routing-unavailable': 'Corridors between rooms that do not touch are not generated in this version yet.',
   'preferred-face-unavailable':
-    'The wall chosen for this connection is no longer shared by the two rooms. Choose another shared wall or clear the choice.',
+    'The wall chosen for this edge is no longer shared by the two rooms. Choose another shared wall or clear the choice.',
 };
 
 export type StatusTone = 'ok' | 'warning';

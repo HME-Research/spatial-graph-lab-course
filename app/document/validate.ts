@@ -106,7 +106,7 @@ export function checkDocumentV2Invariants(doc: DesignDocumentV2, options: Valida
           issue(
             ['nodes', i, 'size', axis],
             'coordinate-out-of-range',
-            `room extends to coordinate ${max[axis]}, beyond the limit of ±${limits.maxAbsCoordinate}`,
+            `node extends to coordinate ${max[axis]}, beyond the limit of ±${limits.maxAbsCoordinate}`,
           ),
         );
       }
@@ -121,7 +121,7 @@ export function checkDocumentV2Invariants(doc: DesignDocumentV2, options: Valida
         const key = gridKey(cell);
         const other = occupant.get(key);
         if (other !== undefined && other !== node.id) {
-          issues.push(issue(['nodes', i, 'position'], 'room-overlap', `room "${node.id}" overlaps room "${other}" at cell ${fmt(cell)}`));
+          issues.push(issue(['nodes', i, 'position'], 'room-overlap', `node "${node.id}" overlaps node "${other}" at cell ${fmt(cell)}`));
           break; // one issue per room
         }
         occupant.set(key, node.id);

@@ -32,7 +32,7 @@ describe('About', () => {
     const html = renderToStaticMarkup(createElement(AboutContent));
     expect(html).toContain(`Version ${pkg.version}`);
     expect(html).toContain('Developed by Heba Eiz');
-    expect(html).toContain('graphs of rooms and relationships become architecture');
+    expect(html).toContain('graphs of nodes and edges become architecture');
     expect(html).not.toContain('<a ');
   });
   it('has an accessibly named button', () => {

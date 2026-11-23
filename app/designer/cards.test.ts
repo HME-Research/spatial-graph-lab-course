@@ -140,11 +140,11 @@ describe('Designer panel: Style rooms by, Default, + Style another function, hig
   it('shows the selector, Default first, the function cards, and the add menu', () => {
     const html = renderToStaticMarkup(createElement(DesignerPanel, { design: port(lab(withSettings)) }));
     // Without a project: the Room group only (no custom attributes); measured values shown in Attributes by default.
-    expect(html).toMatch(/<select id="sgl-designer-style-by"><optgroup label="Room"><option value="function" selected="">Function<\/option><option value="level">Level<\/option><\/optgroup>/);
+    expect(html).toMatch(/<select id="sgl-designer-style-by"><optgroup label="Node"><option value="function" selected="">Function<\/option><option value="level">Level<\/option><\/optgroup>/);
     expect(html).not.toContain('label="Your attributes"');
     expect(html).toMatch(/<optgroup label="Measured"><option value="metric:area">Area \(m²\)<\/option>/);
     expect(html.indexOf('id="sgl-designer--default-name"')).toBeLessThan(html.indexOf('id="sgl-designer-gallery-name"'));
-    expect(html).toMatch(/Default<\/span>.*2 rooms/s); // studio + kiosk
+    expect(html).toMatch(/Default<\/span>.*2 nodes/s); // studio + kiosk
     expect(html).toMatch(/<option value="" selected="">\+ Style another function…<\/option>/);
     expect(html).not.toMatch(/<option value="gallery">/); // already has a card
   });

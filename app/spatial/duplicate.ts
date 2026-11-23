@@ -85,7 +85,7 @@ export function ringOffsets(gap: number, sx: number, sy: number, sameStorey = tr
 /** The closest free place for a copy of room `nodeId` (module comment), or why there is none. */
 export function findDuplicatePlacement(doc: DesignDocumentV2, nodeId: number, options: DuplicateOptions = {}): DuplicatePlacement {
   const node = doc.nodes.find((n) => n.id === nodeId);
-  if (!node) return { status: 'no-space', message: `room ${nodeId} does not exist` };
+  if (!node) return { status: 'no-space', message: `node ${nodeId} does not exist` };
   const max = { ...DEFAULT_LIMITS, ...options.limits }.maxAbsCoordinate;
   const taken = new Set<string>();
   for (const n of doc.nodes) for (const cell of footprintCells(n)) taken.add(gridKey(cell));
@@ -128,7 +128,7 @@ export function findDuplicatePlacement(doc: DesignDocumentV2, nodeId: number, op
   }
   return {
     status: 'no-space',
-    message: `there is no free place for a copy of room ${nodeLabel(node)} (${size.join('×')} cells) within the grid limits of ±${max}; nothing was changed`,
+    message: `there is no free place for a copy of node ${nodeLabel(node)} (${size.join('×')} cells) within the grid limits of ±${max}; nothing was changed`,
   };
 }
 
@@ -143,7 +143,7 @@ export function duplicateRoomRequest(
   options: DuplicateOptions & { readonly diagramPosition?: DiagramPosition } = {},
 ): DuplicateRequest {
   const node = doc.nodes.find((n) => n.id === nodeId);
-  if (!node) return { status: 'refused', message: `room ${nodeId} no longer exists` };
+  if (!node) return { status: 'refused', message: `node ${nodeId} no longer exists` };
   const placement = findDuplicatePlacement(doc, nodeId, options);
   if (placement.status === 'no-space') return { status: 'refused', message: placement.message };
   const command: Extract<DesignCommand, { readonly type: 'add-node' }> = {

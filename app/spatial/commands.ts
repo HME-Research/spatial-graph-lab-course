@@ -276,7 +276,7 @@ export function applyDesignCommand(
           issue(
             ['nodes'],
             'route-displacement',
-            `room ${id} would take cells of the connector(s) of ${[...displaced].sort((a, b) => a - b).map((e) => relationshipLabel(doc, e)).join(', ')}; ` +
+            `node ${id} would take cells of the connector(s) of ${[...displaced].sort((a, b) => a - b).map((e) => relationshipLabel(doc, e)).join(', ')}; ` +
               'confirm to add it anyway and recalculate those connectors, or place it elsewhere',
           ),
         ]);
@@ -333,10 +333,10 @@ export function applyDesignCommand(
       return validate({ ...doc, edges: doc.edges.filter((e) => e.id !== command.edgeId) });
     case 'remove-edges': {
       const ids = command.edgeIds;
-      if (ids.length === 0) return fail([issue(['edges'], 'schema', 'no connections were chosen to remove')]);
+      if (ids.length === 0) return fail([issue(['edges'], 'schema', 'no edges were chosen to delete')]);
       const listed = new Set<number>();
       for (const id of ids) {
-        if (listed.has(id)) return fail([issue(['edges'], 'duplicate-edge-id', `connection ${relationshipLabel(doc, id)} is listed more than once`)]);
+        if (listed.has(id)) return fail([issue(['edges'], 'duplicate-edge-id', `edge ${relationshipLabel(doc, id)} is listed more than once`)]);
         listed.add(id);
         if (!hasEdge(id)) return notFound('edge', id);
       }
@@ -347,7 +347,7 @@ export function applyDesignCommand(
           issue(
             ['edges'],
             'schema',
-            `only unresolved connections can be removed together; ${built.map((id) => relationshipLabel(doc, id)).join(', ')} ` +
+            `only unresolved edges can be deleted together; ${built.map((id) => relationshipLabel(doc, id)).join(', ')} ` +
               `${built.length === 1 ? 'is' : 'are'} built`,
           ),
         ]);
@@ -372,7 +372,7 @@ export function applyDesignCommand(
     }
     case 'set-nodes-type': {
       const ids = new Set(command.nodeIds);
-      if (ids.size === 0) return fail([issue(['nodes'], 'schema', 'no rooms were chosen')]);
+      if (ids.size === 0) return fail([issue(['nodes'], 'schema', 'no nodes were chosen')]);
       for (const id of ids) if (!hasNode(id)) return notFound('node', id);
       return validate({ ...doc, nodes: doc.nodes.map((n) => (ids.has(n.id) ? { ...n, function: command.function } : n)) });
     }

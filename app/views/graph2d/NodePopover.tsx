@@ -121,7 +121,7 @@ export function popoverRows(
   for (const key of ordered.slice(0, 6)) rows.push({ label: key, value: formatAttributeValue(node.custom[key]) });
   if (ordered.length > 6) rows.push({ label: 'More', value: `${ordered.length - 6} more attributes in Properties` });
   const edges = model.edges.filter((e) => e.source === node.id || e.target === node.id);
-  rows.push({ label: 'Relationships', value: edges.length === 0 ? 'none' : String(edges.length) });
+  rows.push({ label: 'Edges', value: edges.length === 0 ? 'none' : String(edges.length) });
   for (const edge of edges) {
     if (edge.resolution?.status !== 'unresolved') continue;
     const other = model.byNode.get(edge.source === node.id ? edge.target : edge.source);
@@ -180,7 +180,7 @@ export function NodePopover({
       {onConnect && (
         <div className="sgl-popover-actions">
           <button type="button" onClick={onConnect} title="Then click the node to connect to">
-            Add connection…
+            Add edge…
           </button>
           <span className="sgl-muted">Edit values in Properties.</span>
         </div>

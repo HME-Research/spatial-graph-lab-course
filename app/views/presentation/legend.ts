@@ -62,12 +62,12 @@ export interface RelationshipLegendOptions {
 }
 
 const VIEW_TITLE: Readonly<Record<ViewMode, string>> = {
-  graph2d: 'Relationships (diagram)',
-  graph3d: 'Relationships (3D graph)',
+  graph2d: 'Edges (diagram)',
+  graph3d: 'Edges (3D graph)',
   voxels: 'Rooms and connectors',
   architecture: 'What gets built',
   plan: 'Floor plan',
-  data: 'Relationships',
+  data: 'Edges',
 };
 
 /** Physical meaning per status in the building views. */

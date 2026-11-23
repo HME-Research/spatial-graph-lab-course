@@ -115,7 +115,7 @@ describe('designer type rows', () => {
     const rows = designerTypeRows(labDocV2({ ghost: { roof: 'none' } }), null, exampleFacadeProvider);
     const ghost = rows.find((r) => r.function === 'ghost')!;
     expect(ghost).toMatchObject({ orphanOverride: true, hasOverride: true });
-    expect(ghost.warning).toMatch(/No room uses this type/);
+    expect(ghost.warning).toMatch(/No node uses this type/);
   });
 
   it('works without a project (existing fallback façades)', () => {
@@ -332,7 +332,7 @@ describe('DesignerPanel (static render)', () => {
     expect(defaultStretch).not.toContain('checked');
     // Gallery has no card of its own: it is offered in "+ Style another function".
     expect(html).not.toContain('name="sgl-designer-gallery-layout"');
-    expect(html).toMatch(/<option value="gallery">gallery · 2 rooms<\/option>/);
+    expect(html).toMatch(/<option value="gallery">gallery · 2 nodes<\/option>/);
     expect(html).toMatch(/aria-haspopup="dialog"[^>]*>How it works<\/button>/);
     expect(html).not.toContain('data-help-topic="designer-windows"');
   });
@@ -344,7 +344,7 @@ describe('DesignerPanel (static render)', () => {
     expect(heads.length).toBe(2); // Default + the studio card (Corridors has its own section, always open)
     for (const head of heads) expect(head).toContain('aria-expanded="false"');
     expect(html).toMatch(/id="sgl-designer-studio-body" class="sgl-designer-type-body" hidden=""/);
-    expect(html).toMatch(/40 % · Stretch · Flat roof · 1 room · changed/);
+    expect(html).toMatch(/40 % · Stretch · Flat roof · 1 node · changed/);
   });
 
   it('the guide has a clear order: title, lead, numbered Façade geometry / Windows / Layout / Roof, then defaults', () => {
@@ -374,7 +374,7 @@ describe('DesignerPanel (static render)', () => {
     expect(html).toMatch(/Gallery/);
     expect(html).not.toMatch(/Gallery \(gallery\)/);
     // Studio has no card: offered in the add menu with its room count.
-    expect(html).toMatch(/<option value="studio">Studio · 1 room<\/option>/);
+    expect(html).toMatch(/<option value="studio">Studio · 1 node<\/option>/);
     expect(html).toMatch(/does not define &quot;kiosk&quot;/);
     expect(html).toMatch(/exterior walls/);
     expect(html).toMatch(/value="35"/);

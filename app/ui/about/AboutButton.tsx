@@ -7,7 +7,7 @@ import { appVersion } from './version';
 export function AboutContent() {
   return (
     <div className="sgl-about">
-      <p>A browser tool for exploring how graphs of rooms and relationships become architecture.</p>
+      <p>A browser tool for exploring how graphs of nodes and edges become architecture.</p>
       <p>Developed by Heba Eiz</p>
       <p className="sgl-about-version">Version {appVersion()}</p>
     </div>
