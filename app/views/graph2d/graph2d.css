@@ -594,3 +594,20 @@ button.sgl-icon-button {
   align-items: center;
   cursor: pointer;
 }
+
+.sgl-box-filter-label {
+  color: #555;
+}
+
+/* "Select area" is a toggle button (pressed = box mode on), not a checkbox. */
+.sgl-toolbar button.sgl-box-toggle {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.sgl-toolbar button.sgl-box-toggle[aria-pressed='true'] {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}

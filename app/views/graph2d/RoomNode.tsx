@@ -45,13 +45,22 @@ export const RoomNode = memo(function RoomNode({ id, data, selected }: NodeProps
   const [first, ...rest] = lines;
   const ring = selected
     ? `0 0 0 3px #ffffff, 0 0 0 6px ${SELECTION_COLOR}`
-    : emphasised || connectSource
+    : connectSource
       ? `0 0 0 2px #ffffff, 0 0 0 4px ${SELECTION_COLOR}`
       : undefined;
+  // An end of the selected edge is not itself selected: a thin dashed outline, never the solid ring.
+  const endpoint = emphasised && !selected && !connectSource;
   return (
     <div
       className={['sgl-circle', connectSource && 'sgl-connect-source', analysis && 'sgl-has-analysis'].filter(Boolean).join(' ')}
-      style={{ width: diameter, height: diameter, borderColor: color, boxShadow: ring, ['--sgl-label-scale' as string]: scale }}
+      style={{
+        width: diameter,
+        height: diameter,
+        borderColor: color,
+        boxShadow: ring,
+        ...(endpoint ? { outline: `1.5px dashed ${SELECTION_COLOR}`, outlineOffset: 3 } : {}),
+        ['--sgl-label-scale' as string]: scale,
+      }}
       title={data.tooltip}
     >
       {/* The border keeps the type colour; while an analysis is shown the fill carries its colour. */}

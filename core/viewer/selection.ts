@@ -87,7 +87,7 @@ export function sameSelection(a: Selection, b: Selection): boolean {
 export interface Emphasis {
   /** Nodes to highlight strongly (the selected nodes). */
   readonly primaryNodes: ReadonlySet<ItemId>;
-  /** Nodes to highlight softly (endpoints of selected edges that are not selected themselves). */
+  /** Nodes to highlight softly (the endpoints of a single selected edge; none for a multi-selection). */
   readonly secondaryNodes: ReadonlySet<ItemId>;
   readonly edges: ReadonlySet<ItemId>;
 }
@@ -113,11 +113,11 @@ export function selectionEmphasis(
       };
     }
     case 'multi': {
-      const primaryNodes = new Set(selection.nodes);
+      // No soft endpoint highlight: with several items it reads as "these nodes are selected too"
+      // (2026-11-23), while Delete acts only on what is selected.
       const wanted = new Set(selection.edges);
       const lit = edges.filter((e) => wanted.has(e.id));
-      const secondaryNodes = new Set(lit.flatMap((e) => [e.source, e.target]).filter((id) => !primaryNodes.has(id)));
-      return { primaryNodes, secondaryNodes, edges: new Set(lit.map((e) => e.id)) };
+      return { primaryNodes: new Set(selection.nodes), secondaryNodes: EMPTY, edges: new Set(lit.map((e) => e.id)) };
     }
   }
 }

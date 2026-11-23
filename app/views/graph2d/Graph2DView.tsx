@@ -455,6 +455,8 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
     // Keep React Flow from panning (Shift+drag while the toggle is off).
     event.stopPropagation();
     event.preventDefault();
+    // preventDefault also stops the browser moving focus: focus the diagram so Delete works next.
+    containerRef.current?.focus({ preventScroll: true });
     containerRef.current?.setPointerCapture(event.pointerId);
     setMenu(null);
     setPopoverNode(null);
@@ -567,7 +569,10 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
-    if (target.closest('input, select, textarea, button, .sgl-menu, .sgl-popover')) return;
+    if (target.closest('input, select, textarea, .sgl-menu, .sgl-popover')) return;
+    // A focused toolbar button (e.g. just after pressing "Select area") keeps Enter / Space for
+    // itself; Delete and Escape still act on the diagram.
+    if (target.closest('button') && event.key !== 'Delete' && event.key !== 'Backspace' && event.key !== 'Escape') return;
     // An open menu, popover or review list closes itself on Escape.
     if (menu || popoverNode || reviewing) return;
     const focusedAttr = target.closest('.react-flow__node')?.getAttribute('data-id');
@@ -726,17 +731,18 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
             type="button"
             onClick={removeSelected}
             disabled={selection.kind === 'none'}
-            title="Delete the selection: nodes (with their relationships) and relationships, as one undo step"
+            title="Delete the selection: nodes (with their edges) and edges, as one undo step"
           >
             Delete{' '}
             {selection.kind === 'edge'
-              ? 'relationship'
+              ? 'edge'
               : selection.kind === 'multi'
                 ? `${selectedNodeIds(selection).length + selectedEdgeIds(selection).length} selected`
                 : 'node'}
           </button>
           <button
             type="button"
+            className="sgl-box-toggle"
             onClick={() => setBoxMode(!boxMode)}
             aria-pressed={boxMode}
             title={
@@ -744,15 +750,20 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
               'right → left also what the box touches. Hold Ctrl/⌘ to add to the selection. Shift+drag does this at any time.'
             }
           >
-            ⬚ Select area
+            <svg className="sgl-box-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+              <rect x="1.5" y="1.5" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeDasharray="2 1.6" />
+              <path d="M8 8 L15 10.5 L12 11.5 L11 14.5 Z" fill="currentColor" />
+            </svg>
+            Select area
           </button>
           {boxMode && (
             <span className="sgl-box-filter" role="group" aria-label="What the box selects">
+              <span className="sgl-box-filter-label">Box selects:</span>
               <label title="The box selects nodes">
                 <input type="checkbox" checked={boxFilter.nodes} onChange={(e) => setBoxFilter({ ...boxFilter, nodes: e.target.checked })} /> Nodes
               </label>
-              <label title="The box selects relationships">
-                <input type="checkbox" checked={boxFilter.edges} onChange={(e) => setBoxFilter({ ...boxFilter, edges: e.target.checked })} /> Relationships
+              <label title="The box selects edges">
+                <input type="checkbox" checked={boxFilter.edges} onChange={(e) => setBoxFilter({ ...boxFilter, edges: e.target.checked })} /> Edges
               </label>
             </span>
           )}

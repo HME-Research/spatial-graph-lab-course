@@ -74,7 +74,9 @@ describe('multi-selection (2026-11-23)', () => {
     const e = selectionEmphasis(s, edges);
     expect([...e.primaryNodes]).toEqual([1]);
     expect([...e.edges]).toEqual([2]);
-    expect([...e.secondaryNodes]).toEqual([3]); // node 1 is already primary
+    // Edge 2's other end (node 3) is not selected, so it is not highlighted either.
+    expect(e.secondaryNodes.size).toBe(0);
+    expect(selectionEmphasis(selectItems([], [1, 2]), edges).primaryNodes.size).toBe(0);
   });
 
   it('reconcile keeps the items that still exist and returns the same object when nothing changed', () => {
