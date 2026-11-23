@@ -6,12 +6,14 @@ import {
   formatIssuePath,
   type GridCoord,
   gridKey,
+  layoutAddedDiagramNodes,
   positionSchema,
   RELATIONSHIP_KINDS,
   type RelationshipEdge,
   type RelationshipKind,
   type RoomNode,
   type RoomSize,
+  settleDiagramPositions,
   sizeSchema,
   unorderedPairKey,
   validateDocumentV2,
@@ -42,6 +44,9 @@ import { writeFieldValue } from './resolveAttributes';
  * - New rooms that take cells of generated connectors are NOT refused here, but are never silent:
  *   `displacedRoutes` lists the affected relationships, and the host must ask for confirmation
  *   ("Move anyway and recalculate") before applying `after`.
+ * - Diagram (2026-11-23): when nodes are added, `after` stores a diagram position for every node —
+ *   the existing nodes where they were shown, the new ones laid out from their relationships
+ *   (`layoutAddedDiagramNodes`) below them — so later drags never re-flow the diagram.
  */
 
 export interface TransformationPreviewV2 {
@@ -306,7 +311,16 @@ export function applyTransformationV2(
     if (problem) return fail([problem]);
   }
 
-  const validated = validateDocumentV2({ ...copy, nextNodeId: draft.nextNodeId, nextEdgeId: draft.nextEdgeId });
+  // New nodes get diagram positions laid out from their relationships (never from cells), and the
+  // existing nodes keep the positions they are shown at, so the diagram does not re-flow later.
+  const diagram =
+    draft.added.length === 0
+      ? copy.diagram
+      : (() => {
+          const shown = settleDiagramPositions(doc);
+          return { positions: { ...shown, ...layoutAddedDiagramNodes(copy.edges, draft.added.map((n) => n.id), shown) } };
+        })();
+  const validated = validateDocumentV2({ ...copy, diagram, nextNodeId: draft.nextNodeId, nextEdgeId: draft.nextEdgeId });
   if (!validated.ok) {
     return fail(
       validated.issues.map((issue, n) =>

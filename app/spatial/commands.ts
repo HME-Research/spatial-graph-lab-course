@@ -3,6 +3,7 @@ import type { GridCoord } from '@core/spatial';
 import {
   type Attributes,
   bandIndex,
+  settleDiagramPositions,
   canonicalFacadeModule,
   type CorridorLook,
   DEFAULT_RELATIONSHIP_KIND,
@@ -118,6 +119,10 @@ export type DesignCommand =
   | { readonly type: 'set-node-type'; readonly nodeId: number; readonly function: string }
   | { readonly type: 'set-node-custom'; readonly nodeId: number; readonly custom: Attributes }
   /** `null` removes the display id (the label falls back to the permanent id). */
+  /**
+   * Places one node in the diagram. Nodes without a stored position are stored where they are
+   * currently shown (`settleDiagramPositions`), so only this node moves (2026-11-23).
+   */
   | { readonly type: 'set-diagram-position'; readonly nodeId: number; readonly position: DiagramPosition }
   | { readonly type: 'add-edge'; readonly edge: NewRelationship }
   | { readonly type: 'remove-edge'; readonly edgeId: number }
@@ -233,8 +238,9 @@ export function applyDesignCommand(
         size: (n.size ? [n.size[0], n.size[1], n.size[2]] : [1, 1, 1]) as RoomSize,
         custom: { ...n.custom },
       };
+      // Storing the new node's position first keeps every shown fallback position (nothing jumps).
       const diagram = command.diagramPosition
-        ? { positions: { ...doc.diagram.positions, [id]: [command.diagramPosition[0], command.diagramPosition[1]] as DiagramPosition } }
+        ? { positions: { ...settleDiagramPositions(doc), [id]: [command.diagramPosition[0], command.diagramPosition[1]] as DiagramPosition } }
         : doc.diagram;
       const added = validate({ ...doc, nextNodeId: id + 1, nodes: [...doc.nodes, node], diagram });
       if (!added.ok) return added;
@@ -285,7 +291,9 @@ export function applyDesignCommand(
       if (!hasNode(command.nodeId)) return notFound('node', command.nodeId);
       return validate({
         ...doc,
-        diagram: { positions: { ...doc.diagram.positions, [command.nodeId]: [command.position[0], command.position[1]] } },
+        // Every other node keeps the position it is shown at: fallback positions are stored too,
+        // because the fallback layout would otherwise re-flow around the moved node.
+        diagram: { positions: { ...settleDiagramPositions(doc), [command.nodeId]: [command.position[0], command.position[1]] } },
       });
     case 'add-edge': {
       const e = command.edge;

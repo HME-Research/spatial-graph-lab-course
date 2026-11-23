@@ -4,6 +4,7 @@
  * style settings. Pure: imports only core/graph and core/spatial.
  */
 export * from './constants';
+export * from './diagramLayout';
 export * from './display';
 export * from './errors';
 export * from './footprint';

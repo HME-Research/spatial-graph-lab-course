@@ -1,62 +1,27 @@
-import { type DesignDocumentV2, type DiagramPosition, footprintBox, type GridCoord } from '@app/document';
+import {
+  DIAGRAM_GAP_Y,
+  type DesignDocumentV2,
+  type DiagramPosition,
+  type DiagramSource,
+  footprintBox,
+  type GridCoord,
+  NODE_HEIGHT,
+  NODE_WIDTH,
+  resolveDiagramPositions,
+} from '@app/document';
 import type { Occupancy } from '@app/spatial';
 
 /**
  * Pure helpers for the Graph 2D editor and inspector. No React, no React Flow, no mutation.
  *
  * Graph 2D is one abstract diagram of the whole 3D graph (all storeys). Its positions come only
- * from `doc.diagram.positions`; this module never derives diagram positions from grid cells.
+ * from `doc.diagram.positions` and the fallback layout (`@app/document`, `diagramLayout.ts`);
+ * this module never derives diagram positions from grid cells.
  */
 
-/** Nominal node box in diagram units; used for fallback spacing and new-node placement. */
-export const NODE_WIDTH = 150;
-export const NODE_HEIGHT = 64;
-const FALLBACK_GAP_X = 190;
-const FALLBACK_GAP_Y = 110;
-const FALLBACK_COLUMNS = 6;
-
-/**
- * The part of a design document the diagram layout reads.
- */
-export interface DiagramSource {
-  readonly nodes: readonly { readonly id: number }[];
-  readonly diagram: { readonly positions: Readonly<Record<string, DiagramPosition>> };
-}
+export { NODE_HEIGHT, NODE_WIDTH, resolveDiagramPositions, type DiagramSource };
 
 export const formatGrid = (g: readonly number[]): string => `[${g.join(', ')}]`;
-
-/**
- * Display positions for every node: the stored diagram position when present, otherwise a
- * deterministic fallback. Fallbacks are laid out in rows below the stored positions, ordered by
- * node ID, so they are stable across renders and independent of grid cells. Nothing is written
- * to the document; a fallback only becomes stored when the user drags the node.
- */
-export function resolveDiagramPositions(doc: DiagramSource): ReadonlyMap<number, DiagramPosition> {
-  const result = new Map<number, DiagramPosition>();
-  const missing: number[] = [];
-  let minX = Infinity;
-  let maxY = -Infinity;
-  for (const node of doc.nodes) {
-    const stored = doc.diagram.positions[node.id];
-    if (stored) {
-      result.set(node.id, stored);
-      minX = Math.min(minX, stored[0]);
-      maxY = Math.max(maxY, stored[1]);
-    } else {
-      missing.push(node.id);
-    }
-  }
-  const originX = Number.isFinite(minX) ? minX : 0;
-  const originY = Number.isFinite(maxY) ? maxY + FALLBACK_GAP_Y + NODE_HEIGHT : 0;
-  missing.sort((a, b) => a - b);
-  missing.forEach((id, i) => {
-    const col = i % FALLBACK_COLUMNS;
-    const row = Math.floor(i / FALLBACK_COLUMNS);
-    result.set(id, [originX + col * FALLBACK_GAP_X, originY + row * FALLBACK_GAP_Y]);
-  });
-  return result;
-}
-
 
 /** Diagram position for a new node: beside `nearNodeId`, or below everything already shown. */
 export function suggestDiagramPosition(doc: DiagramSource, nearNodeId?: number): DiagramPosition {
@@ -67,14 +32,14 @@ export function suggestDiagramPosition(doc: DiagramSource, nearNodeId?: number):
   const near = nearNodeId === undefined ? undefined : positions.get(nearNodeId);
   if (near) {
     for (let step = 1; step <= 20; step++) {
-      const candidate: DiagramPosition = [near[0] + step * 40, near[1] + FALLBACK_GAP_Y];
+      const candidate: DiagramPosition = [near[0] + step * 40, near[1] + DIAGRAM_GAP_Y];
       if (clear(candidate)) return candidate;
     }
   }
   if (taken.length === 0) return [0, 0];
   const minX = Math.min(...taken.map((p) => p[0]));
   const maxY = Math.max(...taken.map((p) => p[1]));
-  return [minX, maxY + FALLBACK_GAP_Y];
+  return [minX, maxY + DIAGRAM_GAP_Y];
 }
 
 export interface Rect {

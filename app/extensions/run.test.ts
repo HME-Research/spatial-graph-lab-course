@@ -185,7 +185,9 @@ describe('add-node', () => {
     const p = preview(expectExtOk(runUnchanged(doc, project)));
     expect(p.before).toBe(doc);
     expect(p.after.nodes.at(-1)).toEqual({ id: 5, position: [2, 0, 0], size: [1, 1, 1], function: 'gallery', custom: { daylight: 'low' } });
-    expect(p.after.diagram.positions).toEqual(doc.diagram.positions); // Graph 2D uses its fallback position
+    // Every node gets a stored diagram position (2026-11-23): existing ones where they were shown
+    // (1 stored; 2–4 in the fallback row), the new one below them, so a later drag moves nothing else.
+    expect(p.after.diagram.positions).toEqual({ 1: [0, 0], 2: [0, 174], 3: [190, 174], 4: [380, 174], 5: [0, 348] });
     expect(p.after.nodes).toHaveLength(doc.nodes.length + 1);
     expect([p.after.nextNodeId, p.after.nextEdgeId]).toEqual([doc.nextNodeId + 1, doc.nextEdgeId]);
   });
@@ -241,6 +243,12 @@ describe('atomic transformations', () => {
     const p = preview(expectExtOk(runUnchanged(labDoc(), project)));
     expect(p.after.edges.at(-1)).toEqual({ id: 3, source: 2, target: 5, relationship: 'access', custom: {} });
     expect(p.assigned).toEqual({ nodes: { g3: 5 }, edges: {} });
+  });
+
+  it('a transformation that adds no node leaves the diagram positions untouched', async () => {
+    const project = await transforming([{ op: 'add-edge', source: 2, target: 3, relationship: 'access' }]);
+    const doc = labDoc();
+    expect(preview(expectExtOk(runUnchanged(doc, project))).after.diagram).toEqual(doc.diagram);
   });
 
   it('operations are ordered: an edge to a node added later is rejected', async () => {
