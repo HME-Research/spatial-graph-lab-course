@@ -559,3 +559,38 @@ button.sgl-icon-button {
   background: #a2464c;
   border-color: #a2464c;
 }
+
+/* ── Box selection (2026-11-23) ─────────────────────────────────────────────── */
+
+/* While "Select area" is on, empty canvas shows a crosshair instead of the grab hand. */
+.sgl-box-mode .react-flow__pane {
+  cursor: crosshair;
+}
+
+/* CAD convention: window (left → right, fully inside) solid blue; crossing (right → left, touched) dashed green. */
+.sgl-box-rect {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  border: 1px solid #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.sgl-box-rect.sgl-box-crossing {
+  border: 1px dashed #16a34a;
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.sgl-box-filter {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.sgl-box-filter label {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  cursor: pointer;
+}

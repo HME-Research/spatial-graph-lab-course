@@ -188,6 +188,22 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       const n = command.edgeIds.length;
       return `Remove ${n} invalid connection${n === 1 ? '' : 's'}`;
     }
+    case 'remove-items': {
+      const rooms = command.nodeIds.length;
+      const links = command.edgeIds.length;
+      if (rooms === 1 && links === 0) return `Delete ${room(command.nodeIds[0]!)}`;
+      if (links === 1 && rooms === 0) return `Remove connection ${connection(command.edgeIds[0]!)}`;
+      const parts = [rooms ? `${rooms} room${rooms === 1 ? '' : 's'}` : '', links ? `${links} connection${links === 1 ? '' : 's'}` : ''];
+      return `Delete ${parts.filter(Boolean).join(' and ')}`;
+    }
+    case 'set-nodes-type': {
+      const n = command.nodeIds.length;
+      return n === 1 ? `Change the type of ${room(command.nodeIds[0]!)}` : `Change the type of ${n} rooms`;
+    }
+    case 'set-diagram-positions': {
+      const ids = Object.keys(command.positions).map(Number);
+      return ids.length === 1 ? `Move ${room(ids[0]!)} in the diagram` : `Move ${ids.length} rooms in the diagram`;
+    }
     case 'change-edge-kind':
       return `Change connection ${connection(command.edgeId)} to ${command.relationship === 'open' ? 'Open' : 'Access'}`;
     case 'set-edge-custom':

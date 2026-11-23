@@ -37,7 +37,7 @@ import { WallActionPanel } from '../three/wallInteraction/WallActionPanel';
 import { WallPanelAnchor } from '../three/wallInteraction/WallPanelAnchor';
 import type { DesignPort } from '@app/spatial';
 import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
-import { NO_SELECTION, type Selection } from '@core/viewer/selection';
+import { isEdgeSelected, NO_SELECTION, type Selection } from '@core/viewer/selection';
 import { isDeliberateObjectClick } from '@core/viewer/three/interaction';
 import { pickHandlers } from '@core/viewer/three/picking';
 import { SceneCanvas } from '@core/viewer/three/SceneCanvas';
@@ -337,7 +337,7 @@ export function ArchitectureView({ selection, onSelect, project, design }: ViewP
               item={e}
               line={line}
               geometry={tube}
-              selected={selection.kind === 'edge' && selection.id === e.id}
+              selected={isEdgeSelected(selection, e.id)}
               analysed={isAnalysisEdge(analysis, e.id)}
               hovered={hoveredEdge === e.id}
               ghost={false}

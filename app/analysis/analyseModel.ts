@@ -215,7 +215,7 @@ export interface PickState {
 /** Start collecting; the current selection fills the FIRST input of its kind; numbers start at their default. */
 export function startPick(item: Pick<AnalysisItem, 'key' | 'inputs'>, selection: Selection): PickState {
   const values: (number | undefined)[] = item.inputs.map((i) => (i.kind === 'number' ? i.default : undefined));
-  if (selection.kind !== 'none') {
+  if (selection.kind === 'node' || selection.kind === 'edge') {
     const first = item.inputs.findIndex((i) => i.kind === selection.kind);
     if (first >= 0) values[first] = selection.id;
   }

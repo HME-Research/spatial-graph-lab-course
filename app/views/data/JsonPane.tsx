@@ -29,7 +29,7 @@ export function JsonPane({
 
   useEffect(() => {
     const container = scroller.current;
-    if (!container || selection.kind === 'none') return;
+    if (!container || (selection.kind !== 'node' && selection.kind !== 'edge')) return;
     const el = container.querySelector<HTMLElement>(`[data-record="${selection.kind === 'node' ? 'nodes' : 'edges'}:${selection.id}"]`);
     if (el) revealIn(container, el, 0, true);
   }, [selection, blocks]);

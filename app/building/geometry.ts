@@ -98,6 +98,12 @@ export function isElementHighlighted(element: ArchitecturalElement, selection: S
       return element.edgeId === selection.id;
     case 'node':
       return element.ownerNodeId === selection.id || element.neighbourNodeId === selection.id;
+    case 'multi':
+      return (
+        (element.edgeId !== null && selection.edges.includes(element.edgeId)) ||
+        selection.nodes.includes(element.ownerNodeId) ||
+        (element.neighbourNodeId !== null && selection.nodes.includes(element.neighbourNodeId))
+      );
   }
 }
 

@@ -3,6 +3,7 @@ import type { DesignPort } from '@app/spatial';
 import type { InspectorProps } from '@app/views/contracts';
 import { describeResolution } from '@app/ui';
 import { EdgeProperties } from './EdgeProperties';
+import { MultiProperties } from './MultiProperties';
 import { NodeProperties } from './NodeProperties';
 import type { PanelProps } from './panelSupport';
 import './inspector.css';
@@ -24,7 +25,9 @@ export function Inspector({ selection, onSelect, project, design }: InspectorPro
   const edgeId = selection.kind === 'edge' && edges.some((e) => e.id === selection.id) ? selection.id : null;
   return (
     <div className="inspector sgl-inspector sgl-properties">
-      {nodeId !== null ? (
+      {selection.kind === 'multi' ? (
+        <MultiProperties key={`multi:${selection.nodes.join(',')}|${selection.edges.join(',')}`} {...panel} nodeIds={selection.nodes} edgeIds={selection.edges} />
+      ) : nodeId !== null ? (
         <NodeProperties key={`node:${nodeId}`} {...panel} nodeId={nodeId} />
       ) : edgeId !== null ? (
         <EdgeProperties key={`edge:${edgeId}`} {...panel} edgeId={edgeId} />

@@ -2,7 +2,7 @@ import { neighbourCell, type FaceDirection, type GridCoord } from '@core/spatial
 import type { EffectiveCorridorLook, WallStyle } from '@app/document';
 import type { ConnectorRoute, Occupancy } from '@app/spatial';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '@core/viewer/coordinates';
-import { selectEdge, type Selection } from '@core/viewer/selection';
+import { isEdgeSelected, selectEdge, type Selection } from '@core/viewer/selection';
 import { DEFAULT_SLAB_THICKNESS, DEFAULT_WALL_THICKNESS, faceCentre } from './geometry';
 import { OPENING_PROPORTIONS } from './faceLayout';
 
@@ -161,4 +161,4 @@ export function buildConnector(route: ConnectorRoute, occupancy: Occupancy, opti
 
 /** Highlight rule for connectors: selecting the relationship lights its connector. */
 export const isConnectorHighlighted = (element: ConnectorElement, selection: Selection): boolean =>
-  selection.kind === 'edge' && selection.id === element.edgeId;
+  isEdgeSelected(selection, element.edgeId);

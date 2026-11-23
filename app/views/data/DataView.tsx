@@ -174,7 +174,7 @@ function TablePane({
 
   useEffect(() => {
     const container = scroller.current;
-    if (!container || selection.kind === 'none') return;
+    if (!container || (selection.kind !== 'node' && selection.kind !== 'edge')) return;
     const el = container.querySelector<HTMLElement>(`tr[data-row="${selection.kind === 'node' ? 'nodes' : 'edges'}:${selection.id}"]`);
     const head = el?.closest('table')?.tHead;
     if (el) revealIn(container, el, head?.offsetHeight ?? 0, false);

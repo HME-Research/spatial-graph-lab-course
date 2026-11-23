@@ -4,7 +4,7 @@ import type { RelationshipEdge, RoomNode } from '@app/document';
 import type { DesignPort } from '@app/spatial';
 import { SELECTION_COLOR } from '@core/viewer/appearance';
 import { DEFAULT_CELL_SIZE, spatialToThree, type WorldPoint } from '@core/viewer/coordinates';
-import type { Selection } from '@core/viewer/selection';
+import { isEdgeSelected, type Selection } from '@core/viewer/selection';
 import { pickHandlers } from '@core/viewer/three/picking';
 import type { ViewMode } from '../contracts';
 import { RelationshipLegend } from '../presentation/LegendViews';
@@ -149,7 +149,7 @@ export function ConnectorCells({
   return (
     <>
       {cells.map((c) => {
-        const selected = selection.kind === 'edge' && selection.id === c.edgeId;
+        const selected = isEdgeSelected(selection, c.edgeId);
         const hovered = hoveredEdge === c.edgeId;
         return (
           <group key={c.key} position={[...c.position]} scale={[...c.size]}>

@@ -4,7 +4,7 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { BufferAttribute, BufferGeometry, Color, DoubleSide, InstancedMesh, Matrix4, MeshStandardMaterial } from 'three';
 import { facadeMeshData, finishOf, materialsFor, type FacadeAssetV1, type FacadeModuleInstance, type FacadeRole } from '@app/assets';
 import { SELECTION_COLOR } from '@core/viewer/appearance';
-import { selectNode, type Selection } from '@core/viewer/selection';
+import { isNodeSelected, selectNode, type Selection } from '@core/viewer/selection';
 import { isDeliberateObjectClick } from '@core/viewer/three/interaction';
 
 /**
@@ -122,7 +122,7 @@ const AssetModules = memo(function AssetModules({
     if (!mesh) return;
     const created = mesh.instanceColor === null;
     instances.forEach((instance, k) => {
-      const lit = selection.kind === 'node' && selection.id === instance.ownerNodeId;
+      const lit = isNodeSelected(selection, instance.ownerNodeId);
       mesh.setColorAt(k, lit ? TINT : WHITE);
     });
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;

@@ -19,9 +19,22 @@ import {
   type XYPosition,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import type { DiagramPosition, GraphIssue } from '@app/document';
-import { NO_SELECTION, selectEdge, selectNode } from '@core/viewer/selection';
+import {
+  addToSelection,
+  isEdgeSelected,
+  isNodeSelected,
+  NO_SELECTION,
+  selectedEdgeIds,
+  selectedNodeIds,
+  selectEdge,
+  selectionEmphasis,
+  selectItems,
+  selectNode,
+  toggleSelected,
+} from '@core/viewer/selection';
+import { boxFromDrag, boxSelect, type BoxFilter } from './boxSelect';
 import type { ViewProps } from '../contracts';
 import { useRemembered } from '../panelMemory';
 import { useFunctionName } from '../functionColour';
@@ -33,7 +46,7 @@ import {
   changeRelationshipKindCommand,
   connectRequest,
   describePlacement,
-  diagramPositionCommand,
+  dragStopCommand,
   modelFromV2,
   removeEdgeCommand,
   removeNodeCommand,
@@ -73,6 +86,22 @@ interface OpenMenu {
   readonly flow?: DiagramPosition;
 }
 
+/** A box selection in progress: container pixels (drawing) and diagram coordinates (hit test). */
+interface BoxDrag {
+  readonly pointerId: number;
+  readonly startPx: XYPosition;
+  readonly endPx: XYPosition;
+  readonly start: XYPosition;
+  readonly end: XYPosition;
+  /** Ctrl/⌘ held at the start: the boxed items are added to the selection. */
+  readonly additive: boolean;
+}
+
+/** Below this many pixels a box drag is a click on empty canvas (clears the selection). */
+const BOX_MIN_PX = 4;
+
+const isCtrl = (event: { ctrlKey: boolean; metaKey: boolean }) => event.ctrlKey || event.metaKey;
+
 /** Short status line after an action; `created` follows the new edge's live status. */
 type Notice =
   | { readonly kind: 'created'; readonly edgeId: number }
@@ -108,6 +137,27 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   const [popoverNode, setPopoverNode] = useState<number | null>(null);
   const [menu, setMenu] = useState<OpenMenu | null>(null);
   const [connectFrom, setConnectFrom] = useState<number | null>(null);
+  /** Box selection: the toolbar toggle (dragging empty canvas draws a box instead of panning), its filter and the box being drawn. */
+  const boxModeMemory = useRemembered<boolean>('boxmode:graph2d');
+  const [boxMode, setBoxModeState] = useState(() => boxModeMemory?.load() ?? false);
+  const setBoxMode = (on: boolean) => {
+    setBoxModeState(on);
+    boxModeMemory?.save(on);
+  };
+  const boxFilterMemory = useRemembered<BoxFilter>('boxfilter:graph2d');
+  const [boxFilter, setBoxFilterState] = useState<BoxFilter>(() => {
+    const f = boxFilterMemory?.load();
+    return f && typeof f.nodes === 'boolean' && typeof f.edges === 'boolean' && (f.nodes || f.edges) ? f : { nodes: true, edges: true };
+  });
+  const setBoxFilter = (next: BoxFilter) => {
+    // At least one kind stays on, so a box always selects something it covers.
+    if (!next.nodes && !next.edges) return;
+    setBoxFilterState(next);
+    boxFilterMemory?.save(next);
+  };
+  const [boxDrag, setBoxDrag] = useState<BoxDrag | null>(null);
+  /** The click event that ends a box drag must not clear the selection it just made. */
+  const suppressPaneClick = useRef(false);
   /** "Remove invalid connections" review: open, and the rows the student unchecked (rows start checked). */
   const [reviewInvalid, setReviewInvalid] = useState(false);
   const [keepInvalid, setKeepInvalid] = useState<ReadonlySet<number>>(() => new Set());
@@ -199,11 +249,8 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   }, [model, activeProject]);
   const isBroken = (functionId: string) => typeStatus.get(functionId)?.kind === 'broken';
 
-  const emphasised = useMemo(() => {
-    if (selection.kind !== 'edge') return new Set<number>();
-    const edge = model.edges.find((e) => e.id === selection.id);
-    return new Set(edge ? [edge.source, edge.target] : []);
-  }, [model, selection]);
+  /** Endpoints of the selected relationship(s) that are not selected themselves. */
+  const emphasised = useMemo(() => selectionEmphasis(selection, model.edges).secondaryNodes, [model, selection]);
 
   const unresolvedCount = useMemo(() => {
     const counts = new Map<number, number>();
@@ -252,7 +299,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
               },
             }),
           },
-          selected: selection.kind === 'node' && selection.id === node.id,
+          selected: isNodeSelected(selection, node.id),
           ...(o?.measured ? { measured: o.measured } : {}),
         };
       });
@@ -286,7 +333,7 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
           ...(removePreview?.has(edge.id) && { removePreview: true }),
           ...(isAnalysisEdge(analysis, edge.id) && { analysed: true }),
         },
-        selected: selection.kind === 'edge' && selection.id === edge.id,
+        selected: isEdgeSelected(selection, edge.id),
       })),
     [model, selection, removePreview, analysis],
   );
@@ -309,26 +356,32 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
     });
   }, []);
 
+  // Dragging a node of a multi-selection keeps the selection: React Flow moves all selected nodes.
   const onNodeDragStart = useCallback<OnNodeDrag<RoomFlowNode>>(
     (_event, node) => {
       setPopoverNode(null);
-      onSelect(selectNode(Number(node.id)));
+      const id = Number(node.id);
+      if (!isNodeSelected(selection, id)) onSelect(selectNode(id));
     },
-    [onSelect],
+    [onSelect, selection],
   );
 
-  // One set-diagram-position per drag, on stop. Never a spatial move: the room's cell is untouched.
+  // One command per drag, on stop (all dragged nodes together). Never a spatial move: cells are untouched.
   const onNodeDragStop = useCallback<OnNodeDrag<RoomFlowNode>>(
-    (_event, node) => {
-      const position: [number, number] = [Math.round(node.position.x), Math.round(node.position.y)];
+    (_event, node, dragged) => {
+      const all = dragged.length > 0 ? dragged : [node];
       setOverlay((prev) => {
-        const current = prev[node.id];
-        if (!current?.drag) return prev;
-        return { ...prev, [node.id]: current.measured ? { measured: current.measured } : {} };
+        let next: Record<string, NodeOverlay> | null = null;
+        for (const n of all) {
+          const current = prev[n.id];
+          if (!current?.drag) continue;
+          next ??= { ...prev };
+          next[n.id] = current.measured ? { measured: current.measured } : {};
+        }
+        return next ?? prev;
       });
-      const stored = model.diagram.positions[node.id];
-      if (stored && stored[0] === position[0] && stored[1] === position[1]) return;
-      run(diagramPositionCommand(model, Number(node.id), position));
+      const command = dragStopCommand(model, all.map((n) => ({ id: Number(n.id), x: n.position.x, y: n.position.y })));
+      if (command) run(command);
     },
     [model, run],
   );
@@ -372,6 +425,61 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   const removeSelected = () => {
     if (selection.kind === 'node') run(removeNodeCommand(model, selection.id));
     else if (selection.kind === 'edge') run(removeEdgeCommand(model, selection.id));
+    // Several items: ONE command, one Undo step.
+    else if (selection.kind === 'multi' && run({ type: 'remove-items', nodeIds: selection.nodes, edgeIds: selection.edges })) onSelect(NO_SELECTION);
+  };
+
+  /** Hit-test the box (diagram coordinates) against the circles and lines as React Flow draws them. */
+  const finishBox = (drag: BoxDrag) => {
+    const { box, mode } = boxFromDrag(drag.start, drag.end);
+    const circles = model.nodes.map((n) => {
+      const internal = flow.getInternalNode(String(n.id));
+      const p = internal?.internals.positionAbsolute ?? (() => {
+        const q = positions.get(n.id) ?? [0, 0];
+        return { x: q[0], y: q[1] };
+      })();
+      const d = lines.get(n.id)?.diameter ?? 46;
+      const w = internal?.measured.width ?? d;
+      const h = internal?.measured.height ?? d;
+      return { id: n.id, circle: { centre: [p.x + w / 2, p.y + h / 2] as [number, number], radius: Math.min(w, h) / 2 } };
+    });
+    const hit = boxSelect({ nodes: circles, edges: model.edges }, box, mode, boxFilter);
+    onSelect(drag.additive ? addToSelection(selection, hit.nodes, hit.edges) : selectItems(hit.nodes, hit.edges));
+  };
+
+  /** A box starts on empty canvas: always while the toggle is on, or with Shift held. */
+  const onBoxPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 || (!boxMode && !event.shiftKey) || connectFrom !== null) return;
+    const target = event.target as Element;
+    if (!target.closest('.react-flow__pane') || target.closest('.react-flow__panel, .react-flow__node, .react-flow__edge')) return;
+    // Keep React Flow from panning (Shift+drag while the toggle is off).
+    event.stopPropagation();
+    event.preventDefault();
+    containerRef.current?.setPointerCapture(event.pointerId);
+    setMenu(null);
+    setPopoverNode(null);
+    const px = pointIn(event);
+    const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    setBoxDrag({ pointerId: event.pointerId, startPx: px, endPx: px, start: at, end: at, additive: isCtrl(event) });
+  };
+  const onBoxPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!boxDrag || event.pointerId !== boxDrag.pointerId) return;
+    setBoxDrag({ ...boxDrag, endPx: pointIn(event), end: flow.screenToFlowPosition({ x: event.clientX, y: event.clientY }) });
+  };
+  const onBoxPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!boxDrag || event.pointerId !== boxDrag.pointerId) return;
+    containerRef.current?.releasePointerCapture(event.pointerId);
+    const drag = { ...boxDrag, endPx: pointIn(event), end: flow.screenToFlowPosition({ x: event.clientX, y: event.clientY }) };
+    setBoxDrag(null);
+    // The click that may follow this pointerup must not clear the selection; any later click may.
+    suppressPaneClick.current = true;
+    setTimeout(() => (suppressPaneClick.current = false), 0);
+    if (Math.abs(drag.endPx.x - drag.startPx.x) < BOX_MIN_PX && Math.abs(drag.endPx.y - drag.startPx.y) < BOX_MIN_PX) {
+      // A click on empty canvas: clears the selection (Ctrl/⌘ keeps it).
+      if (!drag.additive) onSelect(NO_SELECTION);
+      return;
+    }
+    finishBox(drag);
   };
 
   /** Open the review list, or say explicitly why there is nothing to remove. */
@@ -468,7 +576,8 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
       event.preventDefault();
       removeSelected();
     } else if (event.key === 'Escape') {
-      if (connectFrom !== null) setConnectFrom(null);
+      if (boxDrag) setBoxDrag(null);
+      else if (connectFrom !== null) setConnectFrom(null);
       else onSelect(NO_SELECTION);
     } else if (event.key === 'Enter' || event.key === ' ') {
       const nodeId = focusedNode ?? (selection.kind === 'node' ? selection.id : null);
@@ -511,7 +620,17 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
   );
 
   return (
-    <div ref={containerRef} className="sgl-graph2d" onKeyDown={onKeyDown} tabIndex={-1}>
+    <div
+      ref={containerRef}
+      className={`sgl-graph2d${boxMode ? ' sgl-box-mode' : ''}`}
+      onKeyDown={onKeyDown}
+      tabIndex={-1}
+      // Capture phase: a box drag must start before React Flow can treat it as a pan.
+      onPointerDownCapture={onBoxPointerDown}
+      onPointerMove={onBoxPointerMove}
+      onPointerUp={onBoxPointerUp}
+      onPointerCancel={() => setBoxDrag(null)}
+    >
       <ReactFlow<RoomFlowNode, RelationFlowEdge>
         nodes={nodes}
         edges={edges}
@@ -523,12 +642,17 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
         // A click selects (Properties shows the room). The quick summary opens on double-click,
         // "Inspect" in the context menu or Enter, so it never covers a neighbouring circle that the
         // student wants to click next (phase 06, G01).
-        onNodeClick={(_e, node) => {
+        onNodeClick={(e, node) => {
           // React Flow ids are the room ids as text.
           const id = Number(node.id);
           if (connectFrom !== null && connectFrom !== id) return connect(connectFrom, id);
           setConnectFrom(null);
           setNotice(null);
+          // Ctrl/⌘-click adds the node to the selection, or removes it.
+          if (isCtrl(e)) {
+            setPopoverNode(null);
+            return onSelect(toggleSelected(selection, 'node', id));
+          }
           onSelect(selectNode(id));
           setPopoverNode((open) => (open === id ? open : null));
         }}
@@ -538,12 +662,15 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
           setPopoverNode(Number(node.id));
         }}
         zoomOnDoubleClick={false}
-        onEdgeClick={(_e, edge) => {
+        onEdgeClick={(e, edge) => {
           setConnectFrom(null);
           setNotice(null);
-          onSelect(selectEdge(Number(edge.id)));
+          const id = Number(edge.id);
+          onSelect(isCtrl(e) ? toggleSelected(selection, 'edge', id) : selectEdge(id));
         }}
-        onPaneClick={() => {
+        onPaneClick={(e) => {
+          // The click ending a box drag was handled on pointerup; Ctrl/⌘-click keeps the selection.
+          if (suppressPaneClick.current || isCtrl(e)) return;
           setConnectFrom(null);
           setNotice(null);
           onSelect(NO_SELECTION);
@@ -561,6 +688,9 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
         selectionKeyCode={null}
         multiSelectionKeyCode={null}
         selectNodesOnDrag={false}
+        // "Select area": dragging empty canvas draws a box (handled above) instead of panning;
+        // the middle and right buttons still pan, the wheel still zooms.
+        panOnDrag={boxMode ? [1, 2] : true}
         {...(initialViewport ? { defaultViewport: initialViewport } : { fitView: true })}
         onMoveStart={(event) => {
           setMenu(null);
@@ -596,10 +726,36 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
             type="button"
             onClick={removeSelected}
             disabled={selection.kind === 'none'}
-            title="Delete the selected node (with its relationships) or the selected relationship"
+            title="Delete the selection: nodes (with their relationships) and relationships, as one undo step"
           >
-            Delete {selection.kind === 'edge' ? 'relationship' : 'node'}
+            Delete{' '}
+            {selection.kind === 'edge'
+              ? 'relationship'
+              : selection.kind === 'multi'
+                ? `${selectedNodeIds(selection).length + selectedEdgeIds(selection).length} selected`
+                : 'node'}
           </button>
+          <button
+            type="button"
+            onClick={() => setBoxMode(!boxMode)}
+            aria-pressed={boxMode}
+            title={
+              'Select area: drag on empty canvas to draw a box. Left → right selects what is fully inside; ' +
+              'right → left also what the box touches. Hold Ctrl/⌘ to add to the selection. Shift+drag does this at any time.'
+            }
+          >
+            ⬚ Select area
+          </button>
+          {boxMode && (
+            <span className="sgl-box-filter" role="group" aria-label="What the box selects">
+              <label title="The box selects nodes">
+                <input type="checkbox" checked={boxFilter.nodes} onChange={(e) => setBoxFilter({ ...boxFilter, nodes: e.target.checked })} /> Nodes
+              </label>
+              <label title="The box selects relationships">
+                <input type="checkbox" checked={boxFilter.edges} onChange={(e) => setBoxFilter({ ...boxFilter, edges: e.target.checked })} /> Relationships
+              </label>
+            </span>
+          )}
           {invalidRows.length > 0 && (
             // Contextual: offered only while some relationship cannot be built (never automatic).
             <button
@@ -613,7 +769,10 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
               Remove invalid connections ({invalidRows.length})…
             </button>
           )}
-          <span className="sgl-hint">Click: select · double-click: summary · right-click: actions · drag the dot under a node onto another node to connect</span>
+          <span className="sgl-hint">
+            Click: select · Ctrl/⌘-click: add or remove · {boxMode ? 'drag on empty canvas: select area' : 'Shift+drag: select area'} · double-click:
+            summary · right-click: actions · drag the dot under a node onto another node to connect
+          </span>
           {analysis && (
             <span className="sgl-analysis-note" title="Shown from the Algorithms section; clear it there">
               Colours: analysis “{analysis.title}”{analysis.stale ? ' (out of date)' : ''}
@@ -670,6 +829,19 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
           </Panel>
         )}
       </ReactFlow>
+
+      {boxDrag && (
+        <div
+          className={`sgl-box-rect sgl-box-${boxFromDrag(boxDrag.startPx, boxDrag.endPx).mode}`}
+          aria-hidden="true"
+          style={{
+            left: Math.min(boxDrag.startPx.x, boxDrag.endPx.x),
+            top: Math.min(boxDrag.startPx.y, boxDrag.endPx.y),
+            width: Math.abs(boxDrag.endPx.x - boxDrag.startPx.x),
+            height: Math.abs(boxDrag.endPx.y - boxDrag.startPx.y),
+          }}
+        />
+      )}
 
       {popover && (
         <PopoverLayer

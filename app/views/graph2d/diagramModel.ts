@@ -134,5 +134,23 @@ export const diagramPositionCommand = (_model: DiagramModel, nodeId: number, pos
   position,
 });
 
+/**
+ * The command for the end of a diagram drag of one or more nodes (a multi-selection moves
+ * together): positions rounded to whole units; nodes dropped where they are already stored are
+ * left out; null when nothing moved. One node → `set-diagram-position`, several → ONE
+ * `set-diagram-positions` (one Undo step).
+ */
+export function dragStopCommand(model: DiagramModel, moved: readonly { readonly id: number; readonly x: number; readonly y: number }[]): ModelCommand | null {
+  const changed = moved
+    .map((m) => ({ id: m.id, position: [Math.round(m.x), Math.round(m.y)] as DiagramPosition }))
+    .filter(({ id, position }) => {
+      const stored = model.diagram.positions[id];
+      return !(stored && stored[0] === position[0] && stored[1] === position[1]);
+    });
+  if (changed.length === 0) return null;
+  if (changed.length === 1) return diagramPositionCommand(model, changed[0]!.id, changed[0]!.position);
+  return { type: 'set-diagram-positions', positions: Object.fromEntries(changed.map((c) => [c.id, c.position])) };
+}
+
 /** Relationship intent change (Access ↔ Open). */
 export const changeRelationshipKindCommand = (edgeId: number, kind: RelationshipKind): ModelCommand => ({ type: 'change-edge-kind', edgeId, relationship: kind });

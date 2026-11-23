@@ -132,6 +132,15 @@ export type DesignCommand =
    * an edge that is not `unresolved` under `options.resolve ?? resolveRelationships`. Never automatic.
    */
   | { readonly type: 'remove-edges'; readonly edgeIds: readonly number[] }
+  /**
+   * Multi-selection (2026-11-23), each ONE Undo step: delete rooms (with their relationships) and
+   * relationships together; give several rooms one Function; place several rooms in the diagram
+   * (unplaced nodes are settled first, as for `set-diagram-position`). Refused, with no change, when
+   * empty or naming an unknown id.
+   */
+  | { readonly type: 'remove-items'; readonly nodeIds: readonly number[]; readonly edgeIds: readonly number[] }
+  | { readonly type: 'set-nodes-type'; readonly nodeIds: readonly number[]; readonly function: string }
+  | { readonly type: 'set-diagram-positions'; readonly positions: Readonly<Record<string, DiagramPosition>> }
   | { readonly type: 'change-edge-kind'; readonly edgeId: number; readonly relationship: RelationshipKind }
   /** Replaces the edge's stored custom attributes (additive after Gate 0; see docs/PROJECT-ATTRIBUTES.md). */
   | { readonly type: 'set-edge-custom'; readonly edgeId: number; readonly custom: Attributes }
@@ -334,6 +343,36 @@ export function applyDesignCommand(
         ]);
       }
       return validate({ ...doc, edges: doc.edges.filter((e) => !listed.has(e.id)) });
+    }
+    case 'remove-items': {
+      const nodeIds = new Set(command.nodeIds);
+      const edgeIds = new Set(command.edgeIds);
+      if (nodeIds.size + edgeIds.size === 0) return fail([issue(['nodes'], 'schema', 'nothing was chosen to delete')]);
+      for (const id of nodeIds) if (!hasNode(id)) return notFound('node', id);
+      for (const id of edgeIds) if (!hasEdge(id)) return notFound('edge', id);
+      // A deleted room takes its relationships with it, like `remove-node`.
+      const positions = { ...doc.diagram.positions };
+      for (const id of nodeIds) delete positions[id];
+      return validate({
+        ...doc,
+        nodes: doc.nodes.filter((n) => !nodeIds.has(n.id)),
+        edges: doc.edges.filter((e) => !edgeIds.has(e.id) && !nodeIds.has(e.source) && !nodeIds.has(e.target)),
+        diagram: { positions },
+      });
+    }
+    case 'set-nodes-type': {
+      const ids = new Set(command.nodeIds);
+      if (ids.size === 0) return fail([issue(['nodes'], 'schema', 'no rooms were chosen')]);
+      for (const id of ids) if (!hasNode(id)) return notFound('node', id);
+      return validate({ ...doc, nodes: doc.nodes.map((n) => (ids.has(n.id) ? { ...n, function: command.function } : n)) });
+    }
+    case 'set-diagram-positions': {
+      const entries = Object.entries(command.positions);
+      if (entries.length === 0) return fail([issue(['diagram', 'positions'], 'schema', 'no diagram positions were given')]);
+      for (const [key] of entries) if (!hasNode(Number(key))) return notFound('node', Number(key));
+      const positions = settleDiagramPositions(doc);
+      for (const [key, p] of entries) positions[key] = [p[0], p[1]];
+      return validate({ ...doc, diagram: { positions } });
     }
     case 'change-edge-kind':
       return mapEdge(command.edgeId, (e) => ({ ...e, relationship: command.relationship }));

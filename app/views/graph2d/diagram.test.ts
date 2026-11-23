@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyDesignCommand } from '@app/spatial';
+import { applyDesignCommand, resolveRelationships } from '@app/spatial';
+import { dragStopCommand, modelFromV2 } from './diagramModel';
 import { type DesignDocumentV2, layoutAddedDiagramNodes, validateDocumentV2 } from '@app/document';
 import exampleDesign from '../../document/test-designs/two-storey.json';
 import { expectOk, threeRooms, threeRoomsRaw } from '@app/document/test-fixtures';
@@ -92,6 +93,55 @@ describe('diagram drag command', () => {
     const after = resolveDiagramPositions(next);
     for (const node of doc.nodes) expect(after.get(node.id)).toEqual(before.get(node.id));
     expect(after.get(doc.nextNodeId)).toEqual([-500, -500]);
+  });
+});
+
+describe('multi-selection commands (2026-11-23)', () => {
+  it('remove-items deletes rooms with all their relationships, and relationships, in one step', () => {
+    const doc = threeRooms();
+    const next = expectOk(applyDesignCommand(doc, { type: 'remove-items', nodeIds: [2], edgeIds: [2] }));
+    expect(next.nodes.map((n) => n.id)).toEqual([1, 3]);
+    expect(next.edges).toEqual([]); // edge 1 went with room 2, edge 2 was selected
+    expect(next.diagram.positions[2]).toBeUndefined();
+  });
+
+  it('remove-items and set-nodes-type refuse an empty or unknown selection without change', () => {
+    const doc = threeRooms();
+    expect(applyDesignCommand(doc, { type: 'remove-items', nodeIds: [], edgeIds: [] }).ok).toBe(false);
+    expect(applyDesignCommand(doc, { type: 'remove-items', nodeIds: [1], edgeIds: [99] }).ok).toBe(false);
+    expect(applyDesignCommand(doc, { type: 'set-nodes-type', nodeIds: [1, 42], function: 'studio' }).ok).toBe(false);
+  });
+
+  it('set-nodes-type gives every listed room the Function and nothing else', () => {
+    const doc = threeRooms();
+    const next = expectOk(applyDesignCommand(doc, { type: 'set-nodes-type', nodeIds: [1, 3], function: 'studio' }));
+    expect(next.nodes.map((n) => n.function)).toEqual(['studio', doc.nodes[1]!.function, 'studio']);
+    expect(next.nodes.map((n) => n.position)).toEqual(doc.nodes.map((n) => n.position));
+  });
+
+  it('dragging several nodes is one set-diagram-positions command; unplaced others stay put', () => {
+    const doc = withoutPositions([1, 2, 3]);
+    const before = resolveDiagramPositions(doc);
+    const model = modelFromV2(doc, resolveRelationships(doc));
+    const command = dragStopCommand(model, [
+      { id: 1, x: 500.4, y: 10 },
+      { id: 2, x: 700, y: 9.6 },
+    ]);
+    expect(command).toEqual({ type: 'set-diagram-positions', positions: { 1: [500, 10], 2: [700, 10] } });
+    const next = expectOk(applyDesignCommand(doc, command!));
+    expect(resolveDiagramPositions(next).get(3)).toEqual(before.get(3));
+  });
+
+  it('a drag that ends where nodes are stored sends nothing; one moved node sends set-diagram-position', () => {
+    const doc = threeRooms();
+    const model = modelFromV2(doc, resolveRelationships(doc));
+    const at = (id: number) => doc.diagram.positions[id]!;
+    expect(dragStopCommand(model, [{ id: 1, x: at(1)[0], y: at(1)[1] }])).toBeNull();
+    expect(dragStopCommand(model, [{ id: 1, x: at(1)[0], y: at(1)[1] }, { id: 2, x: 3, y: 4 }])).toEqual({
+      type: 'set-diagram-position',
+      nodeId: 2,
+      position: [3, 4],
+    });
   });
 });
 

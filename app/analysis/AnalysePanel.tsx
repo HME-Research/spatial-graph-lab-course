@@ -282,7 +282,7 @@ export function AnalysePanel({
   useEffect(() => {
     const before = lastSelection.current;
     lastSelection.current = selection;
-    if (!pick || selection.kind === 'none' || sameSelection(before, selection)) return;
+    if (!pick || (selection.kind !== 'node' && selection.kind !== 'edge') || sameSelection(before, selection)) return;
     const next = applyPick(pick, selection);
     if (!runIfReady(next)) setPick(next);
     // Only a selection change is a pick; `pick` itself is read from this render.
