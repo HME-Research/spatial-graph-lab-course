@@ -141,6 +141,16 @@ export type DesignCommand =
   | { readonly type: 'remove-items'; readonly nodeIds: readonly number[]; readonly edgeIds: readonly number[] }
   | { readonly type: 'set-nodes-type'; readonly nodeIds: readonly number[]; readonly function: string }
   | { readonly type: 'set-diagram-positions'; readonly positions: Readonly<Record<string, DiagramPosition>> }
+  /**
+   * Multi-selection editing (2026-11-23), each ONE Undo step: the stored custom values of several
+   * nodes / edges (each listed item's whole `custom`, computed per item so its other values are
+   * kept), the Relationship of several edges, and the own corridor of several edges (`patch` as for
+   * `set-edge-corridor`). Refused, with no change, when empty or naming an unknown id.
+   */
+  | { readonly type: 'set-nodes-custom'; readonly custom: Readonly<Record<string, Attributes>> }
+  | { readonly type: 'set-edges-custom'; readonly custom: Readonly<Record<string, Attributes>> }
+  | { readonly type: 'set-edges-kind'; readonly edgeIds: readonly number[]; readonly relationship: RelationshipKind }
+  | { readonly type: 'set-edges-corridor'; readonly edgeIds: readonly number[]; readonly patch: CorridorPatch }
   | { readonly type: 'change-edge-kind'; readonly edgeId: number; readonly relationship: RelationshipKind }
   /** Replaces the edge's stored custom attributes (additive after Gate 0; see docs/PROJECT-ATTRIBUTES.md). */
   | { readonly type: 'set-edge-custom'; readonly edgeId: number; readonly custom: Attributes }
@@ -373,6 +383,40 @@ export function applyDesignCommand(
       const positions = settleDiagramPositions(doc);
       for (const [key, p] of entries) positions[key] = [p[0], p[1]];
       return validate({ ...doc, diagram: { positions } });
+    }
+    case 'set-nodes-custom': {
+      const entries = Object.entries(command.custom);
+      if (entries.length === 0) return fail([issue(['nodes'], 'schema', 'no nodes were chosen')]);
+      for (const [key] of entries) if (!hasNode(Number(key))) return notFound('node', Number(key));
+      const custom = new Map(entries.map(([key, value]) => [Number(key), value]));
+      return validate({ ...doc, nodes: doc.nodes.map((n) => (custom.has(n.id) ? { ...n, custom: { ...custom.get(n.id)! } } : n)) });
+    }
+    case 'set-edges-custom': {
+      const entries = Object.entries(command.custom);
+      if (entries.length === 0) return fail([issue(['edges'], 'schema', 'no edges were chosen')]);
+      for (const [key] of entries) if (!hasEdge(Number(key))) return notFound('edge', Number(key));
+      const custom = new Map(entries.map(([key, value]) => [Number(key), value]));
+      return validate({ ...doc, edges: doc.edges.map((e) => (custom.has(e.id) ? { ...e, custom: { ...custom.get(e.id)! } } : e)) });
+    }
+    case 'set-edges-kind':
+    case 'set-edges-corridor': {
+      const ids = new Set(command.edgeIds);
+      if (ids.size === 0) return fail([issue(['edges'], 'schema', 'no edges were chosen')]);
+      for (const id of ids) if (!hasEdge(id)) return notFound('edge', id);
+      if (command.type === 'set-edges-kind') {
+        const relationship = command.relationship;
+        return validate({ ...doc, edges: doc.edges.map((e) => (ids.has(e.id) ? { ...e, relationship } : e)) });
+      }
+      const patch = command.patch;
+      return validate({
+        ...doc,
+        edges: doc.edges.map((e) => {
+          if (!ids.has(e.id)) return e;
+          const { corridor: old, ...rest } = e;
+          const corridor = patchCorridor(old, patch);
+          return corridor ? { ...rest, corridor } : rest;
+        }),
+      });
     }
     case 'change-edge-kind':
       return mapEdge(command.edgeId, (e) => ({ ...e, relationship: command.relationship }));

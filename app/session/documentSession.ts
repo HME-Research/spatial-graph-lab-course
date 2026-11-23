@@ -204,6 +204,23 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       const ids = Object.keys(command.positions).map(Number);
       return ids.length === 1 ? `Move ${room(ids[0]!)} in the diagram` : `Move ${ids.length} rooms in the diagram`;
     }
+    case 'set-nodes-custom': {
+      const ids = Object.keys(command.custom).map(Number);
+      return ids.length === 1 ? `Edit the attributes of ${room(ids[0]!)}` : `Edit the attributes of ${ids.length} rooms`;
+    }
+    case 'set-edges-custom': {
+      const ids = Object.keys(command.custom).map(Number);
+      return ids.length === 1 ? `Edit the attributes of connection ${connection(ids[0]!)}` : `Edit the attributes of ${ids.length} connections`;
+    }
+    case 'set-edges-kind': {
+      const kind = command.relationship === 'open' ? 'Open' : 'Access';
+      const n = command.edgeIds.length;
+      return n === 1 ? `Change connection ${connection(command.edgeIds[0]!)} to ${kind}` : `Change ${n} connections to ${kind}`;
+    }
+    case 'set-edges-corridor': {
+      const n = command.edgeIds.length;
+      return corridorPatchLabel(command.patch, n === 1 ? `connection ${connection(command.edgeIds[0]!)}` : `${n} connections`);
+    }
     case 'change-edge-kind':
       return `Change connection ${connection(command.edgeId)} to ${command.relationship === 'open' ? 'Open' : 'Access'}`;
     case 'set-edge-custom':
