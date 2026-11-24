@@ -22,7 +22,7 @@ export * from './discover';
 export * from './run';
 export * from './toolkitExamples';
 export { applyTransformationV2, type TransformationPreviewV2 } from './transformV2';
-export { TOOLKIT_GLOBS } from './toolkitGlobs';
+export { REFERENCE_TOOLKIT_FILES, REFERENCE_TOOLKIT_ID, TOOLKIT_GLOBS } from './toolkitGlobs';
 export * from './uploadedAnalyses';
 export { formatUploadSize, MAX_UPLOAD_BYTES, MAX_UPLOADED_ANALYSES, MAX_UPLOAD_FILE_NAME, sourceProblems, uploadLanguage } from './uploadSource';
 /** Student API types the application shell needs (only app/extensions may import `@student-api`). */

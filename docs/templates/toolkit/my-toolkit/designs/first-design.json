@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "First design",
+    "description": "Three nodes on the ground floor: a Circulation node joined by Access edges to a two-cell Room and a one-cell Room. Run Occupancy from area, then select a node and run Occupancy around."
+  },
+  "nextNodeId": 4,
+  "nextEdgeId": 3,
+  "nodes": [
+    {
+      "id": 1,
+      "function": "circulation",
+      "position": [0, 0, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "function": "room",
+      "position": [1, 0, 0],
+      "size": [2, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "function": "room",
+      "position": [0, 1, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source": 1,
+      "target": 2,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "source": 1,
+      "target": 3,
+      "relationship": "access",
+      "custom": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "1": [0, 200],
+      "2": [200, 200],
+      "3": [0, 50]
+    }
+  },
+  "settings": {
+    "styleBy": "function",
+    "styles": {}
+  }
+}

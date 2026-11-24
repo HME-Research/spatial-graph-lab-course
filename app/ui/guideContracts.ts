@@ -53,6 +53,11 @@ export interface Explainer {
    */
   readonly aiKits?: boolean;
   /**
+   * Show the toolkit kit tabs (owner 2026-11-24: Coding agent · Chat assistant, each with its prompt,
+   * the toolkit kit download and the git steps; `ToolkitKitTabs`) after the downloads.
+   */
+  readonly toolkitKit?: boolean;
+  /**
    * Opening size of its pop-up window (`ExplainerWindow`, additive 2026-11-20); default 520 × 480,
    * centred. The window is remembered per size, so a new size takes effect over an older remembered one.
    */

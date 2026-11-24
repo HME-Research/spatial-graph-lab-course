@@ -94,7 +94,7 @@ export function AiKitTabs({ initialTab = 'any', initialBasics = true }: { readon
 }
 
 /** Build a kit on click and save it (`buildKit`). */
-function KitDownload({ kind, label, project }: { readonly kind: KitKind; readonly label: string; readonly project?: ProjectSheetInput }) {
+export function KitDownload({ kind, label, project }: { readonly kind: KitKind; readonly label: string; readonly project?: ProjectSheetInput }) {
   const [problem, setProblem] = useState<string | null>(null);
   const fileName = kitFileName(kind, project?.toolkit);
   const save = async () => {

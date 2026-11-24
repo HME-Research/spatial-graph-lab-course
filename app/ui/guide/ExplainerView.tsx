@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Explainer } from '../guideContracts';
 import { FloatingWindow, sizedWindowId } from '../floating';
 import { AiKitTabs } from './AiKitTabs';
+import { ToolkitKitTabs } from './ToolkitKitTabs';
 import { DownloadButton } from './DownloadButton';
 import { renderGuideDiagram } from './diagrams';
 import './guide.css';
@@ -13,7 +14,7 @@ export const sectionDomId = (id: string) => `guide-section-${id}`;
  * One explainer block: title, then the one-sentence summary (strongest), the example, an optional
  * pair of contrasting diagrams (side by side, each with its caption), an optional single
  * diagram, an optional screenshot of the app with numbered markers, downloads, the AI kit tabs
- * (`aiKits`) and an optional "Learn more" link (new tab). `renderDiagram` maps `explainer.diagram` (a diagram id) to a
+ * (`aiKits`), the toolkit kit tabs (`toolkitKit`) and an optional "Learn more" link (new tab). `renderDiagram` maps `explainer.diagram` (a diagram id) to a
  * component; it defaults to the Guide diagrams (`diagrams.tsx`).
  */
 export function ExplainerView({
@@ -59,6 +60,7 @@ export function ExplainerView({
         </ul>
       )}
       {explainer.aiKits && <AiKitTabs />}
+      {explainer.toolkitKit && <ToolkitKitTabs />}
       {explainer.learnMore && (
         <p className="sgl-explainer-more">
           <a href={explainer.learnMore.url} target="_blank" rel="noopener noreferrer">

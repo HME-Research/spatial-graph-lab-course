@@ -1,3 +1,4 @@
+import { REFERENCE_TOOLKIT_FILES, REFERENCE_TOOLKIT_ID } from '@app/extensions';
 import { storedZip } from './zip';
 
 /**
@@ -8,11 +9,15 @@ import { storedZip } from './zip';
  *   project has; any project.
  * - **project**: the design kit plus a generated `PROJECT.md` describing the open project's
  *   Functions, custom fields (tagged Toolkit or Yours) and calculated values. Never the design itself.
+ * - **toolkit** (2026-11-24): what a chat assistant needs to write a whole toolkit folder:
+ *   `docs/ai-kit/toolkit/`, `docs/TOOLKITS.md`, `docs/STUDENT-API.md`, the starter
+ *   `docs/templates/toolkit/my-toolkit/` (as `starter/my-toolkit/`) and the reference toolkit
+ *   `toolkits/house/` without its façade files (as `examples/house/`). Never a project or design.
  *
  * Kit files are loaded only when a kit is built (lazy `?raw` imports). Pure apart from those imports.
  */
 
-export type KitKind = 'graph' | 'design' | 'project';
+export type KitKind = 'graph' | 'design' | 'project' | 'toolkit';
 
 interface KitFile {
   /** Path inside the kit folder. */
@@ -40,6 +45,43 @@ export const DESIGN_KIT_FILES: readonly KitFile[] = [
   { path: 'examples/same-function-neighbours.ts', load: () => import('../../../docs/ai-kit/design/examples/same-function-neighbours.ts?raw').then(raw) },
   { path: 'student-api.d.ts', load: () => import('../../../docs/ai-kit/design/student-api.d.ts?raw').then(raw) },
 ];
+
+/** The toolkit kit's own files, in zip order; the starter and the reference toolkit follow them. */
+export const TOOLKIT_KIT_FILES: readonly KitFile[] = [
+  { path: 'PROMPT.md', load: () => import('../../../docs/ai-kit/toolkit/PROMPT.md?raw').then(raw) },
+  { path: 'README.md', load: () => import('../../../docs/ai-kit/toolkit/README.md?raw').then(raw) },
+  { path: 'TOOLKITS.md', load: () => import('../../../docs/TOOLKITS.md?raw').then(raw) },
+  { path: 'STUDENT-API.md', load: () => import('../../../docs/STUDENT-API.md?raw').then(raw) },
+];
+
+/** The starter toolkit (`docs/templates/toolkit/my-toolkit/`), paths inside its folder. */
+export const STARTER_TOOLKIT_FILES: readonly KitFile[] = [
+  { path: 'README.md', load: () => import('../../../docs/templates/toolkit/my-toolkit/README.md?raw').then(raw) },
+  { path: 'toolkit.ts', load: () => import('../../../docs/templates/toolkit/my-toolkit/toolkit.ts?raw').then(raw) },
+  { path: 'functions/README.md', load: () => import('../../../docs/templates/toolkit/my-toolkit/functions/README.md?raw').then(raw) },
+  { path: 'functions/circulation.ts', load: () => import('../../../docs/templates/toolkit/my-toolkit/functions/circulation.ts?raw').then(raw) },
+  { path: 'functions/room.ts', load: () => import('../../../docs/templates/toolkit/my-toolkit/functions/room.ts?raw').then(raw) },
+  { path: 'algorithms/README.md', load: () => import('../../../docs/templates/toolkit/my-toolkit/algorithms/README.md?raw').then(raw) },
+  { path: 'algorithms/occupancy-around.ts', load: () => import('../../../docs/templates/toolkit/my-toolkit/algorithms/occupancy-around.ts?raw').then(raw) },
+  { path: 'algorithms/occupancy-from-area.ts', load: () => import('../../../docs/templates/toolkit/my-toolkit/algorithms/occupancy-from-area.ts?raw').then(raw) },
+  { path: 'designs/README.md', load: () => import('../../../docs/templates/toolkit/my-toolkit/designs/README.md?raw').then(raw) },
+  { path: 'designs/first-design.json', load: () => import('../../../docs/templates/toolkit/my-toolkit/designs/first-design.json?raw').then(raw) },
+  { path: 'assets/README.md', load: () => import('../../../docs/templates/toolkit/my-toolkit/assets/README.md?raw').then(raw) },
+];
+
+/** The reference toolkit's text files, as kit files under `examples/<id>/`, sorted by path. */
+export function referenceToolkitFiles(): readonly KitFile[] {
+  const prefix = `/toolkits/${REFERENCE_TOOLKIT_ID}/`;
+  return Object.entries(REFERENCE_TOOLKIT_FILES)
+    .filter(([key]) => key.startsWith(prefix))
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([key, load]) => ({ path: `examples/${REFERENCE_TOOLKIT_ID}/${key.slice(prefix.length)}`, load }));
+}
+
+/** Every file of the toolkit kit, in zip order. */
+export function toolkitKitFiles(): readonly KitFile[] {
+  return [...TOOLKIT_KIT_FILES, ...STARTER_TOOLKIT_FILES.map((f) => ({ ...f, path: `starter/my-toolkit/${f.path}` })), ...referenceToolkitFiles()];
+}
 
 /** The two templates (Template tab). */
 export const TEMPLATES = {
@@ -184,6 +226,7 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(
 export function kitFileName(kind: KitKind, toolkit?: { readonly id: string } | null): string {
   if (kind === 'graph') return 'spatial-graph-lab-graph-kit.zip';
   if (kind === 'design') return 'spatial-graph-lab-design-kit.zip';
+  if (kind === 'toolkit') return 'spatial-graph-lab-toolkit-kit.zip';
   return `spatial-graph-lab-design-kit-${toolkit ? slug(toolkit.id) : 'project'}.zip`;
 }
 
@@ -192,7 +235,7 @@ export async function buildKit(kind: KitKind, project?: ProjectSheetInput): Prom
   if (kind === 'project' && !project) throw new Error('the project kit needs the open project');
   const fileName = kitFileName(kind, project?.toolkit);
   const folder = fileName.replace(/\.zip$/, '');
-  const files = kind === 'graph' ? GRAPH_KIT_FILES : DESIGN_KIT_FILES;
+  const files = kind === 'graph' ? GRAPH_KIT_FILES : kind === 'toolkit' ? toolkitKitFiles() : DESIGN_KIT_FILES;
   const texts = await Promise.all(files.map(async (f) => ({ name: `${folder}/${f.path}`, text: await f.load() })));
   if (kind === 'project') texts.splice(1, 0, { name: `${folder}/PROJECT.md`, text: projectSheet(project!) });
   return { fileName, bytes: storedZip(texts) };

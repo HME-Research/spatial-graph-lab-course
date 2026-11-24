@@ -34,6 +34,14 @@ const { toolkits, diagnostics: folderProblems } = discoverToolkits(TOOLKIT_GLOBS
 
 const lines = (items: readonly { readonly message: string }[]) => items.map((d) => d.message);
 
+/** Inputs for an analysis run by the check; undefined for a transformation (it has no inputs). */
+function sampleInputs(definition: ActiveToolkit['algorithms'][number]['definition'], doc: DesignDocumentV2): number[] | undefined {
+  if (!('inputs' in definition) || !Array.isArray(definition.inputs)) return undefined;
+  return definition.inputs.map((input) =>
+    input.kind === 'node' ? (doc.nodes[0]?.id ?? 0) : input.kind === 'edge' ? (doc.edges[0]?.id ?? 0) : (input.default ?? input.min ?? 1),
+  );
+}
+
 describe('toolkits/ folders', () => {
   it('every toolkit folder is well-formed', () => {
     expect(lines(folderProblems)).toEqual([]);
@@ -85,7 +93,10 @@ describe.each(toolkits.map((p) => [p.id, p] as const))('toolkit "%s"', (_id, sou
     const doc: DesignDocumentV2 | undefined = chosen?.result.ok ? chosen.result.value : builtIn.ok ? builtIn.value : undefined;
     expect(doc).toBeDefined();
     for (const algorithm of toolkit.algorithms.filter((a) => a.status.ok)) {
-      const outcome = runAlgorithmV2(doc!, toolkit, algorithm.id);
+      // Analyses get sample inputs (2026-11-24): the design's first node / first edge, a number's
+      // default (else its min, else 1), so a Node, Edge or Queries analysis is checked too.
+      const inputs = sampleInputs(algorithm.definition, doc!);
+      const outcome = runAlgorithmV2(doc!, toolkit, algorithm.id, undefined, inputs === undefined ? {} : { inputs });
       expect(outcome.ok ? [] : lines(outcome.issues), `${algorithm.file}`).toEqual([]);
     }
   });

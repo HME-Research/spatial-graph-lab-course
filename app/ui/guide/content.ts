@@ -386,6 +386,19 @@ const TEXT: readonly GuideTabContent[] = [
         learnMore: LINKS.typescript,
         aiKits: true,
       },
+      {
+        id: 'make-a-toolkit',
+        title: 'Make your own toolkit (with an AI assistant)',
+        summary: 'A toolkit is one folder, toolkits/<toolkit-id>/: an AI assistant can write it with you, in the repository or in a chat, and you push it on your own branch.',
+        example: 'Pick a tab below. Coding agent: the agent works in your copy of the repository (for example Claude Code in VS Code), writes toolkits/<toolkit-id>/ and runs the checks. Chat assistant: download the toolkit kit, attach it to a chat, put the folder it gives you in toolkits/, run the checks, then commit only that folder and push the branch toolkit/<toolkit-id>, never main. The full guide is docs/TOOLKITS.md.',
+        diagrams: [
+          { diagram: 'route-agent', caption: 'Coding agent: it works in the repository' },
+          { diagram: 'route-chat', caption: 'Chat assistant: you put the folder in place' },
+        ],
+        learnMore: LINKS.typescript,
+        windowSize: { width: 600, height: 640 },
+        toolkitKit: true,
+      },
     ],
   },
   {

@@ -1234,6 +1234,18 @@ const D: Record<string, () => ReactNode> = {
   'avt-transform': () => <Flow transform />,
   'route-ai': () => <Steps alt="With an AI kit: 1 download a kit, 2 describe the analysis to an AI assistant, 3 upload the .ts file it writes in Analyse." labels={['Download a kit', 'Describe it to the AI', 'Upload the .ts in Analyse']} />,
   'route-template': () => <Steps alt="From the template: 1 download the template, 2 change it yourself, 3 upload the .ts file in Analyse." labels={['Download the template', 'Change it yourself', 'Upload the .ts in Analyse']} />,
+  'route-agent': () => (
+    <Steps
+      alt="With a coding agent: 1 make your branch, 2 ask the agent in the repository, 3 it writes the folder and runs the checks, 4 push your branch."
+      labels={['Make your branch', 'Ask the agent', 'It writes and checks', 'Push your branch']}
+    />
+  ),
+  'route-chat': () => (
+    <Steps
+      alt="With a chat assistant: 1 download the toolkit kit, 2 ask the chat, 3 put the folder it gives you in toolkits, 4 check, commit and push your branch."
+      labels={['Download the kit', 'Ask the chat', 'Put the folder in toolkits/', 'Check, commit, push']}
+    />
+  ),
 
   // ── How to… (numbered steps, like the screenshot markers) ──
   'howto-start': () => <Steps alt="Welcome: 1 Create project (with or without a toolkit), 2 Open project from a file, 3 Open example…, 4 Recent projects." labels={['Create project', 'Open project…', 'Open example…', 'Recent projects']} />,
