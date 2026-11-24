@@ -58,6 +58,27 @@ export interface ResolvedFace {
    * beside a narrower opening stays.
    */
   readonly corridorWidth?: number;
+  /**
+   * Boundary shift (2026-11-24), set only on the wall two rooms share when an applied shift moves
+   * it: the face plane is moved this many metres along the face's outward normal (±1.5 m).
+   */
+  readonly planeOffset?: number;
+  /**
+   * Boundary shift (2026-11-24), set only on one HALF of a unit face beside a moved wall: the face
+   * covers only the half of its face-local `axis` on `side` (−1: below 0, +1: above 0). The two
+   * halves of a unit face are separate faces (`${nominalFaceId}#0` / `#1`); `reassigned` is true when
+   * the shift gave this half to another room than the nominal face (it then has its own condition).
+   */
+  readonly split?: FaceSplit;
+}
+
+/** See `ResolvedFace.split`. */
+export interface FaceSplit {
+  readonly axis: 'u' | 'v';
+  readonly side: -1 | 1;
+  /** Id of the nominal unit face this half belongs to. */
+  readonly nominalFaceId: string;
+  readonly reassigned: boolean;
 }
 
 /**

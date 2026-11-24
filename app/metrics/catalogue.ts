@@ -1,4 +1,5 @@
 import { DEFAULT_CELL_SIZE } from '@core/viewer/coordinates';
+import { actualArea, boundaryShiftsOf } from '@app/building';
 import type { ComputedMetric, MetricContext } from './contracts';
 import { exteriorWallFaceCounts } from './faces';
 
@@ -23,15 +24,20 @@ const nodeOf = ({ doc }: MetricContext, nodeId: number) => doc.nodes.find((n) =>
 
 // ── Node metrics ──────────────────────────────────────────────────────────────────────────────
 
-/** Node footprint (plan) area in m²: size x × size y cells at the central cell size (3 m). */
+/**
+ * Node footprint (plan) area in m²: size x × size y cells at the central cell size (3 m). The id
+ * stays `area` (student code reads it); since boundary shifts (2026-11-24) it is labelled the
+ * NOMINAL area, beside `actual-area`.
+ */
 export const areaMetric: CatalogueMetric = {
   id: 'area',
-  label: 'Area',
+  label: 'Nominal area',
   collection: 'nodes',
   valueKind: 'number',
   unit: 'm²',
   dependsOn: ['geometry'],
-  definition: 'Plan (footprint) area of the room: cells along x × cells along y × 3 m × 3 m. The same on every storey of a multi-storey room; not summed over storeys.',
+  definition:
+    'Plan (footprint) area of the room on the 3 m grid: cells along x × cells along y × 3 m × 3 m. Boundary shifts do not change it. The same on every storey of a multi-storey room; not summed over storeys.',
   compute: (ctx, nodeId) => {
     const node = nodeOf(ctx, nodeId);
     return node ? node.size[0] * node.size[1] * CELL * CELL : null;
@@ -130,6 +136,36 @@ export const unresolvedConnectionsMetric: CatalogueMetric = {
   },
 };
 
+/** Boundary shifts read the edges' requests (topology signature) and the built relationships (resolution). */
+const SHIFT_DEPENDENCIES = ['topology', 'geometry', 'resolution'] as const;
+const shiftsOf = ({ doc, spatial }: MetricContext) => boundaryShiftsOf(doc, spatial);
+
+/** Realised plan area after applied boundary shifts (m²). */
+export const actualAreaMetric: CatalogueMetric = {
+  id: 'actual-area',
+  label: 'Actual area',
+  collection: 'nodes',
+  valueKind: 'number',
+  unit: 'm²',
+  dependsOn: SHIFT_DEPENDENCIES,
+  definition:
+    'Plan (footprint) area of the room as built: the nominal area, less 1.5 m × the shared wall length when an applied boundary shift moves the wall into this room, or plus it when the wall moves into the other room. Not summed over storeys.',
+  compute: (ctx, nodeId) => {
+    const node = nodeOf(ctx, nodeId);
+    return node ? actualArea(node, ctx.doc, shiftsOf(ctx), CELL) : null;
+  },
+};
+
+export const boundaryAdjustedMetric: CatalogueMetric = {
+  id: 'boundary-adjusted',
+  label: 'Boundary adjusted',
+  collection: 'nodes',
+  valueKind: 'boolean',
+  dependsOn: SHIFT_DEPENDENCIES,
+  definition: 'Yes when the room takes part in an APPLIED boundary shift (it gains or loses area). A room takes part in at most one.',
+  compute: (ctx, nodeId) => (nodeOf(ctx, nodeId) ? shiftsOf(ctx).byNode.has(nodeId) : null),
+};
+
 // ── Edge metrics ──────────────────────────────────────────────────────────────────────────────
 
 export const resolutionStatusMetric: CatalogueMetric = {
@@ -158,9 +194,32 @@ export const routeLengthMetric: CatalogueMetric = {
   },
 };
 
+export const boundaryShiftAppliedMetric: CatalogueMetric = {
+  id: 'boundary-shift-applied',
+  label: 'Boundary shift applied',
+  collection: 'edges',
+  valueKind: 'boolean',
+  dependsOn: SHIFT_DEPENDENCIES,
+  definition: 'Yes only when the edge requests a boundary shift AND the building applies it. A request that cannot be applied is kept, but reads No.',
+  compute: (ctx, edgeId) => shiftsOf(ctx).byEdge.get(edgeId)?.applied ?? null,
+};
+
+export const boundaryShiftStatusMetric: CatalogueMetric = {
+  id: 'boundary-shift-status',
+  label: 'Boundary shift status',
+  collection: 'edges',
+  valueKind: 'text',
+  dependsOn: SHIFT_DEPENDENCIES,
+  definition:
+    '"applied", "no-request", or why the requested shift is not applied: "stacked-rooms", "storey-mismatch", "not-touching", "partial-wall", "room-already-adjusted", "opening-conflict" or "overlapping-adjustment". Requests are resolved in stored edge order.',
+  compute: (ctx, edgeId) => shiftsOf(ctx).byEdge.get(edgeId)?.status ?? null,
+};
+
 /** The built-in catalogue, in display order (node metrics, then edge metrics). */
 export const METRIC_CATALOGUE: readonly CatalogueMetric[] = Object.freeze([
   areaMetric,
+  actualAreaMetric,
+  boundaryAdjustedMetric,
   volumeMetric,
   degreeMetric,
   hasExteriorFacadeMetric,
@@ -169,4 +228,6 @@ export const METRIC_CATALOGUE: readonly CatalogueMetric[] = Object.freeze([
   unresolvedConnectionsMetric,
   resolutionStatusMetric,
   routeLengthMetric,
+  boundaryShiftAppliedMetric,
+  boundaryShiftStatusMetric,
 ]);

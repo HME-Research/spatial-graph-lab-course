@@ -1,10 +1,11 @@
 import { gridKey, type GridCoord } from '@core/spatial';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize } from '@core/viewer/coordinates';
-import { levelRange, nodeLabel, type DesignDocumentV2, type RoomNode, type StyleValues } from '@app/document';
+import { levelRange, nodeLabel, type DesignDocumentV2, type RelationshipEdge, type RoomNode, type StyleValues } from '@app/document';
 import type { SpatialResolution } from '@app/spatial';
 import type { FacadeProvider } from './contracts';
+import { realisedFootprint, type GridRect } from './boundaryShift';
 import { buildingFacesV2 } from './buildingV2';
-import { DEFAULT_WALL_THICKNESS, axisIndex, layoutFaces, type FaceLayout, type FaceOpeningKind, type FaceRect } from './faceLayout';
+import { DEFAULT_WALL_THICKNESS, axisIndex, halfFaceRect, layoutFaces, type FaceLayout, type FaceOpeningKind, type FaceRect } from './faceLayout';
 import type { BuildingFace } from './multicellFaces';
 
 /**
@@ -44,7 +45,13 @@ export interface PlanRoom {
   /** The room id (its label). */
   readonly label: string;
   readonly function: string;
+  /** The NOMINAL box (whole cells): what room editing moves and resizes. */
   readonly rect: PlanRect;
+  /**
+   * The realised floor area (2026-11-24): `rect`, less the strip an applied boundary shift takes, or
+   * plus the strip it gains. One or two rectangles; drawn as the room's fill.
+   */
+  readonly footprint: readonly PlanRect[];
   /** First and last storey the room spans (inclusive). */
   readonly levels: readonly [number, number];
 }
@@ -79,6 +86,11 @@ export interface PlanOpening {
   readonly along: 'x' | 'y';
   /** Outward normal of the owner face in plan coordinates (unit, axis-aligned). */
   readonly normal: readonly [number, number];
+  /**
+   * Doors only (2026-11-24): the door swings into the room or corridor on the NEIGHBOUR's side of the
+   * wall (along `normal`) rather than the owner's: a door always swings into its edge's TARGET.
+   */
+  readonly intoNeighbour?: boolean;
 }
 
 export type PlanSlabKind = Extract<FaceOpeningKind, 'slab-void' | 'slab-opening' | 'access-marker'>;
@@ -149,6 +161,10 @@ export interface PlanSource {
   readonly layouts: readonly FaceLayout<BuildingFace>[];
   readonly rooms: readonly Pick<RoomNode, 'id' | 'position' | 'size' | 'function'>[];
   readonly routeCells?: readonly PlanRouteCellSource[];
+  /** The edges' targets: doors swing into their edge's target (absent: into the owner room). */
+  readonly edges?: readonly Pick<RelationshipEdge, 'id' | 'target'>[];
+  /** Realised footprints after boundary shifts (absent, or a room missing: its nominal box). */
+  readonly footprints?: ReadonlyMap<number, readonly GridRect[]>;
 }
 
 export interface PlanOptions {
@@ -173,7 +189,7 @@ export interface PlanSourceOptions extends PlanOptions {
  * be the resolution of `doc` (`DesignPort.spatial`).
  */
 export function planSourceV2(doc: DesignDocumentV2, spatial: SpatialResolution, options: PlanSourceOptions = {}): PlanSource {
-  const { faces, facade, windowLayout, walls, roof, styleKey } = buildingFacesV2(doc, spatial, options.facade, options.styleValues);
+  const { faces, facade, windowLayout, walls, roof, styleKey, shifts } = buildingFacesV2(doc, spatial, options.facade, options.styleValues);
   const layouts = layoutFaces(faces, {
     facade,
     windowLayout,
@@ -196,7 +212,8 @@ export function planSourceV2(doc: DesignDocumentV2, spatial: SpatialResolution, 
       routeCells.push({ cell, edgeId: r.edgeId, axis: r.route.axis, width: r.route.look.width });
     }
   }
-  return { layouts, rooms: doc.nodes, routeCells };
+  const footprints = new Map(doc.nodes.filter((n) => shifts.byNode.has(n.id)).map((n) => [n.id, realisedFootprint(n, doc, shifts)] as const));
+  return { layouts, rooms: doc.nodes, routeCells, edges: doc.edges, footprints };
 }
 
 /** Storeys that have a room or a connector cell, ascending. Empty for an empty design. */
@@ -237,6 +254,13 @@ function corridorRect(rect: PlanRect, route: Pick<PlanRouteCellSource, 'axis' | 
   }
   const mid = (rect.x0 + rect.x1) / 2;
   return { ...rect, x0: mid - half, x1: mid + half };
+}
+
+/** Plan rectangle of a grid-unit rectangle (`GridRect`: cell centres at whole numbers) on storey `z`. */
+function gridRect(r: GridRect, z: number, cell: CellSize): PlanRect {
+  const a = spatialToThree([r.x0, r.y0, z], cell);
+  const b = spatialToThree([r.x1, r.y1, z], cell);
+  return rectOf(a[0], b[0], a[2], b[2]);
 }
 
 /** Plan axis (0 = x, 1 = y) of a horizontal world axis (0 = X, 2 = Z). */
@@ -285,11 +309,14 @@ export function buildPlan(source: PlanSource, level: number, cutHeight: number =
   for (const room of source.rooms) {
     const levels = levelRange(room);
     if (level < levels[0] || level > levels[1]) continue;
+    const rect = boxRect(room.position, [room.size[0], room.size[1]], cell);
+    const realised = source.footprints?.get(room.id);
     rooms.push({
       nodeId: room.id,
       label: nodeLabel(room),
       function: room.function,
-      rect: boxRect(room.position, [room.size[0], room.size[1]], cell),
+      rect,
+      footprint: realised ? realised.map((r) => gridRect(r, level, cell)) : [rect],
       levels,
     });
   }
@@ -298,6 +325,7 @@ export function buildPlan(source: PlanSource, level: number, cutHeight: number =
   const openings: PlanOpening[] = [];
   const slabs: PlanSlabMark[] = [];
   const wallTargets: PlanWallTarget[] = [];
+  const targetOf = new Map((source.edges ?? []).map((e) => [e.id, e.target] as const));
 
   for (const layout of source.layouts) {
     const { face, frame } = layout;
@@ -336,11 +364,15 @@ export function buildPlan(source: PlanSource, level: number, cutHeight: number =
           rect: wallSection(layout, o.rect, wallT),
           along: planAxis(u) === 0 ? 'x' : 'y',
           normal,
+          // A door swings into its edge's target: the owner room, or what lies across the wall.
+          ...(o.kind === 'door' && o.edgeId !== null && targetOf.has(o.edgeId) && targetOf.get(o.edgeId) !== face.ownerNodeId ? { intoNeighbour: true } : {}),
         });
       });
-      if (face.neighbourNodeId !== null && face.neighbourNodeId !== face.ownerNodeId && face.via !== 'route') {
-        const a = frame.origin[u] - frame.width / 2;
-        const b = frame.origin[u] + frame.width / 2;
+      // A half given to another room by a boundary shift is not offered: that wall follows the shift.
+      if (face.neighbourNodeId !== null && face.neighbourNodeId !== face.ownerNodeId && face.via !== 'route' && !face.split?.reassigned) {
+        const extent = face.split ? halfFaceRect(frame, face.split) : { u0: -frame.width / 2, u1: frame.width / 2 };
+        const a = frame.origin[u] + extent.u0;
+        const b = frame.origin[u] + extent.u1;
         const c = frame.origin[n];
         wallTargets.push({
           faceId: face.id,

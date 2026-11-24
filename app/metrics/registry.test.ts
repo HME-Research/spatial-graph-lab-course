@@ -22,7 +22,21 @@ const moveNode = (d: DesignDocumentV2, id: number, grid: [number, number, number
 
 describe('built-in metrics', () => {
   it('registers the catalogue in display order; area and degree keep their dependencies', () => {
-    expect(BUILT_IN_METRICS.map((m) => m.id)).toEqual(['area', 'volume', 'degree', 'has-exterior-facade', 'exposed-facade-length', 'exposed-facade-area', 'unresolved-connections', 'resolution-status', 'route-length']);
+    expect(BUILT_IN_METRICS.map((m) => m.id)).toEqual([
+      'area',
+      'actual-area',
+      'boundary-adjusted',
+      'volume',
+      'degree',
+      'has-exterior-facade',
+      'exposed-facade-length',
+      'exposed-facade-area',
+      'unresolved-connections',
+      'resolution-status',
+      'route-length',
+      'boundary-shift-applied',
+      'boundary-shift-status',
+    ]);
     expect(areaMetric).toMatchObject({ collection: 'nodes', valueKind: 'number', unit: 'm²', dependsOn: ['geometry'] });
     expect(degreeMetric).toMatchObject({ collection: 'nodes', valueKind: 'number', dependsOn: ['topology'] });
   });

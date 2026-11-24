@@ -1,6 +1,6 @@
 import type { EdgeRecord, Graph, NodeRecord } from './graph';
 import type { AttributeSpecs, AttributeValue, AttributesOf, ParameterSpecs } from './attributes';
-import type { CorridorLook, GridCoord, RelationshipKind, RoomSize, SpatialEdge, SpatialNode } from './spatial';
+import type { BoundaryShift, CorridorLook, GridCoord, RelationshipKind, RoomSize, SpatialEdge, SpatialNode } from './spatial';
 import type { FunctionDefinition } from './functions';
 
 /**
@@ -278,6 +278,8 @@ export type SpatialOperation =
       readonly relationship: RelationshipKind;
       /** Optional: this relationship's own corridor look (omitted fields use the design's Corridors card). */
       readonly corridor?: CorridorLook;
+      /** Optional: a boundary-shift REQUEST (omitted or `'none'`: no request). */
+      readonly boundaryShift?: BoundaryShift;
     }
   | {
       readonly op: 'set-node-custom-attribute';
@@ -294,6 +296,16 @@ export type SpatialOperation =
       readonly key: string;
       /** Valid for the field, or null for "no value". */
       readonly value: AttributeValue;
+    }
+  | {
+      /**
+       * Request (or remove, with `'none'`) a boundary shift on an edge (2026-11-24). The request is
+       * stored even when the rooms cannot take it; read `'boundary-shift-applied'` /
+       * `'boundary-shift-status'` in a later run (or in Properties) to see whether it applies.
+       */
+      readonly op: 'set-edge-boundary-shift';
+      readonly edgeId: ItemRef;
+      readonly boundaryShift: BoundaryShift;
     }
   | {
       /** Move and/or resize a room (its box: minimum corner `position` + `size`); omitted parts stay. */

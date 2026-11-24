@@ -227,6 +227,15 @@ export function designCommandLabel(command: DesignCommand, doc: Pick<DesignDocum
       return `Edit the attributes of edge ${connection(command.edgeId)}`;
     case 'set-edge-corridor':
       return corridorPatchLabel(command.patch, `edge ${connection(command.edgeId)}`);
+    case 'reverse-edge':
+      return `Reverse edge ${connection(command.edgeId)}`;
+    case 'set-edges-boundary-shift': {
+      const n = command.edgeIds.length;
+      const what = n === 1 ? `edge ${connection(command.edgeIds[0]!)}` : `${n} edges`;
+      return command.boundaryShift === 'none'
+        ? `Remove the boundary shift of ${what}`
+        : `Shift the boundary of ${what} ${command.boundaryShift === 'toward-source' ? 'toward its source' : 'toward its target'}`;
+    }
     case 'set-corridors':
       return corridorPatchLabel(command.patch);
     case 'set-style-by':

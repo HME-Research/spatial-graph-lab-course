@@ -463,6 +463,7 @@ function PlanCanvas({
 }
 
 const rectProps = (r: PlanRect) => ({ x: r.x0, y: r.y0, width: r.x1 - r.x0, height: r.y1 - r.y0 });
+const rectPath = (r: PlanRect) => `M ${r.x0} ${r.y0} H ${r.x1} V ${r.y1} H ${r.x0} Z`;
 
 /** On-screen size (px) of a resize handle. */
 const HANDLE_PX = 10;
@@ -580,16 +581,18 @@ export function PlanDrawing({
             (emphasis.primaryNodes.has(room.nodeId) ? ' selected' : emphasis.secondaryNodes.has(room.nodeId) ? ' related' : '') +
             (lit?.has(room.nodeId) ? ' highlighted' : '') +
             (analysed?.nodes.has(room.nodeId) ? ' analysed' : '');
-          return (
-            <rect
-              key={room.nodeId}
-              className={`sgl-plan-room${cls}`}
-              data-node-id={room.nodeId}
-              style={{ '--sgl-plan-type': functionColour(room.function) } as CSSProperties}
-              {...rectProps(room.rect)}
-              {...activate(selectNode(room.nodeId))}
-              aria-label={`Room ${room.label}`}
-            />
+          const common = {
+            className: `sgl-plan-room${cls}`,
+            'data-node-id': room.nodeId,
+            style: { '--sgl-plan-type': functionColour(room.function) } as CSSProperties,
+            ...activate(selectNode(room.nodeId)),
+            'aria-label': `Room ${room.label}`,
+          };
+          // The realised floor (2026-11-24): one rectangle, or the box and the strip a boundary shift adds.
+          return room.footprint.length === 1 ? (
+            <rect key={room.nodeId} {...common} {...rectProps(room.footprint[0]!)} />
+          ) : (
+            <path key={room.nodeId} {...common} d={room.footprint.map(rectPath).join(' ')} />
           );
         })}
       </g>
@@ -663,8 +666,10 @@ export function PlanDrawing({
 
       <g className="sgl-plan-labels" aria-hidden="true">
         {plan.rooms.map((room) => {
-          const cx = (room.rect.x0 + room.rect.x1) / 2;
-          const cy = (room.rect.y0 + room.rect.y1) / 2;
+          // Centred in the largest part of the realised floor.
+          const main = room.footprint.reduce((a, b) => ((b.x1 - b.x0) * (b.y1 - b.y0) > (a.x1 - a.x0) * (a.y1 - a.y0) ? b : a));
+          const cx = (main.x0 + main.x1) / 2;
+          const cy = (main.y0 + main.y1) / 2;
           const span = room.levels[0] === room.levels[1] ? null : `L${room.levels[0]}–L${room.levels[1]}`;
           return (
             <text key={room.nodeId} x={cx} y={cy} fontSize={labelSize} textAnchor="middle" dominantBaseline="central">

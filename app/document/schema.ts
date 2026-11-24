@@ -7,6 +7,8 @@ import {
   functionIdSchema,
 } from './primitives';
 import {
+  BOUNDARY_SHIFTS,
+  type BoundaryShift,
   DEFAULT_ROOM_SIZE,
   FACADE_ASSET_REF_PATTERN,
   FACADE_PLACEMENTS,
@@ -62,7 +64,11 @@ export const relationshipKindSchema = z.enum(RELATIONSHIP_KINDS, {
   error: `relationship must be one of: ${RELATIONSHIP_KINDS.join(', ')}`,
 });
 
-export const windowLayoutSchema = z.enum(WINDOW_LAYOUTS, { error: `windowLayout must be one of: ${WINDOW_LAYOUTS.join(', ')}` });
+export const boundaryShiftSchema = z.enum(BOUNDARY_SHIFTS, {
+  error: `boundaryShift must be one of: ${BOUNDARY_SHIFTS.join(', ')}`,
+});
+
+export const windowLayoutSchema =z.enum(WINDOW_LAYOUTS, { error: `windowLayout must be one of: ${WINDOW_LAYOUTS.join(', ')}` });
 
 export const wallStyleSchema = z.enum(WALL_STYLES, { error: `walls must be one of: ${WALL_STYLES.join(', ')}` });
 
@@ -110,6 +116,11 @@ export const relationshipEdgeSchema = z.strictObject({
   relationship: relationshipKindSchema,
   /** This relationship's own corridor walls / roof / width (Properties); absent fields use the design's. */
   corridor: corridorLookSchema.optional(),
+  /**
+   * Requested boundary shift (additive 2026-11-24): absent = `none`. Only a request: whether it is
+   * applied is derived from the geometry (`resolveBoundaryShifts`, app/building), never stored.
+   */
+  boundaryShift: boundaryShiftSchema.optional(),
   /** The edge's custom attributes. */
   custom: attributesSchema.default({}),
 });
@@ -245,6 +256,9 @@ export const designDocumentV2Schema = z
 export type RoomSize = z.infer<typeof sizeSchema>;
 export type RoomNode = z.infer<typeof roomNodeSchema>;
 export type RelationshipEdge = z.infer<typeof relationshipEdgeSchema>;
+
+/** The edge's requested boundary shift (absent = `none`). */
+export const boundaryShiftOf = (edge: { readonly boundaryShift?: BoundaryShift | undefined }): BoundaryShift => edge.boundaryShift ?? 'none';
 export type Look = z.infer<typeof lookSchema>;
 export type StyleBy = z.infer<typeof styleBySchema>;
 export type StyleGroup = z.infer<typeof styleGroupSchema>;

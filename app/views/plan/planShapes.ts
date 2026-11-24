@@ -23,14 +23,17 @@ const fmt = (n: number) => String(Math.round(n * 1e4) / 1e4);
 const p = (q: Pt) => `${fmt(q[0])} ${fmt(q[1])}`;
 
 /**
- * Door leaf and quarter-circle swing, drawn on the owner room's side (opposite the face's outward
- * normal), hinged at the opening's start jamb. Returns SVG path data.
+ * Door leaf and quarter-circle swing, hinged at the opening's start jamb. Returns SVG path data.
+ * The door swings into its edge's TARGET (2026-11-24): the owner room's side (opposite the face's
+ * outward normal), or the neighbour's side when `intoNeighbour` is set. Reversing the edge
+ * reverses the swing.
  */
-export function doorSwingPath(o: Pick<PlanOpening, 'rect' | 'along' | 'normal' | 'width'>): string {
+export function doorSwingPath(o: Pick<PlanOpening, 'rect' | 'along' | 'normal' | 'width' | 'intoNeighbour'>): string {
   const { a0, a1, c0, c1, pt } = frameOf(o);
   const n = o.along === 'x' ? o.normal[1] : o.normal[0];
-  // Inner face of the wall on the owner's side, and the direction into the owner room.
-  const inward = n > 0 ? -1 : 1;
+  // Inner face of the wall on the side the door swings into, and the direction into that room.
+  const towardNormal = n > 0 ? 1 : -1;
+  const inward = o.intoNeighbour ? towardNormal : -towardNormal;
   const c = inward < 0 ? c0 : c1;
   const hinge = pt(a0, c);
   const leafEnd = pt(a0, c + inward * o.width);

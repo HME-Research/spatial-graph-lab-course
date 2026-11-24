@@ -1,6 +1,6 @@
 import type { GridCoord } from '@app/document';
 import { DEFAULT_CELL_SIZE, spatialToThree, type CellSize, type WorldPoint } from '@core/viewer/coordinates';
-import { FACE_DIRECTION_OFFSETS, type FaceCondition, type FaceDirection, type FaceOrientation, type FacadeProvider, type ResolvedFace } from './contracts';
+import { FACE_DIRECTION_OFFSETS, type FaceCondition, type FaceDirection, type FaceOrientation, type FacadeProvider, type FaceSplit, type ResolvedFace } from './contracts';
 import { clampWindowFraction, exampleFacadeProvider } from './facade';
 
 /**
@@ -299,6 +299,9 @@ export function stretchWindows(faces: readonly ResolvedFace[], options: FaceLayo
   for (const face of faces) {
     if (face.orientation !== 'wall' || face.condition !== 'exterior' || layoutOf(styleKeyOf(face, options)) !== 'stretch') continue;
     if (options.walls?.(styleKeyOf(face, options)) === 'open') continue;
+    // Faces moved or halved by a boundary shift are not whole bays of the façade plane: each is
+    // laid out on its own (a moved face as a façade of one bay, a half with a Repeat-style window).
+    if (face.planeOffset !== undefined || face.split !== undefined) continue;
     const frame = frameFor(face.direction, faceCentre(face.cell, face.direction, cell), cell, wallT);
     const key = `${face.ownerNodeId}\u0000${face.direction}`;
     const bays = groups.get(key) ?? [];
@@ -372,7 +375,8 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
   const cell = options.cell ?? DEFAULT_CELL_SIZE;
   const facade = options.facade ?? exampleFacadeProvider;
   const wallT = options.wallThickness ?? DEFAULT_WALL_THICKNESS;
-  const frame = frameFor(face.direction, faceCentre(face.cell, face.direction, cell), cell, wallT);
+  const frame = offsetFrame(frameFor(face.direction, faceCentre(face.cell, face.direction, cell), cell, wallT), face.planeOffset);
+  if (face.split) return layoutHalfFace(face, face.split, frame, options);
   const panel = fullFaceRect(frame);
   const solids: FaceRect[] = [];
   const facadeStrips: number[] = [];
@@ -511,6 +515,89 @@ export function layoutFace<F extends ResolvedFace>(face: F, options: FaceLayoutO
     ...(facadeStrips.length > 0 ? { facadeStrips } : {}),
     ...(internalStrips.length > 0 ? { internalStrips } : {}),
   };
+}
+
+/** `frame` moved `offset` metres along its outward normal (a wall moved by a boundary shift). */
+function offsetFrame(frame: FaceFrame, offset: number | undefined): FaceFrame {
+  if (offset === undefined || offset === 0) return frame;
+  const o = frame.origin;
+  const n = frame.normal;
+  return { ...frame, origin: [o[0] + n[0] * offset, o[1] + n[1] * offset, o[2] + n[2] * offset] };
+}
+
+/** The part of the full panel a half face covers (see `ResolvedFace.split`). */
+export function halfFaceRect(frame: Pick<FaceFrame, 'width' | 'height'>, split: Pick<FaceSplit, 'axis' | 'side'>): FaceRect {
+  const full = fullFaceRect(frame);
+  if (split.axis === 'u') return split.side < 0 ? { ...full, u1: 0 } : { ...full, u0: 0 };
+  return split.side < 0 ? { ...full, v1: 0 } : { ...full, v0: 0 };
+}
+
+/**
+ * Layout of one HALF of a unit face beside a wall moved by a boundary shift (2026-11-24). The same
+ * rules as a whole face, fitted to the half bay: an exterior wall gets a Repeat-style window that
+ * glazes `windowFraction` of the half bay (Stretch windows and imported modules do not span half
+ * bays), or the open-sided posts at its two edges; a door is centred in the half (a door is never
+ * wider than half a cell); an Open half has no wall; a slab half is a plain slab, or pergola slats on
+ * an exposed top. Slab openings never occur on a half (the shift is refused instead).
+ */
+function layoutHalfFace<F extends ResolvedFace>(face: F, split: FaceSplit, frame: FaceFrame, options: FaceLayoutOptions): FaceLayout<F> {
+  const cell = options.cell ?? DEFAULT_CELL_SIZE;
+  const facade = options.facade ?? exampleFacadeProvider;
+  const area = halfFaceRect(frame, split);
+  const cu = (area.u0 + area.u1) / 2;
+  const solids: FaceRect[] = [];
+  const openings: FaceOpening[] = [];
+  const key = styleKeyOf(face, options);
+  const posts = () => {
+    const p = OPENING_PROPORTIONS.postWidth;
+    solids.push({ ...area, u1: area.u0 + p }, { ...area, u0: area.u1 - p });
+  };
+  if (face.orientation === 'wall') {
+    switch (face.condition) {
+      case 'exterior': {
+        if (options.walls?.(key) === 'open') {
+          if ((options.roof?.(key) ?? 'flat') !== 'none') posts();
+          break;
+        }
+        const f = clampWindowFraction(facade(key).windowFraction);
+        if (f <= 0) {
+          solids.push(area);
+          break;
+        }
+        const s = Math.sqrt(f);
+        const w = ((cell.horizontal / 2) * s) / 2;
+        const h = (cell.vertical * s) / 2;
+        const hole = { u0: cu - w, u1: cu + w, v0: -h, v1: h };
+        solids.push(...rectsAroundHole(area, hole));
+        openings.push({ kind: 'window', rect: hole, edgeId: null });
+        break;
+      }
+      case 'door': {
+        const d = doorRect(cell);
+        const hole = { ...d, u0: cu + d.u0, u1: cu + d.u1 };
+        solids.push(...rectsAroundHole(area, hole));
+        openings.push({ kind: 'door', rect: hole, edgeId: face.edgeId });
+        break;
+      }
+      case 'open':
+        openings.push({ kind: 'open', rect: area, edgeId: face.edgeId });
+        break;
+      default:
+        solids.push(area);
+    }
+  } else if (face.condition === 'exterior' && face.direction === '+z' && options.roof?.(key) === 'pergola') {
+    // Slats run along v, spaced across u: a half along u has half as many.
+    const n = split.axis === 'u' ? OPENING_PROPORTIONS.pergolaSlats / 2 : OPENING_PROPORTIONS.pergolaSlats;
+    const w = cell.horizontal * OPENING_PROPORTIONS.pergolaSlatFraction;
+    const step = (area.u1 - area.u0 - w) / (n - 1);
+    for (let k = 0; k < n; k++) {
+      const u0 = area.u0 + k * step;
+      solids.push({ u0, u1: u0 + w, v0: area.v0, v1: area.v1 });
+    }
+  } else {
+    solids.push(area);
+  }
+  return { faceId: face.id, face, frame, solids, openings };
 }
 
 /** Layout of every face, in input order. Pure and deterministic. */

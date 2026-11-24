@@ -41,13 +41,11 @@
   outline: 2px solid #2c5d8f;
   outline-offset: 2px;
 }
+/* Placed in the window by HelpTip (`placeBubble`): never clipped by a scrolling pane or covered by a viewport. */
 .sgl-helptip-hint,
 .sgl-helptip-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
+  position: fixed;
+  z-index: 2000;
   width: max-content;
   max-width: min(280px, 80vw);
   padding: 6px 8px;

@@ -64,6 +64,7 @@ const UNAVAILABLE_TEXT: Readonly<Record<Extract<WallAction, { kind: 'not-eligibl
   route: 'This wall faces a generated connector, not another room.',
   interior: 'This boundary lies inside one room.',
   'unknown-face': 'This wall is no longer shared by two rooms.',
+  'boundary-shift': 'This part of the wall comes from a boundary shift. Select the shifted edge, or click the rest of the wall.',
 };
 
 /** Index of a face list by id (one per design; reuse it for many lookups). */

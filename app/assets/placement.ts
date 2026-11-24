@@ -68,7 +68,7 @@ export interface FacadeModuleOptions {
   readonly wallThickness?: number;
 }
 
-type WallFace = Pick<ResolvedFace, 'id' | 'ownerNodeId' | 'ownerFunction' | 'cell' | 'direction' | 'orientation' | 'condition' | 'neighbourNodeId' | 'edgeId' | 'outside'>;
+type WallFace = Pick<ResolvedFace, 'id' | 'ownerNodeId' | 'ownerFunction' | 'cell' | 'direction' | 'orientation' | 'condition' | 'neighbourNodeId' | 'edgeId' | 'outside' | 'split' | 'planeOffset'>;
 
 const isVariant = (condition: string): condition is FacadeVariantKind => (FACADE_VARIANTS as readonly string[]).includes(condition);
 
@@ -155,7 +155,8 @@ export function layoutFacadeModules(
     return size;
   };
 
-  const eligible = faces.filter((f) => f.orientation === 'wall' && f.condition === 'exterior' && moduleOf(f.ownerNodeId) !== null);
+  // A half bay beside a wall moved by a boundary shift (2026-11-24) keeps the automatic wall and window.
+  const eligible = faces.filter((f) => f.orientation === 'wall' && f.condition === 'exterior' && !f.split && moduleOf(f.ownerNodeId) !== null);
   const frames = new Map<string, FaceFrame>();
   const frameOf = (face: WallFace): FaceFrame => {
     let frame = frames.get(face.id);
@@ -214,7 +215,7 @@ export function layoutFacadeModules(
 
   // Door / Open bays on the façade: the function's variant module, one per bay (if set).
   for (const face of faces) {
-    if (face.orientation !== 'wall' || !face.outside || !isVariant(face.condition)) continue;
+    if (face.orientation !== 'wall' || !face.outside || !isVariant(face.condition) || face.split) continue;
     const module = moduleOf(face.ownerNodeId);
     const variant = module?.[face.condition];
     if (!variant) continue;

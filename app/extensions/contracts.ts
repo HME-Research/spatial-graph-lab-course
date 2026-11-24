@@ -1,6 +1,7 @@
 import type { FacadeSpec } from '@app/building';
 import type {
   AttributeValue as DocumentAttributeValue,
+  BoundaryShift as DocumentBoundaryShift,
   CorridorLook as DocumentCorridorLook,
   GridCoord as DocumentGridCoord,
   RelationshipEdge,
@@ -13,6 +14,7 @@ import type {
 import type { ComputedMetric, MetricValue, MetricValueKind } from '@app/metrics';
 import type {
   AttributeValue,
+  BoundaryShift,
   CorridorLook,
   CorridorRoof,
   CorridorWalls,
@@ -42,6 +44,7 @@ export const contractGuards = {
   corridorRoof: true satisfies Equals<CorridorRoof, RoofStyle>,
   corridorLookKeys: true satisfies Equals<keyof CorridorLook, keyof DocumentCorridorLook>,
   corridorLookAssignable: true satisfies (DocumentCorridorLook extends CorridorLook ? true : false),
+  boundaryShift: true satisfies Equals<BoundaryShift, DocumentBoundaryShift>,
   facade: true satisfies Equals<keyof FacadeParameters, keyof FacadeSpec>,
   facadeValue: true satisfies Equals<FacadeParameters['windowFraction'], FacadeSpec['windowFraction']>,
   gridCoord: true satisfies Equals<Mutable<GridCoord>, DocumentGridCoord>,

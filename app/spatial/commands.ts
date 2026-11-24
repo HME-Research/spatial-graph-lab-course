@@ -3,6 +3,7 @@ import type { GridCoord } from '@core/spatial';
 import {
   type Attributes,
   bandIndex,
+  type BoundaryShift,
   settleDiagramPositions,
   canonicalFacadeModule,
   type CorridorLook,
@@ -63,6 +64,8 @@ export interface NewRelationship {
   readonly relationship?: RelationshipKind;
   /** Its own corridor walls / roof (absent fields use the design's Corridors card). */
   readonly corridor?: CorridorLook;
+  /** Requested boundary shift (absent or `none`: no request). */
+  readonly boundaryShift?: BoundaryShift;
   readonly custom?: Attributes;
 }
 
@@ -159,6 +162,16 @@ export type DesignCommand =
    * clears a field (the design's Corridors card applies). An empty result removes `corridor`.
    */
   | { readonly type: 'set-edge-corridor'; readonly edgeId: number; readonly patch: CorridorPatch }
+  /**
+   * Swap the edge's source and target (2026-11-24). Same id, kind, corridor, custom values and
+   * boundary-shift REQUEST (a `toward-source` request then moves the wall into the other room).
+   */
+  | { readonly type: 'reverse-edge'; readonly edgeId: number }
+  /**
+   * The requested boundary shift of one or more edges (2026-11-24). Stored whether or not the
+   * geometry can apply it; `none` removes the stored field.
+   */
+  | { readonly type: 'set-edges-boundary-shift'; readonly edgeIds: readonly number[]; readonly boundaryShift: BoundaryShift }
   /**
    * The Corridors look card (Building Designer, 2026-11-19): walls and roof of every corridor. Only
    * the fields given change; `null` clears a field (built-in default). An empty result removes `corridors`.
@@ -324,9 +337,26 @@ export function applyDesignCommand(
         target: e.target,
         relationship: e.relationship ?? DEFAULT_RELATIONSHIP_KIND,
         ...(corridor ? { corridor } : {}),
+        ...(e.boundaryShift !== undefined && e.boundaryShift !== 'none' ? { boundaryShift: e.boundaryShift } : {}),
         custom: { ...e.custom },
       };
       return validate({ ...doc, nextEdgeId: id + 1, edges: [...doc.edges, edge] });
+    }
+    case 'reverse-edge':
+      return mapEdge(command.edgeId, (e) => ({ ...e, source: e.target, target: e.source }));
+    case 'set-edges-boundary-shift': {
+      const ids = new Set(command.edgeIds);
+      if (ids.size === 0) return fail([issue(['edges'], 'schema', 'no edges were chosen')]);
+      for (const id of ids) if (!hasEdge(id)) return notFound('edge', id);
+      const shift = command.boundaryShift;
+      return validate({
+        ...doc,
+        edges: doc.edges.map((e) => {
+          if (!ids.has(e.id)) return e;
+          const { boundaryShift: _old, ...rest } = e;
+          return shift === 'none' ? rest : { ...rest, boundaryShift: shift };
+        }),
+      });
     }
     case 'remove-edge':
       if (!hasEdge(command.edgeId)) return notFound('edge', command.edgeId);

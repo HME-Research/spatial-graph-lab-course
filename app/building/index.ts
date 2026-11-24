@@ -6,6 +6,8 @@ export * from './resolve';
 export * from './buildingV2';
 export * from './connectorGeometry';
 export * from './multicellFaces';
+// Boundary shifts (2026-11-24): requests resolved in stored edge order; realised footprints and faces.
+export * from './boundaryShift';
 export * from './roofGeometry';
 // Gate F (F-C): one face layout shared by Building and Plan; wall runs; face interaction.
 export * from './faceLayout';

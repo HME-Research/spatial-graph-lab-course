@@ -12,7 +12,7 @@ import type { SpatialResolution } from '@app/spatial';
 /**
  * What a metric reads. The evaluator reuses a cached value while every declared dependency is
  * unchanged, so `dependsOn` must list everything `compute` reads:
- * - `topology`: node ids and edges (id, source, target, kind);
+ * - `topology`: node ids and edges (id, source, target, kind, requested boundary shift);
  * - `geometry`: each node's `position` and `size`;
  * - `types`: each node's `function`;
  * - `attributes`: node and edge custom `attributes`;

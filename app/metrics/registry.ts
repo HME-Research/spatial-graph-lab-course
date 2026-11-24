@@ -12,7 +12,8 @@ type DocumentDependency = Exclude<MetricDependency, 'resolution'>;
 const signatureCache = new WeakMap<DesignDocumentV2, Partial<Record<DocumentDependency, string>>>();
 
 const SIGNATURE_TEXT: Readonly<Record<DocumentDependency, (doc: DesignDocumentV2) => unknown>> = {
-  topology: (doc) => [doc.nodes.map((n) => n.id), doc.edges.map((e) => [e.id, e.source, e.target, e.relationship])],
+  // The boundary-shift request is edge data that changes built geometry (2026-11-24).
+  topology: (doc) => [doc.nodes.map((n) => n.id), doc.edges.map((e) => [e.id, e.source, e.target, e.relationship, e.boundaryShift ?? 'none'])],
   geometry: (doc) => doc.nodes.map((n) => [n.id, n.position, n.size]),
   types: (doc) => doc.nodes.map((n) => [n.id, n.function]),
   attributes: (doc) => [doc.nodes.map((n) => [n.id, n.custom]), doc.edges.map((e) => [e.id, e.custom])],

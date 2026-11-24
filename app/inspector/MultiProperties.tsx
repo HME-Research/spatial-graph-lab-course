@@ -1,5 +1,5 @@
-import { useContext, useMemo, type ReactNode } from 'react';
-import { designCorridorLook, formatCorridorWidth, nodeLabel, parseCorridorWidth, type AttributeValue, type CorridorLook, type RelationshipKind } from '@app/document';
+﻿import { useContext, useMemo, type ReactNode } from 'react';
+import { boundaryShiftOf, designCorridorLook, formatCorridorWidth, nodeLabel, parseCorridorWidth, type AttributeValue, type BoundaryShift, type CorridorLook, type RelationshipKind } from '@app/document';
 import { AttributeSection } from '@app/attributes/AttributeSection';
 import { sourceResolver } from '@app/attributes/attributeSources';
 import { decodeChoice, encodeChoice, EXPLICIT_NONE, INHERIT, parseValueDraft } from '@app/attributes/attributesModel';
@@ -18,7 +18,7 @@ import { multiFieldCommand, resolveMulti, sharedValue, storedStateOf, storedStat
 import { messageContextFor, useCommands, type PanelProps } from './panelSupport';
 import { relationshipLabelIn, typeMenu } from './propertiesModel';
 
-/** `<select>` value of the disabled "Mixed (…)" placeholder. */
+/** `<select>` value of the disabled "Mixed (â€¦)" placeholder. */
 const MIXED = '\u0000mixed';
 const mixedText = (values: readonly string[]) => `Mixed (${values.join(', ')})`;
 
@@ -28,9 +28,9 @@ type Send = (command: DesignCommand | null) => boolean;
 /**
  * Properties of several selected nodes and/or edges (2026-11-23: box selection / Ctrl-click in
  * Graph 2D). Every attribute that Properties edits for ONE node or edge is offered, except Position
- * and Size (several rooms cannot take one place): nodes → Function and the custom attributes
- * (project and toolkit); edges → Relationship, Corridor (walls, roof, width) and the custom
- * attributes. A control shows the value all selected items share, or "Mixed (…)"; a change gives
+ * and Size (several rooms cannot take one place): nodes â†’ Function and the custom attributes
+ * (project and toolkit); edges â†’ Relationship, Corridor (walls, roof, width) and the custom
+ * attributes. A control shows the value all selected items share, or "Mixed (â€¦)"; a change gives
  * every selected item that value as ONE command (one Undo step). Then Delete.
  */
 export function MultiProperties(props: PanelProps & { readonly nodeIds: readonly number[]; readonly edgeIds: readonly number[] }) {
@@ -71,7 +71,7 @@ export function MultiProperties(props: PanelProps & { readonly nodeIds: readonly
         <h4>{count} selected</h4>
         <p className="sgl-help">
           A change applies to every selected {nodeCount && edgeCount ? 'node or edge' : nodeCount ? 'node' : 'edge'} as one undo step. Position and Size
-          are edited one node at a time. Ctrl/⌘-click adds or removes an item; Esc clears the selection.
+          are edited one node at a time. Ctrl/âŒ˜-click adds or removes an item; Esc clears the selection.
         </p>
         {nodeCount > 0 && (
           <ItemLinks title="Nodes">
@@ -159,6 +159,9 @@ export function MultiProperties(props: PanelProps & { readonly nodeIds: readonly
             <RelationshipRow edges={edges} onChange={(relationship) => send({ type: 'set-edges-kind', edgeIds, relationship })} />
           </AttributeSection>
           <AttributeSection section="geometry" {...(!(schema && schema.edges.length > 0) && manageLink('edges'))}>
+            <BoundaryShiftRow edges={edges} onChange={(boundaryShift) => send({ type: 'set-edges-boundary-shift', edgeIds, boundaryShift })} />
+          </AttributeSection>
+          <AttributeSection section="corridor">
             <CorridorRow
               edges={edges}
               designLook={designCorridorLook(design.doc.settings)}
@@ -236,6 +239,37 @@ function RelationshipRow({ edges, onChange }: { readonly edges: readonly { reado
   );
 }
 
+const SHIFT_CHOICES: readonly { readonly value: BoundaryShift; readonly label: string }[] = [
+  { value: 'none', label: 'No shift' },
+  { value: 'toward-source', label: 'Toward source' },
+  { value: 'toward-target', label: 'Toward target' },
+];
+
+/** The selected edges' requested boundary shift (2026-11-24): one choice gives it to every selected edge. */
+function BoundaryShiftRow({ edges, onChange }: { readonly edges: readonly { readonly boundaryShift?: BoundaryShift | undefined }[]; readonly onChange: (shift: BoundaryShift) => void }) {
+  const shared = sharedValue(edges.map(boundaryShiftOf), (s) => SHIFT_CHOICES.find((c) => c.value === s)?.label ?? s);
+  const current = shared.kind === 'same' ? shared.value : null;
+  return (
+    <FieldRow
+      attributeId="boundaryShift"
+      kind="geometry"
+      label="Boundary shift"
+      title="A request to move each edge's shared wall 1.5 m into its source or target room. Requests that cannot be applied are kept; select one edge to see whether it applies and why."
+      control={
+        <div className="sgl-segmented sgl-segmented-3" role="radiogroup" aria-label="Boundary shift of the selected edges">
+          {SHIFT_CHOICES.map((c) => (
+            <label key={c.value} className={current === c.value ? 'checked' : undefined}>
+              <input type="radio" name="multi-boundary-shift" value={c.value} checked={current === c.value} onChange={() => current !== c.value && onChange(c.value)} />
+              {c.label}
+            </label>
+          ))}
+        </div>
+      }
+      {...(shared.kind === 'mixed' && { meta: <span className="sgl-field-src sgl-field-src-none">{mixedText(shared.values)}</span> })}
+    />
+  );
+}
+
 /** The selected edges' own corridor walls, roof and width (empty = Design default). */
 function CorridorRow({
   edges,
@@ -285,8 +319,8 @@ function CorridorRow({
     <FieldRow
       attributeId="corridor"
       kind="geometry"
-      label="Corridor"
-      title="The selected edges’ own corridor look: walls, roof and width. Used only when a corridor is generated; Design default follows the Corridors card (Building Designer → Corridors)."
+      label="Look"
+      title="The selected edgesâ€™ own corridor look: walls, roof and width. Used only when a corridor is generated; Design default follows the Corridors card (Building Designer â†’ Corridors)."
       control={
         <div className="sgl-corridor">
           {field('walls', 'Walls', CORRIDOR_WALL_CHOICES)}
@@ -311,7 +345,7 @@ function CorridorRow({
               />
               {!(widths.kind === 'same' && widths.value === null) && (
                 <button type="button" className="sgl-link" title="Use the design default width for every selected edge" aria-label="Use the design default width" onClick={() => onPatch({ width: null })}>
-                  ↺
+                  â†º
                 </button>
               )}
             </span>
@@ -463,7 +497,7 @@ function MultiFieldValue({
           {chip}
         </span>
         {anyOwn && (
-          <button type="button" className="sgl-link" onClick={() => apply(undefined)} title="Remove the selected items’ own values; each one’s default applies again">
+          <button type="button" className="sgl-link" onClick={() => apply(undefined)} title="Remove the selected itemsâ€™ own values; each oneâ€™s default applies again">
             Use default
           </button>
         )}

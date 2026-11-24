@@ -61,6 +61,9 @@ export interface EdgePresentation {
   readonly status: EdgeStatus;
   /** Short label (shown only when the edge is selected, to keep the canvas quiet). */
   readonly label: string;
+  /** Display labels of the source and target nodes (orientation, 2026-11-24). */
+  readonly source: string;
+  readonly target: string;
   /** One- or two-line tooltip: intent, status and, when unresolved, why. */
   readonly title: string;
 }
@@ -88,7 +91,9 @@ export function presentEdge(model: DiagramModel, edge: DiagramEdge): EdgePresent
     ...relationshipStroke(kind, status),
     status: resolution ? status : 'legacy',
     label: `${RELATIONSHIP_KIND_LABELS[kind]}${resolution ? ` · ${STATUS_LABELS[status]}` : ''}`,
-    title: `${pair}: ${RELATIONSHIP_KIND_LABELS[kind]}${resolution ? ` — ${STATUS_LABELS[status].toLowerCase()}` : ''}${why}`,
+    title: `${pair}: ${RELATIONSHIP_KIND_LABELS[kind]}${resolution ? ` — ${STATUS_LABELS[status].toLowerCase()}` : ''}${why}\nSource ${a} → target ${b}`,
+    source: String(a),
+    target: String(b),
   };
 }
 

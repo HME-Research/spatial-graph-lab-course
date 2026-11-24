@@ -61,12 +61,16 @@ export const BUILT_IN_INFO: Readonly<Record<AttributeCollection, Readonly<Record
   },
   edges: {
     id: { typeText: 'Number', info: 'The edge’s permanent number. The app gives it when the edge is created; it never changes and is never reused.' },
-    source: { typeText: 'Node', info: 'The node the edge starts from. It never changes: to join other nodes, add another edge.' },
-    target: { typeText: 'Node', info: 'The node the edge leads to. It never changes: to join other nodes, add another edge.' },
+    source: { typeText: 'Node', info: 'The node the edge starts from. Reverse the edge (Properties, or the ⇄ button on a selected edge in Graph 2D) to swap source and target; to join other nodes, add another edge.' },
+    target: { typeText: 'Node', info: 'The node the edge leads to: a door swings into the target. Reverse the edge to swap source and target; to join other nodes, add another edge.' },
     relationship: { typeText: 'Choice', info: 'Access (a door or floor opening) or Open (no wall between the rooms). Choose it in Properties.' },
     corridor: {
       typeText: 'Choices walls | roof',
       info: 'How this edge’s corridor looks: walls Enclosed or Open, roof Flat, Pergola or None. Used only when a corridor is generated (the rooms do not touch). Not set: the design’s Corridors card applies. Edit it in Properties or the Data table.',
+    },
+    boundaryShift: {
+      typeText: 'Choice',
+      info: 'A request to move the wall the two rooms share 1.5 m into the source or the target room: No shift, Toward source or Toward target. It is applied only when the geometry allows (Properties shows why not); the grid, positions and sizes never change. Edit it in Properties.',
     },
   },
 };

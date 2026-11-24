@@ -20,6 +20,20 @@ export type RelationshipKind = (typeof RELATIONSHIP_KINDS)[number];
 export const DEFAULT_RELATIONSHIP_KIND: RelationshipKind = 'access';
 
 /**
+ * Boundary shift (additive 2026-11-24): a REQUEST stored on an edge to move the wall its two rooms
+ * share by `BOUNDARY_SHIFT_DISTANCE` into one of them. `toward-source` moves it into the source
+ * room (the source loses area, the target gains it); `toward-target` the other way. Absent = `none`.
+ * The request is kept even when the geometry cannot apply it; whether it is applied is derived
+ * (`resolveBoundaryShifts`, app/building), never stored. Reversing an edge keeps the stored value,
+ * so the wall then moves into the other room.
+ */
+export const BOUNDARY_SHIFTS = ['none', 'toward-source', 'toward-target'] as const;
+export type BoundaryShift = (typeof BOUNDARY_SHIFTS)[number];
+export const DEFAULT_BOUNDARY_SHIFT: BoundaryShift = 'none';
+/** How far a boundary shift moves the shared wall, in metres: half a grid cell (1.5 m). */
+export const BOUNDARY_SHIFT_DISTANCE: number = GRID_CELL_SIZE.horizontal / 2;
+
+/**
  * Roof of a node type's exposed upward faces (per design, per type). `flat` is the default;
  * `pergola` (additive 2026-11-17) is a roof of open slats; `none` leaves the top open (the pre-v2
  * "open-top" inspection look). Roofs are only ever generated on exposed upward faces, never

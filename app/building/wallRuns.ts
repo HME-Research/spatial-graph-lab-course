@@ -23,7 +23,7 @@ export interface WallRun {
   readonly end: GridCoord;
 }
 
-type WallFace = Pick<BuildingFace, 'id' | 'ownerNodeId' | 'cell' | 'direction' | 'orientation' | 'condition'>;
+type WallFace = Pick<BuildingFace, 'id' | 'ownerNodeId' | 'cell' | 'direction' | 'orientation' | 'condition' | 'split'>;
 
 /** Position of a wall face along its layout u axis (see faceLayout.ts: ±x → Three +Z = grid −y). */
 const alongU = (face: WallFace): number => (face.direction === '+x' || face.direction === '-x' ? -face.cell[1] : face.cell[0]);
@@ -40,6 +40,8 @@ export function groupWallRuns(faces: readonly WallFace[]): WallRun[] {
   const groups = new Map<string, WallFace[]>();
   for (const face of faces) {
     if (face.orientation !== 'wall' || face.condition !== 'exterior') continue;
+    // A half bay beside a wall moved by a boundary shift is not a whole bay of a run.
+    if (face.split) continue;
     const key = JSON.stringify([face.ownerNodeId, face.cell[2], face.direction, planeOf(face)]);
     const list = groups.get(key);
     if (list) list.push(face);

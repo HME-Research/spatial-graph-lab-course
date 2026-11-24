@@ -112,7 +112,7 @@ describe('unified attribute list', () => {
       'geometry:Size:Numbers x | y | z',
       'custom:Capacity:Number',
       'custom:Public:Yes/No',
-      'calculated:Area:Calculated',
+      'calculated:Nominal area:Calculated',
       'calculated:Degree:Calculated',
     ]);
     // Membership and order follow sections.ts exactly.
@@ -128,7 +128,7 @@ describe('unified attribute list', () => {
     const rows = attributeRows('edges', schema, [...DEFAULT_ENABLED_METRICS, 'resolution-status']);
     expect(rows.slice(0, 4).map((r) => `${r.kind}:${r.name}`)).toEqual(['identity:ID', 'identity:Source', 'identity:Target', 'required:Relationship']);
     expect(rows.filter((r) => r.kind === 'required')).toHaveLength(1);
-    expect(rows.filter((r) => r.kind === 'geometry').map((r) => `${r.id}:${r.name}`)).toEqual(['corridor:Corridor']);
+    expect(rows.filter((r) => r.kind === 'geometry').map((r) => `${r.id}:${r.name}`)).toEqual(['corridor:Corridor', 'boundaryShift:Boundary shift']);
     expect(rows.filter((r) => r.kind !== 'custom' && r.kind !== 'calculated').map((r) => r.id)).toEqual(EDGE_BUILT_IN_ATTRIBUTES.map((a) => a.id));
     expect(rows.map((r) => r.name)).toContain('Weight');
     expect(rows.find((r) => r.kind === 'calculated')).toMatchObject({ id: 'resolution-status' });
@@ -150,8 +150,8 @@ describe('names and identifiers', () => {
     expect(attributeNameProblem('capacity ', 'nodes', schema)).toMatch(/already an attribute called “Capacity”/);
     expect(attributeNameProblem('Capacity', 'nodes', schema, 'capacity')).toBeNull(); // its own name
     expect(attributeNameProblem('function', 'nodes', schema)).toMatch(/required attribute/);
-    expect(attributeNameProblem('AREA', 'nodes', schema)).toMatch(/calculated attribute/);
-    expect(attributeNameProblem('Area', 'edges', schema)).toBeNull(); // Area is a node calculation only
+    expect(attributeNameProblem('NOMINAL area', 'nodes', schema)).toMatch(/calculated attribute/);
+    expect(attributeNameProblem('Nominal area', 'edges', schema)).toBeNull(); // a node calculation only
     expect(attributeNameProblem('x'.repeat(61), 'nodes', schema)).toMatch(/at most 60/);
   });
 
@@ -253,7 +253,7 @@ describe('Attributes panel', () => {
 
   it('shows the five sections with Node | Edge, in order, and one Add attribute button', async () => {
     const html = await render({ calculatedFields: ['area', 'degree'] });
-    for (const text of ['>Node<', '>Edge<', 'aria-label="Node attributes: Identity"', '>ID<', '>Function<', '>Position<', '>Size<', 'aria-label="Required: cannot be removed"', '>Daylight<', '>Area<', '>Degree<', '+</span> Add attribute']) {
+    for (const text of ['>Node<', '>Edge<', 'aria-label="Node attributes: Identity"', '>ID<', '>Function<', '>Position<', '>Size<', 'aria-label="Required: cannot be removed"', '>Daylight<', '>Nominal area<', '>Degree<', '+</span> Add attribute']) {
       expect(html, text).toContain(text);
     }
     const sections = [...html.matchAll(/data-attribute-section="([^"]+)"/g)].map((m) => m[1]);
@@ -262,7 +262,7 @@ describe('Attributes panel', () => {
     expect(html.indexOf('>Position<')).toBeLessThan(html.indexOf('>Size<'));
     for (const old of ['>Level<', '>Floors<', '>Position X<']) expect(html).not.toContain(old);
     expect(html.indexOf('>Floors<')).toBeLessThan(html.indexOf('>Daylight<'));
-    expect(html.indexOf('>Daylight<')).toBeLessThan(html.indexOf('>Area<'));
+    expect(html.indexOf('>Daylight<')).toBeLessThan(html.indexOf('>Nominal area<'));
     // Each section: a small title and an ⓘ with its summary and a link into the Guide.
     expect(html).toContain('<h4 class="sgl-attr-section-title">Required by the app</h4>');
     expect(html).toContain('data-help-topic="section-geometry"');
@@ -293,7 +293,7 @@ describe('Attributes panel', () => {
     expect(html).not.toContain('aria-label="Delete attribute Daylight…"');
     expect(html).toMatch(/sgl-attr-delete-blocked" title="Comes from the toolkit “Lab”, so it cannot be deleted/);
     expect(html).toContain('aria-label="Delete attribute Finish…"');
-    expect(html).toContain('aria-label="Remove Area from the list"');
+    expect(html).toContain('aria-label="Remove Nominal area from the list"');
     expect(html).toContain('Remove from the list (the calculation stays available)');
     expect(html).toContain('aria-label="Calculated: cannot be typed in"');
     expect(html).not.toContain('aria-label="Delete attribute Function');

@@ -142,7 +142,7 @@ describe('Designer panel: Style rooms by, Default, + Style another function, hig
     // Without a project: the Room group only (no custom attributes); measured values shown in Attributes by default.
     expect(html).toMatch(/<select id="sgl-designer-style-by"><optgroup label="Node"><option value="function" selected="">Function<\/option><option value="level">Level<\/option><\/optgroup>/);
     expect(html).not.toContain('label="Your attributes"');
-    expect(html).toMatch(/<optgroup label="Measured"><option value="metric:area">Area \(m²\)<\/option>/);
+    expect(html).toMatch(/<optgroup label="Measured"><option value="metric:area">Nominal area \(m²\)<\/option>/);
     expect(html.indexOf('id="sgl-designer--default-name"')).toBeLessThan(html.indexOf('id="sgl-designer-gallery-name"'));
     expect(html).toMatch(/Default<\/span>.*2 nodes/s); // studio + kiosk
     expect(html).toMatch(/<option value="" selected="">\+ Style another function…<\/option>/);

@@ -387,6 +387,19 @@ function RunResult({
               </ul>
             </>
           )}
+          {summary.boundaryShiftChanges.length > 0 && (
+            <>
+              <h4>Requested boundary shifts</h4>
+              <ul className="sgl-list">
+                {summary.boundaryShiftChanges.map((c) => (
+                  <li key={c.edgeId}>
+                    <code>{c.edgeId}</code>: {c.from} → {c.to}
+                  </li>
+                ))}
+              </ul>
+              <p className="sgl-help">A request is kept even if it cannot be applied; after Apply, the edge’s Properties show whether it applies.</p>
+            </>
+          )}
           {preview.resolvedDiagnosticIds.length > 0 && (
             <p className="sgl-help">Resolves {preview.resolvedDiagnosticIds.length} existing check(s).</p>
           )}

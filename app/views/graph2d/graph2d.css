@@ -208,6 +208,41 @@
   pointer-events: none;
 }
 
+/* Source → target chevron (2026-11-24): only on a hovered or selected edge. */
+.sgl-edge-direction {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
+}
+.react-flow__edge:hover .sgl-edge-direction,
+.react-flow__edge.selected .sgl-edge-direction {
+  opacity: 0.9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sgl-edge-direction {
+    transition: none;
+  }
+}
+
+/* Reverse source and target: a small button on the selected edge's label. */
+.sgl-edge-reverse {
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 1px solid #c9c9c2;
+  border-radius: 3px;
+  background: #fff;
+  color: inherit;
+  font-size: 11px;
+  line-height: 14px;
+  cursor: pointer;
+  pointer-events: all;
+}
+.sgl-edge-reverse:hover,
+.sgl-edge-reverse:focus-visible {
+  border-color: #2c5d8f;
+  color: #2c5d8f;
+}
+
 /* ── Panels ─────────────────────────────────────────────────────────────────── */
 
 .sgl-toolbar {

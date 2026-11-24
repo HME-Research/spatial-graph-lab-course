@@ -215,6 +215,8 @@ export interface PreviewSummary {
     readonly from: AttributeValue | undefined;
     readonly to: AttributeValue;
   }[];
+  /** Edges whose requested boundary shift the transformation changes (2026-11-24); absent = `none`. */
+  readonly boundaryShiftChanges: readonly { readonly edgeId: number; readonly from: string; readonly to: string }[];
   /** Existing rooms the transformation moves or resizes (P4 `set-node-geometry`). */
   readonly geometryChanges: readonly {
     readonly nodeId: number;
@@ -226,7 +228,14 @@ export interface PreviewSummary {
 }
 
 type SummaryNode = { readonly id: number; readonly function: string; readonly position: GridCoord; readonly size: readonly number[]; readonly custom: Attributes };
-type SummaryEdge = { readonly id: number; readonly source: number; readonly target: number; readonly relationship: string; readonly custom: Attributes };
+type SummaryEdge = {
+  readonly id: number;
+  readonly source: number;
+  readonly target: number;
+  readonly relationship: string;
+  readonly boundaryShift?: string | undefined;
+  readonly custom: Attributes;
+};
 
 /**
  * What a validated preview changes, read from its before / after documents (P4: new nodes and edges
@@ -263,6 +272,7 @@ export function describePreview(preview: {
   }
   const addedEdges: PreviewSummary['addedEdges'][number][] = [];
   const edgeAttributeChanges: PreviewSummary['edgeAttributeChanges'][number][] = [];
+  const boundaryShiftChanges: PreviewSummary['boundaryShiftChanges'][number][] = [];
   for (const e of preview.after.edges) {
     const old = beforeEdges.get(e.id);
     if (!old) {
@@ -270,12 +280,18 @@ export function describePreview(preview: {
       affected.add(e.source).add(e.target);
       continue;
     }
+    const shiftFrom = old.boundaryShift ?? 'none';
+    const shiftTo = e.boundaryShift ?? 'none';
+    if (shiftFrom !== shiftTo) {
+      boundaryShiftChanges.push({ edgeId: e.id, from: shiftFrom, to: shiftTo });
+      affected.add(e.source).add(e.target);
+    }
     for (const key of changed(old.custom, e.custom)) {
       edgeAttributeChanges.push({ edgeId: e.id, key, from: Object.prototype.hasOwnProperty.call(old.custom, key) ? old.custom[key] : undefined, to: e.custom[key]! });
       affected.add(e.source).add(e.target);
     }
   }
-  return { addedNodes, addedEdges, attributeChanges, edgeAttributeChanges, geometryChanges, affectedNodeIds: [...affected].sort((a, b) => a - b) };
+  return { addedNodes, addedEdges, attributeChanges, edgeAttributeChanges, boundaryShiftChanges, geometryChanges, affectedNodeIds: [...affected].sort((a, b) => a - b) };
 }
 
 export type ApplyOutcome<D extends object = DesignDocumentV2> =

@@ -246,13 +246,14 @@ describe('Properties sections (P4)', () => {
     expect(html.match(/Manage attributes<\/button>/g)).toHaveLength(1);
   });
 
-  it('a relationship: Identity (ID, Source, Target as "id · function"), then Relationship, then Geometry (Corridor)', async () => {
+  it('a relationship: Identity (ID, Source, Target as "id · function"), then Relationship, Geometry (Boundary shift), then its own Corridor section', async () => {
     const html = await withProject(selectEdge(1));
-    expect(sections(html).slice(0, 3)).toEqual(['identity', 'required', 'geometry']);
-    expect(attributeIds(html).slice(0, 5)).toEqual(['id', 'source', 'target', 'relationship', 'corridor']);
+    expect(sections(html).slice(0, 4)).toEqual(['identity', 'required', 'geometry', 'corridor']);
+    expect(attributeIds(html).slice(0, 6)).toEqual(['id', 'source', 'target', 'relationship', 'boundaryShift', 'corridor']);
+    expect(html).toContain('<h4 class="sgl-attr-section-title">Corridor</h4>');
     expect(rowOf(html, 'source')).toMatch(/>1 · Gallery<\/button>/);
     expect(rowOf(html, 'target')).toMatch(/>2 · Studio<\/button>/);
-    expect(rowOf(html, 'target')).toContain('aria-label="Identity: an edge always joins the same two nodes.');
+    expect(rowOf(html, 'target')).toContain('aria-label="Identity: an edge always joins the same two nodes (Reverse swaps which is the source).');
     const row = rowOf(html, 'relationship');
     expect(row).toContain('aria-label="About Access and Open"');
     expect(row).toContain('aria-haspopup="dialog"');

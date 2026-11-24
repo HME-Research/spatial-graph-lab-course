@@ -80,6 +80,8 @@ export function serializeDesignV2(doc: DesignDocumentV2): string {
       target: e.target,
       relationship: e.relationship,
       ...corridorField('corridor', e.corridor),
+      // A boundary-shift request (2026-11-24): written only when one is requested.
+      ...(e.boundaryShift === undefined || e.boundaryShift === 'none' ? {} : { boundaryShift: e.boundaryShift }),
       custom: { ...e.custom },
     })),
     diagram: { positions: { ...doc.diagram.positions } },

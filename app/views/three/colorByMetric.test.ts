@@ -33,6 +33,8 @@ describe('colour by a calculated value', () => {
   it('offers only node metrics (optionally only the enabled ones)', () => {
     expect(sourceFor().metrics.map((m) => m.id)).toEqual([
       'area',
+      'actual-area',
+      'boundary-adjusted',
       'volume',
       'degree',
       'has-exterior-facade',

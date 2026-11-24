@@ -1,5 +1,6 @@
 import { HelpTip } from '@app/ui/help';
-import { CORRIDOR_WIDTH_STEP, corridorLookOf, designCorridorLook, formatCorridorWidth, MAX_CORRIDOR_WIDTH, nodeLabel, parseCorridorWidth, type RelationshipKind } from '@app/document';
+import { boundaryShiftsOf } from '@app/building';
+import { boundaryShiftOf, CORRIDOR_WIDTH_STEP, corridorLookOf, designCorridorLook, formatCorridorWidth, MAX_CORRIDOR_WIDTH, nodeLabel, parseCorridorWidth, type RelationshipKind } from '@app/document';
 import {
   CollapsibleSection,
   CORRIDOR_ROOF_CHOICES,
@@ -16,13 +17,14 @@ import {
 } from '@app/ui';
 import { functionStatus } from '@app/views/project';
 import { selectNode } from '@core/viewer/selection';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, type ReactNode } from 'react';
 import { AttributeSection } from '@app/attributes/AttributeSection';
 import { sourceResolver } from '@app/attributes/attributeSources';
 import { CustomAttributes, ManageAttributesLink } from '@app/attributes/CustomAttributes';
 import { OpenAttributesContext } from '@app/attributes/navigation';
 import { attributesOutsideSchema } from '@app/extensions';
 import { StoredData } from './AttributeEditors';
+import { boundaryShiftChoices, boundaryShiftStatusView } from './boundaryShiftModel';
 import { CalculatedRows, FieldRow } from './CalculatedValues';
 import { messageContextFor, useCommands, type PanelProps } from './panelSupport';
 
@@ -103,7 +105,10 @@ function CorridorWidthField({ edgeId, own, designWidth, onWidth, onInvalid }: {
   );
 }
 
-const ENDPOINT_LOCK = 'Identity: an edge always joins the same two nodes. To join others, add another edge.';
+const ENDPOINT_LOCK = 'Identity: an edge always joins the same two nodes (Reverse swaps which is the source). To join others, add another edge.';
+
+const REVERSE_TITLE =
+  'Swap source and target: the same edge (same id and values). Its door then swings into the other room, and a requested boundary shift keeps its value, so the wall moves into the other room.';
 
 function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   const { design, onSelect, edgeId, project } = props;
@@ -130,6 +135,12 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   const designLook = designCorridorLook(design.doc.settings);
   const own = edge.corridor ?? {};
   const ownCount = (own.walls === undefined ? 0 : 1) + (own.roof === undefined ? 0 : 1) + (own.width === undefined ? 0 : 1);
+
+  const shifts = boundaryShiftsOf(design.doc, design.spatial);
+  const shiftOutcome = shifts.byEdge.get(edge.id);
+  const requestedShift = boundaryShiftOf(edge);
+  const shiftChoices = boundaryShiftChoices(shiftOutcome, endpointText(edge.source), endpointText(edge.target));
+  const shiftStatus = boundaryShiftStatusView(shiftOutcome, design.doc, shifts);
 
   const setKind = (kind: RelationshipKind) => {
     if (kind !== edge.relationship) runV2({ type: 'change-edge-kind', edgeId, relationship: kind });
@@ -165,12 +176,13 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   const showCustom = schema !== undefined && (schema.edges.length > 0 || outsideCount > 0);
   const manageLink = project && openAttributes ? <ManageAttributesLink onManage={() => openAttributes('edges')} /> : undefined;
 
-  const endpointRow = (attributeId: 'source' | 'target', name: string, nodeId: number) => (
+  const endpointRow = (attributeId: 'source' | 'target', name: string, nodeId: number, meta?: ReactNode) => (
     <FieldRow
       attributeId={attributeId}
       kind="identity"
       label={name}
-      title={attributeId === 'source' ? 'The node the edge starts from.' : 'The node the edge leads to.'}
+      title={attributeId === 'source' ? 'The node the edge starts from.' : 'The node the edge leads to: its door swings into this room.'}
+      {...(meta !== undefined && { meta })}
       control={
         <button type="button" className="sgl-link sgl-field-value" onClick={() => onSelect(selectNode(nodeId))} title="Show this node">
           {endpointText(nodeId)}
@@ -199,7 +211,11 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
             locked="Identity: cannot be changed"
           />
           {endpointRow('source', 'Source', edge.source)}
-          {endpointRow('target', 'Target', edge.target)}
+          {endpointRow('target', 'Target', edge.target, (
+            <button type="button" className="sgl-link sgl-reverse-edge" onClick={() => runV2({ type: 'reverse-edge', edgeId })} title={REVERSE_TITLE}>
+              ⇄ Reverse source and target
+            </button>
+          ))}
         </AttributeSection>
 
         <AttributeSection section="required">
@@ -223,11 +239,51 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
         </AttributeSection>
 
         <AttributeSection section="geometry" {...(!showCustom && manageLink && { actions: manageLink })}>
+          {/* Boundary shift (2026-11-24): the stored request; applied or not is derived. */}
+          <FieldRow
+            attributeId="boundaryShift"
+            kind="geometry"
+            label="Boundary shift"
+            title="A request to move the shared wall 1.5 m into the source or the target room. Kept even when it cannot be applied; the grid, positions and sizes never change."
+            control={
+              <div className="sgl-segmented sgl-segmented-3" role="radiogroup" aria-label="Boundary shift">
+                {shiftChoices.map((c) => (
+                  <label
+                    key={c.value}
+                    className={[requestedShift === c.value ? 'checked' : '', c.disabled ? 'disabled' : ''].filter(Boolean).join(' ') || undefined}
+                    title={c.title}
+                    data-shift={c.value}
+                  >
+                    <input
+                      type="radio"
+                      name={`shift-${edgeId}`}
+                      value={c.value}
+                      checked={requestedShift === c.value}
+                      disabled={c.disabled}
+                      onChange={() => {
+                        if (c.value !== requestedShift) runV2({ type: 'set-edges-boundary-shift', edgeIds: [edgeId], boundaryShift: c.value });
+                      }}
+                    />
+                    {c.label}
+                  </label>
+                ))}
+              </div>
+            }
+          >
+            <p className="sgl-help sgl-shift-status" data-shift-status={shiftOutcome?.status ?? 'no-request'}>
+              <span className={`sgl-chip ${shiftStatus.tone === 'applied' ? 'sgl-chip-ok' : shiftStatus.tone === 'not-applied' ? 'sgl-chip-warning' : 'sgl-chip-readonly'}`}>{shiftStatus.title}</span>{' '}
+              {shiftStatus.detail}
+            </p>
+          </FieldRow>
+        </AttributeSection>
+
+        {/* The corridor generated when the rooms do not touch: its own section (owner 2026-11-24). */}
+        <AttributeSection section="corridor">
           <FieldRow
             attributeId="corridor"
             kind="geometry"
-            label="Corridor"
-            title="This edge’s own corridor look: walls, roof and width. Used only when a corridor is generated; Design default follows the Corridors card (Building Designer → Corridors)."
+            label="Look"
+            title="This edge’s own corridor: walls, roof and width. Used only when a corridor is generated; Design default follows the Corridors card (Building Designer → Corridors)."
             control={
               <div className="sgl-corridor">
                 {corridorField('walls', 'Walls', CORRIDOR_WALL_CHOICES, designLook.walls)}

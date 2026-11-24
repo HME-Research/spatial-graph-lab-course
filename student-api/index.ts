@@ -31,6 +31,7 @@ export {
   FACE_DIRECTIONS,
   neighbourCell,
   roomCells,
+  type BoundaryShift,
   type CorridorLook,
   type CorridorRoof,
   type CorridorWalls,

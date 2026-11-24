@@ -13,7 +13,7 @@ import type { BuildingFace } from './multicellFaces';
  *   `preference` (measured from the source = the face's owner room).
  */
 export type WallAction =
-  | { readonly kind: 'not-eligible'; readonly reason: 'exterior' | 'slab' | 'route' | 'interior' | 'unknown-face' }
+  | { readonly kind: 'not-eligible'; readonly reason: 'exterior' | 'slab' | 'route' | 'interior' | 'unknown-face' | 'boundary-shift' }
   | { readonly kind: 'add'; readonly source: number; readonly target: number; readonly preference: FacePreference }
   | { readonly kind: 'existing'; readonly edgeId: number; readonly relationshipKind: RelationshipKind };
 
@@ -51,6 +51,8 @@ export function wallAction(
     return { kind: 'not-eligible', reason: 'unknown-face' };
   }
   if (face.orientation === 'slab') return { kind: 'not-eligible', reason: 'slab' };
+  // Half of a wall given to another room by a boundary shift (2026-11-24): it follows that shift.
+  if (face.split?.reassigned) return { kind: 'not-eligible', reason: 'boundary-shift' };
   if (face.via === 'route') return { kind: 'not-eligible', reason: 'route' };
   const neighbourId = face.neighbourNodeId;
   if (neighbourId === null) return { kind: 'not-eligible', reason: 'exterior' };

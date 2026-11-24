@@ -70,10 +70,22 @@ export interface CorridorLook {
   readonly width?: number | undefined;
 }
 
+/**
+ * A requested boundary shift (2026-11-24): move the wall the edge's two rooms share 1.5 m into the
+ * `source` room (`toward-source`: the source loses area, the target gains it) or into the `target`
+ * room (`toward-target`). Only a REQUEST: whether the app applies it is a calculated value
+ * (`ctx.metrics.value('boundary-shift-applied', edge.id)`, and `'boundary-shift-status'` for why
+ * not). Positions, sizes and the grid never change; read `'area'` (nominal, whole cells) and
+ * `'actual-area'` (after applied shifts) as calculated values.
+ */
+export type BoundaryShift = 'none' | 'toward-source' | 'toward-target';
+
 export interface SpatialEdge extends EdgeRecord {
   readonly relationship: RelationshipKind;
   /** Omitted: the design's Corridors card. Only used if the relationship needs a generated corridor. */
   readonly corridor?: CorridorLook | undefined;
+  /** The requested boundary shift; omitted = `'none'`. Change it with `set-edge-boundary-shift`. */
+  readonly boundaryShift?: BoundaryShift | undefined;
   /** Custom attributes (the project's fields and any other stored values). */
   readonly custom: { readonly [key: string]: AttributeValue };
 }

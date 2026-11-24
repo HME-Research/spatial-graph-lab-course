@@ -332,10 +332,12 @@ function Graph2DEditor({ selection, onSelect, project, design }: ViewProps) {
           presentation: presentEdge(model, edge),
           ...(removePreview?.has(edge.id) && { removePreview: true }),
           ...(isAnalysisEdge(analysis, edge.id) && { analysed: true }),
+          // Only the one selected edge offers Reverse (on its label).
+          ...(selection.kind === 'edge' && selection.id === edge.id && { onReverse: () => run({ type: 'reverse-edge', edgeId: edge.id }) }),
         },
         selected: isEdgeSelected(selection, edge.id),
       })),
-    [model, selection, removePreview, analysis],
+    [model, selection, removePreview, analysis, run],
   );
 
   // Only measurements and drag positions are kept locally; selection/removal changes are ignored

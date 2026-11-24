@@ -92,7 +92,7 @@ describe('the "Style rooms by" selector', () => {
       ['attributes', 'attribute:zone', 'Zone', 'text'],
       ['attributes', 'attribute:public', 'Public', 'yesno'],
       ['attributes', 'attribute:seats', 'Seats', 'number'],
-      ['measured', 'metric:area', 'Area (m²)', 'number'],
+      ['measured', 'metric:area', 'Nominal area (m²)', 'number'],
       ['measured', 'metric:volume', 'Volume (m³)', 'number'],
       ['measured', 'metric:degree', 'Degree', 'number'],
     ]);

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { type AttributeValue, attributeValueSchema, corridorLookSchema, type DesignDocumentV2 } from '@app/document';
+import { type AttributeValue, attributeValueSchema, boundaryShiftSchema, corridorLookSchema, type DesignDocumentV2 } from '@app/document';
 import type { SpatialResolution } from '@app/spatial';
 import type { AnalysisInput, AnalysisResult, AttributeSpecs, MetricReader, SpatialAlgorithmContext, SpatialOperation } from '@student-api';
 import type { ActiveToolkit } from './activate';
@@ -131,9 +131,18 @@ const operationSchema = z.discriminatedUnion(
       function: z.string(),
       custom: attributesRecord.optional(),
     }),
-    z.strictObject({ op: z.literal('add-edge'), ref: z.string().optional(), source: itemRefSchema, target: itemRefSchema, relationship: z.string(), corridor: corridorLookSchema.optional() }),
+    z.strictObject({
+      op: z.literal('add-edge'),
+      ref: z.string().optional(),
+      source: itemRefSchema,
+      target: itemRefSchema,
+      relationship: z.string(),
+      corridor: corridorLookSchema.optional(),
+      boundaryShift: boundaryShiftSchema.optional(),
+    }),
     z.strictObject({ op: z.literal('set-node-custom-attribute'), nodeId: itemRefSchema, key: z.string().min(1), value: attributeValueSchema }),
     z.strictObject({ op: z.literal('set-edge-custom-attribute'), edgeId: itemRefSchema, key: z.string().min(1), value: attributeValueSchema }),
+    z.strictObject({ op: z.literal('set-edge-boundary-shift'), edgeId: itemRefSchema, boundaryShift: boundaryShiftSchema }),
     z.strictObject({
       op: z.literal('set-node-geometry'),
       nodeId: itemRefSchema,
@@ -141,7 +150,7 @@ const operationSchema = z.discriminatedUnion(
       size: z.tuple([z.number(), z.number(), z.number()], { error: 'size must be [sx, sy, sz]' }).optional(),
     }),
   ],
-  { error: 'op must be "add-node", "add-edge", "set-node-custom-attribute", "set-edge-custom-attribute" or "set-node-geometry"' },
+  { error: 'op must be "add-node", "add-edge", "set-node-custom-attribute", "set-edge-custom-attribute", "set-edge-boundary-shift" or "set-node-geometry"' },
 );
 
 const transformationSchema = z.strictObject({

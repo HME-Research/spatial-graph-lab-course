@@ -389,6 +389,26 @@ button.link-button:hover:not(:disabled) {
   height: 1px;
 }
 
+/* Three choices (boundary shift): every label after the first overlaps its neighbour's border. */
+.sgl-segmented-3 label + label {
+  margin-left: -1px;
+}
+
+.sgl-segmented-3 label {
+  padding: 0 var(--space-2, 8px);
+}
+
+/* A choice that cannot apply to these rooms: still explained by its tooltip. */
+.sgl-segmented label.disabled {
+  cursor: not-allowed;
+  color: var(--muted, #8a8a84);
+  background: var(--panel-muted, #f4f4f1);
+}
+
+.sgl-shift-status {
+  margin-top: var(--space-1, 4px);
+}
+
 .sgl-segmented label:has(input:focus-visible) {
   outline: 2px solid var(--accent, #2c5d8f);
   outline-offset: 1px;

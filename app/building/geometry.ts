@@ -151,6 +151,8 @@ export function buildArchitecture(faces: readonly ResolvedFace[], options: Archi
           const floorTop = centre[1] - cell.vertical / 2 + slabT / 2;
           const position = [...centre] as [number, number, number];
           position[1] = floorTop + 0.01;
+          // Centred on the opening (off the face centre only for a half face beside a boundary shift).
+          position[u] += (opening.rect.u0 + opening.rect.u1) / 2;
           const size = [0, 0, 0] as [number, number, number];
           // As wide as the opening (a corridor end may be narrower than the cell), at most the cell.
           size[u] = Math.min(cell.horizontal, opening.rect.u1 - opening.rect.u0) * 0.9;

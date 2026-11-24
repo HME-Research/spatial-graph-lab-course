@@ -12,6 +12,8 @@ import { functionStatus } from '@app/views/project';
 import { CollapsibleSection, describeResolution, IssueFeedback, labelOfChoice, RELATIONSHIP_KIND_CHOICES, RouteConfirm, UNDO_HINT } from '@app/ui';
 import { useFunctionColour, useFunctionName } from '@app/views/functionColour';
 import { selectEdge, selectNode } from '@core/viewer/selection';
+import { boundaryShiftsOf } from '@app/building';
+import { roomAreaView } from './boundaryShiftModel';
 import { CalculatedRows, FieldRow } from './CalculatedValues';
 import { AttributesForm, NodeChecks, StoredData, TypedAttributesForm, TypeStatusNote } from './AttributeEditors';
 import { CommitInput, TypeSelect, type CommitOutcome } from './fields';
@@ -139,6 +141,8 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
   };
 
   const functionName = typeStatus.kind === 'registered' ? typeStatus.label : node.function;
+  const areas = roomAreaView(node.id, design.doc, boundaryShiftsOf(design.doc, design.spatial));
+  const fmtArea = (n: number) => `${Math.round(n * 100) / 100} m²`;
   const geometryAttributes = NODE_BUILT_IN_ATTRIBUTES.filter((a) => a.section === 'geometry');
   const schema = project?.attributes;
   const sourceOf = sourceResolver('nodes', active);
@@ -221,6 +225,47 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
               />
             );
           })}
+          {/* Boundary shifts (2026-11-24): derived, read-only; never stored. */}
+          {areas && (
+            <>
+              <FieldRow
+                attributeId="areas"
+                kind="geometry"
+                label="Area"
+                title="Nominal: the room's cells on the 3 m grid. Actual: as built, after an applied boundary shift (±1.5 m × the shared wall). Per storey."
+                control={
+                  <span className="sgl-field-value sgl-area-values">
+                    <span data-area="nominal">Nominal {fmtArea(areas.nominal)}</span>
+                    {' · '}
+                    <span data-area="actual">Actual {fmtArea(areas.actual)}</span>
+                  </span>
+                }
+                locked="Calculated from the design: read-only, not saved"
+              />
+              <FieldRow
+                attributeId="boundaryAdjusted"
+                kind="geometry"
+                label="Boundary adjusted"
+                title="Yes when the room takes part in an applied boundary shift (it gains or loses area). Calculated: a request that cannot be applied does not count."
+                control={
+                  <span className="sgl-field-value" data-boundary-adjusted={areas.adjusted ? 'yes' : 'no'}>
+                    {areas.adjusted ? (
+                      <>
+                        Yes ({areas.role === 'grows' ? 'gains' : 'loses'} area,{' '}
+                        <button type="button" className="sgl-link" onClick={() => props.onSelect(selectEdge(areas.edgeId!))} title="Show the edge whose boundary shift applies">
+                          edge {areas.edgeId}
+                        </button>
+                        )
+                      </>
+                    ) : (
+                      'No'
+                    )}
+                  </span>
+                }
+                locked="Calculated from the design: read-only, not saved"
+              />
+            </>
+          )}
           <div className="sgl-help-row sgl-field-help">
             <span className="sgl-help">In cells, from the room’s lowest corner. Dragging its node in Graph 2D only tidies the diagram.</span>
             <HelpTip topicId="graph-vs-grid" />

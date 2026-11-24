@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { HelpTip } from '@app/ui/help';
 import { useGuide } from '@app/ui/guide';
-import { ATTRIBUTE_SECTIONS, type AttributeSectionId } from './sections';
+import { sectionInfo, type AttributeSectionId, type PropertiesSectionId } from './sections';
 import { LockIcon } from './FunctionsDialog';
 import './attributes.css';
 
@@ -18,19 +18,21 @@ export function AttributeSection({
   actions,
   children,
 }: {
-  readonly section: AttributeSectionId;
+  readonly section: PropertiesSectionId;
   /** Optional actions at the right of the title (e.g. "Manage attributes"). */
   readonly actions?: ReactNode;
   readonly children: ReactNode;
 }) {
   const guide = useGuide();
-  const info = ATTRIBUTE_SECTIONS[section];
+  const info = sectionInfo(section);
+  // The Corridor section (Properties only) is explained in the Guide under Geometry.
+  const anchor = sectionGuideAnchor(section === 'corridor' ? 'geometry' : section);
   return (
     <section className="sgl-attr-section" data-attribute-section={section} aria-label={info.title}>
       <div className="sgl-attr-section-head">
         <h4 className="sgl-attr-section-title">{info.title}</h4>
-        <HelpTip mark="i" topic={{ id: sectionGuideAnchor(section), title: info.title, summary: info.summary, details: '' }}>
-          <button type="button" className="sgl-link sgl-guide-more" onClick={() => guide.open({ tab: 'attributes', section: sectionGuideAnchor(section) })}>
+        <HelpTip mark="i" topic={{ id: `section-${section}`, title: info.title, summary: info.summary, details: '' }}>
+          <button type="button" className="sgl-link sgl-guide-more" onClick={() => guide.open({ tab: 'attributes', section: anchor })}>
             More in the guide →
           </button>
         </HelpTip>

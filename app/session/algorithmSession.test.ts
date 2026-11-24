@@ -174,6 +174,7 @@ describe('spatial transformation preview', () => {
       addedEdges: [],
       attributeChanges: [{ nodeId: 1, key: 'daylight', from: 'high', to: 'medium' }],
       edgeAttributeChanges: [],
+      boundaryShiftChanges: [],
       geometryChanges: [],
       affectedNodeIds: [1],
     });

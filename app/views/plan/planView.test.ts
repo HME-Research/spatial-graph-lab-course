@@ -161,7 +161,7 @@ describe('plan viewport (pan / zoom / fit)', () => {
 });
 
 describe('plan shapes', () => {
-  it('a door swings into its owner room, with a leaf as long as the opening is wide', () => {
+  it('a door swings into the target room of its edge, with a leaf as long as the opening is wide; reversing the edge reverses it', () => {
     const doc = expectOk(
       validateDocumentV2({
         schemaVersion: 2,
@@ -177,13 +177,23 @@ describe('plan shapes', () => {
     const plan = buildPlan(planSourceV2(doc, resolveRelationships(doc)), 0);
     const door = plan.openings.find((o) => o.kind === 'door')! as PlanOpening;
     const owner = plan.rooms.find((r) => r.nodeId === 1)!;
-    // `1:+y` faces grid +y = plan −y; the leaf goes the other way, into room 1.
+    const target = plan.rooms.find((r) => r.nodeId === 2)!;
+    // `1:+y` (owner = room 1, the source) faces grid +y = plan −y: the leaf goes that way, into room 2.
     expect(door.faceId).toBe('1:+y');
-    const nums = doorSwingPath(door).match(/-?\d+(\.\d+)?/g)!.map(Number);
-    const [hx, hy, lx, ly] = nums;
+    expect(door.intoNeighbour).toBe(true);
+    const [hx, hy, lx, ly] = doorSwingPath(door).match(/-?\d+(\.\d+)?/g)!.map(Number);
     expect(lx).toBeCloseTo(hx!, 9);
-    expect(ly! - hy!).toBeCloseTo(door.width, 9);
-    expect(ly!).toBeGreaterThan(owner.rect.y0);
-    expect(ly!).toBeLessThanOrEqual(owner.rect.y1);
+    expect(hy! - ly!).toBeCloseTo(door.width, 9);
+    expect(ly!).toBeGreaterThanOrEqual(target.rect.y0);
+    expect(ly!).toBeLessThan(target.rect.y1);
+
+    // Reversed (same edge id): the door swings into room 1, the new target.
+    const reversed = { ...doc, edges: [{ ...doc.edges[0]!, source: 2, target: 1 }] };
+    const back = buildPlan(planSourceV2(reversed, resolveRelationships(reversed)), 0).openings.find((o) => o.kind === 'door')! as PlanOpening;
+    expect(back.intoNeighbour).toBeUndefined();
+    const [, hy2, , ly2] = doorSwingPath(back).match(/-?\d+(\.\d+)?/g)!.map(Number);
+    expect(ly2! - hy2!).toBeCloseTo(back.width, 9);
+    expect(ly2!).toBeGreaterThan(owner.rect.y0);
+    expect(ly2!).toBeLessThanOrEqual(owner.rect.y1);
   });
 });

@@ -1,5 +1,6 @@
 import { nodeLooks, type DesignDocumentV2, type EffectiveCorridorLook, type WallStyle, type NodeLook, type StyleValues } from '@app/document';
 import { resolveRelationships, type ResolutionStatus, type SpatialResolution, type UnresolvedReason } from '@app/spatial';
+import { applyBoundaryShifts, boundaryShiftsOf, type BoundaryShiftResolution } from './boundaryShift';
 import type { FacadeProvider } from './contracts';
 import type { RoofStyleProvider, WallStyleProvider, WindowLayoutProvider } from './faceLayout';
 import { buildConnector, type ConnectorElement } from './connectorGeometry';
@@ -90,6 +91,7 @@ export function buildingFacesV2(
   readonly roof: RoofStyleProvider;
   readonly styleKey: 'node';
   readonly looks: ReadonlyMap<number, NodeLook>;
+  readonly shifts: BoundaryShiftResolution;
 } {
   const looks = nodeLooks(doc, base, styleValues);
   // A face's owner is always a room of `doc`; the example default only guards a stale resolution.
@@ -101,8 +103,13 @@ export function buildingFacesV2(
   const roof: RoofStyleProvider = (nodeId) => look(nodeId)?.roof ?? 'flat';
   // A wall between an enclosed and an open-walled room is the enclosed room's façade (2026-11-20).
   const wallsOf = (nodeId: number) => looks.get(nodeId)?.look.walls ?? 'enclosed';
-  const faces = resolveBuildingFaces(doc, spatial, { wallsOf }).filter((f) => !isExposedTop(f) || roof(String(f.ownerNodeId)) !== 'none');
-  return { faces, facade, windowLayout, walls, roof, styleKey: 'node', looks };
+  // Applied boundary shifts (2026-11-24) move shared walls and split the faces beside them; the roof
+  // policy runs afterwards, so a half roof given to a room without a roof is dropped too.
+  const shifts = boundaryShiftsOf(doc, spatial);
+  const faces = applyBoundaryShifts(resolveBuildingFaces(doc, spatial, { wallsOf }), doc, spatial, shifts, { wallsOf }).filter(
+    (f) => !isExposedTop(f) || roof(String(f.ownerNodeId)) !== 'none',
+  );
+  return { faces, facade, windowLayout, walls, roof, styleKey: 'node', looks, shifts };
 }
 
 export function buildBuildingV2(doc: DesignDocumentV2, options: BuildingV2Options = {}): BuildingModelV2 {

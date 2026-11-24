@@ -57,6 +57,23 @@ export const ATTRIBUTE_SECTIONS: Readonly<Record<AttributeSectionId, AttributeSe
 };
 
 /**
+ * Properties only (owner 2026-11-24): an edge's corridor look (walls, roof, width) in a section of its
+ * own after Geometry, so it is not mixed with the edge's other geometry. In the Attributes panel
+ * and the Data table the `corridor` attribute stays in Geometry.
+ */
+export const CORRIDOR_SECTION: AttributeSectionInfo = {
+  title: 'Corridor',
+  summary: 'How the corridor generated for this edge looks: walls, roof and width. Used only when its rooms do not touch.',
+  editable: true,
+};
+
+/** A section shown in Properties: one of the five, or the edge's Corridor. */
+export type PropertiesSectionId = AttributeSectionId | 'corridor';
+
+export const sectionInfo = (section: PropertiesSectionId): AttributeSectionInfo =>
+  section === 'corridor' ? CORRIDOR_SECTION : ATTRIBUTE_SECTIONS[section];
+
+/**
  * Where a Custom attribute comes from, shown as a small rounded tag on its row (same tag style as
  * Analyse: `Toolkit: <name>` / `Yours`). Toolkit attributes cannot be deleted; yours can.
  */
@@ -131,6 +148,7 @@ export const EDGE_BUILT_IN_ATTRIBUTES: readonly BuiltInAttribute[] = [
   { id: 'target', name: 'Target', section: 'identity' },
   { id: 'relationship', name: 'Relationship', section: 'required' },
   { id: 'corridor', name: 'Corridor', section: 'geometry', axes: ['walls', 'roof', 'width'] },
+  { id: 'boundaryShift', name: 'Boundary shift', section: 'geometry' },
 ];
 
 /** One choice of a corridor value (also used by Properties' selects, via `@app/ui`). */

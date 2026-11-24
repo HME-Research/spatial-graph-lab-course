@@ -35,7 +35,9 @@ import { writeFieldValue } from './resolveAttributes';
  *   another room (`occupied-cell`). New nodes and edges get the document's next ids
  *   (`nextNodeId` / `nextEdgeId`, in operation order; never reused); an operation's optional `ref`
  *   names the new item for later operations (`ItemRef`).
- * - `add-edge`: `access` | `open`.
+ * - `add-edge`: `access` | `open`; an optional boundary-shift request (`none` is not stored).
+ * - `set-edge-boundary-shift` (2026-11-24): stores the REQUEST of an existing (or earlier-added) edge
+ *   (`none` removes it). It is never refused for geometry: whether it applies is derived afterwards.
  *   The rooms need NOT touch: a non-adjacent relationship is valid; its spatial status is derived.
  * - `set-node-geometry`: moves and/or resizes an existing (or earlier-added) room, anchored at the
  *   minimum corner. Refused if the new box overlaps another room, exceeds the size or coordinate
@@ -206,7 +208,16 @@ function addEdge(draft: DraftV2, op: Extract<SpatialOperation, { op: 'add-edge' 
         ...(c.width !== undefined && { width: c.width }),
       }
     : undefined;
-  const edge: RelationshipEdge = { id: draft.nextEdgeId++, source, target, relationship: kind, ...(corridor && { corridor }), custom: {} };
+  const shift = op.boundaryShift !== undefined && op.boundaryShift !== 'none' ? op.boundaryShift : undefined;
+  const edge: RelationshipEdge = {
+    id: draft.nextEdgeId++,
+    source,
+    target,
+    relationship: kind,
+    ...(corridor && { corridor }),
+    ...(shift && { boundaryShift: shift }),
+    custom: {},
+  };
   if (op.ref !== undefined) draft.edgeRefs.set(op.ref, edge.id);
   draft.edges.push(edge);
   draft.edgeById.set(edge.id, edge);
@@ -233,6 +244,16 @@ function setEdgeCustomAttribute(draft: DraftV2, project: ActiveToolkit, op: Extr
   const field = fieldWrite(draft.schema, 'edges', op.key, op.value, i, what, project.id);
   if ('code' in field) return field;
   edge.custom = writeFieldValue(field, edge.custom, op.value);
+  return null;
+}
+
+function setEdgeBoundaryShift(draft: DraftV2, op: Extract<SpatialOperation, { op: 'set-edge-boundary-shift' }>, i: number): Check {
+  const what = `set-edge-boundary-shift ${describeRef(op.edgeId)}`;
+  const id = resolveRef(op.edgeId, draft.edgeById, draft.edgeRefs);
+  const edge = id === undefined ? undefined : draft.edgeById.get(id);
+  if (!edge) return opError(i, 'missing-edge', `${what}: edge ${describeRef(op.edgeId)} does not exist`);
+  if (op.boundaryShift === 'none') delete edge.boundaryShift;
+  else edge.boundaryShift = op.boundaryShift;
   return null;
 }
 
@@ -307,7 +328,9 @@ export function applyTransformationV2(
             ? setNodeCustomAttribute(draft, project, op, i)
             : op.op === 'set-edge-custom-attribute'
               ? setEdgeCustomAttribute(draft, project, op, i)
-              : setNodeGeometry(draft, op, i);
+              : op.op === 'set-edge-boundary-shift'
+                ? setEdgeBoundaryShift(draft, op, i)
+                : setNodeGeometry(draft, op, i);
     if (problem) return fail([problem]);
   }
 

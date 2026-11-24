@@ -210,7 +210,7 @@ A design analysis (`defineDesignAnalysis`, also shown in **Analyse**) works like
 | `ctx.…` | Meaning |
 |---|---|
 | `design.nodes` | every room: `id`, `function`, `position`, `size`, and `custom` with **only** the fields listed in `uses` (function and field defaults applied) |
-| `design.edges` | every relationship: `id`, `source`, `target`, `relationship` (`access` / `open`), `corridor`, `custom` (only the listed fields) |
+| `design.edges` | every relationship: `id`, `source`, `target`, `relationship` (`access` / `open`), `corridor`, `boundaryShift` (the requested shift; absent = `none`), `custom` (only the listed fields) |
 | `inputs` | the picked values, as for a graph analysis |
 | `functions` | the project's Functions (`id`, `label`) |
 | `customFields` | the listed fields (`key`, `label`, `kind`, limits) |
@@ -244,7 +244,7 @@ A spatial algorithm gets the design's own records and a few helpers:
 | `ctx.…` | Meaning |
 |---|---|
 | `design.nodes` | `{ id, function, position: [x, y, z], size: [sx, sy, sz], custom }`. `id` is a whole number (also the room's label). A room is a box of whole cells: `position` is its minimum corner, `size` its extent (`[1, 1, 1]` for one cell); z is the storey |
-| `design.edges` | `{ id, source, target, relationship, corridor?, custom }`; ids are numbers; `relationship` is `access` or `open`; `corridor` (read only) is the relationship's own corridor look `{ walls?: 'enclosed' \| 'open', roof?: 'flat' \| 'pergola' \| 'none', width?: number }` (`width` in metres, more than 0 and at most one cell, 3 m; omitted fields use the design's Corridors card; built-in default open walls, flat roof, 1.5 m) |
+| `design.edges` | `{ id, source, target, relationship, corridor?, boundaryShift?, custom }`; `boundaryShift` (read only here) is the requested [boundary shift](#boundary-shifts) (absent = `'none'`); ids are numbers; `relationship` is `access` or `open`; `corridor` (read only) is the relationship's own corridor look `{ walls?: 'enclosed' \| 'open', roof?: 'flat' \| 'pergola' \| 'none', width?: number }` (`width` in metres, more than 0 and at most one cell, 3 m; omitted fields use the design's Corridors card; built-in default open walls, flat roof, 1.5 m) |
 | `nodeAt(cell)` | id of the room whose box contains that cell, or `undefined` if the cell is free |
 | `touches(a, b)` | whether rooms `a` and `b` share a wall or floor, so a relationship between them is built directly |
 | `canRelate(a, b)` | whether a relationship between rooms `a` and `b` may be created: both exist, are different and aren't related yet. **They don't need to touch** |
@@ -260,9 +260,10 @@ It returns a list of **operations**. You never choose ids: the app gives every n
 | Operation | Rules |
 |---|---|
 | `{ op: 'add-node', ref?, position, size?, function, custom? }` | An integer minimum corner `position`, an optional `size` of positive integers (default `[1, 1, 1]`), a box that overlaps no other room, a valid function of your toolkit, and only custom node attributes of the project with valid values. Gets the next node id |
-| `{ op: 'add-edge', ref?, source, target, relationship, corridor? }` | `source` / `target` are `ItemRef`s of existing, different rooms not related yet. `relationship` is `access` or `open`; `corridor` (optional) is its own corridor look `{ walls?, roof?, width? }` (width in metres, more than 0 and at most 3 m). The rooms **don't need to touch**. Gets the next edge id |
+| `{ op: 'add-edge', ref?, source, target, relationship, corridor?, boundaryShift? }` | `source` / `target` are `ItemRef`s of existing, different rooms not related yet. `relationship` is `access` or `open`; `corridor` (optional) is its own corridor look `{ walls?, roof?, width? }` (width in metres, more than 0 and at most 3 m); `boundaryShift` (optional) a [boundary-shift](#boundary-shifts) request. The rooms **don't need to touch**. Gets the next edge id |
 | `{ op: 'set-node-custom-attribute', nodeId, key, value }` | Sets one custom attribute. `nodeId` is an `ItemRef`; `key` must be a custom node attribute of the project (any room may have any of them, whatever its function); the value must be valid, or `null`. Built-in values (function, position, size) are not custom attributes: move or resize a room with `set-node-geometry` |
 | `{ op: 'set-edge-custom-attribute', edgeId, key, value }` | Sets one custom attribute. `edgeId` is an `ItemRef`; `key` must be a custom edge attribute of the project; the value must be valid, or `null`. The relationship and corridor are built-in, not custom |
+| `{ op: 'set-edge-boundary-shift', edgeId, boundaryShift }` | Stores the requested [boundary shift](#boundary-shifts) of an edge (`edgeId` is an `ItemRef`): `'none'`, `'toward-source'` or `'toward-target'`. Never refused because of the geometry: a request that cannot be applied is kept, and `boundary-shift-status` says why |
 | `{ op: 'set-node-geometry', nodeId, position?, size? }` | Moves and/or resizes a room (`nodeId` is an `ItemRef`); give `position`, `size` or both, the rest stays. The size stays anchored at the minimum corner, so growing towards −x or −y means a smaller `position` and a larger `size`. Whole numbers, sizes at least 1 and within the size limit; the new box must not overlap another room or take the cells of a generated connector |
 
 The preview (and the applied design) shows the ids the app gave; `preview.assigned` maps your `ref`s to them.
@@ -318,7 +319,9 @@ When you create several items in one run, give each a different `ref`.
 
 | `metricId` | For | Value |
 |---|---|---|
-| `area` | rooms | plan area in m²: cells along x × y × 3 m × 3 m (not summed over storeys) |
+| `area` | rooms | **nominal** plan area in m² (label *Nominal area*): cells along x × y × 3 m × 3 m (not summed over storeys). Boundary shifts never change it |
+| `actual-area` | rooms | plan area in m² **as built**, after applied boundary shifts (±1.5 m × the shared wall); equal to `area` otherwise |
+| `boundary-adjusted` | rooms | `true` if the room takes part in an **applied** boundary shift (gains or loses area) |
 | `volume` | rooms | m³: cells along x × y × z × 27 m³ |
 | `degree` | rooms | number of relationships of the room, built or not |
 | `has-exterior-facade` | rooms | `true` if at least one wall faces an empty cell (roofs and floors don't count) |
@@ -327,6 +330,8 @@ When you create several items in one run, give each a different `ref`.
 | `unresolved-connections` | rooms | number of the room's relationships that can't be built (unresolved) |
 | `resolution-status` | relationships | `"direct"`, `"routed"` or `"unresolved"` |
 | `route-length` | relationships | m: generated connector cells × 3 m; `0` when the rooms touch; `null` when unresolved |
+| `boundary-shift-applied` | relationships | `true` only if the edge requests a boundary shift **and** it is applied |
+| `boundary-shift-status` | relationships | `"applied"`, `"no-request"`, or why the request is not applied: `"stacked-rooms"`, `"storey-mismatch"`, `"not-touching"`, `"partial-wall"`, `"room-already-adjusted"`, `"opening-conflict"`, `"overlapping-adjustment"` |
 
 `Function` (the room's `function`) and `Level` (`position[2]`) are not calculated values: read them from `ctx.design.nodes`.
 
@@ -352,6 +357,25 @@ export default defineSpatialAlgorithm({
 ```
 
 Graph algorithms see only ids and endpoints, so they have no `ctx.metrics`.
+
+### Boundary shifts
+
+An edge between two rooms that share a wall can **request** that the wall moves 1.5 m (half a cell) into one of them. Its `boundaryShift` is `'none'` (the default, also when it is absent), `'toward-source'` (the wall moves into the **source** room: the source loses area, the target gains it) or `'toward-target'` (the other way). Source and target are only an orientation here: relationships stay two-way for every graph query, and a door swings into its edge's target.
+
+- **Only a request.** Set it with `set-edge-boundary-shift` (or on `add-edge`); read it from `ctx.design.edges`. Whether the building applies it is a calculated value: `ctx.metrics.value('boundary-shift-applied', edge.id)`, and `'boundary-shift-status'` for why not. A request that cannot apply is kept, never reset to `'none'`; it may apply after a later change of the design.
+- **What applies.** Both rooms touch side by side (not stacked) and span the same storeys; the shared wall runs the whole side of the room that would shrink, in whole 3 m segments (a 1 × 1 bathroom against a 2 × 2 bedroom: yes toward the bathroom, no toward the bedroom); no corridor end or floor opening lies in the part that moves; and neither room already takes part in an **applied** shift. Requests are tried in the order the edges are stored; the first one that applies wins its two rooms.
+- **What changes.** Only the architecture (Building and Plan) and `actual-area`. Positions, sizes, the grid, `nodeAt`, `touches` and every other calculated value stay **nominal** (whole cells): `area` is the nominal area, `exposed-facade-length` / `-area` and `has-exterior-facade` count whole cell faces. A door on a wall the shift shortens moves into the part of the wall that still joins its two rooms.
+- `ctx.metrics.value('boundary-adjusted', room.id)` is `true` for both rooms of an applied shift. Example: a bedroom of 9 m² gaining from a 9 m² bathroom has `actual-area` 13.5 m², the bathroom 4.5 m².
+
+```ts
+// Ask every bathroom to give 1.5 m to the bedroom it shares a wall with.
+for (const e of ctx.design.edges) {
+  const fn = (id: number) => ctx.design.nodes.find((n) => n.id === id)!.function;
+  if (fn(e.source) === 'bedroom' && fn(e.target) === 'bathroom' && ctx.touches(e.source, e.target)) {
+    operations.push({ op: 'set-edge-boundary-shift', edgeId: e.id, boundaryShift: 'toward-target' });
+  }
+}
+```
 
 `ctx.metrics` is a **required** member of the spatial algorithm context (type `MetricReader` from `@student-api`). If you write your own test context for a spatial algorithm, it must provide `metrics` too; the Student API has no helper for this, so give it a small object with `list()` and `value(metricId, id)` that returns the values your test needs.
 
