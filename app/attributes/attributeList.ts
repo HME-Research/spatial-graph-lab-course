@@ -70,7 +70,7 @@ export const BUILT_IN_INFO: Readonly<Record<AttributeCollection, Readonly<Record
     },
     boundaryShift: {
       typeText: 'Choice',
-      info: 'A request to move the wall the two rooms share 1.5 m into the source or the target room: No shift, Toward source or Toward target. It is applied only when the geometry allows (Properties shows why not); the grid, positions and sizes never change. Edit it in Properties.',
+      info: 'A request to move the wall the two rooms share 1.5 m into the source or the target room: No shift, Toward source or Toward target. It is applied only when the geometry allows (Properties shows why not); the grid, positions and sizes never change. Edit it in Properties or the Data table.',
     },
   },
 };

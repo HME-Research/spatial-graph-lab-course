@@ -163,6 +163,22 @@ describe('committing a table cell', () => {
     expect(cellCommit(doc, PROJECT, 'edges', edge.id, 'relationship', choice('access')).kind).toBe('unchanged');
   });
 
+  it('Boundary shift: the three requests; one set-edges-boundary-shift command for this edge', () => {
+    const doc = house();
+    const edge = doc.edges[0]!;
+    expect(cellEditorSpec(doc, PROJECT, 'edges', edge.id, 'boundaryShift')).toMatchObject({
+      kind: 'choice',
+      current: 'none',
+      options: [{ value: 'none', label: 'No shift' }, { value: 'toward-source' }, { value: 'toward-target' }],
+    });
+    expect(cellCommit(doc, PROJECT, 'edges', edge.id, 'boundaryShift', choice('toward-source'))).toEqual({
+      kind: 'command',
+      command: { type: 'set-edges-boundary-shift', edgeIds: [edge.id], boundaryShift: 'toward-source' },
+    });
+    expect(cellCommit(doc, PROJECT, 'edges', edge.id, 'boundaryShift', choice('none')).kind).toBe('unchanged');
+    expect(cellCommit(doc, PROJECT, 'edges', edge.id, 'boundaryShift', choice('sideways')).kind).toBe('invalid');
+  });
+
   it('Geometry: one axis becomes a whole-geometry request for the Properties preview path', () => {
     const doc = house();
     const node = doc.nodes.find((n) => n.id === 3)!;

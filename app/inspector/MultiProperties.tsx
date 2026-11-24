@@ -5,7 +5,7 @@ import { sourceResolver } from '@app/attributes/attributeSources';
 import { decodeChoice, encodeChoice, EXPLICIT_NONE, INHERIT, parseValueDraft } from '@app/attributes/attributesModel';
 import { ManageAttributesLink } from '@app/attributes/CustomAttributes';
 import { ManageFunctionsContext, OpenAttributesContext } from '@app/attributes/navigation';
-import { customAttributeTag } from '@app/attributes/sections';
+import { BOUNDARY_SHIFT_CHOICES, customAttributeTag } from '@app/attributes/sections';
 import type { AttributeCollection, AttributeField, EffectiveAttribute } from '@app/extensions';
 import type { CorridorPatch, DesignCommand } from '@app/spatial';
 import { CORRIDOR_ROOF_CHOICES, CORRIDOR_WALL_CHOICES, IssueFeedback, labelOfChoice, RELATIONSHIP_KIND_CHOICES, UNDO_HINT, type Choice } from '@app/ui';
@@ -239,11 +239,7 @@ function RelationshipRow({ edges, onChange }: { readonly edges: readonly { reado
   );
 }
 
-const SHIFT_CHOICES: readonly { readonly value: BoundaryShift; readonly label: string }[] = [
-  { value: 'none', label: 'No shift' },
-  { value: 'toward-source', label: 'Toward source' },
-  { value: 'toward-target', label: 'Toward target' },
-];
+const SHIFT_CHOICES = BOUNDARY_SHIFT_CHOICES;
 
 /** The selected edges' requested boundary shift (2026-11-24): one choice gives it to every selected edge. */
 function BoundaryShiftRow({ edges, onChange }: { readonly edges: readonly { readonly boundaryShift?: BoundaryShift | undefined }[]; readonly onChange: (shift: BoundaryShift) => void }) {

@@ -246,14 +246,19 @@ describe('Properties sections (P4)', () => {
     expect(html.match(/Manage attributes<\/button>/g)).toHaveLength(1);
   });
 
-  it('a relationship: Identity (ID, Source, Target as "id · function"), then Relationship, Geometry (Boundary shift), then its own Corridor section', async () => {
+  it('a relationship: the Connects card (Source, Reverse, Target as "id · function"), then the Attributes: Identity (ID), Relationship, Geometry (Boundary shift), its own Corridor section', async () => {
     const html = await withProject(selectEdge(1));
+    // Connects comes first and is not one of the attribute sections.
+    const connects = html.slice(html.indexOf('class="sgl-connects"'), html.indexOf('class="sgl-attributes-heading"'));
+    expect(html.indexOf('class="sgl-connects"')).toBeGreaterThanOrEqual(0);
+    expect(connects).toMatch(/data-attribute="source".*>1 · Gallery<\/button>.*Reverse source and target<\/button>.*data-attribute="target".*>2 · Studio<\/button>/s);
+    expect(connects).toContain('title="Show this node. Identity: an edge always joins the same two nodes (Reverse swaps which is the source).');
+    expect(html).toContain('<h3 class="sgl-attributes-heading">Attributes</h3>');
     expect(sections(html).slice(0, 4)).toEqual(['identity', 'required', 'geometry', 'corridor']);
-    expect(attributeIds(html).slice(0, 6)).toEqual(['id', 'source', 'target', 'relationship', 'boundaryShift', 'corridor']);
+    // Source and Target are shown once, in the card, not again under Identity.
+    expect(attributeIds(html).slice(0, 4)).toEqual(['id', 'relationship', 'boundaryShift', 'corridor']);
+    expect(html.match(/data-attribute="source"/g)).toHaveLength(1);
     expect(html).toContain('<h4 class="sgl-attr-section-title">Corridor</h4>');
-    expect(rowOf(html, 'source')).toMatch(/>1 · Gallery<\/button>/);
-    expect(rowOf(html, 'target')).toMatch(/>2 · Studio<\/button>/);
-    expect(rowOf(html, 'target')).toContain('aria-label="Identity: an edge always joins the same two nodes (Reverse swaps which is the source).');
     const row = rowOf(html, 'relationship');
     expect(row).toContain('aria-label="About Access and Open"');
     expect(row).toContain('aria-haspopup="dialog"');

@@ -226,6 +226,27 @@ describe('tables', () => {
     expect(jsonLines(doc).find((l) => l.record?.collection === 'edges' && l.text.includes('"corridor"'))?.section).toBe('geometry');
   });
 
+  it('show a stored Boundary shift request, marked "not applied" when it cannot apply (rooms not touching)', () => {
+    const doc = expectOk(
+      validateDocumentV2({
+        schemaVersion: 2,
+        metadata: { name: 'shift' },
+        nodes: [
+          { id: 1, position: [0, 0, 0], size: [2, 2, 1], function: 'gallery', custom: {} },
+          { id: 2, position: [4, 0, 0], size: [2, 2, 1], function: 'studio', custom: {} },
+        ],
+        edges: [{ id: 1, source: 1, target: 2, relationship: 'access', boundaryShift: 'toward-target', custom: {} }],
+        diagram: { positions: {} },
+        settings: { styleBy: 'function', styles: {} },
+      }),
+    );
+    const cell = edgeTable(inputs(doc, EMPTY_ATTRIBUTE_SCHEMA)).rows[0]!.cells.boundaryShift!;
+    expect(cell).toMatchObject({ text: 'Toward target', origin: 'stored', hint: 'not applied' });
+    expect(cell.title).toContain('Stored on this edge as "boundaryShift": "toward-target".');
+    expect(cell.title).toContain('The request is kept.');
+    expect(jsonLines(doc).find((l) => l.record?.collection === 'edges' && l.text.includes('"boundaryShift"'))?.section).toBe('geometry');
+  });
+
   it('show edges with "id · Function" endpoints and the relationship label', () => {
     const t = edgeTable(inputs(houseWithAttributes()));
     expect(t.columns.slice(0, 7).map((c) => c.label)).toEqual(['ID', 'Source', 'Target', 'Relationship', 'walls', 'roof', 'width']);
@@ -235,6 +256,9 @@ describe('tables', () => {
       ['corridor.width', 'geometry', 'Corridor', true],
     ]);
     expect(attributeHeadings(t.columns).map((h) => [h.label, h.span])).toContainEqual(['Corridor', 3]);
+    // Boundary shift (2026-11-24): a Geometry column after Corridor, like the saved JSON keys.
+    expect(t.columns[7]).toMatchObject({ id: 'boundaryShift', label: 'Boundary shift', section: 'geometry', editable: true });
+    expect(t.rows.find((r) => r.id === 1)!.cells.boundaryShift).toMatchObject({ text: 'No shift', origin: 'default' });
     const e2 = t.rows.find((r) => r.id === 2)!.cells;
     expect([e2.source!.text, e2.target!.text, e2.relationship!.text]).toEqual(['2 · living', '3 · kitchen', 'Open']);
     expect(t.rows.find((r) => r.id === 2)!.cells['custom:f2']).toMatchObject({ text: 'wide door', origin: 'stored' });
@@ -327,7 +351,7 @@ describe('DataView', () => {
     const table = render(NO_SELECTION, 'table', vi.fn(), vi.fn(), () => null).html;
     expect(table).toContain('Click a cell to edit');
     const cells = (column: string) => [...table.matchAll(new RegExp(`<t[dh][^>]*data-column="${column}"[^>]*>`, 'g'))].map((m) => m[0]).filter((c) => !c.includes('scope="col"'));
-    for (const column of ['function', 'position.x', 'position.y', 'position.z', 'size.x', 'size.y', 'size.z', 'custom:f1', 'relationship', 'corridor.walls', 'corridor.roof', 'corridor.width', 'custom:f2']) {
+    for (const column of ['function', 'position.x', 'position.y', 'position.z', 'size.x', 'size.y', 'size.z', 'custom:f1', 'relationship', 'corridor.walls', 'corridor.roof', 'corridor.width', 'boundaryShift', 'custom:f2']) {
       expect(cells(column).length, column).toBeGreaterThan(0);
       for (const c of cells(column)) expect(c, column).toMatch(/data-editable="true"[^>]*tabindex="-1"/);
     }

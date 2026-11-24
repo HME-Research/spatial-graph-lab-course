@@ -539,3 +539,75 @@ button.link-button:hover:not(:disabled) {
   width: 100%;
   min-width: 0;
 }
+
+/*
+ * Edge Properties (owner 2026-11-24): the Connects card — Source, Reverse, Target — above the
+ * Attributes. Reverse is an action, not an attribute, so it is a button inside the card.
+ */
+.sgl-connects {
+  display: grid;
+  gap: var(--space-1, 4px);
+  margin: 0 0 var(--space-3, 12px);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  border: 1px solid var(--line, #e1e1dc);
+  border-radius: var(--radius, 6px);
+  background: var(--surface-muted, #f7f7f5);
+}
+.sgl-connects-row {
+  display: grid;
+  grid-template-columns: 4.5em minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-2, 8px);
+  min-width: 0;
+}
+.sgl-connects-label {
+  font-size: var(--text-xs, 12px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted, #62625c);
+}
+.sgl-connects-node {
+  justify-self: start;
+  max-width: 100%;
+  font-size: var(--text-md, 14px);
+  font-weight: 600;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.sgl-connects .sgl-reverse-edge {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  margin-left: calc(4.5em + var(--space-2, 8px));
+  min-height: var(--hit-compact, 32px);
+  padding: 0 var(--space-3, 12px);
+  border: 1px solid var(--accent-line, #b9cbe0);
+  border-radius: var(--radius, 6px);
+  background: var(--panel, #ffffff);
+  color: var(--accent, #2c5d8f);
+  font: inherit;
+  font-size: var(--text-sm, 13px);
+  font-weight: 600;
+  cursor: pointer;
+}
+.sgl-connects .sgl-reverse-edge > span {
+  font-size: var(--text-lg, 16px);
+  line-height: 1;
+}
+.sgl-connects .sgl-reverse-edge:hover {
+  background: var(--accent-soft, #edf2f8);
+  border-color: var(--accent, #2c5d8f);
+}
+.sgl-connects .sgl-reverse-edge:focus-visible {
+  outline: 2px solid var(--accent, #2c5d8f);
+  outline-offset: 2px;
+}
+
+/* "Attributes": one heading over the attribute sections (Identity … Calculated). */
+.sgl-attributes-heading {
+  margin: 0 0 var(--space-1, 4px);
+  font-size: var(--text-sm, 13px);
+  font-weight: 650;
+  color: var(--fg, #1f1f1d);
+}

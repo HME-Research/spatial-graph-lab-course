@@ -14,7 +14,7 @@
  * - calculated: values the app works out (metrics). Never stored. Locked.
  */
 
-import type { RoofStyle, WallStyle } from '@app/document';
+import type { BoundaryShift, RoofStyle, WallStyle } from '@app/document';
 import { isBaselineField, type ActiveToolkit, type AttributeCollection, type AttributeField } from '@app/extensions';
 
 export const ATTRIBUTE_SECTION_IDS = ['identity', 'required', 'geometry', 'custom', 'calculated'] as const;
@@ -204,3 +204,13 @@ export interface CorridorWidthPart {
 }
 
 export const CORRIDOR_WIDTH_PART: CorridorWidthPart = { id: 'corridor.width', part: 'width', label: 'width', name: 'Corridor width' };
+
+/** An edge's three Boundary shift requests, in display order (Properties, the Data table). */
+export const BOUNDARY_SHIFT_CHOICES: readonly { readonly value: BoundaryShift; readonly label: string }[] = [
+  { value: 'none', label: 'No shift' },
+  { value: 'toward-source', label: 'Toward source' },
+  { value: 'toward-target', label: 'Toward target' },
+];
+
+/** The label of a Boundary shift request (`toward-source` → "Toward source"). */
+export const boundaryShiftLabel = (value: BoundaryShift): string => BOUNDARY_SHIFT_CHOICES.find((c) => c.value === value)?.label ?? value;

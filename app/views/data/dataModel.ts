@@ -1,4 +1,6 @@
+import { boundaryShiftsOf, BOUNDARY_SHIFT_STATUS_TEXT } from '@app/building';
 import {
+  boundaryShiftLabel,
   corridorChoiceLabel,
   CORRIDOR_PARTS,
   CORRIDOR_WIDTH_PART,
@@ -8,7 +10,7 @@ import {
   NODE_BUILT_IN_ATTRIBUTES,
   type AttributeSectionId,
 } from '@app/attributes/sections';
-import { designCorridorLook, formatCorridorWidth, serializeDesignV2, type AttributeValue, type DesignDocumentV2, type RelationshipEdge } from '@app/document';
+import { boundaryShiftOf, designCorridorLook, formatCorridorWidth, serializeDesignV2, type AttributeValue, type DesignDocumentV2, type RelationshipEdge } from '@app/document';
 import {
   resolveEdgeAttributes,
   resolveNodeAttributes,
@@ -69,6 +71,7 @@ const RECORD_KEY_SECTION: Readonly<Record<string, StoredSectionId>> = {
   function: 'required',
   relationship: 'required',
   corridor: 'geometry',
+  boundaryShift: 'geometry',
   position: 'geometry',
   size: 'geometry',
   custom: 'custom',
@@ -356,8 +359,25 @@ function corridorCells(edge: RelationshipEdge, ctx: MetricContext): Record<strin
 }
 
 /**
+ * The Boundary shift cell of an edge (2026-11-24), like Properties: the stored request; "No shift"
+ * when none is stored. A request that cannot be applied now is kept and marked "not applied".
+ */
+function boundaryShiftCell(edge: RelationshipEdge, ctx: MetricContext): DataCell {
+  const requested = boundaryShiftOf(edge);
+  if (requested === 'none') return { text: boundaryShiftLabel('none'), origin: 'default', title: 'Not stored: no shift; the shared wall stays on the grid line.' };
+  const outcome = boundaryShiftsOf(ctx.doc, ctx.spatial).byEdge.get(edge.id);
+  const applied = outcome?.status === 'applied';
+  return {
+    text: boundaryShiftLabel(requested),
+    origin: 'stored',
+    title: `Stored on this edge as "boundaryShift": "${requested}".${outcome ? `\n${BOUNDARY_SHIFT_STATUS_TEXT[outcome.status]}.` : ''}${applied ? '' : ' The request is kept.'}`,
+    ...(!applied && { hint: 'not applied' }),
+  };
+}
+
+/**
  * One row per edge, columns in the order of the saved JSON keys: id · source · target ·
- * relationship · corridor (walls | roof | width) · custom attributes; then the calculated values (never
+ * relationship · corridor (walls | roof | width) · boundaryShift · custom attributes; then the calculated values (never
  * saved), locked.
  */
 export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInputs): DataTable {
@@ -379,6 +399,13 @@ export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInp
       editable: true,
       ...(p.part === 'width' && { numeric: true }),
     })),
+    {
+      id: 'boundaryShift',
+      label: 'Boundary shift',
+      section: 'geometry',
+      title: 'Stored as "boundaryShift": a request to move the shared wall 1.5 m into the source or the target room. Not stored: No shift.',
+      editable: true,
+    },
     ...schema.edges.map(customColumn('edges', toolkit)),
     ...calculatedColumns('edges', enabled, evaluator),
   ];
@@ -392,6 +419,7 @@ export function edgeTable({ ctx, schema, enabled, evaluator, toolkit }: TableInp
       target: endpoint(e.target),
       relationship: stored(KIND_PRESENTATION[e.relationship].label, `Stored as "${e.relationship}".`),
       ...corridorCells(e, ctx),
+      boundaryShift: boundaryShiftCell(e, ctx),
     };
     for (const r of resolveEdgeAttributes(schema, e)) cells[`custom:${r.field.id}`] = customCell(r);
     Object.assign(cells, calculatedCells(ctx, 'edges', enabled, evaluator, e.id));

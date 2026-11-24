@@ -17,7 +17,7 @@ import {
 } from '@app/ui';
 import { functionStatus } from '@app/views/project';
 import { selectNode } from '@core/viewer/selection';
-import { useContext, useEffect, useState, type ReactNode } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { AttributeSection } from '@app/attributes/AttributeSection';
 import { sourceResolver } from '@app/attributes/attributeSources';
 import { CustomAttributes, ManageAttributesLink } from '@app/attributes/CustomAttributes';
@@ -29,10 +29,11 @@ import { CalculatedRows, FieldRow } from './CalculatedValues';
 import { messageContextFor, useCommands, type PanelProps } from './panelSupport';
 
 /**
- * Properties of one relationship, in the attribute sections (Programme P4, `sections.ts`): Identity
- * (id, source, target — locked), Required by the app (Relationship: Access / Open), Geometry
- * (Corridor: walls | roof, always editable like the Data table; used only when a corridor is
- * generated), Custom (tagged by source), Calculated (locked). Then how it is built.
+ * Properties of one relationship (owner 2026-11-24): first a Connects card (Source, Reverse, Target
+ * — the endpoints are shown only there, and Reverse is an action, not an attribute), then the
+ * Attributes in their sections (Programme P4, `sections.ts`): Identity (id, locked), Required by the
+ * app (Relationship: Access / Open), Geometry (Boundary shift), Corridor (walls | roof | width; used
+ * only when a corridor is generated), Custom (tagged by source), Calculated (locked). Then how it is built.
  */
 export function EdgeProperties(props: PanelProps & { readonly edgeId: number }) {
   return <EdgePropertiesV2 {...props} />;
@@ -176,20 +177,15 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
   const showCustom = schema !== undefined && (schema.edges.length > 0 || outsideCount > 0);
   const manageLink = project && openAttributes ? <ManageAttributesLink onManage={() => openAttributes('edges')} /> : undefined;
 
-  const endpointRow = (attributeId: 'source' | 'target', name: string, nodeId: number, meta?: ReactNode) => (
-    <FieldRow
-      attributeId={attributeId}
-      kind="identity"
-      label={name}
-      title={attributeId === 'source' ? 'The node the edge starts from.' : 'The node the edge leads to: its door swings into this room.'}
-      {...(meta !== undefined && { meta })}
-      control={
-        <button type="button" className="sgl-link sgl-field-value" onClick={() => onSelect(selectNode(nodeId))} title="Show this node">
-          {endpointText(nodeId)}
-        </button>
-      }
-      locked={ENDPOINT_LOCK}
-    />
+  const endpointRow = (attributeId: 'source' | 'target', name: string, nodeId: number) => (
+    <div className="sgl-connects-row" data-attribute={attributeId}>
+      <span className="sgl-connects-label" title={attributeId === 'source' ? 'The node the edge starts from.' : 'The node the edge leads to: its door swings into this room.'}>
+        {name}
+      </span>
+      <button type="button" className="sgl-link sgl-connects-node" onClick={() => onSelect(selectNode(nodeId))} title={`Show this node. ${ENDPOINT_LOCK}`}>
+        {endpointText(nodeId)}
+      </button>
+    </div>
   );
 
   return (
@@ -200,6 +196,17 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
 
       <IssueFeedback issues={issues} context={messageContextFor(props)} onDismiss={clearIssues} />
 
+      {/* The two nodes the edge joins, and Reverse: not attributes (owner 2026-11-24). Source and
+          Target are shown only here, not again under Identity. */}
+      <section className="sgl-connects" aria-label="Connects">
+        {endpointRow('source', 'Source', edge.source)}
+        <button type="button" className="sgl-reverse-edge" onClick={() => runV2({ type: 'reverse-edge', edgeId })} title={REVERSE_TITLE}>
+          <span aria-hidden="true">⇅</span> Reverse source and target
+        </button>
+        {endpointRow('target', 'Target', edge.target)}
+      </section>
+
+      <h3 className="sgl-attributes-heading">Attributes</h3>
       <div className="sgl-attr-sections" data-section="attributes">
         <AttributeSection section="identity">
           <FieldRow
@@ -210,12 +217,6 @@ function EdgePropertiesV2(props: PanelProps & { readonly edgeId: number }) {
             control={<span className="sgl-field-value">{edge.id}</span>}
             locked="Identity: cannot be changed"
           />
-          {endpointRow('source', 'Source', edge.source)}
-          {endpointRow('target', 'Target', edge.target, (
-            <button type="button" className="sgl-link sgl-reverse-edge" onClick={() => runV2({ type: 'reverse-edge', edgeId })} title={REVERSE_TITLE}>
-              ⇄ Reverse source and target
-            </button>
-          ))}
         </AttributeSection>
 
         <AttributeSection section="required">

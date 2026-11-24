@@ -38,7 +38,7 @@ describe('edge Properties', () => {
     const { html } = render(raw('toward-target'), selectEdge(1));
     expect(html).toContain('data-attribute="source"');
     expect(html).toContain('data-attribute="target"');
-    expect(html).toContain('⇄ Reverse source and target');
+    expect(html).toMatch(/class="sgl-reverse-edge"[^>]*>.*Reverse source and target<\/button>/);
     expect(choice(html, 'toward-target')).toContain('class="checked"');
     expect(html).toContain('data-shift-status="applied"');
     expect(html).toContain('room 2: 9 → 4.5 m²; room 1: 9 → 13.5 m²');

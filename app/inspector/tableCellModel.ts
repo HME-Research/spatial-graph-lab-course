@@ -1,7 +1,7 @@
-import { designCorridorLook, formatCorridorWidth, MAX_CORRIDOR_WIDTH, MAX_ROOM_SIZE, parseCorridorWidth, type AttributeValue, type DesignDocumentV2, type GraphIssue, type RelationshipKind, type RoofStyle, type WallStyle } from '@app/document';
+import { boundaryShiftOf, designCorridorLook, formatCorridorWidth, MAX_CORRIDOR_WIDTH, MAX_ROOM_SIZE, parseCorridorWidth, type AttributeValue, type BoundaryShift, type DesignDocumentV2, type GraphIssue, type RelationshipKind, type RoofStyle, type WallStyle } from '@app/document';
 import { functionNameResolver, resolveEdgeAttributes, resolveNodeAttributes, type EffectiveAttribute } from '@app/extensions';
 import type { CorridorPatch, DesignCommand } from '@app/spatial';
-import { corridorChoiceLabel, CORRIDOR_PARTS, CORRIDOR_WIDTH_PART } from '@app/attributes/sections';
+import { BOUNDARY_SHIFT_CHOICES, corridorChoiceLabel, CORRIDOR_PARTS, CORRIDOR_WIDTH_PART } from '@app/attributes/sections';
 import { decodeChoice, encodeChoice, EXPLICIT_NONE, formatFieldValue, inheritedText, INHERIT, parseValueDraft } from '@app/attributes/attributesModel';
 import { RELATIONSHIP_KIND_CHOICES } from '@app/ui/labels';
 import type { ProjectViewContext } from '@app/views/project';
@@ -13,6 +13,7 @@ import { geometryDraftEdit, GEOMETRY_ROWS, parseTypeId, typeMenu, type Triple } 
  * reuses the models of Properties so a cell edits exactly like the matching Properties row:
  * - Function: the same menu (`typeMenu`) → `set-node-type`;
  * - Relationship: Access / Open → `change-edge-kind`;
+ * - Boundary shift: No shift / Toward source / Toward target → `set-edges-boundary-shift` (one edge);
  * - Geometry (Position x | y | z, Size x | y | z; one cell per value): `geometryDraftEdit` → the host previews it
  *   (`proposeEdit`) and sends `set-node-geometry`, like Properties and the gizmo;
  * - Corridor (an edge's Geometry; walls | roof, one cell each): the choices of Properties, "Design
@@ -110,6 +111,7 @@ export function cellEditorSpec(
     if (!edge) return null;
     if (columnId === 'relationship')
       return { kind: 'choice', current: edge.relationship, options: RELATIONSHIP_KIND_CHOICES.map((c) => ({ value: c.value, label: c.label })) };
+    if (columnId === 'boundaryShift') return { kind: 'choice', current: boundaryShiftOf(edge), options: BOUNDARY_SHIFT_CHOICES.map((c) => ({ value: c.value, label: c.label })) };
     const corridor = CORRIDOR_PARTS.find((p) => p.id === columnId);
     if (corridor) {
       const card = designCorridorLook(doc.settings)[corridor.part];
@@ -205,6 +207,14 @@ export function cellCommit(
     return input.value === spec.current
       ? { kind: 'unchanged' }
       : { kind: 'command', command: { type: 'change-edge-kind', edgeId: itemId, relationship: input.value as RelationshipKind } };
+  }
+
+  if (collection === 'edges' && columnId === 'boundaryShift') {
+    if (input.kind !== 'choice' || spec.kind !== 'choice') return { kind: 'unchanged' };
+    if (!spec.options.some((o) => o.value === input.value)) return { kind: 'invalid', issue: issue(['edges', 'boundaryShift'], 'Choose No shift, Toward source or Toward target.') };
+    return input.value === spec.current
+      ? { kind: 'unchanged' }
+      : { kind: 'command', command: { type: 'set-edges-boundary-shift', edgeIds: [itemId], boundaryShift: input.value as BoundaryShift } };
   }
 
   const corridor = collection === 'edges' ? CORRIDOR_PARTS.find((p) => p.id === columnId) : undefined;
