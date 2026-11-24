@@ -179,6 +179,8 @@ describe('Properties sections (P4)', () => {
 
   it('a room: the five sections in order, then Relationships; sections are not collapsible', async () => {
     const html = await withProject(selectNode(1));
+    // One "Attributes" heading over the sections, as for an edge.
+    expect(html).toContain('<h3 class="sgl-attributes-heading">Attributes</h3><div class="sgl-attr-sections" data-section="attributes">');
     expect(sections(html)).toEqual(['identity', 'required', 'geometry', 'custom', 'calculated']);
     expect(html.indexOf('data-attribute-section="calculated"')).toBeLessThan(html.indexOf('data-section="relationships"'));
     expect(attributeIds(html).slice(0, 4)).toEqual(NODE_BUILT_IN_ATTRIBUTES.map((a) => a.id));

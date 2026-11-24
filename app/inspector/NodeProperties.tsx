@@ -164,6 +164,7 @@ export function NodeProperties(props: PanelProps & { readonly nodeId: number }) 
       <IssueFeedback issues={issues} context={context} onDismiss={clearIssues} />
       {pending && <RouteConfirm relationships={pending.relationships} action={pending.action} onCancel={cancelPending} onConfirm={confirmPending} />}
 
+      <h3 className="sgl-attributes-heading">Attributes</h3>
       <div className="sgl-attr-sections" data-section="attributes">
         <AttributeSection section="identity">
           <FieldRow
