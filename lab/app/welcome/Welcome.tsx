@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { domFocusScope, handleDialogKeyDown } from '@app/ui/concepts/dialogKeys';
-import { useGuide } from '@app/ui/guide';
+import { TUTORIAL_URL, useGuide } from '@app/ui/guide';
 import { ToolkitPicker, type ToolkitOption } from './ToolkitPicker';
 import { OpenExampleDialog } from './OpenExampleDialog';
 import { recentRows, type ExampleChoice, type ExampleOption, type RecentState } from './welcomeModel';
@@ -146,6 +146,12 @@ export function Welcome({
           <h2 id="sgl-welcome-title">Welcome to Spatial Graph Lab</h2>
           <p id="sgl-welcome-lead" className="sgl-welcome-lead">
             Design buildings as graphs of nodes and edges, then explore them as plans and in 3D.
+          </p>
+          <p className="sgl-welcome-tutorial">
+            New here, or making your own analysis or toolkit?{' '}
+            <a href={TUTORIAL_URL} target="_blank" rel="noopener">
+              Open the step-by-step tutorial
+            </a>
           </p>
         </header>
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { HorizontalTabs } from '../Tabs';
 import { KitDownload, PromptGuide } from './AiKitTabs';
 import { TOOLKIT_AGENT_PROMPT_GUIDE, TOOLKIT_CHAT_COMMANDS, TOOLKIT_CHAT_PROMPT_GUIDE } from './aiPrompt';
+import { TUTORIAL_URL } from './links';
 
 /**
  * How to make your own toolkit with an AI assistant (owner 2026-11-24), shown in the Guide under
@@ -28,7 +29,11 @@ export function ToolkitKitTabs({ initialTab = 'agent' }: { readonly initialTab?:
     <section className="sgl-aikits" data-toolkit-kit="">
       <p className="sgl-aikits-intro">
         Your toolkit is one folder, <code>toolkits/&lt;toolkit-id&gt;/</code>, on your own branch <code>toolkit/&lt;toolkit-id&gt;</code>. Never commit to{' '}
-        <code>main</code>. Full guide: <code>lab/docs/TOOLKITS.md</code>.
+        <code>main</code>. Every step, from installing Git to handing in:{' '}
+        <a href={TUTORIAL_URL} target="_blank" rel="noopener">
+          the step-by-step tutorial
+        </a>
+        . Full guide: <code>lab/docs/TOOLKITS.md</code>.
       </p>
       <HorizontalTabs tabs={TABS} active={tab} onActive={setTab} label="Ways to make your own toolkit">
         {tab === 'agent' && (

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <nav class="site" aria-label="Tutorial pages">
+    <a href="index.html">Start</a>
+    <a href="setup.html" aria-current="page">Set up</a>
+    <a href="browser.html">In the browser</a>
+    <a href="analysis.html">Your analysis</a>
+    <a href="plan.html">Plan a toolkit</a>
+    <a href="agent.html">Coding agent</a>
+    <a href="chat.html">Chat assistant</a>
+    <a href="git.html">Git</a>
+    <a href="hand-in.html">Hand in</a>
+    <a href="update.html">Update</a>
+    <a href="help.html">Help</a>
+  </nav>
+</div></header>
+<main>
+<h1>Set up your computer</h1>
+<p class="lead">Once, at the start: install three programs, join the course repository on GitHub, copy it to your computer and run the app there. About 30 minutes. Only needed to make a toolkit; to <a href="browser.html">use the app</a> or <a href="analysis.html">upload an analysis</a>, a browser is enough.</p>
+
+<h2>1. Install the programs</h2>
+<ol class="steps">
+  <li><strong>A GitHub account</strong>Make one at <a href="https://github.com/signup">github.com/signup</a> (free) and send your <b>username</b> to your tutor. Students can also apply for free extras at <a href="https://education.github.com/">GitHub Education</a>.</li>
+  <li><strong>Git</strong>Download from <a href="https://git-scm.com/downloads">git-scm.com/downloads</a> and install with the default options. On a Mac, typing <code>git</code> in Terminal also offers to install it.</li>
+  <li><strong>Node.js</strong>Download the <b>LTS</b> version (22 or newer) from <a href="https://nodejs.org/">nodejs.org</a> and install with the default options. It brings <code>npm</code>, which installs and runs the app.</li>
+  <li><strong>VS Code</strong>Download from <a href="https://code.visualstudio.com/">code.visualstudio.com</a>. You will open the repository in it, and run commands in its terminal: <span class="ui">Terminal › New Terminal</span>.</li>
+  <li><strong>Check them</strong>In a new VS Code terminal, run:
+    <div class="code"><pre>git --version
+node --version</pre></div>
+    <p class="see">two version numbers; Node must start with 22 or higher. A message such as “not recognized” means the program is not installed yet, or VS Code was open while you installed it: close and reopen VS Code.</p></li>
+</ol>
+
+<h2>2. Join the course repository</h2>
+<ol class="steps">
+  <li><strong>Accept the invitation</strong>Your tutor adds you to <a href="https://github.com/HME-Research/spatial-graph-lab-course">HME-Research/spatial-graph-lab-course</a>. Accept it from the e-mail GitHub sends, or at <a href="https://github.com/HME-Research/spatial-graph-lab-course/invitations">its invitations page</a>. Without it you can copy the repository but not push your work.</li>
+  <li><strong>Tell Git who you are</strong> (once per computer; use the e-mail of your GitHub account):
+    <div class="code"><pre>git config --global user.name "Your Name"
+git config --global user.email "you@example.com"</pre></div></li>
+</ol>
+
+<h2>3. Copy the repository to your computer</h2>
+<p>This is called <b>cloning</b>. Choose one way.</p>
+<h3>In the VS Code terminal</h3>
+<ol class="steps">
+  <li><strong>Go to the folder that should hold it</strong>for example your Documents folder:
+    <div class="code"><pre>cd ~/Documents</pre></div></li>
+  <li><strong>Clone it</strong>
+    <div class="code"><pre>git clone https://github.com/HME-Research/spatial-graph-lab-course.git</pre></div>
+    <p class="see">a new folder <code>spatial-graph-lab-course</code>. The first time, a browser window may ask you to sign in to GitHub: allow it.</p></li>
+  <li><strong>Open it in VS Code</strong><span class="ui">File › Open Folder…</span> › <code>Documents/spatial-graph-lab-course</code>. Answer “Yes, I trust the authors” if asked.</li>
+</ol>
+<h3>Or with GitHub Desktop (no typing)</h3>
+<p>Install <a href="https://desktop.github.com/">GitHub Desktop</a>, sign in, then <span class="ui">File › Clone repository…</span> › <code>HME-Research/spatial-graph-lab-course</code> › <span class="ui">Clone</span>, and <span class="ui">Open in Visual Studio Code</span>. GitHub Desktop can also make branches, commit and push for you (see <a href="git.html">Git</a>).</p>
+
+<h2>4. Run the app on your computer</h2>
+<ol class="steps">
+  <li><strong>Install what the app needs</strong> (once, and again whenever the course says so). In the VS Code terminal, inside the repository folder:
+    <div class="code"><pre>npm install</pre></div>
+    <p class="see">“added … packages” after a minute or two. Warnings are fine; an <code>ERR!</code> is not (see <a href="help.html">Help</a>).</p></li>
+  <li><strong>Start it</strong>
+    <div class="code"><pre>npm run dev</pre></div>
+    <p class="see">a line such as <code>Local: http://localhost:5173/</code>. <kbd>Ctrl</kbd>-click it, or open it in your browser: the app's Welcome screen.</p></li>
+  <li><strong>Stop it</strong> when you are done: click in the terminal and press <kbd>Ctrl</kbd>+<kbd>C</kbd>. While it runs, the app reloads by itself when a file changes.</li>
+</ol>
+
+<div class="warn"><p><b>Windows: “running scripts is disabled on this system”?</b> Run this once in the terminal, then try again: <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> (answer <kbd>Y</kbd>).</p></div>
+
+<p>You are ready. Next: <a href="plan.html">plan your toolkit</a>.</p>
+
+<div class="pager"><a href="index.html">← Start</a><a href="browser.html">In the browser →</a></div>
+</main>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</body>
+</html>

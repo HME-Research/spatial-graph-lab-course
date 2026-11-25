@@ -63,9 +63,9 @@ function* files(dir: URL): Generator<URL> {
 }
 
 describe('Guide content (P4 item H)', () => {
-  it('has no Wikipedia link anywhere in app/, docs/ or toolkits/ (owner rule)', () => {
+  it('has no Wikipedia link anywhere in app/, docs/, toolkits/ or tutorial/ (owner rule)', () => {
     const hits: string[] = [];
-    for (const dir of ['app/', 'docs/', '../toolkits/']) {
+    for (const dir of ['app/', 'docs/', '../toolkits/', '../tutorial/']) {
       for (const f of files(new URL(dir, ROOT))) {
         if (f.pathname.endsWith('/guideContent.test.ts')) continue;
         if (/wikipedia\.org/i.test(fs.readFileSync(f, 'utf8'))) hits.push(f.pathname);

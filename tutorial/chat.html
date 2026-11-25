@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>With a chat assistant · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <nav class="site" aria-label="Tutorial pages">
+    <a href="index.html">Start</a>
+    <a href="setup.html">Set up</a>
+    <a href="browser.html">In the browser</a>
+    <a href="analysis.html">Your analysis</a>
+    <a href="plan.html">Plan a toolkit</a>
+    <a href="agent.html">Coding agent</a>
+    <a href="chat.html" aria-current="page">Chat assistant</a>
+    <a href="git.html">Git</a>
+    <a href="hand-in.html">Hand in</a>
+    <a href="update.html">Update</a>
+    <a href="help.html">Help</a>
+  </nav>
+</div></header>
+<main>
+<h1>Make a toolkit with a chat assistant</h1>
+<p class="lead">A chat assistant (Claude, ChatGPT or Gemini in the browser) cannot see the repository. You give it the <b>toolkit kit</b>, it gives you your toolkit folder, and you put that folder in place, check it, commit and push.</p>
+
+<div class="note"><p>Before you start: <a href="setup.html">set up</a> your computer and <a href="plan.html">plan your toolkit</a>.</p></div>
+
+<div class="idbox">
+  <label for="toolkit-id">Your toolkit id</label>
+  <input id="toolkit-id" type="text" data-id-input placeholder="e.g. hk-library" autocomplete="off" spellcheck="false">
+  <small data-id-hint></small>
+</div>
+<p>The commands below use it once you type it.</p>
+
+<h2>1. Get your toolkit from the chat</h2>
+<ol class="steps">
+  <li><strong>Download the toolkit kit</strong><a href="kits/spatial-graph-lab-toolkit-kit.zip" download>Toolkit kit (.zip)</a>, also in the app: <span class="ui">Guide › Toolkits &amp; JSON › Make your own toolkit › Chat assistant › Toolkit kit (.zip)</span>. It holds the AI's instructions (<code>PROMPT.md</code>), the guide, the Student API reference, the starter toolkit and the House toolkit as an example.</li>
+  <li><strong>Open a new chat and attach the zip.</strong>If your chat refuses zip files, unzip it and attach the files inside.</li>
+  <li><strong>Send your prompt</strong>The one <a href="plan.html">Plan a toolkit</a> built for you, or this one with the blanks filled in:
+    <div class="code"><pre data-fill data-block="prompt:chat">I've attached the Spatial Graph Lab toolkit kit. Read PROMPT.md and every file in it, then write my toolkit following it exactly. Give me the folder &lt;toolkit-id&gt;/ as a zip; if you cannot make files, give every file in its own code block, headed by its path.
+
+Toolkit id: ___
+My idea: ___
+Functions (and their attributes): ___
+Algorithms: ___
+Example design: ___</pre></div></li>
+  <li><strong>Read its summary</strong>It lists your Functions, attributes, algorithms and designs, and anything it chose for you. Ask for changes now, in plain words, before you download.</li>
+  <li><strong>Download the zip</strong>If it gave code blocks instead, ask “Please give me the folder as a zip”; if it cannot, make each file yourself in VS Code with exactly the path written above its block.</li>
+</ol>
+
+<h2>2. Make your branch</h2>
+<p>In VS Code, open the repository (<span class="ui">File › Open Folder…</span> › <code>spatial-graph-lab-course</code>) and a terminal (<span class="ui">Terminal › New Terminal</span>):</p>
+<div class="code"><pre data-fill>git switch main
+git pull
+git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
+<p class="see"><code>Switched to a new branch 'toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span>'</code>. Already made it earlier? <code>git switch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (no <code>-c</code>). With GitHub Desktop: <span class="ui">Current branch › New branch</span> › <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>.</p>
+
+<h2>3. Put the folder in place</h2>
+<p>Unzip the chat's zip (Windows: right-click › <span class="ui">Extract All…</span>; Mac: double-click) and move the folder <code><span data-toolkit-id>&lt;toolkit-id&gt;</span></code> into the repository's <code>toolkits</code> folder. <code>toolkit.ts</code> must sit <b>directly</b> inside it:</p>
+<div class="table"><table>
+  <tr><th>✓ Right</th><th>✗ Wrong (a common unzip mistake)</th></tr>
+  <tr><td><div class="tree">spatial-graph-lab-course/
+  toolkits/
+    house/
+    <span data-toolkit-id>&lt;toolkit-id&gt;</span>/
+      toolkit.ts
+      functions/
+      algorithms/
+      designs/</div></td>
+  <td><div class="tree">spatial-graph-lab-course/
+  toolkits/
+    <span data-toolkit-id>&lt;toolkit-id&gt;</span>/
+      <span data-toolkit-id>&lt;toolkit-id&gt;</span>/
+        toolkit.ts
+        …</div>
+  Move the inner folder up one level.</td></tr>
+</table></div>
+
+<h2>4. Check it and try it</h2>
+<ol class="steps">
+  <li><strong>Install</strong> (first time only, or after the course says so):
+    <div class="code"><pre>npm install</pre></div></li>
+  <li><strong>Run the checks</strong>
+    <div class="code"><pre data-fill>npm run check:toolkit -- -t &lt;toolkit-id&gt;
+npm run typecheck</pre></div>
+    <p class="see">both end without a red <code>FAIL</code> or <code>error</code>. <code>check:toolkit</code> loads your toolkit as the app does and runs every algorithm on your default design; <code>typecheck</code> checks the TypeScript.</p></li>
+  <li><strong>If a check fails</strong>Copy the <b>whole</b> message into the chat and ask: “Fix exactly this and give me only the files you changed.” Replace those files in your folder and run the checks again. More in <a href="help.html">Help</a>.</li>
+  <li><strong>Try it in the app</strong>
+    <div class="code"><pre>npm run dev</pre></div>
+    Open <code>http://localhost:5173/?toolkit=<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> › <span class="ui">Open example…</span> › <i>Toolkit: your toolkit's name</i>. Run your analyses in <span class="ui">Analyse</span> and transforms in <span class="ui">Transform</span>. Stop with <kbd>Ctrl</kbd>+<kbd>C</kbd>.</li>
+</ol>
+
+<h2>5. Commit and push</h2>
+<div class="code"><pre data-fill>git add toolkits/&lt;toolkit-id&gt;
+git status</pre></div>
+<div class="stop"><p><code>git status</code> must list <b>only</b> files under <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code> in green. If it lists anything else, don't commit: see <a href="help.html">Help</a> to undo that change first.</p></div>
+<div class="code"><pre data-fill>git commit -m "feat(&lt;toolkit-id&gt;): first version of my toolkit"
+git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
+<p>With GitHub Desktop: tick only your toolkit's files, write a summary, <span class="ui">Commit to toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></span>, then <span class="ui">Publish branch</span>. Then <a href="hand-in.html">check the green tick</a> on GitHub.</p>
+
+<h2>All the commands at once</h2>
+<p>The same steps as one list, as the app shows them (lines starting with <code>#</code> are things you do by hand):</p>
+<div class="code"><pre data-fill data-block="commands:chat">git switch main
+git pull
+git switch -c toolkit/&lt;toolkit-id&gt;
+# unzip: the folder must end up at toolkits/&lt;toolkit-id&gt;/ (toolkit.ts directly inside it)
+npm install
+npm run check:toolkit -- -t &lt;toolkit-id&gt;
+npm run typecheck
+npm run dev
+# try it at http://localhost:5173/?toolkit=&lt;toolkit-id&gt;, then stop the server (Ctrl+C)
+git add toolkits/&lt;toolkit-id&gt;
+git status
+git commit -m "feat(&lt;toolkit-id&gt;): first version of my toolkit"
+git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
+
+<h2>Later changes</h2>
+<p>Send the chat the files you changed (or your whole folder as a zip) so it works on your current version, not its first answer. Then replace the files, check, commit and push again: <a href="update.html">Update</a>.</p>
+
+<div class="pager"><a href="agent.html">← Coding agent</a><a href="git.html">Git →</a></div>
+</main>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</body>
+</html>

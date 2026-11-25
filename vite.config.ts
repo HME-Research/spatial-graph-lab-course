@@ -1,4 +1,5 @@
 import react from '@vitejs/plugin-react';
+import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import pkg from './package.json' with { type: 'json' };
 
@@ -23,8 +24,39 @@ function portOf(argv: readonly string[]): string {
   return 'default';
 }
 
+/**
+ * The student tutorial (`tutorial/`, plain HTML that also opens by double-click) is served at
+ * `/tutorial/`: the dev server serves it from the repository root as it is, and this plugin copies
+ * it unchanged into `dist/tutorial/` for the build (owner 2026-11-25). Nothing in it is bundled.
+ */
+function tutorialPages(): Plugin {
+  type Fs = {
+    readdirSync(dir: string, options: { withFileTypes: true }): { name: string; isDirectory(): boolean }[];
+    readFileSync(path: string): Uint8Array;
+  };
+  let root = '.';
+  return {
+    name: 'sgl-tutorial-pages',
+    apply: 'build',
+    configResolved(config) {
+      root = config.root;
+    },
+    generateBundle() {
+      const fs = (globalThis as unknown as { process: { getBuiltinModule(id: string): Fs } }).process.getBuiltinModule('node:fs');
+      const copy = (dir: string): void => {
+        for (const entry of fs.readdirSync(`${root}/${dir}`, { withFileTypes: true })) {
+          const path = `${dir}/${entry.name}`;
+          if (entry.isDirectory()) copy(path);
+          else this.emitFile({ type: 'asset', fileName: path, source: fs.readFileSync(`${root}/${path}`) });
+        }
+      };
+      copy('tutorial');
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tutorialPages()],
   // The app's source lives in lab/ (owner 2026-11-25: the root keeps only what students need);
   // static files such as the Guide screenshots are served from lab/public/ at the site root.
   publicDir: 'lab/public',

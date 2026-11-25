@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan a toolkit · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <nav class="site" aria-label="Tutorial pages">
+    <a href="index.html">Start</a>
+    <a href="setup.html">Set up</a>
+    <a href="browser.html">In the browser</a>
+    <a href="analysis.html">Your analysis</a>
+    <a href="plan.html" aria-current="page">Plan a toolkit</a>
+    <a href="agent.html">Coding agent</a>
+    <a href="chat.html">Chat assistant</a>
+    <a href="git.html">Git</a>
+    <a href="hand-in.html">Hand in</a>
+    <a href="update.html">Update</a>
+    <a href="help.html">Help</a>
+  </nav>
+</div></header>
+<main>
+<h1>Plan your toolkit</h1>
+<p class="lead">Decide five things before you ask an AI to write anything. Fill them in below: this page turns them into the prompt for a <a href="agent.html">coding agent</a> and for a <a href="chat.html">chat assistant</a>, and the other pages fill in your toolkit id.</p>
+
+<h2>What a toolkit contains</h2>
+<div class="tree">toolkits/&lt;toolkit-id&gt;/
+  toolkit.ts       its name, its default design, the attributes every node / edge has
+  README.md        what it is for and how to try it (your tutor reads this)
+  functions/       one Function per file: Reading room, Stacks…
+  algorithms/      one analysis or transform per file
+  designs/         example designs (.json), shown in Open example…
+  assets/          optional: Rhino .3dm façade files
+  lib/             optional: helper code shared by several algorithms</div>
+<p>A complete example is <code>toolkits/house/</code> (read it, never change it). The full guide is <code>lab/docs/TOOLKITS.md</code> in the repository.</p>
+
+<h2>Decide</h2>
+<div class="table"><table>
+  <tr><th>Decision</th><th>Rule</th><th>Tip</th></tr>
+  <tr><td><b>Toolkit id</b> (folder and branch name)</td><td>lowercase letters, digits and <code>-</code>, starting with a letter</td><td>Make it unique in the class with your initials, e.g. <code>hk-library</code>. Never rename it later.</td></tr>
+  <tr><td><b>Idea</b></td><td>one or two sentences</td><td>A building type or a design question.</td></tr>
+  <tr><td><b>Functions</b></td><td>one per room programme</td><td>Start with 3–6. Say what each should record (e.g. a Reading room records its seats).</td></tr>
+  <tr><td><b>Algorithms</b></td><td>an <b>analysis</b> reads and shows; a <b>transform</b> proposes changes you preview and Apply</td><td>Start with one or two. Write each as a rule you could explain in one sentence.</td></tr>
+  <tr><td><b>Example design</b></td><td>a small design that uses your Functions</td><td>The checks run every algorithm on it, so keep it small.</td></tr>
+</table></div>
+<div class="note"><p><b>Ids are forever.</b> Designs store your Function ids and attribute names; projects store your toolkit id. Add new ones rather than renaming old ones.</p></div>
+
+<h2>Fill in your plan</h2>
+<div class="idbox">
+  <label for="toolkit-id">Your toolkit id</label>
+  <input id="toolkit-id" type="text" data-id-input placeholder="e.g. hk-library" autocomplete="off" spellcheck="false">
+  <small data-id-hint></small>
+</div>
+<form class="form" id="prompt-form" onsubmit="return false">
+  <div><label for="idea">My idea <small>What the toolkit is for.</small></label>
+    <textarea id="idea" name="idea" rows="2" placeholder="Small libraries: reading rooms, stacks and circulation."></textarea></div>
+  <div><label for="functions">Functions (and their attributes) <small>The room programmes and what each records.</small></label>
+    <textarea id="functions" name="functions" rows="2" placeholder="Reading room (seats), Stacks (shelf length in metres), Circulation."></textarea></div>
+  <div><label for="algorithms">Algorithms <small>What to analyse, and what to transform.</small></label>
+    <textarea id="algorithms" name="algorithms" rows="2" placeholder="An analysis that counts the seats a node can reach; a transform that grows reading rooms towards daylight."></textarea></div>
+  <div><label for="design">Example design <small>What the default design contains.</small></label>
+    <textarea id="design" name="design" rows="2" placeholder="Two levels: an entrance, three reading rooms and stacks around a stair."></textarea></div>
+</form>
+<p>Your plan is remembered in this browser only.</p>
+
+<h2>Your prompts</h2>
+<p>Copy the one for your way of working. The prompt pages repeat them with the blanks still empty.</p>
+<div class="code"><div class="label">For a coding agent (<a href="agent.html">how</a>)</div><pre data-build data-block="prompt:agent">Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. Work only inside toolkits/&lt;toolkit-id&gt;/ on my branch toolkit/&lt;toolkit-id&gt;, run the checks, and commit only my folder. Do not push: I will push.
+
+Toolkit id: ___
+My idea: ___
+Functions (and their attributes): ___
+Algorithms: ___
+Example design: ___</pre></div>
+<div class="code"><div class="label">For a chat assistant, with the toolkit kit attached (<a href="chat.html">how</a>)</div><pre data-build data-block="prompt:chat">I've attached the Spatial Graph Lab toolkit kit. Read PROMPT.md and every file in it, then write my toolkit following it exactly. Give me the folder &lt;toolkit-id&gt;/ as a zip; if you cannot make files, give every file in its own code block, headed by its path.
+
+Toolkit id: ___
+My idea: ___
+Functions (and their attributes): ___
+Algorithms: ___
+Example design: ___</pre></div>
+
+<div class="pager"><a href="analysis.html">← Your analysis</a><a href="agent.html">Coding agent →</a></div>
+</main>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</body>
+</html>

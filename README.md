@@ -6,13 +6,15 @@ A browser app that shows how a **graph of rooms and relationships becomes archit
 
 You draw rooms (nodes) and their relationships (edges); the app shows the same design as a 2D diagram, a 3D graph, a plan, a data table and generated architecture. **Analyses** read a design and show a result; **transforms** propose a change you preview, apply and undo. A **toolkit** gives the app the vocabulary of one building type: its room Functions, their attributes, its algorithms and example designs.
 
-## What you can do
+## Start here: the tutorial
 
-| You want to… | You need | Start with |
+Step-by-step pages for every way of working, from installing Git to handing in: open **[`tutorial/index.html`](tutorial/index.html)** in your copy (double-click it), or online at https://spatial-graph-lab.vercel.app/tutorial/index.html.
+
+| You want to… | You need | Tutorial page |
 |---|---|---|
-| Design, analyse and transform in the app | a browser | the [live app](https://spatial-graph-lab.vercel.app/) › **Guide** |
-| Write your own analysis with an AI chat and upload it | a browser and an AI chat | the app › **Analyse** › ⓘ beside **Upload your own (.ts)** |
-| Make your own toolkit | this repository on your computer, and an AI assistant | [`lab/docs/TOOLKITS.md`](lab/docs/TOOLKITS.md) |
+| Design, analyse and transform in the app | a browser | [In the browser](tutorial/browser.html) |
+| Write your own analysis with an AI chat and upload it | a browser and an AI chat | [Your analysis](tutorial/analysis.html) |
+| Make your own toolkit | this repository on your computer, and an AI assistant | [Set up](tutorial/setup.html), [Plan a toolkit](tutorial/plan.html), then [Coding agent](tutorial/agent.html) or [Chat assistant](tutorial/chat.html) |
 
 ## The one rule
 
@@ -47,6 +49,7 @@ Open your toolkit in the app with `http://localhost:5173/?toolkit=<toolkit-id>`.
 |---|---|---|
 | `toolkits/<toolkit-id>/` | your toolkit: `toolkit.ts`, `functions/`, `algorithms/`, `designs/`, `assets/`, `lib/`, `README.md` | **yes** |
 | `toolkits/house/` | the example toolkit: read it, copy from it | no |
+| `tutorial/` | step-by-step pages for every way of working, and the AI kits | no |
 | `lab/` | the app: `core/`, `app/`, `student-api/` (what toolkit code imports as `@student-api`), `docs/`, `scripts/`, `public/` | no |
 | `AGENTS.md`, `CLAUDE.md`, `.claude/` | instructions for coding agents | no |
 | `package.json`, `tsconfig.json`, `vite.config.ts`, `index.html` | the build set-up | no |

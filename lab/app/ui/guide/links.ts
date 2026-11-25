@@ -48,3 +48,10 @@ export const LINKS = {
   mdnJson: { label: 'Working with JSON — MDN', url: 'https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting/JSON' },
   typescript: { label: 'TypeScript for the new programmer — typescriptlang.org', url: 'https://www.typescriptlang.org/docs/handbook/typescript-from-scratch.html' },
 } as const satisfies Record<string, LearnMoreLink>;
+
+/**
+ * The student tutorial (`tutorial/` at the repository root, owner 2026-11-25): step-by-step pages
+ * for every way of working, served by the app at this address (vite.config.ts copies them into the
+ * build). Opened in a new tab so the app keeps its state.
+ */
+export const TUTORIAL_URL = '/tutorial/index.html';

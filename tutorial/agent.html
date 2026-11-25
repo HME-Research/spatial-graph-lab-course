@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>With a coding agent · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <nav class="site" aria-label="Tutorial pages">
+    <a href="index.html">Start</a>
+    <a href="setup.html">Set up</a>
+    <a href="browser.html">In the browser</a>
+    <a href="analysis.html">Your analysis</a>
+    <a href="plan.html">Plan a toolkit</a>
+    <a href="agent.html" aria-current="page">Coding agent</a>
+    <a href="chat.html">Chat assistant</a>
+    <a href="git.html">Git</a>
+    <a href="hand-in.html">Hand in</a>
+    <a href="update.html">Update</a>
+    <a href="help.html">Help</a>
+  </nav>
+</div></header>
+<main>
+<h1>Make a toolkit with a coding agent</h1>
+<p class="lead">A coding agent works inside your copy of the repository: it reads the guides, writes your folder, runs the checks and commits. You describe the toolkit, read what it did, try it and push. Examples: <b>Claude Code</b>, <b>GitHub Copilot</b> in agent mode, <b>Codex</b> or <b>Cursor</b>, used inside VS Code.</p>
+
+<div class="note"><p>Before you start: <a href="setup.html">set up</a> your computer and <a href="plan.html">plan your toolkit</a>. The agent reads <code>AGENTS.md</code> in the repository, which tells it to change only your folder, work on your branch and never push without you.</p></div>
+
+<div class="idbox">
+  <label for="toolkit-id">Your toolkit id</label>
+  <input id="toolkit-id" type="text" data-id-input placeholder="e.g. hk-library" autocomplete="off" spellcheck="false">
+  <small data-id-hint></small>
+</div>
+<p>The commands below use it once you type it.</p>
+
+<h2>Steps</h2>
+<ol class="steps">
+  <li><strong>Open the repository in VS Code</strong><span class="ui">File › Open Folder…</span> › <code>spatial-graph-lab-course</code>, then <span class="ui">Terminal › New Terminal</span>.</li>
+  <li><strong>Get the latest version and make your branch</strong> (the agent can also do this, but doing it yourself makes sure it happens):
+    <div class="code"><pre data-fill>git switch main
+git pull
+git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
+    <p class="see"><code>Switched to a new branch 'toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span>'</code>. The branch name also shows at the bottom left of VS Code. Already made it earlier? Use <code>git switch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (no <code>-c</code>).</p></li>
+  <li><strong>Start your agent</strong>Claude Code: the Claude icon in VS Code, or type <code>claude</code> in the terminal. Copilot: the Chat view, set to <b>Agent</b>. Others: their own panel. Allow it to read the folder and run commands when it asks; read each command before you allow it.</li>
+  <li><strong>Send your prompt</strong>The one <a href="plan.html">Plan a toolkit</a> built for you, or this one with the blanks filled in:
+    <div class="code"><pre data-fill data-block="prompt:agent">Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. Work only inside toolkits/&lt;toolkit-id&gt;/ on my branch toolkit/&lt;toolkit-id&gt;, run the checks, and commit only my folder. Do not push: I will push.
+
+Toolkit id: ___
+My idea: ___
+Functions (and their attributes): ___
+Algorithms: ___
+Example design: ___</pre></div>
+    <p>In Claude Code you can instead type <code>/create-toolkit</code> and answer its questions.</p></li>
+  <li><strong>Read what it did</strong>It ends with a summary: your Functions, attributes, algorithms and designs, the result of the two checks, and a commit. Open your folder in the VS Code explorer and read the files: each step has a comment in plain English.
+    <div class="stop"><p>If it changed anything outside <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code>, say “Undo every change outside my toolkit folder” before going on. <code>git status</code> shows what changed.</p></div></li>
+  <li><strong>Try it in the app</strong>
+    <div class="code"><pre>npm run dev</pre></div>
+    Open <code>http://localhost:5173/?toolkit=<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>, then <span class="ui">Open example…</span> › <i>Toolkit: your toolkit's name</i>. Run your analyses in <span class="ui">Analyse</span> and your transforms in <span class="ui">Transform</span>. A problem in your files is listed in the <span class="ui">Project</span> panel. Stop the app with <kbd>Ctrl</kbd>+<kbd>C</kbd> when done.</li>
+  <li><strong>Improve it</strong>Ask for changes in plain words: “Make the Reading room blue”, “The seat count ignores the upper level: fix it”. Paste any error message in full. Ask it to run the checks and commit after each change.</li>
+  <li><strong>Push your branch</strong>
+    <div class="code"><pre data-fill>git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
+    or ask the agent: “Push my branch.” Then <a href="hand-in.html">check the green tick</a> on GitHub.</li>
+</ol>
+
+<h2>Good to know</h2>
+<ul>
+  <li>The agent's checks are the same you can run yourself: <code>npm run check:toolkit -- -t <span data-toolkit-id>&lt;toolkit-id&gt;</span></code> and <code>npm run typecheck</code>.</li>
+  <li>Never accept a suggestion to change <code>lab/</code>, <code>package.json</code> or other files outside your folder, or to install a package: the fix always belongs inside your toolkit.</li>
+  <li>Agents can be wrong with confidence. Try every algorithm in the app on a design whose answer you know.</li>
+</ul>
+
+<div class="pager"><a href="plan.html">← Plan a toolkit</a><a href="chat.html">Chat assistant →</a></div>
+</main>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</body>
+</html>

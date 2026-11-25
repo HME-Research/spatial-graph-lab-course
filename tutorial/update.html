@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Update · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <nav class="site" aria-label="Tutorial pages">
+    <a href="index.html">Start</a>
+    <a href="setup.html">Set up</a>
+    <a href="browser.html">In the browser</a>
+    <a href="analysis.html">Your analysis</a>
+    <a href="plan.html">Plan a toolkit</a>
+    <a href="agent.html">Coding agent</a>
+    <a href="chat.html">Chat assistant</a>
+    <a href="git.html">Git</a>
+    <a href="hand-in.html">Hand in</a>
+    <a href="update.html" aria-current="page">Update</a>
+    <a href="help.html">Help</a>
+  </nav>
+</div></header>
+<main>
+<h1>Keep working and stay up to date</h1>
+<p class="lead">Every working session follows the same loop: be on your branch, change, check, commit, push. Now and then the course updates the app; bring those updates into your branch.</p>
+
+<div class="idbox">
+  <label for="toolkit-id">Your toolkit id</label>
+  <input id="toolkit-id" type="text" data-id-input placeholder="e.g. hk-library" autocomplete="off" spellcheck="false">
+  <small data-id-hint></small>
+</div>
+
+<h2>Each working session</h2>
+<ol class="steps">
+  <li><strong>Be on your branch</strong>
+    <div class="code"><pre data-fill>git switch toolkit/&lt;toolkit-id&gt;</pre></div></li>
+  <li><strong>Change your toolkit</strong>with your <a href="agent.html">coding agent</a> (ask in plain words), or with your <a href="chat.html">chat assistant</a>: send it the files you changed, or your whole folder as a zip, so it works on your current version; then replace the files it gives back.</li>
+  <li><strong>Check and try</strong>
+    <div class="code"><pre data-fill>npm run check:toolkit -- -t &lt;toolkit-id&gt;
+npm run typecheck
+npm run dev</pre></div></li>
+  <li><strong>Commit and push</strong>
+    <div class="code"><pre data-fill>git add toolkits/&lt;toolkit-id&gt;
+git status
+git commit -m "feat(&lt;toolkit-id&gt;): what changed"
+git push</pre></div>
+    Then check the green tick (<a href="hand-in.html">Hand in</a>).</li>
+</ol>
+
+<h2>When the course updates the app</h2>
+<p>Your tutor tells you when <code>main</code> has changed. Bring the changes into your branch:</p>
+<div class="code"><pre data-fill>git switch main
+git pull
+git switch toolkit/&lt;toolkit-id&gt;
+git merge main
+npm install
+git push</pre></div>
+<p class="see">“Fast-forward” or “Merge made by …”. If an editor opens for the merge message, see <a href="git.html">Git › strange text editor</a>. Then run your checks again: an update can show a new message about your toolkit.</p>
+<div class="warn"><p>“CONFLICT” in a file outside your folder means a file there was changed on your branch. Don't edit it to make the conflict go away: run <code>git merge --abort</code> and ask your tutor.</p></div>
+<p>GitHub Desktop: <span class="ui">Current branch</span> › your branch › <span class="ui">Branch › Update from main</span> (after <span class="ui">Fetch origin</span>), then <span class="ui">Push origin</span>.</p>
+
+<h2>Starting on another computer</h2>
+<p>Clone the repository again (<a href="setup.html">Set up</a> › 3 and 4), then fetch your branch from GitHub:</p>
+<div class="code"><pre data-fill>git switch toolkit/&lt;toolkit-id&gt;</pre></div>
+<p>Git finds your pushed branch by itself. Anything you did not push stays on the other computer.</p>
+
+<div class="pager"><a href="hand-in.html">← Hand in</a><a href="help.html">Help →</a></div>
+</main>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</body>
+</html>

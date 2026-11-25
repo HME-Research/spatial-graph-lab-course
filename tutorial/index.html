@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Start here · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <nav class="site" aria-label="Tutorial pages">
+    <a href="index.html" aria-current="page">Start</a>
+    <a href="setup.html">Set up</a>
+    <a href="browser.html">In the browser</a>
+    <a href="analysis.html">Your analysis</a>
+    <a href="plan.html">Plan a toolkit</a>
+    <a href="agent.html">Coding agent</a>
+    <a href="chat.html">Chat assistant</a>
+    <a href="git.html">Git</a>
+    <a href="hand-in.html">Hand in</a>
+    <a href="update.html">Update</a>
+    <a href="help.html">Help</a>
+  </nav>
+</div></header>
+<main>
+<h1>Start here</h1>
+<p class="lead">Spatial Graph Lab turns a graph of rooms (nodes) and relationships (edges) into architecture. This tutorial shows you, step by step, every way of working with it: from simply using the app to writing your own toolkit with an AI assistant.</p>
+
+<h2>What do you want to do?</h2>
+<div class="cards">
+  <a class="card" href="browser.html"><b>Use the app</b><span>Design, analyse and transform in your browser. Save and hand in your project file.</span><span class="need">You need: a browser.</span></a>
+  <a class="card" href="analysis.html"><b>Write your own analysis</b><span>Describe a question to an AI chat, upload the file it writes, see the answer in your design.</span><span class="need">You need: a browser and an AI chat.</span></a>
+  <a class="card" href="plan.html"><b>Make your own toolkit</b><span>Your own room Functions, attributes, analyses, transforms and example designs, for one building type.</span><span class="need">You need: the repository on your computer and an AI assistant.</span></a>
+</div>
+
+<h2>Making a toolkit: two ways</h2>
+<p>A <b>toolkit</b> is one folder, <code>toolkits/&lt;toolkit-id&gt;/</code>, that gives the app the vocabulary of one building type. An AI assistant writes it with you, in one of two ways. Both end the same way: your folder, checked, on your own branch <code>toolkit/&lt;toolkit-id&gt;</code>, pushed to GitHub.</p>
+<div class="table"><table>
+  <tr><th></th><th><a href="agent.html">With a coding agent</a></th><th><a href="chat.html">With a chat assistant</a></th></tr>
+  <tr><td>Examples</td><td>Claude Code, GitHub Copilot (agent mode), Codex or Cursor, inside VS Code</td><td>Claude, ChatGPT or Gemini in the browser</td></tr>
+  <tr><td>It can</td><td>read the repository, write your folder, run the checks, commit</td><td>only read what you attach (the <b>toolkit kit</b>, a zip) and write files</td></tr>
+  <tr><td>You do</td><td>describe your toolkit, read what it wrote, try it, push</td><td>download the kit, describe your toolkit, unzip its answer into place, run the checks, commit and push</td></tr>
+  <tr><td>Best if</td><td>you have a coding agent: fewer manual steps</td><td>you only have a chat assistant</td></tr>
+</table></div>
+
+<h2>The order to follow</h2>
+<ol class="steps">
+  <li><strong>Set up once</strong>Install Git, Node.js and VS Code, accept the GitHub invitation and copy the repository to your computer. <a href="setup.html">Set up</a></li>
+  <li><strong>Plan your toolkit</strong>Choose your toolkit id and write your idea, Functions, algorithms and example design. The page builds your prompt. <a href="plan.html">Plan a toolkit</a></li>
+  <li><strong>Make it</strong>With a <a href="agent.html">coding agent</a> or a <a href="chat.html">chat assistant</a>.</li>
+  <li><strong>Hand it in</strong>Push your branch and check that GitHub shows a green tick. <a href="hand-in.html">Hand in</a></li>
+  <li><strong>Keep improving it</strong>Change, check, commit, push again; get the course's updates. <a href="update.html">Update</a></li>
+</ol>
+
+<div class="stop">
+  <p><b>The one rule.</b> You change only <b>your own folder</b> <code>toolkits/&lt;toolkit-id&gt;/</code>, on <b>your own branch</b> <code>toolkit/&lt;toolkit-id&gt;</code>. Never change <code>lab/</code> (the app), <code>toolkits/house/</code> (the example) or the files at the top of the repository, and never commit to <code>main</code>. GitHub refuses pushes to <code>main</code> and marks any branch that changes other files with a red cross.</p>
+</div>
+
+<h2>Words used in this tutorial</h2>
+<div class="table"><table>
+  <tr><th>Word</th><th>Meaning</th></tr>
+  <tr><td>Node, edge</td><td>A room, and a relationship between two rooms (<b>Access</b> or <b>Open</b>).</td></tr>
+  <tr><td>Function</td><td>A room's programme (Kitchen, Reading room…). A toolkit defines its Functions.</td></tr>
+  <tr><td>Attribute</td><td>A value a node or edge records, such as a target area or a number of seats.</td></tr>
+  <tr><td>Analysis</td><td>An algorithm that reads the design and shows an answer. It never changes the design.</td></tr>
+  <tr><td>Transform</td><td>An algorithm that proposes changes; you preview them, <b>Apply</b>, and one <b>Undo</b> reverses them.</td></tr>
+  <tr><td>Repository (repo)</td><td>The project's folder with its full history, kept on GitHub. You copy (<i>clone</i>) it to your computer.</td></tr>
+  <tr><td>Branch</td><td>Your own line of work in the repository. Yours is <code>toolkit/&lt;toolkit-id&gt;</code>.</td></tr>
+  <tr><td>Commit, push</td><td>Saving a snapshot of your changes, and sending your commits to GitHub. <a href="git.html">Git basics</a></td></tr>
+</table></div>
+
+<p>Links: <a href="https://spatial-graph-lab.vercel.app/">the app online</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">the course repository on GitHub</a> · in the app, the <b>Guide</b> button explains every panel.</p>
+
+<div class="pager"><span></span><a href="setup.html">Set up →</a></div>
+</main>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</body>
+</html>

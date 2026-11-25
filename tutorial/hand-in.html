@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hand in · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <nav class="site" aria-label="Tutorial pages">
+    <a href="index.html">Start</a>
+    <a href="setup.html">Set up</a>
+    <a href="browser.html">In the browser</a>
+    <a href="analysis.html">Your analysis</a>
+    <a href="plan.html">Plan a toolkit</a>
+    <a href="agent.html">Coding agent</a>
+    <a href="chat.html">Chat assistant</a>
+    <a href="git.html">Git</a>
+    <a href="hand-in.html" aria-current="page">Hand in</a>
+    <a href="update.html">Update</a>
+    <a href="help.html">Help</a>
+  </nav>
+</div></header>
+<main>
+<h1>Hand in your work</h1>
+<p class="lead">A toolkit is handed in by pushing your branch: your tutor sees it on GitHub, and GitHub checks it for you. Work done only in the browser is handed in as a project file.</p>
+
+<div class="idbox">
+  <label for="toolkit-id">Your toolkit id</label>
+  <input id="toolkit-id" type="text" data-id-input placeholder="e.g. hk-library" autocomplete="off" spellcheck="false">
+  <small data-id-hint></small>
+</div>
+
+<h2>A toolkit: push your branch</h2>
+<ol class="steps">
+  <li><strong>Push</strong>
+    <div class="code"><pre data-fill>git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
+    (later pushes: just <code>git push</code>; GitHub Desktop: <span class="ui">Publish branch</span> / <span class="ui">Push origin</span>). No pull request is needed: your tutor collects the branches.</li>
+  <li><strong>Find it on GitHub</strong>Open <a href="https://github.com/HME-Research/spatial-graph-lab-course/branches">the course repository's branches</a> and click <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>.
+    <p class="see">your latest commit message at the top, and your folder in <code>toolkits/</code>.</p></li>
+  <li><strong>Wait for the check</strong>Beside your latest commit, a yellow dot turns into a green ✓ or a red ✗ after a few minutes. Click it to see the checks:
+    <ul>
+      <li><b>Typecheck, tests and build</b>: the whole repository still works with your branch.</li>
+      <li><b>Student branch changes only its toolkit</b>: nothing outside <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code> changed, and your toolkit loads and runs (<code>check:toolkit</code>).</li>
+    </ul></li>
+  <li><strong>Red ✗?</strong>Click <span class="ui">Details</span> next to the failing check and read the red lines.
+    <div class="table"><table>
+      <tr><th>The message says</th><th>Do this</th></tr>
+      <tr><td>This branch changes files outside toolkits/…</td><td>Put those files back (<a href="git.html">Git › I changed a file outside my folder</a>), commit, push.</td></tr>
+      <tr><td>the toolkit id must be lowercase…</td><td>Your branch name is wrong. Ask your tutor.</td></tr>
+      <tr><td>a check:toolkit or typecheck error</td><td>Run the same check on your computer, fix it inside your folder (paste the message to your AI), commit, push.</td></tr>
+    </table></div></li>
+</ol>
+<div class="note"><p>Your tutor can open your pushed branch in the app online, with your toolkit in it. Keep your <code>README.md</code> up to date: it is the first thing they read. Say what the toolkit is for, its Functions, attributes, algorithms and designs, and how to try it.</p></div>
+
+<h2>An analysis or design made in the browser</h2>
+<p>In the app: <span class="ui">Project</span> › <span class="ui">Export project</span>, and hand in the <code>.project.json</code> file the way your tutor asks. It holds your design, its scenarios and the analyses you uploaded (<a href="browser.html">In the browser</a>).</p>
+
+<div class="pager"><a href="git.html">← Git</a><a href="update.html">Update →</a></div>
+</main>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</body>
+</html>

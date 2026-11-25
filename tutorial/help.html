@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Help · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <nav class="site" aria-label="Tutorial pages">
+    <a href="index.html">Start</a>
+    <a href="setup.html">Set up</a>
+    <a href="browser.html">In the browser</a>
+    <a href="analysis.html">Your analysis</a>
+    <a href="plan.html">Plan a toolkit</a>
+    <a href="agent.html">Coding agent</a>
+    <a href="chat.html">Chat assistant</a>
+    <a href="git.html">Git</a>
+    <a href="hand-in.html">Hand in</a>
+    <a href="update.html">Update</a>
+    <a href="help.html" aria-current="page">Help</a>
+  </nav>
+</div></header>
+<main>
+<h1>When something goes wrong</h1>
+<p class="lead">Find the message or symptom below. With an AI assistant, the quickest fix is usually to paste it the <b>whole</b> message and ask it to fix exactly that, inside your toolkit folder.</p>
+
+<h2>Setting up</h2>
+<div class="table"><table>
+  <tr><th>Message or symptom</th><th>What to do</th></tr>
+  <tr><td><code>git</code>, <code>node</code> or <code>npm</code> “is not recognized” / “command not found”</td><td>Install it (<a href="setup.html">Set up</a>), then close and reopen VS Code so its terminal sees it.</td></tr>
+  <tr><td>“running scripts is disabled on this system” (Windows)</td><td>Run <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> once, answer <kbd>Y</kbd>.</td></tr>
+  <tr><td><code>npm install</code> shows <code>ERR!</code></td><td>Check you are in the repository folder (it contains <code>package.json</code>) and that <code>node --version</code> is 22 or higher. Then run it again.</td></tr>
+  <tr><td>“Port 5173 is in use”</td><td>The app is already running in another terminal: use that one, or stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd>. Vite may also pick the next port: open the address it prints.</td></tr>
+  <tr><td>Commands fail with “not a git repository” or “Could not read package.json”</td><td>The terminal is in the wrong folder. <span class="ui">File › Open Folder…</span> › <code>spatial-graph-lab-course</code>, then open a new terminal.</td></tr>
+</table></div>
+
+<h2>Your toolkit</h2>
+<div class="table"><table>
+  <tr><th>Message or symptom</th><th>What to do</th></tr>
+  <tr><td><code>toolkit folder "…" must be lowercase letters…</code></td><td>Rename the folder: lowercase letters, digits and <code>-</code>, starting with a letter.</td></tr>
+  <tr><td>The app says your toolkit doesn't exist</td><td>The folder must be <code>toolkits/&lt;toolkit-id&gt;/toolkit.ts</code>, not <code>toolkits/&lt;toolkit-id&gt;/&lt;toolkit-id&gt;/toolkit.ts</code> (a common unzip mistake; see <a href="chat.html">Chat assistant</a> › 3). Check the address too: <code>?toolkit=&lt;toolkit-id&gt;</code>.</td></tr>
+  <tr><td>A Function or algorithm is <b>disabled</b></td><td>Select it, or read the <span class="ui">Project</span> panel, for the reason: usually an invalid field or a duplicate id.</td></tr>
+  <tr><td><code>… imports …</code> refused by a check</td><td>Toolkit code may import only <code>@student-api</code> and files in your own folder. No npm packages, nothing from <code>lab/</code> or another toolkit.</td></tr>
+  <tr><td>An algorithm fails on the default design</td><td>Run it in the app on that design to see its message. Usually a missing value (<code>null</code>) or an empty list it did not expect.</td></tr>
+  <tr><td>The browser tab freezes</td><td>An endless loop in an algorithm: every <code>while</code> must end. Close the tab, fix the loop, reopen.</td></tr>
+  <tr><td>Designs show “unknown Function” warnings</td><td>A Function id was renamed or removed. Add it back (ids are forever), or fix the designs.</td></tr>
+  <tr><td>The AI wants to change <code>lab/</code>, <code>package.json</code> or install a package</td><td>Say no. The fix always belongs in your toolkit folder; if the API cannot do something, ask the AI for the closest thing it can do.</td></tr>
+</table></div>
+
+<h2>Git and GitHub</h2>
+<div class="table"><table>
+  <tr><th>Message or symptom</th><th>What to do</th></tr>
+  <tr><td>Push refused: “protected branch”, “rule violations” or “cannot update this protected ref”</td><td>You are pushing <code>main</code>. Your work belongs on your branch: <a href="git.html">Git › I committed on main</a>.</td></tr>
+  <tr><td>“Permission denied” or “Repository not found” when pushing</td><td>Accept the course invitation (<a href="setup.html">Set up</a> › 2) and sign in to GitHub when Git asks.</td></tr>
+  <tr><td>“Updates were rejected because the remote contains work that you do not have”</td><td>Someone (or you, on another computer) pushed to your branch. Run <code>git pull</code>, then <code>git push</code>.</td></tr>
+  <tr><td><code>git status</code> lists files outside your folder</td><td>Don't commit them: <a href="git.html">Git › I changed a file outside my folder</a>.</td></tr>
+  <tr><td>“A branch named … already exists”</td><td>Use <code>git switch toolkit/&lt;toolkit-id&gt;</code> without <code>-c</code>.</td></tr>
+  <tr><td>A red ✗ on GitHub</td><td><a href="hand-in.html">Hand in</a> › Red ✗.</td></tr>
+  <tr><td>“CONFLICT” after <code>git merge main</code></td><td><code>git merge --abort</code> and ask your tutor (<a href="update.html">Update</a>).</td></tr>
+</table></div>
+
+<h2>An uploaded analysis</h2>
+<div class="table"><table>
+  <tr><th>Message or symptom</th><th>What to do</th></tr>
+  <tr><td>The file is refused</td><td>Paste the app's whole message to the AI and ask it to fix exactly that. Check the file really ends in <code>.ts</code> (<a href="analysis.html">Your analysis</a>).</td></tr>
+  <tr><td>“Stopped after … s — does it loop forever?”</td><td>The analysis took too long; ask the AI to make it simpler or to make every loop end.</td></tr>
+  <tr><td>It is not in the section you expected</td><td>The section follows its <i>input</i>: none → Network, one node → Node, one edge → Edge, anything else → Queries.</td></tr>
+</table></div>
+
+<h2>Still stuck?</h2>
+<p>Ask your tutor, with: what you did, the whole message (copied, not a photo), your branch name, and the output of <code>git status</code>.</p>
+
+<div class="pager"><a href="update.html">← Update</a><a href="index.html">Start ↺</a></div>
+</main>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</body>
+</html>

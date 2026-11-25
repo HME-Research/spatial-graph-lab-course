@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your analysis · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <nav class="site" aria-label="Tutorial pages">
+    <a href="index.html">Start</a>
+    <a href="setup.html">Set up</a>
+    <a href="browser.html">In the browser</a>
+    <a href="analysis.html" aria-current="page">Your analysis</a>
+    <a href="plan.html">Plan a toolkit</a>
+    <a href="agent.html">Coding agent</a>
+    <a href="chat.html">Chat assistant</a>
+    <a href="git.html">Git</a>
+    <a href="hand-in.html">Hand in</a>
+    <a href="update.html">Update</a>
+    <a href="help.html">Help</a>
+  </nav>
+</div></header>
+<main>
+<h1>Write your own analysis</h1>
+<p class="lead">Ask an AI chat for an analysis in plain words, upload the one file it writes, and run it on your design. Only a browser and an AI chat that accepts attachments are needed. An analysis only <b>reads</b>: it never changes your design.</p>
+
+<h2>1. Decide three things</h2>
+<div class="table"><table>
+  <tr><th>Part</th><th>Question</th><th>Example</th></tr>
+  <tr><td>Idea</td><td>What should it find?</td><td>The largest room on each level.</td></tr>
+  <tr><td>Input</td><td>What do you select before it runs: nothing, one node, one edge, or a mix (two nodes, a node and a number)? This decides where it appears in <span class="ui">Analyse</span>: Network, Node, Edge or Queries.</td><td>Nothing.</td></tr>
+  <tr><td>Answer</td><td>How should it show: a number, a line of text, nodes or edges lit up, a colour per node?</td><td>Light them up and colour every room by its area.</td></tr>
+</table></div>
+
+<h2>2. Choose a kit</h2>
+<p>A <b>kit</b> is a zip with the instructions the AI follows, the exact functions it may use, and examples. In the app: <span class="ui">Analyse</span> › the ⓘ beside <span class="ui">Upload your own (.ts)</span>. Two kits are also here:</p>
+<div class="table"><table>
+  <tr><th>Kit</th><th>The analysis can read</th><th>Works in</th><th>Get it</th></tr>
+  <tr><td><b>Graph kit</b></td><td>node ids and edges only</td><td>any project</td><td><a href="kits/spatial-graph-lab-graph-kit.zip" download>graph kit (.zip)</a>, or ⓘ › <span class="ui">Any project</span> with <span class="ui">Include node basics</span> off</td></tr>
+  <tr><td><b>Design kit</b></td><td>also each node's Function, size, position, level, each edge's relationship, and calculated values such as area</td><td>any project</td><td><a href="kits/spatial-graph-lab-design-kit.zip" download>design kit (.zip)</a>, or ⓘ › <span class="ui">Any project</span> with <span class="ui">Include node basics</span> on</td></tr>
+  <tr><td><b>Design kit for this project</b></td><td>also your project's Functions and custom fields (such as a target area), listed in its <code>PROJECT.md</code></td><td>projects that have them</td><td>only in the app: open your project, ⓘ › <span class="ui">This project</span></td></tr>
+</table></div>
+<p>Prefer to write it yourself? ⓘ › <span class="ui">Template</span> gives a commented file to change.</p>
+
+<h2>3. Ask the AI</h2>
+<ol class="steps">
+  <li><strong>Open a new chat and attach the kit zip.</strong>If your chat refuses zip files, unzip it (Windows: right-click › <span class="ui">Extract All…</span>; Mac: double-click) and attach the files inside instead.</li>
+  <li><strong>Send the starting text for your kit</strong>, with the three blanks filled in.
+    <div class="code"><div class="label">Graph kit</div><pre data-block="prompt:graph">I've attached the Spatial Graph Lab graph kit. Read PROMPT.md and every file in it, then write ONE graph analysis that follows it exactly.
+
+My idea: ___
+Input: ___
+Show the answer as: ___</pre></div>
+    <div class="code"><div class="label">Design kit</div><pre data-block="prompt:design">I've attached the Spatial Graph Lab design kit. Read PROMPT.md and every file in it, then write ONE design analysis that works in any project (node basics only, no custom fields).
+
+My idea: ___
+Input: ___
+Show the answer as: ___</pre></div>
+    <div class="code"><div class="label">Design kit for this project</div><pre data-block="prompt:project">I've attached the Spatial Graph Lab design kit for my project. Read PROMPT.md, PROJECT.md and every file in it, then write ONE design analysis that follows them exactly. It may use my project's Functions and custom fields; list the ones it uses in uses.
+
+My idea: ___
+Input: ___
+Show the answer as: ___</pre></div></li>
+  <li><strong>Save its answer as a <code>.ts</code> file</strong>with the name it suggests, for example <code>largest-room-per-level.ts</code>: download it if the chat offers a file, or paste the code into a new file in VS Code (or Notepad / TextEdit as plain text) and save it with that name.
+    <div class="warn"><p>Windows hides file extensions: a file saved as <code>largest.ts.txt</code> looks like <code>largest.ts</code> but is refused. In File Explorer, <span class="ui">View › Show › File name extensions</span> shows the real name.</p></div></li>
+</ol>
+
+<h2>4. Upload it</h2>
+<ol class="steps">
+  <li><strong>Upload</strong>In the app, open <span class="ui">Analyse</span> › <span class="ui">Upload your own (.ts)</span> › choose the file.
+    <p class="see">it appears in Network, Node, Edge or Queries (depending on its input), tagged <b>Yours</b> and <b>Any project</b> or <b>This project</b>, and that section opens.</p></li>
+  <li><strong>Run it</strong>Select its input if it has one, then run it, like any other analysis.</li>
+  <li><strong>If the app refuses it</strong>, copy the app's whole message into the chat and ask: “Fix exactly this.” Save the new answer and upload it again.</li>
+</ol>
+<p>Uploaded analyses are saved with your project: <span class="ui">Export project</span> (see <a href="browser.html">In the browser</a>) keeps them in the file you hand in. The same file also works in a toolkit's <code>algorithms/</code> folder.</p>
+
+<div class="pager"><a href="browser.html">← In the browser</a><a href="plan.html">Plan a toolkit →</a></div>
+</main>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</body>
+</html>

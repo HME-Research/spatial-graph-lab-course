@@ -12,6 +12,7 @@ Never create, edit, move, rename, delete, reformat or regenerate anything else, 
 |---|---|
 | `lab/` | the app itself (`core`, `app`, `student-api`, `docs`, `scripts`, `public`), maintained by the course owner |
 | `toolkits/house/` | the owner's reference toolkit (read it, copy from it, never edit it) |
+| `tutorial/` | the step-by-step student tutorial and its kits |
 | `toolkits/<another-id>/` | other students' toolkits |
 | `package.json`, `package-lock.json`, `tsconfig.json`, `vite.config.ts`, `index.html` | the build set-up: never install, add or upgrade a package |
 | `README.md`, `AGENTS.md`, `CLAUDE.md`, `LICENSE`, `.claude/`, `.github/`, `.gitignore` | repository instructions and settings |

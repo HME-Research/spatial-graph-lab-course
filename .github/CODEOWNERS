@@ -3,6 +3,7 @@
 # toolkits/<toolkit-id>/ (not listed here).
 /lab/ @heba-eiz
 /toolkits/house/ @heba-eiz
+/tutorial/ @heba-eiz
 /.github/ @heba-eiz
 /.claude/ @heba-eiz
 /AGENTS.md @heba-eiz
