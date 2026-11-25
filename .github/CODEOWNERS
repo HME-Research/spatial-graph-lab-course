@@ -1,15 +1,16 @@
-# Advisory until supported GitHub branch protection + required code owner reviews are configured.
-# Replace REPLACE_WITH_GITHUB_USERNAME before relying on this file.
-/lab/core/ @REPLACE_WITH_GITHUB_USERNAME
-/lab/app/ @REPLACE_WITH_GITHUB_USERNAME
-/lab/student-api/ @REPLACE_WITH_GITHUB_USERNAME
-/toolkits/house/ @REPLACE_WITH_GITHUB_USERNAME
-/.github/ @REPLACE_WITH_GITHUB_USERNAME
-/.claude/ @REPLACE_WITH_GITHUB_USERNAME
-/lab/docs/ @REPLACE_WITH_GITHUB_USERNAME
-/CLAUDE.md @REPLACE_WITH_GITHUB_USERNAME
-/package.json @REPLACE_WITH_GITHUB_USERNAME
-/package-lock.json @REPLACE_WITH_GITHUB_USERNAME
-/tsconfig.json @REPLACE_WITH_GITHUB_USERNAME
-/vite.config.ts @REPLACE_WITH_GITHUB_USERNAME
-/index.html @REPLACE_WITH_GITHUB_USERNAME
+# The owner reviews every pull request that touches these paths. On its own this file does not stop
+# a push: the branch ruleset described in lab/docs/GITHUB-ACCESS.md does. Students own only
+# toolkits/<toolkit-id>/ (not listed here).
+/lab/ @heba-eiz
+/toolkits/house/ @heba-eiz
+/.github/ @heba-eiz
+/.claude/ @heba-eiz
+/AGENTS.md @heba-eiz
+/CLAUDE.md @heba-eiz
+/README.md @heba-eiz
+/LICENSE @heba-eiz
+/package.json @heba-eiz
+/package-lock.json @heba-eiz
+/tsconfig.json @heba-eiz
+/vite.config.ts @heba-eiz
+/index.html @heba-eiz

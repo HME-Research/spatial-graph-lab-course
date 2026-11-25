@@ -1,15 +1,62 @@
-# Initially documentation-only; do not run npm checks until phase 1 creates package.json.
-name: repository-safety-notice
+# Checks every push and pull request. On a student branch toolkit/<toolkit-id> it also checks that
+# only toolkits/<toolkit-id>/ changed and that the toolkit loads. A failing run marks the commit with
+# a red cross on GitHub; it does not stop the push (see lab/docs/GITHUB-ACCESS.md for the rules that do).
+name: quality
 on:
+  push:
   pull_request:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
-  notice:
+  checks:
+    name: Typecheck, tests and build
     runs-on: ubuntu-latest
     steps:
-      - name: Explain limitations
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx vitest --run
+      - run: npx vite build
+
+  student-scope:
+    name: Student branch changes only its toolkit
+    if: github.event_name == 'push' && startsWith(github.ref_name, 'toolkit/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Only toolkits/<toolkit-id>/ changed
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |
-          echo "This is a provisional workflow. No app tests exist yet."
-          echo "GitHub Free private repositories cannot enforce protected main."
-          echo "Update this workflow to include npm ci, typecheck, test and build after phase 1."
+          id="${BRANCH#toolkit/}"
+          if ! printf '%s' "$id" | grep -Eq '^[a-z][a-z0-9_-]*$'; then
+            echo "::error::Branch toolkit/$id: the toolkit id must be lowercase letters, digits, - or _, starting with a letter."
+            exit 1
+          fi
+          base="$(git merge-base origin/main HEAD)"
+          outside="$(git diff --name-only "$base" HEAD | grep -v "^toolkits/$id/" || true)"
+          if [ -n "$outside" ]; then
+            echo "::error::This branch changes files outside toolkits/$id/. Undo these changes:"
+            printf '%s\n' "$outside"
+            exit 1
+          fi
+          echo "OK: only toolkits/$id/ changed."
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check the toolkit
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: npm run check:toolkit -- -t "${BRANCH#toolkit/}"
