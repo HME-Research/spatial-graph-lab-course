@@ -31,24 +31,24 @@ npm run preview        # serve the production build locally
 Opening a design file validates it first. If it is invalid, the errors are listed with their location and the current design is kept.
 
 ## Project layout
-- `core/`: reusable graph, spatial and viewer infrastructure (owner-maintained).
-- `app/`: the application: design document, building rules and geometry, views, state, inspector and UI (owner-maintained).
-- `student-api/`: the stable Student API that toolkit code imports as `@student-api` (owner-maintained).
-- `toolkits/<toolkit-id>/`: student toolkits (`toolkit.ts`, `functions/`, `designs/`, `algorithms/`). The reference toolkit will be `toolkits/house/`; see `docs/STUDENT-API.md`.
-- `docs/`: architecture, decisions and workflow documents.
+- `lab/core/`: reusable graph, spatial and viewer infrastructure (owner-maintained).
+- `lab/app/`: the application: design document, building rules and geometry, views, state, inspector and UI (owner-maintained).
+- `lab/student-api/`: the stable Student API that toolkit code imports as `@student-api` (owner-maintained).
+- `toolkits/<toolkit-id>/`: student toolkits (`toolkit.ts`, `functions/`, `designs/`, `algorithms/`). The reference toolkit will be `toolkits/house/`; see `lab/docs/STUDENT-API.md`.
+- `lab/docs/`: architecture, decisions and workflow documents.
 - `.claude/`: shared AI project instructions, skills and settings.
 
 `@core/*`, `@app/*` and `@student-api` import aliases are defined in `tsconfig.json`.
 
 ## Documentation
-- `docs/ARCHITECTURE.md`: the full contract (graph, coordinates, edges, module rules).
-- `docs/DECISIONS.md`: design decisions.
-- `docs/STUDENT-API.md`: writing a toolkit.
-- `docs/DEVELOPMENT-WORKFLOW.md`: how changes are made and checked.
-- `docs/GITHUB-ACCESS.md`: repository access options.
+- `lab/docs/ARCHITECTURE.md`: the full contract (graph, coordinates, edges, module rules).
+- `lab/docs/DECISIONS.md`: design decisions.
+- `lab/docs/STUDENT-API.md`: writing a toolkit.
+- `lab/docs/DEVELOPMENT-WORKFLOW.md`: how changes are made and checked.
+- `lab/docs/GITHUB-ACCESS.md`: repository access options.
 
 ## GitHub Free / private repository warning
-On GitHub Free, private repositories do **not** have enforced protected-branch controls. Do **not** invite student collaborators with write permissions under the assumption that `main` is protected. See `docs/GITHUB-ACCESS.md` for options before class. Claude instructions and local hooks do not enforce GitHub permissions.
+On GitHub Free, private repositories do **not** have enforced protected-branch controls. Do **not** invite student collaborators with write permissions under the assumption that `main` is protected. See `lab/docs/GITHUB-ACCESS.md` for options before class. Claude instructions and local hooks do not enforce GitHub permissions.
 
 ## References
 - [Claude Code project instructions and settings](https://code.claude.com/docs/en/settings)

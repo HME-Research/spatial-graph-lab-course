@@ -57,11 +57,11 @@ The parameter **Houses** (`houses`) sets how many houses you want. Leave it empt
 
 ## Make your own toolkit
 
-The full guide, with the starter folder, the things to consider and how to make a toolkit with an AI assistant (in the repository or in a chat), is [`docs/TOOLKITS.md`](../../docs/TOOLKITS.md). The short version:
+The full guide, with the starter folder, the things to consider and how to make a toolkit with an AI assistant (in the repository or in a chat), is [`lab/docs/TOOLKITS.md`](../../lab/docs/TOOLKITS.md). The short version:
 
 1. Copy the whole folder `toolkits/house/` to `toolkits/my-toolkit/`. The folder name is your toolkit id: lowercase letters, digits, `-` and `_`, starting with a letter.
 2. In `toolkit.ts`, change `name`.
-3. Change, add or remove Functions in `functions/` (one file each, `defineFunction`), attributes, algorithms in `algorithms/`, designs in `designs/` and façade files in `assets/` (a design names a façade by its asset id; `check:toolkit` checks that a file in `assets/` gives it, see `docs/STUDENT-API.md` → Designs).
+3. Change, add or remove Functions in `functions/` (one file each, `defineFunction`), attributes, algorithms in `algorithms/`, designs in `designs/` and façade files in `assets/` (a design names a façade by its asset id; `check:toolkit` checks that a file in `assets/` gives it, see `lab/docs/STUDENT-API.md` → Designs).
 4. Run `npm run check:toolkit -- -t my-toolkit` and `npm run typecheck`, then open the app with `?toolkit=my-toolkit`, or choose your toolkit when you create a project.
 
-Your toolkit may import only `@student-api` and its own files. See `docs/STUDENT-API.md` for everything the API offers.
+Your toolkit may import only `@student-api` and its own files. See `lab/docs/STUDENT-API.md` for everything the API offers.

@@ -11,7 +11,7 @@ import pkg from './package.json' with { type: 'json' };
  * browser gets `504 (Outdated Optimize Dep)` for them. Lazily imported project modules
  * (`toolkits/<id>/toolkit.ts` → `@student-api` → optimized dependencies) then fail with "Failed to
  * fetch dynamically imported module", and the app falls back to the built-in example. Keying the
- * cache by port removes that race (reproduced and verified at Gate 1; see docs/DEVELOPMENT-WORKFLOW.md).
+ * cache by port removes that race (reproduced and verified at Gate 1; see lab/docs/DEVELOPMENT-WORKFLOW.md).
  * Two servers cannot listen on the same port, so they can never share a cache.
  */
 function portOf(argv: readonly string[]): string {
@@ -25,7 +25,10 @@ function portOf(argv: readonly string[]): string {
 
 export default defineConfig({
   plugins: [react()],
-  // The About dialog shows the package.json version (never hard-coded); see app/ui/about/version.ts.
+  // The app's source lives in lab/ (owner 2026-11-25: the root keeps only what students need);
+  // static files such as the Guide screenshots are served from lab/public/ at the site root.
+  publicDir: 'lab/public',
+  // The About dialog shows the package.json version (never hard-coded); see lab/app/ui/about/version.ts.
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   // `@core/*` and `@app/*` are defined once, in tsconfig.json "paths", and shared by tsc, Vite and
   // Vitest. Aliases are an import convenience, not an access-control mechanism.
@@ -39,6 +42,6 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['core/**/*.test.ts', 'app/**/*.test.ts', 'student-api/**/*.test.ts'],
+    include: ['lab/core/**/*.test.ts', 'lab/app/**/*.test.ts', 'lab/student-api/**/*.test.ts'],
   },
 });
