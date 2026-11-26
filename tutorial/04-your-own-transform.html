@@ -72,11 +72,7 @@
 <div class="card-head"><span class="badge">03</span><div><h2>Ask the AI</h2><p class="sub">Attach the kit, send the starting text with the blanks filled in.</p></div></div>
 <div class="card-body">
 <ol class="steps">
-  <li><strong>Open a new chat and attach the kit zip.</strong>If your chat refuses zip files, unzip it and attach the files inside instead:
-    <div class="os-tabs">
-    <div class="os-panel" data-os="win"><p class="os-title">Windows</p><p>In <b>File Explorer</b>, right-click the zip › <span class="ui">Extract All…</span> › <span class="ui">Extract</span>.</p></div>
-    <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><p>In <b>Finder</b>, double-click the zip: a folder appears beside it.</p></div>
-    </div></li>
+  <li><strong>Open a new chat and attach the kit zip.</strong>If your chat refuses the zip, try another chat or ask your tutor.</li>
   <li><strong>Send the starting text for your kit</strong>, with the three blanks filled in.
     <div class="code"><div class="label">Transform kit</div><pre data-block="prompt:transform">I've attached the Spatial Graph Lab transform kit. Read PROMPT.md and every file in it, then write ONE transform that works in any project (node basics only, no custom fields).
 
@@ -97,7 +93,7 @@ What it should change: ___</pre></div></li>
 <div class="card-body">
 <p>Use the name it suggests, for example <code>connect-touching-rooms.ts</code>: download it if the chat offers a file, or paste the code into a new file in VS Code (or Notepad / TextEdit as plain text) and save it with that name.</p>
 <div class="os-tabs">
-<div class="os-panel" data-os="win"><p class="os-title">Windows</p><div class="warn"><p>Windows hides file extensions: a file saved as <code>connect.ts.txt</code> looks like <code>connect.ts</code> but is refused. In File Explorer, <span class="ui">View › Show › File name extensions</span> shows the real name.</p></div></div>
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><div class="warn"><p>Windows hides file extensions: a file saved as <code>connect.ts.txt</code> looks like <code>connect.ts</code> but is refused. In File Explorer, <span class="ui">View › Show › File name extensions</span> shows the real name. In Notepad, set <span class="ui">Save as type</span> to <span class="ui">All files (*.*)</span> before you save.</p></div></div>
 <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><div class="warn"><p>TextEdit saves rich text by default: first choose <span class="ui">Format › Make Plain Text</span>, then save, and if it asks, choose <span class="ui">Use .ts</span>. To see the real name of a file in Finder: <span class="ui">Finder › Settings… › Advanced › Show all filename extensions</span>.</p></div></div>
 </div>
 </div>
@@ -114,11 +110,11 @@ What it should change: ___</pre></div></li>
   <li><strong>Apply or Discard</strong><span class="ui">Apply</span> changes the design in one step; <span class="ui">Discard</span> drops the preview. Changed the design after <span class="ui">Run</span>? The preview is out of date: run it again.</li>
   <li><strong>Undo</strong>Changed your mind after <span class="ui">Apply</span>? One <span class="ui">Undo</span> reverses the whole change.</li>
   <li><strong>If the app refuses it, or the preview shows an error</strong>, copy the app's whole message into the chat and ask: “Fix exactly this.” Save the new answer and use <span class="ui">↻</span> (Replace) beside it in <b>Yours</b>.
-    <div class="note"><p>An <b>analysis</b> (it only reads and shows an answer) is refused here: upload it in <span class="ui">Analyse</span> instead (<a href="03-your-own-analysis.html">Your analysis</a>).</p></div></li>
+    <div class="note"><p>An <b>analysis</b> (it only reads and shows an answer) is refused here: upload it in <span class="ui">Analyse</span> instead (<a href="03-your-own-analysis.html">Your own analysis</a>).</p></div></li>
 </ol>
 <p>Uploaded transforms are saved with your project: <span class="ui">Export project</span> (see <a href="02-use-the-app.html#keep">Use the app</a>) keeps them in the file you hand in. The same file also works in a toolkit's <code>algorithms/</code> folder.</p>
 <details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
-<details class="issue"><summary>“This file is an analysis … upload it in Analyse”</summary><div class="issue-body"><ol><li>It only reads and shows an answer: upload it in <span class="ui">Analyse</span> (<a href="03-your-own-analysis.html">Your analysis</a>).</li></ol></div></details>
+<details class="issue"><summary>“This file is an analysis … upload it in Analyse”</summary><div class="issue-body"><ol><li>It only reads and shows an answer: upload it in <span class="ui">Analyse</span> (<a href="03-your-own-analysis.html">Your own analysis</a>).</li></ol></div></details>
 <details class="issue"><summary>The file is refused, or the preview shows an error</summary><div class="issue-body"><ol><li>Check the file really ends in <code>.ts</code> (step 04).</li><li>Paste the app's whole message to the AI and ask it to fix exactly that.</li><li>Use <span class="ui">↻</span> (Replace) beside it in <b>Yours</b> with the new file.</li></ol></div></details>
 <details class="issue"><summary>“customOf needs a Function from a toolkit's functions/ folder…”</summary><div class="issue-body"><ol><li>Ask the AI to read the fields with <code>ctx.nodeCustom(nodeId)</code> instead.</li></ol></div></details>
 <details class="issue"><summary>Apply is greyed out: “The design has changed since this preview was computed”</summary><div class="issue-body"><ol><li>You edited the design after <span class="ui">Run</span>.</li><li>Press <span class="ui">Run</span> again.</li></ol></div></details>

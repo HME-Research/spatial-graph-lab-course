@@ -75,9 +75,9 @@ npm run typecheck
 npm run dev
 ```
 
-- `check:toolkit` loads your toolkit exactly as the app does. It fails with a readable message if a definition or design is invalid, if a design uses a façade file that is not in `assets/`, or if an algorithm fails on your default design (analyses get the first node / edge as their input).
-- `typecheck` checks your TypeScript.
-- `npm run dev`, then open `http://localhost:5173/?toolkit=<toolkit-id>` (or choose your toolkit when you create a project). The **Project** section lists any problem in your toolkit files until you fix it; the page reloads when you save a file.
+- `check:toolkit` loads your toolkit exactly as the app does. It passes with `Tests N passed` (N more than 0). It fails with a readable message if the toolkit is not found (for example `No toolkit "hk-small-library" was found…`, or `toolkit.ts is one folder too deep…` after a common unzip mistake), if a folder name is not valid, if a definition or design is invalid, if a design uses a façade file that is not in `assets/`, or if an algorithm fails on your default design (analyses get the first node / edge as their input).
+- `typecheck` checks your TypeScript. It prints nothing when everything is fine.
+- `npm run dev`, then open `http://localhost:5173/?toolkit=<toolkit-id>` (or the address it prints; or choose your toolkit when you create a project). **Project › Advanced** lists any problem in your toolkit files until you fix it; the page reloads when you save a file.
 
 Then try it: **Open example…** › *Toolkit: <name>*; run your analyses in **Analyse** and your transformations in **Transform**.
 
@@ -92,7 +92,7 @@ The assistant follows [`lab/docs/ai-kit/toolkit/PROMPT.md`](ai-kit/toolkit/PROMP
 The agent reads the repository itself, writes the folder and runs the checks. No download needed.
 
 1. Open the repository folder in VS Code and start from an up-to-date `main`: `git switch main`, then `git pull`.
-2. Make your branch: `git switch -c toolkit/<toolkit-id>`.
+2. Make your branch and push it at once, which reserves your toolkit id: `git switch -c toolkit/<toolkit-id>`, then `git push -u origin toolkit/<toolkit-id>`. If that first push is rejected, the id is already taken: choose another one (never pull someone else's branch).
 3. Give the agent this prompt (fill in the blanks):
 
 <!-- prompt:agent -->
@@ -109,14 +109,14 @@ Example design: ___
 
    In Claude Code you can also type `/create-toolkit` and answer its questions.
 4. Read what it wrote, open the app with `?toolkit=<toolkit-id>` and try it. Ask for changes in plain words.
-5. Push your branch: `git push -u origin toolkit/<toolkit-id>`.
+5. Push your commits: `git push`.
 
 ### Route B — a chat assistant (for example Claude in the browser)
 
 The assistant cannot see the repository, so you give it the **toolkit kit** and put its answer in place yourself.
 
 1. **Download the kit**: in the app, **Guide › Toolkits & JSON › Make your own toolkit › Chat assistant › Toolkit kit (.zip)**. It holds the AI's instructions (`PROMPT.md`), this guide, `STUDENT-API.md`, the starter folder and the House toolkit as an example.
-2. Open a new chat, **attach the zip** and send this prompt (fill in the blanks):
+2. Open a new chat, **attach the zip** (if your chat refuses it, try another chat or ask your tutor) and send this prompt (fill in the blanks):
 
 <!-- prompt:chat -->
 ```
@@ -137,21 +137,23 @@ Example design: ___
 git switch main
 git pull
 git switch -c toolkit/<toolkit-id>
+git push -u origin toolkit/<toolkit-id>
+# that first push reserves your toolkit id; rejected? the id is taken: choose another one
 # unzip: the folder must end up at toolkits/<toolkit-id>/ (toolkit.ts directly inside it)
 npm install
 npm run check:toolkit -- -t <toolkit-id>
 npm run typecheck
 npm run dev
-# try it at http://localhost:5173/?toolkit=<toolkit-id>, then stop the server (Ctrl+C)
+# try it at http://localhost:5173/?toolkit=<toolkit-id> (or the address npm run dev prints), then stop the server (Ctrl+C)
 git add toolkits/<toolkit-id>
 git status
 git commit -m "feat(<toolkit-id>): first version of my toolkit"
-git push -u origin toolkit/<toolkit-id>
+git push
 ```
 <!-- /commands -->
 
-   `git status` must list **only** files under `toolkits/<toolkit-id>/`. If it lists anything else, don't commit: undo that change first.
-   With GitHub Desktop instead: *Current branch › New branch* `toolkit/<toolkit-id>`, copy the folder, commit, then *Publish branch*.
+   Run the lines one at a time (the `#` lines are things you do by hand). Under *Changes to be committed*, `git status` must list **only** files under `toolkits/<toolkit-id>/`. If it lists anything else, don't commit: undo that change first.
+   With GitHub Desktop instead: *Current branch › New branch* `toolkit/<toolkit-id>`, then *Publish branch* at once; copy the folder, commit, then *Push origin*.
 4. If a check fails, copy the **whole** message back into the chat and ask it to fix exactly that. Replace the changed files, check again, commit and push again (`git push`).
 
 ### Later changes

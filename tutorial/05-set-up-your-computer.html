@@ -60,9 +60,9 @@
 <h1>Set up your computer</h1>
 <p class="lead">Once, at the start: install the programs, register for an AI coding agent, join the course repository on GitHub, copy it to your computer and run the app there. Only needed to make a toolkit; to <a href="02-use-the-app.html">use the app</a> or <a href="03-your-own-analysis.html">upload an analysis</a>, a browser is enough. No programming experience is needed.</p>
 
-<div class="note"><p><b>Did the Before Session 2 checklist?</b> Your ticks there don't carry over — tick steps 1–5 here and continue at step 6. Steps 01–05 are the same steps, with the same links and fixes.</p></div>
+<div class="note"><p><b>Already done the Before Session 2 checklist?</b> Your ticks there don't carry over — tick steps 01–05 here and continue at step 06. Steps 01–05 are the same steps, with the same links and fixes.</p></div>
 
-<div class="group" id="before"><h2>Installation &amp; accounts — complete before class</h2><p>The Before Session 2 checklist: complete these five steps on the laptop you will bring to the workshop.</p></div></group>
+<div class="group" id="before"><h2>Installation &amp; accounts — complete before class</h2><p>The Before Session 2 checklist: complete these five steps on the laptop you will bring to the workshop.</p></div>
 
 <section class="card" id="s-github">
 <div class="card-head"><span class="badge">01</span><div><h2>Create or check your GitHub account</h2><p class="sub">Create a free GitHub account, or check you can sign in to an existing one.</p></div></div>
@@ -149,10 +149,10 @@
 <div class="code"><pre>node --version</pre></div>
 <div class="code"><pre>npm --version</pre></div>
 <div class="example"><p class="label">Example results</p><pre>v26.13.1
-11.6.2</pre><small>Your numbers can differ. Both lines should show a version, without an error. The app needs Node.js 22 or newer: the current LTS is.</small></div>
+11.6.2</pre><small>Your numbers can differ. Both lines should show a version, without an error. The app needs Node.js 22.12 or newer: the current LTS is.</small></div>
 <details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
 <details class="issue"><summary>Node.js or npm is not recognised</summary><div class="issue-body"><ol><li>Restart VS Code after installing Node.js.</li><li>Open <span class="ui">Terminal › New Terminal</span>.</li><li>Run <code>node --version</code> and <code>npm --version</code> again, one at a time.</li><li>If either still fails, use the official LTS installer linked above.</li></ol></div></details>
-<details class="issue"><summary>Windows PowerShell says running scripts is disabled</summary><div class="issue-body"><ol><li>In VS Code, open <span class="ui">Terminal › New Terminal</span>.</li><li>Use the arrow next to the <span class="ui">+</span> in the terminal panel and select <span class="ui">Command Prompt</span>.</li><li>Run <code>npm --version</code> there.</li></ol><p>You do not need to change Windows security settings. Use a Command Prompt terminal for all <code>npm</code> commands in this tutorial.</p></div></details>
+<details class="issue"><summary>Windows PowerShell says running scripts is disabled</summary><div class="issue-body"><ol><li>In VS Code, open <span class="ui">Terminal › New Terminal</span>.</li><li>Use the arrow next to the <span class="ui">+</span> in the terminal panel and select <span class="ui">Command Prompt</span>.</li><li>Run <code>npm --version</code> there.</li></ol><p>You do not need to change Windows security settings. Use a Command Prompt terminal for all commands in this tutorial (step 07 makes it the default).</p></div></details>
 <details class="issue"><summary>My Node.js version number is different</summary><div class="issue-body"><ol><li>That is normal. You should see a version beginning with <code>v</code> for Node.js and a number for npm, rather than an error.</li></ol></div></details>
 </div></details>
 <label class="tick"><input type="checkbox" data-check="node"> <span>Both Node.js and npm return version numbers</span></label>
@@ -200,7 +200,7 @@
 </div>
 </section>
 
-<div class="group" id="repository"><h2>Get the course repository — in the session</h2><p>Join the course on GitHub, copy its repository to your computer and run the app there.</p></div></group>
+<div class="group" id="repository"><h2>Get the course repository — in the session</h2><p>Join the course on GitHub, copy its repository to your computer and run the app there.</p></div>
 
 <section class="card" id="s-invite">
 <div class="card-head"><span class="badge">06</span><div><h2>Accept the GitHub invitation</h2><p class="sub">So that you can push your work to the course repository.</p></div></div>
@@ -219,11 +219,16 @@
 <div class="card-body">
 <p>A <b>terminal</b> (or <b>command line</b>) is a window where you type a command and press <kbd>Enter</kbd>; the computer runs it and prints its answer. You use it for <code>git</code> and <code>npm</code>. Use the one built into VS Code: <span class="ui">Terminal › New Terminal</span>. It opens at the bottom of the window.</p>
 <div class="os-tabs">
-<div class="os-panel" data-os="win"><p class="os-title">Windows</p><p>VS Code opens <b>PowerShell</b> by default (the prompt starts with <code>PS</code>). Both PowerShell and <b>Command Prompt</b> work for this tutorial: switch with the arrow next to the <span class="ui">+</span> in the terminal panel.</p></div>
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><p>This tutorial uses <b>Command Prompt</b>. VS Code opens <b>PowerShell</b> by default (the prompt starts with <code>PS</code>), so make Command Prompt the default once:</p>
+<ol>
+  <li>In the terminal panel, click the arrow next to the <span class="ui">+</span> › <span class="ui">Select Default Profile</span> › <span class="ui">Command Prompt</span>.</li>
+  <li>Close the PowerShell terminal (the bin icon in the terminal panel) and open a new one: <span class="ui">Terminal › New Terminal</span>.</li>
+</ol>
+<p class="see">a prompt such as <code>C:\Users\you&gt;</code>, without <code>PS</code> at the start. Every Windows command on these pages is written for Command Prompt.</p></div>
 <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><p>VS Code opens <b>zsh</b>, the same as the <b>Terminal</b> app (the prompt ends with <code>%</code>). Either works for this tutorial.</p></div>
 </div>
 <p>To run a command: click in the terminal, type it or paste it (<span class="os-inline"><span data-os="win"><kbd>Ctrl</kbd>+<kbd>V</kbd>, or right-click</span><span data-os="mac"><kbd>Cmd</kbd>+<kbd>V</kbd></span></span>) and press <kbd>Enter</kbd>. <a href="09-git-basics.html#terminal">Git basics</a> explains more.</p>
-<label class="tick"><input type="checkbox" data-check="terminal"> <span>I can open a terminal in VS Code</span></label>
+<label class="tick"><input type="checkbox" data-check="terminal"> <span>I can open a terminal in VS Code (on Windows: Command Prompt)</span></label>
 </div>
 </section>
 
@@ -244,20 +249,24 @@ git config --global user.email "you@example.com"</pre></div>
 <p>This is called <b>cloning</b>. Choose one way.</p>
 <h3>In the VS Code terminal</h3>
 <ol class="steps">
-  <li><strong>Go to the folder that should hold it</strong>for example your Documents folder (<code>cd</code> means “change directory”):
+  <li><strong>Go to your repositories folder, creating it if it is missing</strong>Your code lives in <code>source\repos</code> (macOS: <code>source/repos</code>) in your home folder, not in Documents, which OneDrive or iCloud may sync. Run the two lines one at a time (<code>mkdir</code> makes a folder, <code>cd</code> means “change directory”):
     <div class="os-tabs">
-    <div class="os-panel" data-os="win"><p class="os-title">Windows</p><div class="code"><pre>cd ~\Documents</pre></div><p class="muted">In Command Prompt: <code>cd %USERPROFILE%\Documents</code></p></div>
-    <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><div class="code"><pre>cd ~/Documents</pre></div></div>
+    <div class="os-panel" data-os="win"><p class="os-title">Windows (Command Prompt)</p><div class="code"><pre>mkdir "%USERPROFILE%\source\repos"
+cd /d "%USERPROFILE%\source\repos"</pre></div><p class="muted">“A subdirectory or file … already exists” is fine: the folder was there already.</p></div>
+    <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><div class="code"><pre>mkdir -p ~/source/repos
+cd ~/source/repos</pre></div></div>
     </div></li>
   <li><strong>Clone it</strong>
     <div class="code"><pre>git clone https://github.com/HME-Research/spatial-graph-lab-course.git</pre></div>
-    <p class="see">a new folder <code>spatial-graph-lab-course</code> in Documents. The first time, a browser window may ask you to sign in to GitHub: allow it.</p></li>
+    <p class="see">“Cloning into 'spatial-graph-lab-course'…” and a new folder <code><span class="os-inline"><span data-os="win">C:\Users\you\source\repos\</span><span data-os="mac">~/source/repos/</span></span>spatial-graph-lab-course</code>. The repository is public: cloning needs no sign-in.</p></li>
 </ol>
 <h3>Or with GitHub Desktop (no typing)</h3>
-<p>Install <a href="https://desktop.github.com/">GitHub Desktop</a>, sign in, then <span class="ui">File › Clone repository…</span> › <code>HME-Research/spatial-graph-lab-course</code> › <span class="ui">Clone</span>, and <span class="ui">Open in Visual Studio Code</span>. GitHub Desktop can also make branches, commit and push for you (see <a href="09-git-basics.html">Git basics</a>).</p>
+<p>Install <a href="https://desktop.github.com/">GitHub Desktop</a> and sign in. Then <span class="ui">File › Clone repository…</span> › <span class="ui">URL</span> › <code>https://github.com/HME-Research/spatial-graph-lab-course</code>, and set <span class="ui">Local path</span> to <code><span class="os-inline"><span data-os="win">C:\Users\you\source\repos\spatial-graph-lab-course</span><span data-os="mac">/Users/you/source/repos/spatial-graph-lab-course</span></span></code> (with your own user name; GitHub Desktop suggests Documents\GitHub instead) › <span class="ui">Clone</span>. If it asks <i>How are you planning to use this fork?</i>, choose <span class="ui">For my own purposes</span>. Then <span class="ui">Open in Visual Studio Code</span>. GitHub Desktop can also make branches, commit and push for you (see <a href="09-git-basics.html">Git basics</a>).</p>
 <details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
-<details class="issue"><summary>“Repository not found” or “Permission denied”</summary><div class="issue-body"><ol><li>Accept the invitation first (step 06).</li><li>Sign in to GitHub with the same account when Git or GitHub Desktop asks.</li></ol></div></details>
-<details class="issue"><summary>“destination path 'spatial-graph-lab-course' already exists”</summary><div class="issue-body"><ol><li>You cloned it before: use that folder (step 10), or clone into another folder.</li></ol></div></details>
+<details class="issue"><summary>“Repository not found”</summary><div class="issue-body"><ol><li>The address has a typo: copy it again with the <b>Copy</b> button.</li></ol></div></details>
+<details class="issue"><summary>“The system cannot find the path specified” or “no such file or directory” on <code>cd</code></summary><div class="issue-body"><ol><li>Run the <code>mkdir</code> line first, then the <code>cd</code> line again.</li></ol></div></details>
+<details class="issue"><summary>“destination path 'spatial-graph-lab-course' already exists”</summary><div class="issue-body"><ol><li>You cloned it here before: use that folder (step 10).</li></ol></div></details>
+<details class="issue"><summary>I cloned it into Documents earlier</summary><div class="issue-body"><ol><li>If you have not changed anything in it yet, delete it and clone again here.</li><li>If you have work in it, keep using it and ask your tutor before moving it.</li></ol></div></details>
 </div></details>
 <label class="tick"><input type="checkbox" data-check="clone"> <span>The folder spatial-graph-lab-course is on my computer</span></label>
 </div>
@@ -267,10 +276,14 @@ git config --global user.email "you@example.com"</pre></div>
 <div class="card-head"><span class="badge">10</span><div><h2>Open the folder in VS Code</h2><p class="sub">So that VS Code, its terminal and your agent all work in the repository.</p></div></div>
 <div class="card-body">
 <ol class="steps">
-  <li><strong>Open the folder</strong><span class="ui">File › Open Folder…</span> › choose <code>spatial-graph-lab-course</code> in Documents. Answer “Yes, I trust the authors” if asked.</li>
+  <li><strong>Open the folder</strong><span class="ui">File › Open Folder…</span> › choose <code>spatial-graph-lab-course</code> in your repositories folder. Answer “Yes, I trust the authors” if asked.
+    <div class="os-tabs">
+    <div class="os-panel" data-os="win"><p class="os-title">Windows</p><p>In the dialog, type <code>%USERPROFILE%\source\repos</code> in the address bar and press <kbd>Enter</kbd>, then choose the folder.</p></div>
+    <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><p>In the dialog, press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>, type <code>~/source/repos</code> and press <kbd>Enter</kbd>, then choose the folder.</p></div>
+    </div></li>
   <li><strong>Open a terminal in it</strong><span class="ui">Terminal › New Terminal</span>. A terminal opened now starts <b>in the repository folder</b>.
     <div class="os-tabs">
-    <div class="os-panel" data-os="win"><p class="os-title">Windows</p><p class="see">a prompt such as <code>PS C:\Users\you\Documents\spatial-graph-lab-course&gt;</code></p></div>
+    <div class="os-panel" data-os="win"><p class="os-title">Windows</p><p class="see">a prompt such as <code>C:\Users\you\source\repos\spatial-graph-lab-course&gt;</code> (Command Prompt, step 07).</p></div>
     <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><p class="see">a prompt such as <code>you@Mac spatial-graph-lab-course %</code></p></div>
     </div></li>
 </ol>
@@ -286,9 +299,9 @@ git config --global user.email "you@example.com"</pre></div>
 <div class="code"><pre>npm install</pre></div>
 <p class="see">“added … packages” after a minute or two. Warnings are fine; an <code>ERR!</code> is not (see below).</p>
 <details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
-<details class="issue"><summary><code>npm install</code> shows <code>ERR!</code></summary><div class="issue-body"><ol><li>Check you are in the repository folder: it contains <code>package.json</code> (step 10).</li><li>Check <code>node --version</code> is 22 or higher (step 04).</li><li>Run <code>npm install</code> again.</li></ol></div></details>
+<details class="issue"><summary><code>npm install</code> shows <code>ERR!</code></summary><div class="issue-body"><ol><li>Check you are in the repository folder: it contains <code>package.json</code> (step 10).</li><li>Check <code>node --version</code> is 22.12 or higher (step 04).</li><li>Run <code>npm install</code> again.</li></ol></div></details>
 <details class="issue"><summary>“Could not read package.json” or “ENOENT”</summary><div class="issue-body"><ol><li>The terminal is in the wrong folder.</li><li><span class="ui">File › Open Folder…</span> › <code>spatial-graph-lab-course</code>, then open a new terminal and run it again.</li></ol></div></details>
-<details class="issue"><summary>Windows PowerShell says running scripts is disabled</summary><div class="issue-body"><ol><li>Use the arrow next to the <span class="ui">+</span> in the terminal panel and select <span class="ui">Command Prompt</span>.</li><li>Run <code>npm install</code> there.</li></ol><p>You do not need to change Windows security settings.</p></div></details>
+<details class="issue"><summary>Windows PowerShell says running scripts is disabled</summary><div class="issue-body"><ol><li>The terminal is PowerShell: make Command Prompt the default (step 07).</li><li>Open a new terminal and run <code>npm install</code> there.</li></ol><p>You do not need to change Windows security settings.</p></div></details>
 </div></details>
 <label class="tick"><input type="checkbox" data-check="install"> <span>npm install finished without ERR!</span></label>
 </div>
@@ -298,10 +311,10 @@ git config --global user.email "you@example.com"</pre></div>
 <div class="card-head"><span class="badge">12</span><div><h2>Start the app</h2><p class="sub">It runs on your computer, in your browser.</p></div></div>
 <div class="card-body">
 <div class="code"><pre>npm run dev</pre></div>
-<p class="see">a line such as <code>Local: http://localhost:5173/</code>. Open it in your browser (or <span class="os-inline"><span data-os="win"><kbd>Ctrl</kbd>-click</span><span data-os="mac"><kbd>Cmd</kbd>-click</span></span> it in the terminal): the app's Welcome screen.</p>
+<p class="see">a line such as <code>Local: http://localhost:5173/</code>. Open it in your browser (or <span class="os-inline"><span data-os="win"><kbd>Ctrl</kbd>-click</span><span data-os="mac"><kbd>Cmd</kbd>-click</span></span> it in the terminal): the app's Welcome screen. These pages write <code>http://localhost:5173/</code>; if it printed another address, use that one instead.</p>
 <p>While it runs, the terminal is busy and the app reloads by itself when a file changes. To type other commands meanwhile, open a second terminal with the <span class="ui">+</span>.</p>
 <details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
-<details class="issue"><summary>“Port 5173 is in use”</summary><div class="issue-body"><ol><li>The app is already running in another terminal: use that one, or stop it (step 13).</li><li>Vite may also pick the next port: open the address it prints.</li></ol></div></details>
+<details class="issue"><summary>“Port 5173 is in use, trying another one…”</summary><div class="issue-body"><ol><li>The app is probably already running in another terminal: use that one, or stop it there (step 13) and start it again.</li><li>Otherwise open the address this one printed (for example <code>http://localhost:5174/</code>), and use it wherever these pages say <code>localhost:5173</code>.</li></ol></div></details>
 </div></details>
 <label class="tick"><input type="checkbox" data-check="run"> <span>The app opens at localhost</span></label>
 </div>

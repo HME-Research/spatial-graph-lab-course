@@ -27,6 +27,24 @@ Using a coding agent (Claude Code, Codex, Copilot, Cursor…)? It reads [`AGENTS
 
 You need [Git](https://git-scm.com/downloads), [Node.js](https://nodejs.org/) 22.12 or newer and an editor such as [VS Code](https://code.visualstudio.com/).
 
+Clone it into your repositories folder, `source/repos` in your home folder (created if it is missing).
+
+Windows, in Command Prompt (the "A subdirectory or file … already exists" message is fine):
+
+```bat
+mkdir "%USERPROFILE%\source\repos"
+cd /d "%USERPROFILE%\source\repos"
+```
+
+macOS, in Terminal:
+
+```sh
+mkdir -p ~/source/repos
+cd ~/source/repos
+```
+
+Then, on both:
+
 ```sh
 git clone https://github.com/HME-Research/spatial-graph-lab-course.git
 cd spatial-graph-lab-course
@@ -39,10 +57,10 @@ Open the address it prints (usually http://localhost:5173/). Stop it with `Ctrl+
 | Command | What it does |
 |---|---|
 | `npm run dev` | runs the app on your computer; it reloads when you save a file |
-| `npm run check:toolkit -- -t <toolkit-id>` | loads your toolkit exactly as the app does and runs every algorithm on its default design |
+| `npm run check:toolkit -- -t <toolkit-id>` | loads your toolkit exactly as the app does and runs every algorithm on its default design; it passes with `Tests N passed` and fails if your toolkit is not found |
 | `npm run typecheck` | checks the TypeScript of the whole repository, your toolkit included |
 
-Open your toolkit in the app with `http://localhost:5173/?toolkit=<toolkit-id>`. Once your branch is pushed, the course team can also open it online.
+Open your toolkit in the app with `http://localhost:5173/?toolkit=<toolkit-id>`. Once your branch is pushed, your tutor can open it on their computer (and online, once branch previews are set up).
 
 ## What is in this repository
 

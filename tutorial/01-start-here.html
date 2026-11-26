@@ -114,13 +114,13 @@
 <h2><span class="badge">04</span>Your toolkit's name</h2>
 <p>Every toolkit has an id: the name of its folder and of its branch. The course uses one convention:</p>
 <div class="note"><p><b>toolkit id = <code>&lt;initials&gt;-&lt;toolkit-name&gt;</code></b>, lowercase, words joined with <code>-</code>, no spaces. Initials <b>HK</b> and toolkit <b>Small library</b> give the id <code>hk-small-library</code>, the folder <code>toolkits/hk-small-library/</code> and the branch <code>toolkit/hk-small-library</code>.</p></div>
-<p>Only lowercase letters, digits and <code>-</code>, starting with a letter. Check on GitHub that nobody else uses it, and never rename it later. <a href="09-git-basics.html#your-id">Git basics</a> and <a href="06-plan-your-toolkit.html#your-id">Plan your toolkit</a> have a small form that builds your id and fills it into every command and prompt.</p>
+<p>Only lowercase letters, digits and <code>-</code>, starting with a letter. Check on GitHub that nobody else uses it, reserve it by pushing your branch as soon as you make it, and never rename it later. <a href="09-git-basics.html#your-id">Git basics</a> and <a href="06-plan-your-toolkit.html#your-id">Plan your toolkit</a> have a small form that builds your id and fills it into every command and prompt.</p>
 </section>
 
 <section class="part" id="rule">
 <h2><span class="badge">05</span>The one rule</h2>
 <div class="rule">
-  <p><b>The one rule.</b> You change only <b>your own folder</b> <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code>, on <b>your own branch</b> <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>. Never change <code>lab/</code> (the app), <code>toolkits/house/</code> (the example) or the files at the top of the repository, and never commit to <code>main</code>. GitHub refuses pushes to <code>main</code> and marks any branch that changes other files with a red cross.</p>
+  <p><b>The one rule.</b> You change only <b>your own folder</b> <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code>, on <b>your own branch</b> <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>. Never change <code>lab/</code> (the app), <code>toolkits/house/</code> (the example), <code>tutorial/</code> (these pages) or the files at the top of the repository, and never commit to <code>main</code>. GitHub refuses pushes to <code>main</code> and marks any branch that changes other files with a red cross.</p>
 </div>
 </section>
 
@@ -136,7 +136,7 @@
   <dt>Kit</dt><dd>A zip of instructions, reference and examples that you attach to an AI chat, so that it writes files the app accepts.</dd>
   <dt>Coding agent</dt><dd>An AI inside VS Code (Codex, Claude Code, GitHub Copilot in Agent mode) that reads your copy of the repository, writes your folder and runs the checks.</dd>
   <dt>Chat assistant</dt><dd>An AI in the browser (Claude, ChatGPT, Gemini) that sees only what you attach and gives files back for you to put in place.</dd>
-  <dt>Terminal, command line</dt><dd>A window where you type commands instead of clicking. In VS Code: <span class="ui">Terminal › New Terminal</span>. <a href="09-git-basics.html#terminal">Git basics</a></dd>
+  <dt>Terminal, command line</dt><dd>A window where you type commands instead of clicking. In VS Code: <span class="ui">Terminal › New Terminal</span> (Command Prompt on Windows, zsh on a Mac). <a href="09-git-basics.html#terminal">Git basics</a></dd>
   <dt>Repository (repo)</dt><dd>The project's folder with its full history, kept on GitHub. You copy (<i>clone</i>) it to your computer.</dd>
   <dt>Branch</dt><dd>Your own line of work in the repository. Yours is <code>toolkit/&lt;toolkit-id&gt;</code>.</dd>
   <dt>Commit, push, pull</dt><dd>Saving a snapshot of your changes; sending your commits to GitHub; fetching new commits from GitHub. <a href="09-git-basics.html#ideas">Git basics</a></dd>

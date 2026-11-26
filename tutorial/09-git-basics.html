@@ -54,7 +54,7 @@
 <h1>Git basics</h1>
 <p class="lead">Git keeps the history of the repository. You type its commands in a <b>terminal</b>; GitHub Desktop does the same with buttons. This page starts with the terminal, then <a href="#branch">creates your branch</a>, then lists everything else you need.</p>
 
-<div class="group" id="your-id"><h2>Your toolkit id</h2><p>Type your initials and toolkit name once: every command on these pages fills in your id.</p></div></group>
+<div class="group" id="your-id"><h2>Your toolkit id</h2><p>Type your initials and toolkit name once: every command on these pages fills in your id.</p></div>
 <div class="namer" data-namer>
   <p class="namer-title">Your initials + toolkit name = your toolkit id</p>
   <p class="namer-rule">The naming convention: <b>toolkit id = <code>&lt;initials&gt;-&lt;toolkit-name&gt;</code></b>, all lowercase, words joined with <code>-</code>, no spaces. Initials <b>HK</b> and toolkit <b>Small library</b> give <code>hk-small-library</code>. Your folder is <code>toolkits/&lt;toolkit-id&gt;/</code> and your branch <code>toolkit/&lt;toolkit-id&gt;</code>. Type both below: every command and prompt on these pages fills in your id.</p>
@@ -75,14 +75,14 @@
   <p class="namer-note">Rule: lowercase letters, digits and <code>-</code>, starting with a letter. Remembered in this browser only. Without JavaScript, replace <code>&lt;toolkit-id&gt;</code> in the commands yourself.</p>
 </div>
 
-<div class="group" id="terminal-group"><h2>The terminal</h2><p>Where you type the commands.</p></div></group>
+<div class="group" id="terminal-group"><h2>The terminal</h2><p>Where you type the commands.</p></div>
 
 <section class="card" id="terminal">
 <div class="card-head"><span class="badge">01</span><div><h2>What a terminal is</h2><p class="sub">A window where you type commands instead of clicking.</p></div></div>
 <div class="card-body">
 <p>A <b>terminal</b> (also called the <b>command line</b>) shows a <i>prompt</i>: a line that ends with <code>&gt;</code>, <code>%</code> or <code>$</code> and waits for you. You type a command, press <kbd>Enter</kbd>, the computer runs it and prints its answer, then shows the prompt again. A command always works in one folder, shown in the prompt: for git and npm that must be the repository folder.</p>
 <div class="os-tabs">
-<div class="os-panel" data-os="win"><p class="os-title">Windows</p><p>Windows has two: <b>PowerShell</b> (prompt starts with <code>PS</code>) and <b>Command Prompt</b>. Both work for this tutorial. In VS Code, switch with the arrow next to the <span class="ui">+</span> in the terminal panel.</p></div>
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><p>This tutorial uses <b>Command Prompt</b> (prompt such as <code>C:\Users\you\source\repos\spatial-graph-lab-course&gt;</code>). VS Code starts with <b>PowerShell</b> (prompt starts with <code>PS</code>) until you make Command Prompt the default: arrow next to the <span class="ui">+</span> in the terminal panel › <span class="ui">Select Default Profile</span> › <span class="ui">Command Prompt</span>, then open a new terminal (<a href="05-set-up-your-computer.html#s-terminal">Set up › 07</a>).</p></div>
 <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><p>macOS has the <b>Terminal</b> app (Finder › <span class="ui">Applications › Utilities</span>). VS Code's terminal is the same thing inside VS Code (prompt ends with <code>%</code>).</p></div>
 </div>
 </div>
@@ -96,7 +96,7 @@
   <li><strong>Open a terminal</strong><span class="ui">Terminal › New Terminal</span>. It opens at the bottom, already in the repository folder.</li>
   <li><strong>Check you are in the right folder</strong>The prompt shows the folder name <code>spatial-graph-lab-course</code>. To be sure, print the folder, or ask git:
     <div class="os-tabs">
-    <div class="os-panel" data-os="win"><p class="os-title">Windows</p><div class="code"><pre>pwd</pre></div><p class="muted">In Command Prompt, type <code>cd</code> on its own instead. Both print a path ending in <code>\spatial-graph-lab-course</code>.</p></div>
+    <div class="os-panel" data-os="win"><p class="os-title">Windows</p><div class="code"><pre>cd</pre></div><p class="muted"><code>cd</code> on its own prints the folder: a path ending in <code>\spatial-graph-lab-course</code>.</p></div>
     <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><div class="code"><pre>pwd</pre></div><p class="muted">It prints a path ending in <code>/spatial-graph-lab-course</code>.</p></div>
     </div>
     <div class="code"><pre>git status</pre></div>
@@ -118,7 +118,7 @@
 </div>
 </section>
 
-<div class="group" id="branch-group"><h2>Your branch</h2><p>Your own line of work: toolkit/&lt;toolkit-id&gt;.</p></div></group>
+<div class="group" id="branch-group"><h2>Your branch</h2><p>Your own line of work: toolkit/&lt;toolkit-id&gt;.</p></div>
 
 <section class="card" id="free">
 <div class="card-head"><span class="badge">04</span><div><h2>Check the name is free</h2><p class="sub">Nobody else in the class may use the same id.</p></div></div>
@@ -129,20 +129,24 @@
   <li>It is listed and <b>not yours</b>: add a letter to your initials or change the toolkit name, above.</li>
   <li>It is listed and yours (you pushed it earlier): keep it and switch to it instead of creating it again.</li>
 </ul>
+<p>Free? Reserve it by pushing your branch as soon as you make it (step 05).</p>
 </div>
 </section>
 
 <section class="card key" id="branch">
-<div class="card-head"><span class="badge">05</span><div><h2>Create your branch</h2><p class="sub">Once, before your first change.</p></div></div>
+<div class="card-head"><span class="badge">05</span><div><h2>Create your branch</h2><p class="sub">Once, before your first change; push it at once to reserve your toolkit id.</p></div></div>
 <div class="card-body">
-<p>In the terminal, in the repository folder, run these three lines (get the latest <code>main</code>, then make your branch from it):</p>
+<p>In the terminal, in the repository folder, run these four lines one at a time (get the latest <code>main</code>, make your branch from it, then push it):</p>
 <div class="code"><pre data-fill>git switch main
 git pull
-git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
-<p class="see"><code>Switched to a new branch 'toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span>'</code>. The branch name also shows at the bottom left of VS Code.</p>
-<p><b>GitHub Desktop:</b> <span class="ui">Current branch</span> › <span class="ui">main</span>, <span class="ui">Fetch origin</span> (then <span class="ui">Pull origin</span> if offered), then <span class="ui">Current branch › New branch</span> › name <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> › <span class="ui">Create branch</span>.</p>
+git switch -c toolkit/&lt;toolkit-id&gt;
+git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
+<p class="see"><code>Switched to a new branch 'toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span>'</code>, then <code>* [new branch]</code> from the push. The branch name also shows at the bottom left of VS Code. This first push asks you to sign in (<a href="#sign-in">Signing in</a>). Pushing the branch while it is still empty reserves your toolkit id: nobody else can create a branch with that name.</p>
+<div class="stop"><p>Push <b>rejected</b> (“Updates were rejected…”, “fetch first”)? The id is already taken by someone else's branch. Never <code>git pull</code> it: choose another id (above) and make that branch instead.</p></div>
+<p><b>GitHub Desktop:</b> <span class="ui">Current branch</span> › <span class="ui">main</span>, <span class="ui">Fetch origin</span> (then <span class="ui">Pull origin</span> if offered), then <span class="ui">Current branch › New branch</span> › name <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> › <span class="ui">Create branch</span>, then <span class="ui">Publish branch</span>.</p>
 <details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
 <details class="issue"><summary>“A branch named … already exists”</summary><div class="issue-body"><ol><li>You made it before: go to it (step 06), without <code>-c</code>.</li></ol></div></details>
+<details class="issue"><summary>“Cannot create ref due to creations being restricted”</summary><div class="issue-body"><ol><li>The branch name does not start with <code>toolkit/</code>: GitHub accepts only <code>toolkit/…</code> branches from students.</li><li>Make the branch again with exactly <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> and push that one.</li></ol></div></details>
 <details class="issue"><summary>“Your local changes would be overwritten” on <code>git switch main</code></summary><div class="issue-body"><ol><li>You changed files on another branch. Run <code>git status</code> to see which.</li><li>Your toolkit's files: commit them on your branch first. Other files: put them back (<a href="#mistakes">Fixing common mistakes</a>).</li></ol></div></details>
 </div></details>
 </div>
@@ -152,13 +156,13 @@ git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
 <div class="card-head"><span class="badge">06</span><div><h2>Go back to your branch later</h2><p class="sub">Every working session, and on another computer.</p></div></div>
 <div class="card-body">
 <div class="code"><pre data-fill>git switch toolkit/&lt;toolkit-id&gt;</pre></div>
-<p class="see"><code>Switched to branch 'toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span>'</code> (or “Already on …”). On a new clone, git finds your pushed branch on GitHub by itself.</p>
+<p class="see"><code>Switched to branch 'toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span>'</code> (or “Already on …”). On a new clone, git finds your pushed branch on GitHub by itself. Pushed from another computer since? Bring those commits in with <code>git pull --no-rebase</code>.</p>
 <p><b>GitHub Desktop:</b> <span class="ui">Current branch</span> › choose <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>.</p>
 <p>Not sure which branch you are on? <code>git branch</code> lists them and marks the current one with <code>*</code>.</p>
 </div>
 </section>
 
-<div class="group" id="everyday"><h2>Everyday git</h2></div></group>
+<div class="group" id="everyday"><h2>Everyday git</h2></div>
 
 <section class="part" id="ideas">
 <h2><span class="badge">07</span>Five ideas</h2>
@@ -168,7 +172,7 @@ git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
   <tr><td><b>Branch</b></td><td>A separate line of work. <code>main</code> is the course's; yours is <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>. What you commit on your branch never changes <code>main</code>.</td></tr>
   <tr><td><b>Commit</b></td><td>A saved snapshot of the files you chose, with a short message. Commit whenever something works.</td></tr>
   <tr><td><b>Push</b></td><td>Sends your branch's commits to GitHub, where your tutor sees them. Until you push, they are only on your computer.</td></tr>
-  <tr><td><b>Pull</b></td><td>Fetches new commits from GitHub, for example the course's updates to <code>main</code>.</td></tr>
+  <tr><td><b>Pull</b></td><td>Fetches the new commits of the branch you are on from GitHub: on <code>main</code>, the course's updates; on your branch, commits you pushed from another computer. Course updates reach your branch only by merging (<a href="#updates">step 11</a>).</td></tr>
 </table></div>
 </section>
 
@@ -177,13 +181,14 @@ git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
 <div class="table"><table>
   <tr><th>To…</th><th>Command</th><th>GitHub Desktop</th></tr>
   <tr><td>see your branch and what changed</td><td><code>git status</code></td><td>the <span class="ui">Changes</span> list; the branch is at the top</td></tr>
-  <tr><td>make your branch (once)</td><td><code>git switch -c toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code></td><td><span class="ui">Current branch › New branch</span></td></tr>
+  <tr><td>make your branch (once, <a href="#branch">step 05</a>)</td><td><code>git switch -c toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code></td><td><span class="ui">Current branch › New branch</span></td></tr>
+  <tr><td>push it at once, to reserve your id (once)</td><td><code>git push -u origin toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code></td><td><span class="ui">Publish branch</span></td></tr>
   <tr><td>go to your branch</td><td><code>git switch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code></td><td><span class="ui">Current branch</span> › choose it</td></tr>
   <tr><td>choose what to commit</td><td><code>git add toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code></td><td>tick the files</td></tr>
   <tr><td>commit</td><td><code>git commit -m "feat(<span data-toolkit-id>&lt;toolkit-id&gt;</span>): what changed"</code></td><td>summary, then <span class="ui">Commit to …</span></td></tr>
-  <tr><td>push (first time)</td><td><code>git push -u origin toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code></td><td><span class="ui">Publish branch</span></td></tr>
-  <tr><td>push (later)</td><td><code>git push</code></td><td><span class="ui">Push origin</span></td></tr>
-  <tr><td>get updates</td><td><code>git pull</code></td><td><span class="ui">Fetch origin</span>, then <span class="ui">Pull</span></td></tr>
+  <tr><td>push your commits</td><td><code>git push</code></td><td><span class="ui">Push origin</span></td></tr>
+  <tr><td>get your branch's commits pushed from another computer</td><td><code>git pull --no-rebase</code></td><td><span class="ui">Fetch origin</span>, then <span class="ui">Pull origin</span></td></tr>
+  <tr><td>get the course's updates</td><td>see <a href="#updates">step 11</a></td><td><span class="ui">Branch › Update from main</span></td></tr>
 </table></div>
 <p>Commit messages start with <code>feat(<span data-toolkit-id>&lt;toolkit-id&gt;</span>):</code> for something new and <code>fix(<span data-toolkit-id>&lt;toolkit-id&gt;</span>):</code> for a correction, then a few words: <code>feat(hk-small-library): seat count analysis</code>.</p>
 </section>
@@ -191,12 +196,12 @@ git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
 <section class="part" id="before-commit">
 <h2><span class="badge">09</span>Before every commit</h2>
 <div class="code"><pre>git status</pre></div>
-<p class="see"><code>On branch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>, and only files under <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code>. On <code>main</code>, or other files listed? Fix that first (<a href="#mistakes">below</a>).</p>
+<p class="see"><code>On branch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>, and under <i>Changes to be committed</i> only files under <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code>. On <code>main</code>, or other files there? Fix that first (<a href="#mistakes">below</a>). A red <code>modified: package-lock.json</code> after <code>npm install</code> is not committed: put it back with <code>git restore package-lock.json</code>.</p>
 </section>
 
 <section class="part" id="sign-in">
 <h2><span class="badge">10</span>Signing in to GitHub when you push</h2>
-<p>The first push (or clone) asks who you are. Accept the course invitation first (<a href="05-set-up-your-computer.html#s-invite">Set up › 06</a>).</p>
+<p>Your first push asks who you are (cloning does not: the repository is public). Accept the course invitation first (<a href="05-set-up-your-computer.html#s-invite">Set up › 06</a>).</p>
 <div class="os-tabs">
 <div class="os-panel" data-os="win"><p class="os-title">Windows</p><ol>
   <li>A window <b>Connect to GitHub</b> opens: choose <span class="ui">Sign in with your browser</span>.</li>
@@ -204,7 +209,7 @@ git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
   <li>Back in VS Code, the push continues. Windows remembers it.</li>
 </ol></div>
 <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><ol>
-  <li>Push from <b>VS Code's terminal</b>: VS Code shows “The extension 'GitHub' wants to sign in using GitHub”. Choose <span class="ui">Allow</span>.</li>
+  <li>Push from <b>VS Code's terminal</b>: VS Code asks to sign in with GitHub. Choose <span class="ui">Allow</span>.</li>
   <li>In the browser, sign in and authorize VS Code, then return to VS Code; the push continues.</li>
   <li>If a terminal outside VS Code asks for a <i>Username</i> and <i>Password</i>: your GitHub password is not accepted there. Press <kbd>Ctrl</kbd>+<kbd>C</kbd> and push from VS Code's terminal, or with GitHub Desktop (<span class="ui">Publish branch</span>).</li>
 </ol></div>
@@ -238,7 +243,8 @@ npm run typecheck</pre></div></li>
 <details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
 <details class="issue"><summary>“CONFLICT (content): Merge conflict in …”</summary><div class="issue-body"><ol><li>Run <code>git merge --abort</code>: your branch is back as it was.</li><li>Ask your tutor, with the message.</li></ol><p>Never edit files outside your folder to make a conflict go away.</p></div></details>
 <details class="issue"><summary>“Your local changes to the following files would be overwritten”</summary><div class="issue-body"><ol><li>You have changes that are not committed.</li><li>Your toolkit's files: commit them on your branch. Other files: undo them (<a href="#mistakes">below</a>).</li><li>Run the update steps again.</li></ol></div></details>
-<details class="issue"><summary>“error: pathspec 'toolkit/…' did not match any file(s) known to git”</summary><div class="issue-body"><ol><li>The branch name is wrong (a typo, or another id).</li><li>Run <code>git branch</code> to list your branches, and use exactly the name shown.</li></ol></div></details>
+<details class="issue"><summary>“fatal: invalid reference: toolkit/…”</summary><div class="issue-body"><ol><li>The branch name is wrong (a typo, or another id).</li><li>Run <code>git branch</code> to list your branches, and use exactly the name shown.</li></ol></div></details>
+<details class="issue"><summary>“fatal: Need to specify how to reconcile divergent branches” on <code>git pull</code> of <code>main</code></summary><div class="issue-body"><ol><li>You committed on <code>main</code> earlier. Follow <a href="#mistakes">I committed on main</a>, then run the update steps again.</li></ol></div></details>
 </div></details>
 </section>
 
@@ -249,15 +255,22 @@ npm run typecheck</pre></div></li>
 <div class="code"><pre>git restore --staged path/to/the/file
 git restore path/to/the/file</pre></div>
 <p>A <b>new</b> file outside your folder (listed as <i>untracked</i>): delete it, or move it into your folder.</p></div></details>
-<details class="issue"><summary>I committed on main</summary><div class="issue-body"><p>GitHub refuses to take it, so nothing is lost. Move the work to your branch, then put your <code>main</code> back to the course's:</p>
+<details class="issue"><summary>I committed on main</summary><div class="issue-body"><p>GitHub refuses to take it, so nothing is lost. First commit or put back anything <code>git status</code> lists. Then bring the commits into your branch and put your <code>main</code> back to the course's (this also works when <code>git pull</code> on <code>main</code> says “divergent branches”):</p>
+<div class="code"><pre data-fill>git switch toolkit/&lt;toolkit-id&gt;
+git merge main
+git branch -f main origin/main
+git push</pre></div>
+<p>No branch yet (“invalid reference” on the first line)? Make it from your <code>main</code> instead:</p>
 <div class="code"><pre data-fill>git switch -c toolkit/&lt;toolkit-id&gt;
 git branch -f main origin/main
 git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
-<p>If your branch already existed, ask your tutor instead of improvising.</p></div></details>
+<p>If the merge shows a <code>CONFLICT</code> or the commits changed files outside your folder, run <code>git merge --abort</code> and ask your tutor instead of improvising.</p></div></details>
 <details class="issue"><summary>Git asks me to sign in, or says “permission denied”</summary><div class="issue-body"><ol><li>Accept the course invitation first (<a href="05-set-up-your-computer.html#s-invite">Set up › 06</a>).</li><li>Sign in as described in <a href="#sign-in">Signing in to GitHub</a>.</li></ol></div></details>
 <details class="issue"><summary>Git opened a strange text editor</summary><div class="issue-body"><p>That is a merge message after <code>git pull</code> or <code>git merge</code>. In the editor called Vim (a <code>~</code> on every line): type <code>:wq</code> and press <kbd>Enter</kbd>. In VS Code: save and close the tab.</p></div></details>
-<details class="issue"><summary>“Updates were rejected because the remote contains work that you do not have”</summary><div class="issue-body"><ol><li>Someone (or you, on another computer) pushed to your branch.</li><li>Run <code>git pull</code>, then <code>git push</code>.</li></ol></div></details>
-<details class="issue"><summary>Push refused: “protected branch” or “rule violations”</summary><div class="issue-body"><ol><li>You are pushing <code>main</code>. Your work belongs on your branch: see “I committed on main” above.</li></ol></div></details>
+<details class="issue"><summary>“Updates were rejected because the remote contains work that you do not have”</summary><div class="issue-body"><ol><li><b>On your first push of this branch</b>: the id is already taken by someone else's branch. Never pull it: choose another id and make that branch instead (<a href="#branch">step 05</a>).</li><li><b>You pushed this branch before</b> (for example from another computer): run <code>git pull --no-rebase</code>, then <code>git push</code>.</li></ol></div></details>
+<details class="issue"><summary>Push refused: “protected branch”, “rule violations” or “cannot update this protected ref”</summary><div class="issue-body"><ol><li>You are pushing <code>main</code>. Your work belongs on your branch: see “I committed on main” above.</li></ol></div></details>
+<details class="issue"><summary>Push refused: “Cannot create ref due to creations being restricted”</summary><div class="issue-body"><ol><li>The branch name does not start with <code>toolkit/</code>. Make the branch again with exactly <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (<a href="#branch">step 05</a>).</li></ol></div></details>
+<details class="issue"><summary>“fatal: Need to specify how to reconcile divergent branches”</summary><div class="issue-body"><ol><li>On your branch: use <code>git pull --no-rebase</code> instead of <code>git pull</code>.</li><li>On <code>main</code>: you committed on main; see “I committed on main” above.</li></ol></div></details>
 </div>
 </section>
 

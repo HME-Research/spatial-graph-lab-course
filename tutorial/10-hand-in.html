@@ -73,12 +73,13 @@
 <section class="card" id="push">
 <div class="card-head"><span class="badge">02</span><div><h2>Push your branch</h2><p class="sub">Send your commits to GitHub.</p></div></div>
 <div class="card-body">
-<div class="code"><pre data-fill>git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
-<p>Later pushes: just <code>git push</code>. GitHub Desktop: <span class="ui">Publish branch</span> / <span class="ui">Push origin</span>. No pull request is needed: your tutor collects the branches. The first push asks you to sign in (<a href="09-git-basics.html#sign-in">how, on Windows and macOS</a>).</p>
+<div class="code"><pre>git push</pre></div>
+<p>Your branch has been on GitHub since you made it and pushed it (<a href="09-git-basics.html#branch">Git basics › Create your branch</a>), so a plain <code>git push</code> sends your new commits. Never pushed it? Use <code>git push -u origin toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> once; the first push asks you to sign in (<a href="09-git-basics.html#sign-in">how, on Windows and macOS</a>). GitHub Desktop: <span class="ui">Push origin</span> (or <span class="ui">Publish branch</span> the first time). No pull request is needed: your tutor collects the branches.</p>
 <details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
 <details class="issue"><summary>“Permission denied” or “Repository not found”</summary><div class="issue-body"><ol><li>Accept the course invitation (<a href="05-set-up-your-computer.html#s-invite">Set up › 06</a>).</li><li>Sign in to GitHub when Git asks (<a href="09-git-basics.html#sign-in">Signing in</a>).</li></ol></div></details>
 <details class="issue"><summary>Push refused: “protected branch”, “rule violations” or “cannot update this protected ref”</summary><div class="issue-body"><ol><li>You are pushing <code>main</code>. Your work belongs on your branch: <a href="09-git-basics.html#mistakes">Git basics › I committed on main</a>.</li></ol></div></details>
-<details class="issue"><summary>“Updates were rejected because the remote contains work that you do not have”</summary><div class="issue-body"><ol><li>Run <code>git pull</code>, then <code>git push</code>.</li></ol></div></details>
+<details class="issue"><summary>Push refused: “Cannot create ref due to creations being restricted”</summary><div class="issue-body"><ol><li>The branch name does not start with <code>toolkit/</code> (<a href="09-git-basics.html#branch">Git basics › Create your branch</a>).</li></ol></div></details>
+<details class="issue"><summary>“Updates were rejected because the remote contains work that you do not have”</summary><div class="issue-body"><ol><li><b>On your first push of this branch</b>: the id is taken by someone else's branch. Never pull it: choose another id (<a href="09-git-basics.html#branch">Git basics › Create your branch</a>).</li><li><b>You pushed this branch before</b> (for example from another computer): run <code>git pull --no-rebase</code>, then <code>git push</code>.</li></ol></div></details>
 </div></details>
 </div>
 </section>
@@ -97,8 +98,9 @@
 <p>Beside your latest commit, a yellow dot turns into a green ✓ or a red ✗ after a few minutes. Click it to see the checks:</p>
 <ul>
   <li><b>Typecheck, tests and build</b>: the whole repository still works with your branch.</li>
-  <li><b>Student branch changes only its toolkit</b>: nothing outside <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code> changed, and your toolkit loads and runs (<code>check:toolkit</code>).</li>
+  <li><b>Student branch changes only its toolkit</b>: nothing outside <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code> changed, and your toolkit is found, loads and runs (<code>check:toolkit</code>).</li>
 </ul>
+<p>The empty branch you pushed to reserve your id also gets a green ✓: there was nothing to check yet. The tick that counts is the one beside your latest commit.</p>
 </div>
 </section>
 
@@ -109,6 +111,8 @@
   <tr><th>The message says</th><th>Do this</th></tr>
   <tr><td>This branch changes files outside toolkits/…</td><td>Put those files back (<a href="09-git-basics.html#mistakes">Git basics › I changed a file outside my folder</a>), commit, push.</td></tr>
   <tr><td>the toolkit id must be lowercase…</td><td>Your branch name is wrong. Ask your tutor.</td></tr>
+  <tr><td>No toolkit "…" was found</td><td>Your folder is missing on the branch or has another name: it must be <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code> with <code>toolkit.ts</code> directly inside. Did you commit and push it? Fix, commit, push.</td></tr>
+  <tr><td>toolkit.ts is one folder too deep</td><td>Move the contents of the inner folder up one level, as the message says (<a href="08-toolkit-with-a-chat-assistant.html#place">Chat assistant › Put the folder in place</a>), commit, push.</td></tr>
   <tr><td>a check:toolkit or typecheck error</td><td>Run the same check on your computer, fix it inside your folder (paste the message to your AI), commit, push.</td></tr>
 </table></div>
 <div class="code"><pre data-fill>npm run check:toolkit -- -t &lt;toolkit-id&gt;
@@ -119,7 +123,7 @@ npm run typecheck</pre></div>
 <section class="card" id="readme">
 <div class="card-head"><span class="badge">06</span><div><h2>Keep your README up to date</h2><p class="sub">It is the first thing your tutor reads.</p></div></div>
 <div class="card-body">
-<p>Your tutor can open your pushed branch in the app online, with your toolkit in it. In <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/README.md</code>, say what the toolkit is for, its Functions, attributes, algorithms and designs, and how to try it.</p>
+<p>Your tutor can open your pushed branch on their computer (and online, once branch previews are set up), with your toolkit in it. In <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/README.md</code>, say what the toolkit is for, its Functions, attributes, algorithms and designs, and how to try it.</p>
 </div>
 </section>
 

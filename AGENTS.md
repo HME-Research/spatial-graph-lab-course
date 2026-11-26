@@ -26,6 +26,7 @@ If the student's idea seems to need a change outside their folder, **stop**, exp
   - Uncommitted changes outside `toolkits/<toolkit-id>/`: **stop** and ask the student; never discard them yourself.
 - Commit only the toolkit folder: `git add toolkits/<toolkit-id>`, then `git status` must list nothing outside it. Message: `feat(<toolkit-id>): <what changed>` (or `fix(<toolkit-id>): …`).
 - **Do not push** unless the student asks. Then push only their branch: `git push -u origin toolkit/<toolkit-id>`. Never push `main`, never force-push, never merge, rebase or reset someone else's work, never delete a branch.
+- A push of the branch that is **rejected** on its first push means the id is already taken by someone else's branch: **stop**, never pull or merge that branch, and help the student choose another id. Only when the student pushed this branch before (for example from another computer) bring the remote commits in with `git pull --no-rebase`, then push.
 - To bring in the owner's updates: `git switch main`, `git pull`, `git switch toolkit/<toolkit-id>`, `git merge main`. If that conflicts outside the toolkit folder, stop and ask.
 
 ## 3. What to read
@@ -49,7 +50,7 @@ npm run check:toolkit -- -t <toolkit-id>
 npm run typecheck
 ```
 
-Fix failures **inside the toolkit folder** and run them again until both pass. Show the student the real output; never say a check passed without running it. Then tell them how to try it: `npm run dev`, open `http://localhost:5173/?toolkit=<toolkit-id>`, **Open example…**, and which analysis (Analyse) or transform (Transform) to run and what it should show.
+`check:toolkit` passes with `Tests N passed` (N more than 0); `No toolkit "…" was found` or `toolkit.ts is one folder too deep` means the folder is missing or in the wrong place. Fix failures **inside the toolkit folder** and run them again until both pass. Show the student the real output; never say a check passed without running it. Then tell them how to try it: `npm run dev`, open `http://localhost:5173/?toolkit=<toolkit-id>`, **Open example…**, and which analysis (Analyse) or transform (Transform) to run and what it should show.
 
 ## 5. How to talk to the student
 

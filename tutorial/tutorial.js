@@ -86,22 +86,36 @@
     if (s.normalize) s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
     return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
   }
+  var MAX_ID = 40; // long ids make long paths and branch names: cut at a word boundary
   /** { id, message, ok } for the two fields (and an optional id made earlier). */
   function buildId(initials, name, own) {
     own = String(own || '').trim().toLowerCase();
     if (own) {
       return OWN_RULE.test(own)
         ? { id: own, ok: true, message: 'Using your existing toolkit id.' }
-        : { id: '', ok: false, message: 'That id is not valid: lowercase letters, digits and -, starting with a letter.' };
+        : { id: '', ok: false, message: 'That id is not valid: lowercase letters, digits, - or _, starting with a letter.' };
     }
-    var a = slug(initials);
+    var typedA = String(initials || '').trim();
+    var typedB = String(name || '').trim();
+    var a = slug(initials).replace(/-/g, ''); // "H.K." and "H K" are the initials hk
     var b = slug(name);
-    if (!a && !b) return { id: '', ok: false, message: '' };
-    if (!a) return { id: '', ok: false, message: 'Type your initials too.' };
-    if (!b) return { id: '', ok: false, message: 'Type your toolkit name too.' };
+    if (!typedA && !typedB) return { id: '', ok: false, message: '' };
+    if (!a) return { id: '', ok: false, message: typedA ? 'Write your initials with the letters a–z.' : 'Type your initials too.' };
+    if (!b) return { id: '', ok: false, message: typedB ? 'Write the toolkit name with the letters a–z and digits.' : 'Type your toolkit name too.' };
     var id = a + '-' + b;
     if (!ID_RULE.test(id)) return { id: '', ok: false, message: 'The id must start with a letter: start your initials with a letter.' };
-    return { id: id, ok: true, message: 'Your toolkit id is ' + id + '. Every command and prompt on these pages now uses it.' };
+    var shortened = false;
+    if (id.length > MAX_ID) {
+      var cut = id.slice(0, MAX_ID + 1);
+      var at = cut.lastIndexOf('-');
+      id = at > a.length ? cut.slice(0, at) : id.slice(0, MAX_ID).replace(/-+$/, '');
+      shortened = true;
+    }
+    return {
+      id: id,
+      ok: true,
+      message: 'Your toolkit id is ' + id + '.' + (shortened ? ' (Shortened: choose a shorter toolkit name if you like.)' : '') + ' Every command and prompt on these pages now uses it.',
+    };
   }
 
   function currentId() {
@@ -114,7 +128,7 @@
     each('pre[data-fill]', function (pre) {
       if (pre.getAttribute('data-original') === null) pre.setAttribute('data-original', pre.textContent);
       var original = pre.getAttribute('data-original');
-      pre.textContent = id ? original.split('<toolkit-id>').join(id) : original;
+      pre.textContent = id ? original.split('<toolkit-id>').join(id).replace(/^Toolkit id: ___$/m, 'Toolkit id: ' + id) : original;
     });
     each('[data-toolkit-id]', function (el) { el.textContent = id || '<toolkit-id>'; });
     if (window.sglBuildPrompts) window.sglBuildPrompts();
@@ -166,9 +180,17 @@
       button.textContent = 'Copy';
       button.addEventListener('click', function () {
         var text = pre.textContent;
-        var done = function (label) { button.textContent = label; setTimeout(function () { button.textContent = 'Copy'; }, 1600); };
+        var done = function (label, ms) { button.textContent = label; setTimeout(function () { button.textContent = 'Copy'; }, ms || 1600); };
+        // A command with "<toolkit-id>" still in it fails with a confusing message in every terminal.
+        // Commands are not copied then; a prompt is, with a reminder to fill it in.
+        var unfilled = text.indexOf('<toolkit-id>') >= 0;
+        var isPrompt = (pre.getAttribute('data-block') || '').indexOf('prompt') === 0;
+        if (unfilled && !isPrompt) {
+          done('Type your toolkit id first (top of the page)', 3500);
+          return;
+        }
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(function () { done('Copied'); }, function () { done('Select and copy'); });
+          navigator.clipboard.writeText(text).then(function () { done(unfilled ? 'Copied: replace <toolkit-id> with your id' : 'Copied', unfilled ? 3500 : 0); }, function () { done('Select and copy'); });
         } else {
           done('Select and copy');
         }

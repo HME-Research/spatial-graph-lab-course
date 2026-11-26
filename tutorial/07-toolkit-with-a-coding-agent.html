@@ -48,7 +48,7 @@
 <h1>Make a toolkit with a coding agent</h1>
 <p class="lead">A coding agent works inside your copy of the repository: it reads the guides, writes your folder, runs the checks and commits. You describe the toolkit, read what it did, try it and push. Examples: <b>Codex</b>, <b>Claude Code</b> or <b>GitHub Copilot</b> in Agent mode (or a similar agent such as Cursor), used inside VS Code.</p>
 
-<div class="note"><p>Before you start: <a href="05-set-up-your-computer.html">set up</a> your computer (including step 05, your coding agent) and <a href="06-plan-your-toolkit.html">plan your toolkit</a>. The agent reads <code>AGENTS.md</code> in the repository, which tells it to change only your folder, work on your branch and never push without you.</p></div>
+<div class="note"><p>Before you start: <a href="05-set-up-your-computer.html">set up</a> your computer (including step 05, your coding agent) and <a href="06-plan-your-toolkit.html">plan your toolkit</a>. Codex and Copilot read <code>AGENTS.md</code> in the repository, and Claude Code reads it through <code>CLAUDE.md</code>. It tells the agent to change only your folder, work on your branch and never push without you.</p></div>
 
 <details class="issue"><summary>What's the difference between a coding agent and a chat assistant?</summary><div class="issue-body"><div class="versus">
   <p class="versus-title">What's the difference? A coding agent or a chat assistant</p>
@@ -109,13 +109,15 @@
 </section>
 
 <section class="card" id="branch">
-<div class="card-head"><span class="badge">03</span><div><h2>Get the latest version and make your branch</h2><p class="sub">The agent can also do this, but doing it yourself makes sure it happens.</p></div></div>
+<div class="card-head"><span class="badge">03</span><div><h2>Get the latest version and make your branch</h2><p class="sub">Do this yourself, then push the branch at once: that reserves your toolkit id.</p></div></div>
 <div class="card-body">
 <div class="code"><pre data-fill>git switch main
 git pull
-git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
-<p class="see"><code>Switched to a new branch 'toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span>'</code>. The branch name also shows at the bottom left of VS Code.</p>
-<p>Already made it earlier? Use <code>git switch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (no <code>-c</code>). With GitHub Desktop: <span class="ui">Current branch › New branch</span>. More in <a href="09-git-basics.html#branch">Git basics</a>.</p>
+git switch -c toolkit/&lt;toolkit-id&gt;
+git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
+<p class="see"><code>Switched to a new branch 'toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span>'</code>, then <code>* [new branch]</code> from the push. The branch name also shows at the bottom left of VS Code. This first push asks you to sign in to GitHub (<a href="09-git-basics.html#sign-in">how, on Windows and macOS</a>).</p>
+<div class="stop"><p>Push <b>rejected</b>? The id is already taken by someone else's branch. Never <code>git pull</code> it: choose another id (<a href="06-plan-your-toolkit.html#your-id">Plan your toolkit</a>) and make that branch instead.</p></div>
+<p>Already made it earlier? Use <code>git switch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (no <code>-c</code>). With GitHub Desktop: <span class="ui">Current branch › New branch</span>, then <span class="ui">Publish branch</span>. More in <a href="09-git-basics.html#branch">Git basics</a>.</p>
 <details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
 <details class="issue"><summary>“A branch named … already exists”</summary><div class="issue-body"><ol><li>You made it before: use <code>git switch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> without <code>-c</code>.</li></ol></div></details>
 <details class="issue"><summary>“not a git repository”</summary><div class="issue-body"><ol><li>The terminal is in the wrong folder: open the repository folder (step 02) and a new terminal.</li></ol></div></details>
@@ -128,7 +130,7 @@ git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
 <div class="card-body">
 <ul>
   <li><b>Codex:</b> the Codex panel (its icon in the sidebar).</li>
-  <li><b>Claude Code:</b> the Claude icon in VS Code, or type <code>claude</code> in the terminal.</li>
+  <li><b>Claude Code:</b> the Claude icon in VS Code.</li>
   <li><b>GitHub Copilot:</b> the Chat view, set to <b>Agent</b>.</li>
   <li><b>Others:</b> their own panel.</li>
 </ul>
@@ -162,10 +164,10 @@ Example design: ___</pre></div>
 <div class="card-head"><span class="badge">07</span><div><h2>Try it in the app</h2><p class="sub">Run the app on your computer with your toolkit.</p></div></div>
 <div class="card-body">
 <div class="code"><pre>npm run dev</pre></div>
-<p>Open <code>http://localhost:5173/?toolkit=<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>, then <span class="ui">Open example…</span> › <i>Toolkit: your toolkit's name</i>. Run your analyses in <span class="ui">Analyse</span> and your transforms in <span class="ui">Transform</span>. A problem in your files is listed in the <span class="ui">Project</span> panel. Stop the app with <kbd>Ctrl</kbd>+<kbd>C</kbd> (also on a Mac) when done.</p>
+<p>Open <code>http://localhost:5173/?toolkit=<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (or the address <code>npm run dev</code> printed, with <code>?toolkit=…</code> added), then <span class="ui">Open example…</span> › <i>Toolkit: your toolkit's name</i>. Run your analyses in <span class="ui">Analyse</span> and your transforms in <span class="ui">Transform</span>. A problem in your files is listed in <span class="ui">Project › Advanced</span>. Stop the app with <kbd>Ctrl</kbd>+<kbd>C</kbd> (also on a Mac) when done.</p>
 <details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
-<details class="issue"><summary>The app says my toolkit doesn't exist</summary><div class="issue-body"><ol><li>Check the address: <code>?toolkit=<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>.</li><li>Check the folder is <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/toolkit.ts</code>.</li></ol></div></details>
-<details class="issue"><summary>A Function or algorithm is disabled</summary><div class="issue-body"><ol><li>Select it, or read the <span class="ui">Project</span> panel, for the reason.</li><li>Paste the reason to the agent and ask it to fix exactly that.</li></ol></div></details>
+<details class="issue"><summary>My toolkit is not in the Toolkit list or in Open example…</summary><div class="issue-body"><ol><li>Run <code>npm run check:toolkit -- -t <span data-toolkit-id>&lt;toolkit-id&gt;</span></code>: it says what is wrong (for example “No toolkit … was found” or “toolkit.ts is one folder too deep”).</li><li>The folder must be <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code> with <code>toolkit.ts</code> directly inside it.</li><li>Check the address too: <code>?toolkit=<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>.</li></ol></div></details>
+<details class="issue"><summary>A Function or algorithm is disabled</summary><div class="issue-body"><ol><li>Select it, or read <span class="ui">Project › Advanced</span>, for the reason.</li><li>Paste the reason to the agent and ask it to fix exactly that.</li></ol></div></details>
 </div></details>
 </div>
 </section>
@@ -180,15 +182,15 @@ Example design: ___</pre></div>
 <section class="card" id="push">
 <div class="card-head"><span class="badge">09</span><div><h2>Push your branch</h2><p class="sub">Send your commits to GitHub: that is how you hand in.</p></div></div>
 <div class="card-body">
-<div class="code"><pre data-fill>git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
-<p>or ask the agent: “Push my branch.” The first time, GitHub asks you to sign in (<a href="09-git-basics.html#sign-in">how, on Windows and macOS</a>). Then <a href="10-hand-in.html">check the green tick</a> on GitHub.</p>
+<div class="code"><pre>git push</pre></div>
+<p>or ask the agent: “Push my branch.” Your branch is already on GitHub since step 03, so a plain <code>git push</code> sends the new commits. Then <a href="10-hand-in.html">check the green tick</a> on GitHub.</p>
 </div>
 </section>
 
 <section class="part" id="good-to-know">
 <h2><span class="badge">10</span>Good to know</h2>
 <ul>
-  <li>The agent's checks are the same you can run yourself: <code>npm run check:toolkit -- -t <span data-toolkit-id>&lt;toolkit-id&gt;</span></code> and <code>npm run typecheck</code>.</li>
+  <li>The agent's checks are the same you can run yourself: <code>npm run check:toolkit -- -t <span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (it passes with <code>Tests N passed</code>, N more than 0) and <code>npm run typecheck</code> (it prints nothing when all is well).</li>
   <li>Never accept a suggestion to change <code>lab/</code>, <code>package.json</code> or other files outside your folder, or to install a package: the fix always belongs inside your toolkit.</li>
   <li>Agents can be wrong with confidence. Try every algorithm in the app on a design whose answer you know.</li>
 </ul>

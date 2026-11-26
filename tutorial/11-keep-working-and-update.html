@@ -72,12 +72,13 @@
 </div>
 </section>
 
-<div class="group" id="session"><h2>Each working session</h2></div></group>
+<div class="group" id="session"><h2>Each working session</h2></div>
 
 <section class="card" id="on-branch">
 <div class="card-head"><span class="badge">02</span><div><h2>Be on your branch</h2><p class="sub">In the VS Code terminal, in the repository folder.</p></div></div>
 <div class="card-body">
 <div class="code"><pre data-fill>git switch toolkit/&lt;toolkit-id&gt;</pre></div>
+<p>Worked on another computer since? Also run <code>git pull --no-rebase</code> to bring in what you pushed from there.</p>
 </div>
 </section>
 
@@ -94,7 +95,7 @@
 <div class="code"><pre data-fill>npm run check:toolkit -- -t &lt;toolkit-id&gt;
 npm run typecheck
 npm run dev</pre></div>
-<p>Stop the app with <kbd>Ctrl</kbd>+<kbd>C</kbd> (also on a Mac) when done.</p>
+<p class="see"><code>check:toolkit</code> ends with <code>Tests N passed</code> (N more than 0); <code>typecheck</code> prints nothing. Then try it in the app (the address <code>npm run dev</code> prints, plus <code>?toolkit=<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>) and stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd> (also on a Mac) when done.</p>
 </div>
 </section>
 
@@ -109,7 +110,7 @@ git push</pre></div>
 </div>
 </section>
 
-<div class="group" id="other"><h2>Now and then</h2></div></group>
+<div class="group" id="other"><h2>Now and then</h2></div>
 
 <section class="card" id="updates">
 <div class="card-head"><span class="badge">06</span><div><h2>When the course updates the app</h2><p class="sub">Bring the new main into your branch.</p></div></div>
@@ -120,12 +121,15 @@ git pull
 git switch toolkit/&lt;toolkit-id&gt;
 git merge main
 npm install
+npm run check:toolkit -- -t &lt;toolkit-id&gt;
+npm run typecheck
 git push</pre></div>
-<p class="see">“Fast-forward” or “Merge made by …”. Then run your checks again: an update can show a new message about your toolkit.</p>
+<p class="see">“Fast-forward” or “Merge made by …” after <code>git merge main</code>, and both checks pass (an update can show a new message about your toolkit) before you push.</p>
 <p><a href="09-git-basics.html#updates">Git basics › Get the course's updates</a> explains every step, the GitHub Desktop way (<span class="ui">Fetch origin</span> › <span class="ui">Branch › Update from main</span> › <span class="ui">Push origin</span>) and what to do when an editor opens.</p>
 <details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
 <details class="issue"><summary>“CONFLICT” in a file outside my folder</summary><div class="issue-body"><ol><li>A file there was changed on your branch. Don't edit it to make the conflict go away.</li><li>Run <code>git merge --abort</code> and ask your tutor.</li></ol></div></details>
 <details class="issue"><summary>“Your local changes … would be overwritten”</summary><div class="issue-body"><ol><li>Commit your toolkit's changes, or undo changes outside your folder (<a href="09-git-basics.html#mistakes">Git basics</a>), then try again.</li></ol></div></details>
+<details class="issue"><summary>“fatal: Need to specify how to reconcile divergent branches” on <code>git pull</code></summary><div class="issue-body"><ol><li>You committed on <code>main</code> earlier: follow <a href="09-git-basics.html#mistakes">Git basics › I committed on main</a>, then try again.</li></ol></div></details>
 </div></details>
 </div>
 </section>
@@ -133,7 +137,7 @@ git push</pre></div>
 <section class="card" id="other-computer">
 <div class="card-head"><span class="badge">07</span><div><h2>Starting on another computer</h2><p class="sub">Your pushed work is on GitHub.</p></div></div>
 <div class="card-body">
-<p>Set the computer up and clone the repository again (<a href="05-set-up-your-computer.html#s-clone">Set up › 09–11</a>), then fetch your branch from GitHub:</p>
+<p>Set the computer up (<a href="05-set-up-your-computer.html#s-terminal">Set up › 07–08</a>: the terminal, your name and e-mail) and clone the repository again into your repositories folder (<a href="05-set-up-your-computer.html#s-clone">Set up › 09–11</a>), then fetch your branch from GitHub:</p>
 <div class="code"><pre data-fill>git switch toolkit/&lt;toolkit-id&gt;</pre></div>
 <p>Git finds your pushed branch by itself. Anything you did not push stays on the other computer.</p>
 </div>

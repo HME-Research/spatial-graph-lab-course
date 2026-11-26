@@ -48,7 +48,9 @@ gh api repos/$REPO/collaborators/<github-username> -X PUT -f permission=push   #
 
 - **Owner changes**: develop and push in `heba-eiz/spatial-graph-lab` as usual, then on the fork **Sync fork › Update branch**. Students get them with `git switch main`, `git pull`, `git switch toolkit/<toolkit-id>`, `git merge main` (the tutorial shows this).
 - **Reviewing a student**: open the branch's Vercel preview with `?toolkit=<toolkit-id>`, or locally `git fetch` and `git switch toolkit/<toolkit-id>`. The Actions run of the branch shows whether it changed anything outside its folder.
-- A student who committed on `main` by mistake cannot push it (the ruleset refuses); they run `git switch -c toolkit/<toolkit-id>` and push that branch.
+- A student who committed on `main` by mistake cannot push it (the ruleset refuses); they merge `main` into their branch (or create it with `git switch -c toolkit/<toolkit-id>` if it does not exist yet), reset their `main` with `git branch -f main origin/main` and push the branch (tutorial, Git basics › I committed on main).
+- **Claiming an id** (owner 2026-11-26): students push their branch right after `git switch -c toolkit/<toolkit-id>`, while it still equals `main`, so the id is taken on GitHub before any work. Because the "Student branches" ruleset cannot stop a collaborator adding commits to someone else's `toolkit/…` branch, the tutorial says that a **rejected first push** means the id is taken and must never be followed by `git pull`; only a branch the student pushed before is pulled (`git pull --no-rebase`). The CI toolkit check skips a branch whose `toolkits/<toolkit-id>/` has no changes yet (an empty claim stays green) and fails when the requested toolkit is not found (`lab/scripts/check-toolkit.mjs`).
+- **Previews**: until Vercel previews of the fork are confirmed (set-up step 5), the tutorial says the tutor opens a pushed branch on their computer, "and online, once branch previews are set up".
 
 ## Yearly reset (option A: one fork per course, reused)
 
