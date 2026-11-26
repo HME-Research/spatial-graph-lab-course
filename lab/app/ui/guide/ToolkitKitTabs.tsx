@@ -40,8 +40,8 @@ export function ToolkitKitTabs({ initialTab = 'agent' }: { readonly initialTab?:
           <div data-toolkit-kit-tab="agent">
             <p className="sgl-help sgl-aikits-help">
               The agent works in your copy of the repository (for example Claude Code in VS Code): it reads the guide there, writes the folder and runs the checks. First
-              make your branch: <code>git switch main</code>, <code>git pull</code>, <code>git switch -c toolkit/&lt;toolkit-id&gt;</code>. When you are happy with it:{' '}
-              <code>git push -u origin toolkit/&lt;toolkit-id&gt;</code>.
+              make your branch and claim its name: <code>git switch main</code>, <code>git pull</code>, <code>git switch -c toolkit/&lt;toolkit-id&gt;</code>,{' '}
+              <code>git push -u origin toolkit/&lt;toolkit-id&gt;</code> (refused? The name is taken: choose another). After each change: <code>git push</code>.
             </p>
             <PromptGuide guide={TOOLKIT_AGENT_PROMPT_GUIDE} />
             <p className="sgl-help sgl-aikits-help">Optional: the same files as a zip, if your agent cannot read the repository’s docs.</p>

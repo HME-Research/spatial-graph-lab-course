@@ -1,5 +1,6 @@
 # Checks every push and pull request. On a student branch toolkit/<toolkit-id> it also checks that
-# only toolkits/<toolkit-id>/ changed and that the toolkit loads. A failing run marks the commit with
+# only toolkits/<toolkit-id>/ changed and, once the folder has files, that the toolkit loads (an empty
+# branch pushed only to claim its name passes). A failing run marks the commit with
 # a red cross on GitHub; it does not stop the push (see lab/docs/GITHUB-ACCESS.md for the rules that do).
 name: quality
 on:
