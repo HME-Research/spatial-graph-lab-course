@@ -128,6 +128,41 @@ describe('check:toolkit -t <id>: a toolkit that is not found is explained', () =
   });
 });
 
+/** lab/scripts/check-toolkit.mjs, imported (it runs only when started as a script). */
+interface CheckScript {
+  requestedId(args: readonly string[]): string | null;
+  resultLine(id: string | null, status: number): string;
+  upperDrive(path: string): string;
+}
+const loadScript = async (): Promise<CheckScript> =>
+  (await import(/* @vite-ignore */ new URL('../../scripts/check-toolkit.mjs', import.meta.url).href)) as CheckScript;
+
+describe('check:toolkit script (lab/scripts/check-toolkit.mjs, owner 2026-11-26)', () => {
+  it('ends with one clear PASSED or FAILED line (vitest also prints "N passed" when a test failed)', async () => {
+    const { resultLine } = await loadScript();
+    expect(resultLine('hk-small-library', 0)).toBe('PASSED: toolkit "hk-small-library" is ready.');
+    expect(resultLine('hk-small-library', 1)).toBe('FAILED: toolkit "hk-small-library" has a problem (read the red message above).');
+    expect(resultLine(null, 0)).toBe('PASSED: every toolkit in toolkits/ is ready.');
+    expect(resultLine(null, 1)).toMatch(/^FAILED: /);
+  });
+  it('hands vitest the folder with an uppercase drive letter (a lowercase c:\\ crashes vitest)', async () => {
+    const { upperDrive } = await loadScript();
+    expect(upperDrive('c:\\Users\\you\\source\\repos\\spatial-graph-lab-course')).toBe('C:\\Users\\you\\source\\repos\\spatial-graph-lab-course');
+    expect(upperDrive('c:/Users/you')).toBe('C:/Users/you');
+    expect(upperDrive('C:\\Users\\you')).toBe('C:\\Users\\you');
+    expect(upperDrive('/Users/you/source/repos')).toBe('/Users/you/source/repos');
+  });
+  it('reads the toolkit id however the shell passes it', async () => {
+    const { requestedId } = await loadScript();
+    expect(requestedId([])).toBeNull();
+    expect(requestedId(['-t', 'hk-small-library'])).toBe('hk-small-library');
+    expect(requestedId(['--toolkit=hk-small-library'])).toBe('hk-small-library');
+    expect(requestedId(['hk-small-library'])).toBe('hk-small-library'); // PowerShell 5.1 drops the `--`
+    expect(() => requestedId(['-t'])).toThrow(/needs a toolkit id/);
+    expect(() => requestedId(['a', 'b'])).toThrow(/give one toolkit id/);
+  });
+});
+
 const checked = requested === null ? toolkits : toolkits.filter((p) => p.id === requested);
 
 describe.each(checked.map((p) => [p.id, p] as const))('toolkit "%s"', (_id, source) => {
