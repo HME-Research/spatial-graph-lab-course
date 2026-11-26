@@ -7,13 +7,15 @@ Owner document. Updated 2026-11-25 (public repositories, course fork in an organ
 | Repository | What it is | Who writes to it |
 |---|---|---|
 | `heba-eiz/spatial-graph-lab` (public) | the development repository; Vercel production: https://spatial-graph-lab.vercel.app/ | the owner only (no collaborators) |
-| `HME-Research/spatial-graph-lab-course` (public fork) | what students clone; their branches `toolkit/<toolkit-id>` live here | students (collaborators with **Write**), the owner as admin |
+| `HME-Research/spatial-graph-lab-course` (public fork) | what students clone; their branches `toolkit/<toolkit-name>` live here (toolkit name `u<last 3 digits of the student number>-<initials>-<toolkit>`, e.g. `u123-hk-house`) | students (collaborators with **Write**), the owner as admin |
 
 The course fork is reused every year (see *Yearly reset*). GitHub allows only one fork of a repository per account or organisation, and a fork of a public repository is always public: everything students push is visible to anyone. Owner fixes reach the fork with **Sync fork**.
 
 Because both repositories are public, GitHub Free **enforces** branch rulesets on them. `CODEOWNERS`, CI, `AGENTS.md` and `CLAUDE.md` are guidance and signals only; the rulesets are what stops a push.
 
 ## One-time course set-up checklist
+
+**Status (26 November 2026):** steps 1–3 are done (fork created, Actions enabled, both rulesets active: ids 28173120 and 28173121). Steps 4–6 are still open.
 
 Everything below is done by the owner in the browser, or with the `gh` commands given (a coding agent may run them only with the owner's explicit approval).
 
@@ -24,7 +26,7 @@ Everything below is done by the owner in the browser, or with the `gh` commands 
    - **Student branches**: target `toolkit/**`; restrict deletions, block force pushes; bypass: Repository admin. Nobody can delete or overwrite a student's history (they can still add commits to someone else's `toolkit/…` branch: GitHub Free cannot restrict a branch to one person).
 4. **Students.** Org base permission stays **No permission**. Invite each student to the fork with role **Write** (fork › Settings › Collaborators and teams), or make an org team `students-<year>` with Write on the fork and add them to it.
 5. **Vercel previews of student branches.** In Vercel, **Add New › Project** › import `HME-Research/spatial-graph-lab-course` (framework Vite, all defaults). Every pushed branch then gets its own preview URL. Check two things: that your Vercel plan can deploy a repository owned by an organisation (if not, keep the fork's previews off and test branches locally), and **Settings › Deployment Protection**: with Vercel Authentication on, only members of your Vercel team can open previews.
-6. **Test with a student account** (or a second account of your own): clone, push `toolkit/test-xx`, try to push `main` (must be refused), check the Actions run and the preview.
+6. **Test with a student account** (or a second account of your own): clone, push `toolkit/u000-xx-test`, try to push `main` (must be refused), check the Actions run and the preview.
 
 ```sh
 REPO=HME-Research/spatial-graph-lab-course
@@ -46,12 +48,12 @@ gh api repos/$REPO/collaborators/<github-username> -X PUT -f permission=push   #
 
 ## During the course
 
-- **Owner changes**: develop and push in `heba-eiz/spatial-graph-lab` as usual, then on the fork **Sync fork › Update branch**. Students get them on their own branch with one command, `git pull --no-rebase --no-edit origin main` (the tutorial shows this; they never switch to `main` for it, and `--no-edit` keeps Vim from opening).
-- **Reviewing a student**: open the branch's Vercel preview with `?toolkit=<toolkit-id>`, or locally `git fetch` and `git switch toolkit/<toolkit-id>`. The Actions run of the branch shows whether it changed anything outside its folder.
-- A student who committed on `main` by mistake cannot push it (the ruleset refuses); they merge `main` into their branch with `git merge --no-edit main` (or create it with `git switch -c toolkit/<toolkit-id>` if it does not exist yet), reset their `main` with `git branch -f main origin/main` and push the branch (tutorial, Git basics › I committed on main).
-- **Claiming an id** (owner 2026-11-26, revised): students check that `git status` says `On branch main` (else `git switch main`), run `git pull`, then right after `git switch -c toolkit/<toolkit-id>` students make an empty commit, `git commit --allow-empty -m "chore(<toolkit-id>): claim the toolkit name"`, and push with `git push -u origin toolkit/<toolkit-id>`; they must see `* [new branch]`. Because each claim commit is different, a second student's first push of the same name is always refused (a branch pushed while still equal to `main` was not: the second student got "Everything up-to-date"). The "Student branches" ruleset cannot stop a collaborator adding commits to someone else's `toolkit/…` branch, so the tutorial says that a first push saying **rejected** or **Everything up-to-date** means the name is taken and must never be followed by `git pull`; only a branch the student pushed before is pulled (`git pull --no-rebase --no-edit`). The CI toolkit check skips a branch whose `toolkits/<toolkit-id>/` has no changes yet (the claim commit stays green) and fails when the requested toolkit is not found (`lab/scripts/check-toolkit.mjs`).
-- **Public:** the fork is public, so the tutorial asks students to use their GitHub no-reply e-mail and username for git and to put no student number, passwords or keys in their branch or README.
-- **Hand-in:** the pushed branch or a zip of `toolkits/<toolkit-id>/` (`<toolkit-id>.zip`); the tutorial's page 10 has a placeholder box for where, the deadline and which counts. Tutor run sheet and marking workflow: owner-local `_planning/tutor-notes.md`.
+- **Owner changes**: develop and push in `heba-eiz/spatial-graph-lab` as usual, then on the fork **Sync fork › Update branch** (or `gh api -X POST repos/HME-Research/spatial-graph-lab-course/merge-upstream -f branch=main`; the owner bypasses the rulesets, so this works with them on). Students get them on their own branch with one command, `git pull --no-rebase --no-edit origin main` (the tutorial shows this; they never switch to `main` for it, and `--no-edit` keeps Vim from opening).
+- **Reviewing a student**: open the branch's Vercel preview with `?toolkit=<toolkit-name>`, or locally `git fetch` and `git switch toolkit/<toolkit-name>`. The Actions run of the branch shows whether it changed anything outside its folder.
+- A student who committed on `main` by mistake cannot push it (the ruleset refuses); they merge `main` into their branch with `git merge --no-edit main` (or create it with `git switch -c toolkit/<toolkit-name>` if it does not exist yet), reset their `main` with `git branch -f main origin/main` and push the branch (tutorial, page 15 Help › I committed on main).
+- **Starting a branch** (owner 2026-11-26, tutorial page 09 *Start developing: set up*): students check that `git status` says `On branch main` (else `git switch main`), run `git pull`, `git switch -c toolkit/<toolkit-name>`, make an empty commit `git commit --allow-empty -m "chore(<toolkit-name>): start my toolkit"` and push with `git push -u origin toolkit/<toolkit-name>`; they must see `* [new branch]`. The empty commit makes each first push unique, so if two students ever chose the same name the second push is refused (a branch still equal to `main` would only say "Everything up-to-date"). With the student-number digits in the name this should not happen, so the tutorial has no "is the name free" step; the rejected / Everything up-to-date case is only in folded troubleshooting, and says never to `git pull` someone else's branch. The "Student branches" ruleset cannot stop a collaborator adding commits to someone else's `toolkit/…` branch. The CI toolkit check skips a branch whose `toolkits/<toolkit-name>/` has no changes yet (the empty commit stays green) and fails when the requested toolkit is not found (`lab/scripts/check-toolkit.mjs`).
+- **Public:** the fork is public, so toolkit names carry only the last 3 digits of the student number (never the full number or a full name), and the tutorial asks students to put no passwords or keys in their branch or README. Students sign in to GitHub in VS Code; if git asks "Please tell me who you are", the Help page sets `user.name` to their GitHub username and `user.email` to their GitHub no-reply address.
+- **Hand-in:** the pushed branch or a zip of `toolkits/<toolkit-name>/` (`<toolkit-name>.zip`); the tutorial's page 12 *Submit your work* has a placeholder box for where, the deadline and which counts. Tutor run sheet and marking workflow: owner-local `_planning/tutor-notes.md`.
 - **Previews**: until Vercel previews of the fork are confirmed (set-up step 5), the tutorial says the tutor opens a pushed branch on their computer, "and online, once branch previews are set up".
 
 ## Yearly reset (option A: one fork per course, reused)
@@ -70,7 +72,7 @@ for b in $(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/to
 done
 ```
 
-Then remove the year's collaborators (or the `students-<year>` team), **Sync fork**, and invite the new students. Last year's toolkits stay readable as tags (`git switch --detach 2026/toolkit/<toolkit-id>`).
+Then remove the year's collaborators (or the `students-<year>` team), **Sync fork**, and invite the new students. Last year's toolkits stay readable as tags (`git switch --detach 2026/toolkit/<toolkit-name>`).
 
 ## Owner-local material
 
