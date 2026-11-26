@@ -7,7 +7,7 @@ import type { ProjectAttributeSchema } from './projectAttributes';
 import { algorithmDefinitionSchema, zodMessages } from './definitions';
 import { checkAnalysisInputs, validateAnalysisResult } from './run';
 import type { UploadReply, UploadRequest } from './uploadSandbox';
-import { compileUpload } from './uploadSource';
+import { compileUpload, SPATIAL_REFUSAL, type UploadKind } from './uploadSource';
 
 /**
  * Uploaded analyses (Programme P4, item I): a student's own `.ts` graph analysis, stored as SOURCE
@@ -77,15 +77,19 @@ export const browserWorker = (): WorkerLike =>
   // Event handler parameter types differ only in detail (DOM events vs the minimal shape used here).
   new Worker(new URL('./uploadWorker.ts', import.meta.url), { type: 'module', name: 'uploaded-analysis' }) as unknown as WorkerLike;
 
-/** A runner that starts one worker per request and terminates it after the reply or the timeout. */
-export function workerRunner(createWorker: () => WorkerLike = browserWorker, timeoutMs: number = UPLOAD_TIMEOUT_MS): UploadRunner {
+/**
+ * A runner that starts one worker per request and terminates it after the reply or the timeout.
+ * `kind` only names it in its messages ("The transform stopped with an error…").
+ */
+export function workerRunner(createWorker: () => WorkerLike = browserWorker, timeoutMs: number = UPLOAD_TIMEOUT_MS, kind: UploadKind = 'analysis'): UploadRunner {
+  const The = kind === 'analysis' ? 'The analysis' : 'The transform';
   return (request) =>
     new Promise<UploadReply>((resolve) => {
       let worker: WorkerLike;
       try {
         worker = createWorker();
       } catch (error) {
-        resolve({ ok: false, message: `The analysis could not be started (${error instanceof Error ? error.message : String(error)}).` });
+        resolve({ ok: false, message: `${The} could not be started (${error instanceof Error ? error.message : String(error)}).` });
         return;
       }
       let done = false;
@@ -99,16 +103,16 @@ export function workerRunner(createWorker: () => WorkerLike = browserWorker, tim
         resolve(reply);
       };
       const timer = setTimeout(() => finish({ ok: false, message: timeoutMessage(timeoutMs) }), timeoutMs);
-      worker.onmessage = (event) => finish(isReply(event.data) ? event.data : { ok: false, message: 'The analysis sent an unreadable reply.' });
+      worker.onmessage = (event) => finish(isReply(event.data) ? event.data : { ok: false, message: `${The} sent an unreadable reply.` });
       worker.onerror = (event) => {
         event.preventDefault?.();
-        finish({ ok: false, message: `The analysis stopped with an error${event.message ? `: ${event.message}` : '.'}` });
+        finish({ ok: false, message: `${The} stopped with an error${event.message ? `: ${event.message}` : '.'}` });
       };
-      worker.onmessageerror = () => finish({ ok: false, message: 'The analysis sent a reply that could not be read.' });
+      worker.onmessageerror = () => finish({ ok: false, message: `${The} sent a reply that could not be read.` });
       try {
         worker.postMessage(request);
       } catch (error) {
-        finish({ ok: false, message: `The analysis could not be started (${error instanceof Error ? error.message : String(error)}).` });
+        finish({ ok: false, message: `${The} could not be started (${error instanceof Error ? error.message : String(error)}).` });
       }
     });
 }
@@ -137,7 +141,7 @@ export async function prepareUpload(source: string, fileName: string, runner: Up
   const scope = reply.definition.scope === 'design' ? 'design' : 'graph';
   const parsed = algorithmDefinitionSchema.safeParse({ ...reply.definition, scope, run: () => undefined });
   if (!parsed.success) return { ok: false, problems: zodMessages(parsed.error.issues) };
-  if (parsed.data.scope === 'spatial') return { ok: false, problems: ['Only analyses can be uploaded.'] };
+  if (parsed.data.scope === 'spatial') return { ok: false, problems: [SPATIAL_REFUSAL] };
   const { id, label, description, inputs } = parsed.data;
   const raw = parsed.data.scope === 'design' ? parsed.data.uses : undefined;
   const uses: AnalysisUses | undefined = raw && {

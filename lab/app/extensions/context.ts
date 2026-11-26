@@ -79,6 +79,12 @@ const fieldInfo = (f: AttributeField, key: string = f.key): CustomFieldInfo => (
   ...(f.description !== undefined && { description: f.description }),
 });
 
+/** The project's custom fields as a spatial algorithm sees them (`ctx.customFields`). */
+export const projectCustomFields = (schema: ProjectAttributeSchema): { readonly nodes: CustomFieldInfo[]; readonly edges: CustomFieldInfo[] } => ({
+  nodes: schema.nodes.map((f) => fieldInfo(f)),
+  edges: schema.edges.map((f) => fieldInfo(f)),
+});
+
 /** The project's valid Functions (toolkit and project functions), as a design analysis sees them. */
 export const functionInfos = (project: Pick<ActiveToolkit, 'functions'> | null): FunctionInfo[] =>
   (project?.functions ?? []).filter((f) => f.status.ok).map((f) => ({ id: f.id, label: f.definition.label }));
@@ -205,7 +211,7 @@ export function buildSpatialContextV2<P extends AttributeSpecs>(
   const runError = (code: 'type-not-registered' | 'broken-node-type' | 'type-mismatch' | 'unknown-node-reference' | 'unknown-metric', message: string) =>
     new ExtensionRunError(diagnostic(code, 'error', subject, message));
   // The same resolver as the app's views and Properties (docs/PROJECT-ATTRIBUTES.md).
-  const customFields = freezeDeep({ nodes: schema.nodes.map((f) => fieldInfo(f)), edges: schema.edges.map((f) => fieldInfo(f)) });
+  const customFields = freezeDeep(projectCustomFields(schema));
 
   return Object.freeze({
     design,

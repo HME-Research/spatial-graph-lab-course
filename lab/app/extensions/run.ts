@@ -153,6 +153,9 @@ const operationSchema = z.discriminatedUnion(
   { error: 'op must be "add-node", "add-edge", "set-node-custom-attribute", "set-edge-custom-attribute", "set-edge-boundary-shift" or "set-node-geometry"' },
 );
 
+/** Every operation a transformation may return (`op`), in the order the app checks them. */
+export const OPERATION_KINDS: readonly string[] = operationSchema.options.map((o) => o.shape.op.value);
+
 const transformationSchema = z.strictObject({
   kind: z.literal('transformation'),
   summary: z.string().max(2000).optional(),
@@ -184,6 +187,23 @@ export function validateParameters(
     } else if (spec.default !== undefined) out[key] = spec.default;
   }
   return problems.length > 0 ? fail(problems) : ok(out);
+}
+
+/**
+ * The checked operations of a spatial algorithm's raw result: its kind, then the shape of every
+ * operation (`transformationSchema`). Shared by toolkit transforms (`runAlgorithmV2`) and uploaded
+ * ones (`runUploadedTransform`); the caller then applies them (`applyTransformationV2`).
+ */
+export function checkTransformationResult(
+  raw: unknown,
+  algorithmId: string,
+): ExtensionResult<{ readonly operations: readonly SpatialOperation[]; readonly summary: string | undefined }> {
+  const kind = typeof raw === 'object' && raw !== null ? (raw as { kind?: unknown }).kind : undefined;
+  if (kind !== 'transformation') return invalidResult(algorithmId, ['spatial algorithms must return { kind: "transformation", operations }']);
+  const parsed = transformationSchema.safeParse(raw);
+  if (!parsed.success) return invalidResult(algorithmId, zodMessages(parsed.error.issues));
+  // Zod's output is a fresh copy: later changes by the algorithm to its own objects have no effect.
+  return ok({ operations: parsed.data.operations as readonly SpatialOperation[], summary: parsed.data.summary });
 }
 
 function invalidResult(algorithmId: string, messages: readonly string[]): ExtensionResult<never> {
@@ -290,13 +310,9 @@ function runWith<D extends DesignDocumentV2, Preview>(
     return failed(error);
   }
 
-  const kind = typeof raw === 'object' && raw !== null ? (raw as { kind?: unknown }).kind : undefined;
-  if (kind !== 'transformation') return invalidResult(algorithmId, ['spatial algorithms must return { kind: "transformation", operations }']);
-  const parsed = transformationSchema.safeParse(raw);
-  if (!parsed.success) return invalidResult(algorithmId, zodMessages(parsed.error.issues));
-  // Zod's output is a fresh copy: later changes by the algorithm to its own objects have no effect.
-  const operations = parsed.data.operations as readonly SpatialOperation[];
-  const preview = adapter.apply(doc, project, operations, parsed.data.summary, schema);
+  const checked = checkTransformationResult(raw, algorithmId);
+  if (!checked.ok) return checked;
+  const preview = adapter.apply(doc, project, checked.value.operations, checked.value.summary, schema);
   return preview.ok ? ok({ kind: 'transformation', preview: preview.value }) : preview;
 }
 

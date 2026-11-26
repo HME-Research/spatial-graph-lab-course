@@ -24,6 +24,21 @@ export * from './toolkitExamples';
 export { applyTransformationV2, type TransformationPreviewV2 } from './transformV2';
 export { REFERENCE_TOOLKIT_FILES, REFERENCE_TOOLKIT_ID, TOOLKIT_GLOBS } from './toolkitGlobs';
 export * from './uploadedAnalyses';
-export { formatUploadSize, MAX_UPLOAD_BYTES, MAX_UPLOADED_ANALYSES, MAX_UPLOAD_FILE_NAME, sourceProblems, uploadLanguage } from './uploadSource';
+export * from './uploadedTransforms';
+export { CUSTOM_OF_REFUSAL, type TransformRunData } from './transformContext';
+export {
+  ANALYSIS_REFUSAL,
+  formatUploadSize,
+  MAX_UPLOAD_BYTES,
+  MAX_UPLOADED_ANALYSES,
+  MAX_UPLOADED_TRANSFORMS,
+  MAX_UPLOAD_FILE_NAME,
+  notTypeScriptProblem,
+  sourceProblems,
+  SPATIAL_REFUSAL,
+  tooLargeProblem,
+  uploadLanguage,
+  type UploadKind,
+} from './uploadSource';
 /** Student API types the application shell needs (only app/extensions may import `@student-api`). */
-export type { AnalysisResult, AnalysisUses, AttributeSpec, AttributeSpecs, ParameterSpec, ToolkitAttributeSpec, SpatialOperation } from '@student-api';
+export type { AnalysisResult, AnalysisUses, AttributeSpec, AttributeSpecs, ParameterSpec, ParameterSpecs, ToolkitAttributeSpec, SpatialOperation } from '@student-api';

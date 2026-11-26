@@ -15,7 +15,7 @@ import {
 import { readAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import { toolkitIdSchema } from '@app/extensions/discover';
 import type { StoredUpload } from '@app/extensions/uploadedAnalyses';
-import { MAX_UPLOAD_BYTES, MAX_UPLOAD_FILE_NAME, MAX_UPLOADED_ANALYSES } from '@app/extensions/uploadSource';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_FILE_NAME, MAX_UPLOADED_ANALYSES, MAX_UPLOADED_TRANSFORMS } from '@app/extensions/uploadSource';
 import { canonicalFacadeAsset, FACADE_LIMITS, facadeAssetsBytes, formatBytes, readFacadeAsset, type FacadeAssetV1 } from '@app/assets';
 
 /**
@@ -139,6 +139,13 @@ export interface ProjectSettings {
    * blocks opening the project. Written only when set.
    */
   readonly uploadedAnalyses?: readonly StoredUpload[];
+  /**
+   * The student's uploaded transforms (optional, 2026-11-25), in panel order: the same item shape
+   * and limits as `uploadedAnalyses` (source text only, at most 20, unique ids). A stored transform
+   * that no longer compiles or validates is listed as disabled with the reason; it never blocks
+   * opening the project. Written only when set; files without it load unchanged.
+   */
+  readonly uploadedTransforms?: readonly StoredUpload[];
 }
 
 /** A project function: a node type defined in the project file (`settings.functions`). */
@@ -158,7 +165,7 @@ export const FUNCTION_COLOUR_PATTERN = /^#[0-9a-f]{6}$/;
 /** Toolkit and project functions together can have at most this many colours. */
 export const MAX_FUNCTION_COLOURS = 2 * MAX_PROJECT_FUNCTIONS;
 
-/** Id of an uploaded analysis entry (`settings.uploadedAnalyses[].id`). */
+/** Id of an uploaded analysis or transform entry (`settings.uploadedAnalyses[].id`, `settings.uploadedTransforms[].id`). */
 export const UPLOAD_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 export type ProjectIssueCode =
@@ -205,6 +212,23 @@ export const nowIso = (): string => new Date().toISOString();
 // Schema
 
 const isoSchema = z.iso.datetime({ offset: true, error: 'must be an ISO 8601 date-time' });
+
+/** `settings.uploadedAnalyses` / `settings.uploadedTransforms`: optional lists of stored source text (same shape and limits). */
+const storedUploadsSchema = (key: string, one: string, many: string, max: number) =>
+  z
+    .array(
+      z.strictObject({
+        id: z.string().regex(UPLOAD_ID_PATTERN, { error: `an uploaded ${one} id must be lowercase letters, digits or "-"` }),
+        fileName: z.string().min(1, { error: 'a file name must not be empty' }).max(MAX_UPLOAD_FILE_NAME),
+        // Characters ≤ UTF-8 bytes, so every accepted upload fits; the byte limit is checked on upload.
+        source: z.string({ error: 'source must be text' }).max(MAX_UPLOAD_BYTES, { error: `an uploaded ${one} may be at most ${MAX_UPLOAD_BYTES} characters` }),
+        addedAt: isoSchema,
+      }),
+      { error: `${key} must be a list of {id, fileName, source, addedAt}` },
+    )
+    .max(max, { error: `at most ${max} uploaded ${many} per project` })
+    .refine((list) => new Set(list.map((u) => u.id)).size === list.length, { error: `uploaded ${one} ids must be unique` })
+    .optional();
 
 const scenarioShape = z.strictObject({
   id: idSchema,
@@ -254,20 +278,8 @@ const projectShape = z.strictObject({
       .refine((m) => Object.keys(m).length <= MAX_FUNCTION_COLOURS, { error: `at most ${MAX_FUNCTION_COLOURS} function colours` })
       .optional(),
     analyses: z.array(z.string().min(1).max(64), { error: 'analyses must be a list of analysis ids' }).max(64).optional(),
-    uploadedAnalyses: z
-      .array(
-        z.strictObject({
-          id: z.string().regex(UPLOAD_ID_PATTERN, { error: 'an uploaded analysis id must be lowercase letters, digits or "-"' }),
-          fileName: z.string().min(1, { error: 'a file name must not be empty' }).max(MAX_UPLOAD_FILE_NAME),
-          // Characters ≤ UTF-8 bytes, so every accepted upload fits; the byte limit is checked on upload.
-          source: z.string({ error: 'source must be text' }).max(MAX_UPLOAD_BYTES, { error: `an uploaded analysis may be at most ${MAX_UPLOAD_BYTES} characters` }),
-          addedAt: isoSchema,
-        }),
-        { error: 'uploadedAnalyses must be a list of {id, fileName, source, addedAt}' },
-      )
-      .max(MAX_UPLOADED_ANALYSES, { error: `at most ${MAX_UPLOADED_ANALYSES} uploaded analyses per project` })
-      .refine((list) => new Set(list.map((u) => u.id)).size === list.length, { error: 'uploaded analysis ids must be unique' })
-      .optional(),
+    uploadedAnalyses: storedUploadsSchema('uploadedAnalyses', 'analysis', 'analyses', MAX_UPLOADED_ANALYSES),
+    uploadedTransforms: storedUploadsSchema('uploadedTransforms', 'transform', 'transforms', MAX_UPLOADED_TRANSFORMS),
   }),
   assets: z.union(
     [
@@ -470,6 +482,7 @@ const canonicalSettings = (settings: {
   readonly functionColours?: Readonly<Record<string, string>> | undefined;
   readonly analyses?: readonly string[] | undefined;
   readonly uploadedAnalyses?: readonly StoredUpload[] | undefined;
+  readonly uploadedTransforms?: readonly StoredUpload[] | undefined;
 }): ProjectSettings => ({
   display: canonicalDefaults(settings.display),
   ...(settings.calculatedFields !== undefined && { calculatedFields: [...settings.calculatedFields] }),
@@ -479,6 +492,9 @@ const canonicalSettings = (settings: {
   ...(settings.analyses !== undefined && { analyses: [...settings.analyses] }),
   ...(settings.uploadedAnalyses !== undefined && {
     uploadedAnalyses: settings.uploadedAnalyses.map((u) => ({ id: u.id, fileName: u.fileName, source: u.source, addedAt: u.addedAt })),
+  }),
+  ...(settings.uploadedTransforms !== undefined && {
+    uploadedTransforms: settings.uploadedTransforms.map((u) => ({ id: u.id, fileName: u.fileName, source: u.source, addedAt: u.addedAt })),
   }),
 });
 

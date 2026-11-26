@@ -461,12 +461,24 @@ export function setShownAnalyses(project: OpenProject, ids: readonly string[]): 
  * order. The caller has already checked each new upload. Not undoable; autosaved and exported.
  */
 export function setUploadedAnalyses(project: OpenProject, uploads: readonly StoredUpload[]): OpenProject {
-  const current = project.meta.settings.uploadedAnalyses ?? [];
+  return setStoredUploads(project, 'uploadedAnalyses', uploads);
+}
+
+/**
+ * The uploaded transforms (`settings.uploadedTransforms`, 2026-11-25): source text per upload, in
+ * panel order, exactly like `setUploadedAnalyses`. Not undoable; autosaved and exported.
+ */
+export function setUploadedTransforms(project: OpenProject, uploads: readonly StoredUpload[]): OpenProject {
+  return setStoredUploads(project, 'uploadedTransforms', uploads);
+}
+
+function setStoredUploads(project: OpenProject, key: 'uploadedAnalyses' | 'uploadedTransforms', uploads: readonly StoredUpload[]): OpenProject {
+  const current = project.meta.settings[key] ?? [];
   const same =
     current.length === uploads.length &&
     current.every((u, i) => u.id === uploads[i]!.id && u.source === uploads[i]!.source && u.fileName === uploads[i]!.fileName && u.addedAt === uploads[i]!.addedAt);
   if (same) return project;
-  const settings = { ...project.meta.settings, uploadedAnalyses: uploads.map((u) => ({ id: u.id, fileName: u.fileName, source: u.source, addedAt: u.addedAt })) };
+  const settings = { ...project.meta.settings, [key]: uploads.map((u) => ({ id: u.id, fileName: u.fileName, source: u.source, addedAt: u.addedAt })) };
   return changed(project, { meta: { ...project.meta, settings } });
 }
 

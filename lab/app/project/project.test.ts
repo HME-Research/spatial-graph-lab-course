@@ -495,6 +495,50 @@ describe('settings.uploadedAnalyses (P4 item I, optional)', () => {
   });
 });
 
+describe('settings.uploadedTransforms (2026-11-25, optional, additive)', () => {
+  const upload = (id: string, source = "export default defineSpatialAlgorithm({ id: 'x' });\n// ünïcode\n") => ({
+    id,
+    fileName: `${id}.ts`,
+    source,
+    addedAt: '2026-11-25T10:00:00.000Z',
+  });
+
+  it('is absent by default, so files without it load and are written unchanged', () => {
+    const text = serializeProjectFile(validFile());
+    expect(JSON.parse(text).settings).not.toHaveProperty('uploadedTransforms');
+    expect(okValue(readProjectFile(text)).settings.uploadedTransforms).toBeUndefined();
+    expect(serializeProjectFile(okValue(readProjectFile(text)))).toBe(text);
+  });
+
+  it('stores source text and round-trips byte for byte, after the uploaded analyses', () => {
+    const raw = rawFile();
+    raw.settings = { ...raw.settings, uploadedTransforms: [upload('upload-t'), upload('upload-u', 'not ( valid code')], uploadedAnalyses: [upload('upload-a')] };
+    const file = okValue(readProjectFile(raw));
+    expect(file.settings.uploadedTransforms).toEqual([upload('upload-t'), upload('upload-u', 'not ( valid code')]);
+    const text = serializeProjectFile(file);
+    expect(Object.keys(JSON.parse(text).settings)).toEqual(['display', 'uploadedAnalyses', 'uploadedTransforms']);
+    expect(serializeProjectFile(okValue(readProjectFile(text)))).toBe(text);
+  });
+
+  it('has the same limits as uploaded analyses (shape, unique ids, size, at most 20)', () => {
+    for (const bad of [
+      'x',
+      [{ id: 'A b', fileName: 'a.ts', source: '', addedAt: '2026-11-25T10:00:00.000Z' }],
+      [upload('a'), upload('a')],
+      [{ ...upload('a'), compiled: 'x' }],
+      [{ ...upload('a'), source: 'x'.repeat(100_001) }],
+      Array.from({ length: 21 }, (_, n) => upload(`u${n}`)),
+    ]) {
+      const raw = rawFile();
+      raw.settings = { ...raw.settings, uploadedTransforms: bad };
+      expect(codes(readProjectFile(raw))).toContain('schema');
+    }
+    const raw = rawFile();
+    raw.settings = { ...raw.settings, uploadedTransforms: Array.from({ length: 20 }, (_, n) => upload(`u${n}`)) };
+    expect(okValue(readProjectFile(raw)).settings.uploadedTransforms).toHaveLength(20);
+  });
+});
+
 describe('numeric ids survive save → reopen (P4)', () => {
   /** Rooms 1, 2 and 5 (ids 3 and 4 were deleted earlier), edges 1 and 3; counters 9 and 4. */
   const gappedDesign = () =>

@@ -46,6 +46,7 @@ import {
   setCalculatedFields,
   setShownAnalyses,
   setUploadedAnalyses,
+  setUploadedTransforms,
   setDisplayDefaults,
   setProjectFunctions,
   resolveFunctionClash,
@@ -203,6 +204,8 @@ export interface ProjectController {
   setShownAnalyses(ids: readonly string[]): void;
   /** Project `settings.uploadedAnalyses` (the student's uploaded analyses, P4 item I). Not undoable; autosaved. */
   setUploadedAnalyses(uploads: readonly StoredUpload[]): void;
+  /** Project `settings.uploadedTransforms` (the student's uploaded transforms, 2026-11-25). Not undoable; autosaved. */
+  setUploadedTransforms(uploads: readonly StoredUpload[]): void;
   /** Project `settings.functions` (node types added in the browser). Not undoable; autosaved. */
   setFunctions(functions: readonly ProjectFunction[], hiddenFunctions: readonly string[]): void;
   /** Settle a project function whose id a toolkit function now also has (`resolveFunctionClash`). */
@@ -691,6 +694,9 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     },
     setUploadedAnalyses(uploads) {
       mutate((p) => setUploadedAnalyses(p, uploads));
+    },
+    setUploadedTransforms(uploads) {
+      mutate((p) => setUploadedTransforms(p, uploads));
     },
     setShownAnalyses(ids) {
       mutate((p) => setShownAnalyses(p, ids));

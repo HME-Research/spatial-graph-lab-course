@@ -116,10 +116,17 @@ describe('uploaded source checks', () => {
 });
 
 describe('uploaded definitions', () => {
-  it('refuses spatial algorithms with the agreed message', async () => {
+  it('refuses a transform in Analyse, pointing to Transform (2026-11-25)', async () => {
     const spatial = "import { defineSpatialAlgorithm } from '@student-api';\nexport default defineSpatialAlgorithm({ id: 'grow', label: 'Grow', run: () => ({ kind: 'transformation', operations: [] }) });\n";
     expect(await problemsOf(spatial)).toEqual([SPATIAL_REFUSAL]);
-    expect(SPATIAL_REFUSAL).toBe('Uploaded files can only analyse (defineGraphAlgorithm or defineDesignAnalysis); transforms must live in a toolkit folder.');
+    expect(SPATIAL_REFUSAL).toBe(
+      'This file is a transform (defineSpatialAlgorithm): upload it in Transform › Upload your own (.ts). Analyse takes only analyses (defineGraphAlgorithm or defineDesignAnalysis).',
+    );
+  });
+
+  it('still refuses defineToolkit and defineFunction', async () => {
+    expect((await problemsOf("import { defineToolkit } from '@student-api';\nexport default defineToolkit({ name: 'x' });\n"))[0]).toContain('a toolkit lives in a toolkit folder');
+    expect((await problemsOf("import { defineFunction } from '@student-api';\nexport default defineFunction({ id: 'x', label: 'X' });\n"))[0]).toContain('Functions live in a toolkit folder');
   });
 
   it('validates the definition exactly like a toolkit analysis (strict fields, id, required inputs)', async () => {

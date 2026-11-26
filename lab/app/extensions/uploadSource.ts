@@ -1,8 +1,8 @@
 /**
- * Uploaded analyses, step 1 (Programme P4, item I): checks on the uploaded TEXT and type
- * stripping. Nothing here runs student code.
+ * Uploaded analyses and transforms, step 1 (Programme P4, item I; transforms 2026-11-25): checks on
+ * the uploaded TEXT and type stripping. Nothing here runs student code.
  *
- * - Size, file name and imports are checked on the source text: an uploaded analysis is one file
+ * - Size, file name and imports are checked on the source text: an upload is one file
  *   that imports only `@student-api` (the same rule as toolkit code, without the toolkit's own files).
  * - Types are stripped with Sucrase, which is loaded with a dynamic `import()` only when a file is
  *   uploaded or a project with uploads is opened, so it is not part of the main bundle. Sucrase
@@ -13,8 +13,21 @@
 export const MAX_UPLOAD_BYTES = 100_000;
 /** At most this many uploaded analyses per project. */
 export const MAX_UPLOADED_ANALYSES = 20;
+/** At most this many uploaded transforms per project (2026-11-25; same limit as analyses). */
+export const MAX_UPLOADED_TRANSFORMS = 20;
+
+/** What an upload is meant to be: decides the words of the messages (the upload surface decides what is accepted). */
+export type UploadKind = 'analysis' | 'transform';
+const plural = (kind: UploadKind) => (kind === 'analysis' ? 'analyses' : 'transforms');
 /** Longest stored file name. */
 export const MAX_UPLOAD_FILE_NAME = 120;
+
+/** A transform uploaded in Analyse (the upload surface decides what is accepted). */
+export const SPATIAL_REFUSAL =
+  'This file is a transform (defineSpatialAlgorithm): upload it in Transform › Upload your own (.ts). Analyse takes only analyses (defineGraphAlgorithm or defineDesignAnalysis).';
+/** An analysis uploaded in Transform. */
+export const ANALYSIS_REFUSAL =
+  'This file is an analysis (defineGraphAlgorithm or defineDesignAnalysis): upload it in Analyse › Upload your own (.ts). Transform takes only transforms (defineSpatialAlgorithm).';
 
 /** The only module an uploaded analysis may import. */
 export const STUDENT_API_MODULE = '@student-api';
@@ -46,22 +59,28 @@ export function importedModules(source: string): string[] {
 }
 
 /** Readable refusal of one import, or null when it is allowed. */
-export function importProblem(specifier: string): string | null {
+export function importProblem(specifier: string, kind: UploadKind = 'analysis'): string | null {
   if (specifier === STUDENT_API_MODULE) return null;
   if (specifier.startsWith('.') || specifier.startsWith('/')) {
-    return `This file imports "${specifier}". An uploaded analysis must be a single file that imports only "${STUDENT_API_MODULE}" (put helper functions in the same file).`;
+    return `This file imports "${specifier}". An uploaded ${kind} must be a single file that imports only "${STUDENT_API_MODULE}" (put helper functions in the same file).`;
   }
-  return `This file imports "${specifier}". Uploaded analyses may import only "${STUDENT_API_MODULE}".`;
+  return `This file imports "${specifier}". Uploaded ${plural(kind)} may import only "${STUDENT_API_MODULE}".`;
 }
 
+/** "is not a .ts or .js file" (the same words before and after reading the file). */
+export const notTypeScriptProblem = (fileName: string, kind: UploadKind = 'analysis') => `"${fileName}" is not a .ts or .js file. Upload the ${kind} as a .ts file.`;
+/** "is 250 KB; … may be at most 100 KB". */
+export const tooLargeProblem = (fileName: string, bytes: number, kind: UploadKind = 'analysis') =>
+  `"${fileName}" is ${kb(bytes)}; an uploaded ${kind} may be at most ${kb(MAX_UPLOAD_BYTES)}.`;
+
 /** Problems with the uploaded text itself (name, size, imports); empty when it may be compiled. */
-export function sourceProblems(source: string, fileName: string): string[] {
-  if (uploadLanguage(fileName) === null) return [`"${fileName}" is not a .ts or .js file. Upload the analysis as a .ts file.`];
+export function sourceProblems(source: string, fileName: string, kind: UploadKind = 'analysis'): string[] {
+  if (uploadLanguage(fileName) === null) return [notTypeScriptProblem(fileName, kind)];
   const bytes = new TextEncoder().encode(source).length;
-  if (bytes > MAX_UPLOAD_BYTES) return [`"${fileName}" is ${kb(bytes)}; an uploaded analysis may be at most ${kb(MAX_UPLOAD_BYTES)}.`];
+  if (bytes > MAX_UPLOAD_BYTES) return [tooLargeProblem(fileName, bytes, kind)];
   if (source.trim() === '') return [`"${fileName}" is empty.`];
   return importedModules(source)
-    .map(importProblem)
+    .map((m) => importProblem(m, kind))
     .filter((p): p is string => p !== null);
 }
 
@@ -79,10 +98,10 @@ function syntaxMessage(error: unknown): string {
 
 /**
  * Check the text, then strip the types and turn `import`/`export` into `require`/`exports`, which
- * the worker provides (`require('@student-api')` returns the analysis shim). Never throws.
+ * the worker provides (`require('@student-api')` returns the upload shim). Never throws.
  */
-export async function compileUpload(source: string, fileName: string): Promise<CompiledUpload> {
-  const problems = sourceProblems(source, fileName);
+export async function compileUpload(source: string, fileName: string, kind: UploadKind = 'analysis'): Promise<CompiledUpload> {
+  const problems = sourceProblems(source, fileName, kind);
   if (problems.length > 0) return { ok: false, problems };
   let transform: (code: string, options: { transforms: ('typescript' | 'imports')[]; filePath?: string }) => { code: string };
   try {
