@@ -58,7 +58,7 @@ The rules (who invites whom, the count limits, the complete programme and which 
 ## How to try it
 
 1. `npm run dev`, then open `http://localhost:5173/?toolkit=growing-house`.
-2. **Open example…** › *Toolkit: Growing house* › **Seed**.
+2. **Open toolkit design…** › *Toolkit: Growing house* › **Seed**.
 3. **Transform** › **Grow one generation** › **Run** › **Apply**. Repeat: generation 1 adds the Living room and the Corridor, generation 2 the Dining, Terrace, two Bedrooms and the Bathroom, generation 3 the Kitchen. The fourth Run says *Nothing left to grow*.
 4. **Grow rooms to target area** › Run › Apply, two or three times, until every room reaches its target area.
 5. **Rate the rooms** › Run › Apply. Select a room: Properties shows its Privacy and Daylight.

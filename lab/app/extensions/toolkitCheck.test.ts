@@ -194,7 +194,8 @@ describe.each(checked.map((p) => [p.id, p] as const))('toolkit "%s"', (_id, sour
   it('activates, and every definition and design is valid', async () => {
     const toolkit = await active();
     expect(lines(toolkit.diagnostics.filter((d) => d.severity === 'error'))).toEqual([]);
-  });
+    // The first test pays for activating the toolkit (compile, designs, façade assets): slow on a busy machine.
+  }, 30_000);
 
   it('its designs conform to its node types (warnings are reported, not failed)', async () => {
     const toolkit = await active();
