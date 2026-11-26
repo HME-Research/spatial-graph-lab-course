@@ -20,6 +20,7 @@ import {
   LEFT_WIDTH_DEFAULT,
   LEFT_WIDTH_MAX,
   LEFT_WIDTH_MIN,
+  panelsFit,
   PANE_STORAGE_KEYS,
   readFlag,
   readLeftWidth,
@@ -279,5 +280,19 @@ describe('pane width and remembered choices', () => {
     expect(rightPaneOnSelection(incidental, false)).toBe(incidental);
     expect(userSetRightCollapsed(false)).toEqual({ collapsed: false, deliberate: false });
     expect(initialRightPane(null)).toEqual({ collapsed: false, deliberate: false });
+  });
+});
+
+describe('viewport area fit on small screens', () => {
+  it('drops to one column under two 300 px views and to scrolling rows under two 220 px views', () => {
+    expect(panelsFit(1200, 700)).toEqual({ narrow: false, short: false });
+    expect(panelsFit(608, 448)).toEqual({ narrow: false, short: false });
+    expect(panelsFit(607, 447)).toEqual({ narrow: true, short: true });
+    expect(panelsFit(520, 600)).toEqual({ narrow: true, short: false });
+  });
+
+  it('treats an unmeasured or hidden area as fitting', () => {
+    expect(panelsFit(0, 0)).toEqual({ narrow: false, short: false });
+    expect(panelsFit(Number.NaN, Number.POSITIVE_INFINITY)).toEqual({ narrow: false, short: false });
   });
 });

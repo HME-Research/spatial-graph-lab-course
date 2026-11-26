@@ -141,6 +141,22 @@ export function initialLeftCollapsed(stored: boolean | null, windowWidth: number
   return windowWidth === null || windowWidth < LEFT_AUTO_COLLAPSE_BELOW;
 }
 
+/** Narrowest and shortest useful view (2026-11-26, small screens). */
+export const VIEW_MIN_WIDTH = 300;
+export const VIEW_MIN_HEIGHT = 220;
+
+/** How the viewport area fits its views: `narrow` = no two columns of VIEW_MIN_WIDTH; `short` = no two rows of VIEW_MIN_HEIGHT. */
+export interface PanelsFit {
+  readonly narrow: boolean;
+  readonly short: boolean;
+}
+
+/** Fit of a viewport area of `width` × `height` px with `gap` px between views (unmeasured, 0 or not finite: fits). */
+export function panelsFit(width: number, height: number, gap = 8): PanelsFit {
+  const below = (size: number, min: number) => Number.isFinite(size) && size > 0 && size < 2 * min + gap;
+  return { narrow: below(width, VIEW_MIN_WIDTH), short: below(height, VIEW_MIN_HEIGHT) };
+}
+
 /**
  * Right (Properties) pane. `deliberate` = the user collapsed it themselves (remembered); a
  * collapse that is not deliberate is undone by the next selection.
