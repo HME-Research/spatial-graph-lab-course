@@ -1,6 +1,6 @@
 # Make your own toolkit
 
-A **toolkit** gives Spatial Graph Lab a vocabulary for one kind of building: the **Functions** a node can have (Bedroom, Kitchen…), the **custom attributes** they carry (number of beds, has a window…), **algorithms** that analyse or transform a design, and **example designs**. It is one folder, `toolkits/<your-toolkit-name>/`, and it is the only place you work. This guide says how to plan it, what goes in each folder, what to watch out for, and how to make it with an AI assistant, either inside the repository (Route A) or in a chat (Route B).
+A **toolkit** gives Spatial Graph Lab a vocabulary for one kind of building: the **Functions** a node can have (Bedroom, Kitchen…), the **custom attributes** they carry (number of beds, has a window…), **algorithms** that analyse or transform a design, and **designs** you draw yourself. It is one folder, `toolkits/<your-toolkit-name>/`, and it is the only place you work. This guide says how to plan it, what goes in each folder, what to watch out for, and how to make it with an AI assistant, either inside the repository (Route A), in a chat (Route B), or in a chat and uploaded in the app with no Git (Route C).
 
 Reference for every detail: [`STUDENT-API.md`](STUDENT-API.md). A complete toolkit to learn from: the House example, [`toolkits/house/`](../../toolkits/house/) (read it, never edit it). A small starter to copy: [`lab/docs/templates/toolkit/my-toolkit/`](templates/toolkit/my-toolkit/).
 
@@ -13,7 +13,7 @@ Reference for every detail: [`STUDENT-API.md`](STUDENT-API.md). A complete toolk
 | **Functions** | one per node programme; each has an `id` (lowercase letters, digits and `-`, starting with a letter) | Start with 3–6. Ids are stored in every design: add new ones rather than renaming. |
 | **Custom attributes** | `number` (`min`, `max`), `text`, `boolean`, `enum` (`values`), optional `default` | Only add one when an algorithm reads it or you want to record it. Keys are stored in designs: pick clear camelCase names (`targetArea`). |
 | **Algorithms** | analysis (reads) or transformation (proposes changes) | One small analysis first. Write each as a rule you could explain in one sentence. |
-| **Example design** | a small design that uses your Functions | Becomes your `defaultDesign`: the checks run every algorithm on it. |
+| **Designs** | yours: draw them in the app and add them to `designs/` later | Your AI writes no design: it makes `designs/` with only a short `README.md` (a zip or a commit cannot carry an empty folder) and sets no `defaultDesign`. Once you add one, the checks run every algorithm on your first design; you may then name it as `defaultDesign`. |
 
 Write the idea down in one or two sentences first. It is your toolkit's `README.md`, and it is what you will give an AI assistant.
 
@@ -21,11 +21,11 @@ Write the idea down in one or two sentences first. It is your toolkit's `README.
 
 ```
 toolkits/<your-toolkit-name>/
-  toolkit.ts        required: name, defaultDesign, custom attributes of every node / edge
+  toolkit.ts        required: name, custom attributes of every node / edge (defaultDesign only once you have a design)
   README.md         recommended: what the toolkit is for, its Functions, attributes, algorithms, designs
   functions/        one Function per .ts file (defineFunction)
   algorithms/       one algorithm per .ts file (defineGraphAlgorithm, defineDesignAnalysis, defineSpatialAlgorithm)
-  designs/          example designs, schema-v2 .json files (each appears in Open example…)
+  designs/          your designs, schema-v2 .json files (each appears in Open toolkit design…); at first only README.md
   assets/           optional: Rhino .3dm façade files your designs use
   lib/              optional: helper code shared by several algorithms (not read by the app)
 ```
@@ -35,7 +35,7 @@ toolkits/<your-toolkit-name>/
 | `toolkit.ts` | `export default defineToolkit({ name, defaultDesign?, custom? })`. `custom.nodes` / `custom.edges`: attributes every node / edge has. | Required. `defaultDesign` names a file in `designs/` without `.json`. |
 | `functions/*.ts` | `export default defineFunction({ id, label, colour?, facade?, custom? })` | One per file; name the file after its `id`. `colour` is `#rrggbb`; `facade.windowFraction` is 0 (closed) to 1 (fully glazed). Repeating a toolkit attribute in `custom` gives this Function its own default. |
 | `algorithms/*.ts` | one default-exported algorithm per file | Analyses declare `inputs` (none → Analyse › Network, one node → Node, one edge → Edge, other → Queries). Transformations may declare `parameters` and return operations. |
-| `designs/*.json` | designs drawn in the app (the design's JSON: **Data** view › **JSON**, or one scenario's `design` in a file from **Project › Export project**) or written by hand | Valid schema v2; every node's `function` should be one of your ids; `metadata.name` and `.description` are shown in Open example…. |
+| `designs/*.json` | designs drawn in the app (the design's JSON: **Data** view › **JSON**, or one scenario's `design` in a file from **Project › Export project**) or written by hand | Valid schema v2; every node's `function` should be one of your ids; `metadata.name` and `.description` are shown in Open toolkit design…. |
 | `assets/*.3dm` | façade modules a design imports | At most 20 MB each; a design names a file by its asset id; `check:toolkit` checks they match. |
 | `lib/*.ts` | shared helpers | Every file in `algorithms/` must be an algorithm, so helpers live here and are imported with `../lib/…`. |
 
@@ -59,7 +59,7 @@ The app reads only `.ts` files directly in `functions/` and `algorithms/`, `.jso
 - One cell is 3 × 3 m and one level 3 m high. Read areas with `ctx.metrics.value('area', id)` rather than computing them.
 - A 3D edge is a relationship, not a staircase or corridor: whether it can be built is worked out by the app.
 
-**Designs.** Easiest: build the design in the app with your toolkit active, then **Project › Export project**. The exported `.project.json` holds each scenario's design under `scenarios[…].design`: give that file to your AI and ask it to save the design of one scenario as `toolkits/<your-toolkit-name>/designs/<name>.json` (with a `metadata.name` and `.description`). The **Data** view › **JSON** shows the same design text. Keep your default design small: every algorithm must run on it without failing.
+**Designs.** They are yours: your AI leaves `designs/` with only a `README.md` that says how to add one. Build a design in the app with your toolkit active (`?toolkit=<your-toolkit-name>`, or **Project › Add a toolkit…** for a project made without one), then **Project › Export project**. The exported `.project.json` holds each scenario's design under `scenarios[…].design`: give that file to your AI and ask it to save the design of one scenario as `toolkits/<your-toolkit-name>/designs/<name>.json` (with a `metadata.name` and `.description`). The **Data** view › **JSON** shows the same design text. Run `npm run check:toolkit` again: until there is a design it prints a *Note* that the algorithms were checked but not run on an example; once there is one, every algorithm must run on your first design without failing. In Route C, ask the chat to add the design to your zip, then upload the new zip.
 
 **Façade files.** Big `.3dm` files make the repository slow for everyone. Use one only if a design really needs it.
 
@@ -75,17 +75,17 @@ npm run typecheck
 npm run dev
 ```
 
-- `check:toolkit` loads your toolkit exactly as the app does. It ends with one line: `PASSED: toolkit "<your-toolkit-name>" is ready.` or `FAILED: … (read the red message above)`. Look for that line, not for vitest's `Tests … passed` summary (a failed run also says `N passed`). It fails with a readable message if the toolkit is not found (for example `No toolkit "u123-hk-house" was found…`, or `toolkit.ts is one folder too deep…` after a common unzip mistake), if a folder name is not valid, if a definition or design is invalid, if a design uses a façade file that is not in `assets/`, or if an algorithm fails on your default design (analyses get the first node / edge as their input).
+- `check:toolkit` loads your toolkit exactly as the app does. It ends with one line: `PASSED: toolkit "<your-toolkit-name>" is ready.` or `FAILED: … (read the red message above)`. Look for that line, not for vitest's `Tests … passed` summary (a failed run also says `N passed`). It fails with a readable message if the toolkit is not found (for example `No toolkit "u123-hk-house" was found…`, or `toolkit.ts is one folder too deep…` after a common unzip mistake), if a folder name is not valid, if a definition or design is invalid, if a design uses a façade file that is not in `assets/`, or if an algorithm fails on your default (or first) design (analyses get the first node / edge as their input). With no design yet it prints a *Note* before `PASSED`: the algorithms were checked but not run.
 - `typecheck` checks your TypeScript. It prints nothing when everything is fine.
 - `npm run dev`, then open `http://localhost:5173/?toolkit=<your-toolkit-name>` (or the address it prints; or choose your toolkit when you create a project). **Project › Advanced** lists any problem in your toolkit files until you fix it; the page reloads when you save a file.
 
-Then try it: **Open example…** › *Toolkit: <name>*; run your analyses in **Analyse** and your transformations in **Transform**.
+Then try it: **Create project** with your toolkit (or, once you have added designs, **Open toolkit design…** › *Toolkit: <name>*); run your analyses in **Analyse** and your transformations in **Transform**.
 
-## 5. Two ways to make it with an AI assistant
+## 5. Ways to make it with an AI assistant
 
-Both routes end the same way: your folder `toolkits/<your-toolkit-name>/`, checked, committed on your own branch **`toolkit/<your-toolkit-name>`** and pushed. **Never commit to `main`**, and push only your branch. No Pull Request is needed: your tutor collects the branches. Your tutor may also accept a zip of the folder (`<your-toolkit-name>.zip`, with `<your-toolkit-name>/toolkit.ts` directly inside it): see the tutorial, *Submit your work*.
+Routes A and B end the same way: your folder `toolkits/<your-toolkit-name>/`, checked, committed on your own branch **`toolkit/<your-toolkit-name>`** and pushed. **Never commit to `main`**, and push only your branch. No Pull Request is needed: your tutor collects the branches. Your tutor may also accept a zip of the folder (`<your-toolkit-name>.zip`, with `<your-toolkit-name>/toolkit.ts` directly inside it): see the tutorial, *Submit your work*.
 
-The assistant follows [`lab/docs/ai-kit/toolkit/PROMPT.md`](ai-kit/toolkit/PROMPT.md). In the app, **Guide › Toolkits & JSON › Make your own toolkit** shows both routes with the prompts to copy and the kit to download.
+The assistant follows [`lab/docs/ai-kit/toolkit/PROMPT.md`](ai-kit/toolkit/PROMPT.md). In the app, **Guide › Toolkits & JSON › Make your own toolkit** shows the three routes with the prompts to copy and the kit to download.
 
 ### Route A — a coding agent in the repository (for example Claude Code in VS Code)
 
@@ -99,12 +99,12 @@ The agent reads the repository itself, writes the folder and runs the checks. No
 ```
 Rules: work only in toolkits/<your-toolkit-name>/ on my branch toolkit/<your-toolkit-name>. Do not change lab/ or any other folder or file, do not install or update packages, and do not push: I will push.
 Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. The folder name is exactly my toolkit name. Run the checks and commit only my folder.
+Do not write any design: make the folder designs/ with only a short README.md that says how to add a design, and do not set defaultDesign in toolkit.ts. I will draw my designs in the app.
 
 Toolkit name: ___
 My idea: ___
 Functions (and their attributes): ___
 Algorithms: ___
-Example design: ___
 ```
 <!-- /prompt -->
 
@@ -122,12 +122,12 @@ The assistant cannot see the repository, so you give it the **toolkit kit** and 
 <!-- prompt:chat -->
 ```
 I've attached the Spatial Graph Lab toolkit kit. Read PROMPT.md and every file in it, then write my toolkit following it exactly. The folder name is exactly my toolkit name. Give me the folder <your-toolkit-name>/ as a zip; if you cannot make files, give every file in its own code block, headed by its path.
+Do not write any design: make the folder designs/ with only a short README.md that says how to add a design, and do not set defaultDesign in toolkit.ts. I will draw my designs in the app.
 
 Toolkit name: ___
 My idea: ___
 Functions (and their attributes): ___
 Algorithms: ___
-Example design: ___
 ```
 <!-- /prompt -->
 
@@ -172,21 +172,31 @@ Everything happens in the browser; the tutorial page *Exercise 2 in the browser:
 Rules: write only the files of my toolkit folder <your-toolkit-name>/. Import only from @student-api and from files in that folder, and use no packages.
 I've attached the Spatial Graph Lab toolkit kit. Read PROMPT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write my toolkit following it exactly. The folder name is exactly my toolkit name.
 I will upload it in the app with Upload toolkit (.zip), not put it in a repository: give me ONE zip, <your-toolkit-name>.zip, with the folder <your-toolkit-name>/ inside it and toolkit.ts directly inside that folder.
+Do not write any design: make the folder designs/ with only a short README.md that says how to add a design, and do not set defaultDesign in toolkit.ts. I will draw my designs in the app.
 
 Toolkit name: ___
 My idea: ___
 Functions (and their attributes): ___
 Algorithms: ___
-Example design: ___
 ```
 <!-- /prompt -->
 
 2. In the app: **Upload toolkit (.zip)** on the Welcome screen. A new project opens with your toolkit. If the app lists problems, paste them all back into the chat, ask it to fix exactly those and give the whole folder again as one zip, then upload the new zip (**Project › Toolkit › Upload toolkit (.zip)** replaces the same toolkit after a confirm).
-3. Try it (**Open example…**, **Analyse**, **Transform**), keep it with **Project › Export project** (the toolkit is saved inside the project file), and hand in the zip from **Project › Toolkit › Download toolkit (.zip)** (`<your-toolkit-name>.zip`, with `<your-toolkit-name>/toolkit.ts` directly inside).
+3. Try it (draw a small design, then **Analyse** and **Transform**; add your own designs to the zip later), keep it with **Project › Export project** (the toolkit is saved inside the project file), and hand in the zip from **Project › Toolkit › Download toolkit (.zip)** (`<your-toolkit-name>.zip`, with `<your-toolkit-name>/toolkit.ts` directly inside).
 
 ### Later changes
 
 Stay on your branch (`git switch toolkit/<your-toolkit-name>`), change files, check, then `git add toolkits/<your-toolkit-name>`, `git commit -m "feat(<your-toolkit-name>): …"` and `git push`. In Route B, send the chat the files you changed (or the whole folder as a zip) so it works on the current version. Pushed from another computer? `git pull --no-rebase --no-edit` first. When the course updates the app: commit your work, then, on your branch, `git pull --no-rebase --no-edit origin main` (fetches `main` from GitHub and merges it into the branch you are on; `--no-edit` keeps git from opening an editor), `npm ci`, run the checks and `git push`.
+
+## Upload a toolkit zip in the app
+
+In the browser, **Welcome › Upload toolkit (.zip)** (or **Project › Toolkit › Upload toolkit (.zip)**) loads a toolkit folder from a zip: `<your-toolkit-name>/toolkit.ts` (the folder may also sit at the zip root or inside one more folder). Every file is checked exactly as `npm run check:toolkit` checks a repository toolkit (definitions, Functions, attributes, algorithms, designs and their conformance); imports may only be `@student-api` and the toolkit's own files. Any problem is listed with its file (**Copy the problems** copies them for your AI) and the project stays as it is.
+
+- **Limits:** the zip at most 5 MB, at most 200 files, a text file at most 500 KB (2 MB together), façade files in `assets/` at most 20 MB together.
+- **Saved with the project:** the toolkit is saved inside the project file (**Project › Export project**), so the project opens with it on any computer. It is used instead of a repository toolkit with the same name and shown as "(uploaded)".
+- **Replace or start again:** a zip of the same toolkit name replaces it after a confirm; another toolkit opens as a new project. A project made without a toolkit gets one with **Project › Toolkit › Add a toolkit…** (a toolkit of the app or your own zip; your rooms and values stay; it cannot be removed again).
+- **Hand-in shape:** **Project › Toolkit › Download toolkit (.zip)** gives `<your-toolkit-name>.zip` back, with `<your-toolkit-name>/toolkit.ts` directly inside.
+- **Isolation:** its analyses and transforms run in the same isolated worker as uploaded analyses and transforms.
 
 ## 6. When something goes wrong
 

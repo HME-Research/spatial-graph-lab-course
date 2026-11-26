@@ -158,6 +158,25 @@ describe('Guide › Make your own toolkit', () => {
     expect(text).not.toMatch(/git (switch|push|commit)/);
   });
 
+  it('leaves the designs to the student: every toolkit prompt asks for designs/ with only a README and no defaultDesign (owner 2026-11-26)', () => {
+    for (const guide of [TOOLKIT_AGENT_PROMPT_GUIDE, TOOLKIT_CHAT_PROMPT_GUIDE, TOOLKIT_BROWSER_PROMPT_GUIDE]) {
+      expect(guide.text).toContain('Do not write any design: make the folder designs/ with only a short README.md that says how to add a design, and do not set defaultDesign in toolkit.ts.');
+      expect(guide.text).not.toMatch(/Example design/);
+      expect(guide.parts.map((p) => p.label).join(' ')).not.toMatch(/design/i);
+    }
+    expect(kitPrompt).toContain("**Designs are the student's job.**");
+    expect(kitPrompt).toContain('designs/README.md   ONLY this short README');
+    expect(toolkitsGuide).not.toMatch(/Example design/);
+  });
+
+  it('documents the zip upload in TOOLKITS.md (owner 2026-11-26)', () => {
+    const section = /## Upload a toolkit zip in the app\n([\s\S]*?)\n## /.exec(lf(toolkitsGuide))?.[1] ?? '';
+    for (const words of ['Welcome › Upload toolkit (.zip)', 'npm run check:toolkit', 'at most 5 MB, at most 200 files', '500 KB (2 MB together)', '20 MB together', 'Project › Export project', '(uploaded)', 'Download toolkit (.zip)', 'isolated worker', 'Add a toolkit…']) {
+      expect(section).toContain(words);
+    }
+    expect(toolkitsGuide).not.toContain('Remove uploaded toolkit');
+  });
+
   it('never tells a student to push main', () => {
     for (const text of [TOOLKIT_AGENT_PROMPT_GUIDE.text, TOOLKIT_CHAT_PROMPT_GUIDE.text, TOOLKIT_BROWSER_PROMPT_GUIDE.text, TOOLKIT_CHAT_COMMANDS, toolkitsGuide, kitPrompt]) {
       // The command itself (up to a closing backtick or the line end) never names main.

@@ -32,4 +32,4 @@
 
 1. `npm run check:toolkit -- -t my-toolkit`
 2. `npm run dev`, open `http://localhost:5173/?toolkit=my-toolkit`
-3. **Open example…** › *Toolkit: My toolkit* › **First design**; Transform › **Occupancy from area** › Run › Apply; select a node, Analyse › Node › **Occupancy around**.
+3. **Open toolkit design…** › *Toolkit: My toolkit* › **First design**; Transform › **Occupancy from area** › Run › Apply; select a node, Analyse › Node › **Occupancy around**.

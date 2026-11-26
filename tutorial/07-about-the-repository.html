@@ -29,7 +29,7 @@
       <li><a href="#branches"><span class="n">04</span><span class="t">main and your branch</span></a></li>
       <li><a href="#folders"><span class="n">05</span><span class="t">The folders</span></a></li>
       <li><a href="#local"><span class="n">06</span><span class="t">Folders only on your computer</span></a></li>
-      <li><a href="#designs"><span class="n">07</span><span class="t">Where your designs go</span></a></li>
+      <li><a href="#designs"><span class="n">07</span><span class="t">Add your own design</span></a></li>
       <li><a href="#next"><span class="n">08</span><span class="t">What comes next</span></a></li>
     </ol>
   </details></nav>
@@ -103,19 +103,21 @@
 </details>
 
 <details class="card fold" id="designs">
-<summary class="card-head"><span class="badge">07</span><div><h2>Where your designs go</h2><p class="sub">Project files you export, and your toolkit's own designs.</p></div></summary>
+<summary class="card-head"><span class="badge">07</span><div><h2>Add your own design</h2><p class="sub">Your AI leaves <code>designs/</code> to you: draw a design, then add it.</p></div></summary>
 <div class="card-body">
 <ul>
   <li>A design you make in the app is part of a <b>project file</b> you export (<span class="ui">Project</span> › <span class="ui">Export project</span>). Keep it somewhere safe, outside the repository.</li>
-  <li>Your toolkit's example designs, including its default design, live in your toolkit folder: <code>toolkits/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span>/designs/</code>.</li>
+  <li>Your toolkit's own designs live in <code>toolkits/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span>/designs/</code>. At first it holds only a <code>README.md</code>: the designs are yours to draw.</li>
 </ul>
-<details class="more"><summary>A design you drew in the app as an example design of your toolkit</summary><div class="more-body">
+<details class="more"><summary>Add a design you drew to your toolkit</summary><div class="more-body">
 <ol>
-  <li>Draw it in the app with your toolkit active.</li>
+  <li>Draw it in the app with your toolkit: open <a data-localhost href="http://localhost:5173/">http://localhost:5173/?toolkit=&lt;your-toolkit-name&gt;</a> › <span class="ui">Create project</span>, or give an open project your toolkit with <span class="ui">Project</span> › <span class="ui">Toolkit</span> › <span class="ui">Add a toolkit…</span>.</li>
   <li><span class="ui">Project</span> › <span class="ui">Export project</span>: a <code>.project.json</code> file lands in Downloads. It holds each scenario's design.</li>
   <li>Give that file to your coding agent or chat and ask: “Take the design of the scenario <i>name</i> from this project file and give me it as <code>designs/<i>my-design</i>.json</code> for my toolkit, with a <code>metadata.name</code> and <code>metadata.description</code>.”</li>
-  <li>Put the new file in <code>toolkits/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span>/designs/</code> (never the <code>.project.json</code> itself), then check, commit and push.</li>
+  <li>Put the new file in <code>toolkits/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span>/designs/</code> (never the <code>.project.json</code> itself), run <code>npm run check:toolkit -- -t <span data-toolkit-name>&lt;your-toolkit-name&gt;</span></code> again, then commit and push.</li>
 </ol>
+<p class="see">your design is listed in <span class="ui">Open toolkit design…</span> under <i>Toolkit: your toolkit's name</i>.</p>
+<p class="muted">Until there is a design, <code>check:toolkit</code> prints “Note: toolkits/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span>/designs/ has no design yet, so the algorithms were checked but not run on an example.” before <code>PASSED</code>. Optional: ask your AI to set the design as <code>defaultDesign</code> in <code>toolkit.ts</code>, so new projects with your toolkit start from it.</p>
 <p class="muted">The design's text is also in the app: a panel's view list › <span class="ui">Data</span> › <span class="ui">JSON</span>.</p>
 <figure class="fig shot"><img src="img/app-data-json.webp" alt="Data view with the JSON button selected, showing the design's JSON with schemaVersion 2 and metadata name Simple house" width="364" height="420" loading="lazy"><figcaption>The Data view in JSON: the design exactly as it is saved.</figcaption></figure>
 </div></details>

@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" width="760" height="300" role="img" aria-label="The Welcome screen of Spatial Graph Lab: Create project, then Open project, Open example… and Upload toolkit (.zip), which is highlighted" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
-<title>The Welcome screen of Spatial Graph Lab: Create project, then Open project, Open example… and Upload toolkit (.zip), which is highlighted</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" width="760" height="300" role="img" aria-label="The Welcome screen of Spatial Graph Lab: Create project, then Open project, Open toolkit design… and Upload toolkit (.zip), which is highlighted" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
+<title>The Welcome screen of Spatial Graph Lab: Create project, then Open project, Open toolkit design… and Upload toolkit (.zip), which is highlighted</title>
 <rect x="0" y="0" width="760" height="300" rx="10" fill="#f4f4f1"/>
 <rect x="12" y="12" width="736" height="276" rx="10" fill="#ffffff" stroke="#d6d6cf" stroke-width="1"/>
 <text x="32" y="46" font-size="20" fill="#1c1c1a" font-weight="700">Welcome to Spatial Graph Lab</text>
@@ -12,7 +12,7 @@
 <text x="48" y="184" font-size="14" fill="#1c1c1a" font-weight="600">Open project</text>
 <text x="48" y="205" font-size="12" fill="#5f5f5a">A project file from your computer</text>
 <rect x="268" y="158" width="224" height="62" rx="8" fill="#ffffff" stroke="#d6d6cf" stroke-width="1"/>
-<text x="284" y="184" font-size="14" fill="#1c1c1a" font-weight="600">Open example…</text>
+<text x="284" y="184" font-size="14" fill="#1c1c1a" font-weight="600">Open toolkit design…</text>
 <text x="284" y="205" font-size="12" fill="#5f5f5a">The House or a toolkit's designs</text>
 <rect x="504" y="158" width="224" height="62" rx="8" fill="#ffffff" stroke="#d6d6cf" stroke-width="1"/>
 <text x="520" y="184" font-size="14" fill="#1c1c1a" font-weight="600">Upload toolkit (.zip)</text>

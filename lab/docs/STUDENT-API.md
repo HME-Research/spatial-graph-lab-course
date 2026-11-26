@@ -25,7 +25,7 @@ toolkits/
   my-toolkit/             ← folder name = your toolkit name, e.g. u123-hk-house (lowercase letters, digits, "-", "_"; starts with a letter)
     toolkit.ts            ← required
     functions/            ← optional: one function (room programme) per file
-    designs/              ← optional: design JSON files (schema v2); each is listed in Open example…
+    designs/              ← optional: design JSON files (schema v2); each is listed in Open toolkit design…
     algorithms/           ← optional: one algorithm per file
     assets/               ← optional: façade files (.3dm) your designs use (see Designs)
 ```
@@ -123,7 +123,7 @@ Everything on a node or edge is an **attribute**: the built-in ones sit at the t
 
 `position` is the room's minimum corner cell `[x, y, z]` (z is the Level), `size` its extent in cells `[x, y, z]` (z is the number of Floors). An edge may also have `"corridor": { "walls": …, "roof": …, "width": … }` after `relationship`. The app keeps this key order and writes every array of numbers on one line.
 
-**Open example…** (Welcome and Project) lists every design of every toolkit, with the design's `metadata.name` and `metadata.description` and a `Toolkit: <name>` tag. Choosing one opens it as a **new project** with your toolkit and its custom attributes (as Create project does), the design's rooms and relationships, and its Building Designer settings (looks by function, the Corridors card). So give each design a short `description`.
+**Open toolkit design…** (Welcome and Project) lists every design of every toolkit, with the design's `metadata.name` and `metadata.description` and a `Toolkit: <name>` tag. Choosing one opens it as a **new project** with your toolkit and its custom attributes (as Create project does), the design's rooms and relationships, and its Building Designer settings (looks by function, the Corridors card). So give each design a short `description`.
 
 ### Façade files in a design (`assets/`)
 
@@ -133,7 +133,7 @@ A design's looks can use an imported façade module (Building Designer → a fun
 2. Copy the `.3dm` to `toolkits/my-toolkit/assets/` (any file name, extension `.3dm`, at most 20 MB, drawn in Rhino's Front view with a unit).
 3. Save the design in `designs/` and run `npm run check:toolkit -- -t my-toolkit`: it imports every file in `assets/` exactly as the app does and fails if a design uses an asset id that no file gives (the message lists the id each file gives).
 
-When the design is opened with Open example…, the app fetches the files in `assets/` (only then: they are never part of the app's code) and imports them through the normal façade import into the new project, which then carries them like any imported façade. Materials come from the file's own layer and object colours; change them in the project with **Materials…**.
+When the design is opened with Open toolkit design…, the app fetches the files in `assets/` (only then: they are never part of the app's code) and imports them through the normal façade import into the new project, which then carries them like any imported façade. Materials come from the file's own layer and object colours; change them in the project with **Materials…**.
 
 ## 4. Algorithms
 
@@ -389,6 +389,9 @@ for (const e of ctx.design.edges) {
 ```
 
 `ctx.metrics` is a **required** member of the spatial algorithm context (type `MetricReader` from `@student-api`). If you write your own test context for a spatial algorithm, it must provide `metrics` too; the Student API has no helper for this, so give it a small object with `list()` and `value(metricId, id)` that returns the values your test needs.
+
+### Uploading a whole toolkit (.zip, no repository needed)
+Welcome › **Upload toolkit (.zip)** (or Project › Toolkit) loads the folder `<your-toolkit-name>/` from a zip, with `toolkit.ts` directly inside it. Everything in this document applies unchanged: the same definitions are checked the same way as `npm run check:toolkit` does, files may import only `@student-api` and each other (relative paths), and `ctx.customOf` works with your own Functions. Its analyses and transforms run in the same isolated worker as uploaded files. The toolkit is saved inside the project file; **Download toolkit (.zip)** gives it back. Limits and details: `TOOLKITS.md`, "Upload a toolkit zip in the app".
 
 ## 5. Parameters
 

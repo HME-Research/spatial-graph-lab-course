@@ -84,12 +84,12 @@
 <p>Copy it from <a href="10-make-your-branch.html#prompts">page 10 › Your prompt</a> (your plan filled in), or copy this one and fill the orange blanks in the agent's box:</p>
 <div class="code"><pre data-fill data-block="prompt:agent">Rules: work only in toolkits/&lt;your-toolkit-name&gt;/ on my branch toolkit/&lt;your-toolkit-name&gt;. Do not change lab/ or any other folder or file, do not install or update packages, and do not push: I will push.
 Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. The folder name is exactly my toolkit name. Run the checks and commit only my folder.
+Do not write any design: make the folder designs/ with only a short README.md that says how to add a design, and do not set defaultDesign in toolkit.ts. I will draw my designs in the app.
 
 Toolkit name: ___
 My idea: ___
 Functions (and their attributes): ___
-Algorithms: ___
-Example design: ___</pre></div>
+Algorithms: ___</pre></div>
 <details class="more"><summary>Using Claude Code?</summary><div class="more-body"><p>You can instead type <code>/create-toolkit</code> and answer its questions.</p></div></details>
 </div>
 </details>
@@ -109,11 +109,11 @@ Example design: ___</pre></div>
 <summary class="card-head"><span class="badge">05</span><div><h2>Try it in the app <span class="who you">You do this</span></h2><p class="sub">Run the app with your toolkit.</p></div></summary>
 <div class="card-body">
 <div class="code"><pre>npm run dev</pre></div>
-<p>Then open <a data-localhost href="http://localhost:5173/">http://localhost:5173/?toolkit=&lt;your-toolkit-name&gt;</a> › <span class="ui">Open example…</span> › your toolkit's design.</p>
-<figure class="fig shot"><img src="img/app-open-example.webp" alt="Open example dialog: under Toolkit: House, the designs Simple house and Garden house" width="560" height="540" loading="lazy"><figcaption><span class="ui">Open example…</span> lists each toolkit's designs under <i>Toolkit: its name</i> (here: House).</figcaption></figure>
+<p>Open <a data-localhost href="http://localhost:5173/">http://localhost:5173/?toolkit=&lt;your-toolkit-name&gt;</a> › <span class="ui">Create project</span> with your toolkit chosen in the <span class="ui">Toolkit</span> list. Draw a small design with your Functions, then run your analyses in <span class="ui">Analyse</span> and your transforms in <span class="ui">Transform</span>.</p>
+<p class="muted">Your toolkit has no design yet: the AI leaves <code>designs/</code> to you. To add the one you drew: <a href="07-about-the-repository.html#designs">Add your own design</a>.</p>
 <div class="warn"><p><span class="lbl">The terminal is busy while the app runs.</span> Open a second terminal with <span class="ui">+</span> for other commands; stop the app with <kbd>Ctrl</kbd>+<kbd>C</kbd>.</p></div>
 <details class="more"><summary>My toolkit is not there, or something is disabled</summary><div class="more-body"><ul>
-<li><a href="16-help.html#h-not-in-list">My toolkit is not in Open example…</a></li>
+<li><a href="16-help.html#h-not-in-list">My toolkit is not in Open toolkit design…</a></li>
 <li><a href="16-help.html#h-disabled">A Function or algorithm is disabled</a></li>
 <li><a href="16-help.html#h-localhost-refused">“localhost refused to connect”</a></li>
 </ul></div></details>

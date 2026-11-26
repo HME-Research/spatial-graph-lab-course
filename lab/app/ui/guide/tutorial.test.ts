@@ -368,9 +368,8 @@ describe('tutorial pages', () => {
       '<span class="ui">Upload toolkit (.zip)</span>',
       '<span class="ui">Project</span> › <span class="ui">Toolkit</span> › <span class="ui">Upload toolkit (.zip)</span>',
       '<span class="ui">Download toolkit (.zip)</span>',
-      '<span class="ui">Remove uploaded toolkit</span>',
       '<span class="ui">Export project</span>',
-      '<span class="ui">Open example…</span>',
+      '<span class="ui">Open toolkit design…</span>',
       '(uploaded)',
       'href="13-hand-in.html#zip"',
     ]) {
@@ -383,6 +382,27 @@ describe('tutorial pages', () => {
     }
     expect(read('12-toolkit-with-a-chat-assistant.html')).toMatch(/<details class="more"><summary>Try the zip in the app first\?[\s\S]*?Upload toolkit \(\.zip\)/);
     expect(read('13-hand-in.html')).toContain('<span class="ui">Download toolkit (.zip)</span>');
+  });
+
+  it('say Open toolkit design…, never Open example; no Remove uploaded toolkit; Add a toolkit… on page 03 (owner 2026-11-26)', () => {
+    for (const page of PAGES) {
+      const text = read(page);
+      expect(text, page).not.toMatch(/Open example/);
+      expect(text, page).not.toContain('Remove uploaded toolkit');
+    }
+    expect(read('img/app-welcome-upload-toolkit.svg')).toContain('Open toolkit design…');
+    expect(read('03-use-the-app.html')).toContain('<span class="ui">Add a toolkit…</span>');
+  });
+
+  it('leave the designs to the student: no Example design field, and a folded way to add your own design on both routes (owner 2026-11-26)', () => {
+    for (const page of PAGES) expect(read(page), page).not.toMatch(/Example design|data-line="Example design"/);
+    const browser = read('06-toolkit-in-the-browser.html');
+    expect(browser).toMatch(/<details class="card fold" id="design">\n<summary[^\n]*<h2>Add your own design<\/h2>/);
+    expect(browser).toContain('<span class="ui">Copy the problems</span>');
+    const repo = read('07-about-the-repository.html');
+    expect(repo).toMatch(/<details class="card fold" id="design[s]?">\n<summary[^\n]*<h2>Add your own design<\/h2>/);
+    expect(repo).toContain('has no design yet, so the algorithms were checked but not run on an example.');
+    for (const page of ['11-toolkit-with-a-coding-agent', '12-toolkit-with-a-chat-assistant']) expect(read(`${page}.html`), page).toContain('href="07-about-the-repository.html#designs"');
   });
 
   it('clone into source/repos, in VS Code or the terminal, then npm ci (owner 2026-11-26)', () => {

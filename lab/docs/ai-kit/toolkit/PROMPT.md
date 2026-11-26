@@ -34,7 +34,6 @@ Their message usually has:
 - **My idea** — what the toolkit is for (a building type, a design question).
 - **Functions (and their attributes)** — the node programmes and what each should record.
 - **Algorithms** — analyses (read and show) and transformations (propose changes).
-- **Example design** — what the default design should contain.
 
 If a part is missing, choose the simplest option that fits the idea and say in one sentence what you chose. Start small: 3–6 Functions, at most 2–3 algorithms. If the idea needs something the API cannot do, say so plainly and propose the closest thing that can be written.
 
@@ -42,15 +41,17 @@ If a part is missing, choose the simplest option that fits the idea and say in o
 
 ```
 <your-toolkit-name>/
-  toolkit.ts          defineToolkit({ name, defaultDesign, custom })
+  toolkit.ts          defineToolkit({ name, custom }), with NO defaultDesign
   README.md           the starter's README, filled in for this toolkit
   functions/<id>.ts   one defineFunction per file, file named after its id
   algorithms/<id>.ts  one algorithm per file, file named after its id
-  designs/<name>.json at least one design; toolkit.ts names it as defaultDesign
+  designs/README.md   ONLY this short README: how the student adds a design (no .json)
   lib/<name>.ts       only if several algorithms share helper code
 ```
 
-Start from the starter: keep its structure, its comments' style and its folder READMEs (they explain each folder to the student); replace its Functions, attributes, algorithms and design with the student's. Do not add `assets/` files: a façade `.3dm` can only come from the student (see `STUDENT-API.md` › Façade files), and a design must never name an `assetId` you made up.
+Start from the starter: keep its structure, its comments' style and its folder READMEs (they explain each folder to the student); replace its Functions, attributes and algorithms with the student's.
+
+**Designs are the student's job.** Do not write any design and do not set `defaultDesign` in `toolkit.ts`: drop the starter's `designs/first-design.json` and its `defaultDesign`. Keep the folder `designs/` with only a short `README.md` (a zip or a git commit cannot carry an empty folder), based on the starter's `designs/README.md`: it tells the student to draw a design in the app with this toolkit, export it and add it here as `designs/<name>.json`. Only when the student later gives you a design (for example a `.project.json` and a scenario name) add it, following *Rules for designs* below, and set `defaultDesign` only if they ask. Do not add `assets/` files: a façade `.3dm` can only come from the student (see `STUDENT-API.md` › Façade files), and a design must never name an `assetId` you made up.
 
 ### Rules for the code
 
@@ -62,11 +63,11 @@ Start from the starter: keep its structure, its comments' style and its folder R
 6. Transformations (`defineSpatialAlgorithm`) may declare `parameters` (with `label` and `description`) and return `{ kind: 'transformation', summary, operations }`. Use only the operations in `STUDENT-API.md`; never choose ids (use `ref`).
 7. Deterministic and fast: no `Math.random`, no dates, no `fetch`, no timers, no `console`. Every loop must end.
 8. A custom value may be missing or `null`: check its type before using it. Read areas with `ctx.metrics.value('area', id)`; one cell is 3 × 3 m, one level 3 m high.
-9. Every algorithm must run without error on the default design, with default parameters and, for analyses, the first node / edge of that design as input. Return a `text` that explains when there is no answer, never throw.
+9. Every algorithm must run without error on any small valid design that uses the toolkit's Functions (and on an empty one), with default parameters and, for analyses, the first node / edge as input: `check:toolkit` runs them on the student's first design once there is one. Return a `text` that explains when there is no answer, never throw.
 
-### Rules for designs (`designs/*.json`, schema v2)
+### Rules for designs (`designs/*.json`, schema v2): only when the student gives you one to add
 
-- Keys in this order: `schemaVersion` (2), `metadata` (`name`, `description`: one or two sentences shown in Open example…), `nextNodeId`, `nextEdgeId`, `nodes`, `edges`, `diagram` (`positions`: `{ "<node id>": [x, y] }`), `settings` (`{ "styleBy": "function", "styles": {} }`). Copy the starter's design and change it.
+- Keys in this order: `schemaVersion` (2), `metadata` (`name`, `description`: one or two sentences shown in Open toolkit design…), `nextNodeId`, `nextEdgeId`, `nodes`, `edges`, `diagram` (`positions`: `{ "<node id>": [x, y] }`), `settings` (`{ "styleBy": "function", "styles": {} }`). Keep the student's design as it is; add only `metadata.name` and `metadata.description` if missing.
 - Node: `{ "id", "function", "position": [x, y, z], "size": [sx, sy, sz], "custom": {} }`. Ids are whole numbers from 1; `nextNodeId` = largest id + 1 (same for edges). `position` is the minimum corner cell, z is the level (0 = ground); `size` is in cells (1–32).
 - Edge: `{ "id", "source", "target", "relationship": "access" | "open", "custom": {} }`. One edge per pair of nodes, never a node to itself.
 - Nodes must not overlap (no shared cell). Make related nodes share a wall (side by side on one level) or a floor (stacked), so the building can be resolved directly. A node above the ground level should stand on another node.
@@ -78,13 +79,13 @@ Start from the starter: keep its structure, its comments' style and its folder R
 2. Create `toolkits/<your-toolkit-name>/` by copying `lab/docs/templates/toolkit/my-toolkit/`, then change it. Never edit `toolkits/house/`, `lab/core/`, `lab/app/`, `lab/student-api/`, `lab/docs/`, `.claude/`, `.github/` or the root files (`package.json`, `tsconfig.json`, …).
 3. Run `npm run check:toolkit -- -t <your-toolkit-name>` and `npm run typecheck`. `check:toolkit` ends with `PASSED: toolkit "<your-toolkit-name>" is ready.` or `FAILED: …` (read that last line, not vitest's `N passed` summary); `No toolkit "…" was found` or `toolkit.ts is one folder too deep` means the folder is missing or misplaced. Fix every failure inside the toolkit folder and run them again until both pass. Report the real output; never say they pass without running them.
 4. `git status` must show changes only under `toolkits/<your-toolkit-name>/`. Commit only that folder: `git add toolkits/<your-toolkit-name>` and `git commit -m "feat(<your-toolkit-name>): <what you added>"`. **Do not push** unless the student asks; then push only their branch (`git push -u origin toolkit/<your-toolkit-name>`), never `main`.
-5. Tell the student how to try it: `npm run dev`, open `http://localhost:5173/?toolkit=<your-toolkit-name>`, **Open example…** › *Toolkit: <name>*, which algorithm to run in **Analyse** or **Transform** and what it should show.
+5. Tell the student how to try it: `npm run dev`, open `http://localhost:5173/?toolkit=<your-toolkit-name>`, **Create project** with the toolkit, draw a small design with its Functions, which algorithm to run in **Analyse** or **Transform** and what it should show.
 
 ## 5. Route B — in a chat
 
 1. Write every file of the folder, then give the student **one zip** whose top-level folder is `<your-toolkit-name>/` (so `<your-toolkit-name>/toolkit.ts` is inside it). If you cannot create files, give each file in its own code block, headed by its full path (`<your-toolkit-name>/functions/room.ts`), and nothing else in the block.
 2. You cannot run the checks: re-read every file against the rules above before answering (imports, ids, `uses`, design keys, non-overlapping nodes, `nextNodeId`).
-3. End with what the student does next, in plain words: put the folder at `toolkits/<your-toolkit-name>/` in their copy of the repository, on the branch `toolkit/<your-toolkit-name>`, run `npm run check:toolkit -- -t <your-toolkit-name>` and `npm run typecheck`, try it in the app, then commit only that folder and push the branch (the exact commands are in `TOOLKITS.md` › Route B). If the student says they will **upload it in the app** instead (no repository; `TOOLKITS.md` › Route C), give ONE zip named `<your-toolkit-name>.zip` with `<your-toolkit-name>/toolkit.ts` inside, and end with: upload it with **Upload toolkit (.zip)** on the Welcome screen, try it (Open example…, Analyse, Transform), and if the app lists problems, paste them back here.
+3. End with what the student does next, in plain words: put the folder at `toolkits/<your-toolkit-name>/` in their copy of the repository, on the branch `toolkit/<your-toolkit-name>`, run `npm run check:toolkit -- -t <your-toolkit-name>` and `npm run typecheck`, try it in the app, then commit only that folder and push the branch (the exact commands are in `TOOLKITS.md` › Route B). If the student says they will **upload it in the app** instead (no repository; `TOOLKITS.md` › Route C), give ONE zip named `<your-toolkit-name>.zip` with `<your-toolkit-name>/toolkit.ts` inside, and end with: upload it with **Upload toolkit (.zip)** on the Welcome screen, draw a small design and try it (Analyse, Transform), and if the app lists problems, paste them back here.
 4. If the student pastes an error from a check or the app, fix exactly that and give back only the files you changed, with their paths (when they upload it in the app: the whole folder again as one zip).
 
 ## 6. Your answer
@@ -94,5 +95,5 @@ Besides the files, give a short summary the student can check:
 - a table of the Functions (id, label, colour, window fraction, own defaults);
 - the custom attributes (key, kind, meaning);
 - each algorithm: kind, where it appears (Analyse › Node / Edge / Network / Queries, or Transform), what it does in one sentence;
-- the designs, and which one is the default;
+- that `designs/` holds only its README: the student draws the designs and adds them later;
 - anything you chose because the student did not say.
