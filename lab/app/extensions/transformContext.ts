@@ -41,6 +41,16 @@ export interface TransformRunData {
   readonly related: readonly (readonly [number, number])[];
   /** Every calculated value of every node and edge (`ctx.metrics`). */
   readonly metrics: MetricTable;
+  /**
+   * Only for a transform of an UPLOADED TOOLKIT (2026-11-26): what `ctx.customOf` answers, computed
+   * by the main thread with the app's own `customOf` — the values per node of a valid toolkit
+   * Function, the toolkit's name and its invalid Functions (id → file).
+   */
+  readonly customOf?: {
+    readonly toolkit: string;
+    readonly values: readonly (readonly [number, { readonly [key: string]: AttributeValue }])[];
+    readonly broken: readonly (readonly [string, string])[];
+  };
 }
 
 /** The refusal of `ctx.customOf` in an uploaded transform. */
@@ -70,6 +80,8 @@ export function uploadedTransformContext(
   params: { readonly [key: string]: AttributeValue },
   metrics: MetricReader,
   fail: (message: string) => Error,
+  /** An uploaded toolkit's `customOf` (absent: refused, as in a single uploaded file). */
+  customOf?: (node: SpatialNode, fn: unknown) => { readonly [key: string]: AttributeValue },
 ): SpatialAlgorithmContext {
   const design = freezeDeep(structuredClone({ policy: data.design.policy, nodes: data.design.nodes, edges: data.design.edges }));
   const rooms = new Set(design.nodes.map((n) => n.id));
@@ -97,8 +109,9 @@ export function uploadedTransformContext(
     nodeAt: (cell: GridCoord) => (isCell(cell) ? occupant.get(cellKey(cell[0], cell[1], cell[2])) : undefined),
     touches: (a: number, b: number) => isId(a) && isId(b) && a !== b && rooms.has(a) && rooms.has(b) && touching.has(pairKey(a, b)),
     canRelate: (a: number, b: number) => isId(a) && isId(b) && a !== b && rooms.has(a) && rooms.has(b) && !related.has(pairKey(a, b)),
-    customOf: () => {
-      throw fail(CUSTOM_OF_REFUSAL);
-    },
+    customOf: ((node: SpatialNode, fn: unknown) => {
+      if (!customOf) throw fail(CUSTOM_OF_REFUSAL);
+      return customOf(node, fn);
+    }) as SpatialAlgorithmContext['customOf'],
   });
 }

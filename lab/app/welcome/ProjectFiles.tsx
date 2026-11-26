@@ -5,6 +5,8 @@ import { useProjectControllerState } from '@app/session/projectStoreContext';
 import { SaveStatus } from '@app/scenarios/SaveStatus';
 import { Dialog } from '@app/ui/Dialog';
 import { OpenExampleDialog } from './OpenExampleDialog';
+import { chosenFile } from './ToolkitDialogs';
+import { ADD_TOOLKIT_LABEL, DOWNLOAD_TOOLKIT_LABEL, UPLOAD_TOOLKIT_LABEL } from './toolkitUpload';
 import { ToolkitPicker, type ToolkitOption } from './ToolkitPicker';
 import { formatWhen, newProjectStart, projectFileName, type ExampleChoice, type ExampleOption } from './welcomeModel';
 import './welcome.css';
@@ -56,6 +58,10 @@ export function ProjectFiles({
   loadExamples,
   onOpenExample,
   busy: running = null,
+  toolkit,
+  onUploadToolkit,
+  onDownloadToolkit,
+  onAddToolkit,
 }: {
   readonly controller: ProjectController | null;
   /** Toolkits a new project can start from; with any, New project asks which (or No toolkit). */
@@ -69,6 +75,17 @@ export function ProjectFiles({
   readonly onOpenExample?: (choice: ExampleChoice) => void;
   /** A New / Open / Open example action still running (e.g. "Opening the example…"), shown under the actions. */
   readonly busy?: string | null;
+  /**
+   * The open project's toolkit (owner 2026-11-26): its name (null: none) and whether it was uploaded
+   * as a zip. Absent: the Toolkit group is not shown.
+   */
+  readonly toolkit?: { readonly name: string | null; readonly uploaded: boolean };
+  /** Upload toolkit (.zip): a new version of this project's uploaded toolkit, or another toolkit as a new project. */
+  readonly onUploadToolkit?: (file: File) => void;
+  /** Download toolkit (.zip): `<name>.zip` of this project's uploaded toolkit (absent: not offered). */
+  readonly onDownloadToolkit?: () => void;
+  /** Add a toolkit…: only for a project without one (absent: not offered). */
+  readonly onAddToolkit?: () => void;
 }) {
   const state = useProjectControllerState(controller);
   const project = state.project;
@@ -134,6 +151,39 @@ export function ProjectFiles({
           </button>
         )}
       </div>
+
+      {project && toolkit && (
+        <div className="sgl-project-actions sgl-project-toolkit" role="group" aria-label="Toolkit" data-project-toolkit>
+          <p className="meta">
+            Toolkit: <strong>{toolkit.name ?? 'none'}</strong>
+            {toolkit.uploaded && ' (uploaded)'}
+          </p>
+          {toolkit.name === null && onAddToolkit && (
+            <button type="button" onClick={onAddToolkit} aria-haspopup="dialog" title="Give this project a toolkit: one from this app or your own zip">
+              {ADD_TOOLKIT_LABEL}
+            </button>
+          )}
+          {onUploadToolkit && (
+            <label className="file-button" title={toolkit.uploaded ? 'A new version of this toolkit replaces it; another toolkit opens as a new project' : 'Your own toolkit, zipped, as a new project'}>
+              {UPLOAD_TOOLKIT_LABEL}
+              <input
+                type="file"
+                accept=".zip,application/zip"
+                aria-label={UPLOAD_TOOLKIT_LABEL}
+                onChange={(e) => {
+                  const file = chosenFile(e);
+                  if (file) onUploadToolkit(file);
+                }}
+              />
+            </label>
+          )}
+          {onDownloadToolkit && (
+            <button type="button" onClick={onDownloadToolkit} title="Save the toolkit as <name>.zip, the folder with toolkit.ts directly inside (the hand-in shape)">
+              {DOWNLOAD_TOOLKIT_LABEL}
+            </button>
+          )}
+        </div>
+      )}
 
       {running && (
         <p className="meta" role="status">

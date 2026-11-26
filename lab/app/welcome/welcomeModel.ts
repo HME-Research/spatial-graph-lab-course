@@ -1,5 +1,6 @@
 import type { ProjectSummary } from '@app/project';
 import type { RecentList } from '@app/session/projectStoreController';
+import type { ActiveToolkit } from '@app/extensions';
 
 /** Pure helpers for the Welcome screen and the Project Files actions (workstream B). */
 
@@ -32,7 +33,10 @@ export interface DefinitionChoice {
 }
 
 /** What Open example… opens: the built-in graph-only example, or one design of one toolkit. */
-export type ExampleChoice = { readonly kind: 'built-in' } | { readonly kind: 'toolkit'; readonly toolkitId: string; readonly designId: string };
+export type ExampleChoice =
+  | { readonly kind: 'built-in' }
+  /** `uploaded`: a design of the toolkit uploaded as a zip (2026-11-26), not of `toolkits/<id>`. */
+  | { readonly kind: 'toolkit'; readonly toolkitId: string; readonly designId: string; readonly uploaded?: true };
 
 /** One row of Open example…. */
 export interface ExampleOption {
@@ -61,17 +65,18 @@ export function exampleOptions(
     readonly name: string;
     readonly description: string | null;
     readonly problem: string | null;
+    readonly uploaded?: true;
   }[],
 ): ExampleOption[] {
   return [
     { key: 'built-in', name: builtIn.name, description: builtIn.description?.trim() || null, tag: 'No toolkit', problem: null, choice: { kind: 'built-in' } },
     ...toolkitExamples.map((e) => ({
-      key: `${e.toolkitId}/${e.designId}`,
+      key: `${e.uploaded ? 'uploaded:' : ''}${e.toolkitId}/${e.designId}`,
       name: e.name,
       description: e.description,
-      tag: `Toolkit: ${e.toolkitName}`,
+      tag: `Toolkit: ${e.toolkitName}${e.uploaded ? ' (uploaded)' : ''}`,
       problem: e.problem,
-      choice: { kind: 'toolkit' as const, toolkitId: e.toolkitId, designId: e.designId },
+      choice: { kind: 'toolkit' as const, toolkitId: e.toolkitId, designId: e.designId, ...(e.uploaded && { uploaded: true as const }) },
     })),
   ];
 }
@@ -148,3 +153,22 @@ export function projectFileName(name: string): string {
 }
 
 export const DEFAULT_PROJECT_NAME = 'Untitled project';
+
+/**
+ * The designs of an UPLOADED toolkit as Open example… rows (2026-11-26): its default design first,
+ * then by file; an invalid design is listed with its problem.
+ */
+export function uploadedToolkitExamples(toolkit: Pick<ActiveToolkit, 'id' | 'definition' | 'designs'>) {
+  const first = toolkit.definition.defaultDesign;
+  return [...toolkit.designs]
+    .sort((a, b) => Number(b.id === first) - Number(a.id === first))
+    .map((d) => ({
+      toolkitId: toolkit.id,
+      toolkitName: toolkit.definition.name,
+      designId: d.id,
+      name: d.result.ok ? d.result.value.metadata.name.trim() || d.id : d.id,
+      description: d.result.ok ? d.result.value.metadata.description?.trim() || null : null,
+      problem: d.result.ok ? null : `${d.file} is not a valid design`,
+      uploaded: true as const,
+    }));
+}

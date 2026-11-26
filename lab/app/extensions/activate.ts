@@ -66,6 +66,20 @@ export interface ActiveToolkit {
   readonly attributeBaseline: AttributeBaseline;
   /** Every loading/definition problem of this toolkit. */
   readonly diagnostics: readonly ExtensionDiagnostic[];
+  /**
+   * Only for a toolkit UPLOADED as a zip (2026-11-26, `uploadedToolkit.ts`): its compiled modules.
+   * Its algorithms then run in the upload worker (`runUploadedToolkitAnalysis` /
+   * `runUploadedToolkitTransform`), never on the main thread: their `run` here only refuses.
+   */
+  readonly uploaded?: UploadedToolkitRuntime;
+}
+
+/** The runtime part of an uploaded toolkit (see `ActiveToolkit.uploaded`). */
+export interface UploadedToolkitRuntime {
+  /** Display path (`<name>/algorithms/grow.ts`) → compiled module. */
+  readonly modules: Readonly<Record<string, string>>;
+  /** Display paths of its `functions/` files (for `ctx.customOf`). */
+  readonly functionFiles: readonly string[];
 }
 
 export type Activation =

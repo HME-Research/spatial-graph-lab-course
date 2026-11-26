@@ -1,7 +1,9 @@
 import {
   defineDesignAnalysis,
+  defineFunction,
   defineGraphAlgorithm,
   defineSpatialAlgorithm,
+  defineToolkit,
   edgesBetween,
   FACE_DIRECTIONS,
   getEdge,
@@ -13,8 +15,10 @@ import {
   roomCells,
   type AttributeValue,
   type GraphAlgorithmContext,
+  type SpatialNode,
 } from '@student-api';
 import { designAnalysisContext, tableMetricReader, type DesignAnalysisData, type MetricTable } from './designAnalysisContext';
+import { resolveToolkitImport } from './toolkitModules';
 import { uploadedTransformContext, type TransformRunData } from './transformContext';
 import { ANALYSIS_REFUSAL, SPATIAL_REFUSAL, type UploadKind } from './uploadSource';
 
@@ -96,14 +100,42 @@ const shim: object = new Proxy(SHIM_API, {
   },
 });
 
+/**
+ * What `@student-api` offers to an UPLOADED TOOLKIT (owner 2026-11-26): everything a repository
+ * toolkit can use at run time, including `defineToolkit` and `defineFunction`.
+ */
+const TOOLKIT_SHIM_API: Readonly<Record<string, unknown>> = Object.freeze({ ...SHIM_API, defineToolkit, defineFunction });
+
+const toolkitShim: object = new Proxy(TOOLKIT_SHIM_API, {
+  get(target, name) {
+    if (name === '__esModule') return true;
+    if (typeof name === 'symbol' || name === 'then') return undefined;
+    if (Object.prototype.hasOwnProperty.call(target, name)) return target[name];
+    throw new UploadRefusal(`"${name}" from @student-api is not available in an uploaded toolkit. Available: ${Object.keys(TOOLKIT_SHIM_API).join(', ')}.`);
+  },
+});
+
+/** The compiled files of an uploaded toolkit: path (`<name>/functions/kitchen.ts`) → compiled module. */
+export type ToolkitModules = Readonly<Record<string, string>>;
+
+/** One file of an uploaded toolkit after loading: its default export as plain data, or why it failed. */
+export type LoadedToolkitFile =
+  /** `value`: the default export without `run` (absent: no default export); `hasRun`: `run` was a function. */
+  | { readonly ok: true; readonly value?: unknown; readonly hasRun?: boolean }
+  | { readonly ok: false; readonly message: string };
+
 /** Requests the worker accepts. `code` is the compiled module (see `compileUpload`). */
 export type UploadRequest =
   /** Load the definition. `surface`: where it was uploaded (absent: Analyse). */
   | { readonly op: 'load'; readonly code: string; readonly fileName: string; readonly surface?: UploadKind }
+  /** Load every definition file of an uploaded toolkit (2026-11-26). */
+  | { readonly op: 'loadToolkit'; readonly modules: ToolkitModules; readonly files: readonly string[] }
   | {
       readonly op: 'run';
       readonly code: string;
       readonly fileName: string;
+      /** An uploaded toolkit's algorithm: every module of the toolkit; `fileName` is the algorithm's path in it. */
+      readonly modules?: ToolkitModules;
       /** Ids, endpoints and the graph policy only (`buildGraphContext`). */
       readonly graph: GraphAlgorithmContext['graph'];
       readonly inputs: readonly number[];
@@ -115,6 +147,9 @@ export type UploadRequest =
       readonly op: 'transform';
       readonly code: string;
       readonly fileName: string;
+      /** An uploaded toolkit's transform: every module, and its Function files (for `ctx.customOf`). */
+      readonly modules?: ToolkitModules;
+      readonly functionFiles?: readonly string[];
       readonly data: TransformRunData;
       readonly params: { readonly [key: string]: AttributeValue };
     };
@@ -124,6 +159,8 @@ export type UploadReply =
   | { readonly ok: true; readonly op: 'load'; readonly definition: Readonly<Record<string, unknown>> }
   /** The raw result of `run` (an analysis or a transformation), to be validated by the caller. */
   | { readonly ok: true; readonly op: 'run'; readonly result: unknown }
+  /** Every requested file of an uploaded toolkit, loaded or not. */
+  | { readonly ok: true; readonly op: 'loadToolkit'; readonly files: Readonly<Record<string, LoadedToolkitFile>> }
   | { readonly ok: false; readonly message: string };
 
 /** Name used in stack traces of uploaded code (`//# sourceURL`), so its line numbers can be found. */
@@ -145,19 +182,29 @@ function functionLineOffset(): number {
 }
 
 function lineOf(error: unknown, offset: number): number | undefined {
+  return placeOf(error, offset)?.line;
+}
+
+/** Prefix of the source URL of an uploaded toolkit's module (followed by its encoded path). */
+const TOOLKIT_SOURCE_URL = 'uploaded-toolkit/';
+
+/** Where in the student's files an error was thrown: the toolkit file (if any) and the line. */
+function placeOf(error: unknown, offset: number): { readonly file?: string; readonly line: number } | undefined {
   const stack = typeof (error as { stack?: unknown })?.stack === 'string' ? (error as { stack: string }).stack : '';
-  const match = new RegExp(`${SOURCE_URL.replace(/\./g, '\\.')}:(\\d+)(?::\\d+)?`).exec(stack);
+  const match = /uploaded-(?:analysis\.js|toolkit\/([^\s:()]+)):(\d+)(?::\d+)?/.exec(stack);
   if (!match) return undefined;
-  const line = Number(match[1]) - offset;
-  return line >= 1 ? line : undefined;
+  const line = Number(match[2]) - offset;
+  if (line < 1) return undefined;
+  return match[1] !== undefined ? { file: decodeURIComponent(match[1]), line } : { line };
 }
 
 /** A thrown value as one readable line, with the line number of the student's file when known. */
 function describeError(error: unknown, where: string): string {
   if (error instanceof UploadRefusal) return error.message;
   const text = error instanceof Error ? `${error.name}: ${error.message}` : `threw ${typeof error === 'string' ? JSON.stringify(error) : String(error)}`;
-  const line = lineOf(error, functionLineOffset());
-  return `${where}${line !== undefined ? ` (line ${line})` : ''}: ${text}`;
+  const place = placeOf(error, functionLineOffset());
+  const at = place === undefined ? '' : place.file !== undefined ? ` (${place.file}, line ${place.line})` : ` (line ${place.line})`;
+  return `${where}${at}: ${text}`;
 }
 
 /** Evaluate the compiled module and return its default export. */
@@ -171,6 +218,58 @@ function evaluate(code: string): unknown {
   const body = new Function('require', 'exports', 'module', `${code}\n//# sourceURL=${SOURCE_URL}`);
   body(require, module.exports, module);
   return module.exports.default;
+}
+
+/**
+ * Evaluate the modules of an uploaded toolkit, CommonJS style: `require` serves the toolkit shim
+ * for `@student-api` and the toolkit's own files by relative path (the main thread has already
+ * refused every other import). Each module is evaluated once; a cycle sees the partial exports.
+ */
+function moduleLoader(modules: ToolkitModules): (path: string) => Record<string, unknown> {
+  const cache = new Map<string, { exports: Record<string, unknown> }>();
+  const load = (path: string): Record<string, unknown> => {
+    const cached = cache.get(path);
+    if (cached) return cached.exports;
+    const code = modules[path];
+    if (code === undefined) throw new UploadRefusal(`${path} is not a file of the toolkit.`);
+    const module: { exports: Record<string, unknown> } = { exports: {} };
+    cache.set(path, module);
+    const require = (specifier: unknown) => {
+      if (specifier === '@student-api') return toolkitShim;
+      const target = typeof specifier === 'string' ? resolveToolkitImport(path, specifier, (p) => Object.prototype.hasOwnProperty.call(modules, p)) : null;
+      if (target === null) throw new UploadRefusal(`${path} imports "${String(specifier)}". Toolkit files may import only "@student-api" and the toolkit's own files.`);
+      return load(target);
+    };
+    const body = new Function('require', 'exports', 'module', `${code}\n//# sourceURL=${TOOLKIT_SOURCE_URL}${encodeURIComponent(path)}`);
+    body(require, module.exports, module);
+    return module.exports;
+  };
+  return load;
+}
+
+/** Load every requested file of an uploaded toolkit (`op: 'loadToolkit'`). Never throws. */
+function loadToolkitFiles(modules: ToolkitModules, files: readonly string[]): Record<string, LoadedToolkitFile> {
+  const load = moduleLoader(modules);
+  const out: Record<string, LoadedToolkitFile> = {};
+  for (const file of files) {
+    let exported: Record<string, unknown>;
+    try {
+      exported = load(file);
+    } catch (error) {
+      out[file] = { ok: false, message: describeError(error, error instanceof SyntaxError ? 'The file could not be read' : 'The file failed while loading') };
+      continue;
+    }
+    if (!('default' in exported)) {
+      out[file] = { ok: true };
+      continue;
+    }
+    const value = exported.default;
+    const run = isObject(value) ? value.run : undefined;
+    const data = isObject(value) && 'run' in value ? Object.fromEntries(Object.entries(value).filter(([k]) => k !== 'run')) : value;
+    const copy = plain(data, `The default export of ${file}${run !== undefined ? ' (besides run)' : ''}`);
+    out[file] = copy.ok ? { ok: true, value: copy.value, ...(run !== undefined && { hasRun: typeof run === 'function' }) } : { ok: false, message: copy.message };
+  }
+  return out;
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -216,9 +315,12 @@ function freezeDeep<T>(value: T): T {
 
 /** Load (`op: 'load'`) or run an uploaded analysis (`op: 'run'`) or transform (`op: 'transform'`). Never throws. */
 export function handleUploadRequest(request: UploadRequest): UploadReply {
+  if (request.op === 'loadToolkit') return { ok: true, op: 'loadToolkit', files: loadToolkitFiles(request.modules, request.files) };
+  const modules = request.op === 'load' ? undefined : request.modules;
+  const load = modules ? moduleLoader(modules) : undefined;
   let exported: unknown;
   try {
-    exported = evaluate(request.code);
+    exported = load ? load(request.fileName).default : evaluate(request.code);
   } catch (error) {
     return { ok: false, message: describeError(error, error instanceof SyntaxError ? 'The file could not be read' : 'The file failed while loading') };
   }
@@ -234,7 +336,16 @@ export function handleUploadRequest(request: UploadRequest): UploadReply {
     if (request.op === 'transform') {
       const fail = (message: string) => new UploadRefusal(message);
       const metrics = tableMetricReader(request.data.metrics, (_code, message) => fail(message));
-      raw = definition.run(uploadedTransformContext(request.data, request.params, metrics, fail));
+      // An uploaded toolkit's transform may use ctx.customOf with its own Functions (by identity, as in the app).
+      const functionIds = new Map<unknown, string>();
+      if (load) {
+        for (const file of request.functionFiles ?? []) {
+          const fn = load(file).default;
+          if (isObject(fn) && typeof fn.id === 'string') functionIds.set(fn, fn.id);
+        }
+      }
+      const customOf = load ? toolkitCustomOf(request.data, functionIds, fail) : undefined;
+      raw = definition.run(uploadedTransformContext(request.data, request.params, metrics, fail, customOf));
     } else if (definition.scope === 'design') {
       if (!request.design) return { ok: false, message: 'This design analysis was started without the design.' };
       const metrics = tableMetricReader(request.design.metrics, (_code, message) => new UploadRefusal(message));
@@ -248,6 +359,25 @@ export function handleUploadRequest(request: UploadRequest): UploadReply {
   }
   const result = plain(raw, 'The result');
   return result.ok ? { ok: true, op: 'run', result: result.value } : result;
+}
+
+/**
+ * `ctx.customOf(node, fn)` of an uploaded toolkit's transform: `fn` must be the default export of
+ * one of the toolkit's Function files (identity), valid, and the node's Function; the values were
+ * computed by the main thread with the app's own `customOf` (`TransformRunData.customOf`).
+ */
+function toolkitCustomOf(data: TransformRunData, functionIds: ReadonlyMap<unknown, string>, fail: (message: string) => Error) {
+  const values = new Map((data.customOf?.values ?? []).map(([id, v]) => [id, v] as const));
+  const broken = new Map(data.customOf?.broken ?? []);
+  return (node: SpatialNode, fn: unknown): { readonly [key: string]: AttributeValue } => {
+    const id = functionIds.get(fn);
+    const name = isObject(fn) && typeof fn.id === 'string' ? `"${fn.id}"` : 'the given value';
+    if (id === undefined) throw fail(`customOf: ${name} is not a function definition registered by toolkit "${data.customOf?.toolkit ?? ''}" (import it from the toolkit's functions/ folder)`);
+    const problem = broken.get(id);
+    if (problem !== undefined) throw fail(`customOf: function "${id}" (${problem}) is invalid, so algorithms cannot use it`);
+    if (node?.function !== id) throw fail(`customOf: node "${node?.id}" has function "${node?.function}", not "${id}"`);
+    return freezeDeep(structuredClone(values.get(node.id) ?? {}));
+  };
 }
 
 /**

@@ -1,5 +1,7 @@
 import type { FacadeAssetV1 } from '@app/assets';
 import type { DesignDocumentV2 } from '@app/document';
+import type { ActiveToolkit } from '@app/extensions/activate';
+import type { StoredToolkit } from '@app/extensions/uploadedToolkitFiles';
 import { EMPTY_ATTRIBUTE_SCHEMA, makeAttributeRecord, serializeAttributeRecord, type ProjectAttributeSchema } from '@app/extensions/projectAttributes';
 import { formatProjectIssues, projectAssetsOf, readProjectFile, serializeProjectFile, type ProjectFileV2, type ProjectIssue } from '@app/project';
 import { blankDesign, checkName, newProjectFromDesign, readProjectOrDesign, type ProjectOrigin } from '@app/session/projectStore';
@@ -194,3 +196,57 @@ export async function openProjectText(host: WelcomeHost, text: string, fileName:
   const isProject = read.kind === 'project';
   return openNew(host, file, { kind: isProject ? 'opened-file' : 'imported-design', label: fileName }, { ...options, exported: isProject });
 }
+
+/** A loaded uploaded toolkit (`loadUploadedToolkit`) and its stored files, ready to be put in a project. */
+export interface UploadedToolkitStart {
+  readonly stored: StoredToolkit;
+  readonly toolkit: ActiveToolkit;
+}
+
+/** The façades a design of an uploaded toolkit uses, imported from its `assets/` (the shell's normal façade import). */
+export type UploadedAssetLoader = (doc: DesignDocumentV2) => Promise<{ readonly ok: true; readonly assets: readonly FacadeAssetV1[] } | { readonly ok: false; readonly message: string }>;
+
+/**
+ * A NEW project with an UPLOADED toolkit (owner 2026-11-26): the toolkit's files are stored in the
+ * project (`settings.uploadedToolkit`), its custom attributes are seeded as by Create project, and
+ * the project starts with design `designId` (Open toolkit design…), else the toolkit's
+ * `defaultDesign` with the façades it uses, else an empty graph (as Create project). Validated as a
+ * whole file before anything is opened; a failure leaves the open project as it is.
+ */
+export async function openUploadedToolkit(
+  host: WelcomeHost,
+  upload: UploadedToolkitStart,
+  designId: string | null,
+  loadAssets: UploadedAssetLoader,
+  options: LeaveOptions = {},
+): Promise<FlowOutcome> {
+  const { stored, toolkit } = upload;
+  const source = `${stored.name}.zip`;
+  const baseline = toolkit.attributeBaseline;
+  const withToolkit = (file: ProjectFileV2): ProjectFileV2 => ({ ...file, settings: { ...file.settings, uploadedToolkit: stored } });
+  const chosen = designId ?? toolkit.definition.defaultDesign ?? null;
+  const design = chosen === null ? undefined : toolkit.designs.find((d) => d.id === chosen);
+  if (chosen !== null && designId !== null && !design) return failed(source, `The toolkit “${toolkit.definition.name}” has no design “${chosen}”.`);
+  if (design && !design.result.ok) return failed(design.file, `${design.file} is not a valid design.`);
+  if (design && design.result.ok) {
+    const doc = design.result.value;
+    const assets = await loadAssets(doc);
+    if (!assets.ok) return failed(design.file, `The design could not be opened: ${assets.message}`);
+    const name = checkName(doc.metadata.name, 'project');
+    const file = newProjectFromDesign(doc, { name: name.ok ? name.value : design.id, toolkit: { id: stored.name } });
+    if (!file.ok) return failed(design.file, `The design could not be opened: ${formatProjectIssues(file.issues)}`, file.issues);
+    const project = exampleProjectFile(withToolkit(file.value), baseline.signature, baseline.schema, assets.assets);
+    if (!project.ok) return failed(design.file, `The design could not be opened: ${formatProjectIssues(project.issues)}`, project.issues);
+    return openNew(host, project.value, { kind: 'example', label: design.file }, options);
+  }
+  const start = await host.startingDesign(null);
+  if (!start.ok) return failed(source, start.message);
+  const file = newProjectFromDesign(blankDesign(start.doc, DEFAULT_TOOLKIT_PROJECT_NAME(toolkit.definition.name)), { name: DEFAULT_TOOLKIT_PROJECT_NAME(toolkit.definition.name), toolkit: { id: stored.name } });
+  if (!file.ok) return failed(source, `The project could not be created: ${formatProjectIssues(file.issues)}`, file.issues);
+  const minimal = minimalProjectFile(withToolkit(file.value), baseline.signature, baseline.schema);
+  if (!minimal.ok) return failed(source, `The project could not be created: ${formatProjectIssues(minimal.issues)}`, minimal.issues);
+  return openNew(host, minimal.value, { kind: 'created', label: source }, options);
+}
+
+/** Name of a project started from an uploaded toolkit without a design. */
+const DEFAULT_TOOLKIT_PROJECT_NAME = (toolkitName: string) => `${toolkitName} project`.slice(0, 80);

@@ -1,6 +1,8 @@
 import type { DesignDocumentV2 } from '@app/document';
 import {
   activate,
+  diagnostic,
+  loadUploadedToolkit,
   discoverToolkits,
   resolveStartupDesign,
   type Activation,
@@ -9,6 +11,8 @@ import {
   type ToolkitGlobs,
   type ToolkitRequest,
   type StartupDesign,
+  type StoredToolkit,
+  type UploadedToolkitLoad,
 } from '@app/extensions';
 
 /**
@@ -103,3 +107,24 @@ export function sessionDiagnostics(session: ToolkitSession): ExtensionDiagnostic
 
 export const DISCARD_PROMPT =
   'The current design has changes that have not been exported. Switching will discard them.\n\nUse Project › Export project first to keep them. Discard the changes?';
+
+const uploadLoads = new WeakMap<StoredToolkit, Promise<UploadedToolkitLoad>>();
+
+/** Load an uploaded toolkit once per stored version (the same object is kept while the project is open). */
+export function loadUploadedToolkitCached(stored: StoredToolkit, load: (stored: StoredToolkit) => Promise<UploadedToolkitLoad> = loadUploadedToolkit): Promise<UploadedToolkitLoad> {
+  let pending = uploadLoads.get(stored);
+  if (!pending) uploadLoads.set(stored, (pending = load(stored)));
+  return pending;
+}
+
+/** The activation of a project's UPLOADED toolkit (2026-11-26), as a session like a repository toolkit's. */
+export function uploadedToolkitSession(stored: StoredToolkit, result: UploadedToolkitLoad, available: readonly string[]): ToolkitSession {
+  const activation: Activation = result.ok
+    ? { status: 'active', toolkit: result.toolkit }
+    : {
+        status: 'failed',
+        toolkitId: stored.name,
+        diagnostics: result.problems.map((message, n) => diagnostic('module-load-failed', 'error', { kind: 'toolkit', id: stored.name }, message, { detail: String(n) })),
+      };
+  return { activation, discovery: [], available };
+}

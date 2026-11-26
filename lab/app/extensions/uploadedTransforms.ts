@@ -10,6 +10,7 @@ import { effectiveEdgeValues, effectiveNodeValues } from './resolveAttributes';
 import { checkTransformationResult, validateParameters, type RunOutcomeV2 } from './run';
 import type { TransformRunData } from './transformContext';
 import { applyTransformationV2 } from './transformV2';
+import type { ToolkitModules } from './uploadSandbox';
 import { browserWorker, UPLOAD_TIMEOUT_MS, workerRunner, type UploadRunner } from './uploadedAnalyses';
 import { ANALYSIS_REFUSAL, compileUpload } from './uploadSource';
 
@@ -37,7 +38,8 @@ export interface UploadedTransformDefinition {
 }
 
 export type TransformUploadStatus =
-  | { readonly ok: true; readonly definition: UploadedTransformDefinition; readonly code: string }
+  /** `modules` / `functionFiles`: for a transform of an uploaded toolkit, every compiled module and its Function files. */
+  | { readonly ok: true; readonly definition: UploadedTransformDefinition; readonly code: string; readonly modules?: ToolkitModules; readonly functionFiles?: readonly string[] }
   | { readonly ok: false; readonly problems: readonly string[] };
 
 let sharedRunner: UploadRunner | undefined;
@@ -130,6 +132,8 @@ export interface UploadedTransformRunOptions {
   readonly attributes?: ProjectAttributeSchema;
   /** The host's resolution of `doc` (with the scenario's face preferences), for `ctx.metrics`. */
   readonly spatial?: SpatialResolution;
+  /** An uploaded toolkit's `ctx.customOf` answers (`TransformRunData.customOf`). */
+  readonly customOf?: TransformRunData['customOf'];
 }
 
 /**
@@ -156,10 +160,18 @@ export async function runUploadedTransform(
   let data: TransformRunData;
   try {
     data = buildTransformRunData(doc, schema, options.spatial);
+    if (options.customOf) data = { ...data, customOf: options.customOf };
   } catch (error) {
     return fail([diagnostic('run-failed', 'error', subject, `The design could not be prepared for "${definition.label}": ${error instanceof Error ? error.message : String(error)}`)]);
   }
-  const reply = await runner({ op: 'transform', code, fileName, data, params: parameters.value });
+  const reply = await runner({
+    op: 'transform',
+    code,
+    fileName,
+    data,
+    params: parameters.value,
+    ...(prepared.modules && { modules: prepared.modules, functionFiles: prepared.functionFiles ?? [] }),
+  });
   if (!reply.ok) return fail([diagnostic('run-failed', 'error', subject, reply.message)]);
   if (reply.op !== 'run') return fail([diagnostic('run-failed', 'error', subject, 'The transform sent an unexpected reply.')]);
   const checked = checkTransformationResult(reply.result, definition.id);

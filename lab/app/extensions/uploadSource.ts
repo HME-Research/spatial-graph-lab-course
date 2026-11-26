@@ -53,6 +53,16 @@ export function uploadLanguage(fileName: string): 'ts' | 'js' | null {
 const SPECIFIER =
   /^\s*(?:import|export)\b[^;]*?\bfrom\s*['"]([^'"]+)['"]|^\s*import\s*['"]([^'"]+)['"]|\bimport\s*\(\s*['"]([^'"]+)['"]|\brequire\s*\(\s*['"]([^'"]+)['"]/gm;
 
+/** Every module the source names, with the line it is named on (in order, duplicates kept). */
+export function importedModulesWithLines(source: string): { readonly specifier: string; readonly line: number }[] {
+  return [...source.matchAll(SPECIFIER)].map((m) => {
+    const specifier = (m[1] ?? m[2] ?? m[3] ?? m[4])!;
+    // The line of the specifier itself (a multi-line import names it on its last line).
+    const at = m.index + m[0].lastIndexOf(specifier);
+    return { specifier, line: source.slice(0, at).split('\n').length };
+  });
+}
+
 /** Every module the source names (in order, without duplicates). */
 export function importedModules(source: string): string[] {
   return [...new Set([...source.matchAll(SPECIFIER)].map((m) => (m[1] ?? m[2] ?? m[3] ?? m[4])!))];
@@ -103,6 +113,14 @@ function syntaxMessage(error: unknown): string {
 export async function compileUpload(source: string, fileName: string, kind: UploadKind = 'analysis'): Promise<CompiledUpload> {
   const problems = sourceProblems(source, fileName, kind);
   if (problems.length > 0) return { ok: false, problems };
+  return transpile(source, fileName);
+}
+
+/**
+ * Sucrase only (no checks on the text): strip the types and turn `import`/`export` into
+ * `require`/`exports`. Shared by single-file uploads and uploaded toolkits (2026-11-26). Never throws.
+ */
+export async function transpile(source: string, fileName: string): Promise<CompiledUpload> {
   let transform: (code: string, options: { transforms: ('typescript' | 'imports')[]; filePath?: string }) => { code: string };
   try {
     ({ transform } = await import('sucrase'));

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import type { DesignDocumentV2 } from '@app/document';
-import { runUploadedTransform, type ActiveToolkit, type ExtensionDiagnostic, type ParameterSpec, type StoredUpload, type TransformationPreviewV2 } from '@app/extensions';
+import { runUploadedToolkitTransform, runUploadedTransform, type ActiveToolkit, type ExtensionDiagnostic, type ParameterSpec, type StoredUpload, type TransformationPreviewV2 } from '@app/extensions';
 import { ALGORITHM_TAB_LABELS, sourceTag, type AlgorithmSource } from '@app/ui/analysisSections';
 import type { Explainer } from '@app/ui/guideContracts';
 import { ExplainerWindow } from '@app/ui/guide';
@@ -147,12 +147,32 @@ export function TransformPanel({ project, version, onApply, onSelect, attributes
     });
   };
 
+  /** A transform of an UPLOADED toolkit (2026-11-26) runs in the upload worker, with the toolkit's modules. */
+  const runToolkitUpload = async (item: TransformItem, at: DocumentVersion<DesignDocumentV2>, registry: ActiveToolkit) => {
+    const token = ++runToken.current;
+    const attributesRevision = attributes?.revision;
+    const spatial = resolution && resolution.doc === at.doc ? resolution.spatial : undefined;
+    setRun(null);
+    setRunning(item.key);
+    const outcome = await runUploadedToolkitTransform(at.doc, registry, item.entry.id, draftsToParameters(item.entry, entryDrafts), {
+      ...(attributes && { attributes: attributes.schema }),
+      ...(spatial && { spatial }),
+    });
+    if (!mounted.current || token !== runToken.current) return;
+    setRunning(null);
+    setRun({ algorithmId: item.entry.id, label: item.entry.label, doc: at.doc, revision: at.revision, ...(attributesRevision !== undefined && { attributesRevision }), outcome });
+  };
+
   const execute = (e: FormEvent) => {
     e.preventDefault();
     if (!selected || !selected.entry.enabled || !version || !project) return;
     setNotice(null);
     if (selected.upload) {
       void runUpload(selected, version, project);
+      return;
+    }
+    if (project.uploaded) {
+      void runToolkitUpload(selected, version, project);
       return;
     }
     runToken.current++;

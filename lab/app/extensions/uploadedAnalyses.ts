@@ -6,7 +6,7 @@ import type { DesignAnalysisData, MetricTable } from './designAnalysisContext';
 import type { ProjectAttributeSchema } from './projectAttributes';
 import { algorithmDefinitionSchema, zodMessages } from './definitions';
 import { checkAnalysisInputs, validateAnalysisResult } from './run';
-import type { UploadReply, UploadRequest } from './uploadSandbox';
+import type { ToolkitModules, UploadReply, UploadRequest } from './uploadSandbox';
 import { compileUpload, SPATIAL_REFUSAL, type UploadKind } from './uploadSource';
 
 /**
@@ -57,7 +57,8 @@ export interface DesignRunSource {
 }
 
 export type UploadStatus =
-  | { readonly ok: true; readonly definition: UploadedDefinition; readonly code: string }
+  /** `modules`: for an analysis of an uploaded toolkit, every compiled module (`code` is its own). */
+  | { readonly ok: true; readonly definition: UploadedDefinition; readonly code: string; readonly modules?: ToolkitModules }
   | { readonly ok: false; readonly problems: readonly string[] };
 
 /** Sends one request to a fresh worker and resolves with its reply (or a readable failure). */
@@ -81,8 +82,8 @@ export const browserWorker = (): WorkerLike =>
  * A runner that starts one worker per request and terminates it after the reply or the timeout.
  * `kind` only names it in its messages ("The transform stopped with an error…").
  */
-export function workerRunner(createWorker: () => WorkerLike = browserWorker, timeoutMs: number = UPLOAD_TIMEOUT_MS, kind: UploadKind = 'analysis'): UploadRunner {
-  const The = kind === 'analysis' ? 'The analysis' : 'The transform';
+export function workerRunner(createWorker: () => WorkerLike = browserWorker, timeoutMs: number = UPLOAD_TIMEOUT_MS, kind: UploadKind | 'toolkit' = 'analysis'): UploadRunner {
+  const The = kind === 'analysis' ? 'The analysis' : kind === 'toolkit' ? 'The toolkit' : 'The transform';
   return (request) =>
     new Promise<UploadReply>((resolve) => {
       let worker: WorkerLike;
@@ -120,7 +121,7 @@ export function workerRunner(createWorker: () => WorkerLike = browserWorker, tim
 function isReply(value: unknown): value is UploadReply {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as { ok?: unknown; message?: unknown; op?: unknown };
-  return v.ok === false ? typeof v.message === 'string' : v.ok === true && (v.op === 'load' || v.op === 'run');
+  return v.ok === false ? typeof v.message === 'string' : v.ok === true && (v.op === 'load' || v.op === 'run' || v.op === 'loadToolkit');
 }
 
 let sharedRunner: UploadRunner | undefined;
@@ -189,7 +190,7 @@ export async function runUploadedAnalysis(
     if (missing.length > 0) return { ok: false, messages: missing };
     designData = { data: buildDesignAnalysisData(design.doc, design.functions, design.schema, definition.uses), metrics: buildMetricTable(design.doc, design.spatial) };
   }
-  const reply = await runner({ op: 'run', code, fileName, graph: context.graph, inputs: context.inputs, ...(designData && { design: designData }) });
+  const reply = await runner({ op: 'run', code, fileName, graph: context.graph, inputs: context.inputs, ...(designData && { design: designData }), ...(prepared.modules && { modules: prepared.modules }) });
   if (!reply.ok) return { ok: false, messages: [reply.message] };
   if (reply.op !== 'run') return { ok: false, messages: ['The analysis sent an unexpected reply.'] };
   const result = validateAnalysisResult(reply.result, doc, definition.id);

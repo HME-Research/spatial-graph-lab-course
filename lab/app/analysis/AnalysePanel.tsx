@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import type { DesignDocumentV2 } from '@app/document';
-import { EMPTY_ATTRIBUTE_SCHEMA, functionInfos, missingUses, runUploadedAnalysis, type ActiveToolkit, type AnalysisUses, type StoredUpload } from '@app/extensions';
+import { EMPTY_ATTRIBUTE_SCHEMA, functionInfos, missingUses, runUploadedAnalysis, runUploadedToolkitAnalysis, type ActiveToolkit, type AnalysisUses, type StoredUpload } from '@app/extensions';
 import { isStale, listAlgorithms, runEntryV2, type AttributesVersion, type HostResolution } from '@app/session/algorithmSession';
 import type { DocumentVersion } from '@app/session/documentSession';
 import { CollapsibleSection } from '@app/ui';
@@ -189,11 +189,28 @@ export function AnalysePanel({
     finish(item, result.ok ? { ok: true, answer: analysisResultAnswer(item.name, result.result) } : { ok: false, messages: result.messages }, at, attributesRevision);
   };
 
+  /** An analysis of an UPLOADED toolkit (2026-11-26) runs in the upload worker too, with the toolkit's modules. */
+  const runToolkitUpload = async (item: AnalysisItem, inputs: readonly number[], at: DocumentVersion<DesignDocumentV2>, registry: ActiveToolkit) => {
+    const attributesRevision = attributes?.revision;
+    setRunning(item.key);
+    setFailure(null);
+    const spatial = resolution && resolution.doc === at.doc ? resolution.spatial : undefined;
+    const design = { doc: at.doc, functions, schema, ...(spatial && { spatial }) };
+    const result = await runUploadedToolkitAnalysis(registry, item.id, at.doc, inputs, design);
+    if (!mounted.current) return;
+    setRunning((current) => (current === item.key ? null : current));
+    finish(item, result.ok ? { ok: true, answer: analysisResultAnswer(item.name, result.result) } : { ok: false, messages: result.messages }, at, attributesRevision);
+  };
+
   const run = (item: AnalysisItem, inputs: readonly number[]) => {
     if (!version) return;
     setPick(null);
     if (item.source.kind === 'yours') {
       void runUpload(item, inputs, version);
+      return;
+    }
+    if (item.source.kind === 'toolkit' && project?.uploaded) {
+      void runToolkitUpload(item, inputs, version, project);
       return;
     }
     let outcome: AnalysisOutcome;

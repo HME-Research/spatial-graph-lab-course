@@ -33,7 +33,7 @@ import {
   type FacadeRole,
 } from '@app/assets';
 import type { SavedCamera } from '@core/viewer/three/camera';
-import type { StoredUpload } from '@app/extensions';
+import type { StoredToolkit, StoredUpload } from '@app/extensions';
 import {
   commitDocument,
   currentDocument,
@@ -683,6 +683,46 @@ export function setFacadeAssetMaterials(
   }
   if (JSON.stringify(canonicalFacadeAsset(next)) === JSON.stringify(canonicalFacadeAsset(asset))) return accept(project);
   return accept(changed(project, { meta: { ...project.meta, assets: projectAssetsOf(current.map((a) => (a.id === assetId ? next : a))) } }));
+}
+
+/** `next` if its whole project file is valid (as it would be saved), else the readable reason. */
+function validated(next: OpenProject, what: string): Outcome<OpenProject> {
+  const file = projectFileOf(next);
+  return file.ok ? accept(next) : refuse(`${what}: ${formatProjectIssues(file.issues)}`);
+}
+
+/**
+ * A new version of the project's UPLOADED toolkit (owner 2026-11-26): same name only (another
+ * toolkit starts a new project). Rooms, attributes and settings stay; not undoable (confirmed in
+ * the UI); autosaved and exported. The caller has already loaded and validated the toolkit.
+ */
+export function setUploadedToolkit(project: OpenProject, toolkit: StoredToolkit): Outcome<OpenProject> {
+  if (project.meta.toolkit?.id !== toolkit.name) {
+    return refuse(`This project's toolkit is ${project.meta.toolkit === null ? 'none' : `“${project.meta.toolkit.id}”`}, not “${toolkit.name}”.`);
+  }
+  return validated(changed(project, { meta: { ...project.meta, settings: { ...project.meta.settings, uploadedToolkit: toolkit } } }), 'The toolkit could not be stored');
+}
+
+/** Adding a toolkit to a project without one (`attachToolkit`). */
+export interface ToolkitAttachment {
+  readonly toolkitId: string;
+  /** The toolkit's files when it was uploaded (absent: a repository toolkit). */
+  readonly uploaded?: StoredToolkit;
+  /** The project's attribute record afterwards (`planToolkitAttach`). */
+  readonly attributes: unknown;
+}
+
+/**
+ * Add a toolkit to a project that has NONE (owner 2026-11-26): the project's toolkit, the
+ * attribute record merged with the toolkit's attributes (planned and checked by
+ * `planToolkitAttach`) and, for an uploaded toolkit, its files. Designs are not touched. Not
+ * undoable (confirmed in the UI); the whole file is validated before anything changes.
+ */
+export function attachToolkit(project: OpenProject, request: ToolkitAttachment): Outcome<OpenProject> {
+  if (project.meta.toolkit !== null) return refuse(`This project already uses the toolkit “${project.meta.toolkit.id}”.`);
+  if (request.uploaded && request.uploaded.name !== request.toolkitId) return refuse('The uploaded toolkit does not match the chosen toolkit.');
+  const settings = request.uploaded ? { ...project.meta.settings, uploadedToolkit: request.uploaded } : project.meta.settings;
+  return validated(changed(project, { meta: { ...project.meta, toolkit: { id: request.toolkitId }, attributes: request.attributes, settings } }), 'The toolkit could not be added');
 }
 
 /** The project attribute record (`exportAttributeFile` shape) or null (= the toolkit files' schema). */

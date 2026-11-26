@@ -20,7 +20,7 @@ import {
 import type { ScenarioCommand } from '@app/spatial';
 import type { SavedCamera } from '@core/viewer/three/camera';
 import type { FacadeAssetV1, FacadeRole } from '@app/assets';
-import type { StoredUpload } from '@app/extensions';
+import type { StoredToolkit, StoredUpload } from '@app/extensions';
 import {
   addFacadeAsset,
   applyActiveCommand,
@@ -47,6 +47,9 @@ import {
   setShownAnalyses,
   setUploadedAnalyses,
   setUploadedTransforms,
+  setUploadedToolkit,
+  attachToolkit,
+  type ToolkitAttachment,
   setDisplayDefaults,
   setProjectFunctions,
   resolveFunctionClash,
@@ -206,6 +209,10 @@ export interface ProjectController {
   setUploadedAnalyses(uploads: readonly StoredUpload[]): void;
   /** Project `settings.uploadedTransforms` (the student's uploaded transforms, 2026-11-25). Not undoable; autosaved. */
   setUploadedTransforms(uploads: readonly StoredUpload[]): void;
+  /** Project `settings.uploadedToolkit`: a new version of the project's uploaded toolkit (same name; 2026-11-26). Not undoable; autosaved. */
+  setUploadedToolkit(toolkit: StoredToolkit): Outcome<void>;
+  /** Add a toolkit to a project without one (`attachToolkit`, 2026-11-26). Not undoable; autosaved. */
+  attachToolkit(request: ToolkitAttachment): Outcome<void>;
   /** Project `settings.functions` (node types added in the browser). Not undoable; autosaved. */
   setFunctions(functions: readonly ProjectFunction[], hiddenFunctions: readonly string[]): void;
   /** Settle a project function whose id a toolkit function now also has (`resolveFunctionClash`). */
@@ -698,6 +705,8 @@ export function createProjectController(options: ProjectControllerOptions): Proj
     setUploadedTransforms(uploads) {
       mutate((p) => setUploadedTransforms(p, uploads));
     },
+    setUploadedToolkit: (toolkit) => mutateOutcome((p) => setUploadedToolkit(p, toolkit), () => undefined),
+    attachToolkit: (request) => mutateOutcome((p) => attachToolkit(p, request), () => undefined),
     setShownAnalyses(ids) {
       mutate((p) => setShownAnalyses(p, ids));
     },

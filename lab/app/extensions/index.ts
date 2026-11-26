@@ -42,3 +42,6 @@ export {
 } from './uploadSource';
 /** Student API types the application shell needs (only app/extensions may import `@student-api`). */
 export type { AnalysisResult, AnalysisUses, AttributeSpec, AttributeSpecs, ParameterSpec, ParameterSpecs, ToolkitAttributeSpec, SpatialOperation } from '@student-api';
+export * from './uploadedToolkit';
+export * from './uploadedToolkitFiles';
+export * from './attachToolkit';

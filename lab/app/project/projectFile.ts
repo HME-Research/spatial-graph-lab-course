@@ -15,6 +15,14 @@ import {
 import { readAttributeRecord, serializeAttributeRecord } from '@app/extensions/projectAttributes';
 import { toolkitIdSchema } from '@app/extensions/discover';
 import type { StoredUpload } from '@app/extensions/uploadedAnalyses';
+import {
+  MAX_TOOLKIT_ASSET_BYTES,
+  MAX_TOOLKIT_FILES,
+  MAX_TOOLKIT_TEXT_BYTES,
+  MAX_TOOLKIT_TEXT_FILE_BYTES,
+  TOOLKIT_FILE_PATH_PATTERN,
+  type StoredToolkit,
+} from '@app/extensions/uploadedToolkitFiles';
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_FILE_NAME, MAX_UPLOADED_ANALYSES, MAX_UPLOADED_TRANSFORMS } from '@app/extensions/uploadSource';
 import { canonicalFacadeAsset, FACADE_LIMITS, facadeAssetsBytes, formatBytes, readFacadeAsset, type FacadeAssetV1 } from '@app/assets';
 
@@ -146,6 +154,13 @@ export interface ProjectSettings {
    * opening the project. Written only when set; files without it load unchanged.
    */
   readonly uploadedTransforms?: readonly StoredUpload[];
+  /**
+   * The project's toolkit when it was UPLOADED as a zip (optional, 2026-11-26): its name (equal to
+   * `toolkit.id`) and its files (text, or base64 for `assets/*.3dm`), so the project reopens with
+   * its toolkit on any computer. It is used instead of a repository toolkit of the same name.
+   * Written only when set; files without it load unchanged.
+   */
+  readonly uploadedToolkit?: StoredToolkit;
 }
 
 /** A project function: a node type defined in the project file (`settings.functions`). */
@@ -230,6 +245,30 @@ const storedUploadsSchema = (key: string, one: string, many: string, max: number
     .refine((list) => new Set(list.map((u) => u.id)).size === list.length, { error: `uploaded ${one} ids must be unique` })
     .optional();
 
+/** `settings.uploadedToolkit` (2026-11-26): the files of an uploaded toolkit, within the upload limits. */
+const toolkitFilePath = z.string().regex(TOOLKIT_FILE_PATH_PATTERN, { error: 'a toolkit file path must be like "functions/kitchen.ts"' });
+const uploadedToolkitSchema = z
+  .strictObject({
+    name: toolkitIdSchema,
+    uploadedAt: isoSchema,
+    files: z
+      .array(
+        z.union(
+          [
+            z.strictObject({ path: toolkitFilePath, text: z.string().max(MAX_TOOLKIT_TEXT_FILE_BYTES) }),
+            z.strictObject({ path: toolkitFilePath, base64: z.string().max(Math.ceil(MAX_TOOLKIT_ASSET_BYTES / 3) * 4).regex(/^[A-Za-z0-9+/]*={0,2}$/, { error: 'must be base64' }) }),
+          ],
+          { error: 'a toolkit file must be {path, text} or {path, base64}' },
+        ),
+      )
+      .max(MAX_TOOLKIT_FILES, { error: `an uploaded toolkit has at most ${MAX_TOOLKIT_FILES} files` })
+      .refine((files) => new Set(files.map((f) => f.path)).size === files.length, { error: 'toolkit file paths must be unique' })
+      .refine((files) => files.some((f) => f.path === 'toolkit.ts' && 'text' in f), { error: 'an uploaded toolkit needs its toolkit.ts' })
+      .refine((files) => files.reduce((n, f) => n + ('text' in f ? f.text.length : 0), 0) <= MAX_TOOLKIT_TEXT_BYTES, { error: 'the uploaded toolkit has too much text' })
+      .refine((files) => files.reduce((n, f) => n + ('base64' in f ? f.base64.length : 0), 0) <= Math.ceil(MAX_TOOLKIT_ASSET_BYTES / 3) * 4, { error: 'the uploaded toolkit has too many façade bytes' }),
+  })
+  .optional();
+
 const scenarioShape = z.strictObject({
   id: idSchema,
   name: z.string().trim().min(1, { error: 'scenario name must not be empty' }),
@@ -280,6 +319,7 @@ const projectShape = z.strictObject({
     analyses: z.array(z.string().min(1).max(64), { error: 'analyses must be a list of analysis ids' }).max(64).optional(),
     uploadedAnalyses: storedUploadsSchema('uploadedAnalyses', 'analysis', 'analyses', MAX_UPLOADED_ANALYSES),
     uploadedTransforms: storedUploadsSchema('uploadedTransforms', 'transform', 'transforms', MAX_UPLOADED_TRANSFORMS),
+    uploadedToolkit: uploadedToolkitSchema,
   }),
   assets: z.union(
     [
@@ -365,6 +405,11 @@ export function readProjectFile(input: unknown): ProjectResult<ProjectFileV2> {
   });
   if (!seen.has(data.activeScenarioId)) {
     issues.push(projectIssue(['activeScenarioId'], 'unknown-active-scenario', `active scenario "${data.activeScenarioId}" is not one of the project's scenarios`));
+  }
+
+  const uploaded = data.settings.uploadedToolkit;
+  if (uploaded !== undefined && data.toolkit?.id !== uploaded.name) {
+    issues.push(projectIssue(['settings', 'uploadedToolkit', 'name'], 'schema', `the uploaded toolkit "${uploaded.name}" is not the project's toolkit (${data.toolkit === null ? 'none' : `"${data.toolkit.id}"`})`));
   }
 
   let attributes: unknown | null = null;
@@ -483,6 +528,7 @@ const canonicalSettings = (settings: {
   readonly analyses?: readonly string[] | undefined;
   readonly uploadedAnalyses?: readonly StoredUpload[] | undefined;
   readonly uploadedTransforms?: readonly StoredUpload[] | undefined;
+  readonly uploadedToolkit?: StoredToolkit | undefined;
 }): ProjectSettings => ({
   display: canonicalDefaults(settings.display),
   ...(settings.calculatedFields !== undefined && { calculatedFields: [...settings.calculatedFields] }),
@@ -495,6 +541,15 @@ const canonicalSettings = (settings: {
   }),
   ...(settings.uploadedTransforms !== undefined && {
     uploadedTransforms: settings.uploadedTransforms.map((u) => ({ id: u.id, fileName: u.fileName, source: u.source, addedAt: u.addedAt })),
+  }),
+  ...(settings.uploadedToolkit !== undefined && {
+    uploadedToolkit: {
+      name: settings.uploadedToolkit.name,
+      uploadedAt: settings.uploadedToolkit.uploadedAt,
+      files: [...settings.uploadedToolkit.files]
+        .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+        .map((f) => ('text' in f ? { path: f.path, text: f.text } : { path: f.path, base64: f.base64 })),
+    },
   }),
 });
 

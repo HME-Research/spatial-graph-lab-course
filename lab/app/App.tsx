@@ -18,6 +18,11 @@ import {
   functionColourResolver,
   functionNameResolver,
   functionClashes,
+  planToolkitAttach,
+  EMPTY_ATTRIBUTE_SCHEMA,
+  type ActiveToolkit,
+  type StoredToolkit,
+  type ToolkitAssetIo,
   type AttributeCollection,
   type ExtensionDiagnostic,
   type StoredUpload,
@@ -52,7 +57,7 @@ import {
   type AttributeSession,
   type KeyValueStorage,
 } from './session/projectAttributeStore';
-import { activeToolkitOf, readToolkitRequest, startToolkit, type ToolkitSession } from './session/toolkitSession';
+import { activeToolkitOf, loadUploadedToolkitCached, readToolkitRequest, startToolkit, uploadedToolkitSession, type ToolkitSession } from './session/toolkitSession';
 import { activeSession, activeSlot } from './session/projectStore';
 import { createProjectController, showsWelcome, type LeaveOptions } from './session/projectStoreController';
 import { createProjectCameraStore, createProjectDisplayStore } from './session/projectViewSettings';
@@ -68,8 +73,10 @@ import { FunctionClashNotice, type FunctionClashItem } from './attributes/Functi
 import { generateFunctionId, suffixedFunctionName } from './attributes/attributeList';
 import { ManageFunctionsContext } from './attributes/navigation';
 import { SIDEBAR_LABELS, SIDEBAR_SECTIONS } from '@app/ui/labels';
-import { createProject, openProjectText, openToolkitExample, openBuiltInExample, type FlowOutcome, type WelcomeHost } from './welcome/welcomeFlow';
-import { DEFAULT_PROJECT_NAME, exampleOptions, recentStateOf, toolkitLabel, type ExampleChoice, type RecentState } from './welcome/welcomeModel';
+import { createProject, openProjectText, openToolkitExample, openBuiltInExample, openUploadedToolkit, type FlowOutcome, type UploadedToolkitStart, type WelcomeHost } from './welcome/welcomeFlow';
+import { downloadToolkitZip, readToolkitZip, uploadedAssetLoader, type ToolkitZipRead } from './welcome/toolkitUpload';
+import { AddToolkitDialog, ToolkitProblems } from './welcome/ToolkitDialogs';
+import { DEFAULT_PROJECT_NAME, exampleOptions, recentStateOf, toolkitLabel, uploadedToolkitExamples, type ExampleChoice, type RecentState } from './welcome/welcomeModel';
 import { Workspace } from './Workspace';
 import { DESTINATION_PANELS } from '@app/workspace/panelSlots';
 import {
@@ -183,6 +190,12 @@ export function App() {
   const [displayStore] = useState(() => createProjectDisplayStore(controller));
   const openProject = cstate.project;
   const [failure, setFailure] = useState<LoadFailureState | null>(null);
+  /** Problems of an uploaded toolkit zip, or of adding a toolkit (2026-11-26): listed, nothing changed. */
+  const [toolkitProblems, setToolkitProblems] = useState<{ readonly source: string; readonly problems: readonly string[]; readonly title?: string } | null>(null);
+  /** The toolkit uploaded last in this tab (or the open project's): Open example… lists its designs. */
+  const [lastUpload, setLastUpload] = useState<UploadedToolkitStart | null>(null);
+  /** The Add a toolkit… dialog is open. */
+  const [addToolkitOpen, setAddToolkitOpen] = useState(false);
   const [recent, setRecent] = useState<RecentState>({ status: 'loading' });
   const [busy, setBusy] = useState<string | null>(null);
   const [toolkits] = useState(toolkitChoices);
@@ -231,6 +244,8 @@ export function App() {
   const uploadedAnalyses = openProject?.meta.settings.uploadedAnalyses;
   /** The student's uploaded transforms (`settings.uploadedTransforms`, 2026-11-25): source text, compiled by the Transform panel. */
   const uploadedTransforms = openProject?.meta.settings.uploadedTransforms;
+  /** The project's UPLOADED toolkit (`settings.uploadedToolkit`, 2026-11-26): its files, loaded like a repository toolkit. */
+  const uploadedToolkit = openProject?.meta.settings.uploadedToolkit;
   /** The project's imported façades (`assets`): drawn by the Building, managed in the Designer. */
   const storedAssets = openProject?.meta.assets;
   const facadeLibrary = useMemo(() => (storedAssets ? facadeLibraryOf(facadeAssetsOf(storedAssets)) : EMPTY_FACADE_LIBRARY), [storedAssets]);
@@ -275,9 +290,16 @@ export function App() {
     }
     let cancelled = false;
     setSession(null);
-    void startToolkit(TOOLKIT_GLOBS, { query: toolkitId, env: null }, builtInExample()).then((start) => {
+    // An UPLOADED toolkit (2026-11-26) is used instead of a repository toolkit of the same name.
+    const starting =
+      uploadedToolkit && uploadedToolkit.name === toolkitId
+        ? loadUploadedToolkitCached(uploadedToolkit).then((result) => ({ session: uploadedToolkitSession(uploadedToolkit, result, toolkits.ids) }))
+        : startToolkit(TOOLKIT_GLOBS, { query: toolkitId, env: null }, builtInExample());
+    void starting.then((start) => {
       if (cancelled) return;
       setSession(start.session);
+      const uploadedActive = uploadedToolkit && uploadedToolkit.name === toolkitId ? activeToolkitOf(start.session) : null;
+      if (uploadedToolkit && uploadedActive) setLastUpload({ stored: uploadedToolkit, toolkit: uploadedActive });
       // Without a toolkit the project's own registry: its functions and attributes work the same way.
       const active = activeToolkitOf(start.session) ?? (start.session.activation.status === 'none' ? projectOnlyToolkit(projectId) : null);
       setAttributeSaveError(null);
@@ -305,7 +327,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [projectId, toolkitId, controller, setAttributes]);
+  }, [projectId, toolkitId, uploadedToolkit, toolkits.ids, controller, setAttributes]);
 
   // A different project or scenario: per-design panels reset, selection and overlay cleared.
   const generation = `${projectId ?? '-'}:${scenarioId ?? '-'}`;
@@ -448,7 +470,10 @@ export function App() {
   );
 
   /** Open example…: the built-in example and every toolkit design (listed when the dialog opens). */
-  const loadExamples = useCallback(async () => exampleOptions(builtInExample().doc.metadata, await listToolkitExamples(TOOLKIT_GLOBS)), []);
+  const loadExamples = useCallback(
+    async () => exampleOptions(builtInExample().doc.metadata, [...(lastUpload ? uploadedToolkitExamples(lastUpload.toolkit) : []), ...(await listToolkitExamples(TOOLKIT_GLOBS))]),
+    [lastUpload],
+  );
 
   /**
    * Run a Welcome / Project Files action; failures are shown and never replace the open project.
@@ -498,7 +523,9 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
   const openExample = (choice: ExampleChoice) =>
     choice.kind === 'built-in'
       ? openBuiltIn()
-      : void runFlow('Opening the example…', (options) => openToolkitExample(host, choice.toolkitId, choice.designId, options));
+      : choice.uploaded && lastUpload
+        ? openUpload(lastUpload, choice.designId)
+        : void runFlow('Opening the example…', (options) => openToolkitExample(host, choice.toolkitId, choice.designId, options));
   /**
    * Create project (Welcome) and New project (Project panel): a clean project straight away, named
    * "Untitled project" (rename it in Project) with the chosen toolkit; no name form in between
@@ -509,6 +536,92 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
    */
   const startNewProject = (toolkitId: string | null) =>
     void runFlow('Creating the project…', (options) => createProject(host, DEFAULT_PROJECT_NAME, toolkitId, options));
+
+  // ── Uploaded toolkits (owner 2026-11-26) ──
+  /** Read and load a chosen toolkit zip; problems are listed (nothing changes). */
+  const readUpload = async (file: File): Promise<ToolkitZipRead | null> => {
+    setBusy('Loading the toolkit…');
+    setToolkitProblems(null);
+    try {
+      const read = await readToolkitZip(new Uint8Array(await file.arrayBuffer()), file.name);
+      if (!read.ok) setToolkitProblems({ source: file.name, problems: read.problems });
+      return read;
+    } catch (error) {
+      setToolkitProblems({ source: file.name, problems: [`The file could not be read: ${error instanceof Error ? error.message : String(error)}`] });
+      return null;
+    } finally {
+      setBusy(null);
+    }
+  };
+  const importFacade: ToolkitAssetIo['importFile'] = async (bytes, fileName) => (await import('@app/assets/rhino/browser')).importFacadeFile(bytes, fileName, { outward: '-y' });
+  /** Open an uploaded toolkit as a NEW project: design `designId`, else its default design, else an empty graph. */
+  const openUpload = (start: UploadedToolkitStart, designId: string | null) => {
+    setLastUpload(start);
+    void runFlow('Opening the toolkit…', (options) => openUploadedToolkit(host, start, designId, uploadedAssetLoader(start.stored, importFacade), options));
+  };
+  /** Welcome › Upload toolkit (.zip): a new project with that toolkit. */
+  const uploadToolkit = async (file: File) => {
+    const read = await readUpload(file);
+    if (read?.ok) openUpload(read.start, null);
+  };
+  /**
+   * Project › Upload toolkit (.zip): a new version of the project's own uploaded toolkit (same name)
+   * replaces it after a confirmation; any other toolkit opens as a new project.
+   */
+  const uploadToolkitInProject = async (file: File) => {
+    const read = await readUpload(file);
+    if (!read?.ok) return;
+    const open = controller.getState().project;
+    const { stored, toolkit } = read.start;
+    if (open?.meta.settings.uploadedToolkit && open.meta.toolkit?.id === stored.name) {
+      const replace = window.confirm(
+        `Replace the toolkit “${toolkit.definition.name}” (${stored.name}) of this project with the version in ${file.name}?\n\nRooms, attributes and settings stay. This cannot be undone: Download toolkit (.zip) first if you want to keep the old version.`,
+      );
+      if (!replace) return;
+      const outcome = controller.setUploadedToolkit(stored);
+      if (!outcome.ok) setToolkitProblems({ source: file.name, problems: [outcome.message] });
+      else setLastUpload(read.start);
+      return;
+    }
+    if (open && !window.confirm(`${file.name} holds the toolkit “${toolkit.definition.name}” (${stored.name}), which is not this project's toolkit.\n\nOpen it as a new project? (This project stays in this browser.)`)) return;
+    openUpload(read.start, null);
+  };
+  /** Add a toolkit to the open project, which has none: check, confirm, then attach (validated by the store). */
+  const attachChecked = (toolkit: ActiveToolkit, stored?: StoredToolkit) => {
+    const open = controller.getState().project;
+    if (!open || open.meta.toolkit !== null) return;
+    const designs = open.scenarios.map((s) => currentDocument(s.session).design);
+    const plan = planToolkitAttach(toolkit, attributes ? currentSchema(attributes) : EMPTY_ATTRIBUTE_SCHEMA, designs, open.meta.settings.functions ?? []);
+    const source = stored ? `${stored.name}.zip` : `toolkits/${toolkit.id}`;
+    if (!plan.ok) {
+      setToolkitProblems({ source, problems: plan.problems, title: `The toolkit “${toolkit.definition.name}” cannot be added to this project.` });
+      return;
+    }
+    if (!window.confirm(`Add the toolkit “${toolkit.definition.name}” to “${open.meta.name}”?\n\n${plan.changes.map((c) => `• ${c}`).join('\n')}`)) return;
+    const outcome = controller.attachToolkit({ toolkitId: toolkit.id, attributes: plan.attributes, ...(stored && { uploaded: stored }) });
+    if (!outcome.ok) setToolkitProblems({ source, problems: [outcome.message] });
+    else if (stored) setLastUpload({ stored, toolkit });
+  };
+  const attachRepositoryToolkit = async (toolkitId: string) => {
+    setAddToolkitOpen(false);
+    setBusy('Loading the toolkit…');
+    try {
+      const start = await startToolkit(TOOLKIT_GLOBS, { query: toolkitId, env: null }, builtInExample());
+      const active = activeToolkitOf(start.session);
+      if (!active) {
+        setToolkitProblems({ source: `toolkits/${toolkitId}`, problems: (start.session.activation.status === 'failed' ? start.session.activation.diagnostics : []).map((d) => d.message) });
+        return;
+      }
+      attachChecked(active);
+    } finally {
+      setBusy(null);
+    }
+  };
+  const attachUploadedToolkit = async (file: File) => {
+    setAddToolkitOpen(false);
+    const read = await readUpload(file);
+    if (read?.ok) attachChecked(read.start.toolkit, read.start.stored);
+  };
 
   /**
    * Validate and apply one command to the active scenario; one history step, a no-op none. Design
@@ -677,7 +790,12 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
     openLeft('attributes');
   };
 
-  const failureView = failure && <LoadFailure failure={failure} kept={openProject !== null} onDismiss={() => setFailure(null)} />;
+  const failureView = (failure || toolkitProblems) && (
+    <>
+      {failure && <LoadFailure failure={failure} kept={openProject !== null} onDismiss={() => setFailure(null)} />}
+      {toolkitProblems && <ToolkitProblems {...toolkitProblems} kept={openProject !== null} onDismiss={() => setToolkitProblems(null)} />}
+    </>
+  );
 
   return (
     <ProjectControllerContext.Provider value={controller}>
@@ -705,10 +823,11 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                 title={
                   toolkitId === null
                     ? 'This project uses no toolkit (built-in types only)'
-                    : `Toolkit: toolkits/${toolkitId}${session !== null && activeToolkit === null ? ' (could not be loaded; see Project → Advanced)' : ''}`
+                    : `Toolkit: ${uploadedToolkit?.name === toolkitId ? `${toolkitId} (uploaded as a zip; saved in the project file)` : `toolkits/${toolkitId}`}${session !== null && activeToolkit === null ? ' (could not be loaded; see Project → Advanced)' : ''}`
                 }
               >
                 {toolkitId === null ? 'No toolkit' : activeToolkit?.id === toolkitId ? activeToolkit.definition.name : toolkitLabel(toolkitId)}
+                {toolkitId !== null && uploadedToolkit?.name === toolkitId && ' (uploaded)'}
               </span>
               <span className="sgl-identity-sep" aria-hidden="true">
                 /
@@ -780,6 +899,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
               onOpenFile={openFile}
               loadExamples={loadExamples}
               onOpenExample={openExample}
+              onUploadToolkit={(file) => void uploadToolkit(file)}
               onRestore={(id) =>
                 void runFlow('Opening…', async (options) => {
                   const r = await controller.restore(id, options);
@@ -793,6 +913,9 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
           ) : (
             <>
               {failureView}
+              {addToolkitOpen && (
+                <AddToolkitDialog toolkits={toolkitOptions} onChoose={(id) => void attachRepositoryToolkit(id)} onUpload={(file) => void attachUploadedToolkit(file)} onCancel={() => setAddToolkitOpen(false)} />
+              )}
               <WorkspaceServicesContext.Provider value={services}>
                 {/* Saved cameras and Display of the ACTIVE scenario, persisted in the project file (autosaved, not undoable). */}
                 <SavedCamerasProvider scenarioId={scenarioId ?? ''} store={cameraStore}>
@@ -828,7 +951,7 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                       project: (
                           <ProjectPanel
                             // Keyed by project: no draft name or Save As dialog carries over to another project.
-                            overview={<ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} toolkits={toolkitOptions} defaultToolkitId={toolkits.defaultId} onNew={startNewProject} onOpenFile={openFile} loadExamples={loadExamples} onOpenExample={openExample} busy={busy} />}
+                            overview={<ProjectFiles key={`files:${projectId ?? '-'}`} controller={controller} toolkits={toolkitOptions} defaultToolkitId={toolkits.defaultId} onNew={startNewProject} onOpenFile={openFile} loadExamples={loadExamples} onOpenExample={openExample} busy={busy} toolkit={{ name: toolkitId, uploaded: uploadedToolkit !== undefined && uploadedToolkit.name === toolkitId }} onUploadToolkit={(file) => void uploadToolkitInProject(file)} {...(uploadedToolkit && { onDownloadToolkit: () => void downloadToolkitZip(uploadedToolkit).catch((error: unknown) => setToolkitProblems({ source: `${uploadedToolkit.name}.zip`, title: "The toolkit could not be downloaded.", problems: [error instanceof Error ? error.message : String(error)] })) })} {...(toolkitId === null && { onAddToolkit: () => { setToolkitProblems(null); setAddToolkitOpen(true); } })} />}
                             session={session}
                             docLoaded={doc !== null}
                             source={current?.source ?? null}

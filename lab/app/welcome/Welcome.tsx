@@ -3,6 +3,8 @@ import { domFocusScope, handleDialogKeyDown } from '@app/ui/concepts/dialogKeys'
 import { TUTORIAL_URL, useGuide } from '@app/ui/guide';
 import { ToolkitPicker, type ToolkitOption } from './ToolkitPicker';
 import { OpenExampleDialog } from './OpenExampleDialog';
+import { UPLOAD_TOOLKIT_LABEL } from './toolkitUpload';
+import { chosenFile } from './ToolkitDialogs';
 import { recentRows, type ExampleChoice, type ExampleOption, type RecentState } from './welcomeModel';
 import './welcome.css';
 
@@ -27,6 +29,11 @@ export interface WelcomeProps {
    */
   readonly loadExamples?: () => Promise<readonly ExampleOption[]>;
   readonly onOpenExample?: (choice: ExampleChoice) => void;
+  /**
+   * Upload toolkit (.zip) (owner 2026-11-26): a toolkit folder zipped (e.g. by a chat assistant)
+   * opens as a NEW project with that toolkit. Absent: the button is not shown.
+   */
+  readonly onUploadToolkit?: (file: File) => void;
   readonly onRestore: (projectId: string) => void;
   /** Explicit user decision, confirmed here: delete an unreadable stored record (a copy is kept aside). */
   readonly onDiscardUnreadable: (projectId: string) => void;
@@ -53,6 +60,7 @@ export function Welcome({
   onOpenFile,
   loadExamples,
   onOpenExample,
+  onUploadToolkit,
   onRestore,
   onDiscardUnreadable,
 }: WelcomeProps) {
@@ -178,6 +186,22 @@ export function Welcome({
                   <span className="sgl-welcome-action-title">Open example…</span>
                   <span className="sgl-welcome-action-sub">The example house or a toolkit’s designs</span>
                 </button>
+              )}
+              {onUploadToolkit && (
+                <label className={`sgl-welcome-action file-button${disabled ? ' is-disabled' : ''}`} data-upload-toolkit>
+                  <span className="sgl-welcome-action-title">{UPLOAD_TOOLKIT_LABEL}</span>
+                  <span className="sgl-welcome-action-sub">Your own toolkit, zipped, as a new project</span>
+                  <input
+                    type="file"
+                    accept=".zip,application/zip"
+                    disabled={disabled}
+                    aria-label={UPLOAD_TOOLKIT_LABEL}
+                    onChange={(e) => {
+                      const file = chosenFile(e);
+                      if (file) onUploadToolkit(file);
+                    }}
+                  />
+                </label>
               )}
             </div>
             {toolkits.length > 0 && <ToolkitPicker toolkits={toolkits} value={toolkitId} onChange={setToolkitId} disabled={disabled} />}
