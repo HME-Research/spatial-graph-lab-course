@@ -161,6 +161,29 @@ git push
    With GitHub Desktop instead: *Current branch › New branch* `toolkit/<your-toolkit-name>`, then send it to GitHub from the terminal with the `git commit --allow-empty …` and `git push -u …` lines above (Desktop cannot make an empty commit); copy the folder, commit only your toolkit's files, then *Push origin*.
 4. If a check fails, copy the **whole** message back into the chat and ask it to fix exactly that. Replace the changed files, check again, commit and push again (`git push`).
 
+### Route C — a chat assistant, uploaded in the app (no Git, no repository)
+
+Everything happens in the browser; the tutorial page *Exercise 2 in the browser: your own toolkit* (`tutorial/06-toolkit-in-the-browser.html`) shows every step.
+
+1. Download the **toolkit kit** (as in Route B, or **Guide › Toolkits & JSON › Make your own toolkit › Upload in the app**), attach it to a new chat and send this prompt (fill in the blanks):
+
+<!-- prompt:browser -->
+```
+Rules: write only the files of my toolkit folder <your-toolkit-name>/. Import only from @student-api and from files in that folder, and use no packages.
+I've attached the Spatial Graph Lab toolkit kit. Read PROMPT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write my toolkit following it exactly. The folder name is exactly my toolkit name.
+I will upload it in the app with Upload toolkit (.zip), not put it in a repository: give me ONE zip, <your-toolkit-name>.zip, with the folder <your-toolkit-name>/ inside it and toolkit.ts directly inside that folder.
+
+Toolkit name: ___
+My idea: ___
+Functions (and their attributes): ___
+Algorithms: ___
+Example design: ___
+```
+<!-- /prompt -->
+
+2. In the app: **Upload toolkit (.zip)** on the Welcome screen. A new project opens with your toolkit. If the app lists problems, paste them all back into the chat, ask it to fix exactly those and give the whole folder again as one zip, then upload the new zip (**Project › Toolkit › Upload toolkit (.zip)** replaces the same toolkit after a confirm).
+3. Try it (**Open example…**, **Analyse**, **Transform**), keep it with **Project › Export project** (the toolkit is saved inside the project file), and hand in the zip from **Project › Toolkit › Download toolkit (.zip)** (`<your-toolkit-name>.zip`, with `<your-toolkit-name>/toolkit.ts` directly inside).
+
 ### Later changes
 
 Stay on your branch (`git switch toolkit/<your-toolkit-name>`), change files, check, then `git add toolkits/<your-toolkit-name>`, `git commit -m "feat(<your-toolkit-name>): …"` and `git push`. In Route B, send the chat the files you changed (or the whole folder as a zip) so it works on the current version. Pushed from another computer? `git pull --no-rebase --no-edit` first. When the course updates the app: commit your work, then, on your branch, `git pull --no-rebase --no-edit origin main` (fetches `main` from GitHub and merges it into the branch you are on; `--no-edit` keeps git from opening an editor), `npm ci`, run the checks and `git push`.

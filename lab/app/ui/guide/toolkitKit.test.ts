@@ -1,3 +1,5 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { activate, checkConformance, runAlgorithmV2, type ActiveToolkit } from '@app/extensions';
 import { fakeGlobs } from '@app/extensions/test-fixtures';
@@ -10,7 +12,8 @@ import firstDesign from '../../../docs/templates/toolkit/my-toolkit/designs/firs
 import toolkitsGuide from '../../../docs/TOOLKITS.md?raw';
 import kitPrompt from '../../../docs/ai-kit/toolkit/PROMPT.md?raw';
 import { buildKit, kitFileName, STARTER_TOOLKIT_FILES, TOOLKIT_KIT_FILES } from './aiKits';
-import { TOOLKIT_AGENT_PROMPT_GUIDE, TOOLKIT_CHAT_COMMANDS, TOOLKIT_CHAT_PROMPT_GUIDE } from './aiPrompt';
+import { TOOLKIT_AGENT_PROMPT_GUIDE, TOOLKIT_BROWSER_PROMPT_GUIDE, TOOLKIT_CHAT_COMMANDS, TOOLKIT_CHAT_PROMPT_GUIDE } from './aiPrompt';
+import { BROWSER_TUTORIAL_PAGE, ToolkitKitTabs, type ToolkitKitTabId } from './ToolkitKitTabs';
 import { GUIDE_CONTENT } from './content';
 
 /**
@@ -128,10 +131,35 @@ describe('Guide › Make your own toolkit', () => {
     expect(TOOLKIT_AGENT_PROMPT_GUIDE.text).toBe(fenced('prompt:agent'));
     expect(TOOLKIT_CHAT_PROMPT_GUIDE.text).toBe(fenced('prompt:chat'));
     expect(TOOLKIT_CHAT_COMMANDS).toBe(fenced('commands:chat'));
+    expect(TOOLKIT_BROWSER_PROMPT_GUIDE.text).toBe(fenced('prompt:browser'));
+  });
+
+  const render = (tab: ToolkitKitTabId) => renderToStaticMarkup(createElement(ToolkitKitTabs, { initialTab: tab }));
+
+  it('has three tabs: Coding agent, Chat assistant, Upload in the app (2026-11-26)', () => {
+    const html = render('agent');
+    expect([...html.matchAll(/role="tab"[^>]*>([^<]+)<\/button>/g)].map((m) => m[1])).toEqual(['Coding agent', 'Chat assistant', 'Upload in the app']);
+    expect(html).toContain('data-toolkit-kit-tab="agent"');
+    expect(render('chat')).toContain('data-toolkit-commands=""');
+  });
+
+  it('Upload in the app: the toolkit kit, the browser prompt (one zip), then Upload toolkit (.zip) on the Welcome screen or in Project; no git', () => {
+    const html = render('upload');
+    expect(html).toContain('data-toolkit-kit-tab="upload"');
+    expect(html).toMatch(/role="tab"[^>]*aria-selected="true"[^>]*>Upload in the app</);
+    expect(html).toContain('data-download="spatial-graph-lab-toolkit-kit.zip"');
+    const text = html.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+    expect(text).toContain(TOOLKIT_BROWSER_PROMPT_GUIDE.text);
+    const steps = /data-toolkit-upload-steps="">([\s\S]*?)<\/p>/.exec(html)?.[1] ?? '';
+    for (const words of ['Upload toolkit (.zip)', 'Welcome screen', 'Project › Toolkit', 'Project › Export project', 'Download toolkit (.zip)']) expect(steps).toContain(words);
+    expect(html).toContain(`href="${BROWSER_TUTORIAL_PAGE}"`);
+    expect(BROWSER_TUTORIAL_PAGE).toBe('/tutorial/06-toolkit-in-the-browser.html');
+    expect(html).not.toContain('data-toolkit-commands');
+    expect(text).not.toMatch(/git (switch|push|commit)/);
   });
 
   it('never tells a student to push main', () => {
-    for (const text of [TOOLKIT_AGENT_PROMPT_GUIDE.text, TOOLKIT_CHAT_PROMPT_GUIDE.text, TOOLKIT_CHAT_COMMANDS, toolkitsGuide, kitPrompt]) {
+    for (const text of [TOOLKIT_AGENT_PROMPT_GUIDE.text, TOOLKIT_CHAT_PROMPT_GUIDE.text, TOOLKIT_BROWSER_PROMPT_GUIDE.text, TOOLKIT_CHAT_COMMANDS, toolkitsGuide, kitPrompt]) {
       // The command itself (up to a closing backtick or the line end) never names main.
       expect(text).not.toMatch(/git push[^`\n]*\bmain\b/);
     }

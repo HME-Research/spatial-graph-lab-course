@@ -61,6 +61,27 @@ function tutorialPages(): Plugin {
           '<meta http-equiv="refresh" content="0; url=01-start-here.html">' +
           '<a href="01-start-here.html">Open the tutorial</a>\n',
       });
+      // Pages renumbered when "Exercise 2 in the browser" became page 06 (owner 2026-11-26): the
+      // hosted app keeps the old addresses working with a redirect (build only, as above).
+      const moved: Record<string, string> = {
+        '06-about-the-repository': '07-about-the-repository',
+        '07-install-the-tools': '08-install-the-tools',
+        '08-clone-the-repository': '09-clone-the-repository',
+        '09-make-your-branch': '10-make-your-branch',
+        '10-toolkit-with-a-coding-agent': '11-toolkit-with-a-coding-agent',
+        '11-toolkit-with-a-chat-assistant': '12-toolkit-with-a-chat-assistant',
+        '12-hand-in': '13-hand-in',
+        '13-keep-working-and-update': '14-keep-working-and-update',
+        '14-git-basics': '15-git-basics',
+        '15-help': '16-help',
+      };
+      for (const [from, to] of Object.entries(moved)) {
+        this.emitFile({
+          type: 'asset',
+          fileName: `tutorial/${from}.html`,
+          source: `<!doctype html><meta charset="utf-8"><title>Moved</title><meta http-equiv="refresh" content="0; url=${to}.html"><a href="${to}.html">This page moved</a>\n`,
+        });
+      }
     },
   };
 }

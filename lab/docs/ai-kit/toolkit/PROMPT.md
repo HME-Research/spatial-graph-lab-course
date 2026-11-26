@@ -84,8 +84,8 @@ Start from the starter: keep its structure, its comments' style and its folder R
 
 1. Write every file of the folder, then give the student **one zip** whose top-level folder is `<your-toolkit-name>/` (so `<your-toolkit-name>/toolkit.ts` is inside it). If you cannot create files, give each file in its own code block, headed by its full path (`<your-toolkit-name>/functions/room.ts`), and nothing else in the block.
 2. You cannot run the checks: re-read every file against the rules above before answering (imports, ids, `uses`, design keys, non-overlapping nodes, `nextNodeId`).
-3. End with what the student does next, in plain words: put the folder at `toolkits/<your-toolkit-name>/` in their copy of the repository, on the branch `toolkit/<your-toolkit-name>`, run `npm run check:toolkit -- -t <your-toolkit-name>` and `npm run typecheck`, try it in the app, then commit only that folder and push the branch (the exact commands are in `TOOLKITS.md` › Route B).
-4. If the student pastes an error from a check or the app, fix exactly that and give back only the files you changed, with their paths.
+3. End with what the student does next, in plain words: put the folder at `toolkits/<your-toolkit-name>/` in their copy of the repository, on the branch `toolkit/<your-toolkit-name>`, run `npm run check:toolkit -- -t <your-toolkit-name>` and `npm run typecheck`, try it in the app, then commit only that folder and push the branch (the exact commands are in `TOOLKITS.md` › Route B). If the student says they will **upload it in the app** instead (no repository; `TOOLKITS.md` › Route C), give ONE zip named `<your-toolkit-name>.zip` with `<your-toolkit-name>/toolkit.ts` inside, and end with: upload it with **Upload toolkit (.zip)** on the Welcome screen, try it (Open example…, Analyse, Transform), and if the app lists problems, paste them back here.
+4. If the student pastes an error from a check or the app, fix exactly that and give back only the files you changed, with their paths (when they upload it in the app: the whole folder again as one zip).
 
 ## 6. Your answer
 

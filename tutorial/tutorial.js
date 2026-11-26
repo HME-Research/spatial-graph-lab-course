@@ -7,7 +7,7 @@
 // Every access to localStorage is wrapped in try/catch: the pages work without it.
 (function () {
   'use strict';
-  var NAME_KEY = 'sgl-tutorial-toolkit-name'; // the toolkit name made on page 09, e.g. u123-hk-house
+  var NAME_KEY = 'sgl-tutorial-toolkit-name'; // the toolkit name made on page 06 or 10, e.g. u123-hk-house
   var NAMER_KEY = 'sgl-tutorial-namer'; // { number (last 3 digits only), initials, name }
   var OS_KEY = 'sgl-tutorial-os';
   var CHECK_KEY = 'sgl-tutorial-setup';
@@ -136,7 +136,7 @@
       var at = cut.lastIndexOf('-');
       full = at > 6 + a.length ? cut.slice(0, at) : full.slice(0, MAX_NAME).replace(/-+$/, '');
     }
-    return { name: full, ok: true, message: 'Your toolkit name is ' + full + '. The commands on this page use it.' };
+    return { name: full, ok: true, message: 'Your toolkit name is ' + full + '. The commands and prompts on this page use it.' };
   }
   /** A gentle hint: a toolkit name that repeats the initials. */
   function nameWarnings(initials, name) {
@@ -189,7 +189,7 @@
     if (window.sglBuildPrompts) window.sglBuildPrompts();
   }
 
-  // The name form (page 09 only).
+  // The name form (pages 06 and 10; both share NAMER_KEY and NAME_KEY).
   function setUpNamers() {
     var stored = getJson(NAMER_KEY);
     each('[data-namer]', function (box) {

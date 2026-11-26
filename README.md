@@ -16,19 +16,20 @@ You draw rooms (nodes) and their relationships (edges); the app shows the same d
 |---|---|---|
 | Design, analyse and transform in the app | a browser | [2. About the app](tutorial/02-about-the-app.html), [3. Use the app](tutorial/03-use-the-app.html) |
 | Write your own analysis or transform (Exercise 1) and upload it | a browser and an AI chat | [4. Your own analysis](tutorial/04-your-own-analysis.html), [5. Exercise 1: your own transform](tutorial/05-your-own-transform.html) |
-| Make your own toolkit (Exercise 2) | this repository on your computer, and an AI assistant | [6. About the repository](tutorial/06-about-the-repository.html) to [13. Keep working](tutorial/13-keep-working-and-update.html) |
+| Make your own toolkit (Exercise 2) in the browser, no Git | a browser and an AI chat | [6. Exercise 2 in the browser](tutorial/06-toolkit-in-the-browser.html) |
+| Make your own toolkit (Exercise 2) in the repository | this repository on your computer, and an AI assistant | [7. About the repository](tutorial/07-about-the-repository.html) to [14. Keep working](tutorial/14-keep-working-and-update.html) |
 
 ## The one rule
 
-You work **only** in your own folder **`toolkits/<your-toolkit-name>/`**, on your own branch **`toolkit/<your-toolkit-name>`**. Your toolkit name is like `u123-hk-house`: `u`, the last 3 digits of your student number, your initials and a short name ([tutorial page 9](tutorial/09-make-your-branch.html)). Never change anything else: `lab/` is the app itself, `toolkits/house/` is the House example, and the files at the root set up the build. Never commit to `main`. A check on GitHub flags any branch that changes files outside its toolkit folder.
+You work **only** in your own folder **`toolkits/<your-toolkit-name>/`**, on your own branch **`toolkit/<your-toolkit-name>`**. Your toolkit name is like `u123-hk-house`: `u`, the last 3 digits of your student number, your initials and a short name ([tutorial page 10](tutorial/10-make-your-branch.html)). Never change anything else: `lab/` is the app itself, `toolkits/house/` is the House example, and the files at the root set up the build. Never commit to `main`. A check on GitHub flags any branch that changes files outside its toolkit folder.
 
 Using a coding agent (Claude Code, Codex, Copilot, Cursor…)? It reads [`AGENTS.md`](AGENTS.md), which gives it the same rules.
 
 ## Get it on your computer
 
-You need [Git](https://git-scm.com/downloads), [Node.js](https://nodejs.org/) 22.12 or newer and [VS Code](https://code.visualstudio.com/) ([tutorial page 7](tutorial/07-install-the-tools.html)).
+You need [Git](https://git-scm.com/downloads), [Node.js](https://nodejs.org/) 22.12 or newer and [VS Code](https://code.visualstudio.com/) ([tutorial page 8](tutorial/08-install-the-tools.html)).
 
-Clone it into your repositories folder, `source/repos` in your home folder (make the folder first if it is missing; [tutorial page 8](tutorial/08-clone-the-repository.html) shows how, and how to clone from VS Code instead).
+Clone it into your repositories folder, `source/repos` in your home folder (make the folder first if it is missing; [tutorial page 9](tutorial/09-clone-the-repository.html) shows how, and how to clone from VS Code instead).
 
 Windows, in Command Prompt:
 

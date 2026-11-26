@@ -107,7 +107,7 @@ export const TRANSFORM_PROJECT_PROMPT_GUIDE: GuidePromptGuide = {
 
 // ── Toolkit kit (2026-11-24) ────────────────────────────────────────────────────────────────
 // The starting texts and the git commands are also in lab/docs/TOOLKITS.md, word for word (between
-// `<!-- prompt:agent -->`, `<!-- prompt:chat -->`, `<!-- commands:chat -->` markers;
+// `<!-- prompt:agent -->`, `<!-- prompt:chat -->`, `<!-- commands:chat -->`, `<!-- prompt:browser -->` markers;
 // toolkitKit.test.ts keeps them identical).
 
 const TOOLKIT_BLANKS = ['', 'Toolkit name: ___', 'My idea: ___', 'Functions (and their attributes): ___', 'Algorithms: ___', 'Example design: ___'];
@@ -141,6 +141,31 @@ export const TOOLKIT_CHAT_PROMPT_GUIDE: GuidePromptGuide = {
     ...TOOLKIT_BLANKS,
   ].join('\n'),
   tips: [TOOLKIT_EXAMPLE, 'If a check or the app shows an error, paste the whole message back into the chat and ask it to fix exactly that.'],
+};
+
+/**
+ * Route C (2026-11-26): a chat assistant with the toolkit kit attached, and the result uploaded in
+ * the app (Upload toolkit (.zip)): no Git, no repository. Asks for ONE zip `<your-toolkit-name>.zip`
+ * with `<your-toolkit-name>/toolkit.ts` directly inside the folder (the hand-in shape). Also in
+ * lab/docs/TOOLKITS.md (`<!-- prompt:browser -->`) and tutorial/06-toolkit-in-the-browser.html, word for word.
+ */
+export const TOOLKIT_BROWSER_PROMPT_GUIDE: GuidePromptGuide = {
+  title: 'How to write your prompt',
+  parts: [
+    { label: '1. Rules, then the ask', text: 'the rules come first (only your toolkit folder, only @student-api, no packages), then ask the assistant to read the kit, ask you its questions, and give you ONE zip to upload in the app (the first three lines below).' },
+    { label: '2. Toolkit name', text: 'the name of your folder and your zip: u, the last 3 digits of your student number, your initials and a short name, lowercase and joined with -, e.g. u123-hk-house.' },
+    ...TOOLKIT_PARTS.slice(1),
+  ],
+  text: [
+    'Rules: write only the files of my toolkit folder <your-toolkit-name>/. Import only from @student-api and from files in that folder, and use no packages.',
+    "I've attached the Spatial Graph Lab toolkit kit. Read PROMPT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write my toolkit following it exactly. The folder name is exactly my toolkit name.",
+    'I will upload it in the app with Upload toolkit (.zip), not put it in a repository: give me ONE zip, <your-toolkit-name>.zip, with the folder <your-toolkit-name>/ inside it and toolkit.ts directly inside that folder.',
+    ...TOOLKIT_BLANKS,
+  ].join('\n'),
+  tips: [
+    TOOLKIT_EXAMPLE,
+    'Upload the zip with Upload toolkit (.zip) on the Welcome screen. If the app lists problems, paste them all back into the chat, ask it to fix exactly those and give the whole folder again as one zip, then upload the new zip in Project › Toolkit.',
+  ],
 };
 
 /** Route B: make the branch, put the folder in the repository, check it and push the branch (never main). */

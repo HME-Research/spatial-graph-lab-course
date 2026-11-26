@@ -1,27 +1,34 @@
 import { useState } from 'react';
 import { HorizontalTabs } from '../Tabs';
 import { KitDownload, PromptGuide } from './AiKitTabs';
-import { TOOLKIT_AGENT_PROMPT_GUIDE, TOOLKIT_CHAT_COMMANDS, TOOLKIT_CHAT_PROMPT_GUIDE } from './aiPrompt';
-import { TUTORIAL_URL } from './links';
+import { TOOLKIT_AGENT_PROMPT_GUIDE, TOOLKIT_BROWSER_PROMPT_GUIDE, TOOLKIT_CHAT_COMMANDS, TOOLKIT_CHAT_PROMPT_GUIDE } from './aiPrompt';
+import { TUTORIAL_URL, tutorialPage } from './links';
 
 /**
  * How to make your own toolkit with an AI assistant (owner 2026-11-24), shown in the Guide under
- * Toolkits & JSON › Make your own toolkit. Two tabs, one per way of working; both end with the
- * folder `toolkits/<your-toolkit-name>/` committed on the branch `toolkit/<your-toolkit-name>` and pushed (never
- * `main`, no Pull Request). Full text: lab/docs/TOOLKITS.md.
+ * Toolkits & JSON › Make your own toolkit. Three tabs, one per way of working. The first two end with
+ * the folder `toolkits/<your-toolkit-name>/` committed on the branch `toolkit/<your-toolkit-name>` and pushed (never
+ * `main`, no Pull Request); the third ends with a zip uploaded in the app (no Git). Full text: lab/docs/TOOLKITS.md.
  *
  * - **Coding agent**: the agent works in the repository (reads lab/docs/TOOLKITS.md and
  *   lab/docs/ai-kit/toolkit/PROMPT.md, runs the checks); the prompt to copy, and the kit as an optional download.
  * - **Chat assistant**: download the toolkit kit, the prompt to copy, then the commands that put
  *   the folder in place, check it and push the branch.
+ * - **Upload in the app** (2026-11-26): download the toolkit kit, the browser prompt to copy (it asks for ONE
+ *   zip `<your-toolkit-name>.zip`), then Upload toolkit (.zip) on the Welcome screen or in Project › Toolkit.
+ *   Step by step: tutorial/06-toolkit-in-the-browser.html.
  */
 
-export type ToolkitKitTabId = 'agent' | 'chat';
+export type ToolkitKitTabId = 'agent' | 'chat' | 'upload';
 
 const TABS = [
   { id: 'agent', label: 'Coding agent' },
   { id: 'chat', label: 'Chat assistant' },
+  { id: 'upload', label: 'Upload in the app' },
 ] as const;
+
+/** The tutorial page of the browser route (no Git). */
+export const BROWSER_TUTORIAL_PAGE = tutorialPage('06-toolkit-in-the-browser');
 
 export function ToolkitKitTabs({ initialTab = 'agent' }: { readonly initialTab?: ToolkitKitTabId }) {
   const [tab, setTab] = useState<ToolkitKitTabId>(initialTab);
@@ -29,7 +36,7 @@ export function ToolkitKitTabs({ initialTab = 'agent' }: { readonly initialTab?:
     <section className="sgl-aikits" data-toolkit-kit="">
       <p className="sgl-aikits-intro">
         Your toolkit is one folder, <code>toolkits/&lt;your-toolkit-name&gt;/</code>, on your own branch <code>toolkit/&lt;your-toolkit-name&gt;</code>; your toolkit
-        name is like <code>u123-hk-house</code>. Never commit to <code>main</code>. Every step, from installing Git to handing in:{' '}
+        name is like <code>u123-hk-house</code>. Never commit to <code>main</code>. No Git? Make it with a chat and upload it as a zip (Upload in the app). Every step, from installing Git to handing in:{' '}
         <a href={TUTORIAL_URL} target="_blank" rel="noopener">
           the step-by-step tutorial
         </a>
@@ -60,6 +67,26 @@ export function ToolkitKitTabs({ initialTab = 'agent' }: { readonly initialTab?:
             <KitDownload kind="toolkit" label="Toolkit kit (.zip)" />
             <PromptGuide guide={TOOLKIT_CHAT_PROMPT_GUIDE} />
             <Commands title="Put it in the repository and push your branch" text={TOOLKIT_CHAT_COMMANDS} />
+          </div>
+        )}
+        {tab === 'upload' && (
+          <div data-toolkit-kit-tab="upload">
+            <p className="sgl-help sgl-aikits-help">
+              No Git and no repository: a chat assistant writes your toolkit as one zip, and you upload it here. Attach the kit, send the prompt, answer its
+              questions and download <code>&lt;your-toolkit-name&gt;.zip</code>.
+            </p>
+            <KitDownload kind="toolkit" label="Toolkit kit (.zip)" />
+            <PromptGuide guide={TOOLKIT_BROWSER_PROMPT_GUIDE} />
+            <p className="sgl-help sgl-aikits-help" data-toolkit-upload-steps="">
+              Then <strong>Upload toolkit (.zip)</strong> on the Welcome screen (a new project opens with your toolkit) or in <strong>Project › Toolkit</strong> (a new
+              version of the same toolkit replaces it). Problems listed? Paste them into the chat and upload the new zip. Keep your work with{' '}
+              <strong>Project › Export project</strong> (the toolkit is saved inside it); <strong>Project › Toolkit › Download toolkit (.zip)</strong> gives the zip to
+              hand in. Step by step:{' '}
+              <a href={BROWSER_TUTORIAL_PAGE} target="_blank" rel="noopener">
+                Exercise 2 in the browser
+              </a>
+              .
+            </p>
           </div>
         )}
       </HorizontalTabs>
