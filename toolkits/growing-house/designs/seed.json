@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "Seed",
+    "description": "One seed cell: a Hall at [0, 0, 0], generation 0. Run Grow one generation › Apply again and again to grow a whole house, then Grow rooms to target area, Rate the rooms and What's missing."
+  },
+  "nextNodeId": 2,
+  "nextEdgeId": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "function": "hall",
+      "position": [0, 0, 0],
+      "size": [1, 1, 1],
+      "custom": {
+        "generation": 0
+      }
+    }
+  ],
+  "edges": [],
+  "diagram": {
+    "positions": {
+      "1": [0, 0]
+    }
+  },
+  "settings": {
+    "styleBy": "function",
+    "styles": {
+      "function": {
+        "groups": [
+          {
+            "value": "terrace",
+            "look": {
+              "walls": "open",
+              "roof": "none"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
