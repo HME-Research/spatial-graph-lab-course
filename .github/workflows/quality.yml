@@ -56,7 +56,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # A toolkit that is not found fails (lab/scripts/check-toolkit.mjs). A branch pushed only to
+      # reserve its id (no change in toolkits/<toolkit-id>/ yet) has nothing to check and stays green.
       - name: Check the toolkit
         env:
           BRANCH: ${{ github.ref_name }}
-        run: npm run check:toolkit -- -t "${BRANCH#toolkit/}"
+        run: |
+          id="${BRANCH#toolkit/}"
+          if git diff --quiet "$(git merge-base origin/main HEAD)" HEAD -- "toolkits/$id/"; then
+            echo "toolkits/$id/ has no changes on this branch yet (a branch pushed to reserve its id): nothing to check."
+            exit 0
+          fi
+          npm run check:toolkit -- -t "$id"

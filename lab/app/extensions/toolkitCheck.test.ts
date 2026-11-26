@@ -3,7 +3,7 @@ import { type DesignDocumentV2, validateDocumentV2 } from '@app/document';
 import exampleDesign from '../document/test-designs/two-storey.json';
 import { activateToolkit, type ActiveToolkit } from './activate';
 import { checkConformance } from './conformance';
-import { discoverToolkits } from './discover';
+import { discoverToolkits, TOOLKIT_ID_PATTERN } from './discover';
 import { TOOLKIT_GLOBS } from './toolkitGlobs';
 import { runAlgorithmV2 } from './run';
 import { designAssetIds, loadToolkitAssets, type ToolkitAssetIo } from './toolkitExamples';
@@ -22,7 +22,10 @@ const nodeAssetIo: ToolkitAssetIo = {
 /**
  * Toolkit check: every toolkit under toolkits/ is loaded exactly as the app loads it. Run it
  * for all toolkits with `npm run check:toolkit`, or for one with
- * `npm run check:toolkit -- -t my-toolkit`. It fails on anything the app would show as an error:
+ * `npm run check:toolkit -- -t my-toolkit` (lab/scripts/check-toolkit.mjs passes the id as
+ * SGL_CHECK_TOOLKIT, never as vitest's name filter: owner 2026-11-26). A requested toolkit that is
+ * not found fails with what to do (missing, toolkit.ts one folder too deep, a misnamed folder), and
+ * the folder well-formedness test always runs. It fails on anything the app would show as an error:
  * invalid toolkit/type/algorithm definitions, invalid designs, façade assets a design uses that no
  * file in `assets/` provides (imported as the app imports them), and algorithms that fail when run
  * with their default parameters on the toolkit's default design (or the built-in example).
@@ -42,13 +45,92 @@ function sampleInputs(definition: ActiveToolkit['algorithms'][number]['definitio
   );
 }
 
+const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
+/** The toolkit `npm run check:toolkit -- -t <id>` asks for (lab/scripts/check-toolkit.mjs), or null for all. */
+const requested = env['SGL_CHECK_TOOLKIT']?.trim() || null;
+
+/** Every file under toolkits/ (paths only: nothing is loaded), to explain a toolkit that was not found. */
+const TOOLKIT_FILES = Object.keys(import.meta.glob('/toolkits/*/**/*'));
+
+const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+/**
+ * Why the requested toolkit `id` is not among the `found` ones, in words a student can act on, or
+ * null when it was found. `files` are repository paths such as `/toolkits/house/toolkit.ts`.
+ */
+function requestedToolkitProblem(id: string, found: readonly string[], files: readonly string[]): string | null {
+  if (found.includes(id)) return null;
+  if (!TOOLKIT_ID_PATTERN.test(id)) {
+    return `"${id}" is not a valid toolkit id: use lowercase letters, digits and "-", starting with a letter (e.g. hk-small-library).`;
+  }
+  const paths = files.map((f) => f.replace(/^\//, ''));
+  const own = paths.filter((f) => f.startsWith(`toolkits/${id}/`));
+  const deeper = own.filter((f) => f.endsWith('/toolkit.ts')).sort((a, b) => a.length - b.length)[0];
+  if (deeper !== undefined) {
+    const inner = deeper.slice(0, -'toolkit.ts'.length);
+    return inner.split('/').length === 4
+      ? `toolkit.ts is one folder too deep: move the contents of ${inner} up one level, into toolkits/${id}/, and delete the empty ${inner} folder.`
+      : `toolkit.ts is in ${inner}, not directly in toolkits/${id}/: move the contents of ${inner} up into toolkits/${id}/.`;
+  }
+  if (own.length > 0) return `toolkits/${id}/ has no toolkit.ts directly inside it. The folder must be toolkits/${id}/ with toolkit.ts directly inside it.`;
+  const folders = [...new Set(paths.map((f) => f.split('/')[1]!))];
+  const similar = folders.find((folder) => folder !== id && slug(folder) === id);
+  if (similar !== undefined) {
+    return `No toolkit "${id}" was found, but there is a folder toolkits/${similar}/: rename it to exactly ${id} (lowercase letters, digits and "-").`;
+  }
+  return `No toolkit "${id}" was found. The folder must be toolkits/${id}/ with toolkit.ts directly inside it.${found.length > 0 ? ` Toolkits found: ${found.join(', ')}.` : ''}`;
+}
+
 describe('toolkits/ folders', () => {
   it('every toolkit folder is well-formed', () => {
     expect(lines(folderProblems)).toEqual([]);
   });
+
+  if (requested !== null) {
+    it(`the requested toolkit "${requested}" exists`, () => {
+      const problem = requestedToolkitProblem(requested, toolkits.map((p) => p.id), TOOLKIT_FILES);
+      if (problem !== null) throw new Error(problem);
+    });
+  }
 });
 
-describe.each(toolkits.map((p) => [p.id, p] as const))('toolkit "%s"', (_id, source) => {
+describe('check:toolkit -t <id>: a toolkit that is not found is explained', () => {
+  const house = ['/toolkits/house/toolkit.ts', '/toolkits/house/functions/bath.ts'];
+  it('found: no problem', () => {
+    expect(requestedToolkitProblem('house', ['house'], house)).toBeNull();
+  });
+  it('missing', () => {
+    expect(requestedToolkitProblem('hk-library', ['house'], house)).toBe(
+      'No toolkit "hk-library" was found. The folder must be toolkits/hk-library/ with toolkit.ts directly inside it. Toolkits found: house.',
+    );
+  });
+  it('toolkit.ts one folder too deep (a common unzip mistake)', () => {
+    const files = [...house, '/toolkits/hk-library/hk-library/toolkit.ts', '/toolkits/hk-library/hk-library/functions/room.ts'];
+    expect(requestedToolkitProblem('hk-library', ['house'], files)).toBe(
+      'toolkit.ts is one folder too deep: move the contents of toolkits/hk-library/hk-library/ up one level, into toolkits/hk-library/, and delete the empty toolkits/hk-library/hk-library/ folder.',
+    );
+  });
+  it('toolkit.ts two folders too deep', () => {
+    const files = [...house, '/toolkits/hk-library/download/hk-library/toolkit.ts'];
+    expect(requestedToolkitProblem('hk-library', ['house'], files)).toMatch(/^toolkit\.ts is in toolkits\/hk-library\/download\/hk-library\/, not directly in toolkits\/hk-library\//);
+  });
+  it('a folder without toolkit.ts', () => {
+    expect(requestedToolkitProblem('hk-library', ['house'], [...house, '/toolkits/hk-library/README.md'])).toMatch(/^toolkits\/hk-library\/ has no toolkit\.ts directly inside it/);
+  });
+  it('a misnamed folder', () => {
+    expect(requestedToolkitProblem('hk-library', ['house'], [...house, '/toolkits/HK-Library/toolkit.ts'])).toBe(
+      'No toolkit "hk-library" was found, but there is a folder toolkits/HK-Library/: rename it to exactly hk-library (lowercase letters, digits and "-").',
+    );
+    expect(requestedToolkitProblem('hk-library', ['house'], [...house, '/toolkits/hk library/toolkit.ts'])).toMatch(/there is a folder toolkits\/hk library\//);
+  });
+  it('an invalid id', () => {
+    expect(requestedToolkitProblem('HK-Library', ['house'], house)).toMatch(/^"HK-Library" is not a valid toolkit id/);
+  });
+});
+
+const checked = requested === null ? toolkits : toolkits.filter((p) => p.id === requested);
+
+describe.each(checked.map((p) => [p.id, p] as const))('toolkit "%s"', (_id, source) => {
   const activation = activateToolkit(source);
   const active = async (): Promise<ActiveToolkit> => {
     const result = await activation;
