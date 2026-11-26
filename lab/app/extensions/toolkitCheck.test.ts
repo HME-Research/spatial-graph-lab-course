@@ -28,7 +28,8 @@ const nodeAssetIo: ToolkitAssetIo = {
  * the folder well-formedness test always runs. It fails on anything the app would show as an error:
  * invalid toolkit/type/algorithm definitions, invalid designs, façade assets a design uses that no
  * file in `assets/` provides (imported as the app imports them), and algorithms that fail when run
- * with their default parameters on the toolkit's default design (or the built-in example).
+ * with their default parameters on the toolkit's default design (else its first valid design; with
+ * no design at all they are not run, and a note says so).
  * Design warnings (e.g. an invalid attribute value) are printed but do not fail the check,
  * because the app never refuses to load a design for them.
  */
@@ -133,11 +134,27 @@ interface CheckScript {
   requestedId(args: readonly string[]): string | null;
   resultLine(id: string | null, status: number): string;
   upperDrive(path: string): string;
+  noDesignNote(root: string, id: string): string | null;
 }
 const loadScript = async (): Promise<CheckScript> =>
   (await import(/* @vite-ignore */ new URL('../../scripts/check-toolkit.mjs', import.meta.url).href)) as CheckScript;
 
 describe('check:toolkit script (lab/scripts/check-toolkit.mjs, owner 2026-11-26)', () => {
+  it('says in one plain line when a toolkit has algorithms but no design yet (not a failure)', async () => {
+    const { noDesignNote } = await loadScript();
+    const node = (globalThis as unknown as { process: { getBuiltinModule(id: string): Record<string, (...args: never[]) => unknown> } }).process;
+    const nfs = node.getBuiltinModule('node:fs') as unknown as { mkdtempSync(p: string): string; mkdirSync(p: string, o: object): void; writeFileSync(p: string, t: string): void };
+    const os = node.getBuiltinModule('node:os') as unknown as { tmpdir(): string };
+    const root = nfs.mkdtempSync(`${os.tmpdir()}/sgl-note-`);
+    nfs.mkdirSync(`${root}/toolkits/x/algorithms`, { recursive: true });
+    nfs.mkdirSync(`${root}/toolkits/x/designs`, { recursive: true });
+    nfs.writeFileSync(`${root}/toolkits/x/algorithms/a.ts`, '');
+    nfs.writeFileSync(`${root}/toolkits/x/designs/README.md`, '');
+    expect(noDesignNote(root, 'x')).toMatch(/^Note: toolkits\/x\/designs\/ has no design yet, so the algorithms were checked but not run/);
+    nfs.writeFileSync(`${root}/toolkits/x/designs/first.json`, '{}');
+    expect(noDesignNote(root, 'x')).toBeNull();
+    expect(noDesignNote(root, 'no-such-toolkit')).toBeNull();
+  });
   it('ends with one clear PASSED or FAILED line (vitest also prints "N passed" when a test failed)', async () => {
     const { resultLine } = await loadScript();
     expect(resultLine('hk-small-library', 0)).toBe('PASSED: toolkit "hk-small-library" is ready.');
@@ -204,7 +221,14 @@ describe.each(checked.map((p) => [p.id, p] as const))('toolkit "%s"', (_id, sour
 
   it('every enabled algorithm runs on the default design with default parameters', async () => {
     const toolkit = await active();
-    const chosen = toolkit.designs.find((d) => d.id === toolkit.definition.defaultDesign);
+    // The default design, else the first valid design (owner 2026-11-26: students add designs
+    // themselves, so a new toolkit may have none yet: then the algorithms are not run, and that is
+    // said in one plain line, not as a failure).
+    const chosen = toolkit.designs.find((d) => d.id === toolkit.definition.defaultDesign) ?? toolkit.designs.find((d) => d.result.ok);
+    if (!chosen && toolkit.algorithms.length > 0) {
+      // lab/scripts/check-toolkit.mjs prints the note (noDesignNote): vitest hides the logs of passing tests.
+      return;
+    }
     const builtIn = validateDocumentV2(exampleDesign);
     // The app runs algorithms on the stored schema-v2 document (v1 files are migrated on load).
     const doc: DesignDocumentV2 | undefined = chosen?.result.ok ? chosen.result.value : builtIn.ok ? builtIn.value : undefined;

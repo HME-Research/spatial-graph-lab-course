@@ -18,6 +18,7 @@
 // No dependency: Node's own modules and the vitest the repository already has.
 
 import { spawnSync } from 'node:child_process';
+import { readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -60,6 +61,23 @@ export function resultLine(id, status) {
   return `FAILED: ${what} has a problem (read the red message above).`;
 }
 
+/**
+ * One plain line when the toolkit has algorithms but no design yet (owner 2026-11-26: students add
+ * their own designs, so a new toolkit may have none): the check passes, but its algorithms could not
+ * be run on an example. Null otherwise.
+ */
+export function noDesignNote(root, id) {
+  const list = (folder, ext) => {
+    try {
+      return readdirSync(join(root, 'toolkits', id, folder)).filter((f) => f.endsWith(ext) && !f.endsWith('.test.ts'));
+    } catch {
+      return [];
+    }
+  };
+  if (list('designs', '.json').length > 0 || list('algorithms', '.ts').length === 0) return null;
+  return `Note: toolkits/${id}/designs/ has no design yet, so the algorithms were checked but not run on an example. Draw a design in the app, save it as toolkits/${id}/designs/<name>.json and check again.`;
+}
+
 function paint(line, ok) {
   if (!process.stdout.isTTY || process.env.NO_COLOR) return line;
   return `\u001b[1;${ok ? 32 : 31}m${line}\u001b[0m`;
@@ -88,6 +106,8 @@ function main() {
     return 1;
   }
   const status = run.status ?? 1;
+  const note = id === null ? null : noDesignNote(root, id);
+  if (note) console.log(`\n${note}`);
   console.log(`\n${paint(resultLine(id, status), status === 0)}`);
   return status;
 }
