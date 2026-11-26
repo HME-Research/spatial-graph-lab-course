@@ -144,14 +144,17 @@ export const TOOLKIT_CHAT_PROMPT_GUIDE: GuidePromptGuide = {
 
 /** Route B: put the folder in the repository, check it and push the branch (never main). */
 export const TOOLKIT_CHAT_COMMANDS: string = [
-  'git switch main',
+  'git status',
+  '# the first line must say "On branch main"; on another branch? run git switch main first',
   'git pull',
   'git switch -c toolkit/<toolkit-id>',
+  'git commit --allow-empty -m "chore(<toolkit-id>): claim the toolkit name"',
   'git push -u origin toolkit/<toolkit-id>',
-  '# that first push reserves your toolkit id; rejected? the id is taken: choose another one',
+  '# you must see * [new branch]; "rejected" or "Everything up-to-date" means the name is taken: choose another one (never pull)',
   '# unzip: the folder must end up at toolkits/<toolkit-id>/ (toolkit.ts directly inside it)',
   'npm install',
   'npm run check:toolkit -- -t <toolkit-id>',
+  '# it must end with PASSED: toolkit "<toolkit-id>" is ready.',
   'npm run typecheck',
   'npm run dev',
   '# try it at http://localhost:5173/?toolkit=<toolkit-id> (or the address npm run dev prints), then stop the server (Ctrl+C)',

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 250" width="760" height="250" role="img" aria-label="Two terminals in VS Code: the first runs npm run dev and is busy; the + opens a second one for commands" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
+<title>Two terminals in VS Code: the first runs npm run dev and is busy; the + opens a second one for commands</title>
+<rect x="0" y="0" width="760" height="250" rx="10" fill="#1e1e1e"/>
+<text x="16" y="24" font-size="11" fill="#e7e7e7" font-weight="700">TERMINAL</text>
+<rect x="586" y="10" width="22" height="20" rx="3" fill="#505357"/>
+<text x="597" y="25" font-size="15" fill="#fff" text-anchor="middle">+</text>
+<rect x="583" y="7" width="28" height="26" rx="6" fill="none" stroke="#d6337a" stroke-width="2.5"/>
+<text x="616" y="25" font-size="11.5" fill="#cccccc">opens a second terminal</text>
+<line x1="380" y1="40" x2="380" y2="240" stroke="#3c3c3c"/>
+<text x="16" y="56" font-size="12" fill="#ffb454" font-weight="700">1  npm run dev (busy)</text>
+<text x="16" y="84" font-size="12.5" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#cccccc">&gt; vite</text>
+<text x="16" y="110" font-size="12.5" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#5fd068">VITE v8.3.8  ready in 900 ms</text>
+<text x="16" y="134" font-size="12.5" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#e6e6e6">➜  Local:   http://localhost:5173/</text>
+<text x="16" y="158" font-size="12.5" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#858585">➜  press h + enter to show help</text>
+<text x="16" y="196" font-size="12.5" fill="#cccccc">Leave it running. Ctrl+C stops it.</text>
+<text x="396" y="56" font-size="12" fill="#9fd49c" font-weight="700">2  a second terminal for commands</text>
+<text x="396" y="84" font-size="12" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#e6e6e6">C:\...\spatial-graph-lab-course&gt;git status</text>
+<text x="396" y="196" font-size="12.5" fill="#cccccc">Type git and npm commands here.</text>
+</svg>

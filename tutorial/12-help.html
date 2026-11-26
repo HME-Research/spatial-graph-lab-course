@@ -12,130 +12,183 @@
 <header class="top"><div class="top-inner">
   <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
   <nav class="site" aria-label="Tutorial pages">
-    <a href="01-start-here.html"><span class="n">1</span>Start here</a>
-    <a href="02-use-the-app.html"><span class="n">2</span>Use the app</a>
-    <a href="03-your-own-analysis.html"><span class="n">3</span>Your own analysis</a>
-    <a href="04-your-own-transform.html"><span class="n">4</span>Your own transform</a>
-    <a href="05-set-up-your-computer.html"><span class="n">5</span>Set up your computer</a>
-    <a href="06-plan-your-toolkit.html"><span class="n">6</span>Plan your toolkit</a>
-    <a href="07-toolkit-with-a-coding-agent.html"><span class="n">7</span>Toolkit: coding agent</a>
-    <a href="08-toolkit-with-a-chat-assistant.html"><span class="n">8</span>Toolkit: chat assistant</a>
-    <a href="09-git-basics.html"><span class="n">9</span>Git basics</a>
-    <a href="10-hand-in.html"><span class="n">10</span>Hand in</a>
-    <a href="11-keep-working-and-update.html"><span class="n">11</span>Keep working</a>
-    <a href="12-help.html" aria-current="page"><span class="n">12</span>Help</a>
+    <span class="nav-group"><a href="01-start-here.html"><span class="n">1</span>Start</a></span>
+    <span class="nav-group"><span class="nav-part">A · App</span><a href="02-use-the-app.html"><span class="n">2</span>Use the app</a><a href="03-your-own-analysis.html"><span class="n">3</span>Analysis</a><a href="04-your-own-transform.html"><span class="n">4</span>Transform</a></span>
+    <span class="nav-group"><span class="nav-part">B · Toolkit</span><a href="05-set-up-your-computer.html"><span class="n">5</span>Set up</a><a href="06-plan-your-toolkit.html"><span class="n">6</span>Plan</a><a href="07-toolkit-with-a-coding-agent.html"><span class="n">7</span>Agent</a><a href="08-toolkit-with-a-chat-assistant.html"><span class="n">8</span>Chat</a><a href="09-git-basics.html"><span class="n">9</span>Git basics</a><a href="10-hand-in.html"><span class="n">10</span>Hand in</a><a href="11-keep-working-and-update.html"><span class="n">11</span>Keep working</a></span>
+    <span class="nav-group"><a href="12-help.html" aria-current="page"><span class="n">12</span>Help</a></span>
   </nav>
 </div></header>
 <div class="layout">
 <aside class="side">
-  <nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+<nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
     <ol>
       <li><a href="#setup"><span class="n">01</span><span class="t">Setting up</span></a></li>
-      <li><a href="#terminal"><span class="n">02</span><span class="t">The terminal and the folder</span></a></li>
+      <li><a href="#terminal"><span class="n">02</span><span class="t">Terminal, folder, app</span></a></li>
       <li><a href="#git"><span class="n">03</span><span class="t">Git and GitHub</span></a></li>
-      <li><a href="#updates"><span class="n">04</span><span class="t">Getting the course's updates</span></a></li>
-      <li><a href="#toolkit"><span class="n">05</span><span class="t">Your toolkit</span></a></li>
-      <li><a href="#uploads"><span class="n">06</span><span class="t">An uploaded analysis or transform</span></a></li>
-      <li><a href="#stuck"><span class="n">07</span><span class="t">Still stuck?</span></a></li>
+      <li><a href="#updates"><span class="n">04</span><span class="t">The course's updates</span></a></li>
+      <li><a href="#toolkit"><span class="n">05</span><span class="t">Your toolkit and its check</span></a></li>
+      <li><a href="#ai"><span class="n">06</span><span class="t">AI assistants</span></a></li>
+      <li><a href="#uploads"><span class="n">07</span><span class="t">Browser: projects and uploads</span></a></li>
+      <li><a href="#stuck"><span class="n">08</span><span class="t">Still stuck?</span></a></li>
     </ol>
   </details></nav>
+<div class="side-box fold-box"><div class="side-label">Sections</div><div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div></div>
 </aside>
 <main id="content">
 <p class="crumb">Page 12 of 12 · C. Help</p>
 <h1>When something goes wrong</h1>
-<p class="lead">Find the message or symptom below and open it. With an AI assistant, the quickest fix is usually to paste it the <b>whole</b> message and ask it to fix exactly that, inside your toolkit folder.</p>
-
-<section class="part" id="setup">
-<h2><span class="badge">01</span>Setting up</h2>
-<div class="issues">
-<details class="issue"><summary>My GitHub verification email hasn't arrived</summary><div class="issue-body"><ol><li>Check your spam or junk folder.</li><li>Check that the email address you entered is correct.</li><li>Use GitHub's option to resend the verification email.</li></ol></div></details>
-<details class="issue"><summary>I downloaded Visual Studio, not Visual Studio Code</summary><div class="issue-body"><ol><li>Go back to the official <a href="https://code.visualstudio.com/Download">VS Code download page</a>.</li><li>Download Visual Studio Code, the lighter code editor, not Visual Studio.</li><li>Run the installer and open Visual Studio Code.</li></ol></div></details>
-<details class="issue"><summary><code>git</code>, <code>node</code> or <code>npm</code> “is not recognized” / “command not found”</summary><div class="issue-body"><ol><li>Close all VS Code windows and restart VS Code, so that its terminal sees the new program.</li><li>Open <span class="ui">Terminal › New Terminal</span> and try <code>git --version</code>, <code>node --version</code> or <code>npm --version</code> again.</li><li>If it still fails, install it again (<a href="05-set-up-your-computer.html#s-git">Set up › 03</a> for Git, <a href="05-set-up-your-computer.html#s-node">04</a> for Node.js, with the official LTS installer).</li></ol></div></details>
-<details class="issue"><summary>macOS asks me to install Command Line Tools</summary><div class="issue-body"><ol><li>Choose <span class="ui">Install</span> when prompted.</li><li>Let the installation finish.</li><li>Close and reopen Terminal and run <code>git --version</code> again.</li></ol></div></details>
-<details class="issue"><summary>Windows PowerShell says running scripts is disabled</summary><div class="issue-body"><ol><li>In VS Code, open <span class="ui">Terminal › New Terminal</span>.</li><li>Use the arrow next to the <span class="ui">+</span> in the terminal panel and select <span class="ui">Command Prompt</span> (to make it the default: <span class="ui">Select Default Profile</span> › <span class="ui">Command Prompt</span>, <a href="05-set-up-your-computer.html#s-terminal">Set up › 07</a>).</li><li>Run your <code>npm</code> command there.</li></ol><p>You do not need to change Windows security settings.</p></div></details>
-<details class="issue"><summary>My Node.js version number is different from the example</summary><div class="issue-body"><ol><li>That is normal: a version beginning with <code>v</code> for Node.js and a number for npm, rather than an error. The app needs Node.js 22.12 or newer.</li></ol></div></details>
-<details class="issue"><summary>I can't find Extensions or Agent mode in VS Code</summary><div class="issue-body"><ol><li>Open <span class="ui">View › Extensions</span>, or the Extensions icon in the left sidebar, and search for the official extension of your agent.</li><li>No Agent mode: restart or update VS Code, confirm you are signed in and the extension is enabled.</li></ol></div></details>
-<details class="issue"><summary>The agent asks for payment or shows a usage limit</summary><div class="issue-body"><ol><li>Do not buy anything just to complete the checklist.</li><li>Check whether Copilot Free or GitHub Education is available to you.</li><li>Ask the tutor if you are unsure which option to choose.</li></ol></div></details>
-<details class="issue"><summary><code>npm install</code> shows <code>ERR!</code></summary><div class="issue-body"><ol><li>Check you are in the repository folder (it contains <code>package.json</code>).</li><li>Check that <code>node --version</code> is 22.12 or higher.</li><li>Run it again.</li></ol></div></details>
-<details class="issue"><summary>“Port 5173 is in use, trying another one…”</summary><div class="issue-body"><ol><li>The app is probably already running in another terminal: use that one, or stop it there with <kbd>Ctrl</kbd>+<kbd>C</kbd> and start it again.</li><li>Otherwise open the address this one printed (for example <code>http://localhost:5174/</code>), and use it wherever these pages say <code>localhost:5173</code>.</li></ol></div></details>
-<details class="issue"><summary>“The system cannot find the path specified” when going to <code>source\repos</code></summary><div class="issue-body"><ol><li>The folder does not exist yet: run the <code>mkdir</code> line first (<a href="05-set-up-your-computer.html#s-clone">Set up › 09</a>).</li></ol></div></details>
+<p class="lead">Find your message below, open it, follow the fix. Nothing you did is lost: ask your tutor before trying commands from the internet.</p>
+<div class="find">
+<p><b>Search for your error:</b> press <span class="os-inline"><span data-os="win"><kbd>Ctrl</kbd>+<kbd>F</kbd></span><span data-os="mac"><kbd>Cmd</kbd>+<kbd>F</kbd></span></span> and type a few words of the <b>first line</b> of the message, such as <code>rejected</code>, <code>GH007</code> or <code>config</code>. Or jump to a group:</p>
+<ul class="chips">
+  <li><a href="#setup">Setting up</a></li><li><a href="#terminal">Terminal and app</a></li><li><a href="#git">Git and GitHub</a></li><li><a href="#updates">Updates</a></li><li><a href="#toolkit">Toolkit and check</a></li><li><a href="#ai">AI</a></li><li><a href="#uploads">Browser</a></li>
+</ul>
+<p class="muted" style="margin:8px 0 0">With an AI assistant, the quickest fix is often to paste it the <b>whole</b> message and ask it to fix exactly that, inside your toolkit folder.</p>
 </div>
-</section>
+<div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div>
 
-<section class="part" id="terminal">
-<h2><span class="badge">02</span>The terminal and the folder</h2>
+<details class="part fold" id="setup" open>
+<summary class="part-head"><h2><span class="badge">01</span>Setting up</h2></summary>
+<div class="part-body">
 <div class="issues">
-<details class="issue"><summary>Commands fail with “not a git repository” or “Could not read package.json”</summary><div class="issue-body"><ol><li>The terminal is in the wrong folder.</li><li><span class="ui">File › Open Folder…</span> › <code>spatial-graph-lab-course</code>, then open a new terminal (<a href="09-git-basics.html#in-folder">how to check</a>).</li></ol></div></details>
-<details class="issue"><summary>A command keeps running and the prompt doesn't come back</summary><div class="issue-body"><ol><li>Press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal (also on a Mac).</li><li>To keep the app running and type other commands, open a second terminal with the <span class="ui">+</span>.</li></ol></div></details>
-<details class="issue"><summary>Git opened a strange text editor</summary><div class="issue-body"><ol><li>That is a merge message after <code>git pull</code> or <code>git merge</code>.</li><li>Vim (a <code>~</code> on every line): type <code>:wq</code> and press <kbd>Enter</kbd>. A VS Code tab: save and close it.</li></ol></div></details>
+<details class="issue" id="h-powershell"><summary>“…npm.ps1 cannot be loaded because running scripts is disabled on this system”</summary><div class="issue-body"><p>The terminal is PowerShell. You do not need to change Windows security settings.</p><ol><li>In the terminal panel, the arrow next to <span class="ui">+</span> › <span class="ui">Select Default Profile</span> › <span class="ui">Command Prompt</span>.</li><li>Close the PowerShell terminal (bin icon), open a new one (<span class="ui">Terminal › New Terminal</span>) and run the command again.</li></ol><p>Pictures: <a href="05-set-up-your-computer.html#s-terminal">Set up › 07</a>.</p></div></details>
+<details class="issue" id="h-not-recognized"><summary>“'git' is not recognized…” / “command not found: node”</summary><div class="issue-body"><ol><li>Close all VS Code windows and restart VS Code, so that its terminal sees the new program.</li><li><span class="ui">Terminal › New Terminal</span>, try <code>git --version</code>, <code>node --version</code> or <code>npm --version</code> again.</li><li>Still failing: install it again (<a href="05-set-up-your-computer.html#s-git">Git</a>, <a href="05-set-up-your-computer.html#s-node">Node.js</a>).</li></ol></div></details>
+<details class="issue" id="h-verification"><summary>My GitHub verification email hasn't arrived</summary><div class="issue-body"><ol><li>Check your spam or junk folder.</li><li>Check that the email address you entered is correct.</li><li>Use GitHub's option to resend the verification email.</li></ol></div></details>
+<details class="issue" id="h-vs"><summary>I downloaded Visual Studio, not Visual Studio Code</summary><div class="issue-body"><ol><li>Go back to the official <a href="https://code.visualstudio.com/Download">VS Code download page</a>.</li><li>Download Visual Studio Code, the lighter code editor, not Visual Studio.</li><li>Run the installer and open Visual Studio Code.</li></ol></div></details>
+<details class="issue" id="h-cmdline-tools"><summary>macOS asks me to install Command Line Tools</summary><div class="issue-body"><ol><li>Choose <span class="ui">Install</span> when prompted.</li><li>Let the installation finish.</li><li>Close and reopen Terminal and run <code>git --version</code> again.</li></ol></div></details>
+<details class="issue" id="h-node-version"><summary>My Node.js version number is different from the example</summary><div class="issue-body"><p>That is normal: a version beginning with <code>v</code> for Node.js and a number for npm. The app needs Node.js v22.12 or newer.</p></div></details>
+<details class="issue" id="h-no-invite"><summary>No invitation, or “404” on the invitations page</summary><div class="issue-body"><ol><li>Check you are signed in to GitHub with the account whose username you gave your tutor.</li><li>Look for the invitation e-mail (also in spam). Invitations expire after 7 days.</li><li>Still none: send your tutor your exact GitHub username again. Go on meanwhile: only pushing needs it.</li></ol></div></details>
+<details class="issue" id="h-path"><summary>“The system cannot find the path specified.” when going to <code>source\repos</code></summary><div class="issue-body"><p>The folder does not exist yet: run the <code>mkdir</code> line first, then the <code>cd</code> line again (<a href="05-set-up-your-computer.html#s-clone">Set up › 09</a>).</p></div></details>
+<details class="issue" id="h-clone-exists"><summary>“fatal: destination path 'spatial-graph-lab-course' already exists…”</summary><div class="issue-body"><p>You cloned it before: use that folder (<a href="05-set-up-your-computer.html#s-open">Set up › 10</a>). Cloned it into Documents earlier and changed nothing yet? Delete it and clone again in <code>source\repos</code>; with work in it, ask your tutor.</p></div></details>
+<details class="issue" id="h-npm-err"><summary><code>npm install</code> prints “npm ERR!” / “npm error”</summary><div class="issue-body"><ol><li>Check the terminal is in the course folder: it contains <code>package.json</code> (<a href="#h-wrong-folder">below</a>).</li><li>Check <code>node --version</code> is v22.12 or higher.</li><li>Run <code>npm install</code> again. Slow Wi-Fi can take 10 minutes or more.</li></ol></div></details>
 </div>
-</section>
+</div>
+</details>
 
-<section class="part" id="git">
-<h2><span class="badge">03</span>Git and GitHub</h2>
+<details class="part fold" id="terminal" open>
+<summary class="part-head"><h2><span class="badge">02</span>The terminal, the folder and the app</h2></summary>
+<div class="part-body">
 <div class="issues">
-<details class="issue"><summary>Push refused: “protected branch”, “rule violations” or “cannot update this protected ref”</summary><div class="issue-body"><ol><li>You are pushing <code>main</code>. Your work belongs on your branch: <a href="09-git-basics.html#mistakes">Git basics › I committed on main</a>.</li></ol></div></details>
-<details class="issue"><summary>“Permission denied” or “Repository not found” when pushing</summary><div class="issue-body"><ol><li>Accept the course invitation (<a href="05-set-up-your-computer.html#s-invite">Set up › 06</a>).</li><li>Sign in to GitHub when Git asks (<a href="09-git-basics.html#sign-in">Signing in, Windows and macOS</a>).</li></ol></div></details>
-<details class="issue"><summary>The Mac terminal asks for a Username and Password</summary><div class="issue-body"><ol><li>Your GitHub password is not accepted there: press <kbd>Ctrl</kbd>+<kbd>C</kbd>.</li><li>Push from VS Code's terminal and allow VS Code to sign in, or use GitHub Desktop (<a href="09-git-basics.html#sign-in">Signing in</a>).</li></ol></div></details>
-<details class="issue"><summary>Push refused: “Cannot create ref due to creations being restricted”</summary><div class="issue-body"><ol><li>The branch name does not start with <code>toolkit/</code>: make the branch again with exactly <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (<a href="09-git-basics.html#branch">Create your branch</a>).</li></ol></div></details>
-<details class="issue"><summary>“Updates were rejected because the remote contains work that you do not have”</summary><div class="issue-body"><ol><li><b>On your first push of this branch</b>: the id is already taken by someone else's branch. Never pull it: choose another id (<a href="09-git-basics.html#branch">Create your branch</a>).</li><li><b>You pushed this branch before</b> (for example from another computer): run <code>git pull --no-rebase</code>, then <code>git push</code>.</li></ol></div></details>
-<details class="issue"><summary>“fatal: Need to specify how to reconcile divergent branches”</summary><div class="issue-body"><ol><li>On your branch: use <code>git pull --no-rebase</code>.</li><li>On <code>main</code>: you committed on main (<a href="09-git-basics.html#mistakes">Git basics › I committed on main</a>).</li></ol></div></details>
-<details class="issue"><summary><code>git status</code> lists files outside my folder</summary><div class="issue-body"><ol><li>Don't commit them.</li><li>Put them back: <a href="09-git-basics.html#mistakes">Git basics › I changed a file outside my folder</a>.</li></ol></div></details>
-<details class="issue"><summary>“A branch named … already exists”</summary><div class="issue-body"><ol><li>Use <code>git switch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> without <code>-c</code>.</li></ol></div></details>
-<details class="issue"><summary>My toolkit id is already used by someone else's branch</summary><div class="issue-body"><ol><li>Never pull or push to their branch. Add a letter to your initials or change your toolkit name (<a href="09-git-basics.html#free">Check the name is free</a>), and push the new branch at once to reserve it.</li><li>Never rename a toolkit after you pushed it; ask your tutor if that happened.</li></ol></div></details>
-<details class="issue"><summary>A red ✗ on GitHub</summary><div class="issue-body"><ol><li>Click <span class="ui">Details</span> next to the failing check and read the red lines.</li><li>Then see <a href="10-hand-in.html#red">Hand in › Red ✗</a>.</li></ol></div></details>
+<details class="issue" id="h-wrong-folder"><summary>“fatal: not a git repository…” / “Could not read package.json” / “ENOENT”</summary><div class="issue-body"><p>The terminal is in another folder.</p><ol><li><span class="ui">File › Open Folder…</span> (or <span class="ui">Open Recent</span>) › <code>spatial-graph-lab-course</code>.</li><li>Open a new terminal (<span class="ui">Terminal › New Terminal</span>) and run the command again.</li></ol></div></details>
+<details class="issue" id="h-busy"><summary>A command keeps running and the prompt doesn't come back</summary><div class="issue-body"><p><code>npm run dev</code> keeps running on purpose. Open a second terminal with <span class="ui">+</span> for other commands, or press <kbd>Ctrl</kbd>+<kbd>C</kbd> to stop it (also on a Mac).</p></div></details>
+<details class="issue" id="h-port"><summary>“Port 5173 is in use, trying another one…”</summary><div class="issue-body"><ol><li>The app already runs in another terminal: use that one, or stop it there with <kbd>Ctrl</kbd>+<kbd>C</kbd> and start it again.</li><li>Or open the address this one printed (e.g. <code>http://localhost:5174/</code>) wherever these pages say <code>localhost:5173</code>.</li></ol></div></details>
+<details class="issue" id="h-localhost-refused"><summary>“This site can't be reached · localhost refused to connect”</summary><div class="issue-body"><p>The app is not running (or runs on another number).</p><ol><li>In the course folder's terminal run <code>npm run dev</code> and leave it running.</li><li>Open the exact <code>Local:</code> address it prints.</li></ol></div></details>
+<details class="issue" id="h-vim"><summary>A strange editor with <code>~</code> lines opened (Vim)</summary><div class="issue-body">
+<div class="warn"><p><span class="lbl">Don't panic.</span> Git opened an editor for a message. Press <kbd>Esc</kbd>, type <code>:wq</code> and press <kbd>Enter</kbd>: the message is kept and git goes on.</p></div>
+<figure class="fig"><img src="img/vim-merge-message.svg" alt="Vim with a merge message, lines starting with ~, and :wq typed at the bottom" width="700" height="300"><figcaption>Type <code>:wq</code> at the bottom (<b>1</b>), then <kbd>Enter</kbd>.</figcaption></figure>
+<p>A VS Code tab opened instead: close the tab. The course's commands use <code>--no-edit</code> so this should not happen.</p></div></details>
+<details class="issue" id="h-id-not-filled"><summary>My toolkit id is not filled in: orange <code>&lt;toolkit-id&gt;</code>, and Copy says “Not yet”</summary><div class="issue-body"><p>These pages remember your id <b>per address</b>: a page opened by double-click, the same page on localhost and the online tutorial each keep their own. Type your id again in the box at the top of the page (or on <a href="06-plan-your-toolkit.html#your-id">page 6</a>), or always use the same address.</p></div></details>
 </div>
-</section>
+</div>
+</details>
 
-<section class="part" id="updates">
-<h2><span class="badge">04</span>Getting the course's updates</h2>
+<details class="part fold" id="git" open>
+<summary class="part-head"><h2><span class="badge">03</span>Git and GitHub</h2></summary>
+<div class="part-body">
 <div class="issues">
-<details class="issue"><summary>“CONFLICT” after <code>git merge main</code></summary><div class="issue-body"><ol><li>Run <code>git merge --abort</code>.</li><li>Ask your tutor (<a href="09-git-basics.html#updates">Get the course's updates</a>). Never edit files outside your folder to make it go away.</li></ol></div></details>
-<details class="issue"><summary>“Your local changes to the following files would be overwritten”</summary><div class="issue-body"><ol><li>Commit your toolkit's changes first, or undo changes outside your folder.</li><li>Run the update steps again.</li></ol></div></details>
-<details class="issue"><summary>“fatal: invalid reference: toolkit/…”</summary><div class="issue-body"><ol><li>The branch name is wrong: run <code>git branch</code> and use exactly the name it lists.</li></ol></div></details>
+<details class="issue" id="h-taken"><summary>“! [rejected] toolkit/… (fetch first)” or “Everything up-to-date” on my first push</summary><div class="issue-body"><p><b>Not your fault:</b> someone in the class already has this name.</p><ol><li><b>Never pull it.</b></li><li>Choose another name (add a word to your toolkit name) on <a href="06-plan-your-toolkit.html#your-id">page 6</a>.</li><li>Run <code>git switch main</code>, then the claim steps again with the new name (<a href="06-plan-your-toolkit.html#claim">page 6 › Claim it</a>).</li></ol><p>Pushed this branch before yourself, from another computer? Then <code>git pull --no-rebase --no-edit</code> and <code>git push</code>.</p></div></details>
+<details class="issue" id="h-identity"><summary>“Author identity unknown” / “*** Please tell me who you are.”</summary><div class="issue-body"><p>Git does not know your name and e-mail yet: do <a href="05-set-up-your-computer.html#s-identity">Set up › 08</a> (GitHub username and no-reply e-mail), then run your <code>git commit</code> again.</p></div></details>
+<details class="issue" id="h-gh007"><summary>“remote: error: GH007: Your push would publish a private email address.”</summary><div class="issue-body"><p>Your commits carry your private e-mail.</p><ol><li>Set your no-reply e-mail (<a href="05-set-up-your-computer.html#s-identity">Set up › 08</a>).</li><li>Fix the e-mail of your last commit: <code>git commit --amend --reset-author --no-edit</code>, then <code>git push</code>.</li><li>Still refused (several commits)? Ask your tutor.</li></ol></div></details>
+<details class="issue" id="h-permission"><summary>“remote: Permission to … denied” / “The requested URL returned error: 403”</summary><div class="issue-body"><ol><li>Accept the course invitation (<a href="05-set-up-your-computer.html#s-invite">Set up › 06</a>).</li><li>Signed in as another GitHub account? Ask your tutor.</li><li>Push again: it asks you to sign in (<a href="09-git-basics.html#sign-in">how</a>).</li></ol></div></details>
+<details class="issue" id="h-mac-password"><summary>“Username for 'https://github.com':” in a Mac terminal</summary><div class="issue-body"><p>Your GitHub password is not accepted there. Press <kbd>Ctrl</kbd>+<kbd>C</kbd>, then push from <b>VS Code's</b> terminal and allow VS Code to sign in (<a href="09-git-basics.html#sign-in">how</a>).</p></div></details>
+<details class="issue" id="h-refspec"><summary>“error: src refspec toolkit/… does not match any”</summary><div class="issue-body"><p>The branch name in your push does not exist on your laptop: a typo, or you never made it. <code>git branch</code> lists your branches; push exactly that name. Not made yet: <a href="06-plan-your-toolkit.html#claim">page 6 › Claim it</a>.</p></div></details>
+<details class="issue" id="h-protected"><summary>“remote: error: GH013: Repository rule violations found for refs/heads/main.”</summary><div class="issue-body"><p>You are pushing <code>main</code>, the course's branch. Your work belongs on your branch: <a href="#h-committed-main">I committed on main</a>.</p></div></details>
+<details class="issue" id="h-creations"><summary>“GH013 … Cannot create ref due to creations being restricted.”</summary><div class="issue-body"><p>The branch name does not start with <code>toolkit/</code>. Make the branch with exactly <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (<a href="06-plan-your-toolkit.html#claim">page 6</a>).</p></div></details>
+<details class="issue" id="h-exists"><summary>“fatal: a branch named 'toolkit/…' already exists”</summary><div class="issue-body"><p>You made it before: go to it without <code>-c</code>: <code>git switch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>.</p></div></details>
+<details class="issue" id="h-invalid-ref"><summary>“fatal: invalid reference: toolkit/…”</summary><div class="issue-body"><p>No branch with that name on your laptop: a typo, or another id. <code>git branch</code> lists them; use exactly the name shown.</p></div></details>
+<details class="issue" id="h-divergent"><summary>“fatal: Need to specify how to reconcile divergent branches.”</summary><div class="issue-body"><ul><li>On <b>your branch</b>: use <code>git pull --no-rebase --no-edit</code>.</li><li>On <b>main</b>: you committed on main: <a href="#h-committed-main">below</a>.</li></ul></div></details>
+<details class="issue" id="h-outside"><summary><code>git status</code> lists files outside my folder</summary><div class="issue-body"><p>Don't commit them. Put each one back, one at a time (the path as <code>git status</code> shows it). <code>package-lock.json</code> is the usual one:</p>
+<div class="code"><pre>git restore package-lock.json</pre></div>
+<p>Another file: if it is green (added), first take it out of the commit, then put it back:</p>
+<div class="code ref"><pre data-ref>git restore --staged &lt;path-of-the-file&gt;
+git restore &lt;path-of-the-file&gt;</pre></div>
+<p>A <b>new</b> file outside your folder (listed as <i>untracked</i>): delete it, or move it into your folder. Never <code>git restore .</code>, <code>git reset --hard</code> or <code>git clean</code>: they also wipe your toolkit.</p></div></details>
+<details class="issue" id="h-red-x"><summary>A red ✗ on GitHub: “This branch changes files outside toolkits/…”</summary><div class="issue-body"><p>A commit contained files outside your folder (often <code>package-lock.json</code>). Put each file back to the course's version, on your branch:</p>
+<ol><li>Get the newest course version first: <code>git pull --no-rebase --no-edit origin main</code></li><li>For each file the red message lists:<div class="code ref"><pre data-ref>git restore --source=origin/main --staged --worktree &lt;path-of-the-file&gt;</pre></div>(a file the course does not have is removed by it).</li><li><code>git status</code>: only those files are listed. Then commit and push:
+<div class="code"><pre data-fill>git commit -m "fix(&lt;toolkit-id&gt;): undo changes outside my folder"</pre></div>
+<div class="code"><pre>git push</pre></div></li></ol></div></details>
+<details class="issue" id="h-source-control"><summary>VS Code's Source Control committed everything (“stage all your changes”)</summary><div class="issue-body"><p>Files outside your folder are now in a commit. Not pushed yet or pushed: fix it as in <a href="#h-red-x">a red ✗</a> above, then use the terminal for commits (<a href="09-git-basics.html#source-control">why</a>).</p></div></details>
+<details class="issue" id="h-committed-main"><summary>I committed on main</summary><div class="issue-body"><p>GitHub refuses to take it, so nothing is lost. Commit or put back anything <code>git status</code> lists first. Then bring the commits into your branch and put your <code>main</code> back to the course's. This is the one fix that switches branches: your commits are on <code>main</code>, so you go to your branch and merge them in.</p>
+<div class="code"><pre data-fill>git switch toolkit/&lt;toolkit-id&gt;</pre></div>
+<div class="code"><pre>git merge --no-edit main</pre></div>
+<div class="code"><pre>git branch -f main origin/main</pre></div>
+<div class="code"><pre>git push</pre></div>
+<p><b>No branch yet</b> (“invalid reference” on the first line)? Make it from your <code>main</code> instead:</p>
+<div class="code"><pre data-fill>git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
+<div class="code"><pre>git branch -f main origin/main</pre></div>
+<div class="code"><pre data-fill>git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
+<p>A <code>CONFLICT</code>, or the commits changed files outside your folder: run <code>git merge --abort</code> and ask your tutor.</p></div></details>
 </div>
-</section>
+</div>
+</details>
 
-<section class="part" id="toolkit">
-<h2><span class="badge">05</span>Your toolkit</h2>
+<details class="part fold" id="updates" open>
+<summary class="part-head"><h2><span class="badge">04</span>Getting the course's updates</h2></summary>
+<div class="part-body">
 <div class="issues">
-<details class="issue"><summary><code>toolkit folder "…" must be lowercase letters…</code></summary><div class="issue-body"><ol><li>Rename the folder: lowercase letters, digits and <code>-</code>, starting with a letter, as <code>&lt;initials&gt;-&lt;toolkit-name&gt;</code>.</li></ol></div></details>
-<details class="issue"><summary><code>No toolkit "…" was found</code></summary><div class="issue-body"><ol><li>The folder is missing or has another name: it must be <code>toolkits/&lt;toolkit-id&gt;/</code> with <code>toolkit.ts</code> directly inside it.</li><li>If the message names a folder to rename, rename it to exactly your id. Check you typed the id after <code>-t</code> correctly.</li></ol></div></details>
-<details class="issue"><summary><code>toolkit.ts is one folder too deep</code></summary><div class="issue-body"><ol><li>The folder is <code>toolkits/&lt;toolkit-id&gt;/&lt;toolkit-id&gt;/toolkit.ts</code> instead of <code>toolkits/&lt;toolkit-id&gt;/toolkit.ts</code> (a common unzip mistake; see <a href="08-toolkit-with-a-chat-assistant.html#place">Chat assistant › Put the folder in place</a>).</li><li>Move the contents of the inner folder up one level and delete the empty inner folder.</li></ol></div></details>
-<details class="issue"><summary>My toolkit is not in the Toolkit list or in Open example…</summary><div class="issue-body"><ol><li>Run <code>npm run check:toolkit -- -t &lt;toolkit-id&gt;</code>: it says what is wrong.</li><li>Check the address too: <code>?toolkit=&lt;toolkit-id&gt;</code>.</li></ol></div></details>
-<details class="issue"><summary>A Function or algorithm is disabled</summary><div class="issue-body"><ol><li>Select it, or read <span class="ui">Project › Advanced</span>, for the reason: usually an invalid field or a duplicate id.</li></ol></div></details>
-<details class="issue"><summary><code>… imports …</code> refused by a check</summary><div class="issue-body"><ol><li>Toolkit code may import only <code>@student-api</code> and files in your own folder.</li><li>No npm packages, nothing from <code>lab/</code> or another toolkit.</li></ol></div></details>
-<details class="issue"><summary>An algorithm fails on the default design</summary><div class="issue-body"><ol><li>Run it in the app on that design to see its message.</li><li>Usually a missing value (<code>null</code>) or an empty list it did not expect.</li></ol></div></details>
-<details class="issue"><summary>The browser tab freezes</summary><div class="issue-body"><ol><li>An endless loop in an algorithm: every <code>while</code> must end.</li><li>Close the tab, fix the loop, reopen.</li></ol></div></details>
-<details class="issue"><summary>Designs show “unknown Function” warnings</summary><div class="issue-body"><ol><li>A Function id was renamed or removed.</li><li>Add it back (ids are forever), or fix the designs.</li></ol></div></details>
-<details class="issue"><summary>The AI wants to change <code>lab/</code>, <code>package.json</code> or install a package</summary><div class="issue-body"><ol><li>Say no. The fix always belongs in your toolkit folder.</li><li>If the API cannot do something, ask the AI for the closest thing it can do.</li></ol></div></details>
-<details class="issue"><summary>The chat gave code blocks, not a zip</summary><div class="issue-body"><ol><li>Ask “Please give me the folder as a zip”.</li><li>If it cannot, make each file yourself in VS Code with exactly the path written above its block.</li></ol></div></details>
+<details class="issue" id="h-conflict"><summary>“CONFLICT (content): Merge conflict in …”</summary><div class="issue-body"><ol><li>Run <code>git merge --abort</code>: your branch is back as it was.</li><li>Ask your tutor, with the message. Never edit files outside your folder to make it go away.</li></ol></div></details>
+<details class="issue" id="h-overwritten"><summary>“error: Your local changes to the following files would be overwritten by merge:”</summary><div class="issue-body"><ol><li>You have changes that are not committed.</li><li>Your toolkit's files: commit them. Other files: put them back (<a href="#h-outside">above</a>).</li><li>Run the command again.</li></ol></div></details>
 </div>
-</section>
+</div>
+</details>
 
-<section class="part" id="uploads">
-<h2><span class="badge">06</span>An uploaded analysis or transform</h2>
+<details class="part fold" id="toolkit" open>
+<summary class="part-head"><h2><span class="badge">05</span>Your toolkit and its check</h2></summary>
+<div class="part-body">
 <div class="issues">
-<details class="issue"><summary>My chat refuses the zip file</summary><div class="issue-body"><ol><li>Try another chat (<a href="https://claude.ai">claude.ai</a>, <a href="https://chatgpt.com">chatgpt.com</a> or <a href="https://gemini.google.com">gemini.google.com</a>).</li><li>Or ask your tutor.</li></ol></div></details>
-<details class="issue"><summary>The file is refused</summary><div class="issue-body"><ol><li>Check the file really ends in <code>.ts</code>, not <code>.ts.txt</code> (<a href="03-your-own-analysis.html#save">Your own analysis › Save</a>).</li><li>Paste the app's whole message to the AI and ask it to fix exactly that.</li></ol></div></details>
-<details class="issue"><summary>“Stopped after … s — does it loop forever?”</summary><div class="issue-body"><ol><li>It took too long.</li><li>Ask the AI to make it simpler or to make every loop end.</li></ol></div></details>
-<details class="issue"><summary>My analysis is not in the section I expected</summary><div class="issue-body"><ol><li>The section follows its <i>input</i>: none → Network, one node → Node, one edge → Edge, anything else → Queries.</li></ol></div></details>
-<details class="issue"><summary>“This file is an analysis … upload it in Analyse”</summary><div class="issue-body"><ol><li>It only reads and shows an answer: upload it in <span class="ui">Analyse</span> (<a href="03-your-own-analysis.html">Your own analysis</a>). In <span class="ui">Analyse</span>, a transform gets the opposite message.</li></ol></div></details>
-<details class="issue"><summary>The transform preview shows an error</summary><div class="issue-body"><ol><li>Paste the app's whole message to the AI and ask it to fix exactly that.</li><li>Use <span class="ui">↻</span> (Replace) in <b>Yours</b> (<a href="04-your-own-transform.html#run">Your own transform</a>).</li></ol></div></details>
-<details class="issue"><summary>“customOf needs a Function from a toolkit's functions/ folder…”</summary><div class="issue-body"><ol><li>Ask the AI to read the fields with <code>ctx.nodeCustom(nodeId)</code> instead.</li></ol></div></details>
-<details class="issue"><summary>Apply is greyed out: “The design has changed since this preview was computed”</summary><div class="issue-body"><ol><li>You edited the design after <span class="ui">Run</span>: press <span class="ui">Run</span> again.</li></ol></div></details>
-<details class="issue"><summary>My project is gone</summary><div class="issue-body"><ol><li>Projects live in one browser on one computer: check you are in the same one, not in a private window.</li><li>Open your last exported <code>.project.json</code> (<a href="02-use-the-app.html#keep">Use the app › Keep your work</a>).</li></ol></div></details>
+<details class="issue" id="h-failed"><summary>“FAILED: toolkit "…" has a problem (read the red message above).”</summary><div class="issue-body"><p>Scroll up to the first red <code>Error:</code> line: it says what is wrong. Copy the <b>whole</b> red message to your AI and ask it to fix exactly that inside your folder, then run the check again. Ignore vitest's “N passed” summary: only the last line counts.</p></div></details>
+<details class="issue" id="h-config"><summary>“TypeError: Cannot read properties of undefined (reading 'config')”</summary><div class="issue-body"><p>An older check, started from a folder path with a lowercase drive letter (<code>c:\…</code>). Get the course's updates (<a href="09-git-basics.html#c-pull-main">how</a>), or open a new terminal from VS Code (<span class="ui">Terminal › New Terminal</span>) and run the check there.</p></div></details>
+<details class="issue" id="h-not-found"><summary>“No toolkit "…" was found.”</summary><div class="issue-body"><ol><li>The folder is missing or named differently: it must be <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code> with <code>toolkit.ts</code> directly inside, exactly your id, lowercase.</li><li>If the message names a folder to rename, rename it to exactly your id.</li><li>Check the id you typed after <code>-t</code>.</li></ol></div></details>
+<details class="issue" id="h-too-deep"><summary>“toolkit.ts is one folder too deep”</summary><div class="issue-body"><p>The common unzip mistake: <code>toolkits/&lt;id&gt;/&lt;id&gt;/toolkit.ts</code>.</p><ol><li>Open the outer folder.</li><li>Move everything inside the inner folder up one level.</li><li>Delete the now empty inner folder.</li></ol><figure class="fig"><img src="img/folder-right-wrong-windows.svg" alt="Right: toolkits/&lt;toolkit-id&gt;/toolkit.ts. Wrong: toolkits/&lt;toolkit-id&gt;/&lt;toolkit-id&gt;/toolkit.ts" width="760" height="300" loading="lazy"><figcaption>Right and wrong.</figcaption></figure></div></details>
+<details class="issue" id="h-lowercase-folder"><summary>“toolkit folder "…" must be lowercase letters…”</summary><div class="issue-body"><p>Rename the folder: lowercase letters, digits and <code>-</code>, starting with a letter, exactly your toolkit id.</p></div></details>
+<details class="issue" id="h-not-in-list"><summary>My toolkit is not in Open example… or the Toolkit list</summary><div class="issue-body"><ol><li>Run the check: <code>npm run check:toolkit -- -t <span data-toolkit-id>&lt;toolkit-id&gt;</span></code>. It says what is wrong.</li><li>Check the address: <code>?toolkit=<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> at the end.</li></ol></div></details>
+<details class="issue" id="h-disabled"><summary>A Function or algorithm is disabled</summary><div class="issue-body"><p>Select it, or read <span class="ui">Project › Advanced</span>, for the reason (usually an invalid field or a duplicate id). Paste it to your AI.</p><figure class="fig shot"><img src="img/app-project-advanced.webp" alt="Project panel, Advanced section: the toolkit, the scenario source and the problems list" width="228" height="228" loading="lazy"><figcaption><span class="ui">Project › Advanced</span> lists problems in your toolkit's files.</figcaption></figure></div></details>
+<details class="issue" id="h-imports"><summary>“… imports …” refused by a check</summary><div class="issue-body"><p>Toolkit code may import only <code>@student-api</code> and files in your own folder: no npm packages, nothing from <code>lab/</code> or another toolkit. Paste the message to your AI.</p></div></details>
+<details class="issue" id="h-algo-fails"><summary>An algorithm fails on the default design</summary><div class="issue-body"><p>Run it in the app on that design to see its message. Usually a missing value (<code>null</code>) or an empty list: paste the message to your AI.</p></div></details>
+<details class="issue" id="h-freeze"><summary>The browser tab freezes</summary><div class="issue-body"><p>An endless loop in an algorithm. Close the tab, ask your AI to make every loop end, reopen.</p></div></details>
+<details class="issue" id="h-unknown-function"><summary>Designs show “unknown Function” warnings</summary><div class="issue-body"><p>A Function id was renamed or removed. Add it back (ids are forever), or fix the designs.</p></div></details>
 </div>
-</section>
+</div>
+</details>
 
-<section class="part" id="stuck">
-<h2><span class="badge">07</span>Still stuck?</h2>
-<p>Ask your tutor or in the workshop Slack channel, with: what you did, your operating system, the step, the whole message (copied, not a photo), your branch name, and the output of <code>git status</code>. Please don't post passwords, API keys or authentication codes.</p>
-</section>
+<details class="part fold" id="ai" open>
+<summary class="part-head"><h2><span class="badge">06</span>AI assistants</h2></summary>
+<div class="part-body">
+<div class="issues">
+<details class="issue" id="h-usage-limit"><summary>The agent says I reached my usage limit, or asks for payment</summary><div class="issue-body"><p>Do not buy anything. Continue with any AI chat in the browser: <a href="08-toolkit-with-a-chat-assistant.html">page 8</a> (your branch and folder stay as they are). Copilot Free and GitHub Education are other options (<a href="05-set-up-your-computer.html#s-agent">Set up › 05</a>).</p></div></details>
+<details class="issue" id="h-ai-outside"><summary>The AI wants to change <code>lab/</code>, <code>package.json</code>, install a package, or run <code>git reset --hard</code></summary><div class="issue-body"><p>Say no. The fix always belongs in your toolkit folder. If something cannot be done, ask it for the closest thing it can do inside your folder. Already changed? <a href="#h-outside">Put the files back one by one</a>.</p></div></details>
+<details class="issue" id="h-zip-refused"><summary>My chat refuses the zip file</summary><div class="issue-body"><ol><li>Unzip the kit and attach its <code>.md</code> files instead.</li><li>Or try another chat (<a href="https://claude.ai">claude.ai</a>, <a href="https://chatgpt.com">chatgpt.com</a>, <a href="https://gemini.google.com">gemini.google.com</a>), or ask your tutor.</li></ol></div></details>
+<details class="issue" id="h-code-blocks"><summary>The chat gave code blocks, not a zip</summary><div class="issue-body"><p>Ask “Please give me the folder as a zip”. If it cannot, try another chat or ask your tutor.</p></div></details>
+</div>
+</div>
+</details>
+
+<details class="part fold" id="uploads" open>
+<summary class="part-head"><h2><span class="badge">07</span>In the browser: projects and uploads</h2></summary>
+<div class="part-body">
+<div class="issues">
+<details class="issue" id="h-project-gone"><summary>My project is gone</summary><div class="issue-body"><ol><li>Same browser on the same computer, not a private window?</li><li>Look in the Welcome screen's recent projects.</li><li>Otherwise open your last exported <code>.project.json</code> (<span class="ui">Open project</span>). Export after every session.</li></ol></div></details>
+<details class="issue" id="h-file-refused"><summary>The uploaded file is refused</summary><div class="issue-body"><ol><li>Check it really ends in <code>.ts</code>, not <code>.ts.txt</code> (<a href="03-your-own-analysis.html#save">page 3</a>).</li><li>Paste the app's whole message to the AI and ask it to fix exactly that.</li></ol></div></details>
+<details class="issue" id="h-loop"><summary>“Stopped after … s — does it loop forever?”</summary><div class="issue-body"><p>It took too long. Ask the AI to make it simpler or to make every loop end.</p></div></details>
+<details class="issue" id="h-analysis-section"><summary>My analysis is not in the section I expected</summary><div class="issue-body"><p>The section follows its input: none → Network, one node → Node, one edge → Edge, anything else → Queries.</p></div></details>
+<details class="issue" id="h-is-analysis"><summary>“This file is an analysis … upload it in Analyse”</summary><div class="issue-body"><p>It only reads and shows: upload it in <span class="ui">Analyse</span>. In Analyse, a transform gets the opposite message.</p></div></details>
+<details class="issue" id="h-preview-error"><summary>The transform preview shows an error</summary><div class="issue-body"><p>Paste the app's whole message to the AI, then use <span class="ui">↻</span> (Replace) in <b>Yours</b> with the new file.</p></div></details>
+<details class="issue" id="h-customof"><summary>“customOf needs a Function from a toolkit's functions/ folder…”</summary><div class="issue-body"><p>Copy this sentence to the AI as it is: “Read the fields with <code>ctx.nodeCustom(nodeId)</code> instead of <code>ctx.customOf</code>.”</p></div></details>
+<details class="issue" id="h-apply-grey"><summary>Apply is greyed out: “The design has changed since this preview was computed”</summary><div class="issue-body"><p>You edited the design after <span class="ui">Run</span>: press <span class="ui">Run</span> again.</p></div></details>
+</div>
+</div>
+</details>
+
+<details class="part fold" id="stuck" open>
+<summary class="part-head"><h2><span class="badge">08</span>Still stuck?</h2></summary>
+<div class="part-body">
+<p>Ask your tutor or in the workshop Slack channel, in a thread, with: what you did, your operating system, the page and step, the <b>whole</b> message (copied, not a photo), your branch name and the output of <code>git status</code>. Never post passwords, API keys, tokens or sign-in codes.</p>
+</div>
+</details>
 
 <div class="pager"><a href="11-keep-working-and-update.html">← 11. Keep working</a><a href="01-start-here.html">1. Start here ↺</a></div>
 </main>
 </div>
-<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · Your ticks, names and plan are saved only in this browser.</div></footer>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · What you type and tick on these pages is saved only in this browser.</div></footer>
 </body>
 </html>

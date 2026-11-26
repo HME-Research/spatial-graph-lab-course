@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 120" width="560" height="120" role="img" aria-label="A macOS terminal prompt in the course folder, ending with %" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
+<title>A macOS terminal prompt in the course folder, ending with %</title>
+<rect x="0" y="0" width="560" height="120" rx="10" fill="#f4f4f2"/>
+<rect x="10" y="10" width="540" height="100" rx="9" fill="#ffffff" stroke="#c9c9c4" stroke-width="1"/>
+<rect x="10" y="10" width="540" height="26" rx="9" fill="#e9e9e6"/>
+<rect x="10" y="26" width="540" height="10" rx="0" fill="#e9e9e6"/>
+<circle cx="28" cy="23" r="5.5" fill="#ff5f57"/><circle cx="46" cy="23" r="5.5" fill="#febc2e"/><circle cx="64" cy="23" r="5.5" fill="#28c840"/>
+<text x="280" y="28" font-size="12" fill="#55554f" text-anchor="middle">spatial-graph-lab-course — zsh</text>
+<text x="24" y="68" font-size="14" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#1f1f1d"><tspan fill="#b25e00">&lt;you&gt;</tspan>@Mac spatial-graph-lab-course % </text>
+<rect x="352" y="56" width="8" height="16" rx="0" fill="#1f1f1d"/>
+<text x="24" y="96" font-size="12" fill="#62625c">the folder name, then %: the terminal waits for your command</text>
+</svg>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Coding agent · Spatial Graph Lab tutorial</title>
+<title>Toolkit with a coding agent · Spatial Graph Lab tutorial</title>
 <link rel="stylesheet" href="style.css">
 <script src="tutorial.js"></script>
 </head>
@@ -12,135 +12,70 @@
 <header class="top"><div class="top-inner">
   <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
   <nav class="site" aria-label="Tutorial pages">
-    <a href="01-start-here.html"><span class="n">1</span>Start here</a>
-    <a href="02-use-the-app.html"><span class="n">2</span>Use the app</a>
-    <a href="03-your-own-analysis.html"><span class="n">3</span>Your own analysis</a>
-    <a href="04-your-own-transform.html"><span class="n">4</span>Your own transform</a>
-    <a href="05-set-up-your-computer.html"><span class="n">5</span>Set up your computer</a>
-    <a href="06-plan-your-toolkit.html"><span class="n">6</span>Plan your toolkit</a>
-    <a href="07-toolkit-with-a-coding-agent.html" aria-current="page"><span class="n">7</span>Toolkit: coding agent</a>
-    <a href="08-toolkit-with-a-chat-assistant.html"><span class="n">8</span>Toolkit: chat assistant</a>
-    <a href="09-git-basics.html"><span class="n">9</span>Git basics</a>
-    <a href="10-hand-in.html"><span class="n">10</span>Hand in</a>
-    <a href="11-keep-working-and-update.html"><span class="n">11</span>Keep working</a>
-    <a href="12-help.html"><span class="n">12</span>Help</a>
+    <span class="nav-group"><a href="01-start-here.html"><span class="n">1</span>Start</a></span>
+    <span class="nav-group"><span class="nav-part">A · App</span><a href="02-use-the-app.html"><span class="n">2</span>Use the app</a><a href="03-your-own-analysis.html"><span class="n">3</span>Analysis</a><a href="04-your-own-transform.html"><span class="n">4</span>Transform</a></span>
+    <span class="nav-group"><span class="nav-part">B · Toolkit</span><a href="05-set-up-your-computer.html"><span class="n">5</span>Set up</a><a href="06-plan-your-toolkit.html"><span class="n">6</span>Plan</a><a href="07-toolkit-with-a-coding-agent.html" aria-current="page"><span class="n">7</span>Agent</a><a href="08-toolkit-with-a-chat-assistant.html"><span class="n">8</span>Chat</a><a href="09-git-basics.html"><span class="n">9</span>Git basics</a><a href="10-hand-in.html"><span class="n">10</span>Hand in</a><a href="11-keep-working-and-update.html"><span class="n">11</span>Keep working</a></span>
+    <span class="nav-group"><a href="12-help.html"><span class="n">12</span>Help</a></span>
   </nav>
 </div></header>
 <div class="layout">
 <aside class="side">
-  <nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+<nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
     <ol>
-      <li><a href="#your-id"><span class="n">01</span><span class="t">Your toolkit id</span></a></li>
-      <li><a href="#open"><span class="n">02</span><span class="t">Open the repository in VS Code</span></a></li>
-      <li><a href="#branch"><span class="n">03</span><span class="t">Get the latest version and make your branch</span></a></li>
-      <li><a href="#agent"><span class="n">04</span><span class="t">Start your agent</span></a></li>
-      <li><a href="#prompt"><span class="n">05</span><span class="t">Send your prompt</span></a></li>
-      <li><a href="#read"><span class="n">06</span><span class="t">Read what it did</span></a></li>
-      <li><a href="#try"><span class="n">07</span><span class="t">Try it in the app</span></a></li>
-      <li><a href="#improve"><span class="n">08</span><span class="t">Improve it</span></a></li>
-      <li><a href="#push"><span class="n">09</span><span class="t">Push your branch</span></a></li>
-      <li><a href="#good-to-know"><span class="n">10</span><span class="t">Good to know</span></a></li>
+      <li><a href="#branch"><span class="n">01</span><span class="t">Checkpoint: on your branch</span></a></li>
+      <li><a href="#agent"><span class="n">02</span><span class="t">Start your agent</span></a></li>
+      <li><a href="#prompt"><span class="n">03</span><span class="t">Send your prompt</span></a></li>
+      <li><a href="#read"><span class="n">04</span><span class="t">Review what it changed</span></a></li>
+      <li><a href="#try"><span class="n">05</span><span class="t">Try it in the app</span></a></li>
+      <li><a href="#improve"><span class="n">06</span><span class="t">Improve it</span></a></li>
+      <li><a href="#push"><span class="n">07</span><span class="t">Check and push</span></a></li>
     </ol>
   </details></nav>
+<div class="side-box fold-box"><div class="side-label">Sections</div><div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div></div>
 </aside>
 <main id="content">
-<p class="crumb">Page 7 of 12 · B. Make a toolkit</p>
-<h1>Make a toolkit with a coding agent</h1>
-<p class="lead">A coding agent works inside your copy of the repository: it reads the guides, writes your folder, runs the checks and commits. You describe the toolkit, read what it did, try it and push. Examples: <b>Codex</b>, <b>Claude Code</b> or <b>GitHub Copilot</b> in Agent mode (or a similar agent such as Cursor), used inside VS Code.</p>
+<p class="crumb">Page 7 of 12 · B. Make your toolkit</p>
+<h1>Make your toolkit with a coding agent</h1>
+<p class="lead">The agent (Codex, Claude Code or GitHub Copilot in Agent mode) writes your folder inside VS Code. You describe it, review every change, try it and push.</p>
+<div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div>
+<p class="chip" data-chip><span data-chip-full hidden>Your toolkit id: <code data-toolkit-id>&lt;toolkit-id&gt;</code> · <a href="06-plan-your-toolkit.html#your-id">change</a></span><span data-chip-empty>Your toolkit id is not set on this page yet: <label class="chip-legend" for="chip-id">type it</label> <input id="chip-id" type="text" data-chip-input placeholder="hk-small-library" autocomplete="off" spellcheck="false"> or make it on <a href="06-plan-your-toolkit.html#your-id">page 6</a>. <span class="namer-warn" data-chip-msg role="status"></span></span><span class="chip-legend">Orange <span class="ph">&lt;toolkit-id&gt;</span> = replace with yours.</span></p>
+<p class="muted">Before this page: <a href="05-set-up-your-computer.html">Set up</a> and <a href="06-plan-your-toolkit.html">Plan and claim</a>. Agent out of quota? Continue with a chat on <a href="08-toolkit-with-a-chat-assistant.html">page 8</a>.</p>
 
-<div class="note"><p>Before you start: <a href="05-set-up-your-computer.html">set up</a> your computer (including step 05, your coding agent) and <a href="06-plan-your-toolkit.html">plan your toolkit</a>. Codex and Copilot read <code>AGENTS.md</code> in the repository, and Claude Code reads it through <code>CLAUDE.md</code>. It tells the agent to change only your folder, work on your branch and never push without you.</p></div>
-
-<details class="issue"><summary>What's the difference between a coding agent and a chat assistant?</summary><div class="issue-body"><div class="versus">
-  <p class="versus-title">What's the difference? A coding agent or a chat assistant</p>
-  <div class="versus-cols">
-    <div class="versus-col">
-      <h3>Coding agent</h3>
-      <p class="ex">Codex, Claude Code, GitHub Copilot in <b>Agent</b> mode</p>
-      <ul>
-        <li><b>Where:</b> inside VS Code, on your copy of the repository.</li>
-        <li><b>What it does:</b> reads the files, writes your toolkit folder and runs the checks itself.</li>
-        <li><b>How to get it:</b> a VS Code extension you sign in to (<a href="05-set-up-your-computer.html#s-agent">Set up › 05</a>).</li>
-        <li><b>Choose it when:</b> you have one. Fewer manual steps: <a href="07-toolkit-with-a-coding-agent.html">page 7</a>.</li>
-      </ul>
-    </div>
-    <div class="versus-col">
-      <h3>Chat assistant</h3>
-      <p class="ex">Claude, ChatGPT or Gemini in the browser: <a href="https://claude.ai">claude.ai</a>, <a href="https://chatgpt.com">chatgpt.com</a>, <a href="https://gemini.google.com">gemini.google.com</a></p>
-      <ul>
-        <li><b>Where:</b> a website, outside your repository.</li>
-        <li><b>What it does:</b> sees only what you attach (a kit zip) and gives files back. You put them in place and run the checks yourself.</li>
-        <li><b>How to get it:</b> open the website and sign in.</li>
-        <li><b>Choose it when:</b> you have no coding agent (<a href="08-toolkit-with-a-chat-assistant.html">page 8</a>), or for one analysis or transform in the browser (pages <a href="03-your-own-analysis.html">3</a> and <a href="04-your-own-transform.html">4</a>).</li>
-      </ul>
-    </div>
-  </div>
-</div></div></details>
-
-<section class="card" id="your-id">
-<div class="card-head"><span class="badge">01</span><div><h2>Your toolkit id</h2><p class="sub">Initials + toolkit name: the commands on this page fill it in.</p></div></div>
+<details class="card fold" id="branch" open>
+<summary class="card-head"><span class="badge">01</span><div><h2>Checkpoint: page 6 done, on your branch <span class="who you">You do this</span></h2><p class="sub">Done <a href="06-plan-your-toolkit.html#claim">page 6</a>, including claiming your branch? Then continue here.</p></div></summary>
 <div class="card-body">
-<div class="namer" data-namer>
-  <p class="namer-title">Your initials + toolkit name = your toolkit id</p>
-  <p class="namer-rule">The naming convention: <b>toolkit id = <code>&lt;initials&gt;-&lt;toolkit-name&gt;</code></b>, all lowercase, words joined with <code>-</code>, no spaces. Initials <b>HK</b> and toolkit <b>Small library</b> give <code>hk-small-library</code>. Your folder is <code>toolkits/&lt;toolkit-id&gt;/</code> and your branch <code>toolkit/&lt;toolkit-id&gt;</code>. Type both below: every command and prompt on these pages fills in your id.</p>
-  <div class="namer-fields">
-    <div><label for="namer-initials">Your initials</label><input id="namer-initials" type="text" data-namer-initials placeholder="HK" autocomplete="off" spellcheck="false" maxlength="8"></div>
-    <div><label for="namer-name">Toolkit name</label><input id="namer-name" type="text" data-namer-name placeholder="Small library" autocomplete="off" spellcheck="false" maxlength="60"></div>
-  </div>
-  <dl class="namer-out">
-    <div><dt>Toolkit id</dt><dd><code data-toolkit-id>&lt;toolkit-id&gt;</code></dd></div>
-    <div><dt>Folder</dt><dd><code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code></dd></div>
-    <div><dt>Branch</dt><dd><code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code></dd></div>
-  </dl>
-  <p class="namer-msg" data-namer-msg role="status"></p>
-  <details class="namer-own"><summary>Already pushed a branch with a different id?</summary>
-    <label for="namer-own">Your existing toolkit id</label><input id="namer-own" type="text" data-namer-own placeholder="e.g. hk-library" autocomplete="off" spellcheck="false">
-    <small class="muted">Keep using it: never rename a toolkit. Leave this empty to use the id built above.</small>
-  </details>
-  <p class="namer-note">Rule: lowercase letters, digits and <code>-</code>, starting with a letter. Remembered in this browser only. Without JavaScript, replace <code>&lt;toolkit-id&gt;</code> in the commands yourself.</p>
-</div>
-</div>
-</section>
-
-<section class="card" id="open">
-<div class="card-head"><span class="badge">02</span><div><h2>Open the repository in VS Code</h2><p class="sub">The agent works on the folder VS Code has open.</p></div></div>
-<div class="card-body">
-<p><span class="ui">File › Open Folder…</span> (or <span class="ui">File › Open Recent</span>) › <code>spatial-graph-lab-course</code>, then <span class="ui">Terminal › New Terminal</span>. The terminal's prompt shows the folder name <code>spatial-graph-lab-course</code> (<a href="09-git-basics.html#in-folder">how to check</a>).</p>
-</div>
-</section>
-
-<section class="card" id="branch">
-<div class="card-head"><span class="badge">03</span><div><h2>Get the latest version and make your branch</h2><p class="sub">Do this yourself, then push the branch at once: that reserves your toolkit id.</p></div></div>
-<div class="card-body">
-<div class="code"><pre data-fill>git switch main
-git pull
-git switch -c toolkit/&lt;toolkit-id&gt;
-git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
-<p class="see"><code>Switched to a new branch 'toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span>'</code>, then <code>* [new branch]</code> from the push. The branch name also shows at the bottom left of VS Code. This first push asks you to sign in to GitHub (<a href="09-git-basics.html#sign-in">how, on Windows and macOS</a>).</p>
-<div class="stop"><p>Push <b>rejected</b>? The id is already taken by someone else's branch. Never <code>git pull</code> it: choose another id (<a href="06-plan-your-toolkit.html#your-id">Plan your toolkit</a>) and make that branch instead.</p></div>
-<p>Already made it earlier? Use <code>git switch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (no <code>-c</code>). With GitHub Desktop: <span class="ui">Current branch › New branch</span>, then <span class="ui">Publish branch</span>. More in <a href="09-git-basics.html#branch">Git basics</a>.</p>
-<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
-<details class="issue"><summary>“A branch named … already exists”</summary><div class="issue-body"><ol><li>You made it before: use <code>git switch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> without <code>-c</code>.</li></ol></div></details>
-<details class="issue"><summary>“not a git repository”</summary><div class="issue-body"><ol><li>The terminal is in the wrong folder: open the repository folder (step 02) and a new terminal.</li></ol></div></details>
+<p>Open the course folder in VS Code (<span class="ui">File › Open Recent</span>) and look at the bottom left:</p>
+<figure class="fig"><img src="img/statusbar-branch.svg" alt="VS Code status bar, bottom left: the branch toolkit/&lt;toolkit-id&gt;" width="560" height="70"><figcaption>It must show <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>, not <code>main</code>.</figcaption></figure>
+<details class="more"><summary>It shows <code>main</code></summary><div class="more-body">
+<p>Go to your branch (no <code>-c</code>: it exists already):</p>
+<div class="code"><pre data-fill>git switch toolkit/&lt;toolkit-id&gt;</pre></div>
+<p>Not claimed yet? Do <a href="06-plan-your-toolkit.html#claim">Plan › Claim it on GitHub</a> first.</p>
 </div></details>
 </div>
-</section>
+</details>
 
-<section class="card" id="agent">
-<div class="card-head"><span class="badge">04</span><div><h2>Start your agent</h2><p class="sub">Open its panel in VS Code and let it read the folder.</p></div></div>
+<details class="card fold" id="agent" open>
+<summary class="card-head"><span class="badge">02</span><div><h2>Start your agent <span class="who you">You do this</span></h2><p class="sub">Open its panel in VS Code.</p></div></summary>
 <div class="card-body">
 <ul>
+  <li><b>GitHub Copilot:</b> the Chat view, set to <b>Agent</b>.</li>
   <li><b>Codex:</b> the Codex panel (its icon in the sidebar).</li>
   <li><b>Claude Code:</b> the Claude icon in VS Code.</li>
-  <li><b>GitHub Copilot:</b> the Chat view, set to <b>Agent</b>.</li>
-  <li><b>Others:</b> their own panel.</li>
 </ul>
-<p>Allow it to read the folder and run commands when it asks; read each command before you allow it.</p>
+<div class="important"><p><b>Approve each action yourself.</b> When the agent asks to run a command or change a file, read it first. Never choose “always allow” or auto-approve. Say <b>no</b> to:</p>
+<ul>
+  <li>changes outside <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code>, e.g. in <code>lab/</code>, <code>package.json</code> or <code>toolkits/house/</code>;</li>
+  <li>installing a package (<code>npm install something</code>);</li>
+  <li><code>git reset --hard</code>, <code>git clean</code>, <code>git checkout -- .</code>: they wipe your work too.</li>
+</ul></div>
+<details class="more"><summary>How does the agent know the course's rules?</summary><div class="more-body"><p>The course has told it: the agents read <code>AGENTS.md</code> (Claude Code through <code>CLAUDE.md</code>), which says to change only your folder, stay on your branch and never push for you. Agents can still make mistakes, so you review.</p></div></details>
 </div>
-</section>
+</details>
 
-<section class="card" id="prompt">
-<div class="card-head"><span class="badge">05</span><div><h2>Send your prompt</h2><p class="sub">The one Plan your toolkit built for you, or this one with the blanks filled in.</p></div></div>
+<details class="card fold" id="prompt" open>
+<summary class="card-head"><span class="badge">03</span><div><h2>Send your prompt <span class="who you">You do this</span></h2><p class="sub">The one page 6 built for you.</p></div></summary>
 <div class="card-body">
+<p>Copy it from <a href="06-plan-your-toolkit.html#prompts">Plan › Your prompt</a> (your plan filled in), or copy this one and fill the orange blanks in the agent's box:</p>
 <div class="code"><pre data-fill data-block="prompt:agent">Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. Work only inside toolkits/&lt;toolkit-id&gt;/ on my branch toolkit/&lt;toolkit-id&gt;, run the checks, and commit only my folder. Do not push: I will push.
 
 Toolkit id: ___
@@ -148,57 +83,62 @@ My idea: ___
 Functions (and their attributes): ___
 Algorithms: ___
 Example design: ___</pre></div>
-<p>In Claude Code you can instead type <code>/create-toolkit</code> and answer its questions. <a href="06-plan-your-toolkit.html#prompts">Plan your toolkit</a> fills the blanks for you.</p>
+<details class="more"><summary>Using Claude Code?</summary><div class="more-body"><p>You can instead type <code>/create-toolkit</code> and answer its questions.</p></div></details>
 </div>
-</section>
+</details>
 
-<section class="card" id="read">
-<div class="card-head"><span class="badge">06</span><div><h2>Read what it did</h2><p class="sub">Check its summary and your folder before going on.</p></div></div>
+<details class="card fold" id="read" open>
+<summary class="card-head"><span class="badge">04</span><div><h2>Review what it changed <span class="who agent">The agent does this</span> <span class="who you">You review</span></h2><p class="sub">It writes your folder, runs the checks and commits; you read the result.</p></div></summary>
 <div class="card-body">
-<p>It ends with a summary: your Functions, attributes, algorithms and designs, the result of the two checks, and a commit. Open your folder in the VS Code explorer and read the files: each step has a comment in plain English.</p>
-<div class="stop"><p>If it changed anything outside <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code>, say “Undo every change outside my toolkit folder” before going on. <code>git status</code> shows what changed.</p></div>
+<p>The agent ends with a summary: your Functions, algorithms and designs, the checks, and a commit. Then check yourself:</p>
+<div class="code"><pre>git status</pre></div>
+<p class="see"><code>nothing to commit, working tree clean</code>, or only files under <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code>.</p>
+<div class="stop"><p><span class="lbl">Something outside your folder changed?</span> Ask the agent: “Undo only the changes to <i>these files</i> outside my toolkit folder, file by file, with <code>git restore</code>, then show <code>git status</code>.” Never let it undo everything at once.</p></div>
+<details class="more"><summary>Read the files too</summary><div class="more-body"><p>Open your folder in the VS Code explorer: each step has a comment in plain English. Ask the agent to explain any rule you cannot explain yourself.</p></div></details>
 </div>
-</section>
+</details>
 
-<section class="card" id="try">
-<div class="card-head"><span class="badge">07</span><div><h2>Try it in the app</h2><p class="sub">Run the app on your computer with your toolkit.</p></div></div>
+<details class="card fold" id="try" open>
+<summary class="card-head"><span class="badge">05</span><div><h2>Try it in the app <span class="who you">You do this</span></h2><p class="sub">Run the app on your laptop with your toolkit.</p></div></summary>
 <div class="card-body">
 <div class="code"><pre>npm run dev</pre></div>
-<p>Open <code>http://localhost:5173/?toolkit=<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (or the address <code>npm run dev</code> printed, with <code>?toolkit=…</code> added), then <span class="ui">Open example…</span> › <i>Toolkit: your toolkit's name</i>. Run your analyses in <span class="ui">Analyse</span> and your transforms in <span class="ui">Transform</span>. A problem in your files is listed in <span class="ui">Project › Advanced</span>. Stop the app with <kbd>Ctrl</kbd>+<kbd>C</kbd> (also on a Mac) when done.</p>
-<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
-<details class="issue"><summary>My toolkit is not in the Toolkit list or in Open example…</summary><div class="issue-body"><ol><li>Run <code>npm run check:toolkit -- -t <span data-toolkit-id>&lt;toolkit-id&gt;</span></code>: it says what is wrong (for example “No toolkit … was found” or “toolkit.ts is one folder too deep”).</li><li>The folder must be <code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code> with <code>toolkit.ts</code> directly inside it.</li><li>Check the address too: <code>?toolkit=<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>.</li></ol></div></details>
-<details class="issue"><summary>A Function or algorithm is disabled</summary><div class="issue-body"><ol><li>Select it, or read <span class="ui">Project › Advanced</span>, for the reason.</li><li>Paste the reason to the agent and ask it to fix exactly that.</li></ol></div></details>
-</div></details>
+<p>Then open <a data-localhost href="http://localhost:5173/">http://localhost:5173/?toolkit=&lt;toolkit-id&gt;</a> › <span class="ui">Open example…</span> › your toolkit's design. <code>?toolkit=</code> tells the app which toolkit to start with.</p>
+<figure class="fig shot"><img src="img/app-open-example.webp" alt="Open example dialog: under Toolkit: House, the designs Simple house and Garden house" width="560" height="540" loading="lazy"><figcaption><span class="ui">Open example…</span> lists each toolkit's designs under <i>Toolkit: its name</i> (here: House).</figcaption></figure>
+<div class="warn"><p><span class="lbl">The terminal is busy while the app runs.</span> Open a second terminal with <span class="ui">+</span> for other commands; stop the app with <kbd>Ctrl</kbd>+<kbd>C</kbd> (also on a Mac).</p></div>
+<details class="more"><summary>My toolkit is not there, or something is disabled</summary><div class="more-body"><ul>
+<li><a href="12-help.html#h-not-in-list">My toolkit is not in Open example…</a></li>
+<li><a href="12-help.html#h-disabled">A Function or algorithm is disabled</a> (the reason is in <span class="ui">Project › Advanced</span>)</li>
+<li><a href="12-help.html#h-localhost-refused">“localhost refused to connect”</a></li>
+</ul></div></details>
 </div>
-</section>
+</details>
 
-<section class="card" id="improve">
-<div class="card-head"><span class="badge">08</span><div><h2>Improve it</h2><p class="sub">Ask for changes in plain words.</p></div></div>
+<details class="card fold" id="improve" open>
+<summary class="card-head"><span class="badge">06</span><div><h2>Improve it <span class="who you">You ask</span> <span class="who agent">The agent changes</span></h2><p class="sub">In plain words, one change at a time.</p></div></summary>
 <div class="card-body">
-<p>“Make the Reading room blue”, “The seat count ignores the upper level: fix it”. Paste any error message in full. Ask it to run the checks and commit after each change.</p>
+<p>For example: “Make the Reading room blue”, “The seat count ignores the upper level: fix it”. Paste any error message in full. Try every algorithm on a design whose answer you know: agents can be wrong with confidence.</p>
 </div>
-</section>
+</details>
 
-<section class="card" id="push">
-<div class="card-head"><span class="badge">09</span><div><h2>Push your branch</h2><p class="sub">Send your commits to GitHub: that is how you hand in.</p></div></div>
+<details class="card fold" id="push" open>
+<summary class="card-head"><span class="badge">07</span><div><h2>Check and push <span class="who you">You do this</span></h2><p class="sub">You push, not the agent.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="pushed-agent" aria-label="Done: PASSED, pushed, ✓ on GitHub"> <span>PASSED, pushed, ✓ on GitHub</span></label></span></summary>
 <div class="card-body">
+<div class="code"><pre data-fill>npm run check:toolkit -- -t &lt;toolkit-id&gt;</pre></div>
+<div class="example"><p class="label">You should see, at the end</p><pre><span class="pass">PASSED: toolkit "hk-small-library" is ready.</span></pre><small>The last line is what counts. <code>FAILED: …</code> means: read the red message above it (<a href="12-help.html#h-failed">Help</a>).</small></div>
+<div class="code"><pre>npm run typecheck</pre></div>
+<div class="example"><p class="label">You should see</p><pre>&gt; spatial-graph-lab@0.1.0 typecheck
+&gt; tsc --noEmit -p tsconfig.json</pre><small>and then the prompt again. No red <code>error</code> lines means the code checks out.</small></div>
+<div class="code"><pre>git status</pre></div>
+<p class="see"><code>nothing to commit, working tree clean</code> (the agent committed your folder).</p>
 <div class="code"><pre>git push</pre></div>
-<p>or ask the agent: “Push my branch.” Your branch is already on GitHub since step 03, so a plain <code>git push</code> sends the new commits. Then <a href="10-hand-in.html">check the green tick</a> on GitHub.</p>
+<p class="see"><code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span> -&gt; toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code>.</p>
+<div class="done-when"><p><code>PASSED</code>, the push went through, and <a href="10-hand-in.html#check">a green ✓</a> appears beside your latest commit on GitHub.</p></div>
 </div>
-</section>
+</details>
 
-<section class="part" id="good-to-know">
-<h2><span class="badge">10</span>Good to know</h2>
-<ul>
-  <li>The agent's checks are the same you can run yourself: <code>npm run check:toolkit -- -t <span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (it passes with <code>Tests N passed</code>, N more than 0) and <code>npm run typecheck</code> (it prints nothing when all is well).</li>
-  <li>Never accept a suggestion to change <code>lab/</code>, <code>package.json</code> or other files outside your folder, or to install a package: the fix always belongs inside your toolkit.</li>
-  <li>Agents can be wrong with confidence. Try every algorithm in the app on a design whose answer you know.</li>
-</ul>
-</section>
-
-<div class="pager"><a href="06-plan-your-toolkit.html">← 6. Plan your toolkit</a><a href="08-toolkit-with-a-chat-assistant.html">8. Toolkit: chat assistant →</a></div>
+<div class="pager"><a href="06-plan-your-toolkit.html">← 6. Plan and claim your toolkit</a><a href="08-toolkit-with-a-chat-assistant.html">8. Toolkit with a chat assistant →</a></div>
 </main>
 </div>
-<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · Your ticks, names and plan are saved only in this browser.</div></footer>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · What you type and tick on these pages is saved only in this browser.</div></footer>
 </body>
 </html>

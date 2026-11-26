@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 150" width="760" height="150" role="img" aria-label="Right: a Command Prompt prompt without PS. Wrong: a PowerShell prompt that starts with PS" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
+<title>Right: a Command Prompt prompt without PS. Wrong: a PowerShell prompt that starts with PS</title>
+<rect x="0" y="0" width="760" height="150" rx="10" fill="#f4f4f2"/>
+<rect x="14" y="34" width="360" height="100" rx="8" fill="#0c0c0c" stroke="#2f7d32" stroke-width="3"/>
+<text x="14" y="24" font-size="14" fill="#2f5a2a" font-weight="700">✓ Command Prompt: use this</text>
+<text x="28" y="70" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#e6e6e6">C:\Users\<tspan fill="#ffb454">&lt;you&gt;</tspan>\source\repos\</text>
+<text x="28" y="90" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#e6e6e6">spatial-graph-lab-course&gt;</text>
+<text x="28" y="120" font-size="12" fill="#9fd49c">no PS at the start</text>
+<rect x="386" y="34" width="360" height="100" rx="8" fill="#012456" stroke="#b3261e" stroke-width="3"/>
+<text x="386" y="24" font-size="14" fill="#8a3030" font-weight="700">✗ PowerShell: switch to Command Prompt</text>
+<text x="400" y="70" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#f0f0f0">PS C:\Users\<tspan fill="#ffb454">&lt;you&gt;</tspan>\source\repos\</text>
+<text x="400" y="90" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#f0f0f0">spatial-graph-lab-course&gt;</text>
+<rect x="397" y="57" width="24" height="18" rx="3" fill="none" stroke="#ff8a80" stroke-width="2"/>
+<text x="400" y="120" font-size="12" fill="#ffb4ab">PS = PowerShell</text>
+</svg>

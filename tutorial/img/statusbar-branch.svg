@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 70" width="560" height="70" role="img" aria-label="VS Code status bar, bottom left: the branch toolkit/&lt;toolkit-id&gt;" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
+<title>VS Code status bar, bottom left: the branch toolkit/&lt;toolkit-id&gt;</title>
+<rect x="0" y="0" width="560" height="70" rx="10" fill="#f4f4f2"/>
+<text x="14" y="22" font-size="12.5" fill="#62625c">Bottom left of VS Code:</text>
+<rect x="10" y="32" width="540" height="26" rx="4" fill="#007acc"/>
+<text x="20" y="50" font-size="13" fill="#fff">⎇ toolkit/<tspan fill="#ffe0a3">&lt;toolkit-id&gt;</tspan></text>
+<rect x="11" y="33" width="196" height="24" rx="6" fill="none" stroke="#d6337a" stroke-width="2.5"/>
+<circle cx="226" cy="45" r="11" fill="#d6337a" stroke="#fff" stroke-width="2"/><text x="226" y="49.5" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">1</text>
+<text x="540" y="50" font-size="12" fill="#fff" text-anchor="end">Ln 1, Col 1   UTF-8</text>
+</svg>

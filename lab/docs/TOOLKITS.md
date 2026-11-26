@@ -35,7 +35,7 @@ toolkits/<toolkit-id>/
 | `toolkit.ts` | `export default defineToolkit({ name, defaultDesign?, custom? })`. `custom.nodes` / `custom.edges`: attributes every node / edge has. | Required. `defaultDesign` names a file in `designs/` without `.json`. |
 | `functions/*.ts` | `export default defineFunction({ id, label, colour?, facade?, custom? })` | One per file; name the file after its `id`. `colour` is `#rrggbb`; `facade.windowFraction` is 0 (closed) to 1 (fully glazed). Repeating a toolkit attribute in `custom` gives this Function its own default. |
 | `algorithms/*.ts` | one default-exported algorithm per file | Analyses declare `inputs` (none → Analyse › Network, one node → Node, one edge → Edge, other → Queries). Transformations may declare `parameters` and return operations. |
-| `designs/*.json` | designs exported from the app (**Export JSON**) or written by hand | Valid schema v2; every node's `function` should be one of your ids; `metadata.name` and `.description` are shown in Open example…. |
+| `designs/*.json` | designs drawn in the app (the design's JSON: **Data** view › **JSON**, or one scenario's `design` in a file from **Project › Export project**) or written by hand | Valid schema v2; every node's `function` should be one of your ids; `metadata.name` and `.description` are shown in Open example…. |
 | `assets/*.3dm` | façade modules a design imports | At most 20 MB each; a design names a file by its asset id; `check:toolkit` checks they match. |
 | `lib/*.ts` | shared helpers | Every file in `algorithms/` must be an algorithm, so helpers live here and are imported with `../lib/…`. |
 
@@ -59,7 +59,7 @@ The app reads only `.ts` files directly in `functions/` and `algorithms/`, `.jso
 - One cell is 3 × 3 m and one level 3 m high. Read areas with `ctx.metrics.value('area', id)` rather than computing them.
 - A 3D edge is a relationship, not a staircase or corridor: whether it can be built is worked out by the app.
 
-**Designs.** Easiest: build the design in the app with your toolkit active, then **Export JSON** into `designs/`. Keep your default design small: every algorithm must run on it without failing.
+**Designs.** Easiest: build the design in the app with your toolkit active, then **Project › Export project**. The exported `.project.json` holds each scenario's design under `scenarios[…].design`: give that file to your AI and ask it to save the design of one scenario as `toolkits/<toolkit-id>/designs/<name>.json` (with a `metadata.name` and `.description`). The **Data** view › **JSON** shows the same design text. Keep your default design small: every algorithm must run on it without failing.
 
 **Façade files.** Big `.3dm` files make the repository slow for everyone. Use one only if a design really needs it.
 
@@ -75,7 +75,7 @@ npm run typecheck
 npm run dev
 ```
 
-- `check:toolkit` loads your toolkit exactly as the app does. It passes with `Tests N passed` (N more than 0). It fails with a readable message if the toolkit is not found (for example `No toolkit "hk-small-library" was found…`, or `toolkit.ts is one folder too deep…` after a common unzip mistake), if a folder name is not valid, if a definition or design is invalid, if a design uses a façade file that is not in `assets/`, or if an algorithm fails on your default design (analyses get the first node / edge as their input).
+- `check:toolkit` loads your toolkit exactly as the app does. It ends with one line: `PASSED: toolkit "<toolkit-id>" is ready.` or `FAILED: … (read the red message above)`. Look for that line, not for vitest's `Tests … passed` summary (a failed run also says `N passed`). It fails with a readable message if the toolkit is not found (for example `No toolkit "hk-small-library" was found…`, or `toolkit.ts is one folder too deep…` after a common unzip mistake), if a folder name is not valid, if a definition or design is invalid, if a design uses a façade file that is not in `assets/`, or if an algorithm fails on your default design (analyses get the first node / edge as their input).
 - `typecheck` checks your TypeScript. It prints nothing when everything is fine.
 - `npm run dev`, then open `http://localhost:5173/?toolkit=<toolkit-id>` (or the address it prints; or choose your toolkit when you create a project). **Project › Advanced** lists any problem in your toolkit files until you fix it; the page reloads when you save a file.
 
@@ -83,7 +83,7 @@ Then try it: **Open example…** › *Toolkit: <name>*; run your analyses in **A
 
 ## 5. Two ways to make it with an AI assistant
 
-Both routes end the same way: your folder `toolkits/<toolkit-id>/`, checked, committed on your own branch **`toolkit/<toolkit-id>`** and pushed. **Never commit to `main`**, and push only your branch. No Pull Request is needed: your tutor collects the branches.
+Both routes end the same way: your folder `toolkits/<toolkit-id>/`, checked, committed on your own branch **`toolkit/<toolkit-id>`** and pushed. **Never commit to `main`**, and push only your branch. No Pull Request is needed: your tutor collects the branches. Your tutor may also accept a zip of the folder (`<toolkit-id>.zip`, with `<toolkit-id>/toolkit.ts` directly inside it): see the tutorial, *Hand in*.
 
 The assistant follows [`lab/docs/ai-kit/toolkit/PROMPT.md`](ai-kit/toolkit/PROMPT.md). In the app, **Guide › Toolkits & JSON › Make your own toolkit** shows both routes with the prompts to copy and the kit to download.
 
@@ -91,8 +91,8 @@ The assistant follows [`lab/docs/ai-kit/toolkit/PROMPT.md`](ai-kit/toolkit/PROMP
 
 The agent reads the repository itself, writes the folder and runs the checks. No download needed.
 
-1. Open the repository folder in VS Code and start from an up-to-date `main`: `git switch main`, then `git pull`.
-2. Make your branch and push it at once, which reserves your toolkit id: `git switch -c toolkit/<toolkit-id>`, then `git push -u origin toolkit/<toolkit-id>`. If that first push is rejected, the id is already taken: choose another one (never pull someone else's branch).
+1. Open the repository folder in VS Code. Run `git status`: its first line must say `On branch main` (on another branch? `git switch main` first, so that your branch starts from the course version). Then get the newest course version: `git pull`.
+2. Make your branch (`switch -c` = create it and go to it) and claim its name at once with an empty commit: `git switch -c toolkit/<toolkit-id>`, `git commit --allow-empty -m "chore(<toolkit-id>): claim the toolkit name"`, then `git push -u origin toolkit/<toolkit-id>` (`-u` remembers GitHub as where this branch goes, so later a plain `git push` is enough). You must see `* [new branch]`. If that first push says `rejected` or `Everything up-to-date`, the name is already taken: choose another one (never pull someone else's branch).
 3. Give the agent this prompt (fill in the blanks):
 
 <!-- prompt:agent -->
@@ -134,14 +134,17 @@ Example design: ___
 
 <!-- commands:chat -->
 ```
-git switch main
+git status
+# the first line must say "On branch main"; on another branch? run git switch main first
 git pull
 git switch -c toolkit/<toolkit-id>
+git commit --allow-empty -m "chore(<toolkit-id>): claim the toolkit name"
 git push -u origin toolkit/<toolkit-id>
-# that first push reserves your toolkit id; rejected? the id is taken: choose another one
+# you must see * [new branch]; "rejected" or "Everything up-to-date" means the name is taken: choose another one (never pull)
 # unzip: the folder must end up at toolkits/<toolkit-id>/ (toolkit.ts directly inside it)
 npm install
 npm run check:toolkit -- -t <toolkit-id>
+# it must end with PASSED: toolkit "<toolkit-id>" is ready.
 npm run typecheck
 npm run dev
 # try it at http://localhost:5173/?toolkit=<toolkit-id> (or the address npm run dev prints), then stop the server (Ctrl+C)
@@ -153,12 +156,12 @@ git push
 <!-- /commands -->
 
    Run the lines one at a time (the `#` lines are things you do by hand). Under *Changes to be committed*, `git status` must list **only** files under `toolkits/<toolkit-id>/`. If it lists anything else, don't commit: undo that change first.
-   With GitHub Desktop instead: *Current branch › New branch* `toolkit/<toolkit-id>`, then *Publish branch* at once; copy the folder, commit, then *Push origin*.
+   With GitHub Desktop instead: *Current branch › New branch* `toolkit/<toolkit-id>`, then claim the name in the terminal with the `git commit --allow-empty …` and `git push -u …` lines above (Desktop cannot make an empty commit); copy the folder, commit only your toolkit's files, then *Push origin*.
 4. If a check fails, copy the **whole** message back into the chat and ask it to fix exactly that. Replace the changed files, check again, commit and push again (`git push`).
 
 ### Later changes
 
-Stay on your branch (`git switch toolkit/<toolkit-id>`), change files, check, then `git add toolkits/<toolkit-id>`, `git commit -m "feat(<toolkit-id>): …"` and `git push`. In Route B, send the chat the files you changed (or the whole folder as a zip) so it works on the current version.
+Stay on your branch (`git switch toolkit/<toolkit-id>`), change files, check, then `git add toolkits/<toolkit-id>`, `git commit -m "feat(<toolkit-id>): …"` and `git push`. In Route B, send the chat the files you changed (or the whole folder as a zip) so it works on the current version. Pushed from another computer? `git pull --no-rebase --no-edit` first. When the course updates the app: commit your work, then, on your branch, `git pull --no-rebase --no-edit origin main` (fetches `main` from GitHub and merges it into the branch you are on; `--no-edit` keeps git from opening an editor), `npm install`, run the checks and `git push`.
 
 ## 6. When something goes wrong
 
@@ -170,4 +173,4 @@ Stay on your branch (`git switch toolkit/<toolkit-id>`), change files, check, th
 | `… imports …` refused by a test | Import only `@student-api` and your own files. |
 | An algorithm fails on the default design | Run it in the app on that design to see the message; check for missing values (`null`) and empty lists. |
 | The browser tab freezes | An endless loop in an algorithm: every `while` must end. |
-| You committed on `main` by mistake | Don't push. `git switch -c toolkit/<toolkit-id>` makes your branch with that commit on it; push that branch. |
+| You committed on `main` by mistake | GitHub refuses the push, so nothing is lost. Commit or put back what `git status` lists, then: `git switch toolkit/<toolkit-id>`, `git merge --no-edit main` (this merges your local `main`, which holds the commits),  `git branch -f main origin/main`, `git push`. No branch yet? `git switch -c toolkit/<toolkit-id>`, `git branch -f main origin/main`, `git push -u origin toolkit/<toolkit-id>`. A `CONFLICT`, or commits that change files outside your folder: `git merge --abort` and ask your tutor. |

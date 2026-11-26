@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 300" width="560" height="300" role="img" aria-label="The loop of every working session: be on your branch, change, check, commit, push, and again" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
+<title>The loop of every working session: be on your branch, change, check, commit, push, and again</title>
+<defs><marker id="a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2c5d8f"/></marker></defs>
+<rect x="0" y="0" width="560" height="300" rx="10" fill="#f4f4f2"/>
+<circle cx="280" cy="150" r="96" fill="none" stroke="#b9cbe0" stroke-width="3"/>
+<path d="M322.1 63.7 A96 96 0 0 1 349.1 83.3" stroke="#2c5d8f" stroke-width="3" fill="none" marker-end="url(#a3)"/><rect x="210" y="30" width="140" height="32" rx="16" fill="#ffffff" stroke="#2c5d8f" stroke-width="2"/><text x="280" y="51" font-size="13" fill="#1f1f1d" font-weight="600" text-anchor="middle">1. Be on your branch</text>
+<path d="M375.1 163.4 A96 96 0 0 1 364.8 195.1" stroke="#2c5d8f" stroke-width="3" fill="none" marker-end="url(#a3)"/><rect x="358.36481654204397" y="101.86223258500547" width="140" height="32" rx="16" fill="#ffffff" stroke="#2c5d8f" stroke-width="2"/><text x="428.36481654204397" y="122.86223258500547" font-size="13" fill="#1f1f1d" font-weight="600" text-anchor="middle">2. Change</text>
+<path d="M296.7 244.5 A96 96 0 0 1 263.3 244.5" stroke="#2c5d8f" stroke-width="3" fill="none" marker-end="url(#a3)"/><rect x="301.69449935762583" y="218.13776741499453" width="140" height="32" rx="16" fill="#ffffff" stroke="#2c5d8f" stroke-width="2"/><text x="371.69449935762583" y="239.13776741499453" font-size="13" fill="#1f1f1d" font-weight="600" text-anchor="middle">3. Check (PASSED)</text>
+<path d="M195.2 195.1 A96 96 0 0 1 184.9 163.4" stroke="#2c5d8f" stroke-width="3" fill="none" marker-end="url(#a3)"/><rect x="118.30550064237423" y="218.13776741499453" width="140" height="32" rx="16" fill="#ffffff" stroke="#2c5d8f" stroke-width="2"/><text x="188.30550064237423" y="239.13776741499453" font-size="13" fill="#1f1f1d" font-weight="600" text-anchor="middle">4. Commit</text>
+<path d="M210.9 83.3 A96 96 0 0 1 237.9 63.7" stroke="#2c5d8f" stroke-width="3" fill="none" marker-end="url(#a3)"/><rect x="61.63518345795606" y="101.86223258500544" width="140" height="32" rx="16" fill="#ffffff" stroke="#2c5d8f" stroke-width="2"/><text x="131.63518345795606" y="122.86223258500544" font-size="13" fill="#1f1f1d" font-weight="600" text-anchor="middle">5. Push</text>
+<text x="280" y="146" font-size="13" fill="#62625c" text-anchor="middle">every</text>
+<text x="280" y="164" font-size="13" fill="#62625c" text-anchor="middle">session</text>
+</svg>

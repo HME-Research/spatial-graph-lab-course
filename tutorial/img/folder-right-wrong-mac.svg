@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" width="760" height="300" role="img" aria-label="Finder: right, toolkit.ts directly inside toolkits/&lt;toolkit-id&gt;; wrong, a second &lt;toolkit-id&gt; folder inside the first" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
+<title>Finder: right, toolkit.ts directly inside toolkits/&lt;toolkit-id&gt;; wrong, a second &lt;toolkit-id&gt; folder inside the first</title>
+<rect x="0" y="0" width="760" height="300" rx="10" fill="#f4f4f2"/>
+<rect x="10" y="10" width="364" height="280" rx="9" fill="#fff" stroke="#2f7d32" stroke-width="3"/>
+<rect x="10" y="10" width="364" height="30" rx="9" fill="#ececea"/><rect x="10" y="30" width="364" height="10" rx="0" fill="#ececea"/><circle cx="30" cy="25" r="5.5" fill="#ff5f57"/><circle cx="48" cy="25" r="5.5" fill="#febc2e"/><circle cx="66" cy="25" r="5.5" fill="#28c840"/><text x="192" y="30" font-size="12.5" fill="#3b3b3b" text-anchor="middle">Finder</text>
+<text x="26" y="64" font-size="15" fill="#2f5a2a" font-weight="700">✓ Right</text>
+<text x="30" y="92" font-size="13" fill="#1f1f1d">📁 spatial-graph-lab-course</text>
+<text x="50" y="116" font-size="13" fill="#1f1f1d">📁 toolkits</text>
+<text x="70" y="140" font-size="13" fill="#1f1f1d">📁 house</text>
+<rect x="66" y="148" width="188" height="22" rx="4" fill="#eef5ec" stroke="#2f7d32" stroke-width="1"/><text x="70" y="164" font-size="13" fill="#2f5a2a" font-weight="700">📁 <tspan fill="#b25e00">&lt;toolkit-id&gt;</tspan></text>
+<text x="90" y="188" font-size="13" fill="#1f1f1d">📄 toolkit.ts</text>
+<text x="90" y="212" font-size="13" fill="#1f1f1d">📁 functions</text>
+<text x="90" y="236" font-size="13" fill="#1f1f1d">📁 algorithms</text>
+<text x="90" y="260" font-size="13" fill="#1f1f1d">📁 designs</text>
+<rect x="386" y="10" width="364" height="280" rx="9" fill="#fff" stroke="#b3261e" stroke-width="3"/>
+<rect x="386" y="10" width="364" height="30" rx="9" fill="#ececea"/><rect x="386" y="30" width="364" height="10" rx="0" fill="#ececea"/><circle cx="406" cy="25" r="5.5" fill="#ff5f57"/><circle cx="424" cy="25" r="5.5" fill="#febc2e"/><circle cx="442" cy="25" r="5.5" fill="#28c840"/><text x="568" y="30" font-size="12.5" fill="#3b3b3b" text-anchor="middle">Finder</text>
+<text x="402" y="64" font-size="15" fill="#8a3030" font-weight="700">✗ Wrong: one folder too many</text>
+<text x="406" y="92" font-size="13" fill="#1f1f1d">📁 spatial-graph-lab-course</text>
+<text x="426" y="116" font-size="13" fill="#1f1f1d">📁 toolkits</text>
+<text x="446" y="140" font-size="13" fill="#1f1f1d">📁 house</text>
+<text x="446" y="164" font-size="13" fill="#1f1f1d">📁 <tspan fill="#b25e00">&lt;toolkit-id&gt;</tspan></text>
+<rect x="462" y="172" width="182" height="22" rx="4" fill="#fbeeee" stroke="#d9534f" stroke-width="1"/><text x="466" y="188" font-size="13" fill="#8a3030" font-weight="700">📁 <tspan fill="#b25e00">&lt;toolkit-id&gt;</tspan></text>
+<text x="486" y="212" font-size="13" fill="#1f1f1d">📄 toolkit.ts</text>
+<text x="486" y="236" font-size="13" fill="#1f1f1d">📁 functions</text>
+<text x="406" y="270" font-size="12.5" fill="#8a3030">Open it and move the inner folder up one level.</text>
+</svg>
