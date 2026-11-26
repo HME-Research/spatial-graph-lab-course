@@ -8,28 +8,46 @@
 <script src="tutorial.js"></script>
 </head>
 <body>
+<a class="skip" href="#content">Skip to the content</a>
 <header class="top"><div class="top-inner">
-  <a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a>
+  <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
   <nav class="site" aria-label="Tutorial pages">
-    <a href="01-start-here.html">1. Start here</a>
-    <a href="02-use-the-app.html">2. Use the app</a>
-    <a href="03-your-own-analysis.html">3. Your own analysis</a>
-    <a href="04-your-own-transform.html">4. Your own transform</a>
-    <a href="05-set-up-your-computer.html">5. Set up your computer</a>
-    <a href="06-plan-your-toolkit.html" aria-current="page">6. Plan your toolkit</a>
-    <a href="07-toolkit-with-a-coding-agent.html">7. Toolkit: coding agent</a>
-    <a href="08-toolkit-with-a-chat-assistant.html">8. Toolkit: chat assistant</a>
-    <a href="09-git-basics.html">9. Git basics</a>
-    <a href="10-hand-in.html">10. Hand in</a>
-    <a href="11-keep-working-and-update.html">11. Keep working</a>
-    <a href="12-help.html">12. Help</a>
+    <a href="01-start-here.html"><span class="n">1</span>Start here</a>
+    <a href="02-use-the-app.html"><span class="n">2</span>Use the app</a>
+    <a href="03-your-own-analysis.html"><span class="n">3</span>Your own analysis</a>
+    <a href="04-your-own-transform.html"><span class="n">4</span>Your own transform</a>
+    <a href="05-set-up-your-computer.html"><span class="n">5</span>Set up your computer</a>
+    <a href="06-plan-your-toolkit.html" aria-current="page"><span class="n">6</span>Plan your toolkit</a>
+    <a href="07-toolkit-with-a-coding-agent.html"><span class="n">7</span>Toolkit: coding agent</a>
+    <a href="08-toolkit-with-a-chat-assistant.html"><span class="n">8</span>Toolkit: chat assistant</a>
+    <a href="09-git-basics.html"><span class="n">9</span>Git basics</a>
+    <a href="10-hand-in.html"><span class="n">10</span>Hand in</a>
+    <a href="11-keep-working-and-update.html"><span class="n">11</span>Keep working</a>
+    <a href="12-help.html"><span class="n">12</span>Help</a>
   </nav>
 </div></header>
-<main>
+<div class="layout">
+<aside class="side">
+  <nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+    <ol>
+      <li><a href="#contains"><span class="n">01</span><span class="t">What a toolkit contains</span></a></li>
+      <li><a href="#who-writes"><span class="n">02</span><span class="t">Who will write it?</span></a></li>
+      <li><a href="#your-id"><span class="n">03</span><span class="t">Name your toolkit</span></a></li>
+      <li><a href="#free"><span class="n">04</span><span class="t">Check the name is free</span></a></li>
+      <li><a href="#decide"><span class="n">05</span><span class="t">Decide the rest</span></a></li>
+      <li><a href="#plan"><span class="n">06</span><span class="t">Fill in your plan</span></a></li>
+      <li><a href="#prompts"><span class="n">07</span><span class="t">Your prompts</span></a></li>
+    </ol>
+  </details></nav>
+</aside>
+<main id="content">
+<p class="crumb">Page 6 of 12 · B. Make a toolkit</p>
 <h1>Plan your toolkit</h1>
-<p class="lead">Decide five things before you ask an AI to write anything. Fill them in below: this page turns them into the prompt for a <a href="07-toolkit-with-a-coding-agent.html">coding agent</a> and for a <a href="08-toolkit-with-a-chat-assistant.html">chat assistant</a>, and the other pages fill in your toolkit id.</p>
+<p class="lead">Decide a few things before you ask an AI to write anything. Fill them in below: this page turns them into the prompt for a <a href="07-toolkit-with-a-coding-agent.html">coding agent</a> and for a <a href="08-toolkit-with-a-chat-assistant.html">chat assistant</a>, and every other page fills in your toolkit id.</p>
 
-<h2>What a toolkit contains</h2>
+<section class="card" id="contains">
+<div class="card-head"><span class="badge">01</span><div><h2>What a toolkit contains</h2><p class="sub">One folder, the only place you work.</p></div></div>
+<div class="card-body">
 <div class="tree">toolkits/&lt;toolkit-id&gt;/
   toolkit.ts       its name, its default design, the attributes every node / edge has
   README.md        what it is for and how to try it (your tutor reads this)
@@ -39,24 +57,96 @@
   assets/          optional: Rhino .3dm façade files
   lib/             optional: helper code shared by several algorithms</div>
 <p>A complete example is <code>toolkits/house/</code> (read it, never change it). The full guide is <code>lab/docs/TOOLKITS.md</code> in the repository.</p>
+</div>
+</section>
 
-<h2>Decide</h2>
+<section class="card" id="who-writes">
+<div class="card-head"><span class="badge">02</span><div><h2>Who will write it?</h2><p class="sub">A coding agent in VS Code, or a chat assistant in the browser.</p></div></div>
+<div class="card-body">
+<div class="versus">
+  <p class="versus-title">What's the difference? A coding agent or a chat assistant</p>
+  <div class="versus-cols">
+    <div class="versus-col">
+      <h3>Coding agent</h3>
+      <p class="ex">Codex, Claude Code, GitHub Copilot in <b>Agent</b> mode</p>
+      <ul>
+        <li><b>Where:</b> inside VS Code, on your copy of the repository.</li>
+        <li><b>What it does:</b> reads the files, writes your toolkit folder and runs the checks itself.</li>
+        <li><b>How to get it:</b> a VS Code extension you sign in to (<a href="05-set-up-your-computer.html#s-agent">Set up › 05</a>).</li>
+        <li><b>Choose it when:</b> you have one. Fewer manual steps: <a href="07-toolkit-with-a-coding-agent.html">page 7</a>.</li>
+      </ul>
+    </div>
+    <div class="versus-col">
+      <h3>Chat assistant</h3>
+      <p class="ex">Claude, ChatGPT or Gemini in the browser: <a href="https://claude.ai">claude.ai</a>, <a href="https://chatgpt.com">chatgpt.com</a>, <a href="https://gemini.google.com">gemini.google.com</a></p>
+      <ul>
+        <li><b>Where:</b> a website, outside your repository.</li>
+        <li><b>What it does:</b> sees only what you attach (a kit zip) and gives files back. You put them in place and run the checks yourself.</li>
+        <li><b>How to get it:</b> open the website and sign in.</li>
+        <li><b>Choose it when:</b> you have no coding agent (<a href="08-toolkit-with-a-chat-assistant.html">page 8</a>), or for one analysis or transform in the browser (pages <a href="03-your-own-analysis.html">3</a> and <a href="04-your-own-transform.html">4</a>).</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</div>
+</section>
+
+<section class="card" id="your-id">
+<div class="card-head"><span class="badge">03</span><div><h2>Name your toolkit</h2><p class="sub">Your initials and the toolkit's name make its id, its folder and its branch.</p></div></div>
+<div class="card-body">
+<div class="namer" data-namer>
+  <p class="namer-title">Your initials + toolkit name = your toolkit id</p>
+  <p class="namer-rule">The naming convention: <b>toolkit id = <code>&lt;initials&gt;-&lt;toolkit-name&gt;</code></b>, all lowercase, words joined with <code>-</code>, no spaces. Initials <b>HK</b> and toolkit <b>Small library</b> give <code>hk-small-library</code>. Your folder is <code>toolkits/&lt;toolkit-id&gt;/</code> and your branch <code>toolkit/&lt;toolkit-id&gt;</code>. Type both below: every command and prompt on these pages fills in your id.</p>
+  <div class="namer-fields">
+    <div><label for="namer-initials">Your initials</label><input id="namer-initials" type="text" data-namer-initials placeholder="HK" autocomplete="off" spellcheck="false" maxlength="8"></div>
+    <div><label for="namer-name">Toolkit name</label><input id="namer-name" type="text" data-namer-name placeholder="Small library" autocomplete="off" spellcheck="false" maxlength="60"></div>
+  </div>
+  <dl class="namer-out">
+    <div><dt>Toolkit id</dt><dd><code data-toolkit-id>&lt;toolkit-id&gt;</code></dd></div>
+    <div><dt>Folder</dt><dd><code>toolkits/<span data-toolkit-id>&lt;toolkit-id&gt;</span>/</code></dd></div>
+    <div><dt>Branch</dt><dd><code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code></dd></div>
+  </dl>
+  <p class="namer-msg" data-namer-msg role="status"></p>
+  <details class="namer-own"><summary>Already pushed a branch with a different id?</summary>
+    <label for="namer-own">Your existing toolkit id</label><input id="namer-own" type="text" data-namer-own placeholder="e.g. hk-library" autocomplete="off" spellcheck="false">
+    <small class="muted">Keep using it: never rename a toolkit. Leave this empty to use the id built above.</small>
+  </details>
+  <p class="namer-note">Rule: lowercase letters, digits and <code>-</code>, starting with a letter. Remembered in this browser only. Without JavaScript, replace <code>&lt;toolkit-id&gt;</code> in the commands yourself.</p>
+</div>
+<p>Ids are forever: never rename your toolkit once you have made its branch.</p>
+</div>
+</section>
+
+<section class="card" id="free">
+<div class="card-head"><span class="badge">04</span><div><h2>Check the name is free</h2><p class="sub">Nobody else in the class may use the same id.</p></div></div>
+<div class="card-body">
+<p>Two students must not use the same id. Open <a href="https://github.com/HME-Research/spatial-graph-lab-course/branches">the course repository's branches</a> and type your initials in <span class="ui">Search branches…</span>.</p>
+<ul>
+  <li>No <code>toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> listed: the name is free.</li>
+  <li>It is listed and <b>not yours</b>: add a letter to your initials or change the toolkit name, above.</li>
+  <li>It is listed and yours (you pushed it earlier): keep it and switch to it instead of creating it again.</li>
+</ul>
+</div>
+</section>
+
+<section class="card" id="decide">
+<div class="card-head"><span class="badge">05</span><div><h2>Decide the rest</h2><p class="sub">Five decisions; the form below collects them.</p></div></div>
+<div class="card-body">
 <div class="table"><table>
   <tr><th>Decision</th><th>Rule</th><th>Tip</th></tr>
-  <tr><td><b>Toolkit id</b> (folder and branch name)</td><td>lowercase letters, digits and <code>-</code>, starting with a letter</td><td>Make it unique in the class with your initials, e.g. <code>hk-library</code>. Never rename it later.</td></tr>
+  <tr><td><b>Toolkit id</b> (folder and branch name)</td><td><code>&lt;initials&gt;-&lt;toolkit-name&gt;</code>: lowercase letters, digits and <code>-</code>, starting with a letter</td><td>e.g. <code>hk-small-library</code> (step 03). Never rename it later.</td></tr>
   <tr><td><b>Idea</b></td><td>one or two sentences</td><td>A building type or a design question.</td></tr>
   <tr><td><b>Functions</b></td><td>one per room programme</td><td>Start with 3–6. Say what each should record (e.g. a Reading room records its seats).</td></tr>
   <tr><td><b>Algorithms</b></td><td>an <b>analysis</b> reads and shows; a <b>transform</b> proposes changes you preview and Apply</td><td>Start with one or two. Write each as a rule you could explain in one sentence.</td></tr>
   <tr><td><b>Example design</b></td><td>a small design that uses your Functions</td><td>The checks run every algorithm on it, so keep it small.</td></tr>
 </table></div>
 <div class="note"><p><b>Ids are forever.</b> Designs store your Function ids and attribute names; projects store your toolkit id. Add new ones rather than renaming old ones.</p></div>
-
-<h2>Fill in your plan</h2>
-<div class="idbox">
-  <label for="toolkit-id">Your toolkit id</label>
-  <input id="toolkit-id" type="text" data-id-input placeholder="e.g. hk-library" autocomplete="off" spellcheck="false">
-  <small data-id-hint></small>
 </div>
+</section>
+
+<section class="card" id="plan">
+<div class="card-head"><span class="badge">06</span><div><h2>Fill in your plan</h2><p class="sub">In plain words; the prompts below fill themselves in.</p></div></div>
+<div class="card-body">
 <form class="form" id="prompt-form" onsubmit="return false">
   <div><label for="idea">My idea <small>What the toolkit is for.</small></label>
     <textarea id="idea" name="idea" rows="2" placeholder="Small libraries: reading rooms, stacks and circulation."></textarea></div>
@@ -67,10 +157,14 @@
   <div><label for="design">Example design <small>What the default design contains.</small></label>
     <textarea id="design" name="design" rows="2" placeholder="Two levels: an entrance, three reading rooms and stacks around a stair."></textarea></div>
 </form>
-<p>Your plan is remembered in this browser only.</p>
+<p class="muted">Your plan is remembered in this browser only.</p>
+</div>
+</section>
 
-<h2>Your prompts</h2>
-<p>Copy the one for your way of working. The prompt pages repeat them with the blanks still empty.</p>
+<section class="card" id="prompts">
+<div class="card-head"><span class="badge">07</span><div><h2>Your prompts</h2><p class="sub">Copy the one for your way of working.</p></div></div>
+<div class="card-body">
+<p>The pages for each way repeat them with the blanks still empty.</p>
 <div class="code"><div class="label">For a coding agent (<a href="07-toolkit-with-a-coding-agent.html">how</a>)</div><pre data-build data-block="prompt:agent">Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. Work only inside toolkits/&lt;toolkit-id&gt;/ on my branch toolkit/&lt;toolkit-id&gt;, run the checks, and commit only my folder. Do not push: I will push.
 
 Toolkit id: ___
@@ -85,9 +179,12 @@ My idea: ___
 Functions (and their attributes): ___
 Algorithms: ___
 Example design: ___</pre></div>
+</div>
+</section>
 
 <div class="pager"><a href="05-set-up-your-computer.html">← 5. Set up your computer</a><a href="07-toolkit-with-a-coding-agent.html">7. Toolkit: coding agent →</a></div>
 </main>
-<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</div>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · Your ticks, names and plan are saved only in this browser.</div></footer>
 </body>
 </html>

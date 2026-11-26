@@ -8,78 +8,321 @@
 <script src="tutorial.js"></script>
 </head>
 <body>
+<a class="skip" href="#content">Skip to the content</a>
 <header class="top"><div class="top-inner">
-  <a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a>
+  <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
   <nav class="site" aria-label="Tutorial pages">
-    <a href="01-start-here.html">1. Start here</a>
-    <a href="02-use-the-app.html">2. Use the app</a>
-    <a href="03-your-own-analysis.html">3. Your own analysis</a>
-    <a href="04-your-own-transform.html">4. Your own transform</a>
-    <a href="05-set-up-your-computer.html" aria-current="page">5. Set up your computer</a>
-    <a href="06-plan-your-toolkit.html">6. Plan your toolkit</a>
-    <a href="07-toolkit-with-a-coding-agent.html">7. Toolkit: coding agent</a>
-    <a href="08-toolkit-with-a-chat-assistant.html">8. Toolkit: chat assistant</a>
-    <a href="09-git-basics.html">9. Git basics</a>
-    <a href="10-hand-in.html">10. Hand in</a>
-    <a href="11-keep-working-and-update.html">11. Keep working</a>
-    <a href="12-help.html">12. Help</a>
+    <a href="01-start-here.html"><span class="n">1</span>Start here</a>
+    <a href="02-use-the-app.html"><span class="n">2</span>Use the app</a>
+    <a href="03-your-own-analysis.html"><span class="n">3</span>Your own analysis</a>
+    <a href="04-your-own-transform.html"><span class="n">4</span>Your own transform</a>
+    <a href="05-set-up-your-computer.html" aria-current="page"><span class="n">5</span>Set up your computer</a>
+    <a href="06-plan-your-toolkit.html"><span class="n">6</span>Plan your toolkit</a>
+    <a href="07-toolkit-with-a-coding-agent.html"><span class="n">7</span>Toolkit: coding agent</a>
+    <a href="08-toolkit-with-a-chat-assistant.html"><span class="n">8</span>Toolkit: chat assistant</a>
+    <a href="09-git-basics.html"><span class="n">9</span>Git basics</a>
+    <a href="10-hand-in.html"><span class="n">10</span>Hand in</a>
+    <a href="11-keep-working-and-update.html"><span class="n">11</span>Keep working</a>
+    <a href="12-help.html"><span class="n">12</span>Help</a>
   </nav>
 </div></header>
-<main>
+<div class="layout">
+<aside class="side">
+  <div class="side-box progress" data-progress>
+    <div class="side-label">Setup progress <span class="count" data-progress-count>0 / 13</span></div>
+    <div class="bar"><span data-progress-bar></span></div>
+    <p data-progress-text>Tick each step as you complete it.</p>
+    <p>Saved only in this browser on this computer.</p>
+    <button type="button" class="button-quiet" data-progress-reset>Reset checklist</button>
+  </div>
+  <nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+    <ol>
+      <li class="toc-group"><a href="#before">Installation &amp; accounts — complete before class</a></li>
+      <li><a href="#s-github"><span class="n">01</span><span class="t">Create or check your GitHub account</span></a></li>
+      <li><a href="#s-vscode"><span class="n">02</span><span class="t">Install Visual Studio Code</span></a></li>
+      <li><a href="#s-git"><span class="n">03</span><span class="t">Install Git</span></a></li>
+      <li><a href="#s-node"><span class="n">04</span><span class="t">Install Node.js (LTS)</span></a></li>
+      <li><a href="#s-agent"><span class="n">05</span><span class="t">Register for an AI coding agent</span></a></li>
+      <li class="toc-group"><a href="#repository">Get the course repository — in the session</a></li>
+      <li><a href="#s-invite"><span class="n">06</span><span class="t">Accept the GitHub invitation</span></a></li>
+      <li><a href="#s-terminal"><span class="n">07</span><span class="t">Open a terminal</span></a></li>
+      <li><a href="#s-identity"><span class="n">08</span><span class="t">Tell Git your name and e-mail</span></a></li>
+      <li><a href="#s-clone"><span class="n">09</span><span class="t">Copy (clone) the repository</span></a></li>
+      <li><a href="#s-open"><span class="n">10</span><span class="t">Open the folder in VS Code</span></a></li>
+      <li><a href="#s-install"><span class="n">11</span><span class="t">Install what the app needs</span></a></li>
+      <li><a href="#s-run"><span class="n">12</span><span class="t">Start the app</span></a></li>
+      <li><a href="#s-stop"><span class="n">13</span><span class="t">Stop the app</span></a></li>
+    </ol>
+  </details></nav>
+</aside>
+<main id="content">
+<p class="crumb">Page 5 of 12 · B. Make a toolkit</p>
 <h1>Set up your computer</h1>
-<p class="lead">Once, at the start: install three programs, join the course repository on GitHub, copy it to your computer and run the app there. About 30 minutes. Only needed to make a toolkit; to <a href="02-use-the-app.html">use the app</a> or <a href="03-your-own-analysis.html">upload an analysis</a>, a browser is enough.</p>
+<p class="lead">Once, at the start: install the programs, register for an AI coding agent, join the course repository on GitHub, copy it to your computer and run the app there. Only needed to make a toolkit; to <a href="02-use-the-app.html">use the app</a> or <a href="03-your-own-analysis.html">upload an analysis</a>, a browser is enough. No programming experience is needed.</p>
 
-<h2>1. Install the programs</h2>
-<ol class="steps">
-  <li><strong>A GitHub account</strong>Make one at <a href="https://github.com/signup">github.com/signup</a> (free) and send your <b>username</b> to your tutor. Students can also apply for free extras at <a href="https://education.github.com/">GitHub Education</a>.</li>
-  <li><strong>Git</strong>Download from <a href="https://git-scm.com/downloads">git-scm.com/downloads</a> and install with the default options. On a Mac, typing <code>git</code> in Terminal also offers to install it.</li>
-  <li><strong>Node.js</strong>Download the <b>LTS</b> version (22 or newer) from <a href="https://nodejs.org/">nodejs.org</a> and install with the default options. It brings <code>npm</code>, which installs and runs the app.</li>
-  <li><strong>VS Code</strong>Download from <a href="https://code.visualstudio.com/">code.visualstudio.com</a>. You will open the repository in it, and run commands in its terminal: <span class="ui">Terminal › New Terminal</span>.</li>
-  <li><strong>Check them</strong>In a new VS Code terminal, run:
-    <div class="code"><pre>git --version
-node --version</pre></div>
-    <p class="see">two version numbers; Node must start with 22 or higher. A message such as “not recognized” means the program is not installed yet, or VS Code was open while you installed it: close and reopen VS Code.</p></li>
+<div class="note"><p><b>Did the Before Session 2 checklist?</b> Your ticks there don't carry over — tick steps 1–5 here and continue at step 6. Steps 01–05 are the same steps, with the same links and fixes.</p></div>
+
+<div class="group" id="before"><h2>Installation &amp; accounts — complete before class</h2><p>The Before Session 2 checklist: complete these five steps on the laptop you will bring to the workshop.</p></div></group>
+
+<section class="card" id="s-github">
+<div class="card-head"><span class="badge">01</span><div><h2>Create or check your GitHub account</h2><p class="sub">Create a free GitHub account, or check you can sign in to an existing one.</p></div></div>
+<div class="card-body">
+<ol>
+  <li>Go to GitHub and create a free account, or sign in to your existing one.</li>
+  <li>Verify your email address if requested.</li>
+  <li>Keep track of your GitHub username; you'll use it in the workshop.</li>
 </ol>
+<div class="actions"><a class="btn primary" href="https://github.com/signup">Create a GitHub account ↗</a><a class="btn secondary" href="https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github">Official instructions ↗</a></div>
+<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
+<details class="issue"><summary>My verification email hasn't arrived</summary><div class="issue-body"><ol><li>Check your spam or junk folder.</li><li>Check that the email address you entered is correct.</li><li>Use GitHub's option to resend the verification email.</li></ol></div></details>
+<details class="issue"><summary>I already have a GitHub account</summary><div class="issue-body"><ol><li>Use your existing account. You do not need to create another one.</li></ol></div></details>
+</div></details>
+<label class="tick"><input type="checkbox" data-check="github"> <span>I can sign in to GitHub</span></label>
+</div>
+</section>
 
-<h2>2. Join the course repository</h2>
-<ol class="steps">
-  <li><strong>Accept the invitation</strong>Your tutor adds you to <a href="https://github.com/HME-Research/spatial-graph-lab-course">HME-Research/spatial-graph-lab-course</a>. Accept it from the e-mail GitHub sends, or at <a href="https://github.com/HME-Research/spatial-graph-lab-course/invitations">its invitations page</a>. Without it you can copy the repository but not push your work.</li>
-  <li><strong>Tell Git who you are</strong> (once per computer; use the e-mail of your GitHub account):
-    <div class="code"><pre>git config --global user.name "Your Name"
-git config --global user.email "you@example.com"</pre></div></li>
+<section class="card" id="s-vscode">
+<div class="card-head"><span class="badge">02</span><div><h2>Install Visual Studio Code</h2><p class="sub">Install the editor we will use in the workshop.</p></div></div>
+<div class="card-body">
+<ol>
+  <li>Download VS Code for your operating system.</li>
+  <li>Install it using the normal installer.</li>
+  <li>Open VS Code and check that the editor launches.</li>
 </ol>
+<div class="actions"><a class="btn primary" href="https://code.visualstudio.com/download">Download VS Code ↗</a><a class="btn secondary" href="https://code.visualstudio.com/docs/setup/setup-overview">Setup help ↗</a></div>
+<div class="warn"><p>Choose <b>Visual Studio Code</b> (VS Code), not the separate Visual Studio IDE.</p></div>
+<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
+<details class="issue"><summary>I downloaded Visual Studio, not Visual Studio Code</summary><div class="issue-body"><ol><li>Go back to the official <a href="https://code.visualstudio.com/Download">VS Code download page</a>.</li><li>Download Visual Studio Code, the lighter code editor, not Visual Studio.</li><li>Run the installer and open Visual Studio Code.</li></ol></div></details>
+<details class="issue"><summary>VS Code asks whether I trust a folder</summary><div class="issue-body"><ol><li>This is normal when opening projects.</li><li>Only trust folders whose origin you know.</li><li>We'll open the workshop project together in class (step 10).</li></ol></div></details>
+</div></details>
+<label class="tick"><input type="checkbox" data-check="vscode"> <span>VS Code opens on my computer</span></label>
+</div>
+</section>
 
-<h2>3. Copy the repository to your computer</h2>
+<section class="card" id="s-git">
+<div class="card-head"><span class="badge">03</span><div><h2>Install Git</h2><p class="sub">Git tracks changes and lets you work on your own branch without altering the main project.</p></div></div>
+<div class="card-body">
+<p>For Windows, the normal installer is easier than using the command line. On macOS, Git may already be present.</p>
+<div class="os-tabs">
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><ol>
+  <li>Download <a href="https://git-scm.com/install/windows">Git for Windows</a>.</li>
+  <li>Run the installer (the <code>.exe</code> file). Keep the default settings.</li>
+  <li>Restart VS Code after installation.</li>
+</ol></div>
+<div class="os-panel" data-os="mac"><p class="os-title">macOS</p><ol>
+  <li>Open <b>Terminal</b> on your Mac (Finder › <span class="ui">Applications › Utilities › Terminal</span>, or search “Terminal” with <kbd>Cmd</kbd>+<kbd>Space</kbd>).</li>
+  <li>Run <code>git --version</code>.</li>
+  <li>If macOS asks to install Command Line Tools, accept and finish the installation. If Git is already installed, you don't need to do anything else.</li>
+</ol>
+<p><a href="https://git-scm.com/install/mac">Alternative Git install options ↗</a></p>
+<details class="issue"><summary>macOS asks me to install Command Line Tools</summary><div class="issue-body"><ol><li>Choose <span class="ui">Install</span> when prompted.</li><li>Let the installation finish.</li><li>Close and reopen Terminal and run <code>git --version</code> again.</li></ol></div></details>
+</div>
+</div>
+<p>Check it: in VS Code, choose <span class="ui">Terminal › New Terminal</span>, then type:</p>
+<div class="code"><pre>git --version</pre></div>
+<div class="example"><p class="label">Example result</p><pre>git version 2.50.1</pre><small>The version number on your computer may be different. That's fine.</small></div>
+<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
+<details class="issue"><summary>Git is not recognised when I check the version</summary><div class="issue-body"><ol><li>Close all VS Code windows and restart VS Code.</li><li>Open <span class="ui">Terminal › New Terminal</span> and try <code>git --version</code> again.</li><li>If it still fails, repeat the installation steps above.</li></ol></div></details>
+</div></details>
+<label class="tick"><input type="checkbox" data-check="git"> <span>The Git version command works</span></label>
+</div>
+</section>
+
+<section class="card" id="s-node">
+<div class="card-head"><span class="badge">04</span><div><h2>Install Node.js (LTS)</h2><p class="sub">Node.js is needed to install dependencies and run Spatial Graph Lab locally.</p></div></div>
+<div class="card-body">
+<p>Node.js allows the application to run locally. Use the <b>LTS</b> version (the stable release intended for longer-term use). It brings <code>npm</code>, which installs and runs the app.</p>
+<div class="os-tabs">
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><p><b>Simple method:</b> download and run the Windows installer (<code>.msi</code>) from <a href="https://nodejs.org/en/download/">nodejs.org</a>, choosing <b>LTS</b>.</p>
+<p><b>Or install with a command:</b></p>
+<ol>
+  <li>Click the Start button (Windows icon).</li>
+  <li>Type <b>Terminal</b> and open Windows Terminal. If unavailable, search for PowerShell instead.</li>
+  <li>Paste this command and press <kbd>Enter</kbd>:
+    <div class="code"><pre>winget install OpenJS.NodeJS.LTS</pre></div></li>
+</ol>
+<p class="muted">If Windows says winget is not recognised, use the installer above instead.</p></div>
+<div class="os-panel" data-os="mac"><p class="os-title">macOS</p><p><b>Simple method:</b> download the macOS installer (<code>.pkg</code>) from <a href="https://nodejs.org/en/download/">nodejs.org</a>, choosing <b>LTS</b>. Open the downloaded file and follow the installation steps.</p>
+<p class="muted">This avoids requiring Homebrew or other command-line installation tools.</p></div>
+</div>
+<p>Restart VS Code, then open <span class="ui">Terminal › New Terminal</span>. Run these commands one at a time:</p>
+<div class="code"><pre>node --version</pre></div>
+<div class="code"><pre>npm --version</pre></div>
+<div class="example"><p class="label">Example results</p><pre>v26.13.1
+11.6.2</pre><small>Your numbers can differ. Both lines should show a version, without an error. The app needs Node.js 22 or newer: the current LTS is.</small></div>
+<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
+<details class="issue"><summary>Node.js or npm is not recognised</summary><div class="issue-body"><ol><li>Restart VS Code after installing Node.js.</li><li>Open <span class="ui">Terminal › New Terminal</span>.</li><li>Run <code>node --version</code> and <code>npm --version</code> again, one at a time.</li><li>If either still fails, use the official LTS installer linked above.</li></ol></div></details>
+<details class="issue"><summary>Windows PowerShell says running scripts is disabled</summary><div class="issue-body"><ol><li>In VS Code, open <span class="ui">Terminal › New Terminal</span>.</li><li>Use the arrow next to the <span class="ui">+</span> in the terminal panel and select <span class="ui">Command Prompt</span>.</li><li>Run <code>npm --version</code> there.</li></ol><p>You do not need to change Windows security settings. Use a Command Prompt terminal for all <code>npm</code> commands in this tutorial.</p></div></details>
+<details class="issue"><summary>My Node.js version number is different</summary><div class="issue-body"><ol><li>That is normal. You should see a version beginning with <code>v</code> for Node.js and a number for npm, rather than an error.</li></ol></div></details>
+</div></details>
+<label class="tick"><input type="checkbox" data-check="node"> <span>Both Node.js and npm return version numbers</span></label>
+</div>
+</section>
+
+<section class="card" id="s-agent">
+<div class="card-head"><span class="badge">05</span><div><h2>Register for an AI coding agent</h2><p class="sub">Choose between Codex, Claude Code and GitHub Copilot.</p></div></div>
+<div class="card-body">
+<p>Choose one AI coding agent that works with VS Code. You do not need to install all three. The workshop does not require a particular provider.</p>
+<h3>OpenAI Codex (VS Code extension)</h3>
+<ol>
+  <li>Check that your ChatGPT account or organisation provides Codex access.</li>
+  <li>In VS Code, open Extensions and search for the official Codex extension by OpenAI.</li>
+  <li>Install it and sign in; confirm the Codex panel opens.</li>
+</ol>
+<div class="actions"><a class="btn secondary" href="https://developers.openai.com/codex/ide/">Official Codex setup ↗</a></div>
+<p class="muted"><small>Use an eligible ChatGPT plan or organisation-provided Codex access. Paid ChatGPT plans such as Plus or Pro may provide access; limits vary by plan.</small></p>
+<h3>Claude Code (VS Code extension)</h3>
+<ol>
+  <li>Check that you have an eligible Claude subscription or API access.</li>
+  <li>Open Extensions in VS Code and install the official Claude Code extension by Anthropic.</li>
+  <li>Sign in and check that the Claude Code panel opens.</li>
+</ol>
+<div class="actions"><a class="btn secondary" href="https://code.claude.com/docs/en/vs-code">Official Claude Code setup ↗</a></div>
+<p class="muted"><small>Use an eligible paid Claude plan (such as Pro or Max), a qualifying organisation account, or funded Anthropic API access. A basic free Claude chat account alone does not guarantee Claude Code access.</small></p>
+<h3>GitHub Copilot (Free tier and student benefits)</h3>
+<ol>
+  <li>In VS Code, open Chat and follow the GitHub sign-in prompts (or install GitHub Copilot via Extensions if prompted).</li>
+  <li>Activate Copilot Free if required.</li>
+  <li>Check that you can open Chat and select Agent mode.</li>
+</ol>
+<div class="actions"><a class="btn secondary" href="https://code.visualstudio.com/docs/setup/copilot/">Official Copilot setup ↗</a></div>
+<p class="muted"><small>Copilot Free has usage limits; eligible verified students can access Copilot Student benefits.</small></p>
+<details class="issue"><summary>Optional: apply for free GitHub student benefits</summary><div class="issue-body"><p>Eligible verified students may receive extra GitHub Copilot access without buying a subscription.</p><ol><li>Visit <a href="https://github.com/education/students">GitHub Education</a>.</li><li>Sign in to your GitHub account and follow the student verification instructions.</li><li>If approval is pending, you can still prepare using Copilot Free or another agent.</li></ol></div></details>
+<div class="tip"><p>No purchase is required for this checklist. If you don't have paid Codex or Claude access, Copilot Free is one option. We will use AI during the session, but choose the tool that is available to you.</p></div>
+<p class="muted">A coding agent works <i>inside</i> VS Code on your files; a chat assistant such as claude.ai or chatgpt.com in the browser only sees what you attach. Both can make a toolkit: see <a href="07-toolkit-with-a-coding-agent.html">page 7</a> and <a href="08-toolkit-with-a-chat-assistant.html">page 8</a>.</p>
+<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
+<details class="issue"><summary>I can't find Extensions in VS Code</summary><div class="issue-body"><ol><li>Open <span class="ui">View › Extensions</span>, or select the Extensions icon in the left sidebar.</li><li>Search for the official extension for your chosen agent.</li></ol></div></details>
+<details class="issue"><summary>The agent keeps asking me to sign in</summary><div class="issue-body"><ol><li>Select <span class="ui">Sign in</span> inside VS Code.</li><li>Finish the sign-in in your browser, then return to VS Code.</li></ol></div></details>
+<details class="issue"><summary>I can't find Agent mode</summary><div class="issue-body"><ol><li>Restart or update VS Code.</li><li>Confirm you are signed in and the relevant extension is enabled.</li><li>Follow the setup guide for the agent you chose.</li></ol></div></details>
+<details class="issue"><summary>The agent asks for payment or shows a usage limit</summary><div class="issue-body"><ol><li>Do not buy anything just to complete this checklist.</li><li>Check whether Copilot Free or GitHub Education is available to you.</li><li>Ask the tutor if you are unsure which option to choose.</li></ol></div></details>
+</div></details>
+<label class="tick"><input type="checkbox" data-check="agent"> <span>I can open an AI coding agent inside VS Code</span></label>
+</div>
+</section>
+
+<div class="group" id="repository"><h2>Get the course repository — in the session</h2><p>Join the course on GitHub, copy its repository to your computer and run the app there.</p></div></group>
+
+<section class="card" id="s-invite">
+<div class="card-head"><span class="badge">06</span><div><h2>Accept the GitHub invitation</h2><p class="sub">So that you can push your work to the course repository.</p></div></div>
+<div class="card-body">
+<p>Your tutor adds your GitHub username to <a href="https://github.com/HME-Research/spatial-graph-lab-course">HME-Research/spatial-graph-lab-course</a>. Accept it from the e-mail GitHub sends, or at <a href="https://github.com/HME-Research/spatial-graph-lab-course/invitations">its invitations page</a> (signed in to GitHub). Without it you can copy the repository but not push your work.</p>
+<p class="see">the course repository opens on GitHub, and no longer shows an invitation banner.</p>
+<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
+<details class="issue"><summary>The invitations page says there is no invitation, or “404”</summary><div class="issue-body"><ol><li>Check you are signed in to GitHub with the account whose username you gave your tutor.</li><li>Look for the invitation e-mail (also in spam).</li><li>If there is none, send your tutor your exact GitHub username again.</li></ol></div></details>
+</div></details>
+<label class="tick"><input type="checkbox" data-check="invite"> <span>I accepted the invitation</span></label>
+</div>
+</section>
+
+<section class="card" id="s-terminal">
+<div class="card-head"><span class="badge">07</span><div><h2>Open a terminal</h2><p class="sub">A window where you type commands instead of clicking.</p></div></div>
+<div class="card-body">
+<p>A <b>terminal</b> (or <b>command line</b>) is a window where you type a command and press <kbd>Enter</kbd>; the computer runs it and prints its answer. You use it for <code>git</code> and <code>npm</code>. Use the one built into VS Code: <span class="ui">Terminal › New Terminal</span>. It opens at the bottom of the window.</p>
+<div class="os-tabs">
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><p>VS Code opens <b>PowerShell</b> by default (the prompt starts with <code>PS</code>). Both PowerShell and <b>Command Prompt</b> work for this tutorial: switch with the arrow next to the <span class="ui">+</span> in the terminal panel.</p></div>
+<div class="os-panel" data-os="mac"><p class="os-title">macOS</p><p>VS Code opens <b>zsh</b>, the same as the <b>Terminal</b> app (the prompt ends with <code>%</code>). Either works for this tutorial.</p></div>
+</div>
+<p>To run a command: click in the terminal, type it or paste it (<span class="os-inline"><span data-os="win"><kbd>Ctrl</kbd>+<kbd>V</kbd>, or right-click</span><span data-os="mac"><kbd>Cmd</kbd>+<kbd>V</kbd></span></span>) and press <kbd>Enter</kbd>. <a href="09-git-basics.html#terminal">Git basics</a> explains more.</p>
+<label class="tick"><input type="checkbox" data-check="terminal"> <span>I can open a terminal in VS Code</span></label>
+</div>
+</section>
+
+<section class="card" id="s-identity">
+<div class="card-head"><span class="badge">08</span><div><h2>Tell Git your name and e-mail</h2><p class="sub">Once per computer: every commit carries them.</p></div></div>
+<div class="card-body">
+<p>Run these two lines in the terminal, one at a time, with your name and the e-mail of your GitHub account:</p>
+<div class="code"><pre>git config --global user.name "Your Name"
+git config --global user.email "you@example.com"</pre></div>
+<p>Nothing is printed when it works. Check with <code>git config --global user.email</code>: it prints your e-mail.</p>
+<label class="tick"><input type="checkbox" data-check="identity"> <span>Git knows my name and e-mail</span></label>
+</div>
+</section>
+
+<section class="card" id="s-clone">
+<div class="card-head"><span class="badge">09</span><div><h2>Copy (clone) the repository</h2><p class="sub">Download the course repository, with its history, into a folder on your computer.</p></div></div>
+<div class="card-body">
 <p>This is called <b>cloning</b>. Choose one way.</p>
 <h3>In the VS Code terminal</h3>
 <ol class="steps">
-  <li><strong>Go to the folder that should hold it</strong>for example your Documents folder:
-    <div class="code"><pre>cd ~/Documents</pre></div></li>
+  <li><strong>Go to the folder that should hold it</strong>for example your Documents folder (<code>cd</code> means “change directory”):
+    <div class="os-tabs">
+    <div class="os-panel" data-os="win"><p class="os-title">Windows</p><div class="code"><pre>cd ~\Documents</pre></div><p class="muted">In Command Prompt: <code>cd %USERPROFILE%\Documents</code></p></div>
+    <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><div class="code"><pre>cd ~/Documents</pre></div></div>
+    </div></li>
   <li><strong>Clone it</strong>
     <div class="code"><pre>git clone https://github.com/HME-Research/spatial-graph-lab-course.git</pre></div>
-    <p class="see">a new folder <code>spatial-graph-lab-course</code>. The first time, a browser window may ask you to sign in to GitHub: allow it.</p></li>
-  <li><strong>Open it in VS Code</strong><span class="ui">File › Open Folder…</span> › <code>Documents/spatial-graph-lab-course</code>. Answer “Yes, I trust the authors” if asked.</li>
+    <p class="see">a new folder <code>spatial-graph-lab-course</code> in Documents. The first time, a browser window may ask you to sign in to GitHub: allow it.</p></li>
 </ol>
 <h3>Or with GitHub Desktop (no typing)</h3>
-<p>Install <a href="https://desktop.github.com/">GitHub Desktop</a>, sign in, then <span class="ui">File › Clone repository…</span> › <code>HME-Research/spatial-graph-lab-course</code> › <span class="ui">Clone</span>, and <span class="ui">Open in Visual Studio Code</span>. GitHub Desktop can also make branches, commit and push for you (see <a href="09-git-basics.html">Git</a>).</p>
+<p>Install <a href="https://desktop.github.com/">GitHub Desktop</a>, sign in, then <span class="ui">File › Clone repository…</span> › <code>HME-Research/spatial-graph-lab-course</code> › <span class="ui">Clone</span>, and <span class="ui">Open in Visual Studio Code</span>. GitHub Desktop can also make branches, commit and push for you (see <a href="09-git-basics.html">Git basics</a>).</p>
+<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
+<details class="issue"><summary>“Repository not found” or “Permission denied”</summary><div class="issue-body"><ol><li>Accept the invitation first (step 06).</li><li>Sign in to GitHub with the same account when Git or GitHub Desktop asks.</li></ol></div></details>
+<details class="issue"><summary>“destination path 'spatial-graph-lab-course' already exists”</summary><div class="issue-body"><ol><li>You cloned it before: use that folder (step 10), or clone into another folder.</li></ol></div></details>
+</div></details>
+<label class="tick"><input type="checkbox" data-check="clone"> <span>The folder spatial-graph-lab-course is on my computer</span></label>
+</div>
+</section>
 
-<h2>4. Run the app on your computer</h2>
+<section class="card" id="s-open">
+<div class="card-head"><span class="badge">10</span><div><h2>Open the folder in VS Code</h2><p class="sub">So that VS Code, its terminal and your agent all work in the repository.</p></div></div>
+<div class="card-body">
 <ol class="steps">
-  <li><strong>Install what the app needs</strong> (once, and again whenever the course says so). In the VS Code terminal, inside the repository folder:
-    <div class="code"><pre>npm install</pre></div>
-    <p class="see">“added … packages” after a minute or two. Warnings are fine; an <code>ERR!</code> is not (see <a href="12-help.html">Help</a>).</p></li>
-  <li><strong>Start it</strong>
-    <div class="code"><pre>npm run dev</pre></div>
-    <p class="see">a line such as <code>Local: http://localhost:5173/</code>. <kbd>Ctrl</kbd>-click it, or open it in your browser: the app's Welcome screen.</p></li>
-  <li><strong>Stop it</strong> when you are done: click in the terminal and press <kbd>Ctrl</kbd>+<kbd>C</kbd>. While it runs, the app reloads by itself when a file changes.</li>
+  <li><strong>Open the folder</strong><span class="ui">File › Open Folder…</span> › choose <code>spatial-graph-lab-course</code> in Documents. Answer “Yes, I trust the authors” if asked.</li>
+  <li><strong>Open a terminal in it</strong><span class="ui">Terminal › New Terminal</span>. A terminal opened now starts <b>in the repository folder</b>.
+    <div class="os-tabs">
+    <div class="os-panel" data-os="win"><p class="os-title">Windows</p><p class="see">a prompt such as <code>PS C:\Users\you\Documents\spatial-graph-lab-course&gt;</code></p></div>
+    <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><p class="see">a prompt such as <code>you@Mac spatial-graph-lab-course %</code></p></div>
+    </div></li>
 </ol>
+<p>Whenever you open the repository again, VS Code remembers it: <span class="ui">File › Open Recent</span>.</p>
+<label class="tick"><input type="checkbox" data-check="open"> <span>VS Code shows the repository, and its terminal is in that folder</span></label>
+</div>
+</section>
 
-<div class="warn"><p><b>Windows: “running scripts is disabled on this system”?</b> Run this once in the terminal, then try again: <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> (answer <kbd>Y</kbd>).</p></div>
+<section class="card" id="s-install">
+<div class="card-head"><span class="badge">11</span><div><h2>Install what the app needs</h2><p class="sub">Once, and again whenever the course says so.</p></div></div>
+<div class="card-body">
+<p>In the VS Code terminal, inside the repository folder:</p>
+<div class="code"><pre>npm install</pre></div>
+<p class="see">“added … packages” after a minute or two. Warnings are fine; an <code>ERR!</code> is not (see below).</p>
+<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
+<details class="issue"><summary><code>npm install</code> shows <code>ERR!</code></summary><div class="issue-body"><ol><li>Check you are in the repository folder: it contains <code>package.json</code> (step 10).</li><li>Check <code>node --version</code> is 22 or higher (step 04).</li><li>Run <code>npm install</code> again.</li></ol></div></details>
+<details class="issue"><summary>“Could not read package.json” or “ENOENT”</summary><div class="issue-body"><ol><li>The terminal is in the wrong folder.</li><li><span class="ui">File › Open Folder…</span> › <code>spatial-graph-lab-course</code>, then open a new terminal and run it again.</li></ol></div></details>
+<details class="issue"><summary>Windows PowerShell says running scripts is disabled</summary><div class="issue-body"><ol><li>Use the arrow next to the <span class="ui">+</span> in the terminal panel and select <span class="ui">Command Prompt</span>.</li><li>Run <code>npm install</code> there.</li></ol><p>You do not need to change Windows security settings.</p></div></details>
+</div></details>
+<label class="tick"><input type="checkbox" data-check="install"> <span>npm install finished without ERR!</span></label>
+</div>
+</section>
 
+<section class="card" id="s-run">
+<div class="card-head"><span class="badge">12</span><div><h2>Start the app</h2><p class="sub">It runs on your computer, in your browser.</p></div></div>
+<div class="card-body">
+<div class="code"><pre>npm run dev</pre></div>
+<p class="see">a line such as <code>Local: http://localhost:5173/</code>. Open it in your browser (or <span class="os-inline"><span data-os="win"><kbd>Ctrl</kbd>-click</span><span data-os="mac"><kbd>Cmd</kbd>-click</span></span> it in the terminal): the app's Welcome screen.</p>
+<p>While it runs, the terminal is busy and the app reloads by itself when a file changes. To type other commands meanwhile, open a second terminal with the <span class="ui">+</span>.</p>
+<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
+<details class="issue"><summary>“Port 5173 is in use”</summary><div class="issue-body"><ol><li>The app is already running in another terminal: use that one, or stop it (step 13).</li><li>Vite may also pick the next port: open the address it prints.</li></ol></div></details>
+</div></details>
+<label class="tick"><input type="checkbox" data-check="run"> <span>The app opens at localhost</span></label>
+</div>
+</section>
+
+<section class="card" id="s-stop">
+<div class="card-head"><span class="badge">13</span><div><h2>Stop the app</h2><p class="sub">When you are done.</p></div></div>
+<div class="card-body">
+<p>Click in the terminal where it runs and press <kbd>Ctrl</kbd>+<kbd>C</kbd> — <b>also on a Mac</b> (Control, not Command). On Windows, if it asks “Terminate batch job (Y/N)?”, type <kbd>Y</kbd> and press <kbd>Enter</kbd>.</p>
+<p class="see">the prompt comes back, and the app no longer loads in the browser.</p>
+<label class="tick"><input type="checkbox" data-check="stop"> <span>I can stop the app with Ctrl+C</span></label>
 <p>You are ready. Next: <a href="06-plan-your-toolkit.html">plan your toolkit</a>.</p>
+</div>
+</section>
+
+<div class="tip"><p><b>Questions?</b> Ask in the workshop Slack channel. It helps to include your operating system, the step number and any error message or screenshot. Please don't post passwords, API keys or authentication codes.</p></div>
+<p class="muted"><small>Checklist selections are saved only in this browser on this device. These pages work offline after downloading, but installation links require internet access. More help: <a href="https://code.visualstudio.com/docs/">VS Code documentation</a> · <a href="https://git-scm.com/book/en/v2">Pro Git book</a> · <a href="https://docs.github.com/">GitHub documentation</a> · <a href="12-help.html">12. Help</a>.</small></p>
 
 <div class="pager"><a href="04-your-own-transform.html">← 4. Your own transform</a><a href="06-plan-your-toolkit.html">6. Plan your toolkit →</a></div>
 </main>
-<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</div>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · Your ticks, names and plan are saved only in this browser.</div></footer>
 </body>
 </html>

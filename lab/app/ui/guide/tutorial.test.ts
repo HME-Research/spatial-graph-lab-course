@@ -57,6 +57,9 @@ const read = (name: string): string => fs.readFileSync(new URL(name, TUTORIAL), 
 const unescape = (html: string): string =>
   html.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
 
+/** Every `id="…"` of a page. */
+const ids = (html: string): Set<string> => new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]!));
+
 /** Every `<pre data-block="name">text</pre>` of a page. */
 function blocks(html: string): { readonly name: string; readonly raw: string }[] {
   return [...html.matchAll(/<pre\b[^>]*\bdata-block="([^"]+)"[^>]*>([\s\S]*?)<\/pre>/g)].map((m) => ({ name: m[1]!, raw: m[2]! }));
@@ -104,6 +107,25 @@ describe('tutorial pages', () => {
         expect(missing).toEqual([]);
       });
 
+      it('links only to anchors that exist, on this page and on the other pages', () => {
+        const missing = [...html.matchAll(/\bhref="([^"]*#[^"]+)"/g)]
+          .map((m) => m[1]!)
+          .filter((target) => !/^(https?:|mailto:)/.test(target))
+          .filter((target) => {
+            const [file, id] = target.split('#') as [string, string];
+            return !ids(file === '' ? html : read(file)).has(id);
+          });
+        expect(missing).toEqual([]);
+      });
+
+      it('has the side menu "On this page", linking to sections of this page', () => {
+        const toc = /<nav class="toc" aria-label="On this page">([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? '';
+        expect(toc).toContain('On this page');
+        const links = [...toc.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]!);
+        expect(links.length).toBeGreaterThan(0);
+        expect(links.filter((id) => !ids(html).has(id))).toEqual([]);
+      });
+
       it('copies every prompt and command block word for word from the app', () => {
         for (const block of blocks(html)) {
           expect(Object.keys(EXPECTED_BLOCKS), `unknown block ${block.name}`).toContain(block.name);
@@ -117,6 +139,37 @@ describe('tutorial pages', () => {
   it('are where the app links to them (Welcome, Guide › Make your own toolkit)', () => {
     expect(TUTORIAL_URL).toBe('/tutorial/01-start-here.html');
     expect(fs.existsSync(new URL(`../../../..${TUTORIAL_URL}`, import.meta.url))).toBe(true);
+  });
+
+  it('are light mode only, and never tell students to change the PowerShell execution policy (owner 2026-11-26)', () => {
+    expect(read('style.css')).not.toMatch(/prefers-color-scheme/);
+    for (const file of fs.readdirSync(TUTORIAL).filter((f) => /.(html|css|js)$/.test(f))) {
+      expect(read(file), file).not.toMatch(/Set-ExecutionPolicy/i);
+    }
+  });
+
+  it('have the naming form (initials + toolkit name -> toolkit id) where the id is used', () => {
+    const pages = ['06-plan-your-toolkit', '07-toolkit-with-a-coding-agent', '08-toolkit-with-a-chat-assistant', '09-git-basics', '10-hand-in'];
+    for (const page of pages) {
+      const html = read(`${page}.html`);
+      expect(html, page).toContain('data-namer');
+      expect(html, page).toContain('data-namer-initials');
+      expect(html, page).toContain('data-namer-name');
+      expect(html, page).toContain('hk-small-library');
+    }
+  });
+
+  it('set-up page contains the five steps of the Before Session 2 guide', () => {
+    const html = read('05-set-up-your-computer.html');
+    for (const title of [
+      'Create or check your GitHub account',
+      'Install Visual Studio Code',
+      'Install Git',
+      'Install Node.js (LTS)',
+      'Register for an AI coding agent',
+    ]) {
+      expect(html).toContain(`<h2>${title}</h2>`);
+    }
   });
 
   it('show every prompt and command block of the app somewhere', () => {

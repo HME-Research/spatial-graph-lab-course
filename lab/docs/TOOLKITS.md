@@ -8,9 +8,9 @@ Reference for every detail: [`STUDENT-API.md`](STUDENT-API.md). A complete toolk
 
 | Decision | Rule | Tip |
 |---|---|---|
-| **Toolkit id** = folder name | lowercase letters, digits and `-`, starting with a letter | Make it unique in the class: add your initials, e.g. `hk-library`. Saved projects remember it, so don't rename it later. |
+| **Toolkit id** = folder name | `<initials>-<toolkit-name>`: lowercase letters, digits and `-`, starting with a letter | Your initials, then the toolkit name, words joined with `-`: HK's "Small library" is `hk-small-library` (folder `toolkits/hk-small-library/`, branch `toolkit/hk-small-library`). It keeps the id unique in the class. Saved projects remember it, so don't rename it later. |
 | **Toolkit name** | free text, in `toolkit.ts` | Shown as `Toolkit: <name>`. |
-| **Functions** | one per node programme; each has an `id` (same rules as above) | Start with 3–6. Ids are stored in every design: add new ones rather than renaming. |
+| **Functions** | one per node programme; each has an `id` (lowercase letters, digits and `-`, starting with a letter) | Start with 3–6. Ids are stored in every design: add new ones rather than renaming. |
 | **Custom attributes** | `number` (`min`, `max`), `text`, `boolean`, `enum` (`values`), optional `default` | Only add one when an algorithm reads it or you want to record it. Keys are stored in designs: pick clear camelCase names (`targetArea`). |
 | **Algorithms** | analysis (reads) or transformation (proposes changes) | One small analysis first. Write each as a rule you could explain in one sentence. |
 | **Example design** | a small design that uses your Functions | Becomes your `defaultDesign`: the checks run every algorithm on it. |

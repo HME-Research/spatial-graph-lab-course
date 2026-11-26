@@ -8,36 +8,56 @@
 <script src="tutorial.js"></script>
 </head>
 <body>
+<a class="skip" href="#content">Skip to the content</a>
 <header class="top"><div class="top-inner">
-  <a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a>
+  <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
   <nav class="site" aria-label="Tutorial pages">
-    <a href="01-start-here.html">1. Start here</a>
-    <a href="02-use-the-app.html">2. Use the app</a>
-    <a href="03-your-own-analysis.html" aria-current="page">3. Your own analysis</a>
-    <a href="04-your-own-transform.html">4. Your own transform</a>
-    <a href="05-set-up-your-computer.html">5. Set up your computer</a>
-    <a href="06-plan-your-toolkit.html">6. Plan your toolkit</a>
-    <a href="07-toolkit-with-a-coding-agent.html">7. Toolkit: coding agent</a>
-    <a href="08-toolkit-with-a-chat-assistant.html">8. Toolkit: chat assistant</a>
-    <a href="09-git-basics.html">9. Git basics</a>
-    <a href="10-hand-in.html">10. Hand in</a>
-    <a href="11-keep-working-and-update.html">11. Keep working</a>
-    <a href="12-help.html">12. Help</a>
+    <a href="01-start-here.html"><span class="n">1</span>Start here</a>
+    <a href="02-use-the-app.html"><span class="n">2</span>Use the app</a>
+    <a href="03-your-own-analysis.html" aria-current="page"><span class="n">3</span>Your own analysis</a>
+    <a href="04-your-own-transform.html"><span class="n">4</span>Your own transform</a>
+    <a href="05-set-up-your-computer.html"><span class="n">5</span>Set up your computer</a>
+    <a href="06-plan-your-toolkit.html"><span class="n">6</span>Plan your toolkit</a>
+    <a href="07-toolkit-with-a-coding-agent.html"><span class="n">7</span>Toolkit: coding agent</a>
+    <a href="08-toolkit-with-a-chat-assistant.html"><span class="n">8</span>Toolkit: chat assistant</a>
+    <a href="09-git-basics.html"><span class="n">9</span>Git basics</a>
+    <a href="10-hand-in.html"><span class="n">10</span>Hand in</a>
+    <a href="11-keep-working-and-update.html"><span class="n">11</span>Keep working</a>
+    <a href="12-help.html"><span class="n">12</span>Help</a>
   </nav>
 </div></header>
-<main>
+<div class="layout">
+<aside class="side">
+  <nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+    <ol>
+      <li><a href="#decide"><span class="n">01</span><span class="t">Decide three things</span></a></li>
+      <li><a href="#kit"><span class="n">02</span><span class="t">Choose a kit</span></a></li>
+      <li><a href="#ask"><span class="n">03</span><span class="t">Ask the AI</span></a></li>
+      <li><a href="#save"><span class="n">04</span><span class="t">Save its answer as a .ts file</span></a></li>
+      <li><a href="#upload"><span class="n">05</span><span class="t">Upload it and run it</span></a></li>
+    </ol>
+  </details></nav>
+</aside>
+<main id="content">
+<p class="crumb">Page 3 of 12 · A. Use the app</p>
 <h1>Write your own analysis</h1>
-<p class="lead">Ask an AI chat for an analysis in plain words, upload the one file it writes, and run it on your design. Only a browser and an AI chat that accepts attachments are needed. An analysis only <b>reads</b>: it never changes your design.</p>
+<p class="lead">Ask an AI chat for an analysis in plain words, upload the one file it writes, and run it on your design. Only a browser and an AI chat that accepts attachments (such as <a href="https://claude.ai">Claude</a>, <a href="https://chatgpt.com">ChatGPT</a> or <a href="https://gemini.google.com">Gemini</a>) are needed. An analysis only <b>reads</b>: it never changes your design.</p>
 
-<h2>1. Decide three things</h2>
+<section class="card" id="decide">
+<div class="card-head"><span class="badge">01</span><div><h2>Decide three things</h2><p class="sub">What it finds, what you select first, how it shows the answer.</p></div></div>
+<div class="card-body">
 <div class="table"><table>
   <tr><th>Part</th><th>Question</th><th>Example</th></tr>
   <tr><td>Idea</td><td>What should it find?</td><td>The largest room on each level.</td></tr>
   <tr><td>Input</td><td>What do you select before it runs: nothing, one node, one edge, or a mix (two nodes, a node and a number)? This decides where it appears in <span class="ui">Analyse</span>: Network, Node, Edge or Queries.</td><td>Nothing.</td></tr>
   <tr><td>Answer</td><td>How should it show: a number, a line of text, nodes or edges lit up, a colour per node?</td><td>Light them up and colour every room by its area.</td></tr>
 </table></div>
+</div>
+</section>
 
-<h2>2. Choose a kit</h2>
+<section class="card" id="kit">
+<div class="card-head"><span class="badge">02</span><div><h2>Choose a kit</h2><p class="sub">The zip you give the AI, so it writes a file the app accepts.</p></div></div>
+<div class="card-body">
 <p>A <b>kit</b> is a zip with the instructions the AI follows, the exact functions it may use, and examples. In the app: <span class="ui">Analyse</span> › the ⓘ beside <span class="ui">Upload your own (.ts)</span>. Two kits are also here:</p>
 <div class="table"><table>
   <tr><th>Kit</th><th>The analysis can read</th><th>Works in</th><th>Get it</th></tr>
@@ -46,10 +66,18 @@
   <tr><td><b>Design kit for this project</b></td><td>also your project's Functions and custom fields (such as a target area), listed in its <code>PROJECT.md</code></td><td>projects that have them</td><td>only in the app: open your project, ⓘ › <span class="ui">This project</span></td></tr>
 </table></div>
 <p>Prefer to write it yourself? ⓘ › <span class="ui">Template</span> gives a commented file to change.</p>
+</div>
+</section>
 
-<h2>3. Ask the AI</h2>
+<section class="card" id="ask">
+<div class="card-head"><span class="badge">03</span><div><h2>Ask the AI</h2><p class="sub">Attach the kit, send the starting text with the blanks filled in.</p></div></div>
+<div class="card-body">
 <ol class="steps">
-  <li><strong>Open a new chat and attach the kit zip.</strong>If your chat refuses zip files, unzip it (Windows: right-click › <span class="ui">Extract All…</span>; Mac: double-click) and attach the files inside instead.</li>
+  <li><strong>Open a new chat and attach the kit zip.</strong>If your chat refuses zip files, unzip it and attach the files inside instead:
+    <div class="os-tabs">
+    <div class="os-panel" data-os="win"><p class="os-title">Windows</p><p>In <b>File Explorer</b>, right-click the zip › <span class="ui">Extract All…</span> › <span class="ui">Extract</span>.</p></div>
+    <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><p>In <b>Finder</b>, double-click the zip: a folder appears beside it.</p></div>
+    </div></li>
   <li><strong>Send the starting text for your kit</strong>, with the three blanks filled in.
     <div class="code"><div class="label">Graph kit</div><pre data-block="prompt:graph">I've attached the Spatial Graph Lab graph kit. Read PROMPT.md and every file in it, then write ONE graph analysis that follows it exactly.
 
@@ -66,21 +94,44 @@ Show the answer as: ___</pre></div>
 My idea: ___
 Input: ___
 Show the answer as: ___</pre></div></li>
-  <li><strong>Save its answer as a <code>.ts</code> file</strong>with the name it suggests, for example <code>largest-room-per-level.ts</code>: download it if the chat offers a file, or paste the code into a new file in VS Code (or Notepad / TextEdit as plain text) and save it with that name.
-    <div class="warn"><p>Windows hides file extensions: a file saved as <code>largest.ts.txt</code> looks like <code>largest.ts</code> but is refused. In File Explorer, <span class="ui">View › Show › File name extensions</span> shows the real name.</p></div></li>
 </ol>
+</div>
+</section>
 
-<h2>4. Upload it</h2>
+<section class="card" id="save">
+<div class="card-head"><span class="badge">04</span><div><h2>Save its answer as a .ts file</h2><p class="sub">One file, with the name the AI suggests.</p></div></div>
+<div class="card-body">
+<p>Use the name it suggests, for example <code>largest-room-per-level.ts</code>: download it if the chat offers a file, or paste the code into a new file in VS Code (or Notepad / TextEdit as plain text) and save it with that name.</p>
+<div class="os-tabs">
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><div class="warn"><p>Windows hides file extensions: a file saved as <code>largest.ts.txt</code> looks like <code>largest.ts</code> but is refused. In File Explorer, <span class="ui">View › Show › File name extensions</span> shows the real name.</p></div></div>
+<div class="os-panel" data-os="mac"><p class="os-title">macOS</p><div class="warn"><p>TextEdit saves rich text by default: first choose <span class="ui">Format › Make Plain Text</span>, then save, and if it asks, choose <span class="ui">Use .ts</span>. To see the real name of a file in Finder: <span class="ui">Finder › Settings… › Advanced › Show all filename extensions</span>.</p></div></div>
+</div>
+</div>
+</section>
+
+<section class="card" id="upload">
+<div class="card-head"><span class="badge">05</span><div><h2>Upload it and run it</h2><p class="sub">In Analyse, like any other analysis.</p></div></div>
+<div class="card-body">
 <ol class="steps">
   <li><strong>Upload</strong>In the app, open <span class="ui">Analyse</span> › <span class="ui">Upload your own (.ts)</span> › choose the file.
     <p class="see">it appears in Network, Node, Edge or Queries (depending on its input), tagged <b>Yours</b> and <b>Any project</b> or <b>This project</b>, and that section opens.</p></li>
   <li><strong>Run it</strong>Select its input if it has one, then run it, like any other analysis.</li>
   <li><strong>If the app refuses it</strong>, copy the app's whole message into the chat and ask: “Fix exactly this.” Save the new answer and upload it again.</li>
 </ol>
-<p>Uploaded analyses are saved with your project: <span class="ui">Export project</span> (see <a href="02-use-the-app.html">In the browser</a>) keeps them in the file you hand in. The same file also works in a toolkit's <code>algorithms/</code> folder.</p>
+<p>Uploaded analyses are saved with your project: <span class="ui">Export project</span> (see <a href="02-use-the-app.html#keep">Use the app</a>) keeps them in the file you hand in. The same file also works in a toolkit's <code>algorithms/</code> folder.</p>
+<details class="trouble"><summary>Troubleshooting — common issues</summary><div class="trouble-body">
+<details class="issue"><summary>My chat refuses the zip file</summary><div class="issue-body"><ol><li>Unzip it (step 03).</li><li>Attach the files inside instead, all of them.</li></ol></div></details>
+<details class="issue"><summary>The file is refused</summary><div class="issue-body"><ol><li>Check the file really ends in <code>.ts</code>, not <code>.ts.txt</code> (step 04).</li><li>Paste the app's whole message to the AI and ask it to fix exactly that.</li><li>Save the new answer and upload it again.</li></ol></div></details>
+<details class="issue"><summary>“Stopped after … s — does it loop forever?”</summary><div class="issue-body"><ol><li>The analysis took too long.</li><li>Ask the AI to make it simpler or to make every loop end.</li></ol></div></details>
+<details class="issue"><summary>It is not in the section I expected</summary><div class="issue-body"><ol><li>The section follows its <i>input</i>: none → Network, one node → Node, one edge → Edge, anything else → Queries.</li></ol></div></details>
+<details class="issue"><summary>“This file is a transform …”</summary><div class="issue-body"><ol><li>It proposes changes, so it belongs in <span class="ui">Transform</span> › <span class="ui">Upload your own (.ts)</span> (<a href="04-your-own-transform.html">Your own transform</a>).</li></ol></div></details>
+</div></details>
+</div>
+</section>
 
 <div class="pager"><a href="02-use-the-app.html">← 2. Use the app</a><a href="04-your-own-transform.html">4. Your own transform →</a></div>
 </main>
-<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</div>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · Your ticks, names and plan are saved only in this browser.</div></footer>
 </body>
 </html>
