@@ -27,5 +27,5 @@
       "@student-api": ["./lab/student-api/index.ts"]
     }
   },
-  "include": ["lab/core", "lab/app", "lab/student-api", "toolkits", "lab/docs/templates", "lab/docs/ai-kit/graph/examples", "lab/docs/ai-kit/design/examples", "vite.config.ts"]
+  "include": ["lab/core", "lab/app", "lab/student-api", "toolkits", "lab/docs/templates", "lab/docs/ai-kit/graph/examples", "lab/docs/ai-kit/design/examples", "lab/docs/ai-kit/transform/examples", "vite.config.ts"]
 }
