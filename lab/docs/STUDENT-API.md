@@ -22,7 +22,7 @@ How to write your own functions, designs and algorithms for Spatial Graph Lab. Y
 
 ```
 toolkits/
-  my-toolkit/             ← folder name = toolkit id (lowercase letters, digits, "-", "_"; starts with a letter)
+  my-toolkit/             ← folder name = your toolkit name, e.g. u123-hk-house (lowercase letters, digits, "-", "_"; starts with a letter)
     toolkit.ts            ← required
     functions/            ← optional: one function (room programme) per file
     designs/              ← optional: design JSON files (schema v2); each is listed in Open example…

@@ -37,7 +37,7 @@ export function requestedId(args) {
     const arg = args[i];
     if (ID_FLAGS.has(arg)) {
       const next = args[i + 1];
-      if (next === undefined || next.startsWith('-')) throw new Error(`${arg} needs a toolkit id after it, e.g. -t hk-small-library`);
+      if (next === undefined || next.startsWith('-')) throw new Error(`${arg} needs your toolkit name after it, e.g. -t u123-hk-house`);
       ids.push(next);
       i++;
     } else if (/^(-t|--toolkit|--testNamePattern)=/.test(arg)) {
@@ -49,7 +49,7 @@ export function requestedId(args) {
     }
   }
   const unique = [...new Set(ids.map((id) => id.trim()).filter((id) => id !== ''))];
-  if (unique.length > 1) throw new Error(`give one toolkit id, not ${unique.length} (${unique.join(', ')})`);
+  if (unique.length > 1) throw new Error(`give one toolkit name, not ${unique.length} (${unique.join(', ')})`);
   return unique[0] ?? null;
 }
 
@@ -83,7 +83,7 @@ function main() {
   for (const key of ['INIT_CWD', 'PWD']) if (env[key]) env[key] = upperDrive(env[key]);
   const run = spawnSync(process.execPath, [vitest, '--run', '--root', root, TEST_FILE], { cwd: root, env, stdio: 'inherit' });
   if (run.error) {
-    console.error(`check:toolkit: could not start vitest (${run.error.message}). Run npm install first.`);
+    console.error(`check:toolkit: could not start vitest (${run.error.message}). Run npm ci first.`);
     console.log(`\n${paint(resultLine(id, 1), false)}`);
     return 1;
   }

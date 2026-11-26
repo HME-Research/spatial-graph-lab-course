@@ -61,7 +61,7 @@ const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').re
 function requestedToolkitProblem(id: string, found: readonly string[], files: readonly string[]): string | null {
   if (found.includes(id)) return null;
   if (!TOOLKIT_ID_PATTERN.test(id)) {
-    return `"${id}" is not a valid toolkit id: use lowercase letters, digits and "-", starting with a letter (e.g. hk-small-library).`;
+    return `"${id}" is not a valid toolkit name: use lowercase letters, digits and "-", starting with a letter (e.g. u123-hk-house).`;
   }
   const paths = files.map((f) => f.replace(/^\//, ''));
   const own = paths.filter((f) => f.startsWith(`toolkits/${id}/`));
@@ -124,7 +124,7 @@ describe('check:toolkit -t <id>: a toolkit that is not found is explained', () =
     expect(requestedToolkitProblem('hk-library', ['house'], [...house, '/toolkits/hk library/toolkit.ts'])).toMatch(/there is a folder toolkits\/hk library\//);
   });
   it('an invalid id', () => {
-    expect(requestedToolkitProblem('HK-Library', ['house'], house)).toMatch(/^"HK-Library" is not a valid toolkit id/);
+    expect(requestedToolkitProblem('HK-Library', ['house'], house)).toMatch(/^"HK-Library" is not a valid toolkit name/);
   });
 });
 
@@ -158,8 +158,8 @@ describe('check:toolkit script (lab/scripts/check-toolkit.mjs, owner 2026-11-26)
     expect(requestedId(['-t', 'hk-small-library'])).toBe('hk-small-library');
     expect(requestedId(['--toolkit=hk-small-library'])).toBe('hk-small-library');
     expect(requestedId(['hk-small-library'])).toBe('hk-small-library'); // PowerShell 5.1 drops the `--`
-    expect(() => requestedId(['-t'])).toThrow(/needs a toolkit id/);
-    expect(() => requestedId(['a', 'b'])).toThrow(/give one toolkit id/);
+    expect(() => requestedId(['-t'])).toThrow(/needs your toolkit name/);
+    expect(() => requestedId(['a', 'b'])).toThrow(/give one toolkit name/);
   });
 });
 
