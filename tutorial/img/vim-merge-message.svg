@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 300" width="700" height="300" role="img" aria-label="Vim opened for a merge message: lines start with ~; type :wq and press Enter" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
 <title>Vim opened for a merge message: lines start with ~; type :wq and press Enter</title>
 <rect x="0" y="0" width="700" height="300" rx="10" fill="#0c0c0c"/>
-<text x="18" y="30" font-size="13.5" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#e6e6e6">Merge branch 'main' into toolkit/<tspan fill="#ffb454">&lt;toolkit-id&gt;</tspan></text>
+<text x="18" y="30" font-size="13.5" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#e6e6e6">Merge branch 'main' into toolkit/<tspan fill="#ffb454">u123-hk-house</tspan></text>
 <text x="18" y="52" font-size="12.5" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#7f8c98"># Please enter a commit message to explain why this merge is necessary,</text>
 <text x="18" y="70" font-size="12.5" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#7f8c98"># especially if it merges an updated upstream into a topic branch.</text>
 <text x="18" y="100" font-size="13.5" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#4f6bed">~</text>

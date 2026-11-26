@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clone the repository · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to the content</a>
+<header class="top"><div class="top-inner">
+  <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
+  <nav class="site" aria-label="Tutorial pages">
+    <div class="nav-group"><p class="nav-part">Start</p><div class="nav-links"><a href="01-start-here.html"><span class="n">1</span>Start</a></div></div>
+    <div class="nav-group"><p class="nav-part">In the browser</p><div class="nav-links"><a href="02-about-the-app.html"><span class="n">2</span>About the app</a><a href="03-use-the-app.html"><span class="n">3</span>Use the app</a><a href="04-your-own-analysis.html"><span class="n">4</span>Analysis</a><a href="05-your-own-transform.html"><span class="n">5</span>Exercise 1</a></div></div>
+    <div class="nav-group"><p class="nav-part">On your computer</p><div class="nav-links"><a href="06-about-the-repository.html"><span class="n">6</span>About the repository</a><a href="07-install-the-tools.html"><span class="n">7</span>Install</a><a href="08-clone-the-repository.html" aria-current="page"><span class="n">8</span>Clone</a><a href="09-make-your-branch.html"><span class="n">9</span>Branch and plan</a><a href="10-toolkit-with-a-coding-agent.html"><span class="n">10</span>Agent</a><a href="11-toolkit-with-a-chat-assistant.html"><span class="n">11</span>Chat</a><a href="12-hand-in.html"><span class="n">12</span>Hand in</a><a href="13-keep-working-and-update.html"><span class="n">13</span>Keep working</a></div></div>
+    <div class="nav-group"><p class="nav-part">Help</p><div class="nav-links"><a href="14-git-basics.html"><span class="n">14</span>Git basics</a><a href="15-help.html"><span class="n">15</span>Help</a></div></div>
+  </nav>
+</div></header>
+<div class="layout">
+<aside class="side">
+<nav class="part-nav" aria-label="On your computer"><p class="part-title">On your computer</p><ol><li><a href="06-about-the-repository.html"><span class="n">06</span><span>About the repository</span></a></li><li><a href="07-install-the-tools.html"><span class="n">07</span><span>Install the tools</span></a></li><li><a href="08-clone-the-repository.html" aria-current="page"><span class="n">08</span><span>Clone the repository</span></a></li><li><a href="09-make-your-branch.html"><span class="n">09</span><span>Make your branch and plan your toolkit</span></a></li><li><a href="10-toolkit-with-a-coding-agent.html"><span class="n">10</span><span>Toolkit with a coding agent</span></a></li><li><a href="11-toolkit-with-a-chat-assistant.html"><span class="n">11</span><span>Toolkit with a chat assistant</span></a></li><li><a href="12-hand-in.html"><span class="n">12</span><span>Hand in</span></a></li><li><a href="13-keep-working-and-update.html"><span class="n">13</span><span>Keep working and update</span></a></li></ol></nav>
+<nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+    <ol>
+      <li><a href="#what"><span class="n">01</span><span class="t">What cloning means</span></a></li>
+      <li><a href="#url"><span class="n">02</span><span class="t">Copy the repository's address</span></a></li>
+      <li><a href="#repos"><span class="n">03</span><span class="t">Make your repositories folder</span></a></li>
+      <li><a href="#clone"><span class="n">04</span><span class="t">Clone it and open it in VS Code</span></a></li>
+      <li><a href="#terminal"><span class="n">05</span><span class="t">Open a terminal in it</span></a></li>
+      <li><a href="#install"><span class="n">06</span><span class="t">Install what the app needs</span></a></li>
+      <li><a href="#run"><span class="n">07</span><span class="t">Start the app</span></a></li>
+      <li><a href="#stop"><span class="n">08</span><span class="t">Stop the app</span></a></li>
+    </ol>
+  </details></nav>
+<div class="side-box fold-box"><div class="side-label">Sections</div><div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div></div>
+</aside>
+<main id="content">
+<p class="crumb">Page 8 of 15 · On your computer</p>
+<h1>Clone the repository</h1>
+<p class="lead">Put the course folder on your computer and run the app there. Once per computer.</p>
+<div class="needs"><p>Before this page you need: the tools installed and VS Code signed in to GitHub (see <a href="07-install-the-tools.html">Install the tools</a>).</p></div>
+<div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div>
+<p class="legend">Orange text like <span class="ph">&lt;you&gt;</span> = your own. Grey buttons like <span class="ui">Copy</span> = something to click.</p>
+
+<details class="card fold" id="what">
+<summary class="card-head"><span class="badge">01</span><div><h2>What cloning means</h2><p class="sub">A linked copy on your computer.</p></div></summary>
+<div class="card-body">
+<p><b>Cloning</b> makes a copy of the repository on your computer that stays linked to GitHub: it can send your changes there and receive the course's changes from there.</p>
+<p class="muted">More: <a href="14-git-basics.html#c-clone">Git basics › git clone</a>.</p>
+</div>
+</details>
+
+<details class="card fold" id="url">
+<summary class="card-head"><span class="badge">02</span><div><h2>Copy the repository's address</h2><p class="sub">From the green Code button on GitHub.</p></div></summary>
+<div class="card-body">
+<ol class="steps">
+  <li><span class="st">Open the repository</span><a href="https://github.com/HME-Research/spatial-graph-lab-course">github.com/HME-Research/spatial-graph-lab-course</a></li>
+  <li><span class="st">Copy its address</span>The green <span class="ui">Code</span> button › <span class="ui">HTTPS</span> › the copy icon beside the address.</li>
+</ol>
+<figure class="fig"><img src="img/gh-code-button.svg" alt="GitHub: 1 the green Code button, 2 the HTTPS tab, 3 the copy icon beside https://github.com/HME-Research/spatial-graph-lab-course.git" width="760" height="300"><figcaption>The green <span class="ui">Code</span> button (<b>1</b>) › <span class="ui">HTTPS</span> (<b>2</b>) › copy (<b>3</b>).</figcaption></figure>
+<p>It is this address:</p>
+<div class="code"><pre>https://github.com/HME-Research/spatial-graph-lab-course.git</pre></div>
+</div>
+</details>
+
+<details class="card fold" id="repos">
+<summary class="card-head"><span class="badge">03</span><div><h2>Make your repositories folder</h2><p class="sub"><code>source/repos</code> in your home folder.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="repos" aria-label="Done: My repos folder exists"> <span>My repos folder exists</span></label></span></summary>
+<div class="card-body">
+<div class="os-tabs">
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><ol>
+  <li>File Explorer › <span class="ui">This PC</span> › <span class="ui">Local Disk (C:)</span> › <span class="ui">Users</span> › your user name.</li>
+  <li><span class="ui">New</span> › <span class="ui">Folder</span>, name it <code>source</code>. Open it.</li>
+  <li><span class="ui">New</span> › <span class="ui">Folder</span>, name it <code>repos</code>.</li>
+</ol>
+<p class="see"><code>C:\Users\<span class="ph">&lt;you&gt;</span>\source\repos</code></p></div>
+<div class="os-panel" data-os="mac"><p class="os-title">macOS</p><ol>
+  <li>Finder › <span class="ui">Go</span> › <span class="ui">Home</span>.</li>
+  <li><span class="ui">File</span> › <span class="ui">New Folder</span>, name it <code>source</code>. Open it.</li>
+  <li><span class="ui">File</span> › <span class="ui">New Folder</span>, name it <code>repos</code>.</li>
+</ol>
+<p class="see"><code>/Users/<span class="ph">&lt;you&gt;</span>/source/repos</code> (in short <code>~/source/repos</code>)</p></div>
+</div>
+<details class="more"><summary>Why not Documents?</summary><div class="more-body"><p>OneDrive or iCloud may sync Documents, which breaks a repository with thousands of small files. <code>source/repos</code> is the usual place for code.</p></div></details>
+<details class="more"><summary>Or with a command <span class="opt">(optional)</span></summary><div class="more-body">
+<div class="os-tabs">
+<div class="os-panel" data-os="win"><p class="os-title">Windows (Command Prompt)</p><div class="code"><pre>mkdir "%USERPROFILE%\source\repos"</pre></div><p class="muted">“A subdirectory or file … already exists” is fine.</p></div>
+<div class="os-panel" data-os="mac"><p class="os-title">macOS</p><div class="code"><pre>mkdir -p ~/source/repos</pre></div></div>
+</div>
+</div></details>
+</div>
+</details>
+
+<details class="card fold" id="clone">
+<summary class="card-head"><span class="badge">04</span><div><h2>Clone it and open it in VS Code</h2><p class="sub">In VS Code, or in the terminal: choose one.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="clone" aria-label="Done: VS Code shows the course folder"> <span>VS Code shows the course folder</span></label></span></summary>
+<div class="card-body">
+<div class="tabs" data-tabs="clone-way" data-default="vscode" data-tabs-label="How">
+<div class="tab-panel" data-tab="vscode" data-label="In VS Code"><p class="tab-title">In VS Code</p>
+<ol class="steps">
+  <li><span class="st">Clone Repository</span>In a new VS Code window: the <span class="ui">Source Control</span> icon (or <span class="ui">Explorer</span>) in the left bar › <span class="ui">Clone Repository</span>.</li>
+  <li><span class="st">Paste the address</span>Paste <code>https://github.com/HME-Research/spatial-graph-lab-course.git</code> in the box at the top and press <kbd>Enter</kbd>.</li>
+  <li><span class="st">Choose your repos folder</span>Choose <code>source/repos</code> (step 03) › <span class="ui">Select as Repository Destination</span>.</li>
+  <li><span class="st">Open it</span>When VS Code asks, <span class="ui">Open</span>. If it asks whether you trust the authors: <span class="ui">Yes, I trust the authors</span>.
+    <p class="see">the Explorer shows <code>SPATIAL-GRAPH-LAB-COURSE</code> with <code>lab</code>, <code>toolkits</code> and <code>tutorial</code>.</p></li>
+</ol>
+<figure class="fig"><img src="img/vscode-clone.svg" alt="VS Code: 1 the Source Control icon, 2 the Clone Repository button, 3 the address pasted in the box at the top" width="760" height="300"><figcaption>Source Control (<b>1</b>) › <span class="ui">Clone Repository</span> (<b>2</b>) › paste the address (<b>3</b>).</figcaption></figure>
+</div>
+<div class="tab-panel" data-tab="terminal" data-label="In the terminal"><p class="tab-title">In the terminal</p>
+<ol class="steps">
+  <li><span class="st">Go to your repos folder</span>In VS Code, <span class="ui">Terminal › New Terminal</span>, then:
+    <div class="os-tabs">
+    <div class="os-panel" data-os="win"><p class="os-title">Windows (Command Prompt)</p><div class="code"><pre>cd /d "%USERPROFILE%\source\repos"</pre></div>
+      <p class="see">the prompt ends in <code>\source\repos&gt;</code>.</p></div>
+    <div class="os-panel" data-os="mac"><p class="os-title">macOS</p><div class="code"><pre>cd ~/source/repos</pre></div>
+      <p class="see">the prompt ends in <code>repos %</code>.</p></div>
+    </div>
+    <p class="muted"><code>cd</code> means “change directory”: go into that folder.</p></li>
+  <li><span class="st">Clone it</span>
+    <div class="code"><pre>git clone https://github.com/HME-Research/spatial-graph-lab-course.git</pre></div>
+    <p class="see">“Cloning into 'spatial-graph-lab-course'…”, then the prompt again.</p></li>
+  <li><span class="st">Open it in VS Code</span><span class="ui">File › Open Folder…</span> › <code>source/repos</code> › <code>spatial-graph-lab-course</code> › <span class="ui">Select Folder</span> (macOS: <span class="ui">Open</span>). Trust the authors if asked.</li>
+</ol>
+</div>
+</div>
+<p class="muted">Next time: <span class="ui">File › Open Recent</span>.</p>
+<p class="help-link">Problems: <a href="15-help.html#h-path">“cannot find the path”</a> · <a href="15-help.html#h-clone-exists">“already exists”</a>.</p>
+</div>
+</details>
+
+<details class="card fold" id="terminal">
+<summary class="card-head"><span class="badge">05</span><div><h2>Open a terminal in it</h2><p class="sub">It starts in the course folder.</p></div></summary>
+<div class="card-body">
+<p><span class="ui">Terminal › New Terminal</span>.</p>
+<p class="see"><span class="os-inline"><span data-os="win"><code>C:\Users\<span class="ph">&lt;you&gt;</span>\source\repos\spatial-graph-lab-course&gt;</code></span><span data-os="mac"><code><span class="ph">&lt;you&gt;</span>@Mac spatial-graph-lab-course %</code></span></span></p>
+<figure class="fig"><img src="img/vscode-terminal.svg" alt="VS Code: 1 the Terminal menu with New Terminal, 2 the terminal panel at the bottom with the prompt C:\Users\&lt;you&gt;\source\repos\spatial-graph-lab-course&gt;, 3 the branch name at the bottom left" width="760" height="430"><figcaption><b>1</b> <span class="ui">Terminal › New Terminal</span>. <b>2</b> The prompt shows the folder. <b>3</b> The branch you are on.</figcaption></figure>
+</div>
+</details>
+
+<details class="card fold" id="install">
+<summary class="card-head"><span class="badge">06</span><div><h2>Install what the app needs</h2><p class="sub">Once, and again after a course update.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="install" aria-label="Done: npm ci finished without ERR!"> <span>npm ci finished without ERR!</span></label></span></summary>
+<div class="card-body">
+<div class="code"><pre>npm ci</pre></div>
+<p class="see">after a few minutes (it downloads a lot; longer on busy Wi-Fi), “added … packages” and the prompt again. Warnings are fine; <code>ERR!</code> is not.</p>
+<details class="more"><summary>Why <code>npm ci</code>?</summary><div class="more-body"><p>It installs exactly the versions the course fixed and never changes a course file, so your copy stays in step with GitHub.</p></div></details>
+<details class="more"><summary>Is this safe on <code>main</code>, before I make my branch?</summary><div class="more-body"><p>Yes. It only adds <code>node_modules/</code>, which git ignores (<a href="06-about-the-repository.html#local">why</a>), and nothing reaches GitHub without a commit and a push.</p></div></details>
+<p class="help-link">Problems: <a href="15-help.html#h-npm-err"><code>ERR!</code></a> · <a href="15-help.html#h-powershell">“running scripts is disabled”</a> · <a href="15-help.html#h-wrong-folder">“Could not read package.json”</a>.</p>
+</div>
+</details>
+
+<details class="card fold" id="run">
+<summary class="card-head"><span class="badge">07</span><div><h2>Start the app</h2><p class="sub">It runs on your computer and opens in your browser.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="run" aria-label="Done: The app opens at localhost"> <span>The app opens at localhost</span></label></span></summary>
+<div class="card-body">
+<div class="code"><pre>npm run dev</pre></div>
+<p class="see"><code>Local: http://localhost:5173/</code>. Open it in your browser (or <span class="os-inline"><span data-os="win"><kbd>Ctrl</kbd>-click</span><span data-os="mac"><kbd>Cmd</kbd>-click</span></span> it): the app's Welcome screen.</p>
+<div class="warn"><p><span class="lbl">The terminal is busy while the app runs.</span> It takes no commands until you stop the app. For other commands, open a second terminal with the <span class="ui">+</span> in the terminal panel.</p></div>
+<figure class="fig"><img src="img/two-terminals.svg" alt="Two terminals: the first runs npm run dev and is busy, showing Local: http://localhost:5173/; the + opens a second one for git commands" width="760" height="250"><figcaption>Leave the first terminal running the app; type commands in a second one.</figcaption></figure>
+<details class="more"><summary>What is localhost?</summary><div class="more-body"><p>“This computer”: the app is served by your own laptop, not by the internet. If it printed another number than 5173, use that one.</p></div></details>
+<p class="help-link">Problems: <a href="15-help.html#h-port">“Port 5173 is in use”</a> · <a href="15-help.html#h-localhost-refused">“localhost refused to connect”</a>.</p>
+</div>
+</details>
+
+<details class="card fold" id="stop">
+<summary class="card-head"><span class="badge">08</span><div><h2>Stop the app</h2><p class="sub">When you are done.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="stop" aria-label="Done: I can stop the app with Ctrl+C"> <span>I can stop the app with Ctrl+C</span></label></span></summary>
+<div class="card-body">
+<p>Click in the terminal where it runs and press <kbd>Ctrl</kbd>+<kbd>C</kbd>, <b>also on a Mac</b>. On Windows, if it asks “Terminate batch job (Y/N)?”, type <kbd>Y</kbd> and press <kbd>Enter</kbd>.</p>
+<p class="see">the prompt comes back.</p>
+<div class="done-when"><p>the app's Welcome screen opened at localhost. Next: <a href="09-make-your-branch.html">Make your branch and plan your toolkit</a>.</p></div>
+</div>
+</details>
+
+<div class="pager"><a href="07-install-the-tools.html">← 7. Install the tools</a><a href="09-make-your-branch.html">9. Make your branch and plan your toolkit →</a></div>
+</main>
+</div>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · What you type and tick on these pages is saved only in this browser.</div></footer>
+</body>
+</html>

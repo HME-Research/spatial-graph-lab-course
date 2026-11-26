@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exercise 1: your own transform · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to the content</a>
+<header class="top"><div class="top-inner">
+  <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
+  <nav class="site" aria-label="Tutorial pages">
+    <div class="nav-group"><p class="nav-part">Start</p><div class="nav-links"><a href="01-start-here.html"><span class="n">1</span>Start</a></div></div>
+    <div class="nav-group"><p class="nav-part">In the browser</p><div class="nav-links"><a href="02-about-the-app.html"><span class="n">2</span>About the app</a><a href="03-use-the-app.html"><span class="n">3</span>Use the app</a><a href="04-your-own-analysis.html"><span class="n">4</span>Analysis</a><a href="05-your-own-transform.html" aria-current="page"><span class="n">5</span>Exercise 1</a></div></div>
+    <div class="nav-group"><p class="nav-part">On your computer</p><div class="nav-links"><a href="06-about-the-repository.html"><span class="n">6</span>About the repository</a><a href="07-install-the-tools.html"><span class="n">7</span>Install</a><a href="08-clone-the-repository.html"><span class="n">8</span>Clone</a><a href="09-make-your-branch.html"><span class="n">9</span>Branch and plan</a><a href="10-toolkit-with-a-coding-agent.html"><span class="n">10</span>Agent</a><a href="11-toolkit-with-a-chat-assistant.html"><span class="n">11</span>Chat</a><a href="12-hand-in.html"><span class="n">12</span>Hand in</a><a href="13-keep-working-and-update.html"><span class="n">13</span>Keep working</a></div></div>
+    <div class="nav-group"><p class="nav-part">Help</p><div class="nav-links"><a href="14-git-basics.html"><span class="n">14</span>Git basics</a><a href="15-help.html"><span class="n">15</span>Help</a></div></div>
+  </nav>
+</div></header>
+<div class="layout">
+<aside class="side">
+<nav class="part-nav" aria-label="In the browser"><p class="part-title">In the browser</p><ol><li><a href="02-about-the-app.html"><span class="n">02</span><span>About the app</span></a></li><li><a href="03-use-the-app.html"><span class="n">03</span><span>Use the app</span></a></li><li><a href="04-your-own-analysis.html"><span class="n">04</span><span>Your own analysis</span></a></li><li><a href="05-your-own-transform.html" aria-current="page"><span class="n">05</span><span>Exercise 1: your own transform</span></a></li></ol></nav>
+<nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+    <ol>
+      <li><a href="#project"><span class="n">01</span><span class="t">Open a design with Bedrooms</span></a></li>
+      <li><a href="#attribute"><span class="n">02</span><span class="t">Add the attribute “Number of beds”</span></a></li>
+      <li><a href="#decide"><span class="n">03</span><span class="t">Describe it in a few lines</span></a></li>
+      <li><a href="#kit"><span class="n">04</span><span class="t">Download the Transform kit for this project</span></a></li>
+      <li><a href="#ask"><span class="n">05</span><span class="t">Ask an AI chat</span></a></li>
+      <li><a href="#save"><span class="n">06</span><span class="t">Save the file it gives you</span></a></li>
+      <li><a href="#run"><span class="n">07</span><span class="t">Upload it, preview it, Apply it</span></a></li>
+    </ol>
+  </details></nav>
+<div class="side-box fold-box"><div class="side-label">Sections</div><div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div></div>
+</aside>
+<main id="content">
+<p class="crumb">Page 5 of 15 · In the browser</p>
+<h1>Exercise 1: your own transform</h1>
+<p class="lead">Write a transform that changes an attribute value on a condition, and upload it straight into the app. No repository needed: only a browser and an AI chat.</p>
+<div class="example"><p class="label">The exercise</p><p>Set <b>Number of beds</b> to 2 for every <b>Bedroom</b> larger than 12 m².</p><small>Once it works, try your own condition and value.</small></div>
+<div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div>
+<p class="legend">Orange <span class="ph">___</span> = fill in your own. Grey buttons like <span class="ui">Copy</span> = something to click.</p>
+
+<details class="card fold" id="project">
+<summary class="card-head"><span class="badge">01</span><div><h2>Open a design with Bedrooms</h2><p class="sub">The House example has them.</p></div></summary>
+<div class="card-body">
+<ol class="steps">
+  <li><span class="st">Open the example</span>In <a href="https://spatial-graph-lab.vercel.app/">the app</a>: Welcome › <span class="ui">Open example…</span> › <span class="ui">Simple house</span>.</li>
+  <li><span class="st">Make a Bedroom larger than 12 m²</span><span class="ui">Transform</span> › <span class="ui">Grow to target area</span> › <span class="ui">Run</span> › <span class="ui">Apply</span>. The Bedroom grows from 9 to 18 m².</li>
+</ol>
+<details class="more"><summary>Why?</summary><div class="more-body"><p>A test needs a design whose answer you know: after this, one Bedroom is larger than 12 m², so your transform should change exactly that one.</p></div></details>
+</div>
+</details>
+
+<details class="card fold" id="attribute">
+<summary class="card-head"><span class="badge">02</span><div><h2>Add the attribute “Number of beds”</h2><p class="sub">Every node gets it.</p></div></summary>
+<div class="card-body">
+<ol class="steps">
+  <li><span class="st">Add it</span><span class="ui">Attributes</span> (left rail) › <span class="ui">+ Add attribute</span> › <span class="ui">Custom attribute</span>.</li>
+  <li><span class="st">Name it</span>Name <b>Number of beds</b>, kind <span class="ui">Number</span>.
+    <p class="see">it is listed under Attributes, tagged <b>Yours</b>.</p></li>
+</ol>
+</div>
+</details>
+
+<details class="card fold" id="decide">
+<summary class="card-head"><span class="badge">03</span><div><h2>Describe it in a few lines</h2><p class="sub">This fills in the starting text below.</p></div></summary>
+<div class="card-body">
+<form class="form" id="blanks-transform" data-blanks onsubmit="return false">
+  <div><label for="t-idea">My idea <small>What should it do to your design?</small></label>
+    <textarea id="t-idea" name="idea" data-line="My idea" rows="2" placeholder="Set Number of beds to 2 for every Bedroom larger than 12 m²."></textarea></div>
+  <div class="form-2">
+    <div><label for="t-params">Settings you choose first (parameters) <small>A number, a Function… or “none”.</small></label>
+      <input id="t-params" type="text" name="params" data-line="Parameters I want to set" placeholder="None."></div>
+    <div><label for="t-change">What it should change <small>Add nodes or edges, move or resize rooms, set a value.</small></label>
+      <input id="t-change" type="text" name="change" data-line="What it should change" placeholder="Set the value Number of beds."></div>
+  </div>
+</form>
+<p class="muted">Remembered in this browser only.</p>
+</div>
+</details>
+
+<details class="card fold" id="kit">
+<summary class="card-head"><span class="badge">04</span><div><h2>Download the Transform kit for this project</h2><p class="sub">In the app, so that it knows your Functions and attributes.</p></div></summary>
+<div class="card-body">
+<ol class="steps">
+  <li><span class="st">Open the kits</span><span class="ui">Transform</span> › the <span class="ui">ⓘ</span> beside <span class="ui">Upload your own (.ts)</span> › tab <span class="ui">This project</span>.</li>
+  <li><span class="st">Download it</span><span class="ui">Transform kit for this project (.zip)</span>.
+    <p class="see">a zip in your Downloads folder.</p></li>
+</ol>
+<details class="more"><summary>Why “for this project”?</summary><div class="more-body"><p>Its <code>PROJECT.md</code> lists your project's Functions (Bedroom…) and custom attributes (Number of beds…), so the AI uses their exact names. The kit never contains your design.</p></div></details>
+</div>
+</details>
+
+<details class="card fold" id="ask">
+<summary class="card-head"><span class="badge">05</span><div><h2>Ask an AI chat</h2><p class="sub">Attach the kit, send the starting text, answer its questions.</p></div></summary>
+<div class="card-body">
+<div class="tabs" data-tabs="transform-kit" data-default="project" data-tabs-label="Kit">
+<div class="tab-panel" data-tab="project" data-label="Kit for this project (Exercise 1)"><p class="tab-title">Transform kit for this project</p>
+  <div class="code"><div class="label">Starting text: <b>Transform kit for this project</b></div><pre data-build="blanks-transform" data-block="prompt:transform-project">I've attached the Spatial Graph Lab transform kit for my project. Read PROMPT.md, PROJECT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write ONE transform that follows them exactly. It may use my project's Functions and custom fields as PROJECT.md lists them.
+
+My idea: ___
+Parameters I want to set: ___
+What it should change: ___</pre></div></div>
+<div class="tab-panel" data-tab="any" data-label="Transform kit (any project)"><p class="tab-title">Transform kit (any project)</p>
+  <p>For a transform that uses no custom attributes and works in every project.</p>
+  <div class="actions"><a class="btn secondary" href="kits/spatial-graph-lab-transform-kit.zip" download>Download the Transform kit (.zip)</a></div>
+  <div class="code"><div class="label">Starting text: <b>Transform kit</b></div><pre data-build="blanks-transform" data-block="prompt:transform">I've attached the Spatial Graph Lab transform kit. Read PROMPT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write ONE transform that works in any project (node basics only, no custom fields).
+
+My idea: ___
+Parameters I want to set: ___
+What it should change: ___</pre></div></div>
+</div>
+<ol class="steps">
+  <li><span class="st">Open a new chat and attach the kit zip</span>Any AI chat that accepts files, such as <a href="https://claude.ai">claude.ai</a>, <a href="https://chatgpt.com">chatgpt.com</a> or <a href="https://gemini.google.com">gemini.google.com</a>.</li>
+  <li><span class="st">Paste the starting text and send it</span>Use <span class="ui">Copy</span> on the dark box above.</li>
+  <li><span class="st">Answer its questions</span>It asks before it writes any code. Then it gives you one <code>.ts</code> file.</li>
+</ol>
+<details class="more"><summary>The chat refuses the zip <span class="opt">(fix)</span></summary><div class="more-body"><p>Unzip it and attach the <code>.md</code> files inside instead, or try another chat.</p></div></details>
+</div>
+</details>
+
+<details class="card fold" id="save">
+<summary class="card-head"><span class="badge">06</span><div><h2>Save the file it gives you</h2><p class="sub">One <code>.ts</code> file, with the name the AI suggests.</p></div></summary>
+<div class="card-body">
+<p><b>Download</b> the file the chat offers, for example <code>two-beds-in-large-bedrooms.ts</code>.</p>
+<details class="more"><summary>Only code shown?</summary><div class="more-body"><p>Ask “Please give me this as a file”, or save it yourself as on <a href="04-your-own-analysis.html#save">page 04</a>: the name must end in <code>.ts</code>, not <code>.ts.txt</code>.</p></div></details>
+</div>
+</details>
+
+<details class="card fold" id="run">
+<summary class="card-head"><span class="badge">07</span><div><h2>Upload it, preview it, Apply it</h2><p class="sub">Nothing changes until you press Apply.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="exercise-1" aria-label="Done: Exercise 1 works"> <span>Exercise 1 works</span></label></span></summary>
+<div class="card-body">
+<ol class="steps">
+  <li><span class="st">Upload</span><span class="ui">Transform</span> › <span class="ui">Upload your own (.ts)</span> › choose the file.
+    <p class="see">it is listed under <b>Yours</b>.</p></li>
+  <li><span class="st">Run it</span>Choose it and press <span class="ui">Run</span>.
+    <p class="see">a preview: Number of beds of the large Bedroom, before → 2. Your design has not changed yet.</p></li>
+  <li><span class="st">Apply</span><span class="ui">Apply</span> changes the design in one step; <span class="ui">Discard</span> drops the preview. One <span class="ui">Undo</span> reverses it all.</li>
+  <li><span class="st">Check it</span>Select the Bedroom: Properties shows Number of beds 2.</li>
+</ol>
+<figure class="fig shot"><img src="img/app-transform-preview.webp" alt="Transform preview of Grow to target area: the resized nodes listed, and the Apply and Discard buttons" width="228" height="432" loading="lazy"><figcaption>A preview (here of Grow to target area): nothing changes until you press <span class="ui">Apply</span>.</figcaption></figure>
+<details class="more"><summary>Refused, or an error in the preview?</summary><div class="more-body"><p>Copy the app's whole message into the chat and ask: “Fix exactly this.” Then use <span class="ui">↻</span> (Replace) beside it in <b>Yours</b> with the new file. An analysis (it only reads) is refused here: upload it in <span class="ui">Analyse</span> (<a href="04-your-own-analysis.html">page 04</a>).</p></div></details>
+<p>Then <span class="ui">Project</span> › <span class="ui">Export project</span>: the file keeps your transform.</p>
+<p class="help-link">Problems: <a href="15-help.html#h-apply-grey">Apply is greyed out</a> · <a href="15-help.html#h-customof">“customOf needs a Function…”</a> · <a href="15-help.html#uploads">all upload problems</a>.</p>
+</div>
+</details>
+
+<div class="pager"><a href="04-your-own-analysis.html">← 4. Your own analysis</a><a href="06-about-the-repository.html">6. About the repository →</a></div>
+</main>
+</div>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · What you type and tick on these pages is saved only in this browser.</div></footer>
+</body>
+</html>

@@ -1,7 +1,7 @@
 import { defineToolkit } from '@student-api';
 
 /**
- * My toolkit: a starter to copy to `toolkits/<your-toolkit-id>/` and change.
+ * My toolkit: a starter to copy to `toolkits/<your-toolkit-name>/` and change.
  *
  * - `name` is what the app shows ("Toolkit: My toolkit").
  * - `defaultDesign` is a file in `designs/` (without `.json`): new projects take its Building

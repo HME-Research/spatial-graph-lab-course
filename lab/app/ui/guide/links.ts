@@ -56,5 +56,5 @@ export const LINKS = {
  */
 export const TUTORIAL_URL = '/tutorial/01-start-here.html';
 
-/** A page of the student tutorial by its file name, e.g. `tutorialPage('04-your-own-transform')` → `/tutorial/04-your-own-transform.html`. */
+/** A page of the student tutorial by its file name, e.g. `tutorialPage('05-your-own-transform')` → `/tutorial/05-your-own-transform.html`. */
 export const tutorialPage = (name: string): string => TUTORIAL_URL.replace(/[^/]+\.html$/, `${name}.html`);

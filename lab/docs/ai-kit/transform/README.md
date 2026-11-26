@@ -7,7 +7,7 @@ This folder is everything an AI assistant needs to write a **transform** for *Sp
 - tab **Template**: `transform-template.ts`, to change by hand instead.
 
 1. Open an AI assistant that accepts files (for example Claude) and **attach the zip**.
-2. Write your prompt: your idea, the parameters you want to set before it runs, and what it should change. The app shows how, with a starting text to copy, under the download.
+2. Write your prompt: your idea, the parameters you want to set before it runs, and what it should change. The app shows how, with a starting text to copy, under the download. The assistant reads the kit first and asks you its questions before it writes any code.
 3. Save the answer as a `.ts` file (the name the assistant suggests).
 4. In the app, open **Transform** and choose **Upload your own (.ts)**. It is listed under **Yours**. Choose it, set its parameters and press **Run**.
 5. Read the preview: nothing has changed yet. **Apply** changes the design (one **Undo** reverses all of it); **Discard** drops it.

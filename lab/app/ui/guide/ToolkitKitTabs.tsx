@@ -7,7 +7,7 @@ import { TUTORIAL_URL } from './links';
 /**
  * How to make your own toolkit with an AI assistant (owner 2026-11-24), shown in the Guide under
  * Toolkits & JSON › Make your own toolkit. Two tabs, one per way of working; both end with the
- * folder `toolkits/<toolkit-id>/` committed on the branch `toolkit/<toolkit-id>` and pushed (never
+ * folder `toolkits/<your-toolkit-name>/` committed on the branch `toolkit/<your-toolkit-name>` and pushed (never
  * `main`, no Pull Request). Full text: lab/docs/TOOLKITS.md.
  *
  * - **Coding agent**: the agent works in the repository (reads lab/docs/TOOLKITS.md and
@@ -28,8 +28,8 @@ export function ToolkitKitTabs({ initialTab = 'agent' }: { readonly initialTab?:
   return (
     <section className="sgl-aikits" data-toolkit-kit="">
       <p className="sgl-aikits-intro">
-        Your toolkit is one folder, <code>toolkits/&lt;toolkit-id&gt;/</code>, on your own branch <code>toolkit/&lt;toolkit-id&gt;</code>. Never commit to{' '}
-        <code>main</code>. Every step, from installing Git to handing in:{' '}
+        Your toolkit is one folder, <code>toolkits/&lt;your-toolkit-name&gt;/</code>, on your own branch <code>toolkit/&lt;your-toolkit-name&gt;</code>; your toolkit
+        name is like <code>u123-hk-house</code>. Never commit to <code>main</code>. Every step, from installing Git to handing in:{' '}
         <a href={TUTORIAL_URL} target="_blank" rel="noopener">
           the step-by-step tutorial
         </a>
@@ -40,9 +40,11 @@ export function ToolkitKitTabs({ initialTab = 'agent' }: { readonly initialTab?:
           <div data-toolkit-kit-tab="agent">
             <p className="sgl-help sgl-aikits-help">
               The agent works in your copy of the repository (for example Claude Code in VS Code): it reads the guide there, writes the folder and runs the checks. First
-              make your branch and claim its name: <code>git status</code> (it must say On branch main), <code>git pull</code> (the newest course version first), <code>git switch -c toolkit/&lt;toolkit-id&gt;</code>,{' '}
-              <code>git commit --allow-empty -m "chore(&lt;toolkit-id&gt;): claim the toolkit name"</code>, <code>git push -u origin toolkit/&lt;toolkit-id&gt;</code> (you
-              must see <code>* [new branch]</code>; rejected or “Everything up-to-date”? The name is taken: choose another). After each change: <code>git push</code>.
+              make your branch and send it to GitHub: <code>git status</code> (it must say On branch main), <code>git pull</code> (the newest course version first),{' '}
+              <code>git switch -c toolkit/&lt;your-toolkit-name&gt;</code>, <code>git commit --allow-empty -m "chore(&lt;your-toolkit-name&gt;): start my toolkit"</code>,{' '}
+              <code>git push -u origin toolkit/&lt;your-toolkit-name&gt;</code> (this puts your branch on GitHub: you must see <code>* [new branch]</code>). The prompt
+              starts with the rules: only your folder, no other files, no packages, no push. Let the agent edit files, but say no to <code>git push</code>,{' '}
+              <code>git reset</code>, <code>git clean</code> or a package install. After each change: <code>git push</code>.
             </p>
             <PromptGuide guide={TOOLKIT_AGENT_PROMPT_GUIDE} />
             <p className="sgl-help sgl-aikits-help">Optional: the same files as a zip, if your agent cannot read the repository’s docs.</p>
@@ -79,7 +81,7 @@ function Commands({ title, text }: { readonly title: string; readonly text: stri
   return (
     <section className="sgl-explainer-prompt" data-toolkit-commands="">
       <h4 className="sgl-explainer-prompt-title">{title}</h4>
-      <p className="sgl-help sgl-aikits-help">In a terminal in the repository folder (VS Code: Terminal › New Terminal). Replace &lt;toolkit-id&gt; with yours.</p>
+      <p className="sgl-help sgl-aikits-help">In a terminal in the repository folder (VS Code: Terminal › New Terminal). Replace &lt;your-toolkit-name&gt; with yours, e.g. u123-hk-house.</p>
       <pre className="sgl-explainer-prompt-text">{text}</pre>
       <p className="sgl-explainer-prompt-copy">
         <button type="button" className="sgl-explainer-download" data-copy-commands="" onClick={() => void copy()}>
@@ -89,10 +91,10 @@ function Commands({ title, text }: { readonly title: string; readonly text: stri
         {copied === 'no' && <span className="sgl-explainer-download-note"> Could not copy: select the text above and copy it.</span>}
       </p>
       <ul className="sgl-explainer-prompt-tips">
-        <li>git status must list only files under toolkits/&lt;toolkit-id&gt;/. If it lists anything else, don’t commit: undo that change first.</li>
+        <li>git status must list only files under toolkits/&lt;your-toolkit-name&gt;/. If it lists anything else, don’t commit: undo that change first.</li>
         <li>A check fails? Paste the whole message into the chat, replace the files it changes, check again, commit and git push again.</li>
         <li>check:toolkit must end with PASSED. FAILED? Read the red message above it.</li>
-        <li>GitHub Desktop instead: Current branch › New branch, then run the two claim lines (git commit --allow-empty …, git push -u …) in the terminal; copy the folder, commit, Push origin.</li>
+        <li>GitHub Desktop instead: Current branch › New branch, then run the two lines that send it to GitHub (git commit --allow-empty …, git push -u …) in the terminal; copy the folder, commit, Push origin.</li>
       </ul>
     </section>
   );

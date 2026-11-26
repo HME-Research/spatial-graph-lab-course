@@ -10,13 +10,13 @@ Read every file in this folder before answering:
 - `examples/same-function-neighbours.ts` — one room as input, any project: reads Functions as labels.
 - `examples/below-target-area.ts` — uses a project field (`targetArea`), so it lists it in `uses`.
 
-Then write the analysis the student describes in their message. It usually says:
+Then work on the analysis the student describes in their message. It usually says:
 
 - **My idea** — what the analysis should find;
 - **Input** — what the student selects before it runs (this becomes `inputs`);
 - **Show the answer as** — a number, a line of text, highlighted rooms / relationships, or colours per room.
 
-If a part is missing or unclear, choose the simplest option that fits the idea and say in one sentence what you chose.
+Before you write any code, ask the student your clarifying questions in one short, numbered list (at most five) and wait for the answers. If a part is still open after that, choose the simplest option that fits the idea and say in one sentence what you chose.
 
 ## What to produce
 

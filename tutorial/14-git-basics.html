@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git basics · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to the content</a>
+<header class="top"><div class="top-inner">
+  <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
+  <nav class="site" aria-label="Tutorial pages">
+    <div class="nav-group"><p class="nav-part">Start</p><div class="nav-links"><a href="01-start-here.html"><span class="n">1</span>Start</a></div></div>
+    <div class="nav-group"><p class="nav-part">In the browser</p><div class="nav-links"><a href="02-about-the-app.html"><span class="n">2</span>About the app</a><a href="03-use-the-app.html"><span class="n">3</span>Use the app</a><a href="04-your-own-analysis.html"><span class="n">4</span>Analysis</a><a href="05-your-own-transform.html"><span class="n">5</span>Exercise 1</a></div></div>
+    <div class="nav-group"><p class="nav-part">On your computer</p><div class="nav-links"><a href="06-about-the-repository.html"><span class="n">6</span>About the repository</a><a href="07-install-the-tools.html"><span class="n">7</span>Install</a><a href="08-clone-the-repository.html"><span class="n">8</span>Clone</a><a href="09-make-your-branch.html"><span class="n">9</span>Branch and plan</a><a href="10-toolkit-with-a-coding-agent.html"><span class="n">10</span>Agent</a><a href="11-toolkit-with-a-chat-assistant.html"><span class="n">11</span>Chat</a><a href="12-hand-in.html"><span class="n">12</span>Hand in</a><a href="13-keep-working-and-update.html"><span class="n">13</span>Keep working</a></div></div>
+    <div class="nav-group"><p class="nav-part">Help</p><div class="nav-links"><a href="14-git-basics.html" aria-current="page"><span class="n">14</span>Git basics</a><a href="15-help.html"><span class="n">15</span>Help</a></div></div>
+  </nav>
+</div></header>
+<div class="layout">
+<aside class="side">
+<nav class="part-nav" aria-label="Help"><p class="part-title">Help</p><ol><li><a href="14-git-basics.html" aria-current="page"><span class="n">14</span><span>Git basics</span></a></li><li><a href="15-help.html"><span class="n">15</span><span>Help</span></a></li></ol></nav>
+<nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+    <ol>
+      <li><a href="#terminal"><span class="n">›_</span><span class="t">The terminal</span></a></li>
+      <li><a href="#words"><span class="n">Aa</span><span class="t">Words</span></a></li>
+      <li class="toc-group"><a href="#commands">Commands</a></li>
+      <li><a href="#c-clone"><span class="n">$</span><span class="t">git clone</span></a></li>
+      <li><a href="#c-status"><span class="n">$</span><span class="t">git status</span></a></li>
+      <li><a href="#c-branch"><span class="n">$</span><span class="t">git branch --show-current</span></a></li>
+      <li><a href="#c-pull"><span class="n">$</span><span class="t">git pull</span></a></li>
+      <li><a href="#c-switch"><span class="n">$</span><span class="t">git switch</span></a></li>
+      <li><a href="#c-add"><span class="n">$</span><span class="t">git add</span></a></li>
+      <li><a href="#c-commit"><span class="n">$</span><span class="t">git commit -m</span></a></li>
+      <li><a href="#c-push"><span class="n">$</span><span class="t">git push</span></a></li>
+      <li><a href="#c-push-u"><span class="n">$</span><span class="t">git push -u</span></a></li>
+      <li><a href="#c-pull-main"><span class="n">$</span><span class="t">git pull --no-rebase --no-edit origin main</span></a></li>
+      <li><a href="#c-restore"><span class="n">$</span><span class="t">git restore</span></a></li>
+      <li><a href="#c-log"><span class="n">$</span><span class="t">git log --oneline</span></a></li>
+      <li><a href="#c-diff"><span class="n">$</span><span class="t">git diff</span></a></li>
+      <li class="toc-group"><a href="#tools">Tools</a></li>
+      <li><a href="#sign-in"><span class="n">↗</span><span class="t">Signing in to GitHub when you push</span></a></li>
+      <li><a href="#source-control"><span class="n">!</span><span class="t">VS Code's Source Control panel</span></a></li>
+    </ol>
+  </details></nav>
+<div class="side-box fold-box"><div class="side-label">Sections</div><div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div></div>
+</aside>
+<main id="content">
+<p class="crumb">Page 14 of 15 · Help</p>
+<h1>Git basics</h1>
+<p class="lead">A reference to keep open beside you: the terminal, a few words, and every git command the course uses, with what you should see. Not a sequence: look up the one you need.</p>
+<div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div>
+<p class="legend">Orange text like <span class="ph">&lt;your-branch&gt;</span> = replace it with your own, e.g. <code>toolkit/u123-hk-house</code>. Grey buttons like <span class="ui">Copy</span> = something to click.</p>
+
+<details class="card fold" id="terminal">
+<summary class="card-head"><span class="badge">›_</span><div><h2>The terminal</h2><p class="sub">A window where you type a command and press Enter.</p></div></summary>
+<div class="card-body">
+<p>In VS Code: <span class="ui">Terminal › New Terminal</span>. It opens in the folder VS Code has open. Paste <b>one</b> command, press <kbd>Enter</kbd>, read the answer, then the next.</p>
+<div class="os-tabs">
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><figure class="fig"><img src="img/prompt-cmd-vs-powershell.svg" alt="Right: a Command Prompt prompt. Wrong: a PowerShell prompt starting with PS" width="760" height="150"><figcaption>Use Command Prompt, not PowerShell (<a href="07-install-the-tools.html#s-terminal">how to switch</a>).</figcaption></figure></div>
+<div class="os-panel" data-os="mac"><p class="os-title">macOS</p><figure class="fig"><img src="img/prompt-mac.svg" alt="A macOS prompt: &lt;you&gt;@Mac spatial-graph-lab-course %" width="560" height="120"><figcaption>A Mac prompt ends with <code>%</code>.</figcaption></figure></div>
+</div>
+<details class="more"><summary>Keys, and the folder the terminal is in</summary><div class="more-body"><ul>
+  <li>Paste: <span class="os-inline"><span data-os="win"><kbd>Ctrl</kbd>+<kbd>V</kbd> or right-click</span><span data-os="mac"><kbd>Cmd</kbd>+<kbd>V</kbd></span></span>. <kbd>↑</kbd> brings back the previous command.</li>
+  <li><kbd>Ctrl</kbd>+<kbd>C</kbd> stops a command that keeps running, such as <code>npm run dev</code>, also on a Mac.</li>
+  <li>The folder: Windows <code>cd</code> <b>alone</b> prints it; Mac <code>pwd</code>. It must end in <code>spatial-graph-lab-course</code>.</li>
+  <li>“error”, “fatal” or “not recognized”: look it up in <a href="15-help.html">Help</a>.</li>
+</ul></div></details>
+<details class="more"><summary>Other ways to open a terminal in a folder <span class="opt">(optional)</span></summary><div class="more-body">
+<div class="os-tabs">
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><p>Windows 11: in File Explorer, right-click the folder › <span class="ui">Open in Terminal</span>. It opens PowerShell: type <code>cmd</code> and press <kbd>Enter</kbd> first.</p></div>
+<div class="os-panel" data-os="mac"><p class="os-title">macOS</p><p>Finder: right-click the folder › <span class="ui">Services</span> › <span class="ui">New Terminal at Folder</span>. Not there? Turn it on once in <span class="ui">System Settings › Keyboard › Keyboard Shortcuts › Services › Files and Folders</span>.</p></div>
+</div>
+</div></details>
+</div>
+</details>
+
+<details class="card fold" id="words">
+<summary class="card-head"><span class="badge">Aa</span><div><h2>Words</h2><p class="sub">Repository, clone, branch, commit, push, pull.</p></div></summary>
+<div class="card-body">
+<div class="table"><table>
+  <tr><th>Word</th><th>Meaning</th></tr>
+  <tr><td><b>Repository</b></td><td>A folder with its whole history: on GitHub, and as a copy on your computer.</td></tr>
+  <tr><td><b>Clone</b></td><td>That copy on your computer, linked to GitHub.</td></tr>
+  <tr><td><b>Branch</b></td><td>A separate line of work. <code>main</code> is the course's; yours is your own.</td></tr>
+  <tr><td><b>Commit</b></td><td>A saved snapshot of the files you chose, with a short message.</td></tr>
+  <tr><td><b>Push</b></td><td>Sends your branch's commits to GitHub. Until you push, they are only on your computer.</td></tr>
+  <tr><td><b>Pull</b></td><td>Fetches commits from GitHub into the branch you are on.</td></tr>
+</table></div>
+</div>
+</details>
+
+<div class="group" id="commands"><h2>Commands</h2><p>Run every command in VS Code's terminal, in the course folder.</p></div>
+
+<details class="card cmd fold" id="c-clone">
+<summary class="card-head"><span class="badge">$</span><div><h2>git clone</h2><p class="sub">Copy a repository from GitHub to your computer, linked to it.</p></div></summary>
+<div class="card-body">
+<div class="code ref"><pre data-ref>git clone &lt;address-of-the-repository&gt;</pre></div>
+<p class="see">“Cloning into '…'…”: a new folder with the repository's name, in the folder the terminal is in.</p>
+<p class="muted">Once per computer: <a href="08-clone-the-repository.html#clone">Clone the repository</a> has the course's address and an easier way in VS Code.</p>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-status">
+<summary class="card-head"><span class="badge">$</span><div><h2>git status</h2><p class="sub">Which branch you are on, and what changed.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre>git status</pre></div>
+<p class="see">first line <code>On branch …</code>; then green files (in the next commit), red files (changed, not added), or <code>nothing to commit, working tree clean</code>.</p>
+<figure class="fig"><img src="img/git-status.svg" alt="git status: only toolkits/u123-hk-house/ files under Changes to be committed in green; package-lock.json in red" width="760" height="330"><figcaption>Green goes into the commit: only your folder. Red does not.</figcaption></figure>
+<details class="more"><summary>Common problems</summary><div class="more-body"><ul><li><a href="15-help.html#h-wrong-folder">“not a git repository”</a></li><li><a href="15-help.html#h-outside">files outside my folder are listed</a></li></ul></div></details>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-branch">
+<summary class="card-head"><span class="badge">$</span><div><h2>git branch --show-current</h2><p class="sub">The name of the branch you are on.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre>git branch --show-current</pre></div>
+<p class="see">one line, such as <code>toolkit/u123-hk-house</code> or <code>main</code>. VS Code's bottom left shows the same.</p>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-pull">
+<summary class="card-head"><span class="badge">$</span><div><h2>git pull</h2><p class="sub">Get the newest commits of the branch you are on.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre>git pull</pre></div>
+<p class="see">“Already up to date.” or a list of updated files.</p>
+<p class="muted">On your own branch, use <code>git pull --no-rebase --no-edit</code> to get what you pushed from another computer.</p>
+<details class="more"><summary>Common problems</summary><div class="more-body"><ul><li><a href="15-help.html#h-divergent">“Need to specify how to reconcile divergent branches”</a></li><li><a href="15-help.html#h-overwritten">“Your local changes … would be overwritten”</a></li></ul></div></details>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-switch">
+<summary class="card-head"><span class="badge">$</span><div><h2>git switch</h2><p class="sub">Go to a branch that already exists.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre>git switch &lt;your-branch&gt;</pre></div>
+<p class="see"><code>Switched to branch '…'</code>, and VS Code's bottom left shows it.</p>
+<p class="muted"><code>git switch -c</code> creates a branch first (<code>-c</code> = create). You do that once, on <a href="09-make-your-branch.html#branch">page 09</a>.</p>
+<details class="more"><summary>Common problems</summary><div class="more-body"><ul><li><a href="15-help.html#h-invalid-ref">“invalid reference”</a> (a typo, or the branch is not made yet)</li><li><a href="15-help.html#h-overwritten">“Your local changes … would be overwritten”</a></li></ul></div></details>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-add">
+<summary class="card-head"><span class="badge">$</span><div><h2>git add</h2><p class="sub">Choose what goes into the next commit: your folder.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre data-fill>git add toolkits/&lt;your-toolkit-name&gt;</pre></div>
+<p class="see">nothing printed. <code>git status</code> then lists your files in green.</p>
+<div class="important"><p><b>Only your folder.</b> Never <code>git add .</code> or <code>git add -A</code>: they add files outside your folder.</p></div>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-commit">
+<summary class="card-head"><span class="badge">$</span><div><h2>git commit -m</h2><p class="sub">Save a snapshot of what you added, with a short message.</p></div></summary>
+<div class="card-body">
+<form class="form" onsubmit="return false"><div><label for="msg-14">What changed? <small>A few words; it fills the command.</small></label><input id="msg-14" type="text" data-var="what-changed" placeholder="bed count analysis" autocomplete="off"></div></form>
+<div class="code"><pre data-fill>git commit -m "feat(&lt;your-toolkit-name&gt;): &lt;what-changed&gt;"</pre></div>
+<p class="see"><code>[toolkit/… 1a2b3c4] feat(…): …</code> and the number of files changed.</p>
+<details class="more"><summary>How to write the message</summary><div class="more-body"><p><code>feat(…):</code> for something new, <code>fix(…):</code> for a correction, then a few words, e.g. <code>feat(u123-hk-house): bed count analysis</code>.</p></div></details>
+<details class="more"><summary>Common problems</summary><div class="more-body"><ul><li><a href="15-help.html#h-identity">“Please tell me who you are”</a></li><li><a href="15-help.html#h-committed-main">I committed on main</a></li><li><a href="15-help.html#h-vim">An editor with <code>~</code> lines opened</a> (you forgot <code>-m</code>)</li></ul></div></details>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-push">
+<summary class="card-head"><span class="badge">$</span><div><h2>git push</h2><p class="sub">Send your branch's commits to GitHub.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre>git push</pre></div>
+<p class="see"><code>… -&gt; …</code> with your branch's name, or “Everything up-to-date” if there was nothing new.</p>
+<details class="more"><summary>Common problems</summary><div class="more-body"><ul><li><a href="15-help.html#h-permission">“Permission denied” / 403</a></li><li><a href="15-help.html#h-protected">“GH013 … rule violations”</a></li><li><a href="15-help.html#h-gh007">“GH007 … email privacy”</a></li><li><a href="15-help.html#h-refspec">“src refspec … does not match any”</a></li></ul></div></details>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-push-u">
+<summary class="card-head"><span class="badge">$</span><div><h2>git push -u</h2><p class="sub">The first push of a new branch.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre>git push -u origin &lt;your-branch&gt;</pre></div>
+<p class="see"><code>* [new branch]</code>. <code>-u</code> remembers GitHub (<code>origin</code>) as the place this branch goes, so later a plain <code>git push</code> is enough.</p>
+<p class="muted">For your toolkit branch: <a href="09-make-your-branch.html#branch">page 09</a>.</p>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-pull-main">
+<summary class="card-head"><span class="badge">$</span><div><h2>git pull --no-rebase --no-edit origin main</h2><p class="sub">Bring the course's updates into your branch, without leaving it.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre>git pull --no-rebase --no-edit origin main</pre></div>
+<p class="see">a list of changed files, or “Already up to date.”</p>
+<p class="muted"><code>origin main</code> = the course's <code>main</code> on GitHub; it is merged into the branch you are on. <code>--no-edit</code> keeps an editor from opening. Commit your work first; afterwards run <code>npm ci</code> and your check (<a href="13-keep-working-and-update.html#updates">page 13</a>).</p>
+<details class="more"><summary>Common problems</summary><div class="more-body"><ul><li><a href="15-help.html#h-conflict">“CONFLICT”</a></li><li><a href="15-help.html#h-overwritten">“Your local changes … would be overwritten”</a></li></ul></div></details>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-restore">
+<summary class="card-head"><span class="badge">$</span><div><h2>git restore</h2><p class="sub">Put one file back as it was; <code>--staged</code> takes it out of the next commit.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre>git restore package-lock.json</pre></div>
+<p class="see">nothing printed; <code>git status</code> no longer lists the file.</p>
+<p>For another file, type its path as <code>git status</code> shows it. If it is green (added), first:</p>
+<div class="code ref"><pre data-ref>git restore --staged &lt;path-of-the-file&gt;</pre></div>
+<div class="warn"><p><span class="lbl">One file at a time.</span> Never <code>git restore .</code>, <code>git checkout -- .</code>, <code>git reset --hard</code> or <code>git clean</code>: they also throw away your toolkit work.</p></div>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-log">
+<summary class="card-head"><span class="badge">$</span><div><h2>git log --oneline</h2><p class="sub">Your latest commits, one per line.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre>git log --oneline -5</pre></div>
+<p class="see">five lines such as <code>1a2b3c4 feat(…): bed count analysis</code>, newest first.</p>
+</div>
+</details>
+
+<details class="card cmd fold" id="c-diff">
+<summary class="card-head"><span class="badge">$</span><div><h2>git diff</h2><p class="sub">Which files changed since your last commit.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre>git diff --stat</pre></div>
+<p class="see">one line per changed file with <code>+</code> and <code>-</code>. Without <code>--stat</code> it shows every changed line (press <kbd>q</kbd> to leave).</p>
+</div>
+</details>
+
+<div class="group" id="tools"><h2>Tools</h2></div>
+
+<details class="card fold" id="sign-in">
+<summary class="card-head"><span class="badge">↗</span><div><h2>Signing in to GitHub when you push</h2><p class="sub">Once, on your first push.</p></div></summary>
+<div class="card-body">
+<p>Signed in to GitHub in VS Code (<a href="07-install-the-tools.html#s-signin">how</a>)? Then your first push may still open a sign-in window once:</p>
+<div class="os-tabs">
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><ol>
+  <li>A window <b>Connect to GitHub</b> opens: choose <span class="ui">Sign in with your browser</span>.</li>
+  <li>In the browser, sign in and <span class="ui">Authorize</span>. The push continues; Windows remembers it.</li>
+</ol>
+<figure class="fig"><img src="img/sign-in-window.svg" alt="The Connect to GitHub window with the button Sign in with your browser" width="520" height="330"><figcaption>Choose <span class="ui">Sign in with your browser</span> (<b>1</b>).</figcaption></figure></div>
+<div class="os-panel" data-os="mac"><p class="os-title">macOS</p><ol>
+  <li>Push from <b>VS Code's terminal</b>: VS Code asks to sign in with GitHub. Choose <span class="ui">Allow</span>.</li>
+  <li>In the browser, sign in and authorize VS Code; the push continues.</li>
+</ol>
+<p>A terminal asks for a <i>Username</i> and <i>Password</i>? <a href="15-help.html#h-mac-password">Help</a>.</p></div>
+</div>
+<p class="muted">“Permission denied” or 403: accept the course invitation first (<a href="07-install-the-tools.html#s-invite">Install the tools › 02</a>).</p>
+</div>
+</details>
+
+<details class="card fold" id="source-control">
+<summary class="card-head"><span class="badge">!</span><div><h2>VS Code's Source Control panel</h2><p class="sub">The branch icon in VS Code's left bar. The course uses the terminal instead.</p></div></summary>
+<div class="card-body">
+<div class="warn"><p><span class="lbl">Careful with its buttons.</span> Its <span class="ui">Commit</span> button offers to stage <i>all</i> changes, which commits files outside your folder (a red ✗ on GitHub). <span class="ui">Sync Changes</span> and <span class="ui">Publish Branch</span> push for you. If you use it, stage only your folder: right-click each file under <code>toolkits/</code><span class="ph">&lt;your-toolkit-name&gt;</span><code>/</code> › <span class="ui">Stage Changes</span>, and never answer “Always” to “stage all”.</p></div>
+<p>Already committed everything? <a href="15-help.html#h-source-control">Help</a>.</p>
+</div>
+</details>
+
+<div class="pager"><a href="13-keep-working-and-update.html">← 13. Keep working and update</a><a href="15-help.html">15. Help →</a></div>
+</main>
+</div>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · What you type and tick on these pages is saved only in this browser.</div></footer>
+</body>
+</html>

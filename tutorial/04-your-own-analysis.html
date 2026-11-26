@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your own analysis · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to the content</a>
+<header class="top"><div class="top-inner">
+  <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
+  <nav class="site" aria-label="Tutorial pages">
+    <div class="nav-group"><p class="nav-part">Start</p><div class="nav-links"><a href="01-start-here.html"><span class="n">1</span>Start</a></div></div>
+    <div class="nav-group"><p class="nav-part">In the browser</p><div class="nav-links"><a href="02-about-the-app.html"><span class="n">2</span>About the app</a><a href="03-use-the-app.html"><span class="n">3</span>Use the app</a><a href="04-your-own-analysis.html" aria-current="page"><span class="n">4</span>Analysis</a><a href="05-your-own-transform.html"><span class="n">5</span>Exercise 1</a></div></div>
+    <div class="nav-group"><p class="nav-part">On your computer</p><div class="nav-links"><a href="06-about-the-repository.html"><span class="n">6</span>About the repository</a><a href="07-install-the-tools.html"><span class="n">7</span>Install</a><a href="08-clone-the-repository.html"><span class="n">8</span>Clone</a><a href="09-make-your-branch.html"><span class="n">9</span>Branch and plan</a><a href="10-toolkit-with-a-coding-agent.html"><span class="n">10</span>Agent</a><a href="11-toolkit-with-a-chat-assistant.html"><span class="n">11</span>Chat</a><a href="12-hand-in.html"><span class="n">12</span>Hand in</a><a href="13-keep-working-and-update.html"><span class="n">13</span>Keep working</a></div></div>
+    <div class="nav-group"><p class="nav-part">Help</p><div class="nav-links"><a href="14-git-basics.html"><span class="n">14</span>Git basics</a><a href="15-help.html"><span class="n">15</span>Help</a></div></div>
+  </nav>
+</div></header>
+<div class="layout">
+<aside class="side">
+<nav class="part-nav" aria-label="In the browser"><p class="part-title">In the browser</p><ol><li><a href="02-about-the-app.html"><span class="n">02</span><span>About the app</span></a></li><li><a href="03-use-the-app.html"><span class="n">03</span><span>Use the app</span></a></li><li><a href="04-your-own-analysis.html" aria-current="page"><span class="n">04</span><span>Your own analysis</span></a></li><li><a href="05-your-own-transform.html"><span class="n">05</span><span>Exercise 1: your own transform</span></a></li></ol></nav>
+<nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+    <ol>
+      <li><a href="#decide"><span class="n">01</span><span class="t">Describe it in a few lines</span></a></li>
+      <li><a href="#ask"><span class="n">02</span><span class="t">Ask an AI chat</span></a></li>
+      <li><a href="#save"><span class="n">03</span><span class="t">Save the file it gives you</span></a></li>
+      <li><a href="#upload"><span class="n">04</span><span class="t">Upload it and run it</span></a></li>
+    </ol>
+  </details></nav>
+<div class="side-box fold-box"><div class="side-label">Sections</div><div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div></div>
+</aside>
+<main id="content">
+<p class="crumb">Page 4 of 15 · In the browser</p>
+<h1>Write your own analysis</h1>
+<p class="lead">Optional. Describe an analysis in a few lines, let an AI chat write it as one file, and upload it to the app. An analysis only <b>reads</b> your design.</p>
+<div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div>
+<p class="legend">Orange <span class="ph">___</span> = fill in your own. Grey buttons like <span class="ui">Copy</span> = something to click.</p>
+
+<details class="card fold" id="decide">
+<summary class="card-head"><span class="badge">01</span><div><h2>Describe it in a few lines</h2><p class="sub">This fills in the starting text below.</p></div></summary>
+<div class="card-body">
+<form class="form" id="blanks-analysis" data-blanks onsubmit="return false">
+  <div><label for="a-idea">My idea <small>What should it find? e.g. The largest room on each level.</small></label>
+    <textarea id="a-idea" name="idea" data-line="My idea" rows="2" placeholder="The largest room on each level."></textarea></div>
+  <div class="form-2">
+    <div><label for="a-input">Input <small>What you select first: nothing, one node, one edge, or a mix.</small></label>
+      <input id="a-input" type="text" name="input" data-line="Input" placeholder="Nothing."></div>
+    <div><label for="a-answer">Show the answer as <small>A number, a line of text, nodes or edges lit up, a colour per node.</small></label>
+      <input id="a-answer" type="text" name="answer" data-line="Show the answer as" placeholder="Light them up and colour every room by its area."></div>
+  </div>
+</form>
+<p class="muted">Remembered in this browser only.</p>
+</div>
+</details>
+
+<details class="card fold" id="ask">
+<summary class="card-head"><span class="badge">02</span><div><h2>Ask an AI chat</h2><p class="sub">Attach a kit, send the starting text, answer its questions.</p></div></summary>
+<div class="card-body">
+<p>Not sure which kit? <b>Use the Design kit.</b></p>
+<div class="tabs" data-tabs="analysis-kit" data-default="design" data-tabs-label="Kit">
+<div class="tab-panel" data-tab="design" data-label="Design kit (recommended)"><p class="tab-title">Design kit (recommended)</p>
+  <p>Reads each node's Function, size, position and level, each edge's relationship, and calculated values such as area. Works in any project.</p>
+  <div class="actions"><a class="btn primary" href="kits/spatial-graph-lab-design-kit.zip" download>Download the Design kit (.zip)</a></div>
+  <div class="code"><div class="label">Starting text: <b>Design kit</b></div><pre data-build="blanks-analysis" data-block="prompt:design">I've attached the Spatial Graph Lab design kit. Read PROMPT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write ONE design analysis that works in any project (node basics only, no custom fields).
+
+My idea: ___
+Input: ___
+Show the answer as: ___</pre></div></div>
+<div class="tab-panel" data-tab="graph" data-label="Graph kit"><p class="tab-title">Graph kit</p>
+  <p>Sees only node ids and edges. Works in any project.</p>
+  <div class="actions"><a class="btn primary" href="kits/spatial-graph-lab-graph-kit.zip" download>Download the Graph kit (.zip)</a></div>
+  <div class="code"><div class="label">Starting text: <b>Graph kit</b></div><pre data-build="blanks-analysis" data-block="prompt:graph">I've attached the Spatial Graph Lab graph kit. Read PROMPT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write ONE graph analysis that follows it exactly.
+
+My idea: ___
+Input: ___
+Show the answer as: ___</pre></div></div>
+<div class="tab-panel" data-tab="project" data-label="Kit for this project"><p class="tab-title">Design kit for this project</p>
+  <p>Also your project's own Functions and attributes (such as a target area). Only in the app: open your project, <span class="ui">Analyse</span> › <span class="ui">ⓘ</span> › <span class="ui">This project</span>.</p>
+  <div class="code"><div class="label">Starting text: <b>Design kit for this project</b></div><pre data-build="blanks-analysis" data-block="prompt:project">I've attached the Spatial Graph Lab design kit for my project. Read PROMPT.md, PROJECT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write ONE design analysis that follows them exactly. It may use my project's Functions and custom fields; list the ones it uses in uses.
+
+My idea: ___
+Input: ___
+Show the answer as: ___</pre></div></div>
+</div>
+<ol class="steps">
+  <li><span class="st">Open a new chat and attach the kit zip</span>Any AI chat that accepts files, such as <a href="https://claude.ai">claude.ai</a>, <a href="https://chatgpt.com">chatgpt.com</a> or <a href="https://gemini.google.com">gemini.google.com</a>.</li>
+  <li><span class="st">Paste the starting text and send it</span>Use <span class="ui">Copy</span> on the dark box above.</li>
+  <li><span class="st">Answer its questions</span>It asks before it writes any code. Then it gives you the file.</li>
+</ol>
+<details class="more"><summary>The chat refuses the zip <span class="opt">(fix)</span></summary><div class="more-body"><p>Unzip it and attach the <code>.md</code> files inside instead, or try another chat.</p></div></details>
+<details class="more"><summary>The kits side by side, and the template <span class="opt">(optional)</span></summary><div class="more-body">
+<div class="table"><table>
+  <tr><th>Kit</th><th>The analysis can read</th><th>Works in</th></tr>
+  <tr><td><b>Graph kit</b></td><td>node ids and edges only</td><td>any project</td></tr>
+  <tr><td><b>Design kit</b></td><td>also each node's Function, size, position, level, each edge's relationship, calculated values such as area</td><td>any project</td></tr>
+  <tr><td><b>Design kit for this project</b></td><td>also your project's Functions and custom attributes, listed in its <code>PROJECT.md</code></td><td>projects that have them</td></tr>
+</table></div>
+<p>The same kits are in the app: <span class="ui">Analyse</span> › the <span class="ui">ⓘ</span> beside <span class="ui">Upload your own (.ts)</span>. There, <span class="ui">Template</span> gives a commented file to change by hand.</p>
+</div></details>
+</div>
+</details>
+
+<details class="card fold" id="save">
+<summary class="card-head"><span class="badge">03</span><div><h2>Save the file it gives you</h2><p class="sub">One <code>.ts</code> file, with the name the AI suggests.</p></div></summary>
+<div class="card-body">
+<p><b>Download</b> the file the chat offers, for example <code>largest-room-per-level.ts</code>. It lands in your Downloads folder.</p>
+<details class="more"><summary>The chat only shows code: save it yourself</summary><div class="more-body">
+<p>First ask: “Please give me this as a file to download.” Otherwise:</p>
+<div class="os-tabs">
+<div class="os-panel" data-os="win"><p class="os-title">Windows</p><ol>
+  <li>Open Notepad, paste the code.</li>
+  <li><span class="ui">File › Save as…</span>, set <span class="ui">Save as type</span> to <span class="ui">All files (*.*)</span>.</li>
+  <li>Type the name ending in <code>.ts</code> and save. Windows hides endings: a file saved as <code>largest.ts.txt</code> looks like <code>largest.ts</code> but is refused. File Explorer › <span class="ui">View › Show › File name extensions</span> shows the real name.</li>
+</ol></div>
+<div class="os-panel" data-os="mac"><p class="os-title">macOS</p><ol>
+  <li>Open TextEdit, choose <span class="ui">Format › Make Plain Text</span>, paste the code.</li>
+  <li><span class="ui">File › Save…</span>, type the name ending in <code>.ts</code>.</li>
+  <li>If it asks, choose <span class="ui">Use .ts</span>. Finder › <span class="ui">Settings… › Advanced › Show all filename extensions</span> shows the real name.</li>
+</ol></div>
+</div>
+</div></details>
+</div>
+</details>
+
+<details class="card fold" id="upload">
+<summary class="card-head"><span class="badge">04</span><div><h2>Upload it and run it</h2><p class="sub">In Analyse, like any other analysis.</p></div></summary>
+<div class="card-body">
+<ol class="steps">
+  <li><span class="st">Upload</span>In the app, <span class="ui">Analyse</span> › <span class="ui">Upload your own (.ts)</span> › choose the file.
+    <p class="see">it appears in Network, Node, Edge or Queries (depending on its input), tagged <b>Yours</b>.</p></li>
+  <li><span class="st">Run it</span>Select its input if it has one, then run it. Try it on a design whose answer you know.</li>
+  <li><span class="st">Refused, or a wrong answer?</span>Copy the app's whole message into the chat and ask: “Fix exactly this.” Save the new file and upload it again.</li>
+</ol>
+<figure class="fig shot"><img src="img/app-analyse-upload.webp" alt="Analyse panel: the Upload your own (.ts) button and the ⓘ button beside it" width="228" height="245" loading="lazy"><figcaption><span class="ui">Analyse</span> › <span class="ui">Upload your own (.ts)</span>; the <span class="ui">ⓘ</span> beside it gives the kits.</figcaption></figure>
+<details class="more"><summary>More: where it is saved</summary><div class="more-body"><p>Uploaded analyses are saved with your project; <span class="ui">Export project</span> keeps them in the file (<a href="03-use-the-app.html#keep">Use the app</a>). The same file also works in a toolkit's <code>algorithms/</code> folder.</p></div></details>
+<p class="help-link">Problems: <a href="15-help.html#h-file-refused">the file is refused</a> · <a href="15-help.html#h-zip-refused">the chat refuses the zip</a> · <a href="15-help.html#uploads">all upload problems</a>.</p>
+</div>
+</details>
+
+<div class="pager"><a href="03-use-the-app.html">← 3. Use the app</a><a href="05-your-own-transform.html">5. Exercise 1: your own transform →</a></div>
+</main>
+</div>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · What you type and tick on these pages is saved only in this browser.</div></footer>
+</body>
+</html>

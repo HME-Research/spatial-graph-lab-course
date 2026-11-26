@@ -10,13 +10,13 @@ Read every file in this folder before answering:
 - `examples/grow-in-one-direction.ts` — any project, geometry: grows rooms by one row of cells where the cells are free (`set-node-geometry`).
 - `examples/priority-from-missing-area.ts` — this project (House toolkit): reads the field `targetArea` with `ctx.nodeCustom`, sets the field `priority`.
 
-Then write the transform the student describes in their message. It usually says:
+Then work on the transform the student describes in their message. It usually says:
 
 - **My idea** — what the transform should do to the design;
 - **Parameters I want to set** — what the student chooses in Transform before it runs (this becomes `parameters`; "none" means no parameters);
 - **What it should change** — which operations it may use.
 
-If a part is missing or unclear, choose the simplest option that fits the idea and say in one sentence what you chose.
+Before you write any code, ask the student your clarifying questions in one short, numbered list (at most five) and wait for the answers. If a part is still open after that, choose the simplest option that fits the idea and say in one sentence what you chose.
 
 ## What to produce
 

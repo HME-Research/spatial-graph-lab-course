@@ -3,7 +3,7 @@
 This folder is everything an AI assistant needs to write a **graph analysis** for *Spatial Graph Lab*: one that reads only the nodes' ids and the edges between them, so it works in any project. Download it from the app: the ⓘ beside **Upload your own (.ts)** in **Analyse**, tab **Any project**, with **Include node basics** off (or **Guide › Toolkits & JSON › Write your own analysis**).
 
 1. Open an AI assistant that accepts files (for example Claude) and **attach the zip**.
-2. Write your prompt: your idea, the input (what you select before it runs) and how the answer should show. The app shows how, with a starting text to copy, under the download.
+2. Write your prompt: your idea, the input (what you select before it runs) and how the answer should show. The app shows how, with a starting text to copy, under the download. The assistant reads the kit first and asks you its questions before it writes any code.
 3. Save the answer as a `.ts` file (the name the assistant suggests).
 4. In the app, open **Analyse** and choose **Upload your own (.ts)**, the button at the very top of the tab. It appears in Node, Edge, Network or Queries, depending on its input, tagged **Yours**.
 5. If the app refuses the file, paste the app's message back to the assistant and ask it to fix exactly that.

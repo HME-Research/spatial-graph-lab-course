@@ -2,9 +2,9 @@
 
 > Starter README: replace this text with your own. Keep it short; it is the first thing your tutor reads.
 
-**What it is for:** one or two sentences, e.g. "Small libraries: reading rooms, stacks and circulation, with a rule that grows reading rooms towards daylight."
+**What it is for:** one or two sentences, e.g. "Small family houses: bedrooms, a kitchen and a living room, with a rule that gives every Bedroom larger than 12 m² two beds."
 
-**Toolkit id:** `my-toolkit` (the folder name). Open the app with `?toolkit=my-toolkit`.
+**Toolkit name:** `my-toolkit` (the folder name; yours is like `u123-hk-house`). Open the app with `?toolkit=my-toolkit`.
 
 ## Functions (`functions/`)
 

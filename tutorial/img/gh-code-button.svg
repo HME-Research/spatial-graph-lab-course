@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" width="760" height="300" role="img" aria-label="GitHub: the green Code button opens a panel; under Clone, the HTTPS tab shows the address https://github.com/HME-Research/spatial-graph-lab-course.git with a copy icon beside it" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
+<title>GitHub: the green Code button opens a panel; under Clone, the HTTPS tab shows the address https://github.com/HME-Research/spatial-graph-lab-course.git with a copy icon beside it</title>
+<rect x="0" y="0" width="760" height="300" rx="10" fill="#f6f8fa"/>
+<text x="20" y="30" font-size="14" fill="#1f2328" font-weight="600">HME-Research / spatial-graph-lab-course</text>
+<rect x="20" y="46" width="96" height="30" rx="6" fill="#ffffff" stroke="#d0d7de" stroke-width="1"/><text x="34" y="66" font-size="13" fill="#1f2328">⎇ main ▾</text>
+<rect x="124" y="46" width="90" height="30" rx="6" fill="#ffffff" stroke="#d0d7de" stroke-width="1"/><text x="138" y="66" font-size="13" fill="#1f2328">Go to file</text>
+<rect x="508" y="46" width="88" height="30" rx="6" fill="#1f883d"/><text x="552" y="66" font-size="13.5" fill="#ffffff" font-weight="700" text-anchor="middle">&lt;&gt; Code ▾</text>
+<rect x="505" y="43" width="94" height="36" rx="8" fill="none" stroke="#d6337a" stroke-width="2.5"/>
+<circle cx="616" cy="61" r="11" fill="#d6337a" stroke="#fff" stroke-width="2"/><text x="616" y="65.5" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">1</text>
+<rect x="250" y="88" width="490" height="196" rx="8" fill="#ffffff" stroke="#d0d7de" stroke-width="1"/>
+<text x="270" y="114" font-size="13" fill="#1f2328" font-weight="700">Local</text>
+<line x1="266" y1="122" x2="312" y2="122" stroke="#fd8c73" stroke-width="2"/>
+<text x="332" y="114" font-size="13" fill="#59636e">Codespaces</text>
+<line x1="250" y1="124" x2="740" y2="124" stroke="#d0d7de"/>
+<text x="270" y="150" font-size="13.5" fill="#1f2328" font-weight="700">Clone</text>
+<text x="270" y="178" font-size="13" fill="#1f2328" font-weight="700">HTTPS</text>
+<line x1="266" y1="186" x2="316" y2="186" stroke="#fd8c73" stroke-width="2"/>
+<rect x="263" y="162" width="58" height="28" rx="6" fill="none" stroke="#d6337a" stroke-width="2.5"/>
+<circle cx="336" cy="176" r="11" fill="#d6337a" stroke="#fff" stroke-width="2"/><text x="336" y="180.5" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">2</text>
+<text x="360" y="178" font-size="13" fill="#59636e">SSH</text>
+<text x="400" y="178" font-size="13" fill="#59636e">GitHub CLI</text>
+<rect x="270" y="200" width="420" height="30" rx="6" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1"/>
+<text x="280" y="219" font-size="11" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#1f2328">https://github.com/HME-Research/spatial-graph-lab-course.git</text>
+<rect x="698" y="200" width="30" height="30" rx="6" fill="#ffffff" stroke="#d0d7de" stroke-width="1"/>
+<rect x="707" y="207" width="11" height="13" rx="2" fill="none" stroke="#59636e" stroke-width="1.5"/><rect x="711" y="211" width="11" height="13" rx="2" fill="#ffffff" stroke="#59636e" stroke-width="1.5"/>
+<rect x="695" y="197" width="36" height="36" rx="8" fill="none" stroke="#d6337a" stroke-width="2.5"/>
+<circle cx="713" cy="252" r="11" fill="#d6337a" stroke="#fff" stroke-width="2"/><text x="713" y="256.5" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">3</text>
+<text x="270" y="256" font-size="12" fill="#59636e">Clone using the web URL.</text>
+</svg>

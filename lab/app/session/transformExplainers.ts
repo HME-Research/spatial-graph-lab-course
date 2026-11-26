@@ -78,6 +78,6 @@ export const TRANSFORM_EXPLAINER: Explainer = {
     },
   ],
   diagram: 'transform-steps',
-  tutorial: { label: 'Your transform (tutorial)', href: tutorialPage('04-your-own-transform') },
+  tutorial: { label: 'Your transform (tutorial, Exercise 1)', href: tutorialPage('05-your-own-transform') },
   windowSize: { width: 560, height: 600 },
 };

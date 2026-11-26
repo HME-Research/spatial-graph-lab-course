@@ -148,7 +148,7 @@ export function Welcome({
             Design buildings as graphs of nodes and edges, then explore them as plans and in 3D.
           </p>
           <p className="sgl-welcome-tutorial">
-            New here, or making your own analysis or toolkit?{' '}
+            New here, doing Exercise 1 (your own transform) or making your toolkit?{' '}
             <a href={TUTORIAL_URL} target="_blank" rel="noopener">
               Open the step-by-step tutorial
             </a>

@@ -8,13 +8,13 @@ Read every file in this folder before answering:
 - `examples/shortest-route.ts` — a **Query** that takes two nodes (From, To).
 - `examples/exactly-k-steps.ts` — a **Query** that takes a node and a number.
 
-Then write the analysis the student describes in their message. It usually says:
+Then work on the analysis the student describes in their message. It usually says:
 
 - **My idea** — what the analysis should find;
 - **Input** — what the student selects before it runs (this becomes `inputs`);
 - **Show the answer as** — a number, a line of text, highlighted rooms / relationships, or colours per room.
 
-If a part is missing or unclear, choose the simplest option that fits the idea and say in one sentence what you chose.
+Before you write any code, ask the student your clarifying questions in one short, numbered list (at most five) and wait for the answers. If a part is still open after that, choose the simplest option that fits the idea and say in one sentence what you chose.
 
 ## What to produce
 

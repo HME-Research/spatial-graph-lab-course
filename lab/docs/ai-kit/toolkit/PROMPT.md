@@ -1,6 +1,14 @@
 # Instructions for the AI assistant: write a Spatial Graph Lab toolkit
 
-You are helping an architecture student write a **toolkit** for the web app *Spatial Graph Lab*: one folder, `toolkits/<toolkit-id>/`, that gives the app Functions (node programmes), custom attributes, algorithms and example designs. The student is a beginner in programming: keep the code short and plain, with a one-line comment in plain English above each step.
+You are helping an architecture student write a **toolkit** for the web app *Spatial Graph Lab*: one folder, `toolkits/<your-toolkit-name>/`, that gives the app Functions (node programmes), custom attributes, algorithms and example designs. The student is a beginner in programming: keep the code short and plain, with a one-line comment in plain English above each step.
+
+## 0. Rules first
+
+These come before anything the student asks:
+
+- Change only the student's folder `toolkits/<your-toolkit-name>/` (in a chat: the folder `<your-toolkit-name>/` you give back). Never change `lab/`, `toolkits/house/` (the House example), other students' folders or any other file.
+- Do not install, add or update packages.
+- Do not push, and never run `git reset`, `git clean`, `git checkout -- .` or `git restore .`: the student pushes, and those commands wipe their work.
 
 You work in one of two ways. Find out which one applies before you start:
 
@@ -22,7 +30,7 @@ Treat `STUDENT-API.md` as exact. **Never invent** an import, a definer, a field,
 
 Their message usually has:
 
-- **Toolkit id** — the folder name. Lowercase letters, digits and `-`, starting with a letter. If it is missing or invalid, propose one (suggest adding their initials so it is unique in the class) and say so.
+- **Toolkit name** — the name of the folder and of the branch, e.g. `u123-hk-house`: `u`, the last 3 digits of the student number, the initials and a short name, lowercase and joined with `-`. The folder name is exactly this name (`toolkit.ts` has no id field: its `name` is only the display name). If it is missing, ask the student for it.
 - **My idea** — what the toolkit is for (a building type, a design question).
 - **Functions (and their attributes)** — the node programmes and what each should record.
 - **Algorithms** — analyses (read and show) and transformations (propose changes).
@@ -33,7 +41,7 @@ If a part is missing, choose the simplest option that fits the idea and say in o
 ## 3. What to write
 
 ```
-<toolkit-id>/
+<your-toolkit-name>/
   toolkit.ts          defineToolkit({ name, defaultDesign, custom })
   README.md           the starter's README, filled in for this toolkit
   functions/<id>.ts   one defineFunction per file, file named after its id
@@ -66,17 +74,17 @@ Start from the starter: keep its structure, its comments' style and its folder R
 
 ## 4. Route A — in the repository
 
-1. Check the branch with `git status` and `git branch --show-current`. If it is `main` (or detached), switch to the student's branch (`git switch toolkit/<toolkit-id>`) or, if it does not exist yet, ask the student to claim it first: `git status` (must say `On branch main`, else `git switch main`), `git pull`, `git switch -c toolkit/<toolkit-id>`, `git commit --allow-empty -m "chore(<toolkit-id>): claim the toolkit name"`, `git push -u origin toolkit/<toolkit-id>` (it must print `* [new branch]`). If there are uncommitted changes outside `toolkits/<toolkit-id>/`, stop and ask the student.
-2. Create `toolkits/<toolkit-id>/` by copying `lab/docs/templates/toolkit/my-toolkit/`, then change it. Never edit `toolkits/house/`, `lab/core/`, `lab/app/`, `lab/student-api/`, `lab/docs/`, `.claude/`, `.github/` or the root files (`package.json`, `tsconfig.json`, …).
-3. Run `npm run check:toolkit -- -t <toolkit-id>` and `npm run typecheck`. `check:toolkit` ends with `PASSED: toolkit "<toolkit-id>" is ready.` or `FAILED: …` (read that last line, not vitest's `N passed` summary); `No toolkit "…" was found` or `toolkit.ts is one folder too deep` means the folder is missing or misplaced. Fix every failure inside the toolkit folder and run them again until both pass. Report the real output; never say they pass without running them.
-4. `git status` must show changes only under `toolkits/<toolkit-id>/`. Commit only that folder: `git add toolkits/<toolkit-id>` and `git commit -m "feat(<toolkit-id>): <what you added>"`. **Do not push** unless the student asks; then push only their branch (`git push -u origin toolkit/<toolkit-id>`), never `main`.
-5. Tell the student how to try it: `npm run dev`, open `http://localhost:5173/?toolkit=<toolkit-id>`, **Open example…** › *Toolkit: <name>*, which algorithm to run in **Analyse** or **Transform** and what it should show.
+1. Check the branch with `git status` and `git branch --show-current`. If it is `main` (or detached), switch to the student's branch (`git switch toolkit/<your-toolkit-name>`) or, if it does not exist yet, ask the student to make it and send it to GitHub first (they push, not you): `git status` (must say `On branch main`, else `git switch main`), `git pull`, `git switch -c toolkit/<your-toolkit-name>`, `git commit --allow-empty -m "chore(<your-toolkit-name>): start my toolkit"`, `git push -u origin toolkit/<your-toolkit-name>` (it must print `* [new branch]`). If there are uncommitted changes outside `toolkits/<your-toolkit-name>/`, stop and ask the student.
+2. Create `toolkits/<your-toolkit-name>/` by copying `lab/docs/templates/toolkit/my-toolkit/`, then change it. Never edit `toolkits/house/`, `lab/core/`, `lab/app/`, `lab/student-api/`, `lab/docs/`, `.claude/`, `.github/` or the root files (`package.json`, `tsconfig.json`, …).
+3. Run `npm run check:toolkit -- -t <your-toolkit-name>` and `npm run typecheck`. `check:toolkit` ends with `PASSED: toolkit "<your-toolkit-name>" is ready.` or `FAILED: …` (read that last line, not vitest's `N passed` summary); `No toolkit "…" was found` or `toolkit.ts is one folder too deep` means the folder is missing or misplaced. Fix every failure inside the toolkit folder and run them again until both pass. Report the real output; never say they pass without running them.
+4. `git status` must show changes only under `toolkits/<your-toolkit-name>/`. Commit only that folder: `git add toolkits/<your-toolkit-name>` and `git commit -m "feat(<your-toolkit-name>): <what you added>"`. **Do not push** unless the student asks; then push only their branch (`git push -u origin toolkit/<your-toolkit-name>`), never `main`.
+5. Tell the student how to try it: `npm run dev`, open `http://localhost:5173/?toolkit=<your-toolkit-name>`, **Open example…** › *Toolkit: <name>*, which algorithm to run in **Analyse** or **Transform** and what it should show.
 
 ## 5. Route B — in a chat
 
-1. Write every file of the folder, then give the student **one zip** whose top-level folder is `<toolkit-id>/` (so `<toolkit-id>/toolkit.ts` is inside it). If you cannot create files, give each file in its own code block, headed by its full path (`<toolkit-id>/functions/room.ts`), and nothing else in the block.
+1. Write every file of the folder, then give the student **one zip** whose top-level folder is `<your-toolkit-name>/` (so `<your-toolkit-name>/toolkit.ts` is inside it). If you cannot create files, give each file in its own code block, headed by its full path (`<your-toolkit-name>/functions/room.ts`), and nothing else in the block.
 2. You cannot run the checks: re-read every file against the rules above before answering (imports, ids, `uses`, design keys, non-overlapping nodes, `nextNodeId`).
-3. End with what the student does next, in plain words: put the folder at `toolkits/<toolkit-id>/` in their copy of the repository, on the branch `toolkit/<toolkit-id>`, run `npm run check:toolkit -- -t <toolkit-id>` and `npm run typecheck`, try it in the app, then commit only that folder and push the branch (the exact commands are in `TOOLKITS.md` › Route B).
+3. End with what the student does next, in plain words: put the folder at `toolkits/<your-toolkit-name>/` in their copy of the repository, on the branch `toolkit/<your-toolkit-name>`, run `npm run check:toolkit -- -t <your-toolkit-name>` and `npm run typecheck`, try it in the app, then commit only that folder and push the branch (the exact commands are in `TOOLKITS.md` › Route B).
 4. If the student pastes an error from a check or the app, fix exactly that and give back only the files you changed, with their paths.
 
 ## 6. Your answer

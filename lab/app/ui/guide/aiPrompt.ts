@@ -20,8 +20,8 @@ const REFUSED = 'If the app refuses the file, paste its message back to the assi
 /** Graph kit (Any project, room basics off): ids and relationships only. */
 export const GRAPH_PROMPT_GUIDE: GuidePromptGuide = {
   title: 'How to write your prompt',
-  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit and write one graph analysis (the first line below).' }, IDEA, INPUT, ANSWER],
-  text: ["I've attached the Spatial Graph Lab graph kit. Read PROMPT.md and every file in it, then write ONE graph analysis that follows it exactly.", ...BLANKS].join('\n'),
+  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit, ask you its questions, then write one graph analysis (the first line below).' }, IDEA, INPUT, ANSWER],
+  text: ["I've attached the Spatial Graph Lab graph kit. Read PROMPT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write ONE graph analysis that follows it exactly.", ...BLANKS].join('\n'),
   tips: [
     'Example: “The nodes that are neighbours of both nodes I select.” · Input: two nodes · Show: light them up and count them.',
     'A graph analysis sees only node ids and edges: no Functions, sizes or positions. For those, tick Include node basics.',
@@ -32,9 +32,9 @@ export const GRAPH_PROMPT_GUIDE: GuidePromptGuide = {
 /** Design kit (Any project, room basics on): Function as a label, positions, sizes, calculated values. */
 export const DESIGN_PROMPT_GUIDE: GuidePromptGuide = {
   title: 'How to write your prompt',
-  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit and write one design analysis that works in any project (the first line below).' }, IDEA, INPUT, ANSWER],
+  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit, ask you its questions, then write one design analysis that works in any project (the first line below).' }, IDEA, INPUT, ANSWER],
   text: [
-    "I've attached the Spatial Graph Lab design kit. Read PROMPT.md and every file in it, then write ONE design analysis that works in any project (node basics only, no custom fields).",
+    "I've attached the Spatial Graph Lab design kit. Read PROMPT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write ONE design analysis that works in any project (node basics only, no custom fields).",
     ...BLANKS,
   ].join('\n'),
   tips: [
@@ -47,9 +47,9 @@ export const DESIGN_PROMPT_GUIDE: GuidePromptGuide = {
 /** Design kit for this project (with PROJECT.md): may also use the project's Functions and custom fields. */
 export const PROJECT_PROMPT_GUIDE: GuidePromptGuide = {
   title: 'How to write your prompt',
-  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit, including PROJECT.md, and write one design analysis (the first line below).' }, IDEA, INPUT, ANSWER],
+  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit, including PROJECT.md, ask you its questions, then write one design analysis (the first line below).' }, IDEA, INPUT, ANSWER],
   text: [
-    "I've attached the Spatial Graph Lab design kit for my project. Read PROMPT.md, PROJECT.md and every file in it, then write ONE design analysis that follows them exactly. It may use my project's Functions and custom fields; list the ones it uses in uses.",
+    "I've attached the Spatial Graph Lab design kit for my project. Read PROMPT.md, PROJECT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write ONE design analysis that follows them exactly. It may use my project's Functions and custom fields; list the ones it uses in uses.",
     ...BLANKS,
   ].join('\n'),
   tips: [
@@ -62,7 +62,7 @@ export const PROJECT_PROMPT_GUIDE: GuidePromptGuide = {
 // ── Transform kits (2026-11-25) ─────────────────────────────────────────────────────────────
 // The parts match what lab/docs/ai-kit/transform/PROMPT.md tells the assistant to read: the idea,
 // the parameters the student sets before it runs, and what it should change. The starting texts are
-// also in tutorial/04-your-own-transform.html, word for word (tutorial.test.ts).
+// also in tutorial/05-your-own-transform.html, word for word (tutorial.test.ts).
 
 const TRANSFORM_PARTS = [
   { label: '2. Idea', text: 'what the transform should do to your design, in plain words: connect, grow, add, move, set a value…' },
@@ -78,9 +78,9 @@ const TRANSFORM_REFUSED = 'If the app refuses the file, or the preview shows an 
 /** Transform kit (Any project): node basics, calculated values, Functions found in the design. */
 export const TRANSFORM_PROMPT_GUIDE: GuidePromptGuide = {
   title: 'How to write your prompt',
-  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit and write one transform that works in any project (the first line below).' }, ...TRANSFORM_PARTS],
+  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit, ask you its questions, then write one transform that works in any project (the first line below).' }, ...TRANSFORM_PARTS],
   text: [
-    "I've attached the Spatial Graph Lab transform kit. Read PROMPT.md and every file in it, then write ONE transform that works in any project (node basics only, no custom fields).",
+    "I've attached the Spatial Graph Lab transform kit. Read PROMPT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write ONE transform that works in any project (node basics only, no custom fields).",
     ...TRANSFORM_BLANKS,
   ].join('\n'),
   tips: [
@@ -93,13 +93,13 @@ export const TRANSFORM_PROMPT_GUIDE: GuidePromptGuide = {
 /** Transform kit for this project (with PROJECT.md): may also use the project's Functions and custom fields. */
 export const TRANSFORM_PROJECT_PROMPT_GUIDE: GuidePromptGuide = {
   title: 'How to write your prompt',
-  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit, including PROJECT.md, and write one transform (the first line below).' }, ...TRANSFORM_PARTS],
+  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit, including PROJECT.md, ask you its questions, then write one transform (the first line below).' }, ...TRANSFORM_PARTS],
   text: [
-    "I've attached the Spatial Graph Lab transform kit for my project. Read PROMPT.md, PROJECT.md and every file in it, then write ONE transform that follows them exactly. It may use my project's Functions and custom fields as PROJECT.md lists them.",
+    "I've attached the Spatial Graph Lab transform kit for my project. Read PROMPT.md, PROJECT.md and every file in it first, then ask me your clarifying questions before you write any code. After my answers, write ONE transform that follows them exactly. It may use my project's Functions and custom fields as PROJECT.md lists them.",
     ...TRANSFORM_BLANKS,
   ].join('\n'),
   tips: [
-    'Example: “Give the rooms furthest below their target area the first priority.” · Parameters: none · Changes: set each room’s priority.',
+    'Example: “Set Number of beds to 2 for every Bedroom larger than 12 m².” · Parameters: none · Changes: set each such Bedroom’s Number of beds.',
     'Name Functions and fields as PROJECT.md lists them. The transform then works only in projects that have them.',
     TRANSFORM_REFUSED,
   ],
@@ -110,22 +110,23 @@ export const TRANSFORM_PROJECT_PROMPT_GUIDE: GuidePromptGuide = {
 // `<!-- prompt:agent -->`, `<!-- prompt:chat -->`, `<!-- commands:chat -->` markers;
 // toolkitKit.test.ts keeps them identical).
 
-const TOOLKIT_BLANKS = ['', 'Toolkit id: ___', 'My idea: ___', 'Functions (and their attributes): ___', 'Algorithms: ___', 'Example design: ___'];
+const TOOLKIT_BLANKS = ['', 'Toolkit name: ___', 'My idea: ___', 'Functions (and their attributes): ___', 'Algorithms: ___', 'Example design: ___'];
 const TOOLKIT_PARTS = [
-  { label: '2. Toolkit id', text: 'the folder name: lowercase letters, digits and -, starting with a letter. Add your initials so it is unique in the class, e.g. hk-library.' },
+  { label: '2. Toolkit name', text: 'the name of your folder and branch: u, the last 3 digits of your student number, your initials and a short name, lowercase and joined with -, e.g. u123-hk-house.' },
   { label: '3. Idea', text: 'what the toolkit is for, in one or two sentences: a building type, a design question.' },
-  { label: '4. Functions', text: 'the node programmes you need (start with 3–6), and what each should record, e.g. Reading room with a number of seats.' },
+  { label: '4. Functions', text: 'the node programmes you need (start with 3–6), and what each should record, e.g. a Bedroom with a number of beds, a Kitchen that has a window or not.' },
   { label: '5. Algorithms', text: 'what to analyse (it reads and shows) or transform (it proposes changes you preview and Apply). Start with one or two.' },
   { label: '6. Example design', text: 'a small design that uses your Functions; the checks run every algorithm on it.' },
 ] as const;
-const TOOLKIT_EXAMPLE = 'Example: “Small libraries: reading rooms, stacks and circulation. Reading rooms record their seats; an analysis counts the seats a node can reach; a transform grows reading rooms towards daylight.”';
+const TOOLKIT_EXAMPLE = 'Example: “Small family houses: bedrooms, a kitchen and a living room. Bedrooms record their number of beds and the kitchen whether it has a window; an analysis counts the beds on each level; a transform gives every Bedroom larger than 12 m² two beds.”';
 
 /** Route A: a coding agent inside the repository (e.g. Claude Code in VS Code). */
 export const TOOLKIT_AGENT_PROMPT_GUIDE: GuidePromptGuide = {
   title: 'How to write your prompt',
-  parts: [{ label: '1. Ask', text: 'tell the agent to read the guide and the kit instructions in the repository and work only in your folder, on your branch (the first line below).' }, ...TOOLKIT_PARTS],
+  parts: [{ label: '1. Rules, then the ask', text: 'the rules come first (only your folder, on your branch; no other files, no packages, no push), then ask the agent to read the guide and the kit instructions in the repository (the first two lines below).' }, ...TOOLKIT_PARTS],
   text: [
-    'Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. Work only inside toolkits/<toolkit-id>/ on my branch toolkit/<toolkit-id>, run the checks, and commit only my folder. Do not push: I will push.',
+    'Rules: work only in toolkits/<your-toolkit-name>/ on my branch toolkit/<your-toolkit-name>. Do not change lab/ or any other folder or file, do not install or update packages, and do not push: I will push.',
+    'Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. The folder name is exactly my toolkit name. Run the checks and commit only my folder.',
     ...TOOLKIT_BLANKS,
   ].join('\n'),
   tips: [TOOLKIT_EXAMPLE, 'In Claude Code you can also type /create-toolkit and answer its questions.', 'Read what it wrote, try it in the app, and ask for changes in plain words.'],
@@ -136,30 +137,31 @@ export const TOOLKIT_CHAT_PROMPT_GUIDE: GuidePromptGuide = {
   title: 'How to write your prompt',
   parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit and give you the folder as a zip (the first line below).' }, ...TOOLKIT_PARTS],
   text: [
-    "I've attached the Spatial Graph Lab toolkit kit. Read PROMPT.md and every file in it, then write my toolkit following it exactly. Give me the folder <toolkit-id>/ as a zip; if you cannot make files, give every file in its own code block, headed by its path.",
+    "I've attached the Spatial Graph Lab toolkit kit. Read PROMPT.md and every file in it, then write my toolkit following it exactly. The folder name is exactly my toolkit name. Give me the folder <your-toolkit-name>/ as a zip; if you cannot make files, give every file in its own code block, headed by its path.",
     ...TOOLKIT_BLANKS,
   ].join('\n'),
   tips: [TOOLKIT_EXAMPLE, 'If a check or the app shows an error, paste the whole message back into the chat and ask it to fix exactly that.'],
 };
 
-/** Route B: put the folder in the repository, check it and push the branch (never main). */
+/** Route B: make the branch, put the folder in the repository, check it and push the branch (never main). */
 export const TOOLKIT_CHAT_COMMANDS: string = [
   'git status',
   '# the first line must say "On branch main"; on another branch? run git switch main first',
   'git pull',
-  'git switch -c toolkit/<toolkit-id>',
-  'git commit --allow-empty -m "chore(<toolkit-id>): claim the toolkit name"',
-  'git push -u origin toolkit/<toolkit-id>',
-  '# you must see * [new branch]; "rejected" or "Everything up-to-date" means the name is taken: choose another one (never pull)',
-  '# unzip: the folder must end up at toolkits/<toolkit-id>/ (toolkit.ts directly inside it)',
-  'npm install',
-  'npm run check:toolkit -- -t <toolkit-id>',
-  '# it must end with PASSED: toolkit "<toolkit-id>" is ready.',
+  'git switch -c toolkit/<your-toolkit-name>',
+  'git commit --allow-empty -m "chore(<your-toolkit-name>): start my toolkit"',
+  'git push -u origin toolkit/<your-toolkit-name>',
+  '# this puts your branch on GitHub: you must see * [new branch]',
+  '# unzip: the folder must end up at toolkits/<your-toolkit-name>/ (toolkit.ts directly inside it)',
+  '# first time on this computer only:',
+  'npm ci',
+  'npm run check:toolkit -- -t <your-toolkit-name>',
+  '# it must end with PASSED: toolkit "<your-toolkit-name>" is ready.',
   'npm run typecheck',
   'npm run dev',
-  '# try it at http://localhost:5173/?toolkit=<toolkit-id> (or the address npm run dev prints), then stop the server (Ctrl+C)',
-  'git add toolkits/<toolkit-id>',
+  '# try it at http://localhost:5173/?toolkit=<your-toolkit-name> (or the address npm run dev prints), then stop the server (Ctrl+C)',
+  'git add toolkits/<your-toolkit-name>',
   'git status',
-  'git commit -m "feat(<toolkit-id>): first version of my toolkit"',
+  'git commit -m "feat(<your-toolkit-name>): first version of my toolkit"',
   'git push',
 ].join('\n');

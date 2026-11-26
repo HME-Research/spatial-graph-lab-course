@@ -10,7 +10,7 @@ import {
   TRANSFORM_PROJECT_PROMPT_GUIDE,
   TRANSFORM_PROMPT_GUIDE,
 } from './aiPrompt';
-import { TUTORIAL_URL } from './links';
+import { TUTORIAL_URL, tutorialPage } from './links';
 
 /**
  * The student tutorial (`tutorial/` at the repository root, owner 2026-11-25): plain HTML pages
@@ -37,25 +37,40 @@ const UPDATE_KITS = env['SGL_UPDATE_TUTORIAL_KITS'] === '1';
 
 const TUTORIAL = new URL('../../../../tutorial/', import.meta.url);
 
-/** The pages in reading order (owner 2026-11-26: numbered names, so a folder listing shows that order). */
+/**
+ * The pages in reading order (owner 2026-11-26, revision 3: numbered names, so a folder listing
+ * shows that order). 01 Start, then three parts: In the browser (02–05), On your computer (06–13),
+ * Help (14–15).
+ */
 const PAGES = [
   '01-start-here',
-  '02-use-the-app',
-  '03-your-own-analysis',
-  '04-your-own-transform',
-  '05-set-up-your-computer',
-  '06-plan-your-toolkit',
-  '07-toolkit-with-a-coding-agent',
-  '08-toolkit-with-a-chat-assistant',
-  '09-git-basics',
-  '10-hand-in',
-  '11-keep-working-and-update',
-  '12-help',
+  '02-about-the-app',
+  '03-use-the-app',
+  '04-your-own-analysis',
+  '05-your-own-transform',
+  '06-about-the-repository',
+  '07-install-the-tools',
+  '08-clone-the-repository',
+  '09-make-your-branch',
+  '10-toolkit-with-a-coding-agent',
+  '11-toolkit-with-a-chat-assistant',
+  '12-hand-in',
+  '13-keep-working-and-update',
+  '14-git-basics',
+  '15-help',
 ].map((p) => `${p}.html`);
+const PARTS: readonly (readonly [string, readonly string[]])[] = [
+  ['Start', PAGES.slice(0, 1)],
+  ['In the browser', PAGES.slice(1, 5)],
+  ['On your computer', PAGES.slice(5, 13)],
+  ['Help', PAGES.slice(13)],
+];
 
 const read = (name: string): string => fs.readFileSync(new URL(name, TUTORIAL), 'utf8').replace(/\r\n/g, '\n');
 const unescape = (html: string): string =>
   html.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+/** A page without the app's own prompt and command blocks (they are checked word for word elsewhere). */
+const withoutBlocks = (html: string): string => html.replace(/<pre\b[^>]*data-block="[^"]+"[^>]*>[\s\S]*?<\/pre>/g, '');
 
 /** Every `id="…"` of a page. */
 const ids = (html: string): Set<string> => new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]!));
@@ -96,6 +111,20 @@ describe('tutorial pages', () => {
         const nav = /<nav class="site"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? '';
         expect([...nav.matchAll(/href="([^"]+)"/g)].map((m) => m[1])).toEqual(PAGES);
         expect([...nav.matchAll(/<a href="([^"]+)" aria-current="page">/g)].map((m) => m[1])).toEqual([page]);
+      });
+
+      it('groups the pages under the three parts, whose names are headings, not links (owner 2026-11-26)', () => {
+        const nav = /<nav class="site"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? '';
+        const groups = [...nav.matchAll(/<div class="nav-group"><p class="nav-part">([^<]+)<\/p><div class="nav-links">([\s\S]*?)<\/div><\/div>/g)];
+        expect(groups.map((g) => [g[1], [...g[2]!.matchAll(/href="([^"]+)"/g)].map((m) => m[1])])).toEqual(PARTS.map(([name, pages]) => [name, pages]));
+        const part = PARTS.find(([, pages]) => pages.includes(page))!;
+        if (part[0] === 'Start') {
+          expect(html).not.toContain('class="part-nav"');
+        } else {
+          const side = /<nav class="part-nav"[^>]*><p class="part-title">([^<]+)<\/p><ol>([\s\S]*?)<\/ol><\/nav>/.exec(html);
+          expect(side?.[1]).toBe(part[0]);
+          expect([...side![2]!.matchAll(/href="([^"]+)"/g)].map((m) => m[1])).toEqual(part[1]);
+        }
       });
 
       it('links only to files that exist', () => {
@@ -139,6 +168,7 @@ describe('tutorial pages', () => {
   it('are where the app links to them (Welcome, Guide › Make your own toolkit)', () => {
     expect(TUTORIAL_URL).toBe('/tutorial/01-start-here.html');
     expect(fs.existsSync(new URL(`../../../..${TUTORIAL_URL}`, import.meta.url))).toBe(true);
+    expect(fs.existsSync(new URL(`../../../..${tutorialPage('05-your-own-transform')}`, import.meta.url))).toBe(true);
   });
 
   it('are light mode only, and never tell students to change the PowerShell execution policy (owner 2026-11-26)', () => {
@@ -148,19 +178,33 @@ describe('tutorial pages', () => {
     }
   });
 
-  it('have the full naming form only on page 6, and the one-line id chip where the id is used (owner 2026-11-26)', () => {
+  it('use the words of revision 3: your toolkit name, npm ci, no claim, no session, no library example (owner 2026-11-26)', () => {
+    const files = [...fs.readdirSync(TUTORIAL).filter((f) => /\.(html|js)$/.test(f)), ...fs.readdirSync(new URL('img/', TUTORIAL)).filter((f) => f.endsWith('.svg')).map((f) => `img/${f}`)];
+    for (const file of files) {
+      const text = unescape(read(file));
+      for (const banned of [/toolkit[ -]id/i, /\bclaim/i, /npm install/, /Session 2/i, /\bstacks\b/i, /\b(3|three) lines\b/i, /Tell Git who you are/i, /hk-small-library/, /Five ideas/]) {
+        expect(text, `${file}: ${banned}`).not.toMatch(banned);
+      }
+    }
     for (const page of PAGES) {
-      const hasForm = read(page).includes('data-namer-initials');
-      expect(hasForm, page).toBe(page === '06-plan-your-toolkit.html');
+      const text = unescape(read(page));
+      for (const m of text.matchAll(/u\d{3}-[a-z]+-[a-z0-9-]+/g)) expect(m[0], page).toMatch(/^u123-hk-house/);
     }
-    const plan = read('06-plan-your-toolkit.html');
-    for (const attr of ['data-namer', 'data-namer-initials', 'data-namer-name', 'hk-small-library']) expect(plan).toContain(attr);
-    for (const page of ['07-toolkit-with-a-coding-agent', '08-toolkit-with-a-chat-assistant', '09-git-basics', '10-hand-in', '11-keep-working-and-update']) {
-      const html = read(`${page}.html`);
-      expect(html, page).toContain('data-chip');
-      expect(html, page).toContain('data-chip-input');
-      expect(html, page).toContain('href="06-plan-your-toolkit.html#your-id"');
+  });
+
+  it('have the name builder only on page 09, and no "not set" chip anywhere (owner 2026-11-26)', () => {
+    for (const page of PAGES) {
+      const html = read(page);
+      expect(html.includes('data-namer'), page).toBe(page === '09-make-your-branch.html');
+      expect(html, page).not.toContain('data-chip');
     }
+    const plan = read('09-make-your-branch.html');
+    for (const attr of ['data-namer-number', 'data-namer-initials', 'data-namer-name', 'class="namer-prefix" aria-hidden="true">U<', 'u123-hk-house']) expect(plan).toContain(attr);
+    const js = read('tutorial.js');
+    // Digits only; only the last 3 are kept.
+    expect(js).toMatch(/replace\(\/\\D\/g, ''\)/);
+    expect(js).toContain('slice(-3)');
+    expect(js).toContain("'u' + d + '-' + a + '-' + b");
   });
 
   it('show pictures that exist, each with alt text (and a caption when it is a figure)', () => {
@@ -189,16 +233,16 @@ describe('tutorial pages', () => {
     }
   });
 
-  it('claim the toolkit name with an empty commit, on page 6 only (owner 2026-11-26)', () => {
-    const plan = read('06-plan-your-toolkit.html');
+  it('make the branch and send it to GitHub in one place only: page 09 (owner 2026-11-26)', () => {
+    const plan = read('09-make-your-branch.html');
     const order = [
       'git status',
       'git pull',
-      'git switch -c toolkit/&lt;toolkit-id&gt;',
-      'git commit --allow-empty -m "chore(&lt;toolkit-id&gt;): claim the toolkit name"',
-      'git push -u origin toolkit/&lt;toolkit-id&gt;',
+      'git switch -c toolkit/&lt;your-toolkit-name&gt;',
+      'git commit --allow-empty -m "chore(&lt;your-toolkit-name&gt;): start my toolkit"',
+      'git push -u origin toolkit/&lt;your-toolkit-name&gt;',
     ];
-    let at = plan.indexOf('id="claim"');
+    let at = plan.indexOf('id="branch"');
     expect(at).toBeGreaterThan(0);
     for (const cmd of order) {
       const next = Math.max(plan.indexOf(`<pre data-fill>${cmd}</pre>`, at), plan.indexOf(`<pre>${cmd}</pre>`, at));
@@ -206,34 +250,43 @@ describe('tutorial pages', () => {
       at = next;
     }
     expect(plan).toContain('* [new branch]');
-    expect(plan).toContain('Everything up-to-date');
-    // The app's own command list (commands:chat, a folded reference on page 8) is the one exception.
-    const withoutBlocks = (html: string) => html.replace(/<pre\b[^>]*data-block="[^"]+"[^>]*>[\s\S]*?<\/pre>/g, '');
-    for (const page of PAGES.filter((p) => p !== '06-plan-your-toolkit.html')) expect(withoutBlocks(read(page)), page).not.toContain('git commit --allow-empty');
+    expect(plan).toContain('This puts your branch on GitHub.');
+    // The "taken" case is folded troubleshooting.
+    expect(plan).toMatch(/<details class="issue" id="taken"><summary>“rejected” or “Everything up-to-date”/);
+    expect(plan).toContain('Never pull it.');
+    // The app's own command list (commands:chat, a folded reference on page 11) is the one exception.
+    for (const page of PAGES.filter((p) => p !== '09-make-your-branch.html')) {
+      expect(withoutBlocks(read(page)), page).not.toContain('git commit --allow-empty');
+      // Help › "I committed on main" rescues commits made on main into a new branch: the only other `switch -c`.
+      const text = page === '15-help.html' ? read(page).replace(/<details class="issue" id="h-committed-main">[\s\S]*?<\/div><\/details>/, '') : read(page);
+      expect(withoutBlocks(text), page).not.toContain('git switch -c toolkit/');
+    }
   });
 
   it('merge without opening an editor, and get the course updates on the own branch (owner 2026-11-26)', () => {
     for (const page of PAGES) {
-      const text = unescape(read(page).replace(/<pre\b[^>]*data-block="[^"]+"[^>]*>[\s\S]*?<\/pre>/g, ''));
+      const text = unescape(withoutBlocks(read(page)));
       expect(text, page).not.toMatch(/git merge (?!--no-edit|--abort)/);
       expect(text, page).not.toMatch(/git pull --no-rebase(?! --no-edit)/);
-      if (!['06-plan-your-toolkit.html', '12-help.html'].includes(page)) expect(text, page).not.toContain('git switch main');
+      if (!['09-make-your-branch.html', '15-help.html'].includes(page)) expect(text, page).not.toContain('git switch main');
     }
-    for (const page of ['09-git-basics.html', '11-keep-working-and-update.html']) expect(read(page)).toContain('git pull --no-rebase --no-edit origin main');
+    for (const page of ['14-git-basics.html', '13-keep-working-and-update.html']) expect(read(page)).toContain('git pull --no-rebase --no-edit origin main');
   });
 
   it('judge the toolkit check by its PASSED line, never by "Tests N passed" (owner 2026-11-26)', () => {
     for (const page of PAGES) expect(read(page), page).not.toMatch(/Tests N passed|N more than 0/);
-    for (const page of ['07-toolkit-with-a-coding-agent', '08-toolkit-with-a-chat-assistant', '10-hand-in', '11-keep-working-and-update']) {
+    for (const page of ['10-toolkit-with-a-coding-agent', '11-toolkit-with-a-chat-assistant', '12-hand-in', '13-keep-working-and-update']) {
       expect(read(`${page}.html`), page).toMatch(/PASSED: toolkit "/);
     }
   });
 
-  it('make every step card and main section foldable, with Expand / Collapse all, and ticks in the title row', () => {
+  it('fold every step and section, closed at first, with Expand / Collapse all and ticks in the title row (owner 2026-11-26)', () => {
     for (const page of PAGES) {
       const html = read(page);
       expect(html, page).not.toMatch(/<section class="(card|part)/);
-      expect([...html.matchAll(/<details class="(?:card|part)[^"]*" id="[^"]+" open>\n<summary/g)].length, page).toBeGreaterThan(0);
+      expect([...html.matchAll(/<details class="(?:card|part)[^"]*" id="[^"]+">\n<summary/g)].length, page).toBeGreaterThan(0);
+      // Collapsed by default: no step or section is open in the HTML.
+      expect(html, page).not.toMatch(/<details class="[^"]*\bfold\b[^"]*"[^>]*\sopen\b/);
       expect(html, page).toContain('data-fold="open"');
       expect(html, page).toContain('data-fold="close"');
       expect(html, page).toContain('data-fold-details');
@@ -247,43 +300,78 @@ describe('tutorial pages', () => {
     const js = read('tutorial.js');
     expect(js).toContain("addEventListener('hashchange', openTarget)");
     expect(js).toMatch(/function openTarget\(\)[\s\S]*?d\.open = true/);
+    // What a student opens stays open: remembered per page, every storage access guarded.
+    expect(js).toContain("'sgl-tutorial-opened-' + page");
+    expect(js).toMatch(/function getJson[\s\S]*?try \{[\s\S]*?catch/);
+    expect(js).toMatch(/function putJson[\s\S]*?try \{[\s\S]*?catch/);
+    for (const line of js.split('\n').filter((l) => l.includes('localStorage.'))) expect(line).toContain('try {');
   });
 
-  it('keep the must-never-hide items outside folded details', () => {
-    const visible = (html: string) => html.replace(/<details class="(?:more|trouble|issue|before-details)[\s\S]*?<\/details>/g, '');
+  it('keep the must-know warnings inside the step, outside folded details', () => {
+    const visible = (html: string) => html.replace(/<details class="(?:more|trouble|issue)[\s\S]*?<\/details>/g, '');
     const checks: [string, RegExp][] = [
-      ['05-set-up-your-computer', /Use Command Prompt, not PowerShell/],
-      ['05-set-up-your-computer', /Use your GitHub username and your GitHub no-reply e-mail/],
-      ['05-set-up-your-computer', /The terminal is busy while the app runs/],
-      ['08-toolkit-with-a-chat-assistant', /Drag the folder that has <code>toolkit\.ts<\/code> directly inside it/],
-      ['08-toolkit-with-a-chat-assistant', /only files in <code>toolkits\//],
-      ['06-plan-your-toolkit', /Never pull it/],
-      ['02-use-the-app', /Export after every session/],
+      ['07-install-the-tools', /Use Command Prompt, not PowerShell/],
+      ['08-clone-the-repository', /The terminal is busy while the app runs/],
+      ['11-toolkit-with-a-chat-assistant', /Drag the folder that has <code>toolkit\.ts<\/code> directly inside it/],
+      ['11-toolkit-with-a-chat-assistant', /only files in <code>toolkits\//],
+      ['10-toolkit-with-a-coding-agent', /Say <b>no<\/b> if it wants to run <code>git push<\/code>/],
+      ['03-use-the-app', /Export after every session/],
+      ['02-about-the-app', /Export after every session/],
+      ['06-about-the-repository', /Don't move, delete or commit them/],
     ];
     for (const [page, re] of checks) expect(visible(read(`${page}.html`)), page).toMatch(re);
   });
 
+  it('start with what this is, the three ways in, and the contents (owner 2026-11-26)', () => {
+    const html = read('01-start-here.html');
+    expect(html).toContain('img/graph-to-building.svg');
+    expect(html).toContain('What do you want to do?');
+    for (const target of ['02-about-the-app.html', '06-about-the-repository.html', '15-help.html']) expect(html).toMatch(new RegExp(`<a class="goal[^"]*" href="${target}"`));
+    expect(html).toContain('id="contents"');
+  });
+
+  it('say where the app and the repository are, and that Exercise 2 is the toolkit (owner 2026-11-26)', () => {
+    expect(read('02-about-the-app.html')).toContain('https://spatial-graph-lab.vercel.app/');
+    const repo = read('06-about-the-repository.html');
+    for (const words of ['https://github.com/HME-Research/spatial-graph-lab-course', 'node_modules/', 'dist/', 'Exercise 2', 'id="designs"', 'toolkits/house/']) expect(repo).toContain(words);
+    expect(read('09-make-your-branch.html')).toContain('Exercise 2');
+    expect(read('05-your-own-transform.html')).toContain('Exercise 1');
+  });
+
+  it('clone into source/repos, in VS Code or the terminal, then npm ci (owner 2026-11-26)', () => {
+    const html = read('08-clone-the-repository.html');
+    for (const words of ['img/gh-code-button.svg', 'source', 'repos', 'Clone Repository', '<pre>git clone https://github.com/HME-Research/spatial-graph-lab-course.git</pre>', '<pre>npm ci</pre>', '<pre>npm run dev</pre>', 'File › Open Folder…']) {
+      expect(html).toContain(words);
+    }
+    expect(html).not.toMatch(/Download ZIP|\.zip/i);
+  });
+
   it('hand in: the branch or a zip of the folder, with a placeholder for where and when (owner 2026-11-26)', () => {
-    const html = read('10-hand-in.html');
+    const html = read('12-hand-in.html');
     expect(html).toContain('Your tutor will tell you:');
     expect(html).toContain('Compress to ZIP file');
     expect(html).toContain('Compressed (zipped) folder');
     expect(html).toMatch(/Compress "/);
     expect(html).not.toContain('No pull request is needed');
-    for (const page of ['01-start-here', '05-set-up-your-computer', '10-hand-in']) expect(read(`${page}.html`), page).toMatch(/no student number, passwords or keys/i);
+    for (const page of ['06-about-the-repository', '09-make-your-branch', '12-hand-in']) expect(read(`${page}.html`), page).toMatch(/no full student number, passwords or keys/i);
   });
 
-  it('set the git identity from two fields: GitHub username and no-reply e-mail (owner 2026-11-26)', () => {
-    const html = read('05-set-up-your-computer.html');
-    expect(html).toContain('data-var="your-github-username"');
-    expect(html).toContain('data-var="your-no-reply-email"');
-    expect(html).toContain('<pre data-fill>git config --global user.name "&lt;your-github-username&gt;"</pre>');
-    expect(html).toContain('<pre data-fill>git config --global user.email "&lt;your-no-reply-email&gt;"</pre>');
+  it('keep the git identity out of the main path: a folded Help entry with two fields, linked from the commit steps (owner 2026-11-26)', () => {
+    const help = read('15-help.html');
+    const entry = /<details class="issue" id="h-identity">[\s\S]*?<\/div><\/details>/.exec(help)?.[0] ?? '';
+    expect(entry).toContain('Please tell me who you are');
+    expect(entry).toContain('data-var="your-github-username"');
+    expect(entry).toContain('data-var="your-no-reply-email"');
+    expect(entry).toContain('<pre data-fill>git config --global user.name "&lt;your-github-username&gt;"</pre>');
+    expect(entry).toContain('<pre data-fill>git config --global user.email "&lt;your-no-reply-email&gt;"</pre>');
+    for (const page of PAGES.filter((p) => p !== '15-help.html')) expect(read(page), page).not.toContain('git config --global');
+    for (const page of ['09-make-your-branch', '11-toolkit-with-a-chat-assistant']) expect(read(`${page}.html`), page).toContain('href="15-help.html#h-identity"');
+    expect(read('07-install-the-tools.html')).toContain('Sign in with GitHub');
     expect(read('tutorial.js')).toContain('users\\.noreply\\.github\\.com');
   });
 
-  it('set-up page contains the five steps of the Before Session 2 guide', () => {
-    const html = read('05-set-up-your-computer.html');
+  it('install page: accounts and installs only, with the five steps of the checklist', () => {
+    const html = read('07-install-the-tools.html');
     for (const title of [
       'Create or check your GitHub account',
       'Install Visual Studio Code',
@@ -293,6 +381,8 @@ describe('tutorial pages', () => {
     ]) {
       expect(html).toContain(`<h2>${title}</h2>`);
     }
+    expect(html).not.toContain('git clone');
+    expect(html).not.toContain('npm ci');
   });
 
   it('show every prompt and command block of the app somewhere', () => {

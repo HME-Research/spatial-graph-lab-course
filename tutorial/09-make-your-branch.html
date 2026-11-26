@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make your branch and plan your toolkit · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to the content</a>
+<header class="top"><div class="top-inner">
+  <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
+  <nav class="site" aria-label="Tutorial pages">
+    <div class="nav-group"><p class="nav-part">Start</p><div class="nav-links"><a href="01-start-here.html"><span class="n">1</span>Start</a></div></div>
+    <div class="nav-group"><p class="nav-part">In the browser</p><div class="nav-links"><a href="02-about-the-app.html"><span class="n">2</span>About the app</a><a href="03-use-the-app.html"><span class="n">3</span>Use the app</a><a href="04-your-own-analysis.html"><span class="n">4</span>Analysis</a><a href="05-your-own-transform.html"><span class="n">5</span>Exercise 1</a></div></div>
+    <div class="nav-group"><p class="nav-part">On your computer</p><div class="nav-links"><a href="06-about-the-repository.html"><span class="n">6</span>About the repository</a><a href="07-install-the-tools.html"><span class="n">7</span>Install</a><a href="08-clone-the-repository.html"><span class="n">8</span>Clone</a><a href="09-make-your-branch.html" aria-current="page"><span class="n">9</span>Branch and plan</a><a href="10-toolkit-with-a-coding-agent.html"><span class="n">10</span>Agent</a><a href="11-toolkit-with-a-chat-assistant.html"><span class="n">11</span>Chat</a><a href="12-hand-in.html"><span class="n">12</span>Hand in</a><a href="13-keep-working-and-update.html"><span class="n">13</span>Keep working</a></div></div>
+    <div class="nav-group"><p class="nav-part">Help</p><div class="nav-links"><a href="14-git-basics.html"><span class="n">14</span>Git basics</a><a href="15-help.html"><span class="n">15</span>Help</a></div></div>
+  </nav>
+</div></header>
+<div class="layout">
+<aside class="side">
+<nav class="part-nav" aria-label="On your computer"><p class="part-title">On your computer</p><ol><li><a href="06-about-the-repository.html"><span class="n">06</span><span>About the repository</span></a></li><li><a href="07-install-the-tools.html"><span class="n">07</span><span>Install the tools</span></a></li><li><a href="08-clone-the-repository.html"><span class="n">08</span><span>Clone the repository</span></a></li><li><a href="09-make-your-branch.html" aria-current="page"><span class="n">09</span><span>Make your branch and plan your toolkit</span></a></li><li><a href="10-toolkit-with-a-coding-agent.html"><span class="n">10</span><span>Toolkit with a coding agent</span></a></li><li><a href="11-toolkit-with-a-chat-assistant.html"><span class="n">11</span><span>Toolkit with a chat assistant</span></a></li><li><a href="12-hand-in.html"><span class="n">12</span><span>Hand in</span></a></li><li><a href="13-keep-working-and-update.html"><span class="n">13</span><span>Keep working and update</span></a></li></ol></nav>
+<nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+    <ol>
+      <li><a href="#name"><span class="n">01</span><span class="t">Your toolkit name</span></a></li>
+      <li><a href="#branch"><span class="n">02</span><span class="t">Make your branch and send it to GitHub</span></a></li>
+      <li><a href="#who-writes"><span class="n">03</span><span class="t">Who will write it: an agent or a chat?</span></a></li>
+      <li><a href="#plan"><span class="n">04</span><span class="t">Write your plan</span></a></li>
+      <li><a href="#prompts"><span class="n">05</span><span class="t">Your prompt</span></a></li>
+    </ol>
+  </details></nav>
+<div class="side-box fold-box"><div class="side-label">Sections</div><div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div></div>
+</aside>
+<main id="content">
+<p class="crumb">Page 9 of 15 · On your computer</p>
+<h1>Make your branch and plan your toolkit</h1>
+<p class="lead"><b>Exercise 2</b> starts here: name your toolkit, make your branch and send it to GitHub, then write your plan. This page turns it into the prompt for your AI.</p>
+<div class="needs"><p>Before this page you need: the course folder open in VS Code, with <code>npm ci</code> done (see <a href="08-clone-the-repository.html">Clone the repository</a>).</p></div>
+<div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div>
+<p class="legend">Orange text like <span class="ph">&lt;your-toolkit-name&gt;</span> = replace it with your own. Grey buttons like <span class="ui">Copy</span> = something to click.</p>
+
+<details class="card fold" id="name">
+<summary class="card-head"><span class="badge">01</span><div><h2>Your toolkit name</h2><p class="sub">The name of your folder and your branch.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="named" aria-label="Done: I have my toolkit name"> <span>I have my toolkit name</span></label></span></summary>
+<div class="card-body">
+<div class="namer" data-namer>
+  <p class="namer-rule"><b>u</b> + the last 3 digits of your student number + your initials + a short toolkit name, lowercase, joined with <code>-</code>. Student number …123, initials HK, toolkit House: <code>u123-hk-house</code>.</p>
+  <div class="namer-fields">
+    <div><label for="namer-number">Student number</label><div class="namer-u"><span class="namer-prefix" aria-hidden="true">U</span><input id="namer-number" type="text" inputmode="numeric" data-namer-number placeholder="123" autocomplete="off" spellcheck="false" maxlength="20"></div><small>All of it, or only the last 3 digits: only the last 3 are kept.</small><span class="form-msg" data-namer-number-msg role="status"></span></div>
+    <div><label for="namer-initials">Your initials</label><input id="namer-initials" type="text" data-namer-initials placeholder="HK" autocomplete="off" spellcheck="false" maxlength="12"></div>
+    <div><label for="namer-name">Toolkit name</label><input id="namer-name" type="text" data-namer-name placeholder="House" autocomplete="off" spellcheck="false" maxlength="60"></div>
+  </div>
+  <p class="namer-warn" data-namer-warn role="status" hidden></p>
+  <dl class="namer-out">
+    <div><dt>Toolkit name</dt><dd><code data-toolkit-name>&lt;your-toolkit-name&gt;</code></dd></div>
+    <div><dt>Folder</dt><dd><code>toolkits/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span>/</code></dd></div>
+    <div><dt>Branch</dt><dd><code>toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span></code></dd></div>
+  </dl>
+  <p class="namer-msg" data-namer-msg role="status"></p>
+  <p class="namer-note">Remembered only in this browser. The commands below fill in with it.</p>
+</div>
+<p>Choose it once: don't rename it later.</p>
+<div class="note"><p><span class="lbl">Public.</span> Your toolkit name, branch, README and commit name can be read by anyone. Only the last 3 digits of your student number go in it: put no full student number, passwords or keys anywhere.</p></div>
+<details class="more"><summary>What will my toolkit folder contain? <span class="opt">(optional)</span></summary><div class="more-body">
+<div class="tree">toolkits/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span>/
+  toolkit.ts       its name, its default design, the attributes every node / edge has
+  README.md        what it is for and how to try it (your tutor reads this)
+  functions/       one Function per file: Bedroom, Kitchen…
+  algorithms/      one analysis or transform per file
+  designs/         example designs (.json), shown in Open example…
+  assets/          optional: Rhino .3dm façade files
+  lib/             optional: helper code shared by several algorithms</div>
+<p>Your AI writes these files. A complete example is the House example, <code>toolkits/house/</code> (read it, never change it).</p>
+</div></details>
+</div>
+</details>
+
+<details class="card key fold" id="branch">
+<summary class="card-head"><span class="badge">02</span><div><h2>Make your branch and send it to GitHub</h2><p class="sub">Before any AI work, in VS Code's terminal.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="branch" aria-label="Done: I saw * [new branch]"> <span>I saw * [new branch]</span></label></span></summary>
+<div class="card-body">
+<p>In VS Code's terminal, in the course folder. Is <code>npm run dev</code> running there? Open a second terminal with <span class="ui">+</span>. One command at a time:</p>
+<ol class="steps">
+  <li><span class="st">Check where you are</span>
+    <div class="code"><pre>git status</pre></div>
+    <p class="see"><code>On branch main</code> as the first line: go on.</p>
+    <details class="more"><summary>It says “On branch” something else</summary><div class="more-body">
+      <p>Go to the course version first, so that your branch starts from it:</p>
+      <div class="code"><pre>git switch main</pre></div>
+      <p>“not a git repository”? The terminal is in the wrong folder: <a href="15-help.html#h-wrong-folder">Help</a>.</p>
+    </div></details></li>
+  <li><span class="st">Get the newest course version</span>
+    <div class="code"><pre>git pull</pre></div>
+    <p class="see">“Already up to date.” or a list of updated files.</p></li>
+  <li><span class="st">Make your branch and go to it</span><code>-c</code> means “create it first”.
+    <div class="code"><pre data-fill>git switch -c toolkit/&lt;your-toolkit-name&gt;</pre></div>
+    <p class="see"><code>Switched to a new branch 'toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span>'</code>.</p></li>
+  <li><span class="st">Make its first commit</span>An empty one, so that the branch has something to send.
+    <div class="code"><pre data-fill>git commit --allow-empty -m "chore(&lt;your-toolkit-name&gt;): start my toolkit"</pre></div>
+    <p class="see"><code>[toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span> …] chore(…): start my toolkit</code>.</p>
+    <p class="help-link">Git says “Please tell me who you are”? <a href="15-help.html#h-identity">Do this once</a>, then run the commit again.</p></li>
+  <li><span class="st">Send it to GitHub</span>This puts your branch on GitHub.
+    <div class="code"><pre data-fill>git push -u origin toolkit/&lt;your-toolkit-name&gt;</pre></div>
+    <p class="see"><code>* [new branch]      toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span> -&gt; toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span></code></p>
+    <p class="muted"><code>-u</code> remembers GitHub (<code>origin</code>) as the place this branch goes: from now on a plain <code>git push</code> is enough. The first push may open a browser window: sign in and <span class="ui">Authorize</span>.</p></li>
+</ol>
+<details class="trouble"><summary>Troubleshooting</summary><div class="trouble-body">
+<details class="issue" id="taken"><summary>“rejected” or “Everything up-to-date” instead of * [new branch]</summary><div class="issue-body">
+<p>Not your fault: someone already has a branch with this name. <b>Never pull it.</b> Change your toolkit name a little (another word for the toolkit name) in step 01, then:</p>
+<div class="code"><pre>git switch main</pre></div>
+<p>and run steps 3–5 again with the new name.</p>
+</div></details>
+<details class="issue"><summary>“A branch named … already exists”</summary><div class="issue-body"><p>You made it before: go to it with <code>git switch toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span></code> (no <code>-c</code>), then step 5.</p></div></details>
+<details class="issue"><summary>“Permission denied” or 403</summary><div class="issue-body"><p>Accept the course invitation first (<a href="07-install-the-tools.html#s-invite">Install the tools › 02</a>), then run step 5 again.</p></div></details>
+<details class="issue"><summary>Anything else</summary><div class="issue-body"><p><a href="15-help.html#git">Help › Git and GitHub</a>.</p></div></details>
+</div></details>
+<div class="done-when"><p>the push printed <code>* [new branch]</code>, and your branch is listed on <a href="https://github.com/HME-Research/spatial-graph-lab-course/branches">the course's branches page</a>.</p></div>
+</div>
+</details>
+
+<details class="card fold" id="who-writes">
+<summary class="card-head"><span class="badge">03</span><div><h2>Who will write it: an agent or a chat?</h2><p class="sub">Both end the same way: your folder, checked, pushed.</p></div></summary>
+<div class="card-body">
+<div class="versus">
+  <div class="versus-cols">
+    <div class="versus-col">
+      <h3>Coding agent</h3>
+      <p class="ex">Codex, Claude Code, GitHub Copilot in <b>Agent</b> mode</p>
+      <ul>
+        <li>Works inside VS Code, on your files.</li>
+        <li>Writes your folder and runs the checks.</li>
+        <li><a href="10-toolkit-with-a-coding-agent.html">Page 10</a>.</li>
+      </ul>
+    </div>
+    <div class="versus-col">
+      <h3>Chat assistant</h3>
+      <p class="ex">An AI chat in the browser that accepts a zip file</p>
+      <ul>
+        <li>Reads the kit you attach, gives your folder back as a zip.</li>
+        <li>You put it in place and run the checks.</li>
+        <li><a href="11-toolkit-with-a-chat-assistant.html">Page 11</a>: also when your agent is out of quota.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</div>
+</details>
+
+<details class="card fold" id="plan">
+<summary class="card-head"><span class="badge">04</span><div><h2>Write your plan</h2><p class="sub">In plain words; the prompt below fills itself in.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="planned" aria-label="Done: My plan is written"> <span>My plan is written</span></label></span></summary>
+<div class="card-body">
+<form class="form" id="prompt-form" data-blanks onsubmit="return false">
+  <div><label for="idea">My idea <small>What the toolkit is for: a building type or a design question, in one or two sentences.</small></label>
+    <textarea id="idea" name="idea" data-line="My idea" rows="2" placeholder="Small family houses: bedrooms, a kitchen and a living room around an entrance."></textarea></div>
+  <div><label for="functions">Functions (and their attributes) <small>The room programmes; start with 3–6. Say what each records.</small></label>
+    <textarea id="functions" name="functions" data-line="Functions (and their attributes)" rows="2" placeholder="Bedroom (number of beds), Kitchen (has a window), Living room, Entrance."></textarea></div>
+  <div><label for="algorithms">Algorithms <small>Start with one or two. An analysis reads and shows; a transform proposes changes you preview and Apply.</small></label>
+    <textarea id="algorithms" name="algorithms" data-line="Algorithms" rows="2" placeholder="An analysis that counts the beds on each level; a transform that gives every Bedroom larger than 12 m² two beds."></textarea></div>
+  <div><label for="design">Example design <small>A small design that uses your Functions; the checks run every algorithm on it.</small></label>
+    <textarea id="design" name="design" data-line="Example design" rows="2" placeholder="One level: an entrance, a kitchen, a living room and two bedrooms."></textarea></div>
+</form>
+<p class="muted">Remembered in this browser only.</p>
+</div>
+</details>
+
+<details class="card fold" id="prompts">
+<summary class="card-head"><span class="badge">05</span><div><h2>Your prompt</h2><p class="sub">Copy the one for your way of working.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="prompted" aria-label="Done: I copied my prompt"> <span>I copied my prompt</span></label></span></summary>
+<div class="card-body">
+<div class="tabs" data-tabs="route" data-default="agent" data-tabs-label="Way of working">
+<div class="tab-panel" data-tab="agent" data-label="Coding agent"><p class="tab-title">Coding agent</p>
+<div class="code"><div class="label">Paste into your agent (<a href="10-toolkit-with-a-coding-agent.html#prompt">page 10</a>)</div><pre data-build="prompt-form" data-block="prompt:agent">Rules: work only in toolkits/&lt;your-toolkit-name&gt;/ on my branch toolkit/&lt;your-toolkit-name&gt;. Do not change lab/ or any other folder or file, do not install or update packages, and do not push: I will push.
+Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. The folder name is exactly my toolkit name. Run the checks and commit only my folder.
+
+Toolkit name: ___
+My idea: ___
+Functions (and their attributes): ___
+Algorithms: ___
+Example design: ___</pre></div></div>
+<div class="tab-panel" data-tab="chat" data-label="Chat assistant"><p class="tab-title">Chat assistant</p>
+<div class="code"><div class="label">Paste into the chat, with the toolkit kit attached (<a href="11-toolkit-with-a-chat-assistant.html#ask">page 11</a>)</div><pre data-build="prompt-form" data-block="prompt:chat">I've attached the Spatial Graph Lab toolkit kit. Read PROMPT.md and every file in it, then write my toolkit following it exactly. The folder name is exactly my toolkit name. Give me the folder &lt;your-toolkit-name&gt;/ as a zip; if you cannot make files, give every file in its own code block, headed by its path.
+
+Toolkit name: ___
+My idea: ___
+Functions (and their attributes): ___
+Algorithms: ___
+Example design: ___</pre></div></div>
+</div>
+<p>Lines still showing orange <span class="ph">___</span> are empty: fill them in above. Next: <a href="10-toolkit-with-a-coding-agent.html">page 10</a> (agent) or <a href="11-toolkit-with-a-chat-assistant.html">page 11</a> (chat).</p>
+</div>
+</details>
+
+<div class="pager"><a href="08-clone-the-repository.html">← 8. Clone the repository</a><a href="10-toolkit-with-a-coding-agent.html">10. Toolkit with a coding agent →</a></div>
+</main>
+</div>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · What you type and tick on these pages is saved only in this browser.</div></footer>
+</body>
+</html>

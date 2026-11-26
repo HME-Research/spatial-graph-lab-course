@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keep working and update · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to the content</a>
+<header class="top"><div class="top-inner">
+  <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
+  <nav class="site" aria-label="Tutorial pages">
+    <div class="nav-group"><p class="nav-part">Start</p><div class="nav-links"><a href="01-start-here.html"><span class="n">1</span>Start</a></div></div>
+    <div class="nav-group"><p class="nav-part">In the browser</p><div class="nav-links"><a href="02-about-the-app.html"><span class="n">2</span>About the app</a><a href="03-use-the-app.html"><span class="n">3</span>Use the app</a><a href="04-your-own-analysis.html"><span class="n">4</span>Analysis</a><a href="05-your-own-transform.html"><span class="n">5</span>Exercise 1</a></div></div>
+    <div class="nav-group"><p class="nav-part">On your computer</p><div class="nav-links"><a href="06-about-the-repository.html"><span class="n">6</span>About the repository</a><a href="07-install-the-tools.html"><span class="n">7</span>Install</a><a href="08-clone-the-repository.html"><span class="n">8</span>Clone</a><a href="09-make-your-branch.html"><span class="n">9</span>Branch and plan</a><a href="10-toolkit-with-a-coding-agent.html"><span class="n">10</span>Agent</a><a href="11-toolkit-with-a-chat-assistant.html"><span class="n">11</span>Chat</a><a href="12-hand-in.html"><span class="n">12</span>Hand in</a><a href="13-keep-working-and-update.html" aria-current="page"><span class="n">13</span>Keep working</a></div></div>
+    <div class="nav-group"><p class="nav-part">Help</p><div class="nav-links"><a href="14-git-basics.html"><span class="n">14</span>Git basics</a><a href="15-help.html"><span class="n">15</span>Help</a></div></div>
+  </nav>
+</div></header>
+<div class="layout">
+<aside class="side">
+<nav class="part-nav" aria-label="On your computer"><p class="part-title">On your computer</p><ol><li><a href="06-about-the-repository.html"><span class="n">06</span><span>About the repository</span></a></li><li><a href="07-install-the-tools.html"><span class="n">07</span><span>Install the tools</span></a></li><li><a href="08-clone-the-repository.html"><span class="n">08</span><span>Clone the repository</span></a></li><li><a href="09-make-your-branch.html"><span class="n">09</span><span>Make your branch and plan your toolkit</span></a></li><li><a href="10-toolkit-with-a-coding-agent.html"><span class="n">10</span><span>Toolkit with a coding agent</span></a></li><li><a href="11-toolkit-with-a-chat-assistant.html"><span class="n">11</span><span>Toolkit with a chat assistant</span></a></li><li><a href="12-hand-in.html"><span class="n">12</span><span>Hand in</span></a></li><li><a href="13-keep-working-and-update.html" aria-current="page"><span class="n">13</span><span>Keep working and update</span></a></li></ol></nav>
+<nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+    <ol>
+      <li class="toc-group"><a href="#session">Each working session</a></li>
+      <li><a href="#on-branch"><span class="n">01</span><span class="t">Be on your branch</span></a></li>
+      <li><a href="#change"><span class="n">02</span><span class="t">Change your toolkit</span></a></li>
+      <li><a href="#check"><span class="n">03</span><span class="t">Check and try</span></a></li>
+      <li><a href="#commit"><span class="n">04</span><span class="t">Commit and push</span></a></li>
+      <li class="toc-group"><a href="#other">Now and then</a></li>
+      <li><a href="#updates"><span class="n">05</span><span class="t">When the course updates the app</span></a></li>
+      <li><a href="#other-computer"><span class="n">06</span><span class="t">Starting on another computer</span></a></li>
+    </ol>
+  </details></nav>
+<div class="side-box fold-box"><div class="side-label">Sections</div><div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div></div>
+</aside>
+<main id="content">
+<p class="crumb">Page 13 of 15 · On your computer</p>
+<h1>Keep working and stay up to date</h1>
+<p class="lead">Every working session is the same loop. Now and then the course updates the app: one command brings that into your branch.</p>
+<div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div>
+<p class="legend">Orange text like <span class="ph">&lt;your-toolkit-name&gt;</span> = replace it with your own. Grey buttons like <span class="ui">Copy</span> = something to click.</p>
+<figure class="fig"><img src="img/working-loop.svg" alt="The loop of every session: 1 be on your branch, 2 change, 3 check (PASSED), 4 commit, 5 push, then again" width="560" height="300"><figcaption>The loop of every working session.</figcaption></figure>
+
+<div class="group" id="session"><h2>Each working session</h2></div>
+
+<details class="card fold" id="on-branch">
+<summary class="card-head"><span class="badge">01</span><div><h2>Be on your branch</h2><p class="sub">VS Code's bottom left shows <code>toolkit/…</code>.</p></div></summary>
+<div class="card-body">
+<p>Open the course folder (<span class="ui">File › Open Recent</span>). Bottom left shows <code>main</code>?</p>
+<div class="code"><pre data-fill>git switch toolkit/&lt;your-toolkit-name&gt;</pre></div>
+<details class="more"><summary>Worked on another computer since?</summary><div class="more-body"><p>Bring in what you pushed from there:</p><div class="code"><pre>git pull --no-rebase --no-edit</pre></div></div></details>
+</div>
+</details>
+
+<details class="card fold" id="change">
+<summary class="card-head"><span class="badge">02</span><div><h2>Change your toolkit</h2><p class="sub">With your coding agent or your chat.</p></div></summary>
+<div class="card-body">
+<p>Coding agent: ask in plain words and review what it changed (<a href="10-toolkit-with-a-coding-agent.html#read">page 10</a>). Chat: give it your current files and replace them one file at a time (<a href="11-toolkit-with-a-chat-assistant.html#later">page 11</a>).</p>
+</div>
+</details>
+
+<details class="card fold" id="check">
+<summary class="card-head"><span class="badge">03</span><div><h2>Check and try</h2><p class="sub">The check, then the app.</p></div></summary>
+<div class="card-body">
+<div class="code"><pre data-fill>npm run check:toolkit -- -t &lt;your-toolkit-name&gt;</pre></div>
+<p class="see"><code>PASSED: toolkit "…" is ready.</code> as the last line. <code>FAILED</code>? <a href="15-help.html#h-failed">Help</a>.</p>
+<div class="code"><pre>npm run typecheck</pre></div>
+<p class="see">no red <code>error</code> lines.</p>
+<div class="code"><pre>npm run dev</pre></div>
+<p>Open <a data-localhost href="http://localhost:5173/">http://localhost:5173/?toolkit=&lt;your-toolkit-name&gt;</a> and try your change. The terminal is busy while the app runs: <kbd>Ctrl</kbd>+<kbd>C</kbd> stops it.</p>
+</div>
+</details>
+
+<details class="card fold" id="commit">
+<summary class="card-head"><span class="badge">04</span><div><h2>Commit and push</h2><p class="sub">Only your folder.</p></div><span class="tick-box"><label class="tick-sum"><input type="checkbox" data-check="session-end" aria-label="Done: Clean and pushed"> <span>Clean and pushed</span></label></span></summary>
+<div class="card-body">
+<div class="code"><pre data-fill>git add toolkits/&lt;your-toolkit-name&gt;</pre></div>
+<div class="code"><pre>git status</pre></div>
+<p class="see">under “Changes to be committed” only files in <code>toolkits/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span>/</code> (<a href="14-git-basics.html#c-status">picture</a>).</p>
+<form class="form" onsubmit="return false"><div><label for="msg-11">What changed? <small>A few words, e.g. bed count analysis.</small></label><input id="msg-11" type="text" data-var="what-changed" placeholder="bed count analysis" autocomplete="off"></div></form>
+<div class="code"><pre data-fill>git commit -m "feat(&lt;your-toolkit-name&gt;): &lt;what-changed&gt;"</pre></div>
+<div class="code"><pre>git push</pre></div>
+<div class="done-when"><p>at the end of the session <code>git status</code> says <code>nothing to commit, working tree clean</code> and your last <code>git push</code> went through.</p></div>
+</div>
+</details>
+
+<div class="group" id="other"><h2>Now and then</h2></div>
+
+<details class="card fold" id="updates">
+<summary class="card-head"><span class="badge">05</span><div><h2>When the course updates the app</h2><p class="sub">Your tutor tells you. One command, on your own branch.</p></div></summary>
+<div class="card-body">
+<p>Commit your work first (step 04), then, one at a time:</p>
+<div class="code"><pre>git pull --no-rebase --no-edit origin main</pre></div>
+<p class="see">a list of changed files, or “Already up to date.” (<a href="14-git-basics.html#c-pull-main">what it means</a>)</p>
+<div class="code"><pre>npm ci</pre></div>
+<p class="see">“added … packages”: the versions the updated course uses.</p>
+<div class="code"><pre data-fill>npm run check:toolkit -- -t &lt;your-toolkit-name&gt;</pre></div>
+<p class="see"><code>PASSED</code> at the end. An update can show a new message about your toolkit: fix it in your folder.</p>
+<div class="code"><pre>git push</pre></div>
+<details class="more"><summary>Something went wrong?</summary><div class="more-body"><ul>
+<li><a href="15-help.html#h-conflict">“CONFLICT”</a>: run <code>git merge --abort</code> and ask your tutor.</li>
+<li><a href="15-help.html#h-overwritten">“Your local changes … would be overwritten”</a>: commit first.</li>
+<li><a href="15-help.html#h-vim">An editor with <code>~</code> lines opened</a></li>
+</ul></div></details>
+</div>
+</details>
+
+<details class="card fold" id="other-computer">
+<summary class="card-head"><span class="badge">06</span><div><h2>Starting on another computer</h2><p class="sub">Your pushed work is on GitHub.</p></div></summary>
+<div class="card-body">
+<ol>
+  <li>Set it up: <a href="07-install-the-tools.html">install the tools</a>, then <a href="08-clone-the-repository.html">clone the repository</a> (with <code>npm ci</code>).</li>
+  <li>Go to your branch: git finds it on GitHub by itself.
+    <div class="code"><pre data-fill>git switch toolkit/&lt;your-toolkit-name&gt;</pre></div></li>
+</ol>
+<p class="muted">What you did not push stays on the other computer.</p>
+</div>
+</details>
+
+<div class="pager"><a href="12-hand-in.html">← 12. Hand in</a><a href="14-git-basics.html">14. Git basics →</a></div>
+</main>
+</div>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · What you type and tick on these pages is saved only in this browser.</div></footer>
+</body>
+</html>

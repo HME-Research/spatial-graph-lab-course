@@ -1,12 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" width="760" height="330" role="img" aria-label="git status: under Changes to be committed only files in toolkits/&lt;toolkit-id&gt;/ (green); package-lock.json is red, not committed" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
-<title>git status: under Changes to be committed only files in toolkits/&lt;toolkit-id&gt;/ (green); package-lock.json is red, not committed</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" width="760" height="330" role="img" aria-label="git status: under Changes to be committed only files in toolkits/u123-hk-house/ (green); package-lock.json is red, not committed" font-family="Segoe UI, -apple-system, system-ui, sans-serif">
+<title>git status: under Changes to be committed only files in toolkits/u123-hk-house/ (green); package-lock.json is red, not committed</title>
 <rect x="0" y="0" width="760" height="330" rx="10" fill="#0c0c0c"/>
 <text x="18" y="28" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#e6e6e6">C:\...\spatial-graph-lab-course&gt;git status</text>
-<text x="18" y="52" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#e6e6e6">On branch toolkit/<tspan fill="#ffb454">&lt;toolkit-id&gt;</tspan></text>
+<text x="18" y="52" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#e6e6e6">On branch toolkit/<tspan fill="#ffb454">u123-hk-house</tspan></text>
 <text x="18" y="76" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#e6e6e6">Changes to be committed:</text>
-<text x="50" y="98" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#5fd068">new file:   toolkits/<tspan fill="#ffb454">&lt;toolkit-id&gt;</tspan>/toolkit.ts</text>
-<text x="50" y="118" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#5fd068">new file:   toolkits/<tspan fill="#ffb454">&lt;toolkit-id&gt;</tspan>/functions/reading-room.ts</text>
-<text x="50" y="138" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#5fd068">new file:   toolkits/<tspan fill="#ffb454">&lt;toolkit-id&gt;</tspan>/designs/small-library.json</text>
+<text x="50" y="98" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#5fd068">new file:   toolkits/<tspan fill="#ffb454">u123-hk-house</tspan>/toolkit.ts</text>
+<text x="50" y="118" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#5fd068">new file:   toolkits/<tspan fill="#ffb454">u123-hk-house</tspan>/functions/reading-room.ts</text>
+<text x="50" y="138" font-size="13" font-family="Consolas, Menlo, 'Cascadia Mono', monospace" fill="#5fd068">new file:   toolkits/<tspan fill="#ffb454">u123-hk-house</tspan>/designs/small-library.json</text>
 <rect x="40" y="82" width="560" height="64" rx="6" fill="none" stroke="#5fd068" stroke-width="2"/>
 <circle cx="620" cy="112" r="11" fill="#d6337a" stroke="#fff" stroke-width="2"/><text x="620" y="116.5" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">1</text>
 <text x="640" y="108" font-size="12.5" fill="#9fe3a5">only your</text>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About the app · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to the content</a>
+<header class="top"><div class="top-inner">
+  <div class="top-row"><a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a><a class="top-app" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
+  <nav class="site" aria-label="Tutorial pages">
+    <div class="nav-group"><p class="nav-part">Start</p><div class="nav-links"><a href="01-start-here.html"><span class="n">1</span>Start</a></div></div>
+    <div class="nav-group"><p class="nav-part">In the browser</p><div class="nav-links"><a href="02-about-the-app.html" aria-current="page"><span class="n">2</span>About the app</a><a href="03-use-the-app.html"><span class="n">3</span>Use the app</a><a href="04-your-own-analysis.html"><span class="n">4</span>Analysis</a><a href="05-your-own-transform.html"><span class="n">5</span>Exercise 1</a></div></div>
+    <div class="nav-group"><p class="nav-part">On your computer</p><div class="nav-links"><a href="06-about-the-repository.html"><span class="n">6</span>About the repository</a><a href="07-install-the-tools.html"><span class="n">7</span>Install</a><a href="08-clone-the-repository.html"><span class="n">8</span>Clone</a><a href="09-make-your-branch.html"><span class="n">9</span>Branch and plan</a><a href="10-toolkit-with-a-coding-agent.html"><span class="n">10</span>Agent</a><a href="11-toolkit-with-a-chat-assistant.html"><span class="n">11</span>Chat</a><a href="12-hand-in.html"><span class="n">12</span>Hand in</a><a href="13-keep-working-and-update.html"><span class="n">13</span>Keep working</a></div></div>
+    <div class="nav-group"><p class="nav-part">Help</p><div class="nav-links"><a href="14-git-basics.html"><span class="n">14</span>Git basics</a><a href="15-help.html"><span class="n">15</span>Help</a></div></div>
+  </nav>
+</div></header>
+<div class="layout">
+<aside class="side">
+<nav class="part-nav" aria-label="In the browser"><p class="part-title">In the browser</p><ol><li><a href="02-about-the-app.html" aria-current="page"><span class="n">02</span><span>About the app</span></a></li><li><a href="03-use-the-app.html"><span class="n">03</span><span>Use the app</span></a></li><li><a href="04-your-own-analysis.html"><span class="n">04</span><span>Your own analysis</span></a></li><li><a href="05-your-own-transform.html"><span class="n">05</span><span>Exercise 1: your own transform</span></a></li></ol></nav>
+<nav class="toc" aria-label="On this page"><details class="toc-box" open><summary>On this page</summary>
+    <ol>
+      <li><a href="#what"><span class="n">01</span><span class="t">What it is</span></a></li>
+      <li><a href="#where"><span class="n">02</span><span class="t">Where it is</span></a></li>
+      <li><a href="#can-do"><span class="n">03</span><span class="t">What you can do there</span></a></li>
+      <li><a href="#files"><span class="n">04</span><span class="t">Your work is a project file</span></a></li>
+    </ol>
+  </details></nav>
+<div class="side-box fold-box"><div class="side-label">Sections</div><div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div></div>
+</aside>
+<main id="content">
+<p class="crumb">Page 2 of 15 · In the browser</p>
+<h1>About the app</h1>
+<p class="lead">Spatial Graph Lab runs in your browser: nothing to install. Open a section to read more.</p>
+<div class="actions"><a class="btn primary" href="https://spatial-graph-lab.vercel.app/">Open the app ↗</a></div>
+<div class="foldbar" data-foldbar><button type="button" class="button-quiet" data-fold="open">Expand all</button><button type="button" class="button-quiet" data-fold="close">Collapse all</button><label><input type="checkbox" data-fold-details> Show all details</label></div>
+
+<details class="card fold" id="what">
+<summary class="card-head"><span class="badge">01</span><div><h2>What it is</h2><p class="sub">A graph of rooms that becomes a building.</p></div></summary>
+<div class="card-body">
+<p>You draw <b>nodes</b> (rooms) and <b>edges</b> (relationships between rooms). The app works out the building from that graph and shows the same design as a 2D diagram, a 3D graph, a plan, a data table and generated architecture.</p>
+<figure class="fig"><img src="img/graph-to-building.svg" alt="A graph of four rooms joined by lines on the left, and the building the app works out from it on the right" width="620" height="200"><figcaption>Change the graph and the building follows.</figcaption></figure>
+</div>
+</details>
+
+<details class="card fold" id="where">
+<summary class="card-head"><span class="badge">02</span><div><h2>Where it is</h2><p class="sub">One address, in any modern browser.</p></div></summary>
+<div class="card-body">
+<p><a href="https://spatial-graph-lab.vercel.app/">https://spatial-graph-lab.vercel.app/</a> in Chrome, Edge, Firefox or Safari, on a laptop.</p>
+<details class="more"><summary>The same app on your own computer <span class="opt">(Exercise 2)</span></summary><div class="more-body"><p>For your own toolkit you run the app on your computer, from your copy of the course repository (<a href="06-about-the-repository.html">About the repository</a>). It is the same app with your toolkit added.</p></div></details>
+</div>
+</details>
+
+<details class="card fold" id="can-do">
+<summary class="card-head"><span class="badge">03</span><div><h2>What you can do there</h2><p class="sub">Use it, analyse, transform, and upload your own.</p></div></summary>
+<div class="card-body">
+<ul>
+  <li><b>Use</b> it: draw rooms and relationships, give them Functions and attributes (<a href="03-use-the-app.html">page 03</a>).</li>
+  <li><b>Analyse</b>: an analysis reads your design and shows an answer.</li>
+  <li><b>Transform</b>: a transform proposes changes; you preview them and <span class="ui">Apply</span>.</li>
+  <li><b>Upload your own</b> analysis (<a href="04-your-own-analysis.html">page 04</a>) or transform (<a href="05-your-own-transform.html">Exercise 1</a>), written with an AI chat.</li>
+</ul>
+</div>
+</details>
+
+<details class="card fold" id="files">
+<summary class="card-head"><span class="badge">04</span><div><h2>Your work is a project file</h2><p class="sub">Export it after every session.</p></div></summary>
+<div class="card-body">
+<div class="warn"><p><span class="lbl">Export after every session.</span> A project lives only in this browser on this computer. <span class="ui">Project</span> › <span class="ui">Export project</span> gives you a <code>.project.json</code> file that you can keep and open anywhere.</p></div>
+<details class="more"><summary>More: saving and opening</summary><div class="more-body"><p><span class="ui">Save locally</span> keeps it in this browser; <span class="ui">Open project</span> opens an exported file on any computer. The file holds every scenario and every analysis and transform you uploaded. Details: <a href="03-use-the-app.html#keep">Use the app › Keep your work</a>.</p></div></details>
+</div>
+</details>
+
+<div class="pager"><a href="01-start-here.html">← 1. Start</a><a href="03-use-the-app.html">3. Use the app →</a></div>
+</main>
+</div>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a> · <a href="https://github.com/HME-Research/spatial-graph-lab-course">Course repository</a> · What you type and tick on these pages is saved only in this browser.</div></footer>
+</body>
+</html>
