@@ -22,12 +22,13 @@ If the student's idea seems to need a change outside their folder, **stop**, exp
 ## 2. Git: their own branch, never `main`
 
 - Work only on the branch **`toolkit/<toolkit-id>`**. First run `git status` and `git branch --show-current`.
-  - On `main` (or a detached HEAD): switch with `git switch toolkit/<toolkit-id>` if it exists, else create it with `git switch -c toolkit/<toolkit-id>`.
+  - On `main` (or a detached HEAD): switch with `git switch toolkit/<toolkit-id>` if it exists. Otherwise the student claims the name first (they push, not you): `git status` (must say `On branch main`, else `git switch main`), `git pull`, `git switch -c toolkit/<toolkit-id>`, `git commit --allow-empty -m "chore(<toolkit-id>): claim the toolkit name"`, `git push -u origin toolkit/<toolkit-id>`, which must print `* [new branch]`.
   - Uncommitted changes outside `toolkits/<toolkit-id>/`: **stop** and ask the student; never discard them yourself.
 - Commit only the toolkit folder: `git add toolkits/<toolkit-id>`, then `git status` must list nothing outside it. Message: `feat(<toolkit-id>): <what changed>` (or `fix(<toolkit-id>): …`).
 - **Do not push** unless the student asks. Then push only their branch: `git push -u origin toolkit/<toolkit-id>`. Never push `main`, never force-push, never merge, rebase or reset someone else's work, never delete a branch.
-- A push of the branch that is **rejected** on its first push means the id is already taken by someone else's branch: **stop**, never pull or merge that branch, and help the student choose another id. Only when the student pushed this branch before (for example from another computer) bring the remote commits in with `git pull --no-rebase`, then push.
-- To bring in the owner's updates: `git switch main`, `git pull`, `git switch toolkit/<toolkit-id>`, `git merge main`. If that conflicts outside the toolkit folder, stop and ask.
+- A first push of the branch that says **rejected** or **Everything up-to-date** means the id is already taken by someone else's branch: **stop**, never pull or merge that branch, and help the student choose another id. Only when the student pushed this branch before (for example from another computer) bring the remote commits in with `git pull --no-rebase --no-edit`, then push.
+- To bring in the owner's updates, on the student's branch (never switch to `main` for this): `git pull --no-rebase --no-edit origin main`. If that conflicts outside the toolkit folder, run `git merge --abort`, stop and ask.
+- Never run `git reset --hard`, `git clean`, `git checkout -- .`, `git restore .` or `git stash` on the student's work: they also wipe the toolkit folder. To undo a change outside the folder, restore **only that file** (`git restore --staged <file>`, `git restore <file>`), then show `git status`.
 
 ## 3. What to read
 
@@ -50,7 +51,7 @@ npm run check:toolkit -- -t <toolkit-id>
 npm run typecheck
 ```
 
-`check:toolkit` passes with `Tests N passed` (N more than 0); `No toolkit "…" was found` or `toolkit.ts is one folder too deep` means the folder is missing or in the wrong place. Fix failures **inside the toolkit folder** and run them again until both pass. Show the student the real output; never say a check passed without running it. Then tell them how to try it: `npm run dev`, open `http://localhost:5173/?toolkit=<toolkit-id>`, **Open example…**, and which analysis (Analyse) or transform (Transform) to run and what it should show.
+`check:toolkit` ends with one line: `PASSED: toolkit "<toolkit-id>" is ready.` or `FAILED: …` (vitest's own summary says `N passed` even when a test failed, so read the last line); `No toolkit "…" was found` or `toolkit.ts is one folder too deep` means the folder is missing or in the wrong place. Fix failures **inside the toolkit folder** and run them again until both pass. Show the student the real output; never say a check passed without running it. Then tell them how to try it: `npm run dev`, open `http://localhost:5173/?toolkit=<toolkit-id>`, **Open example…**, and which analysis (Analyse) or transform (Transform) to run and what it should show.
 
 ## 5. How to talk to the student
 

@@ -102,4 +102,4 @@ export function sessionDiagnostics(session: ToolkitSession): ExtensionDiagnostic
 }
 
 export const DISCARD_PROMPT =
-  'The current design has changes that have not been exported. Switching will discard them.\n\nUse “Export JSON” first to keep them. Discard the changes?';
+  'The current design has changes that have not been exported. Switching will discard them.\n\nUse Project › Export project first to keep them. Discard the changes?';

@@ -57,7 +57,7 @@ Open the address it prints (usually http://localhost:5173/). Stop it with `Ctrl+
 | Command | What it does |
 |---|---|
 | `npm run dev` | runs the app on your computer; it reloads when you save a file |
-| `npm run check:toolkit -- -t <toolkit-id>` | loads your toolkit exactly as the app does and runs every algorithm on its default design; it passes with `Tests N passed` and fails if your toolkit is not found |
+| `npm run check:toolkit -- -t <toolkit-id>` | loads your toolkit exactly as the app does and runs every algorithm on its default design; its last line says `PASSED: toolkit "<toolkit-id>" is ready.` or `FAILED: …` (for example when your toolkit is not found) |
 | `npm run typecheck` | checks the TypeScript of the whole repository, your toolkit included |
 
 Open your toolkit in the app with `http://localhost:5173/?toolkit=<toolkit-id>`. Once your branch is pushed, your tutor can open it on their computer (and online, once branch previews are set up).

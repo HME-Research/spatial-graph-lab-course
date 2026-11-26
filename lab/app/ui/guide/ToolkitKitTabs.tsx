@@ -40,8 +40,9 @@ export function ToolkitKitTabs({ initialTab = 'agent' }: { readonly initialTab?:
           <div data-toolkit-kit-tab="agent">
             <p className="sgl-help sgl-aikits-help">
               The agent works in your copy of the repository (for example Claude Code in VS Code): it reads the guide there, writes the folder and runs the checks. First
-              make your branch and claim its name: <code>git switch main</code>, <code>git pull</code>, <code>git switch -c toolkit/&lt;toolkit-id&gt;</code>,{' '}
-              <code>git push -u origin toolkit/&lt;toolkit-id&gt;</code> (refused? The name is taken: choose another). After each change: <code>git push</code>.
+              make your branch and claim its name: <code>git status</code> (it must say On branch main), <code>git pull</code> (the newest course version first), <code>git switch -c toolkit/&lt;toolkit-id&gt;</code>,{' '}
+              <code>git commit --allow-empty -m "chore(&lt;toolkit-id&gt;): claim the toolkit name"</code>, <code>git push -u origin toolkit/&lt;toolkit-id&gt;</code> (you
+              must see <code>* [new branch]</code>; rejected or “Everything up-to-date”? The name is taken: choose another). After each change: <code>git push</code>.
             </p>
             <PromptGuide guide={TOOLKIT_AGENT_PROMPT_GUIDE} />
             <p className="sgl-help sgl-aikits-help">Optional: the same files as a zip, if your agent cannot read the repository’s docs.</p>
@@ -90,7 +91,8 @@ function Commands({ title, text }: { readonly title: string; readonly text: stri
       <ul className="sgl-explainer-prompt-tips">
         <li>git status must list only files under toolkits/&lt;toolkit-id&gt;/. If it lists anything else, don’t commit: undo that change first.</li>
         <li>A check fails? Paste the whole message into the chat, replace the files it changes, check again, commit and git push again.</li>
-        <li>GitHub Desktop instead: Current branch › New branch, copy the folder, commit, then Publish branch.</li>
+        <li>check:toolkit must end with PASSED. FAILED? Read the red message above it.</li>
+        <li>GitHub Desktop instead: Current branch › New branch, then run the two claim lines (git commit --allow-empty …, git push -u …) in the terminal; copy the folder, commit, Push origin.</li>
       </ul>
     </section>
   );
