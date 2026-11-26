@@ -62,7 +62,7 @@ export const PROJECT_PROMPT_GUIDE: GuidePromptGuide = {
 // ── Transform kits (2026-11-25) ─────────────────────────────────────────────────────────────
 // The parts match what lab/docs/ai-kit/transform/PROMPT.md tells the assistant to read: the idea,
 // the parameters the student sets before it runs, and what it should change. The starting texts are
-// also in tutorial/transform.html, word for word (tutorial.test.ts).
+// also in tutorial/04-your-own-transform.html, word for word (tutorial.test.ts).
 
 const TRANSFORM_PARTS = [
   { label: '2. Idea', text: 'what the transform should do to your design, in plain words: connect, grow, add, move, set a value…' },

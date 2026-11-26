@@ -9,20 +9,20 @@
 </head>
 <body>
 <header class="top"><div class="top-inner">
-  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a>
   <nav class="site" aria-label="Tutorial pages">
-    <a href="index.html">Start</a>
-    <a href="setup.html">Set up</a>
-    <a href="browser.html">In the browser</a>
-    <a href="analysis.html">Your analysis</a>
-    <a href="transform.html">Your transform</a>
-    <a href="plan.html">Plan a toolkit</a>
-    <a href="agent.html">Coding agent</a>
-    <a href="chat.html">Chat assistant</a>
-    <a href="git.html">Git</a>
-    <a href="hand-in.html">Hand in</a>
-    <a href="update.html" aria-current="page">Update</a>
-    <a href="help.html">Help</a>
+    <a href="01-start-here.html">1. Start here</a>
+    <a href="02-use-the-app.html">2. Use the app</a>
+    <a href="03-your-own-analysis.html">3. Your own analysis</a>
+    <a href="04-your-own-transform.html">4. Your own transform</a>
+    <a href="05-set-up-your-computer.html">5. Set up your computer</a>
+    <a href="06-plan-your-toolkit.html">6. Plan your toolkit</a>
+    <a href="07-toolkit-with-a-coding-agent.html">7. Toolkit: coding agent</a>
+    <a href="08-toolkit-with-a-chat-assistant.html">8. Toolkit: chat assistant</a>
+    <a href="09-git-basics.html">9. Git basics</a>
+    <a href="10-hand-in.html">10. Hand in</a>
+    <a href="11-keep-working-and-update.html" aria-current="page">11. Keep working</a>
+    <a href="12-help.html">12. Help</a>
   </nav>
 </div></header>
 <main>
@@ -39,7 +39,7 @@
 <ol class="steps">
   <li><strong>Be on your branch</strong>
     <div class="code"><pre data-fill>git switch toolkit/&lt;toolkit-id&gt;</pre></div></li>
-  <li><strong>Change your toolkit</strong>with your <a href="agent.html">coding agent</a> (ask in plain words), or with your <a href="chat.html">chat assistant</a>: send it the files you changed, or your whole folder as a zip, so it works on your current version; then replace the files it gives back.</li>
+  <li><strong>Change your toolkit</strong>with your <a href="07-toolkit-with-a-coding-agent.html">coding agent</a> (ask in plain words), or with your <a href="08-toolkit-with-a-chat-assistant.html">chat assistant</a>: send it the files you changed, or your whole folder as a zip, so it works on your current version; then replace the files it gives back.</li>
   <li><strong>Check and try</strong>
     <div class="code"><pre data-fill>npm run check:toolkit -- -t &lt;toolkit-id&gt;
 npm run typecheck
@@ -49,7 +49,7 @@ npm run dev</pre></div></li>
 git status
 git commit -m "feat(&lt;toolkit-id&gt;): what changed"
 git push</pre></div>
-    Then check the green tick (<a href="hand-in.html">Hand in</a>).</li>
+    Then check the green tick (<a href="10-hand-in.html">Hand in</a>).</li>
 </ol>
 
 <h2>When the course updates the app</h2>
@@ -60,16 +60,16 @@ git switch toolkit/&lt;toolkit-id&gt;
 git merge main
 npm install
 git push</pre></div>
-<p class="see">“Fast-forward” or “Merge made by …”. If an editor opens for the merge message, see <a href="git.html">Git › strange text editor</a>. Then run your checks again: an update can show a new message about your toolkit.</p>
+<p class="see">“Fast-forward” or “Merge made by …”. If an editor opens for the merge message, see <a href="09-git-basics.html">Git › strange text editor</a>. Then run your checks again: an update can show a new message about your toolkit.</p>
 <div class="warn"><p>“CONFLICT” in a file outside your folder means a file there was changed on your branch. Don't edit it to make the conflict go away: run <code>git merge --abort</code> and ask your tutor.</p></div>
 <p>GitHub Desktop: <span class="ui">Current branch</span> › your branch › <span class="ui">Branch › Update from main</span> (after <span class="ui">Fetch origin</span>), then <span class="ui">Push origin</span>.</p>
 
 <h2>Starting on another computer</h2>
-<p>Clone the repository again (<a href="setup.html">Set up</a> › 3 and 4), then fetch your branch from GitHub:</p>
+<p>Clone the repository again (<a href="05-set-up-your-computer.html">Set up</a> › 3 and 4), then fetch your branch from GitHub:</p>
 <div class="code"><pre data-fill>git switch toolkit/&lt;toolkit-id&gt;</pre></div>
 <p>Git finds your pushed branch by itself. Anything you did not push stays on the other computer.</p>
 
-<div class="pager"><a href="hand-in.html">← Hand in</a><a href="help.html">Help →</a></div>
+<div class="pager"><a href="10-hand-in.html">← 10. Hand in</a><a href="12-help.html">12. Help →</a></div>
 </main>
 <footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
 </body>

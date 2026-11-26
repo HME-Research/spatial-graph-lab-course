@@ -202,7 +202,7 @@ describe('Guide content (P4 item H)', () => {
     expect(html).not.toContain('ocw.mit.edu');
     for (const title of ['What a transform can propose', 'How to use this tab', 'Where transforms come from']) expect(html).toContain(`>${title}</h4>`);
     for (const words of ['Add a node', 'Add an edge', 'Move or resize', 'custom value', 'Apply', 'Discard', 'out of date', 'Upload your own (.ts)']) expect(html).toContain(words);
-    expect(html).toContain('href="/tutorial/transform.html"');
+    expect(html).toContain('href="/tutorial/04-your-own-transform.html"');
     expect(html).toContain('data-diagram="transform-steps"');
   });
 

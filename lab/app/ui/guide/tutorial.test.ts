@@ -37,8 +37,21 @@ const UPDATE_KITS = env['SGL_UPDATE_TUTORIAL_KITS'] === '1';
 
 const TUTORIAL = new URL('../../../../tutorial/', import.meta.url);
 
-/** The pages in navigation order. */
-const PAGES = ['index', 'setup', 'browser', 'analysis', 'transform', 'plan', 'agent', 'chat', 'git', 'hand-in', 'update', 'help'].map((p) => `${p}.html`);
+/** The pages in reading order (owner 2026-11-26: numbered names, so a folder listing shows that order). */
+const PAGES = [
+  '01-start-here',
+  '02-use-the-app',
+  '03-your-own-analysis',
+  '04-your-own-transform',
+  '05-set-up-your-computer',
+  '06-plan-your-toolkit',
+  '07-toolkit-with-a-coding-agent',
+  '08-toolkit-with-a-chat-assistant',
+  '09-git-basics',
+  '10-hand-in',
+  '11-keep-working-and-update',
+  '12-help',
+].map((p) => `${p}.html`);
 
 const read = (name: string): string => fs.readFileSync(new URL(name, TUTORIAL), 'utf8').replace(/\r\n/g, '\n');
 const unescape = (html: string): string =>
@@ -61,12 +74,12 @@ const EXPECTED_BLOCKS: Readonly<Record<string, string>> = {
 };
 
 describe('tutorial pages', () => {
-  it('are exactly the pages of the navigation (no page missing, no page unlisted)', () => {
+  it('are exactly the pages of the navigation, and sort by name in reading order (no page missing, none unlisted)', () => {
     const html = fs
       .readdirSync(TUTORIAL)
       .filter((f) => f.endsWith('.html'))
       .sort();
-    expect(html).toEqual([...PAGES].sort());
+    expect(html).toEqual(PAGES);
   });
 
   for (const page of PAGES) {
@@ -102,7 +115,7 @@ describe('tutorial pages', () => {
   }
 
   it('are where the app links to them (Welcome, Guide › Make your own toolkit)', () => {
-    expect(TUTORIAL_URL).toBe('/tutorial/index.html');
+    expect(TUTORIAL_URL).toBe('/tutorial/01-start-here.html');
     expect(fs.existsSync(new URL(`../../../..${TUTORIAL_URL}`, import.meta.url))).toBe(true);
   });
 

@@ -51,6 +51,16 @@ function tutorialPages(): Plugin {
         }
       };
       copy('tutorial');
+      // `/tutorial/` on the hosted app opens the start page. Only the build gets this file: the
+      // students' tutorial/ folder lists just the numbered pages (owner 2026-11-26).
+      this.emitFile({
+        type: 'asset',
+        fileName: 'tutorial/index.html',
+        source:
+          '<!doctype html><meta charset="utf-8"><title>Spatial Graph Lab tutorial</title>' +
+          '<meta http-equiv="refresh" content="0; url=01-start-here.html">' +
+          '<a href="01-start-here.html">Open the tutorial</a>\n',
+      });
     },
   };
 }

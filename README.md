@@ -8,13 +8,14 @@ You draw rooms (nodes) and their relationships (edges); the app shows the same d
 
 ## Start here: the tutorial
 
-Step-by-step pages for every way of working, from installing Git to handing in: open **[`tutorial/index.html`](tutorial/index.html)** in your copy (double-click it), or online at https://spatial-graph-lab.vercel.app/tutorial/index.html.
+Step-by-step pages for every way of working, from installing Git to handing in: open **[`tutorial/01-start-here.html`](tutorial/01-start-here.html)** in your copy (double-click it), or online at https://spatial-graph-lab.vercel.app/tutorial/. The pages are numbered in reading order.
 
 | You want to… | You need | Tutorial page |
 |---|---|---|
-| Design, analyse and transform in the app | a browser | [In the browser](tutorial/browser.html) |
-| Write your own analysis with an AI chat and upload it | a browser and an AI chat | [Your analysis](tutorial/analysis.html) |
-| Make your own toolkit | this repository on your computer, and an AI assistant | [Set up](tutorial/setup.html), [Plan a toolkit](tutorial/plan.html), then [Coding agent](tutorial/agent.html) or [Chat assistant](tutorial/chat.html) |
+| Design, analyse and transform in the app | a browser | [2. Use the app](tutorial/02-use-the-app.html) |
+| Write your own analysis with an AI chat and upload it | a browser and an AI chat | [3. Your own analysis](tutorial/03-your-own-analysis.html) |
+| Write your own transform with an AI chat and upload it | a browser and an AI chat | [4. Your own transform](tutorial/04-your-own-transform.html) |
+| Make your own toolkit | this repository on your computer, and an AI assistant | [5. Set up](tutorial/05-set-up-your-computer.html), [6. Plan](tutorial/06-plan-your-toolkit.html), then [7. Coding agent](tutorial/07-toolkit-with-a-coding-agent.html) or [8. Chat assistant](tutorial/08-toolkit-with-a-chat-assistant.html) |
 
 ## The one rule
 

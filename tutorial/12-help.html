@@ -9,20 +9,20 @@
 </head>
 <body>
 <header class="top"><div class="top-inner">
-  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a>
   <nav class="site" aria-label="Tutorial pages">
-    <a href="index.html">Start</a>
-    <a href="setup.html">Set up</a>
-    <a href="browser.html">In the browser</a>
-    <a href="analysis.html">Your analysis</a>
-    <a href="transform.html">Your transform</a>
-    <a href="plan.html">Plan a toolkit</a>
-    <a href="agent.html">Coding agent</a>
-    <a href="chat.html">Chat assistant</a>
-    <a href="git.html">Git</a>
-    <a href="hand-in.html">Hand in</a>
-    <a href="update.html">Update</a>
-    <a href="help.html" aria-current="page">Help</a>
+    <a href="01-start-here.html">1. Start here</a>
+    <a href="02-use-the-app.html">2. Use the app</a>
+    <a href="03-your-own-analysis.html">3. Your own analysis</a>
+    <a href="04-your-own-transform.html">4. Your own transform</a>
+    <a href="05-set-up-your-computer.html">5. Set up your computer</a>
+    <a href="06-plan-your-toolkit.html">6. Plan your toolkit</a>
+    <a href="07-toolkit-with-a-coding-agent.html">7. Toolkit: coding agent</a>
+    <a href="08-toolkit-with-a-chat-assistant.html">8. Toolkit: chat assistant</a>
+    <a href="09-git-basics.html">9. Git basics</a>
+    <a href="10-hand-in.html">10. Hand in</a>
+    <a href="11-keep-working-and-update.html">11. Keep working</a>
+    <a href="12-help.html" aria-current="page">12. Help</a>
   </nav>
 </div></header>
 <main>
@@ -32,7 +32,7 @@
 <h2>Setting up</h2>
 <div class="table"><table>
   <tr><th>Message or symptom</th><th>What to do</th></tr>
-  <tr><td><code>git</code>, <code>node</code> or <code>npm</code> “is not recognized” / “command not found”</td><td>Install it (<a href="setup.html">Set up</a>), then close and reopen VS Code so its terminal sees it.</td></tr>
+  <tr><td><code>git</code>, <code>node</code> or <code>npm</code> “is not recognized” / “command not found”</td><td>Install it (<a href="05-set-up-your-computer.html">Set up</a>), then close and reopen VS Code so its terminal sees it.</td></tr>
   <tr><td>“running scripts is disabled on this system” (Windows)</td><td>Run <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> once, answer <kbd>Y</kbd>.</td></tr>
   <tr><td><code>npm install</code> shows <code>ERR!</code></td><td>Check you are in the repository folder (it contains <code>package.json</code>) and that <code>node --version</code> is 22 or higher. Then run it again.</td></tr>
   <tr><td>“Port 5173 is in use”</td><td>The app is already running in another terminal: use that one, or stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd>. Vite may also pick the next port: open the address it prints.</td></tr>
@@ -43,7 +43,7 @@
 <div class="table"><table>
   <tr><th>Message or symptom</th><th>What to do</th></tr>
   <tr><td><code>toolkit folder "…" must be lowercase letters…</code></td><td>Rename the folder: lowercase letters, digits and <code>-</code>, starting with a letter.</td></tr>
-  <tr><td>The app says your toolkit doesn't exist</td><td>The folder must be <code>toolkits/&lt;toolkit-id&gt;/toolkit.ts</code>, not <code>toolkits/&lt;toolkit-id&gt;/&lt;toolkit-id&gt;/toolkit.ts</code> (a common unzip mistake; see <a href="chat.html">Chat assistant</a> › 3). Check the address too: <code>?toolkit=&lt;toolkit-id&gt;</code>.</td></tr>
+  <tr><td>The app says your toolkit doesn't exist</td><td>The folder must be <code>toolkits/&lt;toolkit-id&gt;/toolkit.ts</code>, not <code>toolkits/&lt;toolkit-id&gt;/&lt;toolkit-id&gt;/toolkit.ts</code> (a common unzip mistake; see <a href="08-toolkit-with-a-chat-assistant.html">Chat assistant</a> › 3). Check the address too: <code>?toolkit=&lt;toolkit-id&gt;</code>.</td></tr>
   <tr><td>A Function or algorithm is <b>disabled</b></td><td>Select it, or read the <span class="ui">Project</span> panel, for the reason: usually an invalid field or a duplicate id.</td></tr>
   <tr><td><code>… imports …</code> refused by a check</td><td>Toolkit code may import only <code>@student-api</code> and files in your own folder. No npm packages, nothing from <code>lab/</code> or another toolkit.</td></tr>
   <tr><td>An algorithm fails on the default design</td><td>Run it in the app on that design to see its message. Usually a missing value (<code>null</code>) or an empty list it did not expect.</td></tr>
@@ -55,19 +55,19 @@
 <h2>Git and GitHub</h2>
 <div class="table"><table>
   <tr><th>Message or symptom</th><th>What to do</th></tr>
-  <tr><td>Push refused: “protected branch”, “rule violations” or “cannot update this protected ref”</td><td>You are pushing <code>main</code>. Your work belongs on your branch: <a href="git.html">Git › I committed on main</a>.</td></tr>
-  <tr><td>“Permission denied” or “Repository not found” when pushing</td><td>Accept the course invitation (<a href="setup.html">Set up</a> › 2) and sign in to GitHub when Git asks.</td></tr>
+  <tr><td>Push refused: “protected branch”, “rule violations” or “cannot update this protected ref”</td><td>You are pushing <code>main</code>. Your work belongs on your branch: <a href="09-git-basics.html">Git › I committed on main</a>.</td></tr>
+  <tr><td>“Permission denied” or “Repository not found” when pushing</td><td>Accept the course invitation (<a href="05-set-up-your-computer.html">Set up</a> › 2) and sign in to GitHub when Git asks.</td></tr>
   <tr><td>“Updates were rejected because the remote contains work that you do not have”</td><td>Someone (or you, on another computer) pushed to your branch. Run <code>git pull</code>, then <code>git push</code>.</td></tr>
-  <tr><td><code>git status</code> lists files outside your folder</td><td>Don't commit them: <a href="git.html">Git › I changed a file outside my folder</a>.</td></tr>
+  <tr><td><code>git status</code> lists files outside your folder</td><td>Don't commit them: <a href="09-git-basics.html">Git › I changed a file outside my folder</a>.</td></tr>
   <tr><td>“A branch named … already exists”</td><td>Use <code>git switch toolkit/&lt;toolkit-id&gt;</code> without <code>-c</code>.</td></tr>
-  <tr><td>A red ✗ on GitHub</td><td><a href="hand-in.html">Hand in</a> › Red ✗.</td></tr>
-  <tr><td>“CONFLICT” after <code>git merge main</code></td><td><code>git merge --abort</code> and ask your tutor (<a href="update.html">Update</a>).</td></tr>
+  <tr><td>A red ✗ on GitHub</td><td><a href="10-hand-in.html">Hand in</a> › Red ✗.</td></tr>
+  <tr><td>“CONFLICT” after <code>git merge main</code></td><td><code>git merge --abort</code> and ask your tutor (<a href="11-keep-working-and-update.html">Update</a>).</td></tr>
 </table></div>
 
 <h2>An uploaded analysis</h2>
 <div class="table"><table>
   <tr><th>Message or symptom</th><th>What to do</th></tr>
-  <tr><td>The file is refused</td><td>Paste the app's whole message to the AI and ask it to fix exactly that. Check the file really ends in <code>.ts</code> (<a href="analysis.html">Your analysis</a>).</td></tr>
+  <tr><td>The file is refused</td><td>Paste the app's whole message to the AI and ask it to fix exactly that. Check the file really ends in <code>.ts</code> (<a href="03-your-own-analysis.html">Your analysis</a>).</td></tr>
   <tr><td>“Stopped after … s — does it loop forever?”</td><td>The analysis took too long; ask the AI to make it simpler or to make every loop end.</td></tr>
   <tr><td>It is not in the section you expected</td><td>The section follows its <i>input</i>: none → Network, one node → Node, one edge → Edge, anything else → Queries.</td></tr>
 </table></div>
@@ -75,8 +75,8 @@
 <h2>An uploaded transform</h2>
 <div class="table"><table>
   <tr><th>Message or symptom</th><th>What to do</th></tr>
-  <tr><td>“This file is an analysis … upload it in Analyse”</td><td>It only reads and shows an answer: upload it in <span class="ui">Analyse</span> (<a href="analysis.html">Your analysis</a>). In <span class="ui">Analyse</span>, a transform gets the opposite message.</td></tr>
-  <tr><td>The file is refused, or the preview shows an error</td><td>Paste the app's whole message to the AI and ask it to fix exactly that, then use <span class="ui">↻</span> (Replace) in <b>Yours</b> (<a href="transform.html">Your transform</a>).</td></tr>
+  <tr><td>“This file is an analysis … upload it in Analyse”</td><td>It only reads and shows an answer: upload it in <span class="ui">Analyse</span> (<a href="03-your-own-analysis.html">Your analysis</a>). In <span class="ui">Analyse</span>, a transform gets the opposite message.</td></tr>
+  <tr><td>The file is refused, or the preview shows an error</td><td>Paste the app's whole message to the AI and ask it to fix exactly that, then use <span class="ui">↻</span> (Replace) in <b>Yours</b> (<a href="04-your-own-transform.html">Your transform</a>).</td></tr>
   <tr><td>“customOf needs a Function from a toolkit's functions/ folder…”</td><td>Ask the AI to read the fields with <code>ctx.nodeCustom(nodeId)</code> instead.</td></tr>
   <tr><td><span class="ui">Apply</span> is greyed out: “The design has changed since this preview was computed”</td><td>You edited the design after <span class="ui">Run</span>: press <span class="ui">Run</span> again.</td></tr>
   <tr><td>“Stopped after … s — does it loop forever?”</td><td>The transform took too long; ask the AI to make it simpler or to make every loop end.</td></tr>
@@ -85,7 +85,7 @@
 <h2>Still stuck?</h2>
 <p>Ask your tutor, with: what you did, the whole message (copied, not a photo), your branch name, and the output of <code>git status</code>.</p>
 
-<div class="pager"><a href="update.html">← Update</a><a href="index.html">Start ↺</a></div>
+<div class="pager"><a href="11-keep-working-and-update.html">← 11. Keep working</a><a href="01-start-here.html">1. Start here ↺</a></div>
 </main>
 <footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
 </body>

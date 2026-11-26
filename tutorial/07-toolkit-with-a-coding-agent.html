@@ -9,27 +9,27 @@
 </head>
 <body>
 <header class="top"><div class="top-inner">
-  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <a class="brand" href="01-start-here.html">Spatial Graph Lab <span>tutorial</span></a>
   <nav class="site" aria-label="Tutorial pages">
-    <a href="index.html">Start</a>
-    <a href="setup.html">Set up</a>
-    <a href="browser.html">In the browser</a>
-    <a href="analysis.html">Your analysis</a>
-    <a href="transform.html">Your transform</a>
-    <a href="plan.html">Plan a toolkit</a>
-    <a href="agent.html" aria-current="page">Coding agent</a>
-    <a href="chat.html">Chat assistant</a>
-    <a href="git.html">Git</a>
-    <a href="hand-in.html">Hand in</a>
-    <a href="update.html">Update</a>
-    <a href="help.html">Help</a>
+    <a href="01-start-here.html">1. Start here</a>
+    <a href="02-use-the-app.html">2. Use the app</a>
+    <a href="03-your-own-analysis.html">3. Your own analysis</a>
+    <a href="04-your-own-transform.html">4. Your own transform</a>
+    <a href="05-set-up-your-computer.html">5. Set up your computer</a>
+    <a href="06-plan-your-toolkit.html">6. Plan your toolkit</a>
+    <a href="07-toolkit-with-a-coding-agent.html" aria-current="page">7. Toolkit: coding agent</a>
+    <a href="08-toolkit-with-a-chat-assistant.html">8. Toolkit: chat assistant</a>
+    <a href="09-git-basics.html">9. Git basics</a>
+    <a href="10-hand-in.html">10. Hand in</a>
+    <a href="11-keep-working-and-update.html">11. Keep working</a>
+    <a href="12-help.html">12. Help</a>
   </nav>
 </div></header>
 <main>
 <h1>Make a toolkit with a coding agent</h1>
 <p class="lead">A coding agent works inside your copy of the repository: it reads the guides, writes your folder, runs the checks and commits. You describe the toolkit, read what it did, try it and push. Examples: <b>Claude Code</b>, <b>GitHub Copilot</b> in agent mode, <b>Codex</b> or <b>Cursor</b>, used inside VS Code.</p>
 
-<div class="note"><p>Before you start: <a href="setup.html">set up</a> your computer and <a href="plan.html">plan your toolkit</a>. The agent reads <code>AGENTS.md</code> in the repository, which tells it to change only your folder, work on your branch and never push without you.</p></div>
+<div class="note"><p>Before you start: <a href="05-set-up-your-computer.html">set up</a> your computer and <a href="06-plan-your-toolkit.html">plan your toolkit</a>. The agent reads <code>AGENTS.md</code> in the repository, which tells it to change only your folder, work on your branch and never push without you.</p></div>
 
 <div class="idbox">
   <label for="toolkit-id">Your toolkit id</label>
@@ -47,7 +47,7 @@ git pull
 git switch -c toolkit/&lt;toolkit-id&gt;</pre></div>
     <p class="see"><code>Switched to a new branch 'toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span>'</code>. The branch name also shows at the bottom left of VS Code. Already made it earlier? Use <code>git switch toolkit/<span data-toolkit-id>&lt;toolkit-id&gt;</span></code> (no <code>-c</code>).</p></li>
   <li><strong>Start your agent</strong>Claude Code: the Claude icon in VS Code, or type <code>claude</code> in the terminal. Copilot: the Chat view, set to <b>Agent</b>. Others: their own panel. Allow it to read the folder and run commands when it asks; read each command before you allow it.</li>
-  <li><strong>Send your prompt</strong>The one <a href="plan.html">Plan a toolkit</a> built for you, or this one with the blanks filled in:
+  <li><strong>Send your prompt</strong>The one <a href="06-plan-your-toolkit.html">Plan a toolkit</a> built for you, or this one with the blanks filled in:
     <div class="code"><pre data-fill data-block="prompt:agent">Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. Work only inside toolkits/&lt;toolkit-id&gt;/ on my branch toolkit/&lt;toolkit-id&gt;, run the checks, and commit only my folder. Do not push: I will push.
 
 Toolkit id: ___
@@ -64,7 +64,7 @@ Example design: ___</pre></div>
   <li><strong>Improve it</strong>Ask for changes in plain words: “Make the Reading room blue”, “The seat count ignores the upper level: fix it”. Paste any error message in full. Ask it to run the checks and commit after each change.</li>
   <li><strong>Push your branch</strong>
     <div class="code"><pre data-fill>git push -u origin toolkit/&lt;toolkit-id&gt;</pre></div>
-    or ask the agent: “Push my branch.” Then <a href="hand-in.html">check the green tick</a> on GitHub.</li>
+    or ask the agent: “Push my branch.” Then <a href="10-hand-in.html">check the green tick</a> on GitHub.</li>
 </ol>
 
 <h2>Good to know</h2>
@@ -74,7 +74,7 @@ Example design: ___</pre></div>
   <li>Agents can be wrong with confidence. Try every algorithm in the app on a design whose answer you know.</li>
 </ul>
 
-<div class="pager"><a href="plan.html">← Plan a toolkit</a><a href="chat.html">Chat assistant →</a></div>
+<div class="pager"><a href="06-plan-your-toolkit.html">← 6. Plan your toolkit</a><a href="08-toolkit-with-a-chat-assistant.html">8. Toolkit: chat assistant →</a></div>
 </main>
 <footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
 </body>

@@ -54,7 +54,7 @@ export const LINKS = {
  * for every way of working, served by the app at this address (vite.config.ts copies them into the
  * build). Opened in a new tab so the app keeps its state.
  */
-export const TUTORIAL_URL = '/tutorial/index.html';
+export const TUTORIAL_URL = '/tutorial/01-start-here.html';
 
-/** A page of the student tutorial, e.g. `tutorialPage('transform')` → `/tutorial/transform.html`. */
-export const tutorialPage = (name: string): string => TUTORIAL_URL.replace(/index\.html$/, `${name}.html`);
+/** A page of the student tutorial by its file name, e.g. `tutorialPage('04-your-own-transform')` → `/tutorial/04-your-own-transform.html`. */
+export const tutorialPage = (name: string): string => TUTORIAL_URL.replace(/[^/]+\.html$/, `${name}.html`);
