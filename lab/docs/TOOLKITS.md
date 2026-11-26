@@ -83,7 +83,7 @@ Then try it: **Open example…** › *Toolkit: <name>*; run your analyses in **A
 
 ## 5. Two ways to make it with an AI assistant
 
-Both routes end the same way: your folder `toolkits/<your-toolkit-name>/`, checked, committed on your own branch **`toolkit/<your-toolkit-name>`** and pushed. **Never commit to `main`**, and push only your branch. No Pull Request is needed: your tutor collects the branches. Your tutor may also accept a zip of the folder (`<your-toolkit-name>.zip`, with `<your-toolkit-name>/toolkit.ts` directly inside it): see the tutorial, *Hand in*.
+Both routes end the same way: your folder `toolkits/<your-toolkit-name>/`, checked, committed on your own branch **`toolkit/<your-toolkit-name>`** and pushed. **Never commit to `main`**, and push only your branch. No Pull Request is needed: your tutor collects the branches. Your tutor may also accept a zip of the folder (`<your-toolkit-name>.zip`, with `<your-toolkit-name>/toolkit.ts` directly inside it): see the tutorial, *Submit your work*.
 
 The assistant follows [`lab/docs/ai-kit/toolkit/PROMPT.md`](ai-kit/toolkit/PROMPT.md). In the app, **Guide › Toolkits & JSON › Make your own toolkit** shows both routes with the prompts to copy and the kit to download.
 
