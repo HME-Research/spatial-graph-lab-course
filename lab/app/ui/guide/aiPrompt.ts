@@ -59,6 +59,52 @@ export const PROJECT_PROMPT_GUIDE: GuidePromptGuide = {
   ],
 };
 
+// ── Transform kits (2026-11-25) ─────────────────────────────────────────────────────────────
+// The parts match what lab/docs/ai-kit/transform/PROMPT.md tells the assistant to read: the idea,
+// the parameters the student sets before it runs, and what it should change. The starting texts are
+// also in tutorial/transform.html, word for word (tutorial.test.ts).
+
+const TRANSFORM_PARTS = [
+  { label: '2. Idea', text: 'what the transform should do to your design, in plain words: connect, grow, add, move, set a value…' },
+  { label: '3. Parameters', text: 'what you want to set in Transform before it runs, e.g. a number of cells, Access or Open, a Function. Write “none” if there is nothing to set.' },
+  {
+    label: '4. Changes',
+    text: 'what it may change: add nodes, add edges (Access or Open), move or resize nodes, set a node’s or an edge’s value. Nothing changes until you Apply the preview.',
+  },
+] as const;
+const TRANSFORM_BLANKS = ['', 'My idea: ___', 'Parameters I want to set: ___', 'What it should change: ___'];
+const TRANSFORM_REFUSED = 'If the app refuses the file, or the preview shows an error, paste the message back to the assistant and ask it to fix exactly that.';
+
+/** Transform kit (Any project): node basics, calculated values, Functions found in the design. */
+export const TRANSFORM_PROMPT_GUIDE: GuidePromptGuide = {
+  title: 'How to write your prompt',
+  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit and write one transform that works in any project (the first line below).' }, ...TRANSFORM_PARTS],
+  text: [
+    "I've attached the Spatial Graph Lab transform kit. Read PROMPT.md and every file in it, then write ONE transform that works in any project (node basics only, no custom fields).",
+    ...TRANSFORM_BLANKS,
+  ].join('\n'),
+  tips: [
+    'Example: “Connect every two nodes that touch but have no edge yet.” · Parameters: Access or Open · Changes: add edges.',
+    'It can read each node’s Function, size, position and level, each edge’s Relationship and calculated values such as area, but not custom fields such as a target area. For those, use This project.',
+    TRANSFORM_REFUSED,
+  ],
+};
+
+/** Transform kit for this project (with PROJECT.md): may also use the project's Functions and custom fields. */
+export const TRANSFORM_PROJECT_PROMPT_GUIDE: GuidePromptGuide = {
+  title: 'How to write your prompt',
+  parts: [{ label: '1. Ask', text: 'tell the assistant to read the kit, including PROJECT.md, and write one transform (the first line below).' }, ...TRANSFORM_PARTS],
+  text: [
+    "I've attached the Spatial Graph Lab transform kit for my project. Read PROMPT.md, PROJECT.md and every file in it, then write ONE transform that follows them exactly. It may use my project's Functions and custom fields as PROJECT.md lists them.",
+    ...TRANSFORM_BLANKS,
+  ].join('\n'),
+  tips: [
+    'Example: “Give the rooms furthest below their target area the first priority.” · Parameters: none · Changes: set each room’s priority.',
+    'Name Functions and fields as PROJECT.md lists them. The transform then works only in projects that have them.',
+    TRANSFORM_REFUSED,
+  ],
+};
+
 // ── Toolkit kit (2026-11-24) ────────────────────────────────────────────────────────────────
 // The starting texts and the git commands are also in lab/docs/TOOLKITS.md, word for word (between
 // `<!-- prompt:agent -->`, `<!-- prompt:chat -->`, `<!-- commands:chat -->` markers;

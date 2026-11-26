@@ -9,6 +9,10 @@ import { storedZip } from './zip';
  *   project has; any project.
  * - **project**: the design kit plus a generated `PROJECT.md` describing the open project's
  *   Functions, custom fields (tagged Toolkit or Yours) and calculated values. Never the design itself.
+ * - **transform** (2026-11-25, `docs/ai-kit/transform/`): an uploaded transform
+ *   (`defineSpatialAlgorithm`) that uses only what every project has; any project.
+ * - **transform-project**: the transform kit plus the generated `PROJECT.md` (worded for a
+ *   transform: `ctx.nodeCustom` and the operations instead of `uses`).
  * - **toolkit** (2026-11-24): what a chat assistant needs to write a whole toolkit folder:
  *   `docs/ai-kit/toolkit/`, `docs/TOOLKITS.md`, `docs/STUDENT-API.md`, the starter
  *   `docs/templates/toolkit/my-toolkit/` (as `starter/my-toolkit/`) and the reference toolkit
@@ -17,7 +21,7 @@ import { storedZip } from './zip';
  * Kit files are loaded only when a kit is built (lazy `?raw` imports). Pure apart from those imports.
  */
 
-export type KitKind = 'graph' | 'design' | 'project' | 'toolkit';
+export type KitKind = 'graph' | 'design' | 'project' | 'toolkit' | 'transform' | 'transform-project';
 
 interface KitFile {
   /** Path inside the kit folder. */
@@ -44,6 +48,16 @@ export const DESIGN_KIT_FILES: readonly KitFile[] = [
   { path: 'examples/largest-room-per-level.ts', load: () => import('../../../docs/ai-kit/design/examples/largest-room-per-level.ts?raw').then(raw) },
   { path: 'examples/same-function-neighbours.ts', load: () => import('../../../docs/ai-kit/design/examples/same-function-neighbours.ts?raw').then(raw) },
   { path: 'student-api.d.ts', load: () => import('../../../docs/ai-kit/design/student-api.d.ts?raw').then(raw) },
+];
+
+/** The transform kit's files, in zip order (the kit for a project adds `PROJECT.md` after `PROMPT.md`). */
+export const TRANSFORM_KIT_FILES: readonly KitFile[] = [
+  { path: 'PROMPT.md', load: () => import('../../../docs/ai-kit/transform/PROMPT.md?raw').then(raw) },
+  { path: 'README.md', load: () => import('../../../docs/ai-kit/transform/README.md?raw').then(raw) },
+  { path: 'examples/connect-touching-rooms.ts', load: () => import('../../../docs/ai-kit/transform/examples/connect-touching-rooms.ts?raw').then(raw) },
+  { path: 'examples/grow-in-one-direction.ts', load: () => import('../../../docs/ai-kit/transform/examples/grow-in-one-direction.ts?raw').then(raw) },
+  { path: 'examples/priority-from-missing-area.ts', load: () => import('../../../docs/ai-kit/transform/examples/priority-from-missing-area.ts?raw').then(raw) },
+  { path: 'student-api.d.ts', load: () => import('../../../docs/ai-kit/transform/student-api.d.ts?raw').then(raw) },
 ];
 
 /** The toolkit kit's own files, in zip order; the starter and the reference toolkit follow them. */
@@ -83,10 +97,11 @@ export function toolkitKitFiles(): readonly KitFile[] {
   return [...TOOLKIT_KIT_FILES, ...STARTER_TOOLKIT_FILES.map((f) => ({ ...f, path: `starter/my-toolkit/${f.path}` })), ...referenceToolkitFiles()];
 }
 
-/** The two templates (Template tab). */
+/** The templates (Template tab): two for analyses, one for transforms (2026-11-25). */
 export const TEMPLATES = {
   graph: { fileName: 'graph-analysis-template.ts', load: () => import('../../../docs/templates/graph-analysis-template.ts?raw').then(raw) },
   design: { fileName: 'design-analysis-template.ts', load: () => import('../../../docs/templates/design-analysis-template.ts?raw').then(raw) },
+  transform: { fileName: 'transform-template.ts', load: () => import('../../../docs/templates/transform-template.ts?raw').then(raw) },
 } as const;
 
 // ── PROJECT.md ──────────────────────────────────────────────────────────────────────────────
@@ -160,14 +175,37 @@ function exampleValue(f: SheetField): string | number | boolean {
   return f.kind === 'boolean' ? false : 'text';
 }
 
+/** What PROJECT.md is written for: an analysis (with `uses`) or a transform (2026-11-25). */
+export type SheetPurpose = 'analysis' | 'transform';
+
+const SHEET_WORDS: Readonly<Record<SheetPurpose, { readonly intro: string; readonly nodeFields: string; readonly edgeFields: string; readonly example: string }>> = {
+  analysis: {
+    intro:
+      'An analysis may use it, but must then list every Function id it names and every field it reads in `uses` ' +
+      '(`uses: { functions: [...], nodeFields: [...], edgeFields: [...] }`), and it will work only in projects that have them. ',
+    nodeFields: '## Custom node fields (`room.custom.<key>`, list them in `uses.nodeFields`)',
+    edgeFields: '## Custom edge fields (`edge.custom.<key>`, list them in `uses.edgeFields`)',
+    example: 'What `ctx.design` looks like for two nodes side by side when the analysis lists every field above in `uses`:',
+  },
+  transform: {
+    intro:
+      'A transform may use it: name its Functions (e.g. in `add-node`), read its custom fields with `ctx.nodeCustom(nodeId)` / `ctx.edgeCustom(edgeId)` ' +
+      'and set them with `set-node-custom-attribute` / `set-edge-custom-attribute`. It then works only in projects that have them. ',
+    nodeFields: '## Custom node fields (read `ctx.nodeCustom(nodeId)[key]`, set with `set-node-custom-attribute`)',
+    edgeFields: '## Custom edge fields (read `ctx.edgeCustom(edgeId)[key]`, set with `set-edge-custom-attribute`)',
+    example:
+      'Two nodes side by side with every field above (in `ctx.design`, `custom` holds only the values set on the node itself; `ctx.nodeCustom(nodeId)` also gives the defaults):',
+  },
+};
+
 /** PROJECT.md of the This project kit: the project's vocabulary, never its design. */
-export function projectSheet(input: ProjectSheetInput): string {
+export function projectSheet(input: ProjectSheetInput, purpose: SheetPurpose = 'analysis'): string {
+  const words = SHEET_WORDS[purpose];
   const out: string[] = [];
   out.push(`# This project: ${input.toolkit ? `toolkit ${input.toolkit.name}` : 'no toolkit'}`, '');
   out.push(
     'Written by Spatial Graph Lab when this kit was downloaded. It lists what THIS project has beyond what every project has. ' +
-      'An analysis may use it, but must then list every Function id it names and every field it reads in `uses` ' +
-      '(`uses: { functions: [...], nodeFields: [...], edgeFields: [...] }`), and it will work only in projects that have them. ' +
+      words.intro +
       'If the project changes (a new Function or field), download the kit again.',
     '',
   );
@@ -181,9 +219,9 @@ export function projectSheet(input: ProjectSheetInput): string {
     out.push('');
   }
 
-  out.push('## Custom node fields (`room.custom.<key>`, list them in `uses.nodeFields`)', '');
+  out.push(words.nodeFields, '');
   out.push(...(input.nodeFields.length === 0 ? ['This project has no custom node fields.'] : fieldTable(input.nodeFields, input)), '');
-  out.push('## Custom edge fields (`edge.custom.<key>`, list them in `uses.edgeFields`)', '');
+  out.push(words.edgeFields, '');
   out.push(...(input.edgeFields.length === 0 ? ['This project has no custom edge fields.'] : fieldTable(input.edgeFields, input)), '');
   out.push('A custom value may be missing or `null` ("no value"): check its type before using it.', '');
 
@@ -213,7 +251,7 @@ export function projectSheet(input: ProjectSheetInput): string {
     edges: [{ id: 1, source: 1, target: 2, relationship: 'access', custom: edgeCustom }],
   };
   out.push('## Example (made up, not your design)', '');
-  out.push('What `ctx.design` looks like for two nodes side by side when the analysis lists every field above in `uses`:', '');
+  out.push(words.example, '');
   out.push('```json', JSON.stringify(example, null, 2), '```', '');
   return out.join('\n');
 }
@@ -227,16 +265,22 @@ export function kitFileName(kind: KitKind, toolkit?: { readonly id: string } | n
   if (kind === 'graph') return 'spatial-graph-lab-graph-kit.zip';
   if (kind === 'design') return 'spatial-graph-lab-design-kit.zip';
   if (kind === 'toolkit') return 'spatial-graph-lab-toolkit-kit.zip';
+  if (kind === 'transform') return 'spatial-graph-lab-transform-kit.zip';
+  if (kind === 'transform-project') return `spatial-graph-lab-transform-kit-${toolkit ? slug(toolkit.id) : 'project'}.zip`;
   return `spatial-graph-lab-design-kit-${toolkit ? slug(toolkit.id) : 'project'}.zip`;
 }
 
+/** Whether a kit is built for the open project (it needs `project` and adds PROJECT.md). */
+export const isProjectKit = (kind: KitKind): boolean => kind === 'project' || kind === 'transform-project';
+
 /** Build one kit as zip bytes. `project` is required for the project kit. */
 export async function buildKit(kind: KitKind, project?: ProjectSheetInput): Promise<{ readonly fileName: string; readonly bytes: Uint8Array }> {
-  if (kind === 'project' && !project) throw new Error('the project kit needs the open project');
+  if (isProjectKit(kind) && !project) throw new Error('the project kit needs the open project');
   const fileName = kitFileName(kind, project?.toolkit);
   const folder = fileName.replace(/\.zip$/, '');
-  const files = kind === 'graph' ? GRAPH_KIT_FILES : kind === 'toolkit' ? toolkitKitFiles() : DESIGN_KIT_FILES;
+  const transform = kind === 'transform' || kind === 'transform-project';
+  const files = kind === 'graph' ? GRAPH_KIT_FILES : kind === 'toolkit' ? toolkitKitFiles() : transform ? TRANSFORM_KIT_FILES : DESIGN_KIT_FILES;
   const texts = await Promise.all(files.map(async (f) => ({ name: `${folder}/${f.path}`, text: await f.load() })));
-  if (kind === 'project') texts.splice(1, 0, { name: `${folder}/PROJECT.md`, text: projectSheet(project!) });
+  if (isProjectKit(kind)) texts.splice(1, 0, { name: `${folder}/PROJECT.md`, text: projectSheet(project!, transform ? 'transform' : 'analysis') });
   return { fileName, bytes: storedZip(texts) };
 }

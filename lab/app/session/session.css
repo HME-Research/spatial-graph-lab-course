@@ -335,3 +335,14 @@
   flex-direction: column;
   gap: var(--space-1);
 }
+
+/* Transform › one listed transform: its button, then ↻ / ✕ for an uploaded one (2026-11-25). */
+.sgl-transform-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.sgl-transform-row > .algorithm-item {
+  flex: 1 1 auto;
+  min-width: 0;
+}

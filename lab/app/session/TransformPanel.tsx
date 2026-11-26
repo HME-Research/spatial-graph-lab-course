@@ -1,21 +1,23 @@
-import { useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import type { DesignDocumentV2 } from '@app/document';
-import type { ActiveToolkit, ExtensionDiagnostic, ParameterSpec, TransformationPreviewV2 } from '@app/extensions';
+import { runUploadedTransform, type ActiveToolkit, type ExtensionDiagnostic, type ParameterSpec, type StoredUpload, type TransformationPreviewV2 } from '@app/extensions';
 import { ALGORITHM_TAB_LABELS, sourceTag, type AlgorithmSource } from '@app/ui/analysisSections';
+import type { Explainer } from '@app/ui/guideContracts';
 import { ExplainerWindow } from '@app/ui/guide';
 import { SourceTag } from '@app/ui/SourceTag';
 import { useFunctionName } from '@app/views/functionColour';
-import { ANALYSE_VS_TRANSFORM } from '@app/analysis/explainers';
 import '@app/analysis/analysis.css';
 import { selectNode, type SelectionHandler } from '@core/viewer/selection';
 import {
   describePreview,
+  draftsToParameters,
   formatValue,
   isStale,
   listAlgorithms,
   parameterLabel,
   parameterProblems,
   runEntryV2,
+  type AlgorithmEntry,
   type AlgorithmRunV2,
   type ApplyOutcome,
   type ParameterDrafts,
@@ -24,22 +26,20 @@ import {
   relationshipLabel,
 } from './algorithmSession';
 import type { DocumentVersion } from './documentSession';
+import { TRANSFORM_EXPLAINER, TRANSFORM_UPLOAD_BUTTON_LABEL, TRANSFORM_UPLOAD_NOTE, transformUploadExplainer } from './transformExplainers';
+import { addTransformUpload, transformUploadEntries, useUploadedTransforms, yoursTransformKey, type UploadedTransformEntry } from './transformUploads';
 
-/**
- * The Transform tab (Programme P4; formerly the transformation part of the Algorithms panel):
- * a Built-in section (hidden while empty; there are no built-in transformations yet), then
- * "Toolkit: <name>" with the toolkit's spatial algorithms. Choose one, set its parameters, Run:
- * a validated PREVIEW that changes the design only on an explicit Apply (one undo step; refused if
- * the design changed since the run); Discard drops it. Nothing runs automatically.
- */
-export function TransformPanel({
-  project,
-  version,
-  onApply,
-  onSelect,
-  attributes,
-  resolution,
-}: {
+const NO_UPLOADS: readonly StoredUpload[] = [];
+
+/** One transform the panel lists: a toolkit transform or an uploaded one (Yours). */
+interface TransformItem {
+  /** `toolkit:<file>` or `yours:<upload id>` (ids may collide, keys never do). */
+  readonly key: string;
+  readonly entry: AlgorithmEntry;
+  readonly upload?: UploadedTransformEntry;
+}
+
+export interface TransformPanelProps {
   readonly project: ActiveToolkit | null;
   /** The current (schema-v2) document and its revision; results are bound to it. */
   readonly version: DocumentVersion<DesignDocumentV2> | null;
@@ -53,51 +53,111 @@ export function TransformPanel({
   readonly attributes?: AttributesVersion;
   /** The design port's preference-aware resolution of the current document (`ctx.metrics` equals what the views show). */
   readonly resolution?: HostResolution;
-}) {
+  /** Whether the project has a toolkit (absent: it has one if it has algorithms). */
+  readonly hasToolkit?: boolean;
+  /** The student's uploaded transforms (project `settings.uploadedTransforms`); absent: none. */
+  readonly uploads?: readonly StoredUpload[];
+  /** Store a new list of uploaded transforms (add, replace, remove); absent: uploading is not offered. */
+  readonly onUploads?: (uploads: readonly StoredUpload[]) => void;
+}
+
+/**
+ * The Transform tab (Programme P4; uploads 2026-11-25): at the top ONE "Upload your own (.ts)"
+ * button with an ⓘ (what an uploaded transform is, then the transform AI kit tabs), then the tab's
+ * summary with its own ⓘ (`TRANSFORM_EXPLAINER`), then "Yours" (uploaded transforms; a loading or
+ * failed one is listed disabled with its reason; ↻ replaces, ✕ removes) and "Toolkit: <name>" with
+ * the toolkit's spatial algorithms. (A Built-in section stays hidden while empty.) Choose one, set
+ * its parameters, Run: a validated PREVIEW that changes the design only on an explicit Apply (one
+ * undo step; refused if the design changed since the run); Discard drops it. An uploaded transform
+ * runs in a worker (asynchronous, "Running…") and gives the same preview. Nothing runs automatically.
+ */
+export function TransformPanel({ project, version, onApply, onSelect, attributes, resolution, hasToolkit, uploads = NO_UPLOADS, onUploads }: TransformPanelProps) {
   // Only transformations (spatial algorithms, and broken definitions that may be one) belong here.
   const algorithms = listAlgorithms(project).filter((a) => a.scope !== 'graph' && a.scope !== 'design');
-  // Selected by file: ids may collide (duplicate definitions are listed separately, both disabled).
-  const [selectedFile, setSelectedFile] = useState<string | null>(() => algorithms.find((a) => a.enabled)?.file ?? algorithms[0]?.file ?? null);
+  const loaded = useUploadedTransforms(uploads);
+  const yours = transformUploadEntries(loaded);
+  const toolkitItems: TransformItem[] = algorithms.map((a) => ({ key: `toolkit:${a.file}`, entry: a }));
+  const yourItems: TransformItem[] = yours.map((u) => ({ key: u.key, entry: u, upload: u }));
+  const items = [...yourItems, ...toolkitItems];
+
+  // Selected by key: ids may collide (duplicate definitions are listed separately, both disabled).
+  const [selectedKey, setSelectedKey] = useState<string | null>(() => toolkitItems.find((a) => a.entry.enabled)?.key ?? toolkitItems[0]?.key ?? null);
   const [drafts, setDrafts] = useState<Readonly<Record<string, ParameterDrafts>>>({});
   const [run, setRun] = useState<AlgorithmRunV2 | null>(null);
   const [notice, setNotice] = useState<{ readonly tone: 'ok' | 'error'; readonly text: string } | null>(null);
+  const [explainer, setExplainer] = useState<Explainer | null>(null);
+  /** The uploaded transform whose worker is running (one at a time). */
+  const [running, setRunning] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  /** Result of the last upload / replace: where to show it (`top`, or an item key) and what. */
+  const [uploadNotice, setUploadNotice] = useState<{ readonly at: string; readonly ok: boolean; readonly lines: readonly string[] } | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  /** The upload a chosen file replaces (null: a new upload). */
+  const replacing = useRef<string | null>(null);
+  /** Grows with every run started and every change of selection: a reply for an older run is dropped. */
+  const runToken = useRef(0);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
-  const selectedIndex = algorithms.findIndex((a) => a.file === selectedFile);
-  const selected = selectedIndex >= 0 ? algorithms[selectedIndex]! : null;
-  const entryDrafts = (selected && drafts[selected.id]) ?? {};
-  const problems = selected?.enabled ? parameterProblems(selected, entryDrafts) : [];
-  const [explainerOpen, setExplainerOpen] = useState(false);
-  const toolkitName = project?.definition.name ?? null;
+  // The selected item, else the first enabled toolkit transform, else the first upload.
+  const selected =
+    items.find((i) => i.key === selectedKey) ?? toolkitItems.find((i) => i.entry.enabled) ?? toolkitItems[0] ?? yourItems.find((i) => i.entry.enabled) ?? null;
+  const entryDrafts = (selected && drafts[selected.key]) ?? {};
+  const problems = selected?.entry.enabled ? parameterProblems(selected.entry, entryDrafts) : [];
+  const withToolkit = hasToolkit ?? (project !== null && project.algorithms.length > 0);
+  const toolkitName = withToolkit ? (project?.definition.name ?? null) : null;
   const source: AlgorithmSource | null = toolkitName !== null ? { kind: 'toolkit', toolkitName } : null;
 
-  const intro = (
-    <p className="sgl-help sgl-tab-intro">
-      {ALGORITHM_TAB_LABELS.transform.summary}{' '}
-      <button type="button" className="sgl-info-button" aria-label="About Analyse vs Transform" title="Analyse vs Transform" onClick={() => setExplainerOpen(true)}>
-        ⓘ
-      </button>
-      <ExplainerWindow explainer={ANALYSE_VS_TRANSFORM} open={explainerOpen} onClose={() => setExplainerOpen(false)} />
-    </p>
-  );
+  const choose = (key: string) => {
+    runToken.current++;
+    setSelectedKey(key);
+    setRun(null);
+    setRunning(null);
+    setNotice(null);
+  };
 
-  if (!project || algorithms.length === 0) {
-    return (
-      <div className="algorithms transform-panel sgl-inspector">
-        {intro}
-        <p className="meta">
-          {project && project.id !== '' && toolkitName
-            ? <>Toolkit “{toolkitName}” has no transformations. Add one in <code>toolkits/{project.id}/algorithms/</code> with <code>defineSpatialAlgorithm</code>.</>
-            : <>No transformations yet. They come from the project’s toolkit (<code>toolkits/&lt;id&gt;/algorithms/</code>).</>}
-        </p>
-      </div>
-    );
-  }
+  /** An uploaded transform runs in a worker: asynchronous, stopped after the timeout. */
+  const runUpload = async (item: TransformItem, at: DocumentVersion<DesignDocumentV2>, registry: ActiveToolkit) => {
+    const upload = loaded.find((u) => u.stored.id === item.upload?.uploadId);
+    if (!upload || upload.status === 'loading' || !upload.status.ok) return;
+    const token = ++runToken.current;
+    const attributesRevision = attributes?.revision;
+    const spatial = resolution && resolution.doc === at.doc ? resolution.spatial : undefined;
+    setRun(null);
+    setRunning(item.key);
+    const outcome = await runUploadedTransform(upload.status, upload.stored.fileName, at.doc, registry, draftsToParameters(item.entry, entryDrafts), {
+      ...(attributes && { attributes: attributes.schema }),
+      ...(spatial && { spatial }),
+    });
+    if (!mounted.current || token !== runToken.current) return;
+    setRunning(null);
+    setRun({
+      algorithmId: item.entry.id,
+      label: item.entry.label,
+      doc: at.doc,
+      revision: at.revision,
+      ...(attributesRevision !== undefined && { attributesRevision }),
+      outcome,
+    });
+  };
 
   const execute = (e: FormEvent) => {
     e.preventDefault();
-    if (!selected || !selected.enabled || !version) return;
+    if (!selected || !selected.entry.enabled || !version || !project) return;
     setNotice(null);
-    setRun(runEntryV2(version, project, selected, entryDrafts, attributes, resolution));
+    if (selected.upload) {
+      void runUpload(selected, version, project);
+      return;
+    }
+    runToken.current++;
+    setRunning(null);
+    setRun(runEntryV2(version, project, selected.entry, entryDrafts, attributes, resolution));
   };
 
   const apply = (preview: TransformationPreviewV2, confirmed: boolean) => {
@@ -109,75 +169,226 @@ export function TransformPanel({
     } else setNotice({ tone: 'error', text: outcome.message });
   };
 
-  return (
-    <div className="algorithms transform-panel sgl-inspector">
-      {intro}
-      {/* Built-in transformations: none yet, so the section is hidden (P4: hidden while empty). */}
-      <section aria-labelledby="transform-toolkit" className="sgl-algo-group" data-transform-section="toolkit">
-        <div className="sgl-algo-group-head">
-          <h3 id="transform-toolkit">{source ? sourceTag(source) : 'Toolkit'}</h3>
-        </div>
-        <ul className="sgl-algo-items" aria-label="Transformations">
-          {algorithms.map((a, i) => (
-            <li key={a.file}>
+  // ── Uploading (2026-11-25, as in Analyse) ──
+  const chooseFile = (replaceId: string | null) => {
+    replacing.current = replaceId;
+    setUploadNotice(null);
+    fileInput.current?.click();
+  };
+
+  const onFileChosen = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    const replaceId = replacing.current;
+    replacing.current = null;
+    input.value = '';
+    if (!file || !onUploads) return;
+    const at = replaceId === null ? 'top' : yoursTransformKey(replaceId);
+    setUploading(true);
+    const check = await addTransformUpload(file, loaded, replaceId);
+    if (!mounted.current) return;
+    setUploading(false);
+    if (!check.ok) {
+      setUploadNotice({ at, ok: false, lines: [`Could not ${replaceId === null ? 'add' : 'replace with'} ${file.name}:`, ...check.problems] });
+      return;
+    }
+    const uploadId = replaceId ?? check.uploads.at(-1)?.id;
+    onUploads(check.uploads);
+    if (uploadId !== undefined) {
+      const key = yoursTransformKey(uploadId);
+      if (replaceId !== null) setDrafts((current) => ({ ...current, [key]: {} }));
+      choose(key);
+    }
+    setUploadNotice({ at, ok: true, lines: [`${replaceId === null ? 'Added' : 'Replaced with'} “${check.definition.label}” (Yours).`] });
+  };
+
+  const removeUpload = (uploadId: string) => {
+    if (!onUploads) return;
+    const key = yoursTransformKey(uploadId);
+    if (selected?.key === key) choose('');
+    setConfirmRemove(null);
+    setUploadNotice(null);
+    onUploads(uploads.filter((u) => u.id !== uploadId));
+  };
+
+  const itemButton = (item: TransformItem) => {
+    const { entry, upload } = item;
+    const isSelected = item.key === selected?.key;
+    return (
+      <li key={item.key} data-transform={item.key}>
+        <div className="sgl-transform-row">
+          <button
+            type="button"
+            aria-pressed={isSelected}
+            className={isSelected ? 'algorithm-item selected' : 'algorithm-item'}
+            title={
+              upload?.loading
+                ? `Loading ${upload.fileName}…`
+                : entry.enabled
+                  ? 'Shows a preview; the design changes only when you Apply it (one undo step).'
+                  : upload
+                    ? entry.problems.join('\n')
+                    : 'Its definition is invalid, so it cannot run.'
+            }
+            onClick={() => choose(item.key)}
+          >
+            <span className="algorithm-text">
+              <span className="algorithm-label">{entry.label}</span>
+              <span className="algorithm-meta">
+                {upload ? <SourceTag text="Yours" title={`Uploaded from ${upload.fileName}`} /> : source && <SourceTag text={sourceTag(source)} />}
+                {!entry.enabled && !upload?.loading && <span className="algorithm-tag effect-unavailable">Disabled</span>}
+              </span>
+            </span>
+          </button>
+          {upload && onUploads && (
+            <>
               <button
                 type="button"
-                aria-pressed={i === selectedIndex}
-                className={i === selectedIndex ? 'algorithm-item selected' : 'algorithm-item'}
-                title={a.enabled ? 'Shows a preview; the design changes only when you Apply it (one undo step).' : 'Its definition is invalid, so it cannot run.'}
-                onClick={() => {
-                  setSelectedFile(a.file);
-                  setRun(null);
-                  setNotice(null);
-                }}
+                className="sgl-analyse-mini"
+                aria-label={`Replace ${entry.label} with a new version`}
+                title="Replace with a new version of the file (keeps its place)"
+                disabled={uploading}
+                onClick={() => chooseFile(upload.uploadId)}
               >
-                <span className="algorithm-text">
-                  <span className="algorithm-label">{a.label}</span>
-                  <span className="algorithm-meta">
-                    {source && <SourceTag text={sourceTag(source)} />}
-                    {!a.enabled && <span className="algorithm-tag effect-unavailable">Disabled</span>}
-                  </span>
-                </span>
+                ↻
               </button>
-            </li>
-          ))}
-        </ul>
-      </section>
+              <button
+                type="button"
+                className="sgl-analyse-mini"
+                aria-label={`Remove ${entry.label}`}
+                title="Remove this uploaded transform from the project"
+                onClick={() => setConfirmRemove(upload.uploadId)}
+              >
+                ✕
+              </button>
+            </>
+          )}
+        </div>
+        {upload?.loading && <p className="sgl-analyse-small">Loading {upload.fileName}…</p>}
+        {upload && !entry.enabled && !upload.loading && <p className="sgl-error sgl-analyse-small">Disabled: {entry.problems[0] ?? 'invalid definition'}</p>}
+        {upload && confirmRemove === upload.uploadId && (
+          <div className="sgl-analyse-confirm" role="group" aria-label={`Remove ${entry.label}?`}>
+            <span>Remove “{entry.label}” from this project? The file on your computer is not changed.</span>
+            <div className="sgl-buttons">
+              <button type="button" onClick={() => removeUpload(upload.uploadId)}>
+                Remove
+              </button>
+              <button type="button" onClick={() => setConfirmRemove(null)}>
+                Keep
+              </button>
+            </div>
+          </div>
+        )}
+        {uploadNotice?.at === item.key && <UploadNotice notice={uploadNotice} />}
+      </li>
+    );
+  };
+
+  const isRunning = selected !== null && running === selected.key;
+
+  return (
+    <div className="algorithms transform-panel sgl-inspector">
+      {onUploads && (
+        <div className="sgl-analyse-upload" data-upload-block>
+          <div className="sgl-analyse-upload-row">
+            <button type="button" data-upload="new" disabled={uploading} onClick={() => chooseFile(null)}>
+              {uploading ? 'Checking the file…' : TRANSFORM_UPLOAD_BUTTON_LABEL}
+            </button>
+            <button
+              type="button"
+              className="sgl-info-button"
+              aria-label="About uploading your own transform"
+              title="About uploading your own transform"
+              aria-haspopup="dialog"
+              data-upload-info-button
+              onClick={() => setExplainer(transformUploadExplainer())}
+            >
+              ⓘ
+            </button>
+          </div>
+          <p className="sgl-help sgl-analyse-upload-note">{TRANSFORM_UPLOAD_NOTE}</p>
+          {uploadNotice?.at === 'top' && <UploadNotice notice={uploadNotice} />}
+        </div>
+      )}
+      <p className="sgl-help sgl-tab-intro">
+        {ALGORITHM_TAB_LABELS.transform.summary}{' '}
+        <button type="button" className="sgl-info-button" aria-label="About Transform" title="About Transform" aria-haspopup="dialog" onClick={() => setExplainer(TRANSFORM_EXPLAINER)}>
+          ⓘ
+        </button>
+      </p>
+
+      {/* Built-in transformations: none yet, so the section is hidden (P4: hidden while empty). */}
+      {yourItems.length > 0 && (
+        <section aria-labelledby="transform-yours" className="sgl-algo-group" data-transform-section="yours">
+          <div className="sgl-algo-group-head">
+            <h3 id="transform-yours">Yours</h3>
+          </div>
+          <ul className="sgl-algo-items" aria-label="Your transformations">
+            {yourItems.map(itemButton)}
+          </ul>
+        </section>
+      )}
+      {toolkitItems.length > 0 && (
+        <section aria-labelledby="transform-toolkit" className="sgl-algo-group" data-transform-section="toolkit">
+          <div className="sgl-algo-group-head">
+            <h3 id="transform-toolkit">{source ? sourceTag(source) : 'Toolkit'}</h3>
+          </div>
+          <ul className="sgl-algo-items" aria-label="Transformations">
+            {toolkitItems.map(itemButton)}
+          </ul>
+        </section>
+      )}
+      {toolkitItems.length === 0 && (
+        <p className="meta" data-transform-empty="">
+          {project && toolkitName
+            ? <>Toolkit “{toolkitName}” has no transformations (add one in <code>toolkits/{project.id}/algorithms/</code> with <code>defineSpatialAlgorithm</code>).{yourItems.length === 0 && onUploads && <> Upload your own (.ts) above.</>}</>
+            : yourItems.length > 0
+              ? <>This project has no toolkit transformations.</>
+              : onUploads
+                ? <>No transformations yet. Upload your own (.ts) above, or use a toolkit with transformations (<code>toolkits/&lt;id&gt;/algorithms/</code>).</>
+                : <>No transformations yet. Open a project to upload your own (.ts), or use a toolkit with transformations (<code>toolkits/&lt;id&gt;/algorithms/</code>).</>}
+        </p>
+      )}
 
       {selected && (
         <form className="sgl-section" onSubmit={execute}>
           <p className="sgl-help">
             Shows a preview; the design changes only when you Apply it (one undo step).{' '}
-            <span className="algorithm-source" title={selected.file}>
-              <code>{selected.id}</code>
+            <span className="algorithm-source" title={selected.upload ? `Uploaded from ${selected.upload.fileName}` : selected.entry.file}>
+              <code>{selected.entry.id}</code>
             </span>
           </p>
-          {!selected.enabled && (
+          {!selected.entry.enabled && !selected.upload?.loading && (
             <div className="sgl-error">
-              ✖ This algorithm is disabled because its definition is invalid:
+              ✖ {selected.upload ? 'This uploaded transform cannot run:' : 'This algorithm is disabled because its definition is invalid:'}
               <ul className="sgl-list">
-                {selected.problems.map((p, i) => (
+                {selected.entry.problems.map((p, i) => (
                   <li key={i}>{p}</li>
                 ))}
               </ul>
             </div>
           )}
-          {selected.parameters.length > 0 && <h4>Parameters</h4>}
-          {selected.parameters.map(([key, spec]) => (
+          {selected.entry.parameters.length > 0 && <h4>Parameters</h4>}
+          {selected.entry.parameters.map(([key, spec]) => (
             <ParameterField
-              key={`${selected.id}:${key}`}
+              key={`${selected.key}:${key}`}
               name={key}
               spec={spec}
               draft={entryDrafts[key] ?? ''}
-              onChange={(value) => setDrafts({ ...drafts, [selected.id]: { ...entryDrafts, [key]: value } })}
+              onChange={(value) => setDrafts({ ...drafts, [selected.key]: { ...entryDrafts, [key]: value } })}
             />
           ))}
           <DiagnosticLines diagnostics={problems} />
           <div className="sgl-buttons">
-            <button type="submit" className="sgl-primary" disabled={!selected.enabled || problems.length > 0 || !version}>
+            <button type="submit" className="sgl-primary" disabled={!selected.entry.enabled || problems.length > 0 || !version || !project || isRunning}>
               Run
             </button>
           </div>
+          {isRunning && (
+            <p className="sgl-analyse-small" role="status">
+              Running…
+            </p>
+          )}
         </form>
       )}
 
@@ -192,6 +403,29 @@ export function TransformPanel({
           onSelect={onSelect}
         />
       )}
+      {explainer && <ExplainerWindow explainer={explainer} open onClose={() => setExplainer(null)} />}
+      {onUploads && (
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".ts,.js"
+          hidden
+          data-upload-input
+          aria-label="Upload a transform (.ts)"
+          onChange={(event) => void onFileChosen(event)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** What happened to the last upload / replacement. */
+function UploadNotice({ notice }: { readonly notice: { readonly ok: boolean; readonly lines: readonly string[] } }) {
+  return (
+    <div className={notice.ok ? 'sgl-analyse-small sgl-analyse-upload-ok' : 'sgl-error sgl-analyse-small'} role={notice.ok ? 'status' : 'alert'} data-upload-notice={notice.ok ? 'ok' : 'error'}>
+      {notice.lines.map((line, n) => (
+        <div key={n}>{line}</div>
+      ))}
     </div>
   );
 }

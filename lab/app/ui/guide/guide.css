@@ -41,6 +41,21 @@
   color: var(--muted, #62625c);
   margin-right: 4px;
 }
+.sgl-explainer-points {
+  margin: 0 0 var(--space-2, 8px);
+}
+.sgl-explainer-points-title {
+  margin: 0 0 2px;
+  font-size: var(--text-sm, 13px);
+  font-weight: 650;
+}
+.sgl-explainer-points ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.sgl-explainer-points li {
+  margin: 0 0 2px;
+}
 .sgl-explainer-diagram:empty {
   display: none;
 }

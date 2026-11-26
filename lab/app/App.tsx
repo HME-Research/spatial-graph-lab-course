@@ -229,6 +229,8 @@ export function App() {
   const shownBuiltIns = useMemo(() => sanitizeShownAnalyses(storedAnalyses), [storedAnalyses]);
   /** The student's uploaded analyses (`settings.uploadedAnalyses`, P4 item I): source text, compiled by the Analyse panel. */
   const uploadedAnalyses = openProject?.meta.settings.uploadedAnalyses;
+  /** The student's uploaded transforms (`settings.uploadedTransforms`, 2026-11-25): source text, compiled by the Transform panel. */
+  const uploadedTransforms = openProject?.meta.settings.uploadedTransforms;
   /** The project's imported façades (`assets`): drawn by the Building, managed in the Designer. */
   const storedAssets = openProject?.meta.assets;
   const facadeLibrary = useMemo(() => (storedAssets ? facadeLibraryOf(facadeAssetsOf(storedAssets)) : EMPTY_FACADE_LIBRARY), [storedAssets]);
@@ -889,6 +891,9 @@ Continue? (Cancel keeps it open: use Project → Save locally, or Export project
                           version={version}
                           onApply={onApplyPreview}
                           onSelect={select}
+                          hasToolkit={toolkitId !== null}
+                          {...(uploadedTransforms && { uploads: uploadedTransforms })}
+                          {...(openProject && { onUploads: (list: readonly StoredUpload[]) => controller.setUploadedTransforms(list) })}
                           {...(attributesVersion && { attributes: attributesVersion })}
                           {...(port && { resolution: port })}
                         />

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { GuidePromptGuide } from '../guideContracts';
 import { HorizontalTabs } from '../Tabs';
-import { DESIGN_PROMPT_GUIDE, GRAPH_PROMPT_GUIDE, PROJECT_PROMPT_GUIDE } from './aiPrompt';
+import { DESIGN_PROMPT_GUIDE, GRAPH_PROMPT_GUIDE, PROJECT_PROMPT_GUIDE, TRANSFORM_PROJECT_PROMPT_GUIDE, TRANSFORM_PROMPT_GUIDE } from './aiPrompt';
 import { buildKit, kitFileName, TEMPLATES, type KitKind, type ProjectSheetInput } from './aiKits';
 import { DownloadButton, saveFile } from './DownloadButton';
 import { useAiKitProject } from './projectKit';
@@ -16,6 +16,10 @@ import { useAiKitProject } from './projectKit';
  * - **This project**: the open project's toolkit (or "No toolkit"), and the design kit with a
  *   generated PROJECT.md (its Functions and custom fields, never the design).
  * - **Template**: the graph and the design template, to change by hand.
+ *
+ * With `purpose="transform"` (2026-11-25, the ⓘ of Transform › Upload your own (.ts)) the same tabs
+ * offer the transform kit (Any project, no checkbox), the transform kit with PROJECT.md (This
+ * project) and the transform template.
  */
 
 export type AiKitTabId = 'any' | 'project' | 'template';
@@ -30,7 +34,90 @@ export const BASICS_LABEL = 'Include node basics';
 export const BASICS_HELP =
   'Node basics: each node’s Function, size, position and level, each edge’s Relationship (Access / Open) and calculated values such as area. Never custom fields. Off: node ids and edges only (a graph analysis).';
 
-export function AiKitTabs({ initialTab = 'any', initialBasics = true }: { readonly initialTab?: AiKitTabId; readonly initialBasics?: boolean }) {
+/** The words under the Any project download of the transform kit. */
+export const TRANSFORM_ANY_HELP =
+  'Any project: the transform reads each node’s Function, size, position and level, each edge’s Relationship (Access / Open) and calculated values such as area, and names only Functions found in your design. Never custom fields.';
+
+export function AiKitTabs({
+  initialTab = 'any',
+  initialBasics = true,
+  purpose = 'analysis',
+}: {
+  readonly initialTab?: AiKitTabId;
+  readonly initialBasics?: boolean;
+  /** Which kits to offer: analyses (the default) or transforms (2026-11-25). */
+  readonly purpose?: 'analysis' | 'transform';
+}) {
+  if (purpose === 'transform') return <TransformKitTabs initialTab={initialTab} />;
+  return <AnalysisKitTabs initialTab={initialTab} initialBasics={initialBasics} />;
+}
+
+/** The transform kits in the same three tabs (the ⓘ of Transform › Upload your own (.ts)). */
+function TransformKitTabs({ initialTab }: { readonly initialTab: AiKitTabId }) {
+  const project = useAiKitProject();
+  const [tab, setTab] = useState<AiKitTabId>(initialTab);
+  return (
+    <section className="sgl-aikits" data-ai-kits="transform">
+      <p className="sgl-aikits-intro">
+        Start with the simplest tab that can do your idea. <strong>Any project</strong>: works in every project. <strong>This project</strong>: can also use your
+        toolkit’s and your own Functions and fields.
+      </p>
+      <HorizontalTabs tabs={TABS} active={tab} onActive={setTab} label="Ways to write your own transform">
+        {tab === 'any' && (
+          <div data-ai-kit-tab="any">
+            <p className="sgl-help sgl-aikits-help">{TRANSFORM_ANY_HELP}</p>
+            <KitDownload kind="transform" label="Transform kit (.zip)" />
+            <PromptGuide guide={TRANSFORM_PROMPT_GUIDE} />
+          </div>
+        )}
+        {tab === 'project' && (
+          <div data-ai-kit-tab="project">
+            {project ? (
+              <>
+                <ProjectLine project={project} />
+                <p className="sgl-help sgl-aikits-help">
+                  {project.toolkit
+                    ? 'The kit adds PROJECT.md: this project’s Functions and custom fields, from the toolkit and your own (Yours), so the transform may add nodes of those Functions and read or set those fields.'
+                    : 'This project has no toolkit: the kit adds PROJECT.md with your project’s own Functions and fields, so the transform may use them.'}{' '}
+                  It then works only in projects that have the ones it uses. The kit never contains your design.
+                </p>
+                <KitDownload kind="transform-project" project={project} label="Transform kit for this project (.zip)" />
+                <PromptGuide guide={TRANSFORM_PROJECT_PROMPT_GUIDE} />
+              </>
+            ) : (
+              <p className="sgl-help">Open or create a project to download its kit.</p>
+            )}
+          </div>
+        )}
+        {tab === 'template' && (
+          <div data-ai-kit-tab="template">
+            <p className="sgl-help sgl-aikits-help">Write it yourself: change the template, then upload it in Transform with Upload your own (.ts).</p>
+            <ul className="sgl-explainer-downloads" aria-label="Templates">
+              <li>
+                <DownloadButton download={{ label: 'Transform template (.ts)', ...TEMPLATES.transform, note: 'connects nodes that touch; any project.' }} />
+              </li>
+            </ul>
+          </div>
+        )}
+      </HorizontalTabs>
+    </section>
+  );
+}
+
+/** "Toolkit: House — 12 Functions, 2 custom fields" (or "No toolkit"). */
+function ProjectLine({ project }: { readonly project: ProjectSheetInput }) {
+  const fields = project.nodeFields.length + project.edgeFields.length;
+  return (
+    <p className="sgl-aikits-toolkit" data-kit-toolkit="">
+      <strong>{project.toolkit ? `Toolkit: ${project.toolkit.name}` : 'No toolkit'}</strong>
+      {' — '}
+      {project.functions.length} Function{project.functions.length === 1 ? '' : 's'}, {fields} custom field
+      {fields === 1 ? '' : 's'}
+    </p>
+  );
+}
+
+function AnalysisKitTabs({ initialTab, initialBasics }: { readonly initialTab: AiKitTabId; readonly initialBasics: boolean }) {
   const project = useAiKitProject();
   const [tab, setTab] = useState<AiKitTabId>(initialTab);
   const [basics, setBasics] = useState(initialBasics);
@@ -55,12 +142,7 @@ export function AiKitTabs({ initialTab = 'any', initialBasics = true }: { readon
           <div data-ai-kit-tab="project">
             {project ? (
               <>
-                <p className="sgl-aikits-toolkit" data-kit-toolkit="">
-                  <strong>{project.toolkit ? `Toolkit: ${project.toolkit.name}` : 'No toolkit'}</strong>
-                  {' — '}
-                  {project.functions.length} Function{project.functions.length === 1 ? '' : 's'}, {project.nodeFields.length + project.edgeFields.length} custom field
-                  {project.nodeFields.length + project.edgeFields.length === 1 ? '' : 's'}
-                </p>
+                <ProjectLine project={project} />
                 <p className="sgl-help sgl-aikits-help">
                   {project.toolkit
                     ? 'The kit adds PROJECT.md: this project’s Functions and custom fields, from the toolkit and your own (Yours), so the analysis may use them.'

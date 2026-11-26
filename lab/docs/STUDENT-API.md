@@ -232,7 +232,7 @@ The same file also works without a toolkit: in **Analyse**, choose **Upload your
 Rules and limits for uploads:
 - One `.ts` (or `.js`) file, at most 100 KB, at most 20 uploads per project. Types are removed when it is loaded; nothing is type-checked, the app checks everything at runtime.
 - It may import only `@student-api`, and from it only `defineGraphAlgorithm`, `defineDesignAnalysis`, the graph helpers (`neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite`) and the grid helpers (`roomCells`, `neighbourCell`, `FACE_DIRECTIONS`). Any other import is refused with its name; helper functions go in the same file.
-- Only analyses: `defineSpatialAlgorithm` is refused ("Uploaded files can only analyse (defineGraphAlgorithm or defineDesignAnalysis); transforms must live in a toolkit folder.").
+- Only analyses here: a transform (`defineSpatialAlgorithm`) is refused with "This file is a transform (defineSpatialAlgorithm): upload it in Transform › Upload your own (.ts). …" (see [Uploading a transform](#uploading-a-transform-no-toolkit-needed)). `defineToolkit` and `defineFunction` are refused too.
 - It runs in a separate background worker. A graph analysis receives only node ids, edges and the picked inputs; a design analysis also receives the rooms (with only the custom fields it lists in `uses`) and the calculated values, prepared by the app. Never the page or your storage. A run that takes longer than 3 seconds is stopped: "Stopped after 3 s — does it loop forever?".
 - The definition and every result are checked exactly as for a toolkit analysis. Syntax errors and exceptions are shown with the line number.
 - The project file keeps the file's **source text** (`settings.uploadedAnalyses`), so it travels with Save, Export and Open. If a stored upload no longer loads, it is listed disabled with the reason; the project still opens.
@@ -308,6 +308,17 @@ export default defineSpatialAlgorithm({
 ```
 
 When you create several items in one run, give each a different `ref`.
+
+### Uploading a transform (no toolkit needed)
+
+A transform also works without a toolkit (2026-11-25): in **Transform**, choose **Upload your own (.ts)** at the top of the tab. The file is one `.ts` file that ends with `export default defineSpatialAlgorithm({ id, label, parameters, run })`, exactly as in `algorithms/`. It is listed under **Yours** with its parameters; choose it, set the parameters and **Run**: the same validated preview as a toolkit transform, and the design changes only when you **Apply** it (one Undo step; **Discard** drops it; a preview is out of date once the design changes). ↻ replaces it with a new version of the file (it keeps its place); ✕ removes it from the project. Start from the template (`lab/docs/templates/transform-template.ts`) or give an AI kit to an AI assistant: the ⓘ beside the button (and **Guide › Toolkits & JSON › Write your own transform**) offers **Any project** (the transform kit, `lab/docs/ai-kit/transform/`), **This project** (the kit plus a generated `PROJECT.md` with the project's Functions and custom fields) and **Template**, each with how to write the prompt (idea, parameters, changes).
+
+What works, and the one thing that does not:
+- Everything in the context table above **except `customOf`**: an uploaded file cannot import a Function definition from a toolkit's `functions/` folder, so `ctx.customOf(…)` stops the run with "customOf needs a Function from a toolkit's functions/ folder, which an uploaded file cannot import. In an uploaded transform, read a room's fields with ctx.nodeCustom(nodeId)." Read fields with `ctx.nodeCustom(nodeId)` / `ctx.edgeCustom(edgeId)` (the same values).
+- Every operation above. `add-node` may use any Function of the open project: the toolkit's, or your own project Functions (also in a project without a toolkit).
+- Imports: only `@student-api`, and from it `defineSpatialAlgorithm`, the graph helpers (`neighbours`, `incidentEdges`, `edgesBetween`, `getNode`, `getEdge`, `opposite`) and the grid helpers (`roomCells`, `neighbourCell`, `FACE_DIRECTIONS`). An analysis (`defineGraphAlgorithm`, `defineDesignAnalysis`) is refused here, pointing to Analyse.
+- It runs in the same background worker as uploaded analyses: the app sends plain data only (copies of the nodes and edges, the project's custom fields, every node's and edge's field values, the occupied cells, which rooms touch and which are related, every calculated value, and the checked parameters), never the page or your storage. It is stopped after 3 seconds. The parameters are checked before the run, and the result is checked exactly like a toolkit transform's.
+- Limits as for analyses: one file of at most 100 KB, at most 20 uploaded transforms per project, ids unique among them. The project file keeps the **source text** (`settings.uploadedTransforms`), so it travels with Save, Export and Open; a stored transform that no longer loads is listed disabled with the reason.
 
 ### Calculated values
 
@@ -395,7 +406,7 @@ parameters: {
 
 - TypeScript checks your code when you run `npm run typecheck`, but the app **also checks everything at runtime**, because the development server runs code without type checking.
 - Your toolkit may import only `@student-api` and files in your own toolkit folder. Tests enforce this.
-- Toolkit code is not sandboxed: an infinite loop in a toolkit algorithm freezes the browser tab. Uploaded analyses run in a worker and are stopped after 3 seconds (isolation, not a security guarantee: upload only code you trust).
+- Toolkit code is not sandboxed: an infinite loop in a toolkit algorithm freezes the browser tab. Uploaded analyses and transforms run in a worker and are stopped after 3 seconds (isolation, not a security guarantee: upload only code you trust).
 - Use deterministic rules. If you need randomness, derive it from a parameter (a seed) so results can be reproduced.
 
 ## 7. Reference
@@ -406,7 +417,7 @@ Exports of `@student-api`:
 - **Grid helpers:** `FACE_DIRECTIONS`, `neighbourCell`, `roomCells` (every cell of a room's box)
 - **Types:** `AttributeSpec`, `AttributeValue`, `AttributesOf`, `FunctionDefinition`, `FacadeParameters`, `CustomFieldInfo`, `ToolkitDefinition`, `ToolkitAttributes`, `ToolkitAttributeSpec`, `ToolkitAttributeSpecs`, `Graph`, `NodeRecord`, `EdgeRecord`, `GridCoord`, `RoomSize`, `SpatialNode`, `SpatialEdge`, `RelationshipKind`, `CorridorLook`, `CorridorWalls`, `CorridorRoof`, `SpatialOperation`, `ItemRef`, `AnalysisInput`, `AnalysisResult`, `TransformationResult`, `GraphAlgorithmContext`, `DesignAnalysisContext`, `DesignAnalysisDefinition`, `AnalysisUses`, `FunctionInfo`, `SpatialAlgorithmContext`, `MetricInfo`, `MetricReader` (`ctx.metrics`)
 
-**Added in P4:** `set-node-geometry` (move or resize a room in a transformation); optional `description` of a graph analysis; uploaded analyses (see "Uploading an analysis"). **Added 20 November 2026:** design analyses (`defineDesignAnalysis`, see "Design analysis"), also as uploads.
+**Added in P4:** `set-node-geometry` (move or resize a room in a transformation); optional `description` of a graph analysis; uploaded analyses (see "Uploading an analysis"). **Added 20 November 2026:** design analyses (`defineDesignAnalysis`, see "Design analysis"), also as uploads. **Added 25 November 2026:** uploaded transforms (see "Uploading a transform"; `customOf` is not available there).
 
 **Changes in P4 (19 November 2026).** Schema v1 is gone: the old kinds (`door`, `atrium`, `vertical-access`), `canConnect` and `uniqueId` no longer exist. Ids are whole numbers, `displayId` is removed (the id is the label), and operations use `ref`s instead of chosen ids.
 

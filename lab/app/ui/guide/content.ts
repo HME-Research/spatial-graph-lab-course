@@ -276,14 +276,13 @@ const TEXT: readonly GuideTabContent[] = [
       {
         id: 'panel-transform',
         title: 'Transform',
-        summary: 'Algorithms that propose a change to your design: preview first, then Apply as one undo step.',
-        example: '(1) Grow to target area, from the House toolkit, (2) its Houses parameter, (3) Run, (4) the preview, one line per node, (5) Apply or Discard. Before: every room one cell; after Apply: each room grown towards its target. Without a toolkit this panel is empty.',
+        summary: 'Transforms propose changes to your design (add nodes or edges, move or resize rooms, set values): you see a preview first, and only Apply changes the design, as one undo step.',
+        example: '(1) Grow to target area, from the House toolkit, (2) its Houses parameter, (3) Run, (4) the preview, one line per node, (5) Apply or Discard. Before: every room one cell; after Apply: each room grown towards its target. At the top, Upload your own (.ts) adds your own transform under Yours, with or without a toolkit; its ⓘ offers AI kits and a template. If the design changes after Run, the preview is out of date: run it again.',
         diagrams: [
           { diagram: 'grow-before', caption: 'Before: every room 9 m²' },
           { diagram: 'grow-after', caption: 'After Apply: grown to the targets' },
         ],
         diagram: 'panel-transform',
-        learnMore: LINKS.ocwAlgorithms,
       },
       {
         id: 'panel-scenarios',
@@ -334,7 +333,7 @@ const TEXT: readonly GuideTabContent[] = [
         id: 'what-is-a-toolkit',
         title: 'What is a toolkit?',
         summary: 'A toolkit is a folder that gives the app a vocabulary: Functions, the custom attributes they use, algorithms that read them and example designs.',
-        example: 'Without a toolkit a project is a plain graph: you add Functions and attributes yourself and Transform is empty. With a toolkit such as toolkits/house/ you start with its Functions in functions/ (each made with defineFunction), its custom attributes, its transforms in algorithms/ (Grow to target area), its example designs in designs/ and the façade files they use in assets/.',
+        example: 'Without a toolkit a project is a plain graph: you add Functions and attributes yourself, and Transform lists only the transforms you upload. With a toolkit such as toolkits/house/ you start with its Functions in functions/ (each made with defineFunction), its custom attributes, its transforms in algorithms/ (Grow to target area), its example designs in designs/ and the façade files they use in assets/.',
         diagrams: [
           { diagram: 'tk-none', caption: 'No toolkit: you add everything' },
           { diagram: 'tk-house', caption: 'A toolkit: Functions, attributes, algorithms, designs' },
@@ -385,6 +384,18 @@ const TEXT: readonly GuideTabContent[] = [
         ],
         learnMore: LINKS.typescript,
         aiKits: true,
+      },
+      {
+        id: 'ask-ai-for-transform',
+        title: 'Write your own transform (with an AI assistant)',
+        summary: 'Describe a transform in words; an AI assistant writes it as a .ts file using the Student API; upload it in Transform.',
+        example: 'Pick a tab below. Any project: a kit for a transform that works everywhere (it reads Functions, sizes, positions and areas, and may add nodes and edges, move or resize rooms). This project: a kit that also lists your toolkit’s and your own fields. Attach the zip to an AI assistant and write your prompt, e.g. “Connect every two nodes that touch but have no edge yet”. Or start from the template. Either way the file may import only @student-api and ends with export default defineSpatialAlgorithm(…).',
+        diagrams: [
+          { diagram: 'route-ai-transform', caption: 'With an AI kit: describe it' },
+          { diagram: 'route-template-transform', caption: 'From the template: write it yourself' },
+        ],
+        learnMore: LINKS.typescript,
+        aiKits: 'transform',
       },
       {
         id: 'make-a-toolkit',
@@ -486,6 +497,14 @@ const TEXT: readonly GuideTabContent[] = [
         summary: 'At the top of Analyse, press Upload your own (.ts); the app checks the file and lists it with the tag Yours.',
         example: '1. Upload your own (.ts). 2. Its ⓘ offers the AI kits (Any project, This project) and the templates. 3. The analysis appears in Node, Edge, Network or Queries, depending on its inputs, and that section opens. A refused file gets a message saying why. Uploads are saved with your project.',
         diagram: 'howto-upload',
+        learnMore: LINKS.typescript,
+      },
+      {
+        id: 'howto-upload-transform',
+        title: 'Upload your own transform',
+        summary: 'At the top of Transform, press Upload your own (.ts); the app checks the file and lists it under Yours.',
+        example: '1. Upload your own (.ts) in Transform. 2. Its ⓘ offers the transform kits (Any project, This project) and a template. 3. Choose it under Yours, set its parameters and Run. 4. Read the preview, then Apply (one Undo reverses it) or Discard. A refused file gets a message saying why; an analysis belongs in Analyse. Uploads are saved with your project.',
+        diagram: 'howto-upload-transform',
         learnMore: LINKS.typescript,
       },
       {

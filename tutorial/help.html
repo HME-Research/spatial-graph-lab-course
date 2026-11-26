@@ -15,6 +15,7 @@
     <a href="setup.html">Set up</a>
     <a href="browser.html">In the browser</a>
     <a href="analysis.html">Your analysis</a>
+    <a href="transform.html">Your transform</a>
     <a href="plan.html">Plan a toolkit</a>
     <a href="agent.html">Coding agent</a>
     <a href="chat.html">Chat assistant</a>
@@ -69,6 +70,16 @@
   <tr><td>The file is refused</td><td>Paste the app's whole message to the AI and ask it to fix exactly that. Check the file really ends in <code>.ts</code> (<a href="analysis.html">Your analysis</a>).</td></tr>
   <tr><td>“Stopped after … s — does it loop forever?”</td><td>The analysis took too long; ask the AI to make it simpler or to make every loop end.</td></tr>
   <tr><td>It is not in the section you expected</td><td>The section follows its <i>input</i>: none → Network, one node → Node, one edge → Edge, anything else → Queries.</td></tr>
+</table></div>
+
+<h2>An uploaded transform</h2>
+<div class="table"><table>
+  <tr><th>Message or symptom</th><th>What to do</th></tr>
+  <tr><td>“This file is an analysis … upload it in Analyse”</td><td>It only reads and shows an answer: upload it in <span class="ui">Analyse</span> (<a href="analysis.html">Your analysis</a>). In <span class="ui">Analyse</span>, a transform gets the opposite message.</td></tr>
+  <tr><td>The file is refused, or the preview shows an error</td><td>Paste the app's whole message to the AI and ask it to fix exactly that, then use <span class="ui">↻</span> (Replace) in <b>Yours</b> (<a href="transform.html">Your transform</a>).</td></tr>
+  <tr><td>“customOf needs a Function from a toolkit's functions/ folder…”</td><td>Ask the AI to read the fields with <code>ctx.nodeCustom(nodeId)</code> instead.</td></tr>
+  <tr><td><span class="ui">Apply</span> is greyed out: “The design has changed since this preview was computed”</td><td>You edited the design after <span class="ui">Run</span>: press <span class="ui">Run</span> again.</td></tr>
+  <tr><td>“Stopped after … s — does it loop forever?”</td><td>The transform took too long; ask the AI to make it simpler or to make every loop end.</td></tr>
 </table></div>
 
 <h2>Still stuck?</h2>

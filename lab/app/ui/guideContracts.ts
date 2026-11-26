@@ -49,9 +49,17 @@ export interface Explainer {
   readonly downloads?: readonly GuideDownload[];
   /**
    * Show the AI kit tabs (owner 2026-11-20: Any project · This project · Template, each with its
-   * download and its prompt guide; `AiKitTabs`) after the downloads.
+   * download and its prompt guide; `AiKitTabs`) after the downloads: `true` the analysis kits,
+   * `'transform'` (additive 2026-11-25) the transform kits.
    */
-  readonly aiKits?: boolean;
+  readonly aiKits?: boolean | 'transform';
+  /**
+   * Short headed lists after the example (additive 2026-11-25), for an explainer that teaches more
+   * than one idea (e.g. the Transform tab: what a transform can propose, how to use the tab).
+   */
+  readonly points?: readonly { readonly title: string; readonly items: readonly string[] }[];
+  /** A page of the student tutorial to read next (additive 2026-11-25), opened in a new tab. */
+  readonly tutorial?: { readonly label: string; readonly href: string };
   /**
    * Show the toolkit kit tabs (owner 2026-11-24: Coding agent · Chat assistant, each with its prompt,
    * the toolkit kit download and the git steps; `ToolkitKitTabs`) after the downloads.

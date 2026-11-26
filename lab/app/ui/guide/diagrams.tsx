@@ -1234,6 +1234,18 @@ const D: Record<string, () => ReactNode> = {
   'avt-transform': () => <Flow transform />,
   'route-ai': () => <Steps alt="With an AI kit: 1 download a kit, 2 describe the analysis to an AI assistant, 3 upload the .ts file it writes in Analyse." labels={['Download a kit', 'Describe it to the AI', 'Upload the .ts in Analyse']} />,
   'route-template': () => <Steps alt="From the template: 1 download the template, 2 change it yourself, 3 upload the .ts file in Analyse." labels={['Download the template', 'Change it yourself', 'Upload the .ts in Analyse']} />,
+  'route-ai-transform': () => (
+    <Steps alt="With an AI kit: 1 download a transform kit, 2 describe the transform to an AI assistant, 3 upload the .ts file it writes in Transform." labels={['Download a kit', 'Describe it to the AI', 'Upload the .ts in Transform']} />
+  ),
+  'route-template-transform': () => (
+    <Steps alt="From the template: 1 download the transform template, 2 change it yourself, 3 upload the .ts file in Transform." labels={['Download the template', 'Change it yourself', 'Upload the .ts in Transform']} />
+  ),
+  'transform-steps': () => (
+    <Steps
+      alt="Using a transform: 1 choose it, 2 set its parameters, 3 Run, 4 read the preview, 5 Apply or Discard, 6 Undo reverses all of it."
+      labels={['Choose a transform', 'Set its parameters', 'Run', 'Read the preview', 'Apply or Discard', 'Undo reverses all']}
+    />
+  ),
   'route-agent': () => (
     <Steps
       alt="With a coding agent: 1 make your branch, 2 ask the agent in the repository, 3 it writes the folder and runs the checks, 4 push your branch."
@@ -1258,6 +1270,12 @@ const D: Record<string, () => ReactNode> = {
   'howto-query': () => <Steps alt="1 Open Queries, 2 press Shortest path, 3 pick From, 4 pick To, 5 read the route." labels={['Open Queries', 'Shortest path', 'Pick From', 'Pick To', 'Read the route']} />,
   'howto-transform': () => <Steps alt="1 Transform, 2 Grow to target area, 3 Run, 4 check the preview, 5 Apply, 6 Undo if you change your mind." labels={['Transform', 'Grow to target area', 'Run', 'Check the preview', 'Apply', 'Undo']} />,
   'howto-upload': () => <Steps alt="1 Upload your own (.ts), 2 the i offers the AI kits and the templates, 3 the analysis appears in its section, tagged Yours." labels={['Upload your own (.ts)', 'i: AI kits and templates', 'Appears in its section']} />,
+  'howto-upload-transform': () => (
+    <Steps
+      alt="1 Upload your own (.ts) in Transform, 2 the i offers the transform kits and the template, 3 choose it under Yours and Run, 4 read the preview and Apply."
+      labels={['Upload your own (.ts)', 'i: kits and template', 'Choose it under Yours, Run', 'Preview, then Apply']}
+    />
+  ),
   'howto-data': () => <Steps alt="1 Set a view to Data, 2 JSON or Table, 3 click a row to select it everywhere, 4 locked columns are calculated and not saved." labels={['View: Data', 'JSON | Table', 'Click a row', 'Locked = calculated']} />,
   'howto-save': () => <Steps alt="1 Project in the left rail, 2 Save locally, 3 Export project, 4 Open project." labels={['Project', 'Save locally', 'Export project', 'Open project']} />,
 

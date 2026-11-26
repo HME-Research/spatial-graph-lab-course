@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your transform · Spatial Graph Lab tutorial</title>
+<link rel="stylesheet" href="style.css">
+<script src="tutorial.js"></script>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">Spatial Graph Lab <span>tutorial</span></a>
+  <nav class="site" aria-label="Tutorial pages">
+    <a href="index.html">Start</a>
+    <a href="setup.html">Set up</a>
+    <a href="browser.html">In the browser</a>
+    <a href="analysis.html">Your analysis</a>
+    <a href="transform.html" aria-current="page">Your transform</a>
+    <a href="plan.html">Plan a toolkit</a>
+    <a href="agent.html">Coding agent</a>
+    <a href="chat.html">Chat assistant</a>
+    <a href="git.html">Git</a>
+    <a href="hand-in.html">Hand in</a>
+    <a href="update.html">Update</a>
+    <a href="help.html">Help</a>
+  </nav>
+</div></header>
+<main>
+<h1>Write your own transform</h1>
+<p class="lead">Ask an AI chat for a transform in plain words, upload the one file it writes, and run it on your design. A transform <b>proposes changes</b>: you see them first as a preview, nothing changes until you press <b>Apply</b>, and one <b>Undo</b> reverses all of it. Only a browser and an AI chat that accepts attachments are needed.</p>
+
+<h2>1. Decide three things</h2>
+<div class="table"><table>
+  <tr><th>Part</th><th>Question</th><th>Example</th></tr>
+  <tr><td>Idea</td><td>What should it do to your design?</td><td>Connect every two rooms that touch but have no edge yet.</td></tr>
+  <tr><td>Parameters</td><td>What do you want to set in <span class="ui">Transform</span> before it runs: a number of cells, Access or Open, a Function…? Or nothing.</td><td>Access or Open.</td></tr>
+  <tr><td>Changes</td><td>What may it change: add nodes, add edges, move or resize rooms, set a node's or an edge's value?</td><td>Add edges.</td></tr>
+</table></div>
+
+<h2>2. Choose a kit</h2>
+<p>A <b>kit</b> is a zip with the instructions the AI follows, the exact functions and changes it may use, and examples. In the app: <span class="ui">Transform</span> › the ⓘ beside <span class="ui">Upload your own (.ts)</span>.</p>
+<div class="table"><table>
+  <tr><th>Kit</th><th>The transform can use</th><th>Works in</th><th>Get it</th></tr>
+  <tr><td><b>Transform kit</b></td><td>each node's Function, size, position and level, each edge's relationship, calculated values such as area, and the Functions found in your design</td><td>any project</td><td><a href="kits/spatial-graph-lab-transform-kit.zip" download>transform kit (.zip)</a>, or ⓘ › <span class="ui">Any project</span></td></tr>
+  <tr><td><b>Transform kit for this project</b></td><td>also your project's Functions and custom fields (such as a target area or a priority), listed in its <code>PROJECT.md</code></td><td>projects that have them</td><td>only in the app: open your project, ⓘ › <span class="ui">This project</span></td></tr>
+</table></div>
+<p>Prefer to write it yourself? ⓘ › <span class="ui">Template</span> gives a commented file to change.</p>
+
+<h2>3. Ask the AI</h2>
+<ol class="steps">
+  <li><strong>Open a new chat and attach the kit zip.</strong>If your chat refuses zip files, unzip it (Windows: right-click › <span class="ui">Extract All…</span>; Mac: double-click) and attach the files inside instead.</li>
+  <li><strong>Send the starting text for your kit</strong>, with the three blanks filled in.
+    <div class="code"><div class="label">Transform kit</div><pre data-block="prompt:transform">I've attached the Spatial Graph Lab transform kit. Read PROMPT.md and every file in it, then write ONE transform that works in any project (node basics only, no custom fields).
+
+My idea: ___
+Parameters I want to set: ___
+What it should change: ___</pre></div>
+    <div class="code"><div class="label">Transform kit for this project</div><pre data-block="prompt:transform-project">I've attached the Spatial Graph Lab transform kit for my project. Read PROMPT.md, PROJECT.md and every file in it, then write ONE transform that follows them exactly. It may use my project's Functions and custom fields as PROJECT.md lists them.
+
+My idea: ___
+Parameters I want to set: ___
+What it should change: ___</pre></div></li>
+  <li><strong>Save its answer as a <code>.ts</code> file</strong>with the name it suggests, for example <code>connect-touching-rooms.ts</code>: download it if the chat offers a file, or paste the code into a new file in VS Code (or Notepad / TextEdit as plain text) and save it with that name.
+    <div class="warn"><p>Windows hides file extensions: a file saved as <code>connect.ts.txt</code> looks like <code>connect.ts</code> but is refused. In File Explorer, <span class="ui">View › Show › File name extensions</span> shows the real name.</p></div></li>
+</ol>
+
+<h2>4. Upload it, run it, Apply it</h2>
+<ol class="steps">
+  <li><strong>Upload</strong>In the app, open <span class="ui">Transform</span> › <span class="ui">Upload your own (.ts)</span> › choose the file.
+    <p class="see">it is listed under <b>Yours</b>, with its parameters.</p></li>
+  <li><strong>Run it</strong>Choose it, set its parameters (an empty field uses the default) and press <span class="ui">Run</span>.
+    <p class="see">a preview: the new nodes and edges with the ids they will get, the moved or resized rooms and the changed values. Your design has not changed yet.</p></li>
+  <li><strong>Apply or Discard</strong><span class="ui">Apply</span> changes the design in one step; <span class="ui">Discard</span> drops the preview. Changed the design after <span class="ui">Run</span>? The preview is out of date: run it again.</li>
+  <li><strong>Undo</strong>Changed your mind after <span class="ui">Apply</span>? One <span class="ui">Undo</span> reverses the whole change.</li>
+  <li><strong>If the app refuses it, or the preview shows an error</strong>, copy the app's whole message into the chat and ask: “Fix exactly this.” Save the new answer and use <span class="ui">↻</span> (Replace) beside it in <b>Yours</b>.
+    <div class="note"><p>An <b>analysis</b> (it only reads and shows an answer) is refused here: upload it in <span class="ui">Analyse</span> instead (<a href="analysis.html">Your analysis</a>).</p></div></li>
+</ol>
+<p>Uploaded transforms are saved with your project: <span class="ui">Export project</span> (see <a href="browser.html">In the browser</a>) keeps them in the file you hand in. The same file also works in a toolkit's <code>algorithms/</code> folder.</p>
+
+<div class="pager"><a href="analysis.html">← Your analysis</a><a href="plan.html">Plan a toolkit →</a></div>
+</main>
+<footer class="bottom"><div class="bottom-inner">Spatial Graph Lab · <i>Graph, Rules &amp; Space</i> · <a href="https://spatial-graph-lab.vercel.app/">Open the app</a></div></footer>
+</body>
+</html>

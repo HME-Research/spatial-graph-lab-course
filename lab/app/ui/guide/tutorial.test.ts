@@ -7,6 +7,8 @@ import {
   TOOLKIT_AGENT_PROMPT_GUIDE,
   TOOLKIT_CHAT_COMMANDS,
   TOOLKIT_CHAT_PROMPT_GUIDE,
+  TRANSFORM_PROJECT_PROMPT_GUIDE,
+  TRANSFORM_PROMPT_GUIDE,
 } from './aiPrompt';
 import { TUTORIAL_URL } from './links';
 
@@ -36,7 +38,7 @@ const UPDATE_KITS = env['SGL_UPDATE_TUTORIAL_KITS'] === '1';
 const TUTORIAL = new URL('../../../../tutorial/', import.meta.url);
 
 /** The pages in navigation order. */
-const PAGES = ['index', 'setup', 'browser', 'analysis', 'plan', 'agent', 'chat', 'git', 'hand-in', 'update', 'help'].map((p) => `${p}.html`);
+const PAGES = ['index', 'setup', 'browser', 'analysis', 'transform', 'plan', 'agent', 'chat', 'git', 'hand-in', 'update', 'help'].map((p) => `${p}.html`);
 
 const read = (name: string): string => fs.readFileSync(new URL(name, TUTORIAL), 'utf8').replace(/\r\n/g, '\n');
 const unescape = (html: string): string =>
@@ -54,6 +56,8 @@ const EXPECTED_BLOCKS: Readonly<Record<string, string>> = {
   'prompt:graph': GRAPH_PROMPT_GUIDE.text,
   'prompt:design': DESIGN_PROMPT_GUIDE.text,
   'prompt:project': PROJECT_PROMPT_GUIDE.text,
+  'prompt:transform': TRANSFORM_PROMPT_GUIDE.text,
+  'prompt:transform-project': TRANSFORM_PROJECT_PROMPT_GUIDE.text,
 };
 
 describe('tutorial pages', () => {
@@ -109,7 +113,7 @@ describe('tutorial pages', () => {
 });
 
 describe('tutorial kits (tutorial/kits/)', () => {
-  const kinds: readonly KitKind[] = ['graph', 'design', 'toolkit'];
+  const kinds: readonly KitKind[] = ['graph', 'design', 'toolkit', 'transform'];
   for (const kind of kinds) {
     it(`${kitFileName(kind)} is what the app builds`, async () => {
       const kit = await buildKit(kind);

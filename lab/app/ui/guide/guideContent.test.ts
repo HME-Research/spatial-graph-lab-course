@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { ANALYSE_VS_TRANSFORM, ANALYSIS_EXPLAINERS, SECTION_EXPLAINERS } from '@app/analysis/explainers';
 import { uploadExplainer } from '@app/analysis/uploadExplainer';
+import { TRANSFORM_EXPLAINER, transformUploadExplainer } from '@app/session/transformExplainers';
 import { GUIDE_TAB_IDS, type Explainer } from '../guideContracts';
 import { GUIDE_CONTENT } from './content';
 import { GUIDE_DIAGRAM_IDS, renderGuideDiagram } from './diagrams';
@@ -25,7 +26,13 @@ const fs = node.process.getBuiltinModule('node:fs');
 const ROOT = new URL('../../../', import.meta.url);
 
 const guideEntries: Explainer[] = GUIDE_CONTENT.flatMap((t) => [...t.blocks]);
-const explainers: Explainer[] = [...SECTION_EXPLAINERS, ...ANALYSIS_EXPLAINERS, ANALYSE_VS_TRANSFORM, uploadExplainer()];
+const explainers: Explainer[] = [...SECTION_EXPLAINERS, ...ANALYSIS_EXPLAINERS, ANALYSE_VS_TRANSFORM, uploadExplainer(), TRANSFORM_EXPLAINER, transformUploadExplainer()];
+/**
+ * Entries without an external "Learn more" link: the upload ⓘ windows offer their kits instead, and
+ * the Transform tab's ⓘ and its Guide entry point to the tutorial and the upload ⓘ (owner 2026-11-25:
+ * the old general-algorithms link taught nothing about this tab).
+ */
+const NO_LINK = new Set(['upload-your-own', 'upload-your-own-transform', 'transform-tab', 'panel-transform']);
 /** Every diagram id an entry names (its contrasting pair and its single diagram). */
 const diagramIds = (e: Explainer): string[] => [...(e.diagrams ?? []).map((c) => c.diagram), ...(e.diagram !== undefined ? [e.diagram] : [])];
 /**
@@ -48,6 +55,8 @@ const SINGLE = new Set([
   'howto-query',
   'howto-transform-undo',
   'howto-upload-analysis',
+  'howto-upload-transform',
+  'transform-tab',
   'howto-read-data-view',
   'howto-save',
 ]);
@@ -94,7 +103,10 @@ describe('Guide content (P4 item H)', () => {
     for (const e of all) {
       expect(diagramIds(e).length, e.id).toBeGreaterThan(0);
       for (const d of diagramIds(e)) expect(GUIDE_DIAGRAM_IDS, `${e.id}: ${d}`).toContain(d);
-      if (e.id === 'upload-your-own') continue; // offers its downloads instead of a link
+      if (NO_LINK.has(e.id)) {
+        expect(e.learnMore, e.id).toBeUndefined();
+        continue;
+      }
       expect(e.learnMore, e.id).toBeDefined();
       expect(checked.has(e.learnMore!.url), `${e.id}: ${e.learnMore!.url}`).toBe(true);
     }
@@ -182,6 +194,25 @@ describe('Guide content (P4 item H)', () => {
     expect(html).toContain('data-marker="1"');
     expect(html).toContain('left:25.00%;top:50.00%');
     expect(html).toContain('left:100.00%;top:0.00%');
+  });
+
+  it('the Transform tab ⓘ teaches the tab: operations, how to use it, where transforms come from, the tutorial; no external link', () => {
+    const html = renderToStaticMarkup(createElement(ExplainerView, { explainer: TRANSFORM_EXPLAINER }));
+    expect(TRANSFORM_EXPLAINER.learnMore).toBeUndefined();
+    expect(html).not.toContain('ocw.mit.edu');
+    for (const title of ['What a transform can propose', 'How to use this tab', 'Where transforms come from']) expect(html).toContain(`>${title}</h4>`);
+    for (const words of ['Add a node', 'Add an edge', 'Move or resize', 'custom value', 'Apply', 'Discard', 'out of date', 'Upload your own (.ts)']) expect(html).toContain(words);
+    expect(html).toContain('href="/tutorial/transform.html"');
+    expect(html).toContain('data-diagram="transform-steps"');
+  });
+
+  it('Write your own transform shows the transform kit tabs, like the Transform upload ⓘ', () => {
+    const entry = guideEntries.find((e) => e.id === 'ask-ai-for-transform')!;
+    expect(entry.aiKits).toBe('transform');
+    expect(transformUploadExplainer().aiKits).toBe('transform');
+    const html = renderToStaticMarkup(createElement(ExplainerView, { explainer: entry }));
+    expect(html).toContain('data-ai-kits="transform"');
+    expect(html).toContain('data-download="spatial-graph-lab-transform-kit.zip"');
   });
 
   it('Write your own analysis shows the same AI kit tabs as the Upload ⓘ, with no old prompt files', () => {

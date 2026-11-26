@@ -55,6 +55,7 @@ The app reads only `.ts` files directly in `functions/` and `algorithms/`, `.jso
 - Fast and finite: toolkit code is not sandboxed, so an endless loop freezes the browser tab.
 - Values can be missing: a custom value may be absent or `null`. Check `typeof value === 'number'` before using it.
 - A design analysis gets **only** the custom fields it lists in `uses` (`uses: { nodeFields: ['occupancy'] }`).
+- One algorithm file also works without a toolkit: upload it in **Analyse** or **Transform** (**Upload your own (.ts)**). An uploaded transform cannot use `ctx.customOf` (it needs your `functions/` folder): read fields with `ctx.nodeCustom(nodeId)`, which works in both places.
 - One cell is 3 × 3 m and one level 3 m high. Read areas with `ctx.metrics.value('area', id)` rather than computing them.
 - A 3D edge is a relationship, not a staircase or corridor: whether it can be built is worked out by the app.
 

@@ -34,6 +34,16 @@ export function ExplainerView({
       <p className="sgl-explainer-example">
         <span className="sgl-explainer-label">Example</span> {explainer.example}
       </p>
+      {explainer.points?.map((p) => (
+        <section key={p.title} className="sgl-explainer-points" data-points={p.title}>
+          <h4 className="sgl-explainer-points-title">{p.title}</h4>
+          <ul>
+            {p.items.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+      ))}
       {explainer.diagrams && (
         <div className="sgl-explainer-pair" data-diagrams={explainer.diagrams.map((c) => c.diagram).join(' ')}>
           {explainer.diagrams.map((c) => (
@@ -59,8 +69,16 @@ export function ExplainerView({
           ))}
         </ul>
       )}
-      {explainer.aiKits && <AiKitTabs />}
+      {explainer.aiKits && <AiKitTabs purpose={explainer.aiKits === 'transform' ? 'transform' : 'analysis'} />}
       {explainer.toolkitKit && <ToolkitKitTabs />}
+      {explainer.tutorial && (
+        <p className="sgl-explainer-more" data-tutorial-link="">
+          Step by step:{' '}
+          <a href={explainer.tutorial.href} target="_blank" rel="noopener">
+            {explainer.tutorial.label}
+          </a>
+        </p>
+      )}
       {explainer.learnMore && (
         <p className="sgl-explainer-more">
           <a href={explainer.learnMore.url} target="_blank" rel="noopener noreferrer">
