@@ -560,14 +560,154 @@ main {
 }
 
 /*
- * Small or short windows: the fixed frame would squeeze the views, so the page scrolls instead
- * and panels stack.
+ * Views too small for side by side (2026-11-26): Workspace measures the viewport area and adds
+ * `narrow` (a column would be under 300 px) or `short` (a row would be under 220 px). Narrow: one
+ * column, the views under each other; short 2 × 2: two columns. Each view keeps at least 220 px of
+ * height and the viewport area scrolls inside itself (never the page). The dividers are hidden.
  */
-@media (max-width: 899px), (max-height: 559px) {
+.panels.narrow:not(.maximised).layout-2,
+.panels.narrow:not(.maximised).layout-4 {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: none;
+  grid-auto-rows: minmax(220px, 1fr);
+  overflow-y: auto;
+}
+
+.panels.short:not(.narrow):not(.maximised).layout-4 {
+  grid-template-rows: repeat(2, minmax(220px, 1fr));
+  overflow-y: auto;
+}
+
+.panels:where(.narrow, .short) .view-body {
+  min-height: 160px;
+}
+
+/*
+ * Compact desktop (2026-11-26): windows 640–999 px wide (laptops at 125–150 % scaling) keep the
+ * normal frame. An open project-tools or Properties pane floats OVER the views as a drawer instead
+ * of taking their width, so the views keep the space between the two rails.
+ */
+@media (min-width: 640px) and (max-width: 999px) and (min-height: 420px) {
+  .workspace {
+    position: relative;
+    grid-template-columns: var(--rail-width) minmax(0, 1fr) var(--rail-width);
+  }
+
+  .workspace > .left-pane {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .workspace > .panels {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .workspace > .right-pane {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  /* `grid-area: auto`: the drawer is placed in the whole workspace, not in its rail column. */
+  .workspace.left-open > .left-pane,
+  .workspace.right-open > .right-pane {
+    grid-area: auto;
+    position: absolute;
+    top: var(--gap);
+    bottom: var(--gap);
+    z-index: 40;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 28px rgb(0 0 0 / 0.18);
+  }
+
+  /* Each drawer leaves at least a strip of the views (and the other rail) visible. */
+  .workspace.left-open > .left-pane {
+    left: var(--gap);
+    width: min(var(--left-width), calc(100% - 2 * var(--gap) - var(--rail-width) - 96px));
+  }
+
+  .workspace.right-open > .right-pane {
+    right: var(--gap);
+    width: min(var(--right-width), calc(100% - 2 * var(--gap) - var(--rail-width) - 96px));
+  }
+
+  /* Content of the views (React Flow labels, 3D overlays) stays below the drawers. */
+  .view-panel {
+    isolation: isolate;
+  }
+}
+
+/* Short windows: header controls and viewport headers a little denser. */
+@media (max-height: 559px) {
+  .toolbar {
+    min-height: 44px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  :where(.toolbar) button,
+  :where(.toolbar) .file-button {
+    min-height: var(--hit-compact);
+  }
+
+  .panel-header {
+    min-height: 36px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+}
+
+/* Header: secondary identity text gives way before anything overflows. */
+@media (max-width: 999px) {
+  .toolbar .sgl-save-status {
+    display: none;
+  }
+}
+
+/* A long project name ends in an ellipsis (a flex button would cut it on both sides). */
+.toolbar .sgl-identity-project {
+  display: inline-block;
+  line-height: calc(var(--hit) - 2px);
+  white-space: nowrap;
+}
+
+@media (max-height: 559px) {
+  .toolbar .sgl-identity-project {
+    line-height: calc(var(--hit-compact) - 2px);
+  }
+}
+
+@media (max-width: 899px) {
+  .toolbar .sgl-identity-toolkit,
+  .toolbar .sgl-identity-sep,
+  .toolbar .sgl-identity-scenario {
+    display: none;
+  }
+}
+
+/*
+ * Phones only (2026-11-26; was every window under 900 × 560): under 640 px wide or 420 px high the
+ * frame would squeeze the views, so the page scrolls instead and panels stack. The project-tools
+ * rail stays compact: a horizontal strip of icons above its section.
+ */
+@media (max-width: 639px), (max-height: 419px) {
   .app {
     height: auto;
     min-height: 100vh;
     overflow: visible;
+  }
+
+  .toolbar {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .toolbar h1 {
+    font-size: var(--text-md);
+  }
+
+  .toolbar .actions {
+    margin-left: auto;
   }
 
   .workspace,
@@ -577,12 +717,18 @@ main {
   }
 
   .panels.layout-2,
-  .panels.layout-4 {
+  .panels.layout-4,
+  .panels.narrow:not(.maximised).layout-2,
+  .panels.narrow:not(.maximised).layout-4,
+  .panels.short:not(.narrow):not(.maximised).layout-4 {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
+    grid-auto-rows: auto;
+    overflow: visible;
   }
 
   .viewport-divider,
+  .left-pane-resize,
   .right-pane-resize {
     display: none;
   }
@@ -591,14 +737,26 @@ main {
     min-width: 0;
   }
 
-  .view-body {
-    min-height: 420px;
+  .view-body,
+  .panels:where(.narrow, .short) .view-body {
+    min-height: min(420px, 70vh);
+  }
+
+  /* The left chevron sits inside the strip's right end (not in the page gutter). */
+  .left-pane-chevron {
+    top: 26px;
+    right: 4px;
+  }
+
+  .left-pane .sgl-sidenav-strip {
+    padding-right: 32px;
   }
 
   .sgl-sidenav-panel {
     max-height: 70vh;
   }
 }
+
 
 /* A disabled shell button does not react to hover (beats the base `button:hover`). */
 :where(.toolbar, .sgl-sidenav, .panel-header, .sgl-concept-dialog, .sgl-dialog) button:disabled:hover {

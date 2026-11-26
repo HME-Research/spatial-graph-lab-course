@@ -1,4 +1,4 @@
-import { createElement, Suspense, useContext, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import { createElement, Suspense, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { AnalysisOverlayContext } from '@app/views/analysisOverlay';
 import type { ViewMode, ViewProps } from '@app/views/contracts';
 import { createPanelMemory, PanelMemoryContext, type PanelMemory } from '@app/views/panelMemory';
@@ -19,7 +19,9 @@ import {
   keyboardRightResize,
   LEFT_WIDTH_MAX,
   LEFT_WIDTH_MIN,
+  panelsFit,
   readRightWidth,
+  type PanelsFit,
   RIGHT_WIDTH_MAX,
   RIGHT_WIDTH_MIN,
   writeRightWidth,
@@ -131,14 +133,34 @@ export function Workspace({
     );
 
   const className = ['workspace', leftCollapsed ? 'left-collapsed' : 'left-open', rightCollapsed ? 'right-collapsed' : 'right-open'].join(' ');
-  const panelsClass = ['panels', `layout-${viewports.layout}`, viewports.maximised !== null ? 'maximised' : ''].filter(Boolean).join(' ');
+  // Small screens (2026-11-26): the viewport area is measured; views too narrow or too short to sit
+  // side by side fall back to fewer columns or rows (app.css `.panels.narrow` / `.panels.short`).
+  const [panelsEl, setPanelsEl] = useState<HTMLDivElement | null>(null);
+  const [fit, setFit] = useState<PanelsFit>({ narrow: false, short: false });
+  useEffect(() => {
+    if (!panelsEl || typeof ResizeObserver === 'undefined') return;
+    const measure = () => {
+      const box = panelsEl.getBoundingClientRect();
+      const next = panelsFit(box.width, box.height);
+      setFit((prev) => (prev.narrow === next.narrow && prev.short === next.short ? prev : next));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(panelsEl);
+    return () => observer.disconnect();
+  }, [panelsEl]);
+  const panelsClass = ['panels', `layout-${viewports.layout}`, viewports.maximised !== null ? 'maximised' : '', fit.narrow ? 'narrow' : '', fit.short ? 'short' : '']
+    .filter(Boolean)
+    .join(' ');
   // Movable divisions between the viewports (owner 2026-11-20), remembered in the browser.
   const [split, setSplit] = useState<ViewportSplit>(() => readViewportSplit(browserPaneStorage()));
   const changeSplit = (next: ViewportSplit, done: boolean) => {
     setSplit(next);
     if (done) writeViewportSplit(browserPaneStorage(), next);
   };
-  const showDividers = viewports.layout !== 1 && viewports.maximised === null;
+  // No dividers where the views fall back to one column (narrow) or scroll in their rows (short 2 × 2).
+  const showDividers = viewports.layout !== 1 && viewports.maximised === null && !fit.narrow;
+  const showRowDivider = showDividers && viewports.layout === 4 && !fit.short;
   // The Properties pane is resizable too (owner 2026-11-20); null = the stylesheet's default width.
   const [rightWidth, setRightWidth] = useState<number | null>(() => readRightWidth(browserPaneStorage()));
   const changeRightWidth = (width: number, done: boolean) => {
@@ -183,9 +205,9 @@ export function Workspace({
           <EditPanelOwnerContext.Provider value={editOwner}>
           {/* P4 G: the Data view's table edits through the same models and commands as Properties. */}
           <DataCellEditorContext.Provider value={TableCellEditor}>
-            <div className={panelsClass} style={splitStyle(split) as CSSProperties}>
+            <div ref={setPanelsEl} className={panelsClass} style={splitStyle(split) as CSSProperties}>
               {showDividers && <ViewportDivider axis="x" split={split} onSplit={changeSplit} />}
-              {showDividers && viewports.layout === 4 && <ViewportDivider axis="y" split={split} onSplit={changeSplit} />}
+              {showRowDivider && <ViewportDivider axis="y" split={split} onSplit={changeSplit} />}
               {mounted.map((index) => {
                 const info = infos[index]!;
                 return (

@@ -980,3 +980,106 @@
   text-overflow: ellipsis;
   vertical-align: middle;
 }
+
+/* ── Small and short windows (2026-11-26) ────────────────────────────────────────────────── */
+
+/* The destinations scroll inside the rail when the window is too short for all of them. */
+.sgl-sidenav-strip {
+  min-height: 0;
+}
+
+.sgl-sidenav-tabs {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* Very short windows: a denser rail still. */
+@media (max-height: 519px) {
+  .sgl-sidenav-tab {
+    min-height: 40px;
+    padding: 3px 4px;
+    font-size: 11px;
+  }
+
+  .sgl-sidenav-single .sgl-sidenav-strip .sgl-sidenav-tab {
+    min-height: 80px;
+  }
+}
+
+/* Tab rows (Guide sections, AI kits …) scroll sideways instead of overflowing a narrow window. */
+.sgl-htabs-list {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.sgl-htab {
+  flex: none;
+  white-space: nowrap;
+}
+
+/*
+ * Phones (the stacked layout in app.css): the rail is a horizontal strip of icons above its
+ * section, not a full-width list; the collapsed Properties pane is a single slim bar.
+ */
+@media (max-width: 639px), (max-height: 419px) {
+  .sgl-sidenav {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .sgl-sidenav-strip,
+  .sgl-sidenav.collapsed .sgl-sidenav-strip,
+  .sgl-sidenav.side-left .sgl-sidenav-strip {
+    width: 100%;
+    flex-direction: row;
+    border-left: none;
+    border-right: none;
+  }
+
+  .sgl-sidenav.side-left:not(.collapsed) .sgl-sidenav-strip {
+    border-bottom: 1px solid var(--line, #e1e1dc);
+  }
+
+  .sgl-sidenav-tabs {
+    flex: 1;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 var(--space-1, 4px);
+  }
+
+  .sgl-sidenav-tab,
+  .sgl-sidenav-tabs .sgl-sidenav-tab {
+    flex: none;
+    min-width: 72px;
+    min-height: 52px;
+  }
+
+  .sgl-sidenav-tab.active::before,
+  .sgl-sidenav.side-left .sgl-sidenav-tab.active::before {
+    top: auto;
+    bottom: 0;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    height: 3px;
+    border-radius: 2px 2px 0 0;
+  }
+
+  .sgl-sidenav-single .sgl-sidenav-strip .sgl-sidenav-tab {
+    flex: 1;
+    flex-direction: row;
+    min-height: 44px;
+    gap: var(--space-2, 8px);
+  }
+
+  .sgl-sidenav-toggle {
+    min-width: 44px;
+    border-top: none;
+    border-left: 1px solid var(--line, #e1e1dc);
+  }
+}
