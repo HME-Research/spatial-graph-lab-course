@@ -1161,7 +1161,7 @@ const D: Record<string, () => ReactNode> = {
     </Mock>
   ),
   'panel-project': () => (
-    <Mock alt="Project panel: (1) Save locally, (2) Export project, (3) Open project, (4) New project, (5) Open example…." title="Project">
+    <Mock alt="Project panel: (1) Save locally, (2) Export project, (3) Open project, (4) New project, (5) Open toolkit design…." title="Project">
       <div className="sgl-gd-row">
         <MBtn primary>Save locally</MBtn> <MNum n={1} />
       </div>
@@ -1175,7 +1175,7 @@ const D: Record<string, () => ReactNode> = {
         <MBtn>New project</MBtn> <MNum n={4} />
       </div>
       <div className="sgl-gd-row">
-        <MBtn>Open example…</MBtn> <MNum n={5} />
+        <MBtn>Open toolkit design…</MBtn> <MNum n={5} />
       </div>
     </Mock>
   ),
@@ -1260,8 +1260,8 @@ const D: Record<string, () => ReactNode> = {
   ),
 
   // ── How to… (numbered steps, like the screenshot markers) ──
-  'howto-start': () => <Steps alt="Welcome: 1 Create project (with or without a toolkit), 2 Open project from a file, 3 Open example…, 4 Recent projects." labels={['Create project', 'Open project…', 'Open example…', 'Recent projects']} />,
-  'howto-open-example': () => <Steps alt="1 Open example… on Welcome or in Project, 2 pick an example, 3 it opens as a new project with its toolkit, looks and façades, 4 see it in the Building view." labels={['Open example…', 'Pick an example', 'A new project', 'View: Building']} />,
+  'howto-start': () => <Steps alt="Welcome: 1 Create project (with or without a toolkit), 2 Open project from a file, 3 Open toolkit design…, 4 Recent projects." labels={['Create project', 'Open project…', 'Open toolkit design…', 'Recent projects']} />,
+  'howto-open-example': () => <Steps alt="1 Open toolkit design… on Welcome or in Project, 2 pick an example, 3 it opens as a new project with its toolkit, looks and façades, 4 see it in the Building view." labels={['Open toolkit design…', 'Pick an example', 'A new project', 'View: Building']} />,
   'howto-select': () => <Steps alt="1 Click a node in Graph 2D, 2 it is highlighted in every view, 3 read and edit it in Properties." labels={['Click a node or edge', 'Highlighted in every view', 'Read and edit in Properties']} />,
   'howto-add-room': () => <Steps alt="1 + Add node, 2 choose its Function in Properties, 3 set Position and Size." labels={['+ Add node', 'Function', 'Position and Size']} />,
   'howto-connect': () => <Steps alt="1 Select the first node, 2 Add edge…, 3 click the second node, 4 choose Access or Open in Properties." labels={['Select the first node', 'Add edge…', 'Click the second node', 'Access or Open']} />,

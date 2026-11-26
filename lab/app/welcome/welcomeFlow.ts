@@ -35,7 +35,7 @@ export type StartingDesign =
   | { readonly ok: false; readonly message: string };
 
 /**
- * A toolkit design opened with Open example… (owner decision 2026-11-20): the validated design,
+ * A toolkit design opened with Open toolkit design… (owner decision 2026-11-20): the validated design,
  * the toolkit's custom attributes (as for Create project) and the façade assets the design uses,
  * already imported from `toolkits/<id>/assets/` through the normal façade import.
  */
@@ -49,7 +49,7 @@ export interface WelcomeHost {
   readonly startingDesign: (toolkitId: string | null) => Promise<StartingDesign>;
   /** Toolkit referenced by projects made from a plain design file. */
   readonly defaultToolkitId: string | null;
-  /** Design `designId` of toolkit `toolkitId` for Open example… (absent: toolkit examples cannot be opened). */
+  /** Design `designId` of toolkit `toolkitId` for Open toolkit design… (absent: toolkit examples cannot be opened). */
   readonly exampleDesign?: (toolkitId: string, designId: string) => Promise<ExampleDesign>;
 }
 
@@ -154,7 +154,7 @@ export const functionsOfDesign = (doc: DesignDocumentV2): { readonly id: string;
   [...new Set(doc.nodes.map((n) => n.function))].map((id) => ({ id, label: functionLabel(id) }));
 
 /**
- * Open example… → House – graph only: the built-in graph-only example as a NEW project (each time; Recent restores earlier
+ * Open toolkit design… → House – graph only: the built-in graph-only example as a NEW project (each time; Recent restores earlier
  * ones). It never uses a toolkit (P4): its Functions become project functions.
  */
 export async function openBuiltInExample(host: WelcomeHost, example: DesignDocumentV2, exampleSource: string, options: LeaveOptions = {}): Promise<FlowOutcome> {
@@ -165,7 +165,7 @@ export async function openBuiltInExample(host: WelcomeHost, example: DesignDocum
 }
 
 /**
- * Open example… → a toolkit design (owner decision 2026-11-20): always a NEW project (the open one
+ * Open toolkit design… → a toolkit design (owner decision 2026-11-20): always a NEW project (the open one
  * is never overwritten) named after the design, with that toolkit active, its custom attributes
  * seeded (the same record as Create project with that toolkit), the design with its Building
  * Designer settings, and the façade assets it uses. Nothing is opened when the design, its assets

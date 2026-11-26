@@ -70,7 +70,7 @@ export function ProjectFiles({
   readonly defaultToolkitId?: string | null;
   readonly onNew: (toolkitId: string | null) => void;
   readonly onOpenFile: (file: File) => void;
-  /** Open example… (owner 2026-11-20), as on Welcome; both absent: the button is not shown. */
+  /** Open toolkit design… (owner 2026-11-20), as on Welcome; both absent: the button is not shown. */
   readonly loadExamples?: () => Promise<readonly ExampleOption[]>;
   readonly onOpenExample?: (choice: ExampleChoice) => void;
   /** A New / Open / Open example action still running (e.g. "Opening the example…"), shown under the actions. */
@@ -146,8 +146,8 @@ export function ProjectFiles({
           <input type="file" accept=".json,application/json" onChange={onFile} aria-label="Open a project file" />
         </label>
         {loadExamples && onOpenExample && (
-          <button type="button" onClick={() => setExamplesOpen(true)} aria-haspopup="dialog" title="Open the example house or a toolkit design as a new project">
-            Open example…
+          <button type="button" onClick={() => setExamplesOpen(true)} aria-haspopup="dialog" title="Open the built-in example or a toolkit design as a new project">
+            Open toolkit design…
           </button>
         )}
       </div>

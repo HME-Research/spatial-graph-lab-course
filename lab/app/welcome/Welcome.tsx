@@ -24,7 +24,7 @@ export interface WelcomeProps {
   readonly onCreate: (toolkitId: string | null) => void;
   readonly onOpenFile: (file: File) => void;
   /**
-   * Open example… (owner decision 2026-11-20): the examples to list (loaded when the dialog opens)
+   * Open toolkit design… (owner decision 2026-11-20): the examples to list (loaded when the dialog opens)
    * and what to do with the chosen one. Both absent: the button is not shown.
    */
   readonly loadExamples?: () => Promise<readonly ExampleOption[]>;
@@ -44,7 +44,7 @@ export interface WelcomeProps {
  * every startup — a stored project is never reopened automatically. The shell behind it is empty
  * and inert (the modal makes it so; nothing is created or saved to draw it).
  *
- * Entry actions (Create project, the strongest; Open project; Open example…, which lists
+ * Entry actions (Create project, the strongest; Open project; Open toolkit design…, which lists
  * the built-in example and every toolkit design, owner 2026-11-20), then the projects
  * saved in this browser (name, scenarios, last edited), with a short note on where they are stored.
  * Keyboard: focus starts on Create project; Tab stays inside; Escape does nothing (there is nothing
@@ -183,8 +183,8 @@ export function Welcome({
               </label>
               {loadExamples && onOpenExample && (
                 <button type="button" className="sgl-welcome-action" onClick={() => setExamplesOpen(true)} disabled={disabled} aria-haspopup="dialog">
-                  <span className="sgl-welcome-action-title">Open example…</span>
-                  <span className="sgl-welcome-action-sub">The example house or a toolkit’s designs</span>
+                  <span className="sgl-welcome-action-title">Open toolkit design…</span>
+                  <span className="sgl-welcome-action-sub">The built-in example or a toolkit’s designs</span>
                 </button>
               )}
               {onUploadToolkit && (

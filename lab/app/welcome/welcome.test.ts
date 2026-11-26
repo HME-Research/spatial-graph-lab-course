@@ -11,6 +11,7 @@ import { createProjectController, showsWelcome } from '@app/session/projectStore
 import { ProjectControllerContext } from '@app/session/projectStoreContext';
 import exampleJson from '../document/examples/house.json';
 import { exportProject, NewProjectDialog, ProjectFiles } from './ProjectFiles';
+import { OpenExampleDialog } from './OpenExampleDialog';
 import { Welcome, type WelcomeProps } from './Welcome';
 import { createProject, openProjectText, openToolkitExample, openBuiltInExample, type WelcomeHost } from './welcomeFlow';
 import { exampleOptions, exampleSections, newProjectStart, projectFileName, recentRows } from './welcomeModel';
@@ -272,7 +273,7 @@ describe('Welcome flow', () => {
   });
 });
 
-describe('Open example… (owner decision 2026-11-20)', () => {
+describe('Open toolkit design… (owner decision 2026-11-20)', () => {
   /** The shell's `exampleDesign` for toolkits/house, with the façade files imported as the browser does (real rhino3dm, in Node). */
   async function houseHost(): Promise<WelcomeHost & { store: ReturnType<typeof createMemoryProjectStore>; kept: ReturnType<typeof createMemoryKeptMarks> }> {
     const source = discoverToolkits(TOOLKIT_GLOBS).toolkits.find((t) => t.id === 'house')!;
@@ -306,16 +307,24 @@ describe('Open example… (owner decision 2026-11-20)', () => {
       { toolkitId: 'house', toolkitName: 'House', designId: 'garden-house', name: 'Garden house', description: 'Developed.', problem: null },
     ]);
     expect(options.map((o) => [o.key, o.name, o.description, o.tag])).toEqual([
-      ['built-in', 'House – graph only', 'Five rooms.', 'No toolkit'],
+      ['built-in', 'House – graph only', 'Five rooms.', 'Built-in example'],
       ['house/simple-house', 'Simple house', null, 'Toolkit: House'],
       ['house/garden-house', 'Garden house', 'Developed.', 'Toolkit: House'],
     ]);
     expect(options[2]!.choice).toEqual({ kind: 'toolkit', toolkitId: 'house', designId: 'garden-house' });
-    // The dialog shows them in sections: No toolkit, then Toolkit: House (Simple house, then Garden house).
+    // The dialog shows them in sections: Built-in example, then Toolkit: House (Simple house, then Garden house).
     expect(exampleSections(options).map((sec) => [sec.title, sec.items.map((o) => o.name)])).toEqual([
-      ['No toolkit', ['House – graph only']],
+      ['Built-in example', ['House – graph only']],
       ['Toolkit: House', ['Simple house', 'Garden house']],
     ]);
+  });
+
+  it('the dialog is titled Open toolkit design (renamed from Open example, owner 2026-11-26)', () => {
+    const html = renderToStaticMarkup(createElement(OpenExampleDialog, { load: () => new Promise<never>(() => {}), onCancel: () => {}, onOpen: () => {} }));
+    expect(html).toContain('Open toolkit design');
+    expect(html).toContain('Each design opens as a new project');
+    expect(html).toContain('Looking for designs…');
+    expect(html).not.toMatch(/Open example/);
   });
 
   it('opens the Garden House as a NEW project: toolkit active, custom attributes seeded, design and its façade asset', async () => {
@@ -396,7 +405,7 @@ describe('Welcome screen', () => {
     expect(html).not.toContain('is-guide-open');
   });
 
-  it('offers Create project, Open project, Open example… and Recent projects', () => {
+  it('offers Create project, Open project, Open toolkit design… and Recent projects', () => {
     const html = renderToStaticMarkup(createElement(Welcome, props()));
     expect(html).toContain('Welcome to Spatial Graph Lab');
     expect(html).toContain('Create project');
@@ -406,11 +415,11 @@ describe('Welcome screen', () => {
     expect(html).toContain('No saved projects yet.');
     expect(html).toContain('Projects are saved in this browser');
     for (const old of ['design file', 'Open file']) expect(html).not.toContain(old);
-    expect(html).not.toMatch(/try example/i); // removed 2026-11-20: Open example… is the way to the examples
-    // Open example… only when the shell supplies the examples (it always does).
-    expect(html).not.toContain('Open example');
+    expect(html).not.toMatch(/try example/i); // removed 2026-11-20: Open toolkit design… is the way to the examples
+    // Open toolkit design… only when the shell supplies the examples (it always does).
+    expect(html).not.toContain('Open toolkit design');
     const withExamples = renderToStaticMarkup(createElement(Welcome, props({ loadExamples: async () => [], onOpenExample: noop })));
-    expect(withExamples).toMatch(/<button[^>]*aria-haspopup="dialog"[^>]*><span class="sgl-welcome-action-title">Open example…<\/span>/);
+    expect(withExamples).toMatch(/<button[^>]*aria-haspopup="dialog"[^>]*><span class="sgl-welcome-action-title">Open toolkit design…<\/span>/);
   });
 
   it('lists readable projects and unreadable records honestly', () => {
@@ -474,7 +483,7 @@ describe('Project Files', () => {
         createElement(ProjectFiles, { controller: h.controller, onNew: noop, onOpenFile: noop, loadExamples: async () => [], onOpenExample: noop, busy: 'Opening the example…' }),
       ),
     );
-    expect(withExamples.split('>Open example…<').length).toBe(2);
+    expect(withExamples.split('>Open toolkit design…<').length).toBe(2);
     expect(withExamples).toContain('Opening the example…');
     expect(projectFileName('My House!')).toBe('my-house.project.json');
     expect(projectFileName('???')).toBe('project.project.json');

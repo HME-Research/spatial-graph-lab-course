@@ -32,19 +32,19 @@ export interface DefinitionChoice {
   readonly label: string;
 }
 
-/** What Open example… opens: the built-in graph-only example, or one design of one toolkit. */
+/** What Open toolkit design… opens: the built-in graph-only example, or one design of one toolkit. */
 export type ExampleChoice =
   | { readonly kind: 'built-in' }
   /** `uploaded`: a design of the toolkit uploaded as a zip (2026-11-26), not of `toolkits/<id>`. */
   | { readonly kind: 'toolkit'; readonly toolkitId: string; readonly designId: string; readonly uploaded?: true };
 
-/** One row of Open example…. */
+/** One row of Open toolkit design…. */
 export interface ExampleOption {
   /** `built-in`, or `<toolkit id>/<design id>`. */
   readonly key: string;
   readonly name: string;
   readonly description: string | null;
-  /** "No toolkit" or "Toolkit: <name>" (the tag the Attributes list uses for a toolkit). */
+  /** "Built-in example" (owner 2026-11-26; was "No toolkit") or "Toolkit: <name>" (the tag the Attributes list uses for a toolkit). */
   readonly tag: string;
   /** Why it cannot be opened (an invalid design file), else null. */
   readonly problem: string | null;
@@ -52,7 +52,7 @@ export interface ExampleOption {
 }
 
 /**
- * The rows of Open example… (owner decision 2026-11-20): the built-in House first (graph only, no
+ * The rows of Open toolkit design… (owner decision 2026-11-20): the built-in House first (graph only, no
  * toolkit), then every design of every toolkit (toolkits by id, designs by file name), each with
  * the design's own name and description.
  */
@@ -69,7 +69,7 @@ export function exampleOptions(
   }[],
 ): ExampleOption[] {
   return [
-    { key: 'built-in', name: builtIn.name, description: builtIn.description?.trim() || null, tag: 'No toolkit', problem: null, choice: { kind: 'built-in' } },
+    { key: 'built-in', name: builtIn.name, description: builtIn.description?.trim() || null, tag: 'Built-in example', problem: null, choice: { kind: 'built-in' } },
     ...toolkitExamples.map((e) => ({
       key: `${e.uploaded ? 'uploaded:' : ''}${e.toolkitId}/${e.designId}`,
       name: e.name,
@@ -82,7 +82,7 @@ export function exampleOptions(
 }
 
 /**
- * The examples in sections, in list order: one per tag ("No toolkit", then "Toolkit: <name>" per
+ * The examples in sections, in list order: one per tag ("Built-in example", then "Toolkit: <name>" per
  * toolkit), each keeping its examples' order.
  */
 export function exampleSections(options: readonly ExampleOption[]): { readonly title: string; readonly items: readonly ExampleOption[] }[] {
@@ -155,7 +155,7 @@ export function projectFileName(name: string): string {
 export const DEFAULT_PROJECT_NAME = 'Untitled project';
 
 /**
- * The designs of an UPLOADED toolkit as Open example… rows (2026-11-26): its default design first,
+ * The designs of an UPLOADED toolkit as Open toolkit design… rows (2026-11-26): its default design first,
  * then by file; an invalid design is listed with its problem.
  */
 export function uploadedToolkitExamples(toolkit: Pick<ActiveToolkit, 'id' | 'definition' | 'designs'>) {

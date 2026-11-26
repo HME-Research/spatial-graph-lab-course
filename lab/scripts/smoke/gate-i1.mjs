@@ -3,7 +3,7 @@
 //
 // Drives the REAL integrated app (dev server or production preview) through five items and records
 // PASS/FAIL per check and per item:
-//   1. Welcome (no auto-resume) → Create project (empty graph, House toolkit) → Open example… → House – graph only, named and
+//   1. Welcome (no auto-resume) → Create project (empty graph, House toolkit) → Open toolkit design… → House – graph only, named and
 //      saved locally → a second scenario → a different room moved in each (no leak, separate undo) →
 //      a custom attribute shared by both scenarios → reload → Recent → everything restored with fresh
 //      history → Export project → re-open as a separate copy with separate histories.
@@ -98,7 +98,7 @@ await runScript({ name: 'gate-i1', usage: USAGE, url: 'http://localhost:5291/', 
     await gotoWelcome(s);
     const panels = await s.evaluate(`document.querySelectorAll('.view-panel').length`);
     expect(panels === 0, 'a project was opened automatically');
-    const offers = await s.evaluate(`['Create project', 'Open project', 'Open example…'].filter((t) => !document.querySelector('.sgl-welcome').innerText.includes(t))`);
+    const offers = await s.evaluate(`['Create project', 'Open project', 'Open toolkit design…'].filter((t) => !document.querySelector('.sgl-welcome').innerText.includes(t))`);
     expect(offers.length === 0, `Welcome lacks ${offers}`);
     await createProject(s, { toolkit: 'house' });
     const nodes = await s.evaluate('__sgl.nodes().length');

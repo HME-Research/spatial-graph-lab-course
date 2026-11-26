@@ -10,7 +10,7 @@
 //
 // Each iteration uses a NEW private browser profile (bug A needs one): load, reload at once →
 // Welcome must list the saved projects (no hang, storage available) → Create project with the House
-// toolkit must finish → Open example… → House – graph only: Graph 2D draws its 4 edges → Save locally → reload → restore it
+// toolkit must finish → Open toolkit design… → House – graph only: Graph 2D draws its 4 edges → Save locally → reload → restore it
 // from Recent: Graph 2D draws its 4 edges again. Prints one line per iteration and the counts.
 //
 // Same safety rules as smoke.mjs: never starts/stops Node or Vite, never writes into the repository
@@ -101,7 +101,7 @@ for (let i = 1; i <= iterations; i++) {
       counts.createHang++;
       await shot('create-hang');
     }
-    // B: Open example… → House – graph only, then the same project restored from Recent.
+    // B: Open toolkit design… → House – graph only, then the same project restored from Recent.
     if ((await welcomeList(s, opts.url)) === 'ok') {
       await pickBuiltInExample(s);
       await waitForProject(s, 5);

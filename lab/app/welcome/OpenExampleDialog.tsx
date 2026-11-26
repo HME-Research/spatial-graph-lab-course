@@ -8,8 +8,8 @@ type ListState =
   | { readonly status: 'error'; readonly message: string };
 
 /**
- * Open example… (owner decision 2026-11-20), from Welcome and the Project panel, in sections: "No
- * toolkit" (the built-in House, graph only), then one "Toolkit: <name>" section per toolkit with its
+ * Open toolkit design… (owner decision 2026-11-20), from Welcome and the Project panel, in sections: "Built-in example"
+ * (the built-in House, graph only; "No toolkit" until 2026-11-26), then one "Toolkit: <name>" section per toolkit with its
  * designs (its default design first), each with its name and description. Choosing one closes the dialog and opens it as a NEW
  * project (`onOpen`); the list is loaded when the dialog opens (`load`).
  */
@@ -36,8 +36,8 @@ export function OpenExampleDialog({
 
   return (
     <Dialog
-      title="Open example"
-      lead="Each example opens as a new project, with its toolkit if it has one."
+      title="Open toolkit design"
+      lead="Each design opens as a new project, with its toolkit (the built-in example has none)."
       onClose={onCancel}
       dialogId="open-example"
       className="sgl-open-example"
@@ -49,12 +49,12 @@ export function OpenExampleDialog({
     >
       {state.status === 'loading' && (
         <p className="meta" role="status">
-          Looking for examples…
+          Looking for designs…
         </p>
       )}
       {state.status === 'error' && (
         <p className="sgl-project-files-error" role="alert">
-          The examples could not be listed: {state.message}
+          The designs could not be listed: {state.message}
         </p>
       )}
       {state.status === 'ready' &&

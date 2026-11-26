@@ -67,7 +67,7 @@
 }
 .sgl-welcome-actions {
   display: grid;
-  /* Three actions (owner 2026-11-20): Create project across the top, Open project and Open example… side by side; one column when narrow. */
+  /* Three actions (owner 2026-11-20): Create project across the top, Open project and Open toolkit design… side by side; one column when narrow. */
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
@@ -483,7 +483,7 @@ input.sgl-project-name-input:focus {
   font-size: 13px;
 }
 
-/* Open example… (2026-11-20): sections (No toolkit, Toolkit: <name>), one button per example, name then description. */
+/* Open toolkit design… (2026-11-20): sections (Built-in example, Toolkit: <name>), one button per example, name then description. */
 .sgl-open-example {
   width: min(560px, calc(100vw - 32px));
 }

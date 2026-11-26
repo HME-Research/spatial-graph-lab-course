@@ -51,7 +51,7 @@ npm run check:toolkit -- -t <your-toolkit-name>
 npm run typecheck
 ```
 
-`check:toolkit` ends with one line: `PASSED: toolkit "<your-toolkit-name>" is ready.` or `FAILED: …` (vitest's own summary says `N passed` even when a test failed, so read the last line); `No toolkit "…" was found` or `toolkit.ts is one folder too deep` means the folder is missing or in the wrong place. Fix failures **inside the toolkit folder** and run them again until both pass. Show the student the real output; never say a check passed without running it. Then tell them how to try it: `npm run dev`, open `http://localhost:5173/?toolkit=<your-toolkit-name>`, **Open example…**, and which analysis (Analyse) or transform (Transform) to run and what it should show.
+`check:toolkit` ends with one line: `PASSED: toolkit "<your-toolkit-name>" is ready.` or `FAILED: …` (vitest's own summary says `N passed` even when a test failed, so read the last line); `No toolkit "…" was found` or `toolkit.ts is one folder too deep` means the folder is missing or in the wrong place. Fix failures **inside the toolkit folder** and run them again until both pass. Show the student the real output; never say a check passed without running it. Then tell them how to try it: `npm run dev`, open `http://localhost:5173/?toolkit=<your-toolkit-name>`, **Open toolkit design…**, and which analysis (Analyse) or transform (Transform) to run and what it should show.
 
 ## 5. How to talk to the student
 
