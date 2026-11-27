@@ -4,6 +4,6 @@ import { defineFunction } from '@student-api';
 export default defineFunction({
   id: 'medical-centre',
   label: 'Medical Centre',
-  colour: '#c65b68',
+  colour: '#f2cc3d',
   custom: { medicalCapacity: { kind: 'number', min: 0 } },
 });

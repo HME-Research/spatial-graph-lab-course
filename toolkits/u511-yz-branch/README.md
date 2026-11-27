@@ -10,7 +10,7 @@ Explore how spatial connectivity, emergency shelter accessibility and resource c
 |---|---|---|---|---|
 | `residential` | Residential | `#4f7cc0` | App default | None |
 | `emergency-shelter` | Emergency Shelter | `#38966b` | App default | None |
-| `medical-centre` | Medical Centre | `#c65b68` | App default | None |
+| `medical-centre` | Medical Centre | `#f2cc3d` | App default | None |
 | `resource-hub` | Resource Hub | `#c48a32` | App default | None |
 | `circulation` | Circulation | `#90949b` | App default | None |
 
