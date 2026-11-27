@@ -2,7 +2,7 @@ import { defineToolkit } from '@student-api';
 
 // Give every room the same fields, with defaults for specific Functions below.
 export default defineToolkit({
-  name: 'Work-living studio',
+  name: 'u118-Work-Living studio',
   custom: {
     nodes: {
       beds: { kind: 'number', min: 0, label: 'Beds' },
