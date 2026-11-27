@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "Two-storey three-bedroom house",
+    "description": "Bedroom 1 downstairs; Bedroom 2 and the master with ensuite upstairs. Two separate downstairs bathrooms, kitchen, dining room, living room, library and entrance patio; upstairs access links are symbolic, not detailed stairs."
+  },
+  "nextNodeId": 12,
+  "nextEdgeId": 11,
+  "nodes": [
+    {
+      "id": 1,
+      "function": "living-room",
+      "position": [0, 0, 0],
+      "size": [3, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "function": "kitchen",
+      "position": [3, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "function": "dining-room",
+      "position": [3, 2, 0],
+      "size": [2, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "function": "library",
+      "position": [1, 2, 0],
+      "size": [2, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "function": "bedroom-1",
+      "position": [0, 2, 0],
+      "size": [1, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "function": "bathroom",
+      "position": [1, 3, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "function": "bathroom",
+      "position": [2, 3, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "function": "patio",
+      "position": [0, -1, 0],
+      "size": [3, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "function": "bedroom-2",
+      "position": [0, 0, 1],
+      "size": [1, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "function": "master-bedroom",
+      "position": [1, 0, 1],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 11,
+      "function": "bathroom",
+      "position": [3, 0, 1],
+      "size": [1, 1, 1],
+      "custom": {
+        "bathroomType": "ensuite"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source": 8,
+      "target": 1,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "source": 1,
+      "target": 2,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "source": 2,
+      "target": 3,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "source": 1,
+      "target": 4,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "source": 1,
+      "target": 5,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "source": 4,
+      "target": 6,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "source": 4,
+      "target": 7,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "source": 1,
+      "target": 9,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "source": 1,
+      "target": 10,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "source": 10,
+      "target": 11,
+      "relationship": "access",
+      "custom": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "1": [400, 420],
+      "2": [660, 420],
+      "3": [920, 420],
+      "4": [400, 640],
+      "5": [140, 420],
+      "6": [270, 840],
+      "7": [530, 840],
+      "8": [140, 640],
+      "9": [270, 160],
+      "10": [530, 160],
+      "11": [790, 160]
+    }
+  },
+  "settings": {
+    "styleBy": "function",
+    "styles": {
+      "function": {
+        "groups": [
+          {
+            "value": "patio",
+            "look": {
+              "walls": "open",
+              "roof": "none"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

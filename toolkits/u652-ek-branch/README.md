@@ -29,9 +29,9 @@
 
 Bedroom 1, Bedroom 2 and Master bedroom are the three bedrooms for your house. The original `bedroom` Function stays available for existing projects. The master bedroom starts with one bed because no bed count was specified for it.
 
-`windowCount` records your intended number of windows; it does not place exactly two windows in the architecture. The API controls glazing with `facade.windowFraction`. Likewise, the Patio Function labels an outdoor space; choose its outdoor appearance in the app's Building Designer.
+`windowCount` records your intended number of windows; it does not place exactly two windows in the architecture. The API controls glazing with `facade.windowFraction`. The saved house design gives the Patio open walls and no roof.
 
-## Graph structure to draw
+## Saved house graph
 
 The app already provides the graph data structure: **nodes are rooms** and **edges are relationships**. This toolkit provides its room types and attributes. Each room stores an `id`, `function`, `position`, `size` and `custom`; each relationship stores an `id`, `source`, `target`, `relationship` and `custom`. The app creates the numeric ids as you draw.
 
@@ -42,7 +42,23 @@ The app already provides the graph data structure: **nodes are rooms** and **edg
 - Connect Kitchen to Dining room with **access**, or **open** for an open-plan connection. Connect the other rooms according to your layout.
 - Place directly connected rooms against a shared wall, and upper rooms over lower rooms. An edge between floors records a relationship; it does not create a staircase.
 
-These connections and the room arrangement are instructions for your drawing. The toolkit does not automatically create or enforce them.
+The saved `designs/two-storey-house.json` contains this graph with 11 rooms and 10 relationships. Bedroom 1 is downstairs; Bedroom 2 and the master are upstairs. The two separate bathrooms open from the downstairs library, and the ensuite opens only from the master. Kitchen and dining have an open connection; the remaining connections are access relationships. All connected rooms share a wall or floor, all upper rooms stand over lower rooms, and no rooms overlap.
+
+The two upstairs bedrooms connect vertically to the living room. These edges show floor openings and symbolic access markers, not detailed stairs; you can refine the circulation in the app. Room sizes and which bedroom goes downstairs are starting choices for you to edit. The toolkit does not enforce the arrangement when you change it.
+
+| Node id | Room | Level | Nominal area |
+|---|---|---:|---:|
+| 1 | Living room | 0 | 54 m² |
+| 2 | Kitchen | 0 | 36 m² |
+| 3 | Dining room | 0 | 18 m² |
+| 4 | Library | 0 | 18 m² |
+| 5 | Bedroom 1 | 0 | 18 m² |
+| 6 | Separate bathroom | 0 | 9 m² |
+| 7 | Separate bathroom | 0 | 9 m² |
+| 8 | Outside patio | 0 | 27 m² |
+| 9 | Bedroom 2 | 1 | 18 m² |
+| 10 | Master bedroom | 1 | 36 m² |
+| 11 | Ensuite bathroom | 1 | 9 m² |
 
 ## Algorithms (`algorithms/`)
 
@@ -51,12 +67,12 @@ These connections and the room arrangement are instructions for your drawing. Th
 
 ## Designs (`designs/`)
 
-`designs/` contains only its README. Draw your design in the app and add it here later.
+`designs/two-storey-house.json` is the saved starting design. Open it with **Open toolkit design…** › **Two-storey three-bedroom house**. `toolkit.ts` has no `defaultDesign`; creating an empty project still starts without rooms.
 
 ## How to try it
 
 1. Run `npm run check:toolkit -- -t u652-ek-branch` and `npm run typecheck`.
 2. Run `npm run dev` and open `http://localhost:5173/?toolkit=u652-ek-branch`.
-3. Choose **Create project** with this toolkit, then draw your rooms and connections. With the three bedroom defaults, **Analyse › Network › Beds by floor** should show four beds in total, split by your chosen levels.
-4. Make Bedroom 2 two cells in plan (18 m²), then run **Transform › Two beds for large bedrooms**. Its preview should propose two beds there; press **Apply**, then run the analysis again to see five beds total if the master is unchanged. One cell is 9 m². The transform also updates the master if it is over 12 m².
-5. When you have exported and added your own design, it will appear in **Open toolkit design…**. There is no saved design to open yet.
+3. Choose **Open toolkit design…** › **Two-storey three-bedroom house**. Run **Analyse › Network › Beds by floor**: it should show two beds downstairs and two upstairs, four in total.
+4. Run **Transform › Two beds for large bedrooms**. Its preview should set Bedroom 2 and the master to two beds each; Bedroom 1 already has two. Press **Apply** and analyse again: expect two beds downstairs and four upstairs, six in total.
+5. Edit the layout in the app, then keep your changes with **Project › Export project**. To add another saved design, follow `designs/README.md`.
