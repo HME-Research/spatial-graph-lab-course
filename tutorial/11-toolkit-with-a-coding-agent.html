@@ -49,11 +49,11 @@
 <summary class="card-head"><span class="badge">01</span><div><h2>Check your branch <span class="who you">You do this</span></h2><p class="sub">First, before you send anything to the agent.</p></div></summary>
 <div class="card-body">
 <div class="code"><pre>git branch --show-current</pre></div>
-<p class="see"><code>toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span></code>, not <code>main</code>. VS Code's bottom left shows the same.</p>
+<p class="see"><code>toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span></code>, not <code>main</code>. VS Code's bottom left shows the same.</p>
 <figure class="fig"><img src="img/statusbar-branch.svg" alt="VS Code status bar, bottom left: the branch toolkit/u123-hk-house" width="560" height="70"><figcaption>The branch, bottom left (here <code>toolkit/u123-hk-house</code>).</figcaption></figure>
 <details class="more"><summary>It shows <code>main</code></summary><div class="more-body">
 <p>Go to your branch (no <code>-c</code>: it exists already):</p>
-<div class="code"><pre data-fill>git switch toolkit/&lt;your-toolkit-name&gt;</pre></div>
+<div class="code"><pre data-fill>git switch toolkit/&lt;your-name-tag&gt;</pre></div>
 </div></details>
 <details class="more"><summary>I have no branch yet</summary><div class="more-body"><p>Make it first: <a href="10-make-your-branch.html#branch">Make your branch and send it to GitHub</a>.</p></div></details>
 </div>
@@ -82,7 +82,7 @@
 <summary class="card-head"><span class="badge">03</span><div><h2>Send your prompt <span class="who you">You do this</span></h2><p class="sub">The rules first, then what to make.</p></div></summary>
 <div class="card-body">
 <p>Copy it from <a href="10-make-your-branch.html#prompts">page 10 › Your prompt</a> (your plan filled in), or copy this one and fill the orange blanks in the agent's box:</p>
-<div class="code"><pre data-fill data-block="prompt:agent">Rules: work only in toolkits/&lt;your-toolkit-name&gt;/ on my branch toolkit/&lt;your-toolkit-name&gt;. Do not change lab/ or any other folder or file, do not install or update packages, and do not push: I will push.
+<div class="code"><pre data-fill data-block="prompt:agent">Rules: work only in toolkits/&lt;your-toolkit-name&gt;/ on my branch toolkit/&lt;your-name-tag&gt;. Do not change lab/ or any other folder or file, do not install or update packages, and do not push: I will push.
 Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. The folder name is exactly my toolkit name. Run the checks and commit only my folder.
 Do not write any design: make the folder designs/ with only a short README.md that says how to add a design, and do not set defaultDesign in toolkit.ts. I will draw my designs in the app.
 
@@ -142,7 +142,7 @@ Algorithms: ___</pre></div>
 <p class="help-link">Git says “Please tell me who you are”? <a href="16-help.html#h-identity">Do this once</a>.</p>
 </div></details>
 <div class="code"><pre>git push</pre></div>
-<p class="see"><code>toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span> -&gt; toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span></code>.</p>
+<p class="see"><code>toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span> -&gt; toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span></code>.</p>
 <div class="done-when"><p><code>PASSED</code>, the push went through, and <a href="13-hand-in.html#check">a green ✓</a> appears beside your latest commit on GitHub.</p></div>
 </div>
 </details>

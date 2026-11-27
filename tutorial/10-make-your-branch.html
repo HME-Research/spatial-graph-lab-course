@@ -54,7 +54,7 @@
   <dl class="namer-out">
     <div><dt>Toolkit name</dt><dd><code data-toolkit-name>&lt;your-toolkit-name&gt;</code></dd></div>
     <div><dt>Folder</dt><dd><code>toolkits/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span>/</code></dd></div>
-    <div><dt>Branch</dt><dd><code>toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span></code></dd></div>
+    <div><dt>Branch</dt><dd><code>toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span></code></dd></div>
   </dl>
   <p class="namer-msg" data-namer-msg role="status"></p>
   <p class="namer-note">Remembered only in this browser. The commands below fill in with it.</p>
@@ -92,15 +92,15 @@
     <div class="code"><pre>git pull</pre></div>
     <p class="see">“Already up to date.” or a list of updated files.</p></li>
   <li><span class="st">Make your branch and go to it</span><code>-c</code> means “create it first”.
-    <div class="code"><pre data-fill>git switch -c toolkit/&lt;your-toolkit-name&gt;</pre></div>
-    <p class="see"><code>Switched to a new branch 'toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span>'</code>.</p></li>
+    <div class="code"><pre data-fill>git switch -c toolkit/&lt;your-name-tag&gt;</pre></div>
+    <p class="see"><code>Switched to a new branch 'toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span>'</code>.</p></li>
   <li><span class="st">Make its first commit</span>An empty one, so that the branch has something to send.
-    <div class="code"><pre data-fill>git commit --allow-empty -m "chore(&lt;your-toolkit-name&gt;): start my toolkit"</pre></div>
-    <p class="see"><code>[toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span> …] chore(…): start my toolkit</code>.</p>
+    <div class="code"><pre data-fill>git commit --allow-empty -m "chore(&lt;your-name-tag&gt;): start my branch"</pre></div>
+    <p class="see"><code>[toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span> …] chore(…): start my branch</code>.</p>
     <p class="help-link">Git says “Please tell me who you are”? <a href="16-help.html#h-identity">Do this once</a>, then run the commit again.</p></li>
   <li><span class="st">Send it to GitHub</span>This puts your branch on GitHub.
-    <div class="code"><pre data-fill>git push -u origin toolkit/&lt;your-toolkit-name&gt;</pre></div>
-    <p class="see"><code>* [new branch]      toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span> -&gt; toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span></code></p>
+    <div class="code"><pre data-fill>git push -u origin toolkit/&lt;your-name-tag&gt;</pre></div>
+    <p class="see"><code>* [new branch]      toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span> -&gt; toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span></code></p>
     <p class="muted"><code>-u</code> remembers GitHub (<code>origin</code>) as the place this branch goes: from now on a plain <code>git push</code> is enough. The first push may open a browser window: sign in and <span class="ui">Authorize</span>.</p></li>
 </ol>
 <details class="trouble"><summary>Troubleshooting</summary><div class="trouble-body">
@@ -109,7 +109,7 @@
 <div class="code"><pre>git switch main</pre></div>
 <p>and run steps 3–5 again with the new name.</p>
 </div></details>
-<details class="issue"><summary>“A branch named … already exists”</summary><div class="issue-body"><p>You made it before: go to it with <code>git switch toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span></code> (no <code>-c</code>), then step 5.</p></div></details>
+<details class="issue"><summary>“A branch named … already exists”</summary><div class="issue-body"><p>You made it before: go to it with <code>git switch toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span></code> (no <code>-c</code>), then step 5.</p></div></details>
 <details class="issue"><summary>“Permission denied” or 403</summary><div class="issue-body"><p>Accept the course invitation first (<a href="08-install-the-tools.html#s-invite">Install the tools › 02</a>), then run step 5 again.</p></div></details>
 <details class="issue"><summary>Anything else</summary><div class="issue-body"><p><a href="16-help.html#git">Help › Git and GitHub</a>.</p></div></details>
 </div></details>
@@ -165,7 +165,7 @@
 <div class="card-body">
 <div class="tabs" data-tabs="route" data-default="agent" data-tabs-label="Way of working">
 <div class="tab-panel" data-tab="agent" data-label="Coding agent"><p class="tab-title">Coding agent</p>
-<div class="code"><div class="label">Paste into your agent (<a href="11-toolkit-with-a-coding-agent.html#prompt">page 11</a>)</div><pre data-build="prompt-form" data-block="prompt:agent">Rules: work only in toolkits/&lt;your-toolkit-name&gt;/ on my branch toolkit/&lt;your-toolkit-name&gt;. Do not change lab/ or any other folder or file, do not install or update packages, and do not push: I will push.
+<div class="code"><div class="label">Paste into your agent (<a href="11-toolkit-with-a-coding-agent.html#prompt">page 11</a>)</div><pre data-build="prompt-form" data-block="prompt:agent">Rules: work only in toolkits/&lt;your-toolkit-name&gt;/ on my branch toolkit/&lt;your-name-tag&gt;. Do not change lab/ or any other folder or file, do not install or update packages, and do not push: I will push.
 Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. The folder name is exactly my toolkit name. Run the checks and commit only my folder.
 Do not write any design: make the folder designs/ with only a short README.md that says how to add a design, and do not set defaultDesign in toolkit.ts. I will draw my designs in the app.
 
