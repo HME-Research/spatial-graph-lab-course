@@ -14,7 +14,7 @@ Edit bed counts, seats and window records in Properties. Resize a bedroom to cha
 
 ## Try the algorithms
 
-1. Run `npm.cmd run dev` and open the printed local address with `?toolkit=u073-yl-branch`. Choose **Create project** with **Student Flat**.
+1. Run `npm.cmd run dev` and open the printed local address with `?toolkit=u073-yl-flat`. Choose **Create project** with **Student Flat**.
 2. Draw two bedrooms, one covering a single cell (9 m²) and one covering two cells side by side (18 m²). Add a shared kitchen and a living room.
 3. Run **Analyse › Network › Count beds**. With the default of one bed per bedroom, the total is 2.
 4. Run **Transform › Assign two beds**. The preview sets the 18 m² bedroom to exactly two beds. Apply the change and run **Count beds** again to see a total of 3.
