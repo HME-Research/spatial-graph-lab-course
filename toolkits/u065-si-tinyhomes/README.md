@@ -2,7 +2,7 @@
 
 **What it is for:** tiny homes of 9 to 37 m² (100 to 400 sq ft). How do you fit a bedroom, a couch, a dining table, a washroom and a kitchen into so little floor? The toolkit rates how efficiently each room uses its area, and generates, ranks and places alternative layouts.
 
-**Toolkit name:** `u065-si-branch` (the folder name). Open the app with `?toolkit=u065-si-branch`.
+**Toolkit name:** `u065-si-tinyhomes` (the folder name). Open the app with `?toolkit=u065-si-tinyhomes`.
 
 **The grid.** One cell is 3 × 3 m = 9 m², so a tiny home is 1 to 4 cells. Five Functions don't fit in four cells, so some are **combined** into one room (a drop-leaf table in the kitchen, a sofa bed in the couch room). A **boundary shift** (a wall moved 1.5 m) makes a 4.5 m² washroom next to a 13.5 m² room.
 
@@ -39,7 +39,7 @@ None yet: I draw them in the app and add them later (see `designs/README.md`).
 
 ## How to try it
 
-1. `npm run check:toolkit -- -t u065-si-branch`
-2. `npm run dev`, open `http://localhost:5173/?toolkit=u065-si-branch`, **Create project**.
+1. `npm run check:toolkit -- -t u065-si-tinyhomes`
+2. `npm run dev`, open `http://localhost:5173/?toolkit=u065-si-tinyhomes`, **Create project**.
 3. Transform › **Tiny home iterations**: set *Home area* (e.g. 27) and *Iteration* 1, **Run**, read the ranking, **Apply**. Run it again with Iteration 2 to place the next one beside it.
 4. Analyse › Network › **Space efficiency**: see which rooms are undersized, efficient or oversized.
