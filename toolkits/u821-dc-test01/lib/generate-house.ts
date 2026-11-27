@@ -1,4 +1,4 @@
-import { type SpatialAlgorithm, type SpatialAlgorithmContext, type SpatialEdge, type SpatialNode, type SpatialOperation, type TransformationResult } from '@student-api';
+import { roomCells, type SpatialAlgorithm, type SpatialAlgorithmContext, type SpatialEdge, type SpatialNode, type SpatialOperation, type TransformationResult } from '@student-api';
 import { connectionProblem, levels, pairKey, planHouseConnections } from './house-connections';
 import {
   bathroomKeys, bedroomKeys, houseLinks, makeCandidate, seededRandom, supportedLayout, typologies, feasibleTypologies,
@@ -139,6 +139,35 @@ function signature(rooms: readonly HouseRoom[]) {
   return [key(false), key(true)].sort()[0]!;
 }
 
+// Score preferences only after a candidate passes the mandatory rules.
+function layoutCost(rooms: readonly HouseRoom[], target: number, ratio: number, compactness: number, mode: string) {
+  const ground = rooms.filter((room) => room.position[2] === 0 && room.function !== 'swimming-pool');
+  const span = (axis: 0 | 1) => Math.max(...ground.map((room) => room.position[axis] + room.size[axis])) -
+    Math.min(...ground.map((room) => room.position[axis]));
+  const width = span(0);
+  const depth = span(1);
+  const aspect = Math.max(width, depth) / Math.min(width, depth);
+  const compact = buildingArea(ground) / (9 * width * depth);
+  const enclosed = rooms.filter((room) => room.function !== 'swimming-pool');
+  const proportions = enclosed.reduce((sum, room) =>
+    sum + Math.max(room.size[0], room.size[1]) / Math.min(room.size[0], room.size[1]) - 1, 0);
+
+  // Favour shorter walks between room centres and more support under the upper floor.
+  const byKey = new Map(rooms.map((room) => [room.key, room]));
+  const travel = houseLinks.reduce((sum, [from, to]) => {
+    const a = byKey.get(from)!;
+    const b = byKey.get(to)!;
+    const distance = (axis: 0 | 1) => Math.abs(a.position[axis] + a.size[axis] / 2 - b.position[axis] - b.size[axis] / 2);
+    return sum + distance(0) + distance(1);
+  }, 0);
+  const below = new Set(ground.flatMap(roomCells).map(([x, y]) => `${x},${y}`));
+  const unsupported = enclosed.filter((room) => room.position[2] === 1).flatMap(roomCells)
+    .filter(([x, y]) => !below.has(`${x},${y}`)).length;
+  return Math.abs(buildingArea(rooms) - target) / (mode === 'dimensions' ? 4 : 8) + Math.abs(aspect - ratio) * 2 +
+    (1 - compact) * (compactness / 15 + (mode === 'layout' ? 8 : 0)) + proportions / 12 +
+    travel / (mode === 'layout' ? 8 : 20) + unsupported / 4;
+}
+
 export function generateHouse(ctx: SpatialAlgorithmContext<typeof generationParameters>, mode: 'generate' | 'next' | 'dimensions' | 'layout' = 'generate'): TransformationResult {
     const seed = (Math.trunc(ctx.params.seed ?? 1) + Number(mode === 'next')) >>> 0;
     const random = seededRandom(seed);
@@ -175,6 +204,9 @@ export function generateHouse(ctx: SpatialAlgorithmContext<typeof generationPara
     const seen = new Set<string>();
     const current = [...reuse.entries()].map(([key, room]) => ({ ...room, key, function: room.function as HouseRoom['function'] }));
     const currentKey = current.length ? signature(current) : '';
+    const optimising = mode === 'dimensions' || mode === 'layout';
+    const baseline = optimising && !validateCandidate(ctx, current, reuse) ?
+      layoutCost(current, target, ratio, compactness, mode) : Infinity;
     const valid: { rooms: HouseRoom[]; typology: FeasibleTypology; score: number; area: number; key: string }[] = [];
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       const typology = requested === 'Random' ? choices[(firstChoice + attempt) % choices.length]! : requested;
@@ -189,16 +221,13 @@ export function generateHouse(ctx: SpatialAlgorithmContext<typeof generationPara
         continue;
       }
       const area = buildingArea(rooms);
-      const ground = rooms.filter((room) => room.position[2] === 0 && room.function !== 'swimming-pool');
-      const width = Math.max(...ground.map((room) => room.position[0] + room.size[0])) - Math.min(...ground.map((room) => room.position[0]));
-      const depth = Math.max(...ground.map((room) => room.position[1] + room.size[1])) - Math.min(...ground.map((room) => room.position[1]));
-      const compact = buildingArea(ground) / (9 * width * depth);
-      const proportions = rooms.filter((room) => room.function !== 'swimming-pool')
-        .reduce((sum, room) => sum + Math.max(room.size[0], room.size[1]) / Math.min(room.size[0], room.size[1]) - 1, 0);
-      const aspect = Math.max(width, depth) / Math.min(width, depth);
-      const score = Math.abs(area - target) / (mode === 'dimensions' ? 4 : 12) + Math.abs(aspect - ratio) * 2 +
-        (1 - compact) * (compactness / 15 + (mode === 'layout' ? 8 : 0)) + proportions / 12 +
-        (attempt % choices.length === 0 || requested !== 'Random' ? 0 : 1) + preference * (1 + variation / 8);
+      const cost = layoutCost(rooms, target, ratio, compactness, mode);
+      if (cost >= baseline) {
+        rejected.set('no improvement over current layout', (rejected.get('no improvement over current layout') ?? 0) + 1);
+        continue;
+      }
+      const score = cost +
+        (attempt % choices.length === 0 || requested !== 'Random' ? 0 : 1) + preference * (1 + variation / 20);
       valid.push({ rooms, typology, score, area, key });
     }
     valid.sort((a, b) => a.score - b.score);

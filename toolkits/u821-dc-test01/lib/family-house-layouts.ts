@@ -1,5 +1,5 @@
 import { roomCells, type GridCoord, type RoomSize } from '@student-api';
-import { levels, publicLinks } from './house-connections';
+import { accessChoices, levels, publicLinks } from './house-connections';
 
 export const typologies = ['Random', 'Compact', 'Linear', 'L-shaped', 'U-shaped', 'Courtyard', 'Staggered', 'Clustered'] as const;
 export type Typology = typeof typologies[number];
@@ -19,6 +19,7 @@ export const bathroomKeys = ['a', 'b', 'c'] as const;
 const keyFor = (id: keyof typeof levels) => (Object.keys(roomTypes) as RoomKey[]).find((key) => roomTypes[key] === id)!;
 export const houseLinks: readonly (readonly [RoomKey, RoomKey])[] = [
   ...publicLinks.map(([a, b]) => [keyFor(a), keyFor(b)] as const),
+  ...accessChoices.map(([a, b]) => [keyFor(a), keyFor(b)] as const),
   ...bedroomKeys.flatMap((bedroom, i) => [['H', bedroom] as const, [bedroom, bathroomKeys[i]!] as const]),
 ];
 
@@ -45,7 +46,7 @@ export function makeCandidate(typology: FeasibleTypology, variation: number, com
 
   // Grow the public rooms around the entrance and their shared dining connection.
   const chance = (percent: number) => random() * 100 < percent;
-  const grow = () => chance(roomSize * (1 - compactness / 150));
+  const grow = () => chance(Math.min(78, roomSize * (1 - compactness / 150)));
   const deep = typology === 'Linear' || (typology !== 'Compact' && grow());
   const livingDepth = deep ? 2 : 1;
   const narrowReception = typology === 'Linear' || (typology === 'L-shaped' && chance(variation));

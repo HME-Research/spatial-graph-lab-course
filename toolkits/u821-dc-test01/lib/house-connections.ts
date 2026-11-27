@@ -22,16 +22,20 @@ export const publicLinks = [
   ['main-entrance', 'guest-reception-room'],
   ['main-entrance', 'living-room'],
   ['main-entrance', 'garage'],
-  ['garage', 'plant-room'],
   ['living-room', 'dining-room'],
   ['living-room', 'guest-bathroom'],
-  ['living-room', 'music-room'],
-  ['music-room', 'swimming-pool'],
-  ['living-room', 'staircase'],
   ['dining-room', 'kitchen'],
   ['dining-room', 'guest-reception-room'],
   ['staircase', 'hallway'],
   ['hallway', 'upper-living-room'],
+] as const;
+
+// The first option is the generator's preferred link. Edited plans may use another suitable room.
+export const accessChoices = [
+  ['plant-room', 'garage', 'kitchen'],
+  ['music-room', 'living-room', 'guest-reception-room', 'main-entrance', 'dining-room'],
+  ['swimming-pool', 'music-room', 'living-room', 'guest-reception-room', 'dining-room'],
+  ['staircase', 'living-room', 'main-entrance', 'dining-room', 'guest-reception-room'],
 ] as const;
 
 type Layout = Pick<DesignAnalysisContext, 'design' | 'touches'>;
@@ -56,6 +60,20 @@ export function planHouseConnections(ctx: Layout) {
     if (!a) missingRoles.add(from);
     if (!b) missingRoles.add(to);
     if (a && b) required.push([a, b]);
+  }
+
+  // Prefer an existing direct Access link, then a touching room, then a room to move.
+  for (const [from, ...choices] of accessChoices) {
+    const room = roomsOnLevel(from)[0];
+    if (!room) {
+      missingRoles.add(from);
+      continue;
+    }
+    const options = choices.flatMap((id) => roomsOnLevel(id));
+    const target = options.find((option) => ctx.touches(room.id, option.id) &&
+      byPair.get(pairKey(room.id, option.id))?.relationship === 'access') ??
+      options.find((option) => ctx.touches(room.id, option.id)) ?? options[0];
+    if (target) required.push([room, target]);
   }
 
   // Every upper bedroom needs a direct connection to the upper hallway.
@@ -127,9 +145,19 @@ export function hasDirectContact(ctx: Layout, a: SpatialNode, b: SpatialNode) {
 // A bedroom can only connect to the hallway and its own bathroom. A bathroom has one way in.
 export function connectionProblem(ctx: Layout, edge: SpatialEdge, a: SpatialNode, b: SpatialNode, required: ReadonlySet<string>) {
   if ([a.function, b.function].includes('guest-bathroom') && !required.has(pairKey(a.id, b.id))) return 'Guest bathroom used for circulation';
+  if ([a.function, b.function].includes('guest-bathroom') && edge.relationship !== 'access') return 'Guest bathroom privacy needs Access';
+  for (const [from, ...choices] of accessChoices) {
+    const other = a.function === from ? b : b.function === from ? a : undefined;
+    if (!other || from === 'staircase' && other.function === 'hallway') continue;
+    if ((from === 'plant-room' || from === 'swimming-pool') &&
+        !choices.some((choice) => choice === other.function)) return 'Invalid service or pool access';
+  }
   const privateLink = isPrivate(a) || isPrivate(b);
   if (privateLink && !required.has(pairKey(a.id, b.id))) return 'Privacy violation';
   if (!hasDirectContact(ctx, a, b)) return 'Invalid contact or floor connection';
+  if (edge.relationship !== 'access' && accessChoices.some(([from, ...choices]) =>
+    (a.function === from && choices.some((choice) => choice === b.function)) ||
+    (b.function === from && choices.some((choice) => choice === a.function)))) return 'Route needs an Access opening';
   if ((privateLink || a.position[2] !== b.position[2]) && edge.relationship !== 'access') {
     return privateLink ? 'Privacy violation: use Access' : 'Vertical link needs Access';
   }
