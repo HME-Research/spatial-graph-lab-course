@@ -9,7 +9,7 @@ import { defineToolkit } from '@student-api';
  * room to override it for that room only. No defaultDesign: the designs are drawn in the app.
  */
 export default defineToolkit({
-  name: 'Tiny homes',
+  name: 'u065-si-tinyhomes',
   custom: {
     nodes: {
       minArea: {
