@@ -4,7 +4,7 @@ You are helping a **student** of the course *Graph, Rules & Space* in the reposi
 
 ## 1. The one folder you may change
 
-The student owns exactly one folder: **`toolkits/<your-toolkit-name>/`** (their toolkit). Their toolkit name looks like `u123-hk-house`: `u`, the last 3 digits of their student number, their initials and a short name. Create, edit and delete files **only** there.
+The student owns exactly one folder: **`toolkits/<your-toolkit-name>/`** (their toolkit). Their **name tag** looks like `u123-hk`: `u`, the last 3 digits of their student number and their initials. Their **branch** is `toolkit/<your-name-tag>` (e.g. `toolkit/u123-hk`): one branch per student, named after the student, never after a toolkit. Their **toolkit name** is the name tag, `-` and a short name of the toolkit, e.g. `u123-hk-house`; it is the folder name, and `name` in `toolkit.ts` is exactly the same text. Create, edit and delete files **only** in their toolkit folder.
 
 Never create, edit, move, rename, delete, reformat or regenerate anything else, even if a check or a tool suggests it:
 
@@ -21,12 +21,12 @@ If the student's idea seems to need a change outside their folder, **stop**, exp
 
 ## 2. Git: their own branch, never `main`
 
-- Work only on the branch **`toolkit/<your-toolkit-name>`**. First run `git status` and `git branch --show-current`.
-  - On `main` (or a detached HEAD): switch with `git switch toolkit/<your-toolkit-name>` if it exists. Otherwise the student makes the branch and sends it to GitHub first (they push, not you): `git status` (must say `On branch main`, else `git switch main`), `git pull`, `git switch -c toolkit/<your-toolkit-name>`, `git commit --allow-empty -m "chore(<your-toolkit-name>): start my toolkit"`, `git push -u origin toolkit/<your-toolkit-name>`, which must print `* [new branch]`.
+- Work only on the branch **`toolkit/<your-name-tag>`**. First run `git status` and `git branch --show-current`.
+  - On `main` (or a detached HEAD): switch with `git switch toolkit/<your-name-tag>` if it exists. Otherwise the student makes the branch and sends it to GitHub first (they push, not you): `git status` (must say `On branch main`, else `git switch main`), `git pull`, `git switch -c toolkit/<your-name-tag>`, `git commit --allow-empty -m "chore(<your-name-tag>): start my branch"`, `git push -u origin toolkit/<your-name-tag>`, which must print `* [new branch]`.
   - Uncommitted changes outside `toolkits/<your-toolkit-name>/`: **stop** and ask the student; never discard them yourself.
 - Commit only the toolkit folder: `git add toolkits/<your-toolkit-name>`, then `git status` must list nothing outside it. Message: `feat(<your-toolkit-name>): <what changed>` (or `fix(<your-toolkit-name>): …`).
-- **Do not push** unless the student asks. Then push only their branch: `git push -u origin toolkit/<your-toolkit-name>`. Never push `main`, never force-push, never merge, rebase or reset someone else's work, never delete a branch.
-- A first push of the branch that says **rejected** or **Everything up-to-date** means someone else already has a branch with that name: **stop**, never pull or merge that branch, and help the student change their toolkit name a little. Only when the student pushed this branch before (for example from another computer) bring the remote commits in with `git pull --no-rebase --no-edit`, then push.
+- **Do not push** unless the student asks. Then push only their branch: `git push -u origin toolkit/<your-name-tag>`. Never push `main`, never force-push, never merge, rebase or reset someone else's work, never delete a branch.
+- A first push of the branch that says **rejected** or **Everything up-to-date** means someone else already has a branch with that name: **stop**, never pull or merge that branch, and help the student change their name tag a little (for example add a letter: `u123-hka`). Only when the student pushed this branch before (for example from another computer) bring the remote commits in with `git pull --no-rebase --no-edit`, then push.
 - To bring in the owner's updates, on the student's branch (never switch to `main` for this): `git pull --no-rebase --no-edit origin main`. If that conflicts outside the toolkit folder, run `git merge --abort`, stop and ask.
 - Never run `git reset --hard`, `git clean`, `git checkout -- .`, `git restore .` or `git stash` on the student's work: they also wipe the toolkit folder. To undo a change outside the folder, restore **only that file** (`git restore --staged <file>`, `git restore <file>`), then show `git status`.
 

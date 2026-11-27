@@ -1,5 +1,5 @@
-# Checks every push and pull request. On a student branch toolkit/<toolkit-id> it also checks that
-# only toolkits/<toolkit-id>/ changed and, once the folder has files, that the toolkit loads (an empty
+# Checks every push and pull request. On a student branch toolkit/<name-tag> it also checks that
+# only toolkits/<name-tag>-*/ changed and, once a folder has files, that each changed toolkit loads (an empty
 # branch pushed only to claim its name passes). A failing run marks the commit with
 # a red cross on GitHub; it does not stop the push (see lab/docs/GITHUB-ACCESS.md for the rules that do).
 name: quality
@@ -35,37 +35,43 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Only toolkits/<toolkit-id>/ changed
+      # Branch toolkit/<name-tag> (one per student, e.g. toolkit/u123-hk) may change only
+      # toolkits/<name-tag>-*/ (e.g. toolkits/u123-hk-house/). An older branch toolkit/<toolkit-name>
+      # (e.g. toolkit/u123-hk-house) still works: its own folder counts too.
+      - name: Only the student's toolkit folders changed
         env:
           BRANCH: ${{ github.ref_name }}
         run: |
-          id="${BRANCH#toolkit/}"
-          if ! printf '%s' "$id" | grep -Eq '^[a-z][a-z0-9_-]*$'; then
-            echo "::error::Branch toolkit/$id: the toolkit id must be lowercase letters, digits, - or _, starting with a letter."
+          tag="${BRANCH#toolkit/}"
+          if ! printf '%s' "$tag" | grep -Eq '^[a-z][a-z0-9_-]*$'; then
+            echo "::error::Branch toolkit/$tag: the name must be lowercase letters, digits, - or _, starting with a letter."
             exit 1
           fi
           base="$(git merge-base origin/main HEAD)"
-          outside="$(git diff --name-only "$base" HEAD | grep -v "^toolkits/$id/" || true)"
+          outside="$(git diff --name-only "$base" HEAD | grep -Ev "^toolkits/($tag|$tag-[a-z0-9_-]+)/" || true)"
           if [ -n "$outside" ]; then
-            echo "::error::This branch changes files outside toolkits/$id/. Undo these changes:"
+            echo "::error::This branch changes files outside toolkits/$tag-.../. Undo these changes:"
             printf '%s\n' "$outside"
             exit 1
           fi
-          echo "OK: only toolkits/$id/ changed."
+          echo "OK: only toolkits/$tag-.../ changed."
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      # A toolkit that is not found fails (lab/scripts/check-toolkit.mjs). A branch pushed only to
-      # reserve its id (no change in toolkits/<toolkit-id>/ yet) has nothing to check and stays green.
-      - name: Check the toolkit
+      # Check every toolkit folder this branch changed. None changed yet (a branch just started with
+      # its empty first commit): nothing to check, stays green.
+      - name: Check the toolkits
         env:
           BRANCH: ${{ github.ref_name }}
         run: |
-          id="${BRANCH#toolkit/}"
-          if git diff --quiet "$(git merge-base origin/main HEAD)" HEAD -- "toolkits/$id/"; then
-            echo "toolkits/$id/ has no changes on this branch yet (a branch pushed to reserve its id): nothing to check."
+          ids="$(git diff --name-only "$(git merge-base origin/main HEAD)" HEAD | sed -n 's#^toolkits/\([^/]*\)/.*#\1#p' | sort -u)"
+          if [ -z "$ids" ]; then
+            echo "No toolkit folder changed on this branch yet: nothing to check."
             exit 0
           fi
-          npm run check:toolkit -- -t "$id"
+          for id in $ids; do
+            if [ ! -d "toolkits/$id" ]; then echo "toolkits/$id was deleted: skipped."; continue; fi
+            npm run check:toolkit -- -t "$id"
+          done

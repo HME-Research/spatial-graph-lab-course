@@ -7,7 +7,7 @@ import { TUTORIAL_URL, tutorialPage } from './links';
 /**
  * How to make your own toolkit with an AI assistant (owner 2026-11-24), shown in the Guide under
  * Toolkits & JSON › Make your own toolkit. Three tabs, one per way of working. The first two end with
- * the folder `toolkits/<your-toolkit-name>/` committed on the branch `toolkit/<your-toolkit-name>` and pushed (never
+ * the folder `toolkits/<your-toolkit-name>/` committed on the branch `toolkit/<your-name-tag>` and pushed (never
  * `main`, no Pull Request); the third ends with a zip uploaded in the app (no Git). Full text: lab/docs/TOOLKITS.md.
  *
  * - **Coding agent**: the agent works in the repository (reads lab/docs/TOOLKITS.md and

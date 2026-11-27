@@ -8,7 +8,10 @@ import { OpenExampleDialog } from './OpenExampleDialog';
 import { chosenFile } from './ToolkitDialogs';
 import { ADD_TOOLKIT_LABEL, DOWNLOAD_TOOLKIT_LABEL, UPLOAD_TOOLKIT_LABEL } from './toolkitUpload';
 import { ToolkitPicker, type ToolkitOption } from './ToolkitPicker';
-import { formatWhen, newProjectStart, projectFileName, type ExampleChoice, type ExampleOption } from './welcomeModel';
+import { serializeDesignV2 } from '@app/document';
+import { currentDocument } from '@app/session/documentSession';
+import { activeSession } from '@app/session/projectStore';
+import { designFileName, formatWhen, newProjectStart, projectFileName, type ExampleChoice, type ExampleOption } from './welcomeModel';
 import './welcome.css';
 
 /** Start a browser download of `text` (JSON). Throws when the browser refuses. */
@@ -35,6 +38,23 @@ export function exportProject(controller: ProjectController, download: (text: st
     return `Export failed: ${error instanceof Error ? error.message : String(error)}`;
   }
   controller.markExported(out.value.signature);
+  return null;
+}
+
+/**
+ * Export the ACTIVE scenario's design alone as a v2 design file (`serializeDesignV2`), the format a
+ * toolkit's `designs/` folder accepts. Wall preferences, views and project settings are not part of
+ * it. Does not change the project's exported state. Returns an error message, or null.
+ */
+export function exportDesign(controller: ProjectController, download: (text: string, fileName: string) => void = downloadText): string | null {
+  const project = controller.getState().project;
+  if (!project) return 'No project is open.';
+  const design = currentDocument(activeSession(project)).design;
+  try {
+    download(serializeDesignV2(design), designFileName(design.metadata.name));
+  } catch (error) {
+    return `Export failed: ${error instanceof Error ? error.message : String(error)}`;
+  }
   return null;
 }
 
@@ -91,6 +111,7 @@ export function ProjectFiles({
   const project = state.project;
   const [saveAsName, setSaveAsName] = useState<string | null>(null);
   const [examplesOpen, setExamplesOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   /** New project dialog: the toolkit being chosen (undefined: closed). */
   const [newToolkit, setNewToolkit] = useState<string | null | undefined>(undefined);
   const startNew = () => {
@@ -132,7 +153,7 @@ export function ProjectFiles({
       </div>
 
       <div className="sgl-project-actions" role="group" aria-label="Project actions">
-        <button type="button" disabled={!project || !controller} onClick={() => controller && setMessage(exportProject(controller))} title="Download the whole project as one file: every scenario, the attributes and the settings">
+        <button type="button" disabled={!project || !controller} onClick={() => setExportOpen(true)} aria-haspopup="dialog" title="Download this scenario's design, or the whole project as one file">
           Export project
         </button>
         <button type="button" disabled={!project} onClick={() => project && setSaveAsName(`${project.meta.name.slice(0, MAX_NAME_LENGTH - 5)} copy`)} title="Continue in an independent copy of the whole project">
@@ -223,6 +244,48 @@ export function ProjectFiles({
               : 'Only your last session is kept automatically. Save locally to keep this project when you open another one; export it for a portable copy.'}
           </p>
         </>
+      )}
+
+      {exportOpen && controller && (
+        <Dialog
+          title="Export"
+          lead="Choose what to download."
+          onClose={() => setExportOpen(false)}
+          dialogId="export"
+          footer={
+            <button type="button" onClick={() => setExportOpen(false)}>
+              Cancel
+            </button>
+          }
+        >
+          <div className="sgl-choice-list" role="group" aria-label="What to export">
+            <button
+              type="button"
+              className="sgl-choice"
+              data-autofocus
+              data-choice="design"
+              onClick={() => {
+                setExportOpen(false);
+                setMessage(exportDesign(controller));
+              }}
+            >
+              <span className="sgl-choice-title">Design file (.json)</span>
+              <span className="sgl-choice-text">This scenario’s design only. Ready to put in your toolkit’s designs/ folder.</span>
+            </button>
+            <button
+              type="button"
+              className="sgl-choice"
+              data-choice="project"
+              onClick={() => {
+                setExportOpen(false);
+                setMessage(exportProject(controller));
+              }}
+            >
+              <span className="sgl-choice-title">Project file (.project.json)</span>
+              <span className="sgl-choice-text">The whole project: every scenario, the attributes and the settings.</span>
+            </button>
+          </div>
+        </Dialog>
       )}
 
       {saveAsName !== null && controller && (
