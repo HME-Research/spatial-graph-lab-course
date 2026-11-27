@@ -1,8 +1,8 @@
-# Spatial Logic
+# u505-ah-skillclass
 
 **What it is for:** Analyse room dimensions and the relationships between served, supporting and circulation spaces in a spatial graph. Room dimensions use the app's built-in 3 m grid; each space also records its planned occupancy.
 
-**Toolkit name:** `u606-ah-skillclass`. Open the app with `?toolkit=u606-ah-skillclass`.
+**Toolkit name:** `u505-ah-skillclass`. Open the app with `?toolkit=u505-ah-skillclass`.
 
 ## Functions (`functions/`)
 
@@ -33,6 +33,6 @@ The sample design is **Spatial Logic Learning Commons**. Draw your own designs i
 
 ## How to try it
 
-1. Run `npm run check:toolkit -- -t u606-ah-skillclass`.
-2. Run `npm run dev` and open `http://localhost:5173/?toolkit=u606-ah-skillclass`.
+1. Run `npm run check:toolkit -- -t u505-ah-skillclass`.
+2. Run `npm run dev` and open `http://localhost:5173/?toolkit=u505-ah-skillclass`.
 3. Open **Spatial Logic Learning Commons**, then run the analyses in **Analyse › Network**.

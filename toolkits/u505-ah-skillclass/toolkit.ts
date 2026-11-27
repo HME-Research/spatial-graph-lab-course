@@ -2,7 +2,7 @@ import { defineToolkit } from '@student-api';
 
 /** Give every space its shared planning fields. */
 export default defineToolkit({
-  name: 'Spatial Logic',
+  name: 'u505-ah-skillclass',
   custom: {
     nodes: {
       occupancy: {
