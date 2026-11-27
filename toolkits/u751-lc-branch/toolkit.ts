@@ -2,7 +2,7 @@ import { defineToolkit } from '@student-api';
 
 /** Shared house: record beds, workspace capacity and permission for visitors to use a WC. */
 export default defineToolkit({
-  name: 'u751-lc-flat',
+  name: 'Branch shared house',
   custom: {
     nodes: {
       numberOfBeds: {

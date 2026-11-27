@@ -1,8 +1,8 @@
-# Flat shared house
+# Branch shared house
 
 A shared house for four residents, with a workspace for one resident and up to two visitors. Check whether visitors can reach the workspace and a designated WC from the entrance without passing through any bedroom, and whether workspace capacity is recorded as at least three people.
 
-**Toolkit name:** u751-lc-flat. Open the app with ?toolkit=u751-lc-flat.
+**Toolkit name:** u751-lc-branch. Open the app with ?toolkit=u751-lc-branch.
 
 ## Functions (functions/)
 
@@ -45,8 +45,8 @@ Only designs/README.md is included. Draw your own designs in the app and add the
 
 ## How to try it
 
-1. Run npm run check:toolkit -- -t u751-lc-flat and npm run typecheck.
-2. Run npm run dev, open http://localhost:5173/?toolkit=u751-lc-flat, and choose **Create project** with **Flat shared house**.
+1. Run npm run check:toolkit -- -t u751-lc-branch and npm run typecheck.
+2. Run npm run dev, open http://localhost:5173/?toolkit=u751-lc-branch, and choose **Create project** with **Branch shared house**.
 3. Draw your Entrance, Bedrooms, Workspace, WC, Shared Living/Dining and Kitchen. Record beds and Workspace capacity in **Properties**; set **Visitor access allowed** to true on your designated WC.
 4. Add Access or Open connections. Run each analysis in **Analyse > Network**. The route analyses should highlight connections avoiding Bedrooms; an unreachable Workspace or authorised WC is named in the result.
 5. Set Workspace capacity to 2 and run **Workspace capacity**: it should report a failure and highlight the Workspace. Set it to 3 and run again: it should pass.
