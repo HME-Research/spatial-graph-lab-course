@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "Acoustic library — two levels",
+    "description": "Ground-floor entrance, café, group study and staff support an upstairs stair, perimeter reading rooms and an enclosed stacks core. The café-to-reading-room Access edge is an intentional loud-to-quiet clash; some touching quiet rooms have no edge yet."
+  },
+  "nextNodeId": 11,
+  "nextEdgeId": 10,
+  "nodes": [
+    {
+      "id": 1,
+      "function": "entrance",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        2,
+        2,
+        1
+      ],
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "function": "cafe",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "size": [
+        4,
+        2,
+        1
+      ],
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "function": "group-study",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "size": [
+        2,
+        4,
+        1
+      ],
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "function": "staff",
+      "position": [
+        2,
+        2,
+        0
+      ],
+      "size": [
+        4,
+        4,
+        1
+      ],
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "function": "stair",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "size": [
+        2,
+        2,
+        1
+      ],
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "function": "reading-room",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "size": [
+        4,
+        2,
+        1
+      ],
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "function": "reading-room",
+      "position": [
+        0,
+        2,
+        1
+      ],
+      "size": [
+        2,
+        4,
+        1
+      ],
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "function": "stacks",
+      "position": [
+        2,
+        2,
+        1
+      ],
+      "size": [
+        2,
+        2,
+        1
+      ],
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "function": "reading-room",
+      "position": [
+        4,
+        2,
+        1
+      ],
+      "size": [
+        2,
+        4,
+        1
+      ],
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "function": "reading-room",
+      "position": [
+        2,
+        4,
+        1
+      ],
+      "size": [
+        2,
+        2,
+        1
+      ],
+      "custom": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source": 1,
+      "target": 2,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "source": 1,
+      "target": 3,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "source": 1,
+      "target": 5,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "source": 5,
+      "target": 6,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "source": 5,
+      "target": 7,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "source": 2,
+      "target": 6,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "source": 3,
+      "target": 4,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "source": 4,
+      "target": 8,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "source": 7,
+      "target": 8,
+      "relationship": "access",
+      "custom": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "1": [
+        0,
+        0
+      ],
+      "2": [
+        250,
+        0
+      ],
+      "3": [
+        0,
+        190
+      ],
+      "4": [
+        250,
+        190
+      ],
+      "5": [
+        350,
+        20
+      ],
+      "6": [
+        600,
+        20
+      ],
+      "7": [
+        350,
+        210
+      ],
+      "8": [
+        600,
+        210
+      ],
+      "9": [
+        850,
+        210
+      ],
+      "10": [
+        600,
+        400
+      ]
+    }
+  },
+  "settings": {
+    "styleBy": "function",
+    "styles": {}
+  }
+}
