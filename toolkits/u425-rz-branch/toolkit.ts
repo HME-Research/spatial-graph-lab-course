@@ -9,7 +9,7 @@ import { defineToolkit } from '@student-api';
  * `functions/` gives its own default for them (a room's own value overrides it).
  */
 export default defineToolkit({
-  name: 'Villa with gardens',
+  name: 'u425-rz-branch',
   custom: {
     nodes: {
       targetArea: {
