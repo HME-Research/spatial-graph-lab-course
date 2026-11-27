@@ -8,8 +8,9 @@ Reference for every detail: [`STUDENT-API.md`](STUDENT-API.md). A complete toolk
 
 | Decision | Rule | Tip |
 |---|---|---|
-| **Your toolkit name** = folder name | `u<3 digits>-<initials>-<toolkit-name>`, lowercase letters, digits and `-` | `u`, the last 3 digits of your student number, your initials, then a short name, joined with `-`: student number …123, initials HK, toolkit House give `u123-hk-house` (folder `toolkits/u123-hk-house/`, branch `toolkit/u123-hk-house`). Saved projects remember it: don't rename it later. |
-| **Display name** | free text: `name` in `toolkit.ts` | Shown as `Toolkit: <name>`. |
+| **Your name tag** = your branch | `u<3 digits>-<initials>`, lowercase | `u`, the last 3 digits of your student number and your initials: student number …123, initials HK give `u123-hk`. Your branch is `toolkit/u123-hk`: one branch for all your work, named after you, not after a toolkit. |
+| **Your toolkit name** = folder name | `<your-name-tag>-<toolkit-name>`, lowercase letters, digits and `-` | your name tag, then a short name of the toolkit: `u123-hk-house` (folder `toolkits/u123-hk-house/`, on the branch `toolkit/u123-hk`). Saved projects remember it: don't rename it later. |
+| **`name` in `toolkit.ts`** | exactly your toolkit name | `name: 'u123-hk-house'`, the same text as the folder, so the app shows one name everywhere (`Toolkit: u123-hk-house`). |
 | **Functions** | one per node programme; each has an `id` (lowercase letters, digits and `-`, starting with a letter) | Start with 3–6. Ids are stored in every design: add new ones rather than renaming. |
 | **Custom attributes** | `number` (`min`, `max`), `text`, `boolean`, `enum` (`values`), optional `default` | Only add one when an algorithm reads it or you want to record it. Keys are stored in designs: pick clear camelCase names (`targetArea`). |
 | **Algorithms** | analysis (reads) or transformation (proposes changes) | One small analysis first. Write each as a rule you could explain in one sentence. |
@@ -83,7 +84,7 @@ Then try it: **Create project** with your toolkit (or, once you have added desig
 
 ## 5. Ways to make it with an AI assistant
 
-Routes A and B end the same way: your folder `toolkits/<your-toolkit-name>/`, checked, committed on your own branch **`toolkit/<your-toolkit-name>`** and pushed. **Never commit to `main`**, and push only your branch. No Pull Request is needed: your tutor collects the branches. Your tutor may also accept a zip of the folder (`<your-toolkit-name>.zip`, with `<your-toolkit-name>/toolkit.ts` directly inside it): see the tutorial, *Submit your work*.
+Routes A and B end the same way: your folder `toolkits/<your-toolkit-name>/`, checked, committed on your own branch **`toolkit/<your-name-tag>`** and pushed. **Never commit to `main`**, and push only your branch. No Pull Request is needed: your tutor collects the branches. Your tutor may also accept a zip of the folder (`<your-toolkit-name>.zip`, with `<your-toolkit-name>/toolkit.ts` directly inside it): see the tutorial, *Submit your work*.
 
 The assistant follows [`lab/docs/ai-kit/toolkit/PROMPT.md`](ai-kit/toolkit/PROMPT.md). In the app, **Guide › Toolkits & JSON › Make your own toolkit** shows the three routes with the prompts to copy and the kit to download.
 
@@ -92,12 +93,12 @@ The assistant follows [`lab/docs/ai-kit/toolkit/PROMPT.md`](ai-kit/toolkit/PROMP
 The agent reads the repository itself, writes the folder and runs the checks. No download needed.
 
 1. Open the repository folder in VS Code. Run `git status`: its first line must say `On branch main` (on another branch? `git switch main` first, so that your branch starts from the course version). Then get the newest course version: `git pull`.
-2. Make your branch (`switch -c` = create it and go to it) and send it to GitHub at once, with an empty first commit: `git switch -c toolkit/<your-toolkit-name>`, `git commit --allow-empty -m "chore(<your-toolkit-name>): start my toolkit"`, then `git push -u origin toolkit/<your-toolkit-name>` (`-u` remembers GitHub as where this branch goes, so later a plain `git push` is enough). This puts your branch on GitHub: you must see `* [new branch]`. If that first push says `rejected` or `Everything up-to-date`, someone already has that name: change your toolkit name a little (never pull someone else's branch).
-3. Before you send anything, check the branch: `git branch --show-current` must show `toolkit/<your-toolkit-name>`. Then give the agent this prompt (the rules come first; fill in the blanks):
+2. Make your branch (`switch -c` = create it and go to it) and send it to GitHub at once, with an empty first commit: `git switch -c toolkit/<your-name-tag>`, `git commit --allow-empty -m "chore(<your-name-tag>): start my branch"`, then `git push -u origin toolkit/<your-name-tag>` (`-u` remembers GitHub as where this branch goes, so later a plain `git push` is enough). This puts your branch on GitHub: you must see `* [new branch]`. If that first push says `rejected` or `Everything up-to-date`, someone already has that name tag: add a letter to it (`u123-hka`) (never pull someone else's branch).
+3. Before you send anything, check the branch: `git branch --show-current` must show `toolkit/<your-name-tag>`. Then give the agent this prompt (the rules come first; fill in the blanks):
 
 <!-- prompt:agent -->
 ```
-Rules: work only in toolkits/<your-toolkit-name>/ on my branch toolkit/<your-toolkit-name>. Do not change lab/ or any other folder or file, do not install or update packages, and do not push: I will push.
+Rules: work only in toolkits/<your-toolkit-name>/ on my branch toolkit/<your-name-tag>. Do not change lab/ or any other folder or file, do not install or update packages, and do not push: I will push.
 Read lab/docs/TOOLKITS.md and lab/docs/ai-kit/toolkit/PROMPT.md in this repository, then create my toolkit following them exactly. The folder name is exactly my toolkit name. Run the checks and commit only my folder.
 Do not write any design: make the folder designs/ with only a short README.md that says how to add a design, and do not set defaultDesign in toolkit.ts. I will draw my designs in the app.
 
@@ -138,9 +139,9 @@ Algorithms: ___
 git status
 # the first line must say "On branch main"; on another branch? run git switch main first
 git pull
-git switch -c toolkit/<your-toolkit-name>
-git commit --allow-empty -m "chore(<your-toolkit-name>): start my toolkit"
-git push -u origin toolkit/<your-toolkit-name>
+git switch -c toolkit/<your-name-tag>
+git commit --allow-empty -m "chore(<your-name-tag>): start my branch"
+git push -u origin toolkit/<your-name-tag>
 # this puts your branch on GitHub: you must see * [new branch]
 # unzip: the folder must end up at toolkits/<your-toolkit-name>/ (toolkit.ts directly inside it)
 # first time on this computer only:
@@ -158,7 +159,7 @@ git push
 <!-- /commands -->
 
    Run the lines one at a time (the `#` lines are things you do by hand). Under *Changes to be committed*, `git status` must list **only** files under `toolkits/<your-toolkit-name>/`. If it lists anything else, don't commit: undo that change first.
-   With GitHub Desktop instead: *Current branch › New branch* `toolkit/<your-toolkit-name>`, then send it to GitHub from the terminal with the `git commit --allow-empty …` and `git push -u …` lines above (Desktop cannot make an empty commit); copy the folder, commit only your toolkit's files, then *Push origin*.
+   With GitHub Desktop instead: *Current branch › New branch* `toolkit/<your-name-tag>`, then send it to GitHub from the terminal with the `git commit --allow-empty …` and `git push -u …` lines above (Desktop cannot make an empty commit); copy the folder, commit only your toolkit's files, then *Push origin*.
 4. If a check fails, copy the **whole** message back into the chat and ask it to fix exactly that. Replace the changed files, check again, commit and push again (`git push`).
 
 ### Route C — a chat assistant, uploaded in the app (no Git, no repository)
@@ -186,7 +187,7 @@ Algorithms: ___
 
 ### Later changes
 
-Stay on your branch (`git switch toolkit/<your-toolkit-name>`), change files, check, then `git add toolkits/<your-toolkit-name>`, `git commit -m "feat(<your-toolkit-name>): …"` and `git push`. In Route B, send the chat the files you changed (or the whole folder as a zip) so it works on the current version. Pushed from another computer? `git pull --no-rebase --no-edit` first. When the course updates the app: commit your work, then, on your branch, `git pull --no-rebase --no-edit origin main` (fetches `main` from GitHub and merges it into the branch you are on; `--no-edit` keeps git from opening an editor), `npm ci`, run the checks and `git push`.
+Stay on your branch (`git switch toolkit/<your-name-tag>`), change files, check, then `git add toolkits/<your-toolkit-name>`, `git commit -m "feat(<your-toolkit-name>): …"` and `git push`. In Route B, send the chat the files you changed (or the whole folder as a zip) so it works on the current version. Pushed from another computer? `git pull --no-rebase --no-edit` first. When the course updates the app: commit your work, then, on your branch, `git pull --no-rebase --no-edit origin main` (fetches `main` from GitHub and merges it into the branch you are on; `--no-edit` keeps git from opening an editor), `npm ci`, run the checks and `git push`.
 
 ## Upload a toolkit zip in the app
 
@@ -208,4 +209,4 @@ In the browser, **Welcome › Upload toolkit (.zip)** (or **Project › Toolkit 
 | `… imports …` refused by a test | Import only `@student-api` and your own files. |
 | An algorithm fails on the default design | Run it in the app on that design to see the message; check for missing values (`null`) and empty lists. |
 | The browser tab freezes | An endless loop in an algorithm: every `while` must end. |
-| You committed on `main` by mistake | GitHub refuses the push, so nothing is lost. Commit or put back what `git status` lists, then: `git switch toolkit/<your-toolkit-name>`, `git merge --no-edit main` (this merges your local `main`, which holds the commits),  `git branch -f main origin/main`, `git push`. No branch yet? `git switch -c toolkit/<your-toolkit-name>`, `git branch -f main origin/main`, `git push -u origin toolkit/<your-toolkit-name>`. A `CONFLICT`, or commits that change files outside your folder: `git merge --abort` and ask your tutor. |
+| You committed on `main` by mistake | GitHub refuses the push, so nothing is lost. Commit or put back what `git status` lists, then: `git switch toolkit/<your-name-tag>`, `git merge --no-edit main` (this merges your local `main`, which holds the commits),  `git branch -f main origin/main`, `git push`. No branch yet? `git switch -c toolkit/<your-name-tag>`, `git branch -f main origin/main`, `git push -u origin toolkit/<your-name-tag>`. A `CONFLICT`, or commits that change files outside your folder: `git merge --abort` and ask your tutor. |
