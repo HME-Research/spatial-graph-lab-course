@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "U505-AH-Skillclass",
+    "description": "A two-level learning commons organised around a clear 3 m-wide circulation spine. The entrance foyer leads to the ground-floor public rooms and stair; an upper landing distributes visitors to reading rooms, study and stacks. Every room records its planned occupancy."
+  },
+  "nextNodeId": 19,
+  "nextEdgeId": 20,
+  "nodes": [
+    { "id": 1, "function": "circulation-space", "position": [0, 0, 0], "size": [2, 2, 1], "custom": { "occupancy": 8 } },
+    { "id": 2, "function": "circulation-space", "position": [2, 0, 0], "size": [1, 8, 1], "custom": { "occupancy": 12 } },
+    { "id": 3, "function": "served-space", "position": [0, 2, 0], "size": [2, 2, 1], "custom": { "occupancy": 24 } },
+    { "id": 4, "function": "served-space", "position": [3, 0, 0], "size": [3, 2, 1], "custom": { "occupancy": 18 } },
+    { "id": 5, "function": "servant-space", "position": [0, 4, 0], "size": [2, 2, 1], "custom": { "occupancy": 4 } },
+    { "id": 6, "function": "circulation-space", "position": [3, 2, 0], "size": [2, 2, 1], "custom": { "occupancy": 4 } },
+    { "id": 7, "function": "other-space", "position": [3, 4, 0], "size": [3, 2, 1], "custom": { "occupancy": 12 } },
+    { "id": 8, "function": "servant-space", "position": [0, 6, 0], "size": [2, 2, 1], "custom": { "occupancy": 4 } },
+    { "id": 9, "function": "servant-space", "position": [3, 6, 0], "size": [2, 2, 1], "custom": { "occupancy": 2 } },
+    { "id": 10, "function": "circulation-space", "position": [3, 2, 1], "size": [2, 2, 1], "custom": { "occupancy": 4 } },
+    { "id": 11, "function": "circulation-space", "position": [2, 0, 1], "size": [1, 8, 1], "custom": { "occupancy": 8 } },
+    { "id": 12, "function": "served-space", "position": [0, 0, 1], "size": [2, 2, 1], "custom": { "occupancy": 12 } },
+    { "id": 13, "function": "served-space", "position": [0, 2, 1], "size": [2, 2, 1], "custom": { "occupancy": 12 } },
+    { "id": 14, "function": "served-space", "position": [0, 4, 1], "size": [2, 2, 1], "custom": { "occupancy": 12 } },
+    { "id": 15, "function": "servant-space", "position": [0, 6, 1], "size": [2, 2, 1], "custom": { "occupancy": 2 } },
+    { "id": 16, "function": "served-space", "position": [3, 0, 1], "size": [3, 2, 1], "custom": { "occupancy": 12 } },
+    { "id": 17, "function": "served-space", "position": [3, 4, 1], "size": [3, 2, 1], "custom": { "occupancy": 16 } },
+    { "id": 18, "function": "servant-space", "position": [3, 6, 1], "size": [2, 2, 1], "custom": { "occupancy": 2 } }
+  ],
+  "edges": [
+    { "id": 1, "source": 1, "target": 2, "relationship": "access", "custom": {} },
+    { "id": 2, "source": 3, "target": 2, "relationship": "access", "custom": {} },
+    { "id": 3, "source": 4, "target": 2, "relationship": "access", "custom": {} },
+    { "id": 4, "source": 5, "target": 2, "relationship": "access", "custom": {} },
+    { "id": 5, "source": 6, "target": 2, "relationship": "access", "custom": {} },
+    { "id": 6, "source": 7, "target": 2, "relationship": "access", "custom": {} },
+    { "id": 7, "source": 8, "target": 2, "relationship": "access", "custom": {} },
+    { "id": 8, "source": 9, "target": 2, "relationship": "access", "custom": {} },
+    { "id": 9, "source": 3, "target": 5, "relationship": "access", "custom": {} },
+    { "id": 10, "source": 6, "target": 10, "relationship": "access", "custom": {} },
+    { "id": 11, "source": 10, "target": 11, "relationship": "access", "custom": {} },
+    { "id": 12, "source": 12, "target": 11, "relationship": "access", "custom": {} },
+    { "id": 13, "source": 13, "target": 11, "relationship": "access", "custom": {} },
+    { "id": 14, "source": 14, "target": 11, "relationship": "access", "custom": {} },
+    { "id": 15, "source": 15, "target": 11, "relationship": "access", "custom": {} },
+    { "id": 16, "source": 16, "target": 11, "relationship": "access", "custom": {} },
+    { "id": 17, "source": 17, "target": 11, "relationship": "access", "custom": {} },
+    { "id": 18, "source": 18, "target": 11, "relationship": "access", "custom": {} },
+    { "id": 19, "source": 14, "target": 15, "relationship": "access", "custom": {} }
+  ],
+  "diagram": {
+    "positions": {
+      "1": [0, 0],
+      "2": [300, 0],
+      "3": [600, -240],
+      "4": [600, -160],
+      "5": [600, -80],
+      "6": [600, 0],
+      "7": [600, 80],
+      "8": [600, 160],
+      "9": [600, 240],
+      "10": [900, 0],
+      "11": [1200, 0],
+      "12": [1500, -240],
+      "13": [1500, -160],
+      "14": [1500, -80],
+      "15": [1500, 0],
+      "16": [1500, 80],
+      "17": [1500, 160],
+      "18": [1500, 240]
+    }
+  },
+  "settings": {
+    "styleBy": "function",
+    "styles": {}
+  }
+}
