@@ -1,8 +1,8 @@
-﻿import { defineToolkit } from '@student-api';
+import { defineToolkit } from '@student-api';
 
 // Give every room the same two editable yes/no fields, without defaults.
 export default defineToolkit({
-  name: 'Room for facade',
+  name: 'u493-ek-roomforfacade',
   custom: {
     nodes: {
       needsDaylight: {
