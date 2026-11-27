@@ -2,7 +2,7 @@
 
 **What it is for:** standard student accommodation: private Bedrooms, each with its own Ensuite, around a shared Living room, Dining kitchen and Laundry. Its analysis checks that every Bedroom has exactly one Ensuite and every Ensuite belongs to exactly one Bedroom.
 
-**Toolkit name:** `u150-my-skillsbranch` (the folder name). Open the app with `?toolkit=u150-my-skillsbranch`.
+**Toolkit name:** `u150-my-studentaccom` (the folder name). Open the app with `?toolkit=u150-my-studentaccom`.
 
 ## Functions (`functions/`)
 
@@ -30,7 +30,7 @@ None yet: draw them in the app and add them here (see `designs/README.md`).
 
 ## How to try it
 
-1. `npm run check:toolkit -- -t u150-my-skillsbranch` and `npm run typecheck`
-2. `npm run dev`, open `http://localhost:5173/?toolkit=u150-my-skillsbranch`, **Create project**
+1. `npm run check:toolkit -- -t u150-my-studentaccom` and `npm run typecheck`
+2. `npm run dev`, open `http://localhost:5173/?toolkit=u150-my-studentaccom`, **Create project**
 3. Draw two Bedrooms and two Ensuites next to them, and join only one pair with an Access relationship.
 4. Analyse › Network › **Ensuite check**: it shows 2 and highlights the unjoined Bedroom and Ensuite. Join the second pair and run it again: it shows 0.
