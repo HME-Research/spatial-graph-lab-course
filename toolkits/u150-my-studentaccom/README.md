@@ -23,7 +23,7 @@
 ## Algorithms (`algorithms/`)
 
 - **Ensuite check** (design analysis, Analyse › Network): a Bedroom has an Ensuite when a relationship (Access or Open) joins them. It highlights every Bedroom without an Ensuite or with more than one, and every Ensuite joined to no Bedroom or shared by several. The big number is how many rooms have a problem (0 = all fine).
-- **Generate flat** (transform, Transform; run it on a new empty project): draws a whole flat as rooms and relationships. A long shared Living room (one cell per bedroom column) with the Dining kitchen (2 cells) at one end and the Laundry at the other; every Bedroom opens off the Living room (Access) and has its own Ensuite behind it (Access). Parameters:
+- **Generate flat** (transform, Transform): draws a whole flat as rooms and relationships, to the right of any rooms already in the design (one empty cell between). A long shared Living room (one cell per bedroom column) with the Dining kitchen (2 cells) at one end and the Laundry at the other; every Bedroom opens off the Living room (Access) and has its own Ensuite behind it (Access). Parameters:
   - *Number of bedrooms*, 1–16 (default 6);
   - *Bedroom layout*, `one-side` (default) or `both-sides` of the Living room;
   - *Bigger bedrooms* (default on): asks each Bedroom–Ensuite wall to move 1.5 m into the Ensuite (a boundary shift), so the Bedroom is 13.5 m² and the Ensuite 4.5 m² as built.

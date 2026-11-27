@@ -7,7 +7,7 @@ import laundry from '../functions/laundry';
 
 /**
  * Generate flat: a transformation that draws a whole student flat as rooms and relationships.
- * Run it on a NEW EMPTY project with this toolkit. The Living room is a long shared space
+ * It goes to the right of any rooms already drawn. The Living room is a long shared space
  * (one cell per bedroom column) with the Dining kitchen at one end and the Laundry at the other.
  * Every Bedroom opens off the Living room and has its own Ensuite behind it.
  * One cell is 3 × 3 m.
@@ -39,13 +39,11 @@ export default defineSpatialAlgorithm({
     },
   },
   run(ctx) {
-    // Only on an empty design, so the new rooms never overlap rooms you already drew.
-    if (ctx.design.nodes.length > 0) {
-      return {
-        kind: 'transformation',
-        summary: 'Start from a NEW EMPTY project with this toolkit: Generate flat draws the whole flat.',
-        operations: [],
-      };
+    // Start to the right of every room already in the design (one empty cell between),
+    // so the new flat never overlaps rooms you drew. In an empty design it starts at x = 0.
+    let startX = 0;
+    for (const room of ctx.design.nodes) {
+      startX = Math.max(startX, room.position[0] + room.size[0] + 1);
     }
 
     // The parameters (the app fills in their defaults; TypeScript still wants a fallback).
@@ -59,9 +57,9 @@ export default defineSpatialAlgorithm({
     const operations: SpatialOperation[] = [];
 
     // The shared rooms in one row: Dining kitchen (2 cells), Living room, Laundry.
-    operations.push({ op: 'add-node', ref: 'kitchen', position: [0, spineY, 0], size: [2, 1, 1], function: diningKitchen.id });
-    operations.push({ op: 'add-node', ref: 'living', position: [2, spineY, 0], size: [columns, 1, 1], function: livingRoom.id });
-    operations.push({ op: 'add-node', ref: 'laundry', position: [2 + columns, spineY, 0], function: laundry.id });
+    operations.push({ op: 'add-node', ref: 'kitchen', position: [startX, spineY, 0], size: [2, 1, 1], function: diningKitchen.id });
+    operations.push({ op: 'add-node', ref: 'living', position: [startX + 2, spineY, 0], size: [columns, 1, 1], function: livingRoom.id });
+    operations.push({ op: 'add-node', ref: 'laundry', position: [startX + 2 + columns, spineY, 0], function: laundry.id });
     operations.push({ op: 'add-edge', source: 'kitchen', target: 'living', relationship: 'open' });
     operations.push({ op: 'add-edge', source: 'living', target: 'laundry', relationship: 'access' });
 
@@ -70,7 +68,7 @@ export default defineSpatialAlgorithm({
       // Which column, and which side: +1 = north of the Living room, -1 = south.
       const column = bothSides ? Math.floor(i / 2) : i;
       const side = bothSides && i % 2 === 1 ? -1 : 1;
-      const x = 2 + column;
+      const x = startX + 2 + column;
       const room = `bedroom-${i + 1}`;
       const bath = `ensuite-${i + 1}`;
 
