@@ -4,13 +4,13 @@ import { defineToolkit } from '@student-api';
  * Family house: small family houses on one or two levels (Entrance, Living room, Kitchen, Bedroom,
  * Bathroom, Stair; see `functions/`).
  *
- * - `name` is what the app shows ("Toolkit: Family house").
+ * - `name` is what the app shows ("Toolkit: u367-wy-family-houses").
  * - No `defaultDesign` yet: the designs are drawn in the app and added to `designs/` later.
  * - `custom` lists attributes that EVERY room of a project with this toolkit has. Each Function in
  *   `functions/` gives its own default for the ones it uses.
  */
 export default defineToolkit({
-  name: 'Family house',
+  name: 'u367-wy-family-houses',
   custom: {
     nodes: {
       isMainEntrance: {
