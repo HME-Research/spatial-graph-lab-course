@@ -40,23 +40,32 @@ Limited mobility, wheelchair accessibility, medical capacity and resource capaci
 
 ## Designs (`designs/`)
 
-**Community Resilience Courtyard** (`community-resilience-courtyard.json`) is a generated concept requested by the student after the initial toolkit was created. Open it through **Open toolkit design…**. `toolkit.ts` still has no `defaultDesign`.
+**Community Resilience Courtyard** (`community-resilience-courtyard.json`) now contains the student's requested bunker-inspired revision. The file and design name are preserved. Open it through **Open toolkit design?**; no `defaultDesign` is set. Reopen the design as a new project to see file changes; an already-open project keeps its own copy.
 
-Six homes sit north and south of a central shared space, with a yellow medical centre and a resource hub to the east and two shelters to the west. Four circulation strips form a loop around the shared space. Every node is on the ground floor, every connected pair shares a face, and no nodes overlap. The central public space uses Circulation; this is an abstract shared-space volume, not a detailed landscaped outdoor courtyard.
+### Design idea: a compact refuge with stepped volumes
 
-| Node ids | Programme | Dimensions | Illustrative values |
-|---|---|---|---|
-| 1 | Central shared space | 12 x 12 m | Wheelchair accessible: true |
-| 2-7 | Six homes | 6 x 6 m each | 6 residents each, including 1 with limited mobility |
-| 8 | Medical centre | 6 x 6 m | 12 people served per day |
-| 9 | Resource hub | 6 x 6 m | 48 person-day supply kits |
-| 10-11 | Two shelters | 6 x 6 m each | 24 places each |
-| 12, 14 | North/south circulation | 18 x 3 m each | Wheelchair accessible: true |
-| 13, 15 | East/west circulation | 3 x 12 m each | Wheelchair accessible: true |
+Three ground-floor homes form the north base. Two upper homes sit above the outer homes, leaving a lower centre roof; a third upper home sits above the eastern resource hub. A 6 m high western shelter and yellow eastern medical block frame a 12 x 12 m open central court. Lower 3 m volumes alternate with the 6 m masses. Flat roofs and small stretched windows give the enclosed buildings a bunker-like character. This is a massing concept, not an underground or blast-resistant construction design.
 
-These population, service and shelter numbers are learning assumptions, not verified operational capacities or space standards. All volumes are 3 m high. The wheelchair flag records intent; door widths, slopes, toilets, flood levels and evacuation safety still require design assessment.
+| Node ids | Programme | Geometry and role |
+|---|---|---|
+| 1 | Central court | 12 x 12 m, open sides and no roof |
+| 2-4 | Ground homes | 6 x 6 m each; 6 residents each, including 2 with limited mobility |
+| 5-6 | Upper homes | 6 x 6 m, supported above homes 2 and 4; 6 residents each |
+| 7 | Upper home | 6 x 6 m, supported above resource hub 9; 6 residents |
+| 8 | Yellow medical block | 6 x 9 m footprint, 6 m high; illustrative 12 people served/day |
+| 9 | Resource base | 6 x 9 m footprint, 3 m high; illustrative 48 person-day supply kits |
+| 10 | Tall western shelter | 6 x 9 m footprint, 6 m high; illustrative 24 places |
+| 11 | Low western shelter | 6 x 9 m footprint, 3 m high; illustrative 24 places |
+| 12-15 | Ground circulation ring | North/south 18 x 3 m; east/west 3 x 12 m |
+| 16-17 | Upper galleries | North/east galleries directly supported by ground circulation |
 
-Run **Emergency Shelter Accessibility**: all six residences should be reachable in **3 connections**. Run **Shelter Capacity Assessment**: one component, population **36**, shelter capacity **48**, **Sufficient**. The ring offers an alternative graph route if one ring relationship is removed, although each home still has a single connection to the ring. Removing both shelters should make all residences unreachable. Reducing both shelter capacities to 12 should produce a shortage: 36 residents versus 24 places.
+### Circulation and limits
+
+The ground ring connects homes, the court and all facilities without passing through another home. Both shelters and both eastern service blocks have two connections to the ring. Upper homes enter linked north/east galleries, which have two separate vertical connection reservations: 12-16 and 13-17. Every relationship joins volumes sharing a face, and every upper cell has a supporting volume below. These checks establish geometric adjacency, not engineered structural support.
+
+Vertical relationships are floor openings in the app, not automatically designed stairs or lifts. Reserve a stair plus an accessible lift at each vertical core in subsequent architectural design. Upper galleries and the ground strips containing those reservations have no wheelchair-accessibility value yet. Other ground circulation is marked true as design intent only. The illustrative six residents with limited mobility are assigned to the three ground-floor homes; upper homes record zero for this sample, not a restriction on future occupants. Door widths, turning space, ramps, lift availability and evacuation procedures remain to be designed.
+
+Run **Emergency Shelter Accessibility**: homes 2-4 have **2 connections**, homes 5-6 have **3**, and home 7 has **4** to the nearest shelter. These graph distances do not prove a usable stair or wheelchair route. Run **Shelter Capacity Assessment**: one component, population **36**, shelter capacity **48**, **Sufficient**. Counts and capacities are illustrative, not verified operational or space standards. The ring and two vertical reservations provide alternative graph routes, while each home still has a single entrance connection.
 
 ## How to try it
 

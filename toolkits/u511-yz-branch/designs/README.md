@@ -1,6 +1,6 @@
 # Community designs
 
-`community-resilience-courtyard.json` is a generated single-storey community concept requested by the student: six homes, a medical centre, a resource hub, two shelters and a circulation loop around a central shared space. Open **Community Resilience Courtyard** through **Open toolkit design…**. The toolkit README explains the layout and illustrative data. No `defaultDesign` is set.
+`community-resilience-courtyard.json` is a bunker-inspired two-level community concept: three ground homes, three supported upper homes, a yellow medical centre, a resource hub, two shelters, a ground loop and two linked upper galleries around an open court. Vertical connections reserve stair/lift cores; they are not detailed stairs or verified accessible routes. Open **Community Resilience Courtyard** through **Open toolkit design…**. The toolkit README explains the layout and illustrative data. No `defaultDesign` is set.
 
 ## Add another design
 

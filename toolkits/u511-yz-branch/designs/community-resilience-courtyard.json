@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "metadata": {
     "name": "Community Resilience Courtyard",
-    "description": "Six homes around a central shared space and a step-free circulation loop, with a medical centre, resource hub and two shelters. Single-storey concept; illustrative population 36 and shelter capacity 48. Accessibility is a design intention, not a verified assessment."
+    "description": "Bunker-inspired two-level community: three ground-floor homes and three elevated homes, an open central court, a ground circulation loop and two linked upper galleries. Two vertical connections reserve stair/lift cores; their accessibility is unverified. Illustrative population 36, shelter capacity 48."
   },
-  "nextNodeId": 16,
-  "nextEdgeId": 19,
+  "nextNodeId": 18,
+  "nextEdgeId": 26,
   "nodes": [
     {
       "id": 1,
@@ -23,7 +23,7 @@
       "size": [2, 2, 1],
       "custom": {
         "residentCount": 6,
-        "limitedMobilityResidents": 1
+        "limitedMobilityResidents": 2
       }
     },
     {
@@ -33,7 +33,7 @@
       "size": [2, 2, 1],
       "custom": {
         "residentCount": 6,
-        "limitedMobilityResidents": 1
+        "limitedMobilityResidents": 2
       }
     },
     {
@@ -43,44 +43,44 @@
       "size": [2, 2, 1],
       "custom": {
         "residentCount": 6,
-        "limitedMobilityResidents": 1
+        "limitedMobilityResidents": 2
       }
     },
     {
       "id": 5,
       "function": "residential",
-      "position": [2, 0, 0],
+      "position": [2, 8, 1],
       "size": [2, 2, 1],
       "custom": {
         "residentCount": 6,
-        "limitedMobilityResidents": 1
+        "limitedMobilityResidents": 0
       }
     },
     {
       "id": 6,
       "function": "residential",
-      "position": [4, 0, 0],
+      "position": [6, 8, 1],
       "size": [2, 2, 1],
       "custom": {
         "residentCount": 6,
-        "limitedMobilityResidents": 1
+        "limitedMobilityResidents": 0
       }
     },
     {
       "id": 7,
       "function": "residential",
-      "position": [6, 0, 0],
+      "position": [8, 3, 1],
       "size": [2, 2, 1],
       "custom": {
         "residentCount": 6,
-        "limitedMobilityResidents": 1
+        "limitedMobilityResidents": 0
       }
     },
     {
       "id": 8,
       "function": "medical-centre",
       "position": [8, 5, 0],
-      "size": [2, 2, 1],
+      "size": [2, 3, 2],
       "custom": {
         "medicalCapacity": 12
       }
@@ -88,8 +88,8 @@
     {
       "id": 9,
       "function": "resource-hub",
-      "position": [8, 3, 0],
-      "size": [2, 2, 1],
+      "position": [8, 2, 0],
+      "size": [2, 3, 1],
       "custom": {
         "resourceCapacity": 48
       }
@@ -98,7 +98,7 @@
       "id": 10,
       "function": "emergency-shelter",
       "position": [0, 5, 0],
-      "size": [2, 2, 1],
+      "size": [2, 3, 2],
       "custom": {
         "shelterCapacity": 24
       }
@@ -106,8 +106,8 @@
     {
       "id": 11,
       "function": "emergency-shelter",
-      "position": [0, 3, 0],
-      "size": [2, 2, 1],
+      "position": [0, 2, 0],
+      "size": [2, 3, 1],
       "custom": {
         "shelterCapacity": 24
       }
@@ -117,18 +117,14 @@
       "function": "circulation",
       "position": [2, 7, 0],
       "size": [6, 1, 1],
-      "custom": {
-        "wheelchairAccessible": true
-      }
+      "custom": {}
     },
     {
       "id": 13,
       "function": "circulation",
       "position": [7, 3, 0],
       "size": [1, 4, 1],
-      "custom": {
-        "wheelchairAccessible": true
-      }
+      "custom": {}
     },
     {
       "id": 14,
@@ -147,6 +143,20 @@
       "custom": {
         "wheelchairAccessible": true
       }
+    },
+    {
+      "id": 16,
+      "function": "circulation",
+      "position": [2, 7, 1],
+      "size": [6, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 17,
+      "function": "circulation",
+      "position": [7, 3, 1],
+      "size": [1, 4, 1],
+      "custom": {}
     }
   ],
   "edges": [
@@ -230,21 +240,21 @@
     {
       "id": 12,
       "source": 5,
-      "target": 14,
+      "target": 16,
       "relationship": "access",
       "custom": {}
     },
     {
       "id": 13,
       "source": 6,
-      "target": 14,
+      "target": 16,
       "relationship": "access",
       "custom": {}
     },
     {
       "id": 14,
       "source": 7,
-      "target": 14,
+      "target": 17,
       "relationship": "access",
       "custom": {}
     },
@@ -275,17 +285,66 @@
       "target": 15,
       "relationship": "access",
       "custom": {}
+    },
+    {
+      "id": 19,
+      "source": 12,
+      "target": 16,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 20,
+      "source": 13,
+      "target": 17,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 21,
+      "source": 16,
+      "target": 17,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 22,
+      "source": 10,
+      "target": 12,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 23,
+      "source": 11,
+      "target": 14,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 24,
+      "source": 8,
+      "target": 12,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 25,
+      "source": 9,
+      "target": 14,
+      "relationship": "access",
+      "custom": {}
     }
   ],
   "diagram": {
     "positions": {
       "1": [400, 300],
-      "2": [200, -100],
-      "3": [400, -100],
-      "4": [600, -100],
-      "5": [200, 700],
-      "6": [400, 700],
-      "7": [600, 700],
+      "2": [100, 0],
+      "3": [300, 0],
+      "4": [600, 0],
+      "5": [200, -300],
+      "6": [600, -300],
+      "7": [1050, 450],
       "8": [850, 150],
       "9": [850, 450],
       "10": [-50, 150],
@@ -293,11 +352,56 @@
       "12": [400, 100],
       "13": [650, 300],
       "14": [400, 500],
-      "15": [150, 300]
+      "15": [150, 300],
+      "16": [400, -100],
+      "17": [850, -100]
     }
   },
   "settings": {
     "styleBy": "function",
-    "styles": {}
+    "styles": {
+      "function": {
+        "default": {
+          "walls": "enclosed",
+          "roof": "flat",
+          "windowFraction": 0.08,
+          "windowLayout": "stretch"
+        },
+        "groups": [
+          {
+            "value": "residential",
+            "look": {
+              "windowFraction": 0.16
+            }
+          },
+          {
+            "value": "emergency-shelter",
+            "look": {
+              "windowFraction": 0.03
+            }
+          },
+          {
+            "value": "medical-centre",
+            "look": {
+              "windowFraction": 0.2
+            }
+          },
+          {
+            "value": "resource-hub",
+            "look": {
+              "windowFraction": 0.04
+            }
+          },
+          {
+            "value": "circulation",
+            "look": {
+              "walls": "open",
+              "roof": "none",
+              "windowFraction": 0
+            }
+          }
+        ]
+      }
+    }
   }
 }
