@@ -251,9 +251,9 @@ describe('tutorial pages', () => {
     const order = [
       'git status',
       'git pull',
-      'git switch -c toolkit/&lt;your-toolkit-name&gt;',
-      'git commit --allow-empty -m "chore(&lt;your-toolkit-name&gt;): start my toolkit"',
-      'git push -u origin toolkit/&lt;your-toolkit-name&gt;',
+      'git switch -c toolkit/&lt;your-name-tag&gt;',
+      'git commit --allow-empty -m "chore(&lt;your-name-tag&gt;): start my branch"',
+      'git push -u origin toolkit/&lt;your-name-tag&gt;',
     ];
     let at = plan.indexOf('id="branch"');
     expect(at).toBeGreaterThan(0);
