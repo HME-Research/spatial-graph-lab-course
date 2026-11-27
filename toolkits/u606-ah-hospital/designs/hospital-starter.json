@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "Hospital starter",
+    "description": "Five consultation rooms face the ground-floor hallway. An outdoor landing leads into Reception, and the hallway return gives access to Level 1, where a second five-bed bedroom and shared bathroom sit above the ground-floor pair."
+  },
+  "nextNodeId": 15,
+  "nextEdgeId": 14,
+  "nodes": [
+    {
+      "id": 1,
+      "function": "reception",
+      "position": [-2, 0, 0],
+      "size": [2, 4, 1],
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "function": "hallway",
+      "position": [0, 2, 0],
+      "size": [10, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "function": "consultation-room",
+      "position": [0, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "function": "consultation-room",
+      "position": [2, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "function": "consultation-room",
+      "position": [4, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "function": "consultation-room",
+      "position": [6, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "function": "consultation-room",
+      "position": [8, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "function": "bedroom",
+      "position": [0, 3, 0],
+      "size": [4, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "function": "shared-bathroom",
+      "position": [4, 3, 0],
+      "size": [4, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "function": "outdoor-entry",
+      "position": [-3, 2, 0],
+      "size": [1, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 11,
+      "function": "hallway",
+      "position": [10, 0, 0],
+      "size": [1, 3, 1],
+      "custom": {}
+    },
+    {
+      "id": 12,
+      "function": "hallway",
+      "position": [0, 2, 1],
+      "size": [11, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 13,
+      "function": "bedroom",
+      "position": [0, 3, 1],
+      "size": [4, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 14,
+      "function": "shared-bathroom",
+      "position": [4, 3, 1],
+      "size": [4, 2, 1],
+      "custom": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source": 2,
+      "target": 1,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "source": 2,
+      "target": 3,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "source": 2,
+      "target": 4,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "source": 2,
+      "target": 5,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "source": 2,
+      "target": 6,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "source": 2,
+      "target": 7,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "source": 2,
+      "target": 8,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "source": 2,
+      "target": 9,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "source": 10,
+      "target": 1,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "source": 2,
+      "target": 11,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 11,
+      "source": 11,
+      "target": 12,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 12,
+      "source": 12,
+      "target": 13,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 13,
+      "source": 12,
+      "target": 14,
+      "relationship": "access",
+      "custom": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "1": [70, 230],
+      "2": [400, 230],
+      "3": [140, 90],
+      "4": [270, 90],
+      "5": [400, 90],
+      "6": [530, 90],
+      "7": [660, 90],
+      "8": [280, 370],
+      "9": [520, 370],
+      "10": [70, 370],
+      "11": [660, 230],
+      "12": [820, 230],
+      "13": [970, 165],
+      "14": [970, 295]
+    }
+  },
+  "settings": {
+    "styleBy": "function",
+    "styles": {
+      "function": {
+        "groups": [
+          {
+            "value": "consultation-room",
+            "look": { "windowFraction": 0.25, "windowLayout": "stretch" }
+          },
+          {
+            "value": "outdoor-entry",
+            "look": { "walls": "open", "roof": "none" }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,357 @@
+{
+  "format": "spatial-graph-lab/project",
+  "version": 2,
+  "projectId": "project-6983c955-110c-47a9-a3cb-66221199705c",
+  "name": "Hospital starter new",
+  "description": "Five consultation rooms face the ground-floor hallway. An outdoor landing leads into Reception, and the hallway return gives access to Level 1, where a second five-bed bedroom and shared bathroom sit above the ground-floor pair.",
+  "createdAt": "2026-11-27T18:16:47.579Z",
+  "updatedAt": "2026-11-27T18:18:49.526Z",
+  "toolkit": {
+    "id": "u606-ah-hospital"
+  },
+  "attributes": {
+    "format": "spatial-graph-lab/project-attributes",
+    "formatVersion": 1,
+    "projectId": "u606-ah-hospital",
+    "schema": {
+      "nodes": [
+        {
+          "id": "beds",
+          "key": "beds",
+          "label": "Single beds",
+          "kind": "number",
+          "min": 0
+        },
+        {
+          "id": "desks",
+          "key": "desks",
+          "label": "Desks",
+          "kind": "number",
+          "min": 0
+        },
+        {
+          "id": "chairs",
+          "key": "chairs",
+          "label": "Chairs",
+          "kind": "number",
+          "min": 0
+        },
+        {
+          "id": "hasWindows",
+          "key": "hasWindows",
+          "label": "Has windows",
+          "kind": "boolean"
+        }
+      ],
+      "edges": [
+        {
+          "id": "circulationPath",
+          "key": "circulationPath",
+          "label": "On a circulation path",
+          "kind": "boolean",
+          "default": false
+        }
+      ],
+      "functionDefaults": {
+        "bedroom": {
+          "beds": 5
+        },
+        "consultation-room": {
+          "chairs": 2,
+          "desks": 1
+        },
+        "hallway": {
+          "hasWindows": true
+        },
+        "reception": {
+          "hasWindows": true
+        }
+      }
+    },
+    "baseline": "{\"nodes\":[{\"id\":\"beds\",\"key\":\"beds\",\"label\":\"Single beds\",\"kind\":\"number\",\"min\":0},{\"id\":\"desks\",\"key\":\"desks\",\"label\":\"Desks\",\"kind\":\"number\",\"min\":0},{\"id\":\"chairs\",\"key\":\"chairs\",\"label\":\"Chairs\",\"kind\":\"number\",\"min\":0},{\"id\":\"hasWindows\",\"key\":\"hasWindows\",\"label\":\"Has windows\",\"kind\":\"boolean\"}],\"edges\":[{\"id\":\"circulationPath\",\"key\":\"circulationPath\",\"label\":\"On a circulation path\",\"kind\":\"boolean\",\"default\":false}],\"functionDefaults\":{\"bedroom\":{\"beds\":5},\"consultation-room\":{\"chairs\":2,\"desks\":1},\"hallway\":{\"hasWindows\":true},\"reception\":{\"hasWindows\":true}}}"
+  },
+  "activeScenarioId": "scenario-d8efe6ac-af8c-4950-b818-d34708df9f9e",
+  "scenarios": [
+    {
+      "id": "scenario-d8efe6ac-af8c-4950-b818-d34708df9f9e",
+      "name": "Scenario 1",
+      "design": {
+        "schemaVersion": 2,
+        "metadata": {
+          "name": "Hospital starter",
+          "description": "Five consultation rooms face the ground-floor hallway. An outdoor landing leads into Reception, and the hallway return gives access to Level 1, where a second five-bed bedroom and shared bathroom sit above the ground-floor pair."
+        },
+        "nextNodeId": 15,
+        "nextEdgeId": 16,
+        "nodes": [
+          {
+            "id": 1,
+            "function": "reception",
+            "position": [-2, 0, 0],
+            "size": [2, 4, 1],
+            "custom": {}
+          },
+          {
+            "id": 2,
+            "function": "hallway",
+            "position": [0, 2, 0],
+            "size": [10, 1, 1],
+            "custom": {}
+          },
+          {
+            "id": 3,
+            "function": "consultation-room",
+            "position": [0, 0, 0],
+            "size": [2, 2, 1],
+            "custom": {}
+          },
+          {
+            "id": 4,
+            "function": "consultation-room",
+            "position": [2, 0, 0],
+            "size": [2, 2, 1],
+            "custom": {}
+          },
+          {
+            "id": 5,
+            "function": "consultation-room",
+            "position": [4, 0, 0],
+            "size": [2, 2, 1],
+            "custom": {}
+          },
+          {
+            "id": 6,
+            "function": "consultation-room",
+            "position": [6, 0, 0],
+            "size": [2, 2, 1],
+            "custom": {}
+          },
+          {
+            "id": 7,
+            "function": "consultation-room",
+            "position": [8, 0, 0],
+            "size": [2, 2, 1],
+            "custom": {}
+          },
+          {
+            "id": 8,
+            "function": "bedroom",
+            "position": [0, 3, 0],
+            "size": [4, 2, 1],
+            "custom": {}
+          },
+          {
+            "id": 9,
+            "function": "shared-bathroom",
+            "position": [4, 3, 0],
+            "size": [4, 2, 1],
+            "custom": {}
+          },
+          {
+            "id": 10,
+            "function": "outdoor-entry",
+            "position": [-3, 0, 0],
+            "size": [1, 1, 1],
+            "custom": {}
+          },
+          {
+            "id": 11,
+            "function": "hallway",
+            "position": [10, 0, 0],
+            "size": [1, 3, 1],
+            "custom": {}
+          },
+          {
+            "id": 12,
+            "function": "hallway",
+            "position": [0, 2, 1],
+            "size": [11, 1, 1],
+            "custom": {}
+          },
+          {
+            "id": 13,
+            "function": "bedroom",
+            "position": [0, 3, 1],
+            "size": [4, 2, 1],
+            "custom": {}
+          },
+          {
+            "id": 14,
+            "function": "shared-bathroom",
+            "position": [4, 3, 1],
+            "size": [4, 2, 1],
+            "custom": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": 1,
+            "source": 2,
+            "target": 1,
+            "relationship": "access",
+            "custom": {}
+          },
+          {
+            "id": 2,
+            "source": 2,
+            "target": 3,
+            "relationship": "access",
+            "custom": {}
+          },
+          {
+            "id": 3,
+            "source": 2,
+            "target": 4,
+            "relationship": "access",
+            "custom": {}
+          },
+          {
+            "id": 4,
+            "source": 2,
+            "target": 5,
+            "relationship": "access",
+            "custom": {}
+          },
+          {
+            "id": 5,
+            "source": 2,
+            "target": 6,
+            "relationship": "access",
+            "custom": {}
+          },
+          {
+            "id": 6,
+            "source": 2,
+            "target": 7,
+            "relationship": "access",
+            "custom": {}
+          },
+          {
+            "id": 7,
+            "source": 2,
+            "target": 8,
+            "relationship": "access",
+            "custom": {}
+          },
+          {
+            "id": 9,
+            "source": 10,
+            "target": 1,
+            "relationship": "access",
+            "custom": {}
+          },
+          {
+            "id": 10,
+            "source": 2,
+            "target": 11,
+            "relationship": "open",
+            "custom": {}
+          },
+          {
+            "id": 11,
+            "source": 11,
+            "target": 12,
+            "relationship": "access",
+            "custom": {}
+          },
+          {
+            "id": 12,
+            "source": 12,
+            "target": 13,
+            "relationship": "access",
+            "custom": {}
+          },
+          {
+            "id": 14,
+            "source": 13,
+            "target": 14,
+            "relationship": "access",
+            "boundaryShift": "toward-target",
+            "custom": {}
+          },
+          {
+            "id": 15,
+            "source": 8,
+            "target": 9,
+            "relationship": "access",
+            "boundaryShift": "toward-target",
+            "custom": {}
+          }
+        ],
+        "diagram": {
+          "positions": {
+            "1": [70, 230],
+            "2": [400, 230],
+            "3": [140, 90],
+            "4": [270, 90],
+            "5": [400, 90],
+            "6": [530, 90],
+            "7": [660, 90],
+            "8": [280, 370],
+            "9": [520, 370],
+            "10": [70, 370],
+            "11": [660, 230],
+            "12": [820, 230],
+            "13": [970, 165],
+            "14": [970, 295]
+          }
+        },
+        "settings": {
+          "styleBy": "function",
+          "styles": {
+            "function": {
+              "groups": [
+                {
+                  "value": "consultation-room",
+                  "look": {
+                    "windowFraction": 0.25,
+                    "windowLayout": "stretch"
+                  }
+                },
+                {
+                  "value": "outdoor-entry",
+                  "look": {
+                    "walls": "open",
+                    "roof": "none"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "facePreferences": {
+        "14": {
+          "nodeId": 13,
+          "offset": [3, 1, 0],
+          "direction": "+x"
+        },
+        "15": {
+          "nodeId": 8,
+          "offset": [3, 1, 0],
+          "direction": "+x"
+        }
+      },
+      "cameras": [],
+      "display": {
+        "views": {
+          "architecture": {
+            "roofs": false
+          }
+        }
+      }
+    }
+  ],
+  "settings": {
+    "display": {
+      "labels": true,
+      "legend": true,
+      "roofs": true,
+      "colourPreset": "by-function",
+      "lighting": "default"
+    }
+  },
+  "assets": {
+    "policy": "none"
+  }
+}
