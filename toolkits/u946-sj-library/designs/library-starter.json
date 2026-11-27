@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "Library starter",
+    "description": "A single-storey library with a central reading hall. The staff office and toilets open off the entrance, and a four-desk study room sits beyond the hall."
+  },
+  "nextNodeId": 6,
+  "nextEdgeId": 5,
+  "nodes": [
+    { "id": 1, "function": "entrance", "position": [1, 3, 0], "size": [1, 1, 1], "custom": {} },
+    { "id": 2, "function": "library-hall", "position": [0, 1, 0], "size": [3, 2, 1], "custom": { "bookshelves": 6 } },
+    { "id": 3, "function": "private-study-areas", "position": [0, 0, 0], "size": [3, 1, 1], "custom": { "desks": 4 } },
+    { "id": 4, "function": "staff-office", "position": [0, 3, 0], "size": [1, 1, 1], "custom": {} },
+    { "id": 5, "function": "toilets", "position": [2, 3, 0], "size": [1, 1, 1], "custom": {} }
+  ],
+  "edges": [
+    { "id": 1, "source": 1, "target": 2, "relationship": "open", "custom": {} },
+    { "id": 2, "source": 2, "target": 3, "relationship": "access", "custom": {} },
+    { "id": 3, "source": 1, "target": 4, "relationship": "access", "custom": {} },
+    { "id": 4, "source": 1, "target": 5, "relationship": "access", "custom": {} }
+  ],
+  "diagram": { "positions": { "1": [200, 360], "2": [200, 200], "3": [200, 40], "4": [0, 360], "5": [400, 360] } },
+  "settings": { "styleBy": "function", "styles": {} }
+}

@@ -1,0 +1,1 @@
+Draw your design in a Library project and export it with Project > Export project. Save your chosen scenario's design object as designs/<name>.json with a metadata.name and metadata.description. Run the toolkit check again, then use Open toolkit design to open it.
