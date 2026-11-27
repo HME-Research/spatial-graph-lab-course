@@ -152,6 +152,15 @@ export function projectFileName(name: string): string {
   return `${slug || 'project'}.project.json`;
 }
 
+/** File name for an exported design (the shape `toolkits/<name>/designs/*.json` takes): `<slug>.json`. */
+export function designFileName(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `${slug || 'design'}.json`;
+}
+
 export const DEFAULT_PROJECT_NAME = 'Untitled project';
 
 /**

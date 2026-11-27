@@ -2,7 +2,7 @@ import { defineToolkit } from '@student-api';
 
 /** Give every room the same fields; Functions below provide their own defaults. */
 export default defineToolkit({
-  name: 'HE Small Library',
+  name: 'u000-he-small-library',
   defaultDesign: 'acoustic-library',
   custom: {
     nodes: {

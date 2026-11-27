@@ -51,9 +51,9 @@
 <summary class="card-head"><span class="badge">01</span><div><h2>Check your branch</h2><p class="sub">First, in VS Code's terminal.</p></div></summary>
 <div class="card-body">
 <div class="code"><pre>git branch --show-current</pre></div>
-<p class="see"><code>toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span></code>, not <code>main</code>.</p>
+<p class="see"><code>toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span></code>, not <code>main</code>.</p>
 <details class="more"><summary>It shows <code>main</code></summary><div class="more-body">
-<div class="code"><pre data-fill>git switch toolkit/&lt;your-toolkit-name&gt;</pre></div>
+<div class="code"><pre data-fill>git switch toolkit/&lt;your-name-tag&gt;</pre></div>
 </div></details>
 <details class="more"><summary>I have no branch yet</summary><div class="more-body"><p>Make it first: <a href="10-make-your-branch.html#branch">Make your branch and send it to GitHub</a>.</p></div></details>
 </div>
@@ -148,7 +148,7 @@ Algorithms: ___</pre></div></li>
 <div class="code"><pre data-fill>git commit -m "feat(&lt;your-toolkit-name&gt;): first version of my toolkit"</pre></div>
 <p class="help-link">Git says “Please tell me who you are”? <a href="16-help.html#h-identity">Do this once</a>, then commit again.</p>
 <div class="code"><pre>git push</pre></div>
-<p class="see"><code>toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span> -&gt; toolkit/<span data-toolkit-name>&lt;your-toolkit-name&gt;</span></code>.</p>
+<p class="see"><code>toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span> -&gt; toolkit/<span data-name-tag>&lt;your-name-tag&gt;</span></code>.</p>
 <div class="done-when"><p><code>PASSED</code>, the push went through, and <a href="13-hand-in.html#check">a green ✓</a> appears beside your latest commit on GitHub.</p></div>
 </div>
 </details>
@@ -173,9 +173,9 @@ Algorithms: ___</pre></div></li>
 <div class="code ref"><pre data-ref data-fill data-block="commands:chat">git status
 # the first line must say "On branch main"; on another branch? run git switch main first
 git pull
-git switch -c toolkit/&lt;your-toolkit-name&gt;
-git commit --allow-empty -m "chore(&lt;your-toolkit-name&gt;): start my toolkit"
-git push -u origin toolkit/&lt;your-toolkit-name&gt;
+git switch -c toolkit/&lt;your-name-tag&gt;
+git commit --allow-empty -m "chore(&lt;your-name-tag&gt;): start my branch"
+git push -u origin toolkit/&lt;your-name-tag&gt;
 # this puts your branch on GitHub: you must see * [new branch]
 # unzip: the folder must end up at toolkits/&lt;your-toolkit-name&gt;/ (toolkit.ts directly inside it)
 # first time on this computer only:
