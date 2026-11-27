@@ -1,0 +1,303 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "Community Resilience Courtyard",
+    "description": "Six homes around a central shared space and a step-free circulation loop, with a medical centre, resource hub and two shelters. Single-storey concept; illustrative population 36 and shelter capacity 48. Accessibility is a design intention, not a verified assessment."
+  },
+  "nextNodeId": 16,
+  "nextEdgeId": 19,
+  "nodes": [
+    {
+      "id": 1,
+      "function": "circulation",
+      "position": [3, 3, 0],
+      "size": [4, 4, 1],
+      "custom": {
+        "wheelchairAccessible": true
+      }
+    },
+    {
+      "id": 2,
+      "function": "residential",
+      "position": [2, 8, 0],
+      "size": [2, 2, 1],
+      "custom": {
+        "residentCount": 6,
+        "limitedMobilityResidents": 1
+      }
+    },
+    {
+      "id": 3,
+      "function": "residential",
+      "position": [4, 8, 0],
+      "size": [2, 2, 1],
+      "custom": {
+        "residentCount": 6,
+        "limitedMobilityResidents": 1
+      }
+    },
+    {
+      "id": 4,
+      "function": "residential",
+      "position": [6, 8, 0],
+      "size": [2, 2, 1],
+      "custom": {
+        "residentCount": 6,
+        "limitedMobilityResidents": 1
+      }
+    },
+    {
+      "id": 5,
+      "function": "residential",
+      "position": [2, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {
+        "residentCount": 6,
+        "limitedMobilityResidents": 1
+      }
+    },
+    {
+      "id": 6,
+      "function": "residential",
+      "position": [4, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {
+        "residentCount": 6,
+        "limitedMobilityResidents": 1
+      }
+    },
+    {
+      "id": 7,
+      "function": "residential",
+      "position": [6, 0, 0],
+      "size": [2, 2, 1],
+      "custom": {
+        "residentCount": 6,
+        "limitedMobilityResidents": 1
+      }
+    },
+    {
+      "id": 8,
+      "function": "medical-centre",
+      "position": [8, 5, 0],
+      "size": [2, 2, 1],
+      "custom": {
+        "medicalCapacity": 12
+      }
+    },
+    {
+      "id": 9,
+      "function": "resource-hub",
+      "position": [8, 3, 0],
+      "size": [2, 2, 1],
+      "custom": {
+        "resourceCapacity": 48
+      }
+    },
+    {
+      "id": 10,
+      "function": "emergency-shelter",
+      "position": [0, 5, 0],
+      "size": [2, 2, 1],
+      "custom": {
+        "shelterCapacity": 24
+      }
+    },
+    {
+      "id": 11,
+      "function": "emergency-shelter",
+      "position": [0, 3, 0],
+      "size": [2, 2, 1],
+      "custom": {
+        "shelterCapacity": 24
+      }
+    },
+    {
+      "id": 12,
+      "function": "circulation",
+      "position": [2, 7, 0],
+      "size": [6, 1, 1],
+      "custom": {
+        "wheelchairAccessible": true
+      }
+    },
+    {
+      "id": 13,
+      "function": "circulation",
+      "position": [7, 3, 0],
+      "size": [1, 4, 1],
+      "custom": {
+        "wheelchairAccessible": true
+      }
+    },
+    {
+      "id": 14,
+      "function": "circulation",
+      "position": [2, 2, 0],
+      "size": [6, 1, 1],
+      "custom": {
+        "wheelchairAccessible": true
+      }
+    },
+    {
+      "id": 15,
+      "function": "circulation",
+      "position": [2, 3, 0],
+      "size": [1, 4, 1],
+      "custom": {
+        "wheelchairAccessible": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source": 12,
+      "target": 13,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "source": 13,
+      "target": 14,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "source": 14,
+      "target": 15,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "source": 15,
+      "target": 12,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "source": 1,
+      "target": 12,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "source": 1,
+      "target": 13,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "source": 1,
+      "target": 14,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "source": 1,
+      "target": 15,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "source": 2,
+      "target": 12,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "source": 3,
+      "target": 12,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 11,
+      "source": 4,
+      "target": 12,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 12,
+      "source": 5,
+      "target": 14,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 13,
+      "source": 6,
+      "target": 14,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 14,
+      "source": 7,
+      "target": 14,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 15,
+      "source": 8,
+      "target": 13,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 16,
+      "source": 9,
+      "target": 13,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 17,
+      "source": 10,
+      "target": 15,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 18,
+      "source": 11,
+      "target": 15,
+      "relationship": "access",
+      "custom": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "1": [400, 300],
+      "2": [200, -100],
+      "3": [400, -100],
+      "4": [600, -100],
+      "5": [200, 700],
+      "6": [400, 700],
+      "7": [600, 700],
+      "8": [850, 150],
+      "9": [850, 450],
+      "10": [-50, 150],
+      "11": [-50, 450],
+      "12": [400, 100],
+      "13": [650, 300],
+      "14": [400, 500],
+      "15": [150, 300]
+    }
+  },
+  "settings": {
+    "styleBy": "function",
+    "styles": {}
+  }
+}

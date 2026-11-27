@@ -40,7 +40,23 @@ Limited mobility, wheelchair accessibility, medical capacity and resource capaci
 
 ## Designs (`designs/`)
 
-Only `designs/README.md` is supplied. Draw your own designs; `toolkit.ts` has no `defaultDesign`. Once you add your exported design, **Open toolkit design…** will list it.
+**Community Resilience Courtyard** (`community-resilience-courtyard.json`) is a generated concept requested by the student after the initial toolkit was created. Open it through **Open toolkit design…**. `toolkit.ts` still has no `defaultDesign`.
+
+Six homes sit north and south of a central shared space, with a yellow medical centre and a resource hub to the east and two shelters to the west. Four circulation strips form a loop around the shared space. Every node is on the ground floor, every connected pair shares a face, and no nodes overlap. The central public space uses Circulation; this is an abstract shared-space volume, not a detailed landscaped outdoor courtyard.
+
+| Node ids | Programme | Dimensions | Illustrative values |
+|---|---|---|---|
+| 1 | Central shared space | 12 x 12 m | Wheelchair accessible: true |
+| 2-7 | Six homes | 6 x 6 m each | 6 residents each, including 1 with limited mobility |
+| 8 | Medical centre | 6 x 6 m | 12 people served per day |
+| 9 | Resource hub | 6 x 6 m | 48 person-day supply kits |
+| 10-11 | Two shelters | 6 x 6 m each | 24 places each |
+| 12, 14 | North/south circulation | 18 x 3 m each | Wheelchair accessible: true |
+| 13, 15 | East/west circulation | 3 x 12 m each | Wheelchair accessible: true |
+
+These population, service and shelter numbers are learning assumptions, not verified operational capacities or space standards. All volumes are 3 m high. The wheelchair flag records intent; door widths, slopes, toilets, flood levels and evacuation safety still require design assessment.
+
+Run **Emergency Shelter Accessibility**: all six residences should be reachable in **3 connections**. Run **Shelter Capacity Assessment**: one component, population **36**, shelter capacity **48**, **Sufficient**. The ring offers an alternative graph route if one ring relationship is removed, although each home still has a single connection to the ring. Removing both shelters should make all residences unreachable. Reducing both shelter capacities to 12 should produce a shortage: 36 residents versus 24 places.
 
 ## How to try it
 
@@ -52,4 +68,4 @@ Only `designs/README.md` is supplied. Draw your own designs; `toolkit.ts` has no
 6. Clear the shelter capacity and rerun: its component becomes Unknown, with a partial capacity sum and the shelter's id reported. Restore capacity, then clear resident count: population is partial and the component is Unknown. Enter zero to distinguish a known zero from missing data.
 7. Test an isolated residence with population 5: it is its own insufficient component with no shelters. Remove all shelters: accessibility highlights all residences, while capacity reports no shelters per component. On an empty graph both analyses explain that there is nothing to assess.
 
-The toolkit check validates definitions but cannot run algorithms on an example until you supply a design. These manual steps exercise their behaviour without adding a generated design. Analyses never edit your design; use **Clear** to remove their overlays.
+The toolkit check now runs both algorithms on Community Resilience Courtyard as the first supplied design. The manual steps above also let you explore empty graphs, missing values and disconnected nodes. Analyses never edit your design; use **Clear** to remove their overlays.
