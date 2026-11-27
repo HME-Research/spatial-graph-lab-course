@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "Garden Villa",
+    "description": "A small courtyard villa: four bedrooms, a kitchen, a living room and a study around a central light well, with a front and a rear garden of about 100 m² each."
+  },
+  "nextNodeId": 11,
+  "nextEdgeId": 14,
+  "nodes": [
+    {
+      "id": 1,
+      "function": "garden",
+      "position": [0, 0, 0],
+      "size": [6, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "function": "garden",
+      "position": [0, 6, 0],
+      "size": [6, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "function": "kitchen",
+      "position": [0, 2, 0],
+      "size": [2, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "function": "study",
+      "position": [2, 2, 0],
+      "size": [2, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "function": "living",
+      "position": [4, 2, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "function": "courtyard",
+      "position": [2, 3, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "function": "bedroom",
+      "position": [0, 3, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "function": "bedroom",
+      "position": [4, 4, 0],
+      "size": [2, 2, 1],
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "function": "bedroom",
+      "position": [0, 5, 0],
+      "size": [2, 1, 1],
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "function": "bedroom",
+      "position": [2, 5, 0],
+      "size": [2, 1, 1],
+      "custom": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": 1,
+      "source": 3,
+      "target": 4,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 2,
+      "source": 4,
+      "target": 5,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 3,
+      "source": 3,
+      "target": 7,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 4,
+      "source": 7,
+      "target": 9,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 5,
+      "source": 5,
+      "target": 8,
+      "relationship": "access",
+      "custom": {}
+    },
+    {
+      "id": 6,
+      "source": 5,
+      "target": 6,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 7,
+      "source": 4,
+      "target": 6,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 8,
+      "source": 6,
+      "target": 7,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 9,
+      "source": 6,
+      "target": 8,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 10,
+      "source": 6,
+      "target": 10,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 11,
+      "source": 1,
+      "target": 5,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 12,
+      "source": 2,
+      "target": 10,
+      "relationship": "open",
+      "custom": {}
+    },
+    {
+      "id": 13,
+      "source": 2,
+      "target": 9,
+      "relationship": "open",
+      "custom": {}
+    }
+  ],
+  "diagram": {
+    "positions": {
+      "1": [250, 50],
+      "2": [250, 650],
+      "3": [50, 250],
+      "4": [250, 250],
+      "5": [450, 250],
+      "6": [250, 350],
+      "7": [50, 350],
+      "8": [450, 450],
+      "9": [50, 550],
+      "10": [250, 550]
+    }
+  },
+  "settings": {
+    "styleBy": "function",
+    "styles": {}
+  }
+}
