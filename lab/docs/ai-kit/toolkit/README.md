@@ -6,7 +6,7 @@ Using a coding agent inside the repository instead (for example Claude Code in V
 
 1. Open a new chat and **attach the zip**.
 2. Send the prompt from the app (or from `TOOLKITS.md` › Route B) with the blanks filled in: toolkit name (e.g. `u123-hk-house`), idea, Functions, algorithms, example design.
-3. Save the folder it gives you at `toolkits/<your-toolkit-name>/` in your copy of the repository, on your branch `toolkit/<your-toolkit-name>`.
+3. Save the folder it gives you at `toolkits/<your-toolkit-name>/` in your copy of the repository, on your branch `toolkit/<your-name-tag>`.
 4. Run `npm run check:toolkit -- -t <your-toolkit-name>` and `npm run typecheck`, try it with `npm run dev`, then commit only your folder and push your branch. The exact commands are in `TOOLKITS.md` › Route B.
 5. If a check or the app shows an error, paste the whole message back into the chat and ask it to fix exactly that.
 

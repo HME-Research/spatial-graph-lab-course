@@ -21,7 +21,7 @@ You draw rooms (nodes) and their relationships (edges); the app shows the same d
 
 ## The one rule
 
-You work **only** in your own folder **`toolkits/<your-toolkit-name>/`**, on your own branch **`toolkit/<your-toolkit-name>`**. Your toolkit name is like `u123-hk-house`: `u`, the last 3 digits of your student number, your initials and a short name ([tutorial page 10](tutorial/10-make-your-branch.html)). Never change anything else: `lab/` is the app itself, `toolkits/house/` is the House example, and the files at the root set up the build. Never commit to `main`. A check on GitHub flags any branch that changes files outside its toolkit folder.
+You work **only** in your own folder **`toolkits/<your-toolkit-name>/`**, on your own branch **`toolkit/<your-name-tag>`**. Your name tag is like `u123-hk`: `u`, the last 3 digits of your student number and your initials. Your branch is `toolkit/u123-hk`, and your toolkit name is your name tag plus a short name, like `u123-hk-house` ([tutorial page 10](tutorial/10-make-your-branch.html)). Never change anything else: `lab/` is the app itself, `toolkits/house/` is the House example, and the files at the root set up the build. Never commit to `main`. A check on GitHub flags any branch that changes files outside its toolkit folder.
 
 Using a coding agent (Claude Code, Codex, Copilot, Cursor…)? It reads [`AGENTS.md`](AGENTS.md), which gives it the same rules.
 
