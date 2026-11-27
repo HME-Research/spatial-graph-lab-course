@@ -23,6 +23,10 @@
 ## Algorithms (`algorithms/`)
 
 - **Ensuite check** (design analysis, Analyse › Network): a Bedroom has an Ensuite when a relationship (Access or Open) joins them. It highlights every Bedroom without an Ensuite or with more than one, and every Ensuite joined to no Bedroom or shared by several. The big number is how many rooms have a problem (0 = all fine).
+- **Generate flat** (transform, Transform; run it on a new empty project): draws a whole flat as rooms and relationships. A long shared Living room (one cell per bedroom column) with the Dining kitchen (2 cells) at one end and the Laundry at the other; every Bedroom opens off the Living room (Access) and has its own Ensuite behind it (Access). Parameters:
+  - *Number of bedrooms*, 1–16 (default 6);
+  - *Bedroom layout*, `one-side` (default) or `both-sides` of the Living room;
+  - *Bigger bedrooms* (default on): asks each Bedroom–Ensuite wall to move 1.5 m into the Ensuite (a boundary shift), so the Bedroom is 13.5 m² and the Ensuite 4.5 m² as built.
 
 ## Designs (`designs/`)
 
@@ -32,5 +36,5 @@ None yet: draw them in the app and add them here (see `designs/README.md`).
 
 1. `npm run check:toolkit -- -t u150-my-studentaccom` and `npm run typecheck`
 2. `npm run dev`, open `http://localhost:5173/?toolkit=u150-my-studentaccom`, **Create project**
-3. Draw two Bedrooms and two Ensuites next to them, and join only one pair with an Access relationship.
-4. Analyse › Network › **Ensuite check**: it shows 2 and highlights the unjoined Bedroom and Ensuite. Join the second pair and run it again: it shows 0.
+3. Transform › **Generate flat**: set the parameters, **Run**, look at the preview, **Apply**.
+4. Analyse › Network › **Ensuite check**: it shows 0 (every Bedroom has its own Ensuite). Delete one relationship between a Bedroom and its Ensuite and run it again: it shows 2 and highlights both rooms.
