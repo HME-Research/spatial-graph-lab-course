@@ -1,4 +1,4 @@
-# Student accommodation
+# u150-my-studentaccom — student accommodation
 
 **What it is for:** standard student accommodation: private Bedrooms, each with its own Ensuite, off a Hallway that also leads to a shared open-plan Living room and Dining kitchen and a Laundry, entered through an Entrance. Every room has a wall to the outside for daylight. Its analyses check that every Bedroom has exactly one Ensuite (and the other way round), and that every room has an outside wall.
 

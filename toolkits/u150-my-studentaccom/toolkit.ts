@@ -1,16 +1,16 @@
 import { defineToolkit } from '@student-api';
 
 /**
- * Student accommodation: bedrooms with their own ensuite, around a shared living room,
- * dining kitchen and laundry.
+ * u150-my-studentaccom: student accommodation, bedrooms with their own ensuite off a hallway,
+ * an open-plan living room and dining kitchen, and a laundry.
  *
- * - `name` is what the app shows ("Toolkit: Student accommodation").
+ * - `name` is exactly the folder name (the toolkit name): the app shows it ("Toolkit: u150-my-studentaccom").
  * - No `defaultDesign` yet: you draw your designs in the app and add them to `designs/`.
  * - `custom` lists attributes that EVERY room of a project with this toolkit has. A Function
  *   gives its own default for one of them (see `functions/`).
  */
 export default defineToolkit({
-  name: 'Student accommodation',
+  name: 'u150-my-studentaccom',
   custom: {
     nodes: {
       beds: {
