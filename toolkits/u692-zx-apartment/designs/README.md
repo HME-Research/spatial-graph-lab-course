@@ -8,7 +8,7 @@ Your designs go here, one schema-v2 `.json` file each. They are yours to draw: f
 2. **Project › Export project** gives a `.project.json` file. Ask your AI: "Take the design of the scenario *name* from this project file and give me it as `designs/<name>.json` for my toolkit, with a `metadata.name` and `metadata.description`."
 3. Save it here as `designs/<name>.json`. Run `npm run check:toolkit -- -t u692-zx-apartment` again: it now runs every algorithm on your first design.
 
-Its file name (without `.json`) is its design id; `metadata.name` and `metadata.description` are what **Open toolkit design…** shows under *Toolkit: ZX Quiet bedrooms*.
+Its file name (without `.json`) is its design id; `metadata.name` and `metadata.description` are what **Open toolkit design…** shows under *Toolkit: u692-zx-apartment*.
 
 - Optional: name one design as `defaultDesign` in `toolkit.ts`; new projects then start from it and the checks run every algorithm on it. Keep it small and valid.
 - Every node's `"function"` should be one of this toolkit's ids (`bedroom`, `kitchen`, `bathroom`, `living-room`, `balcony`, `entrance`); custom values go under `"custom"`.

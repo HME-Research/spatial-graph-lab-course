@@ -4,13 +4,13 @@ import { defineToolkit } from '@student-api';
  * ZX Quiet bedrooms: small family apartments arranged around an entrance, checked for quiet,
  * private Bedrooms.
  *
- * - `name` is what the app shows ("Toolkit: ZX Quiet bedrooms").
+ * - `name` is what the app shows ("Toolkit: u692-zx-apartment").
  * - No `defaultDesign` yet: the designs are drawn in the app and added to `designs/` later.
  * - `custom` lists attributes that EVERY node of a project with this toolkit has. Each one belongs
  *   to one Function, which gives it its own default (see `functions/`); other rooms have no value.
  */
 export default defineToolkit({
-  name: 'ZX Quiet bedrooms',
+  name: 'u692-zx-apartment',
   custom: {
     nodes: {
       beds: {
