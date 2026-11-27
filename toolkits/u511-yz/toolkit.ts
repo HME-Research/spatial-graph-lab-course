@@ -2,7 +2,7 @@ import { defineToolkit } from '@student-api';
 
 // Give the project readable field labels without supplying assumed values.
 export default defineToolkit({
-  name: 'Community Resilience Toolkit',
+  name: 'u511-yz',
   custom: {
     nodes: {
       residentCount: { kind: 'number', min: 0, label: 'Resident count' },
