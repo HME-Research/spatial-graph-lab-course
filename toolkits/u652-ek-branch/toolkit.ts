@@ -1,5 +1,6 @@
 import { defineToolkit } from '@student-api';
 
+// Declare the house vocabulary; you will draw its rooms and relationships in the app.
 export default defineToolkit({
   name: 'Two-Storey Family House',
   custom: {

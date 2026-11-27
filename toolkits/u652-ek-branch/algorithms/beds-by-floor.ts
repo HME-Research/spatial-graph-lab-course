@@ -1,6 +1,5 @@
 import { defineDesignAnalysis } from '@student-api';
-import bedroom from '../functions/bedroom';
-import masterBedroom from '../functions/master-bedroom';
+import { bedroomFunctionIds } from '../lib/bedrooms';
 
 /** Adds recorded bedroom bed counts by level and reports the total. */
 export default defineDesignAnalysis({
@@ -9,18 +8,20 @@ export default defineDesignAnalysis({
   description: 'Counts the recorded number of beds on each level and shows the total.',
   inputs: [],
   uses: {
-    functions: [bedroom.id, masterBedroom.id],
+    functions: bedroomFunctionIds,
     nodeFields: ['bedCount'],
   },
   run(ctx) {
+    // Start each drawn level at zero, including levels without bedrooms.
     const bedsByLevel: Record<number, number> = {};
+    for (const room of ctx.design.nodes) bedsByLevel[room.position[2]] = 0;
     const bedroomIds: number[] = [];
     let totalBeds = 0;
     let missingCounts = 0;
 
     // Collect each bedroom's recorded beds at its storey level.
     for (const room of ctx.design.nodes) {
-      if (room.function !== bedroom.id && room.function !== masterBedroom.id) continue;
+      if (!bedroomFunctionIds.includes(room.function)) continue;
       bedroomIds.push(room.id);
       const beds = room.custom.bedCount;
       if (typeof beds !== 'number') {
@@ -42,7 +43,7 @@ export default defineDesignAnalysis({
     let text: string;
     if (bedroomIds.length === 0) {
       text = 'No bedrooms have been added yet.';
-    } else if (floors.length === 0) {
+    } else if (missingCounts === bedroomIds.length) {
       text = `No bed counts are recorded for the ${bedroomIds.length} bedroom(s).`;
     } else {
       text = `${floors.join('; ')}. Total: ${totalBeds} bed(s).`;

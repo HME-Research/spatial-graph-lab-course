@@ -1,6 +1,5 @@
 import { defineSpatialAlgorithm, type SpatialOperation } from '@student-api';
-import bedroom from '../functions/bedroom';
-import masterBedroom from '../functions/master-bedroom';
+import { bedroomFunctionIds } from '../lib/bedrooms';
 
 /** Sets bedrooms larger than 12 m² to two beds. */
 export default defineSpatialAlgorithm({
@@ -11,13 +10,11 @@ export default defineSpatialAlgorithm({
 
     // Set two beds in each bedroom whose nominal area is greater than 12 m².
     for (const room of ctx.design.nodes) {
-      if (room.function !== bedroom.id && room.function !== masterBedroom.id) continue;
+      if (!bedroomFunctionIds.includes(room.function)) continue;
       const area = ctx.metrics.value('area', room.id);
       if (typeof area !== 'number' || area <= 12) continue;
-      const currentBeds =
-        room.function === bedroom.id
-          ? ctx.customOf(room, bedroom).bedCount
-          : ctx.customOf(room, masterBedroom).bedCount;
+      // Read the room's own bed count, or its Function's default.
+      const currentBeds = ctx.nodeCustom(room.id).bedCount;
       if (currentBeds === 2) continue;
       operations.push({
         op: 'set-node-custom-attribute',
