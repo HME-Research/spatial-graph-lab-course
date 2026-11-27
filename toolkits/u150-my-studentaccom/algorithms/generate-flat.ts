@@ -4,12 +4,15 @@ import ensuite from '../functions/ensuite';
 import livingRoom from '../functions/living-room';
 import diningKitchen from '../functions/dining-kitchen';
 import laundry from '../functions/laundry';
+import hallway from '../functions/hallway';
+import entrance from '../functions/entrance';
 
 /**
  * Generate flat: a transformation that draws a whole student flat as rooms and relationships.
- * It goes to the right of any rooms already drawn. The Living room is a long shared space
- * (one cell per bedroom column) with the Dining kitchen at one end and the Laundry at the other.
- * Every Bedroom opens off the Living room and has its own Ensuite behind it.
+ * It goes to the right of any rooms already drawn. One row, left to right:
+ * Dining kitchen | Living room (one cell per bedroom column) | Hallway | Entrance.
+ * You come in through the Entrance into the Hallway, which leads to the Living room and the
+ * Laundry. Every Bedroom opens off the Living room and has its own Ensuite behind it.
  * One cell is 3 × 3 m.
  */
 export default defineSpatialAlgorithm({
@@ -56,12 +59,21 @@ export default defineSpatialAlgorithm({
     const spineY = bothSides ? 2 : 0;
     const operations: SpatialOperation[] = [];
 
-    // The shared rooms in one row: Dining kitchen (2 cells), Living room, Laundry.
+    // The shared rooms in one row: Dining kitchen (2 cells), Living room, Hallway, Entrance.
+    const hallX = startX + 2 + columns;
     operations.push({ op: 'add-node', ref: 'kitchen', position: [startX, spineY, 0], size: [2, 1, 1], function: diningKitchen.id });
     operations.push({ op: 'add-node', ref: 'living', position: [startX + 2, spineY, 0], size: [columns, 1, 1], function: livingRoom.id });
-    operations.push({ op: 'add-node', ref: 'laundry', position: [startX + 2 + columns, spineY, 0], function: laundry.id });
+    operations.push({ op: 'add-node', ref: 'hallway', position: [hallX, spineY, 0], function: hallway.id });
+    operations.push({ op: 'add-node', ref: 'entrance', position: [hallX + 1, spineY, 0], function: entrance.id });
+
+    // The Laundry sits beside the Hallway (no Bedroom there, on either layout).
+    operations.push({ op: 'add-node', ref: 'laundry', position: [hallX, spineY + 1, 0], function: laundry.id });
+
+    // Entrance → Hallway → Living room; the Hallway also leads to the Laundry.
+    operations.push({ op: 'add-edge', source: 'entrance', target: 'hallway', relationship: 'access' });
+    operations.push({ op: 'add-edge', source: 'hallway', target: 'living', relationship: 'access' });
+    operations.push({ op: 'add-edge', source: 'hallway', target: 'laundry', relationship: 'access' });
     operations.push({ op: 'add-edge', source: 'kitchen', target: 'living', relationship: 'open' });
-    operations.push({ op: 'add-edge', source: 'living', target: 'laundry', relationship: 'access' });
 
     // Each Bedroom touches the Living room; its Ensuite sits one cell further out.
     for (let i = 0; i < bedrooms; i++) {
@@ -88,7 +100,7 @@ export default defineSpatialAlgorithm({
 
     return {
       kind: 'transformation',
-      summary: `A flat with ${bedrooms} Bedroom(s) and Ensuite(s), a Living room, a Dining kitchen and a Laundry.`,
+      summary: `A flat with an Entrance, a Hallway, ${bedrooms} Bedroom(s) and Ensuite(s), a Living room, a Dining kitchen and a Laundry.`,
       operations,
     };
   },

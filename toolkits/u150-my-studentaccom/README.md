@@ -1,6 +1,6 @@
 # Student accommodation
 
-**What it is for:** standard student accommodation: private Bedrooms, each with its own Ensuite, around a shared Living room, Dining kitchen and Laundry. Its analysis checks that every Bedroom has exactly one Ensuite and every Ensuite belongs to exactly one Bedroom.
+**What it is for:** standard student accommodation: private Bedrooms, each with its own Ensuite, around a shared Living room, Dining kitchen and Laundry, entered through an Entrance and a Hallway. Its analysis checks that every Bedroom has exactly one Ensuite and every Ensuite belongs to exactly one Bedroom.
 
 **Toolkit name:** `u150-my-studentaccom` (the folder name). Open the app with `?toolkit=u150-my-studentaccom`.
 
@@ -13,6 +13,8 @@
 | `living-room` | Living room | `#e8a33d` | 0.60 | beds 0 |
 | `dining-kitchen` | Dining kitchen | `#d9694a` | 0.50 | beds 0 |
 | `laundry` | Laundry | `#9b9a8f` | 0.10 | beds 0 |
+| `entrance` | Entrance | `#c96fa8` | 0.30 | beds 0 |
+| `hallway` | Hallway | `#b9b4a6` | 0.10 | beds 0 |
 
 ## Custom attributes (`toolkit.ts`)
 
@@ -23,7 +25,7 @@
 ## Algorithms (`algorithms/`)
 
 - **Ensuite check** (design analysis, Analyse › Network): a Bedroom has an Ensuite when a relationship (Access or Open) joins them. It highlights every Bedroom without an Ensuite or with more than one, and every Ensuite joined to no Bedroom or shared by several. The big number is how many rooms have a problem (0 = all fine).
-- **Generate flat** (transform, Transform): draws a whole flat as rooms and relationships, to the right of any rooms already in the design (one empty cell between). A long shared Living room (one cell per bedroom column) with the Dining kitchen (2 cells) at one end and the Laundry at the other; every Bedroom opens off the Living room (Access) and has its own Ensuite behind it (Access). Parameters:
+- **Generate flat** (transform, Transform): draws a whole flat as rooms and relationships, to the right of any rooms already in the design (one empty cell between). One row, left to right: Dining kitchen (2 cells, Open to the Living room) | Living room (one cell per bedroom column) | Hallway | Entrance. You come in through the Entrance into the Hallway (Access), which leads to the Living room (Access) and to the Laundry beside it (Access); every Bedroom opens off the Living room (Access) and has its own Ensuite behind it (Access). Parameters:
   - *Number of bedrooms*, 1–16 (default 6);
   - *Bedroom layout*, `one-side` (default) or `both-sides` of the Living room;
   - *Bigger bedrooms* (default on): asks each Bedroom–Ensuite wall to move 1.5 m into the Ensuite (a boundary shift), so the Bedroom is 13.5 m² and the Ensuite 4.5 m² as built.
