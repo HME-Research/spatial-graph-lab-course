@@ -15,6 +15,8 @@
   var NAME_RULE = /^[a-z][a-z0-9_-]*$/; // what the app accepts as a toolkit folder name
   var NOREPLY = /^[^\s@]+@users\.noreply\.github\.com$/i;
   var PH_NAME = '<your-toolkit-name>';
+  var PH_TAG = '<your-name-tag>'; // u123-hk: the first two parts of the toolkit name; the branch is toolkit/<your-name-tag>
+  function tagOf(name) { return name ? name.split('-').slice(0, 2).join('-') : ''; }
   var root = document.documentElement;
 
   function get(key) {
@@ -171,7 +173,7 @@
     each('pre[data-fill]', function (pre) {
       if (pre.getAttribute('data-original') === null) pre.setAttribute('data-original', pre.textContent);
       var text = pre.getAttribute('data-original');
-      if (name) text = text.split(PH_NAME).join(name);
+      if (name) text = text.split(PH_NAME).join(name).split(PH_TAG).join(tagOf(name));
       text = text.replace(/<(your-github-username|your-no-reply-email|what-changed)>/g, function (m, v) { return varValue(v) || m; });
       paintPlaceholders(pre, text);
     });
@@ -182,6 +184,7 @@
       }
     });
     each('[data-toolkit-name]', function (el) { el.textContent = name || PH_NAME; toggleClass(el, 'ph', !name); });
+    each('[data-name-tag]', function (el) { el.textContent = tagOf(name) || PH_TAG; toggleClass(el, 'ph', !name); });
     each('a[data-localhost]', function (a) {
       a.href = 'http://localhost:5173/' + (name ? '?toolkit=' + name : '');
       a.textContent = 'http://localhost:5173/?toolkit=' + (name || PH_NAME);
@@ -293,7 +296,7 @@
         };
         // A form on this page fills these: a command is not copied until it has.
         var formVar = /<(your-github-username|your-no-reply-email|what-changed)>/.exec(text);
-        if (!isPrompt && (formVar || (hasNamer && text.indexOf(PH_NAME) >= 0))) {
+        if (!isPrompt && (formVar || (hasNamer && (text.indexOf(PH_NAME) >= 0 || text.indexOf(PH_TAG) >= 0)))) {
           done('Not yet', formVar ? 'Fill in the form above first (the orange part ' + formVar[0] + ').' : 'Make your toolkit name in the form above first.');
           return;
         }
@@ -340,7 +343,7 @@
             var m = /^(.*): ___$/.exec(line);
             if (m && m[1] === 'Toolkit name') return 'Toolkit name: ' + (name || '___');
             if (m && lines[m[1]] !== undefined) return m[1] + ': ' + (lines[m[1]] || '___');
-            return name ? line.split(PH_NAME).join(name) : line;
+            return name ? line.split(PH_NAME).join(name).split(PH_TAG).join(tagOf(name)) : line;
           });
           paintPlaceholders(pre, out.join('\n'));
         }
